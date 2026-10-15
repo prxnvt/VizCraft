@@ -14,7 +14,8 @@ egui = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 log = { workspace = true }
+# PNG encoding for `ui.screenshot` (the control channel writes window captures to disk).
+image = { workspace = true }
 
 [dev-dependencies]
 egui_kittest = { workspace = true, features = ["wgpu", "snapshot"] }
-image = { workspace = true }
