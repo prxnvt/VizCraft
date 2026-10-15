@@ -1,0 +1,185 @@
+#!/usr/bin/env bash
+# Build, sign and (optionally) notarize the macOS release artifacts:
+#
+#   $CARGO_TARGET_DIR/macos-package/<App>.app          the bundle (crafts/rebuild.sh installs it)
+#   $DIST/<crate>-<version>-macos-<arch>.dmg           the bundle on a drag-to-Applications DMG
+#   $DIST/<crate>-cli-<version>-macos-<arch>.zip       the headless CLI
+#
+# Usage: packaging/macos/package.sh [--arch universal|aarch64|x86_64] [--skip-build] [--no-dmg]
+#
+# Signing (env):
+#   MACOS_SIGN_IDENTITY   codesign identity (name or SHA-1). Default "-" = ad-hoc (local installs;
+#                         Gatekeeper rejects the result on other Macs).
+#   MACOS_KEYCHAIN        keychain holding the identity (optional)
+# Notarization (env; all three needed, and a real identity):
+#   APPLE_ID, APPLE_PASSWORD (app-specific password), APPLE_TEAM_ID
+# Other env: DIST, CARGO_TARGET_DIR, PROTOCRAFT_VERSION, PROTOCRAFT_BUILD_SHA (see ../env.sh),
+# CRAFT_FONTS_DIR (optional extra fonts; their licences are copied into the bundle).
+set -euo pipefail
+# shellcheck source=../env.sh
+. "$(dirname "${BASH_SOURCE[0]}")/../env.sh"
+HERE="$ROOT/packaging/macos"
+
+# The one place the crate names live; `cargo xtask new-craft` renames them with everything else.
+# The display name (what the bundle, the executable and the icon are called) comes from the
+# plist template, so the two cannot drift apart.
+CRATE=protocraft
+CLI_CRATE="$CRATE-cli"
+APP_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleName' "$HERE/Info.plist.in")"
+[ -n "$APP_NAME" ] || { echo "error: no CFBundleName in $HERE/Info.plist.in" >&2; exit 1; }
+
+ARCH=universal
+SKIP_BUILD=0
+MAKE_DMG=1
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --arch) ARCH="$2"; shift 2 ;;
+    --skip-build) SKIP_BUILD=1; shift ;;
+    --no-dmg) MAKE_DMG=0; shift ;;
+    -h | --help) sed -n '2,18p' "$0"; exit 0 ;;
+    *) echo "unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+case "$ARCH" in
+  universal) TARGETS=(aarch64-apple-darwin x86_64-apple-darwin) ;;
+  aarch64) TARGETS=(aarch64-apple-darwin) ;;
+  x86_64) TARGETS=(x86_64-apple-darwin) ;;
+  *) echo "unknown --arch $ARCH" >&2; exit 2 ;;
+esac
+
+# Keep in sync with LSMinimumSystemVersion in Info.plist.in.
+export MACOSX_DEPLOYMENT_TARGET=11.0
+IDENTITY="${MACOS_SIGN_IDENTITY:--}"
+SHORT_VERSION="${VERSION%%-*}"
+WORK="$CARGO_TARGET_DIR/macos-package"
+APP="$WORK/$APP_NAME.app"
+DMG="$DIST/$CRATE-$VERSION-macos-$ARCH.dmg"
+CLI_ZIP="$DIST/$CLI_CRATE-$VERSION-macos-$ARCH.zip"
+
+NOTARIZE=0
+if [ "$IDENTITY" = "-" ]; then
+  warn "macOS: ad-hoc signing (no MACOS_SIGN_IDENTITY); artifacts are not notarized"
+elif [ -n "${APPLE_ID:-}" ] && [ -n "${APPLE_PASSWORD:-}" ] && [ -n "${APPLE_TEAM_ID:-}" ]; then
+  NOTARIZE=1
+else
+  warn "macOS: APPLE_ID / APPLE_PASSWORD / APPLE_TEAM_ID incomplete; signed but not notarized"
+fi
+
+echo "==> $APP_NAME $VERSION for macOS ($ARCH), identity: $IDENTITY, notarize: $NOTARIZE, commit: ${PROTOCRAFT_BUILD_SHA:-unknown}"
+
+# ---- build -------------------------------------------------------------------------------------
+if [ "$SKIP_BUILD" = 0 ]; then
+  args=()
+  for t in "${TARGETS[@]}"; do args+=(--target "$t"); done
+  (cd "$ROOT" && cargo build --release --locked -p "$CRATE" -p "$CLI_CRATE" "${args[@]}")
+fi
+
+rm -rf "$WORK"
+mkdir -p "$WORK/bin"
+for bin in "$CRATE" "$CLI_CRATE"; do
+  inputs=()
+  for t in "${TARGETS[@]}"; do inputs+=("$CARGO_TARGET_DIR/$t/release/$bin"); done
+  lipo -create -output "$WORK/bin/$bin" "${inputs[@]}"
+  lipo -info "$WORK/bin/$bin"
+done
+
+# ---- signing helpers ---------------------------------------------------------------------------
+sign() {
+  # Hardened runtime + secure timestamp for a real identity; ad-hoc can't be timestamped.
+  local ts=(--timestamp)
+  [ "$IDENTITY" = "-" ] && ts=(--timestamp=none)
+  local kc=()
+  [ -n "${MACOS_KEYCHAIN:-}" ] && kc=(--keychain "$MACOS_KEYCHAIN")
+  codesign --force --sign "$IDENTITY" ${kc[@]+"${kc[@]}"} "${ts[@]}" "$@"
+}
+
+notarize() {
+  local file="$1" out id status
+  echo "==> notarizing $(basename "$file") (this can take a few minutes)"
+  out="$(xcrun notarytool submit "$file" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" \
+    --team-id "$APPLE_TEAM_ID" --wait --timeout 1h --output-format json)" || true
+  echo "$out"
+  id="$(printf '%s' "$out" | plutil -extract id raw -o - - 2>/dev/null || true)"
+  status="$(printf '%s' "$out" | plutil -extract status raw -o - - 2>/dev/null || true)"
+  if [ "$status" != "Accepted" ]; then
+    if [ -n "$id" ]; then
+      xcrun notarytool log "$id" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" || true
+    fi
+    echo "error: notarization of $(basename "$file") failed (status: ${status:-unknown})" >&2
+    exit 1
+  fi
+}
+
+# ---- the .app ----------------------------------------------------------------------------------
+echo "==> assembling $APP"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+# Executable and icon carry the display name (CFBundleExecutable / CFBundleIconFile).
+cp "$WORK/bin/$CRATE" "$APP/Contents/MacOS/$APP_NAME"
+cp "$ROOT/assets/app-icon/$CRATE.icns" "$APP/Contents/Resources/$APP_NAME.icns"
+# Licences of the embedded craft-fonts fonts (only when built with CRAFT_FONTS_DIR).
+copy_font_licences "$APP/Contents/Resources"
+sed -e "s/@VERSION@/$VERSION/g" -e "s/@SHORT_VERSION@/$SHORT_VERSION/g" \
+  -e "s/@BUILD_SHA@/${PROTOCRAFT_BUILD_SHA:-unknown}/g" \
+  "$HERE/Info.plist.in" >"$APP/Contents/Info.plist"
+plutil -lint "$APP/Contents/Info.plist"
+# The template must name the executable and icon the way they were just copied in.
+for key in CFBundleExecutable CFBundleIconFile; do
+  v="$(/usr/libexec/PlistBuddy -c "Print :$key" "$APP/Contents/Info.plist")"
+  [ "$v" = "$APP_NAME" ] || { echo "error: $key is '$v' in Info.plist.in; expected CFBundleName '$APP_NAME'" >&2; exit 1; }
+done
+printf 'APPL????' >"$APP/Contents/PkgInfo"
+
+# Sign inside-out: nested code first, then the bundle itself (no --deep on the final signature).
+# Today the only nested code is the main executable; frameworks/helpers would be signed here too.
+sign --options runtime --entitlements "$HERE/entitlements.plist" "$APP/Contents/MacOS/$APP_NAME"
+sign --options runtime --entitlements "$HERE/entitlements.plist" "$APP"
+codesign --verify --strict --deep --verbose=2 "$APP"
+
+if [ "$NOTARIZE" = 1 ]; then
+  ditto -c -k --keepParent "$APP" "$WORK/$APP_NAME-notarize.zip"
+  notarize "$WORK/$APP_NAME-notarize.zip"
+  xcrun stapler staple "$APP"
+  xcrun stapler validate "$APP"
+  spctl --assess --type execute -vvv "$APP"
+fi
+
+# ---- DMG ---------------------------------------------------------------------------------------
+if [ "$MAKE_DMG" = 1 ]; then
+  echo "==> building $DMG"
+  STAGE="$WORK/dmg"
+  mkdir -p "$STAGE"
+  ditto "$APP" "$STAGE/$APP_NAME.app"
+  ln -s /Applications "$STAGE/Applications"
+  rm -f "$DMG" "$WORK/raw.dmg"
+  # makehybrid + convert builds the image without attaching a device, unlike `create -srcfolder`,
+  # which is flaky on CI runners ("Resource busy") and hangs in sandboxed sessions.
+  hdiutil makehybrid -hfs -hfs-volume-name "$APP_NAME" -hfs-openfolder "$STAGE" -o "$WORK/raw.dmg" "$STAGE"
+  hdiutil convert "$WORK/raw.dmg" -format UDZO -imagekey zlib-level=9 -o "$DMG"
+  rm -f "$WORK/raw.dmg"
+  sign "$DMG"
+  codesign --verify --strict --verbose=2 "$DMG"
+  if [ "$NOTARIZE" = 1 ]; then
+    notarize "$DMG"
+    xcrun stapler staple "$DMG"
+    xcrun stapler validate "$DMG"
+    spctl --assess --type open --context context:primary-signature -vvv "$DMG"
+  fi
+fi
+
+# ---- CLI ---------------------------------------------------------------------------------------
+echo "==> building $CLI_ZIP"
+CLI_DIR="$WORK/$CLI_CRATE-$VERSION-macos-$ARCH"
+mkdir -p "$CLI_DIR"
+cp "$WORK/bin/$CLI_CRATE" "$CLI_DIR/"
+copy_docs "$CLI_DIR"
+sign --options runtime "$CLI_DIR/$CLI_CRATE"
+codesign --verify --strict --verbose=2 "$CLI_DIR/$CLI_CRATE"
+rm -f "$CLI_ZIP"
+ditto -c -k --norsrc --noextattr --keepParent "$CLI_DIR" "$CLI_ZIP"
+# A bare Mach-O can't carry a stapled ticket; Gatekeeper looks the notarization up online.
+if [ "$NOTARIZE" = 1 ]; then notarize "$CLI_ZIP"; fi
+
+echo "==> done: $APP"
+ls -lh "$APP/Contents/MacOS/$APP_NAME" "$CLI_ZIP"
+[ "$MAKE_DMG" = 1 ] && ls -lh "$DMG"
+exit 0

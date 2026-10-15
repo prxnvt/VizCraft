@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=ProtoCraft
+GenericName=Craft Baseline
+Comment=ProtoCraft desktop app; the template the craft apps are made from
+Exec=protocraft %F
+TryExec=protocraft
+Icon=ai.storyteller.protocraft
+Terminal=false
+StartupNotify=true
+StartupWMClass=ai.storyteller.protocraft
+Categories=Office;
+Keywords=craft;protocraft;
+MimeType=application/json;

@@ -30,12 +30,21 @@ The app icon is a placeholder for the baseline itself. A new craft replaces
 | `assets/fonts/OFL-Inter.txt` | (licence text) | upstream project | n/a | SIL Open Font License 1.1 text for Inter |
 | `assets/fonts/OFL-JetBrainsMono.txt` | (licence text) | upstream project | n/a | SIL Open Font License 1.1 text for JetBrains Mono |
 | `assets/app-icon/protocraft.svg` | ProtoCraft contributors | original artwork drawn by hand in SVG for this repository | MIT OR Apache-2.0 | Placeholder app icon: a rounded tile with a plinth of three bars and a block on top. Source of every rendered icon below |
+| `assets/app-icon/protocraft-1024.png` | ProtoCraft contributors | rendered from `assets/app-icon/protocraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | 1024 px master of the full-bleed tile |
+| `assets/app-icon/protocraft-macos-512.png` | ProtoCraft contributors | rendered from `assets/app-icon/protocraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | 512 px on the Apple icon grid (transparent margin); runtime window icon on macOS |
+| `assets/app-icon/protocraft.icns` | ProtoCraft contributors | rendered from `assets/app-icon/protocraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | macOS bundle icon (16 to 512 px, 1x and 2x, Apple grid); copied into the .app by `packaging/macos/package.sh` |
+| `assets/app-icon/protocraft.ico` | ProtoCraft contributors | rendered from `assets/app-icon/protocraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Windows icon (16, 20, 24, 32, 40, 48, 64, 128, 256 px), packed by `cargo xtask ico`; embedded by `apps/protocraft/build.rs` |
+| `assets/app-icon/hicolor/16x16/apps/ai.storyteller.protocraft.png` | ProtoCraft contributors | rendered from `assets/app-icon/protocraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor icon, 16 px |
+| `assets/app-icon/hicolor/24x24/apps/ai.storyteller.protocraft.png` | ProtoCraft contributors | rendered from `assets/app-icon/protocraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor icon, 24 px |
+| `assets/app-icon/hicolor/32x32/apps/ai.storyteller.protocraft.png` | ProtoCraft contributors | rendered from `assets/app-icon/protocraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor icon, 32 px |
+| `assets/app-icon/hicolor/48x48/apps/ai.storyteller.protocraft.png` | ProtoCraft contributors | rendered from `assets/app-icon/protocraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor icon, 48 px |
+| `assets/app-icon/hicolor/64x64/apps/ai.storyteller.protocraft.png` | ProtoCraft contributors | rendered from `assets/app-icon/protocraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor icon, 64 px |
+| `assets/app-icon/hicolor/128x128/apps/ai.storyteller.protocraft.png` | ProtoCraft contributors | rendered from `assets/app-icon/protocraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor icon, 128 px |
+| `assets/app-icon/hicolor/256x256/apps/ai.storyteller.protocraft.png` | ProtoCraft contributors | rendered from `assets/app-icon/protocraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor icon, 256 px |
+| `assets/app-icon/hicolor/512x512/apps/ai.storyteller.protocraft.png` | ProtoCraft contributors | rendered from `assets/app-icon/protocraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor icon, 512 px |
+| `assets/app-icon/hicolor/scalable/apps/ai.storyteller.protocraft.svg` | ProtoCraft contributors | copy of `assets/app-icon/protocraft.svg` made by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor scalable icon |
+| `packaging/linux/ai.storyteller.protocraft.desktop` | ProtoCraft contributors | written for this repository | MIT OR Apache-2.0 | Linux desktop entry (see `packaging/README.md`) |
 
-Rendered icon files: `packaging/icons.sh` writes `assets/app-icon/protocraft-1024.png`,
-`protocraft-macos-512.png`, `protocraft.icns`, `protocraft.ico` (once an `ico` xtask exists) and the
-Linux hicolor set `assets/app-icon/hicolor/<size>/apps/ai.storyteller.protocraft.png` for the
-sizes 16, 24, 32, 48, 64, 128, 256 and 512, plus `hicolor/scalable/apps/ai.storyteller.protocraft.svg`.
-The rasteriser was not installed when the baseline was made, so none of them is committed yet.
-Whoever runs the script adds one row per file in the same commit, with author "ProtoCraft
-contributors", source "rendered from `assets/app-icon/protocraft.svg` by `packaging/icons.sh`" and
-licence MIT OR Apache-2.0, in the table above.
+Rendered icon files: `packaging/icons.sh` writes every `assets/app-icon/` file listed above except
+the SVG. Rerun it after changing the SVG; the rows stay valid because the paths do not change. A
+craft that renames the icon (`new-craft` does) gets the rows renamed with it.
