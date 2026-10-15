@@ -1,0 +1,20 @@
+[package]
+name = "basecraft-ui-egui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "BaseCraft egui front end (title bar, menus, ribbon, panes, status bar, dialogs, control); swappable: nothing below depends on it"
+
+[lints]
+workspace = true
+
+[dependencies]
+basecraft-engine = { workspace = true }
+egui = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+log = { workspace = true }
+
+[dev-dependencies]
+egui_kittest = { workspace = true, features = ["wgpu", "snapshot"] }
+image = { workspace = true }

@@ -1,0 +1,45 @@
+[workspace]
+resolver = "3"
+members = ["crates/*", "apps/*", "xtask"]
+default-members = ["crates/*", "apps/basecraft", "apps/basecraft-cli", "xtask"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+rust-version = "1.90"
+repository = "https://github.com/storytold/basecraft"
+
+[workspace.dependencies]
+# internal
+basecraft-engine = { path = "crates/engine" }
+basecraft-ui-egui = { path = "crates/ui-egui" }
+basecraft-macos-open = { path = "crates/macos-open" }
+
+# foundation
+thiserror = "2"
+serde = { version = "1", features = ["derive", "rc"] }
+serde_json = { version = "1", features = ["float_roundtrip"] }
+log = "0.4"
+image = { version = "0.25", default-features = false, features = ["png"] }
+
+# ui
+egui = "0.36"
+egui_extras = { version = "0.36", default-features = false }
+eframe = { version = "0.36", default-features = false }
+egui_kittest = "0.36"
+rfd = "0.17"
+arboard = { version = "3.6", default-features = false }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+dbg_macro = "warn"
+todo = "warn"
+too_many_arguments = "allow"
+type_complexity = "allow"
+
+[profile.release]
+opt-level = 3
+debug = 1
