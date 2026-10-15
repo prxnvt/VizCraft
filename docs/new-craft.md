@@ -9,7 +9,7 @@ The example below makes "GridCraft", a spreadsheet. Replace the name and the mod
 ## 1. Create the repository
 
 ```sh
-cd ~/Workspace/crafts/basecraft
+cd ~/Workspace/crafts/protocraft
 cargo xtask new-craft gridcraft              # writes ../gridcraft
 cd ../gridcraft
 cargo xtask ci                               # proves the copy builds and passes every gate
@@ -17,14 +17,14 @@ cargo run --release -p gridcraft -- --sample
 ```
 
 `new-craft` copies the repository to a sibling folder (without `target/` and `.git/`), renames
-`basecraft`, `BaseCraft` and `BASECRAFT` in every file name and every file (crate and package
+`protocraft`, `ProtoCraft` and `PROTOCRAFT` in every file name and every file (crate and package
 names, the binaries, the bundle id `ai.storyteller.gridcraft`, the preferences folder
 `GridCraft`, `GRIDCRAFT_CONTROL_PORT` and `GRIDCRAFT_NO_PREFS`, the icon file names, these docs),
 and runs `git init` with one commit. The name must be lowercase ASCII letters; the capitalised
 form is the lowercase form with its first letter raised, so choose a name that reads well that
 way (`gridcraft` becomes `GridCraft`).
 
-What you have now is BaseCraft under a new name: the chrome, the notes sample, the control
+What you have now is ProtoCraft under a new name: the chrome, the notes sample, the control
 channel and the CLI all work. Commit nothing else until `cargo xtask ci` is green, then tag it;
 it is the point you compare against when something breaks later.
 
@@ -35,7 +35,7 @@ Then make the repository yours:
 - `AGENTS.md`: add the craft-specific sections (what product it resembles and how it may be
   observed, which public specifications its formats come from, its parity catalog if it keeps
   one). The shared rules stay.
-- `ROADMAP.md`: replace the BaseCraft cascades with the craft's milestones.
+- `ROADMAP.md`: replace the ProtoCraft cascades with the craft's milestones.
 - `NOTICE`, `LICENSE-*`: the copyright line reads "GridCraft contributors" after the rename;
   adjust if the craft has another owner.
 
@@ -177,7 +177,7 @@ README](../packaging/README.md) describes the bundle and what the local installe
 
 ## 10. Keep the baseline close
 
-When you fix something in the chrome, fix it in BaseCraft too (or first), so the next craft
+When you fix something in the chrome, fix it in ProtoCraft too (or first), so the next craft
 starts without the bug. A craft diverges in its model, its canvas, its commands and its tabs; the
 title bar, menus, pane manager, preferences, control channel and the `xtask` gates should stay
 recognisably the same code, which is what makes agents productive across the crafts.

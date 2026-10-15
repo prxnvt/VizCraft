@@ -1,10 +1,10 @@
 //! `cargo xtask new-craft <name> [--into <dir>]`: instantiate the template.
 //!
-//! Copies every git-tracked file of this repository to the destination, rewriting `basecraft`,
-//! `BaseCraft` and `BASECRAFT` in file contents and in file and directory names, then makes the
+//! Copies every git-tracked file of this repository to the destination, rewriting `protocraft`,
+//! `ProtoCraft` and `PROTOCRAFT` in file contents and in file and directory names, then makes the
 //! copy a fresh git repository with one commit. The copy is a complete craft: its own `xtask
 //! layers` and `new-craft` keep working because the rules match on name suffixes, not on the
-//! `basecraft-` prefix.
+//! `protocraft-` prefix.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -30,7 +30,7 @@ impl Names {
 /// The template's own names, the ones the copy must no longer contain. (This literal is itself
 /// rewritten by `new-craft`, so a craft made from the template can be a template in turn.)
 fn base() -> Names {
-    Names { lower: "basecraft".into(), display: "BaseCraft".into(), upper: "BASECRAFT".into() }
+    Names { lower: "protocraft".into(), display: "ProtoCraft".into(), upper: "PROTOCRAFT".into() }
 }
 
 /// A valid craft name is lowercase ASCII letters ending in `craft`, with something before it.
@@ -44,8 +44,8 @@ pub fn validate(name: &str) -> Result<(), String> {
     if stem.is_empty() {
         return Err("`craft` alone is not a craft name: put a word in front (like `notecraft`)".into());
     }
-    if name == "basecraft" {
-        return Err("`basecraft` is the template itself; pick a new name".into());
+    if name == "protocraft" {
+        return Err("`protocraft` is the template itself; pick a new name".into());
     }
     Ok(())
 }
@@ -176,7 +176,7 @@ mod tests {
 
     #[test]
     fn rejects_bad_names() {
-        for bad in ["", "craft", "Quuxcraft", "quux-craft", "quux_craft", "quuxcraft2", "notes", "basecraft", "craftnote", "QUUXCRAFT"] {
+        for bad in ["", "craft", "Quuxcraft", "quux-craft", "quux_craft", "quuxcraft2", "notes", "protocraft", "craftnote", "QUUXCRAFT"] {
             assert!(validate(bad).is_err(), "{bad}");
         }
         assert!(validate("quuxcraft").is_ok());
@@ -185,13 +185,13 @@ mod tests {
     #[test]
     fn rewrites_every_spelling() {
         let n = derive("quuxcraft").unwrap();
-        let text = "BaseCraft (basecraft-engine, BASECRAFT_NO_PREFS, ai.storyteller.basecraft) at apps/basecraft; crafts/BaseCraft.app";
+        let text = "ProtoCraft (protocraft-engine, PROTOCRAFT_NO_PREFS, ai.storyteller.protocraft) at apps/protocraft; crafts/ProtoCraft.app";
         assert_eq!(
             rewrite(text, &n),
             "QuuxCraft (quuxcraft-engine, QUUXCRAFT_NO_PREFS, ai.storyteller.quuxcraft) at apps/quuxcraft; crafts/QuuxCraft.app"
         );
         assert_eq!(rewrite("nothing here", &n), "nothing here");
-        assert!(mentions_base("x basecraft y") && mentions_base("BaseCraft") && mentions_base("BASECRAFT_X"));
+        assert!(mentions_base("x protocraft y") && mentions_base("ProtoCraft") && mentions_base("PROTOCRAFT_X"));
         assert!(!mentions_base(&rewrite(text, &n)));
     }
 
@@ -212,14 +212,16 @@ mod tests {
         let _ = std::fs::remove_dir_all(&base);
         let src = base.join("src");
         let dest = base.join("quuxcraft");
-        std::fs::create_dir_all(src.join("apps/basecraft/src")).unwrap();
+        std::fs::create_dir_all(src.join("apps/protocraft/src")).unwrap();
         std::fs::create_dir_all(src.join("packaging")).unwrap();
-        std::fs::write(src.join("Cargo.toml"), "[workspace]\nmembers = [\"apps/basecraft\"]\nbasecraft-engine = { path = \"crates/engine\" }\n")
+        std::fs::write(src.join("Cargo.toml"), "[workspace]\nmembers = [\"apps/protocraft\"]\nprotocraft-engine = { path = \"crates/engine\" }\n")
             .unwrap();
-        std::fs::write(src.join("apps/basecraft/src/main.rs"), "// BaseCraft desktop app\nconst ENV: &str = \"BASECRAFT_CONTROL_PORT\";\n").unwrap();
-        std::fs::write(src.join("packaging/BaseCraft.icns"), [0u8, 159, 146, 150, b'b', b'a', b's', b'e']).unwrap();
-        std::fs::write(src.join("packaging/run.sh"), "#!/bin/sh\nopen BaseCraft.app\n").unwrap();
-        let files = vec!["Cargo.toml".to_string(), "apps/basecraft/src/main.rs".into(), "packaging/BaseCraft.icns".into(), "packaging/run.sh".into()];
+        std::fs::write(src.join("apps/protocraft/src/main.rs"), "// ProtoCraft desktop app\nconst ENV: &str = \"PROTOCRAFT_CONTROL_PORT\";\n")
+            .unwrap();
+        std::fs::write(src.join("packaging/ProtoCraft.icns"), [0u8, 159, 146, 150, b'b', b'a', b's', b'e']).unwrap();
+        std::fs::write(src.join("packaging/run.sh"), "#!/bin/sh\nopen ProtoCraft.app\n").unwrap();
+        let files =
+            vec!["Cargo.toml".to_string(), "apps/protocraft/src/main.rs".into(), "packaging/ProtoCraft.icns".into(), "packaging/run.sh".into()];
 
         let n = copy_tree(&src, &files, &dest, &derive("quuxcraft").unwrap()).unwrap();
         assert_eq!(n, 4);
@@ -234,7 +236,7 @@ mod tests {
         // Binary content is untouched, the name is still renamed.
         assert_eq!(std::fs::read(dest.join("packaging/QuuxCraft.icns")).unwrap(), [0u8, 159, 146, 150, b'b', b'a', b's', b'e']);
         assert_eq!(std::fs::read_to_string(dest.join("packaging/run.sh")).unwrap(), "#!/bin/sh\nopen QuuxCraft.app\n");
-        assert!(!dest.join("apps/basecraft").exists());
+        assert!(!dest.join("apps/protocraft").exists());
         std::fs::remove_dir_all(&base).unwrap();
     }
 }

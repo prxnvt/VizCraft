@@ -22,7 +22,7 @@ tasks:
   assets          check that every file under assets/ and packaging/ has a row in ATTRIBUTION.md
   wasm            cargo check --target wasm32-unknown-unknown for the engine and ui-egui crates
   new-craft <name> [--into <dir>]
-                  copy this repository to <dir> (default ../<name>) renaming basecraft -> <name>
+                  copy this repository to <dir> (default ../<name>) renaming protocraft -> <name>
   version         print the workspace version and the git commit
   help            this text
 ";

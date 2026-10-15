@@ -109,7 +109,7 @@ pub fn menu_tree(app: &CraftApp) -> Vec<Menu> {
         Menu {
             title: "Help",
             role: MenuRole::Help,
-            items: vec![Item::Cmd("Search Commands...", "ui.commands", json!({})), Item::Sep, Item::Cmd("About BaseCraft", "help.about", json!({}))],
+            items: vec![Item::Cmd("Search Commands...", "ui.commands", json!({})), Item::Sep, Item::Cmd("About ProtoCraft", "help.about", json!({}))],
         },
     ]
 }
@@ -188,7 +188,7 @@ mod tests {
 
     #[test]
     fn every_menu_item_is_a_known_command() {
-        let app = CraftApp::new(basecraft_engine::Session::new(basecraft_engine::Document::new()), crate::Services::default());
+        let app = CraftApp::new(protocraft_engine::Session::new(protocraft_engine::Document::new()), crate::Services::default());
         fn walk(app: &CraftApp, items: &[Item]) {
             for i in items {
                 match i {

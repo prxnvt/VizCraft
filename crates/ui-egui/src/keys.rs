@@ -121,7 +121,7 @@ mod tests {
 
     #[test]
     fn every_registered_shortcut_is_reachable_from_a_key() {
-        let app = CraftApp::new(basecraft_engine::Session::new(basecraft_engine::Document::new()), crate::Services::default());
+        let app = CraftApp::new(protocraft_engine::Session::new(protocraft_engine::Document::new()), crate::Services::default());
         let all: Vec<(&str, &str)> = app
             .session
             .registry

@@ -7,7 +7,7 @@ use std::net::{TcpListener, TcpStream};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::time::Duration;
 
-use basecraft_ui_egui::ControlRequest;
+use protocraft_ui_egui::ControlRequest;
 use serde_json::{Value, json};
 
 /// Listen on `127.0.0.1:port`; requests arrive on the returned receiver. A failed bind is
@@ -17,11 +17,11 @@ pub fn start(port: u16, ctx: egui::Context) -> Receiver<ControlRequest> {
     let listener = match TcpListener::bind(("127.0.0.1", port)) {
         Ok(l) => l,
         Err(e) => {
-            eprintln!("basecraft: control server failed to bind 127.0.0.1:{port}: {e}");
+            eprintln!("protocraft: control server failed to bind 127.0.0.1:{port}: {e}");
             return rx;
         }
     };
-    eprintln!("basecraft: control server listening on 127.0.0.1:{port}");
+    eprintln!("protocraft: control server listening on 127.0.0.1:{port}");
     std::thread::spawn(move || {
         for stream in listener.incoming().flatten() {
             let tx = tx.clone();

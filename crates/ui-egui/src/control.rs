@@ -233,7 +233,7 @@ pub fn handle(app: &mut CraftApp, ctx: &egui::Context, req: &ControlRequest) -> 
 
 /// Write a captured frame as PNG; the reply for `ui.screenshot`.
 pub fn save_screenshot(image: &egui::ColorImage, path: Option<&str>) -> Value {
-    let path = path.unwrap_or("basecraft-screenshot.png");
+    let path = path.unwrap_or("protocraft-screenshot.png");
     let [w, h] = image.size;
     let bytes: Vec<u8> = image.pixels.iter().flat_map(|c| c.to_array()).collect();
     let Some(img) = image::RgbaImage::from_raw(w as u32, h as u32, bytes) else {
@@ -251,7 +251,7 @@ mod tests {
 
     #[test]
     fn ui_set_changes_one_field_and_rejects_bad_ones() {
-        let mut app = CraftApp::new(basecraft_engine::Session::new(basecraft_engine::Document::new()), crate::Services::default());
+        let mut app = CraftApp::new(protocraft_engine::Session::new(protocraft_engine::Document::new()), crate::Services::default());
         set(&mut app, "/tab", json!("View")).unwrap();
         assert_eq!(app.ui.tab, "View");
         set(&mut app, "panes/leftWidth", json!(333)).unwrap();

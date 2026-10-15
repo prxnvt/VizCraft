@@ -6,9 +6,9 @@ packaging, arrive with Cascade 3 of the [roadmap](../ROADMAP.md), adapted from W
 
 | File | Job |
 |---|---|
-| `icons.sh` | Renders every icon size from `assets/app-icon/basecraft.svg`: the 1024 master, the macOS-grid 512, the Linux hicolor set, the `.icns` (and the `.ico` once an `ico` xtask exists). Needs `rsvg-convert` or `resvg`, and `iconutil` on macOS. Outputs are committed and listed in `ATTRIBUTION.md`, so builds never need these tools. |
+| `icons.sh` | Renders every icon size from `assets/app-icon/protocraft.svg`: the 1024 master, the macOS-grid 512, the Linux hicolor set, the `.icns` (and the `.ico` once an `ico` xtask exists). Needs `rsvg-convert` or `resvg`, and `iconutil` on macOS. Outputs are committed and listed in `ATTRIBUTION.md`, so builds never need these tools. |
 | `macos/Info.plist.in` | The bundle's `Info.plist` with `@VERSION@`, `@SHORT_VERSION@` and `@BUILD_SHA@` placeholders for `package.sh` to fill. |
-| `macos/package.sh` (Cascade 3) | Builds the release binaries, assembles `BaseCraft.app`, signs it (ad hoc by default), optionally notarises, and writes a DMG plus a zip of the CLI. |
+| `macos/package.sh` (Cascade 3) | Builds the release binaries, assembles `ProtoCraft.app`, signs it (ad hoc by default), optionally notarises, and writes a DMG plus a zip of the CLI. |
 | `macos/entitlements.plist` (Cascade 3) | Hardened-runtime entitlements; empty on purpose (pure Rust, no JIT, not sandboxed). |
 
 ## The macOS bundle
@@ -16,21 +16,21 @@ packaging, arrive with Cascade 3 of the [roadmap](../ROADMAP.md), adapted from W
 `package.sh` assembles this layout under `$CARGO_TARGET_DIR/macos-package/`:
 
 ```
-BaseCraft.app/
+ProtoCraft.app/
   Contents/
     Info.plist              from macos/Info.plist.in with the placeholders substituted
     PkgInfo                 "APPL????"
     MacOS/
-      BaseCraft             the apps/basecraft binary, renamed to CFBundleExecutable
+      ProtoCraft             the apps/protocraft binary, renamed to CFBundleExecutable
     Resources/
-      BaseCraft.icns        assets/app-icon/basecraft.icns, renamed to CFBundleIconFile
+      ProtoCraft.icns        assets/app-icon/protocraft.icns, renamed to CFBundleIconFile
       OFL-<family>.txt      licences of craft-fonts fonts, only when built with CRAFT_FONTS_DIR
 ```
 
 The executable and the icon carry the display name because `CFBundleExecutable` and
-`CFBundleIconFile` in the template say `BaseCraft`; the build artefacts keep their lowercase
-crate names until they are copied in. The bundle id is `ai.storyteller.basecraft`; the
-preferences folder `~/Library/Application Support/BaseCraft/` is derived from the display name
+`CFBundleIconFile` in the template say `ProtoCraft`; the build artefacts keep their lowercase
+crate names until they are copied in. The bundle id is `ai.storyteller.protocraft`; the
+preferences folder `~/Library/Application Support/ProtoCraft/` is derived from the display name
 by the app, not from the bundle.
 
 Signing is inside out: the executable first, then the bundle, both with the hardened runtime and
@@ -40,7 +40,7 @@ Notarisation runs only with a real identity and `APPLE_ID`, `APPLE_PASSWORD` and
 `APPLE_TEAM_ID` set.
 
 The version comes from `[workspace.package] version` in the root `Cargo.toml`, read by
-`packaging/env.sh` (also Cascade 3); `BASECRAFT_VERSION` overrides it and `BASECRAFT_BUILD_SHA`
+`packaging/env.sh` (also Cascade 3); `PROTOCRAFT_VERSION` overrides it and `PROTOCRAFT_BUILD_SHA`
 is the commit baked into the binaries and the plist.
 
 ## What the local installer expects
@@ -52,8 +52,8 @@ must provide:
 | Requirement | Why |
 |---|---|
 | An executable `packaging/macos/package.sh` | `rebuild.sh` only considers folders that have one, and runs it as `DIST=<repo>/target/dist packaging/macos/package.sh --arch aarch64`. The script must accept `--arch` and honour `DIST`. |
-| `packaging/macos/Info.plist.in` with `CFBundleName` | `rebuild.sh` reads the name with PlistBuddy to know what the installed app is called (`BaseCraft.app`) and whether it is running (`pgrep -x BaseCraft`). |
-| A `<CFBundleName>BuildCommit` key in the installed `Info.plist` | `rebuild.sh` compares it with the checkout's `HEAD` to skip apps that are up to date. The template's `BaseCraftBuildCommit` is filled from `@BUILD_SHA@`; keep the key's prefix equal to `CFBundleName` after a rename. |
+| `packaging/macos/Info.plist.in` with `CFBundleName` | `rebuild.sh` reads the name with PlistBuddy to know what the installed app is called (`ProtoCraft.app`) and whether it is running (`pgrep -x ProtoCraft`). |
+| A `<CFBundleName>BuildCommit` key in the installed `Info.plist` | `rebuild.sh` compares it with the checkout's `HEAD` to skip apps that are up to date. The template's `ProtoCraftBuildCommit` is filled from `@BUILD_SHA@`; keep the key's prefix equal to `CFBundleName` after a rename. |
 | The bundle at `target/macos-package/<CFBundleName>.app` | That is where `rebuild.sh` picks the built app up from, so `package.sh` must write its work directory under `CARGO_TARGET_DIR` (which `rebuild.sh` leaves at the default `target/`). |
 | A signature that passes `codesign --verify --strict` | The installer verifies the copy in `/Applications` and rolls back to the previous build if it fails; ad-hoc signing passes. |
 | `CFBundleShortVersionString` | Printed in the installer's success line. |
@@ -67,7 +67,7 @@ The installer also sets `CARGO_BUILD_JOBS` to leave cores free, writes the build
 
 ## After `new-craft`
 
-The rename changes `BaseCraft` to the new display name in the template (and therefore
+The rename changes `ProtoCraft` to the new display name in the template (and therefore
 `CFBundleName`, `CFBundleExecutable`, `CFBundleIconFile` and the `BuildCommit` key), the bundle
 id to `ai.storyteller.<name>` and the icon file names. What a craft still has to do by hand:
 

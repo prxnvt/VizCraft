@@ -402,60 +402,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 
 [[package]]
-name = "basecraft"
-version = "0.1.0"
-dependencies = [
- "basecraft-engine",
- "basecraft-macos-open",
- "basecraft-ui-egui",
- "eframe",
- "egui",
- "log",
- "muda",
- "rfd",
- "serde_json",
-]
-
-[[package]]
-name = "basecraft-cli"
-version = "0.1.0"
-dependencies = [
- "basecraft-engine",
- "serde_json",
-]
-
-[[package]]
-name = "basecraft-engine"
-version = "0.1.0"
-dependencies = [
- "log",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "basecraft-macos-open"
-version = "0.1.0"
-dependencies = [
- "objc2 0.6.5",
- "objc2-foundation 0.3.2",
-]
-
-[[package]]
-name = "basecraft-ui-egui"
-version = "0.1.0"
-dependencies = [
- "basecraft-engine",
- "egui",
- "egui_kittest",
- "image",
- "log",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "bit-set"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2651,6 +2597,60 @@ name = "profiling"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d595e54a326bc53c1c197b32d295e14b169e3cfeaa8dc82b529f947fba6bcf5"
+
+[[package]]
+name = "protocraft"
+version = "0.1.0"
+dependencies = [
+ "eframe",
+ "egui",
+ "log",
+ "muda",
+ "protocraft-engine",
+ "protocraft-macos-open",
+ "protocraft-ui-egui",
+ "rfd",
+ "serde_json",
+]
+
+[[package]]
+name = "protocraft-cli"
+version = "0.1.0"
+dependencies = [
+ "protocraft-engine",
+ "serde_json",
+]
+
+[[package]]
+name = "protocraft-engine"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "protocraft-macos-open"
+version = "0.1.0"
+dependencies = [
+ "objc2 0.6.5",
+ "objc2-foundation 0.3.2",
+]
+
+[[package]]
+name = "protocraft-ui-egui"
+version = "0.1.0"
+dependencies = [
+ "egui",
+ "egui_kittest",
+ "image",
+ "log",
+ "protocraft-engine",
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "pxfm"

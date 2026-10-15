@@ -8,7 +8,7 @@ what a person clicking would get.
 Start the app with a port:
 
 ```sh
-cargo run --release -p basecraft -- --sample --control 7990     # or BASECRAFT_CONTROL_PORT=7990
+cargo run --release -p protocraft -- --sample --control 7990     # or PROTOCRAFT_CONTROL_PORT=7990
 ```
 
 The server listens on `127.0.0.1` only. A client sends one JSON object per line and gets one
@@ -97,7 +97,7 @@ not taken on the frame the request arrives: the app waits for at least three fra
 queued input to be processed, then asks the viewport for a screenshot, and replies once the image
 has been received and written. The reply, `{"path": ..., "width": ..., "height": ...}`, therefore
 arrives a few frames later than other replies; keep it last in a pipelined batch, or send it on
-its own. Without `path` the image is written to `/tmp/basecraft-screenshot.png`. The size is in
+its own. Without `path` the image is written to `/tmp/protocraft-screenshot.png`. The size is in
 physical pixels, so on a Retina display it is twice the window size in points.
 
 With several windows open the control channel belongs to the app, not a window, and acts on the

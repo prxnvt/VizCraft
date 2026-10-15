@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Regenerate every app icon from assets/app-icon/basecraft.svg.
+# Regenerate every app icon from assets/app-icon/protocraft.svg.
 #
 # Needs an SVG rasteriser: rsvg-convert (brew install librsvg) or resvg (brew install resvg /
 # cargo install resvg). On macOS, iconutil (ships with Xcode command line tools) also writes the
@@ -10,7 +10,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIR="$ROOT/assets/app-icon"
-NAME="basecraft"
+NAME="protocraft"
 SVG="$DIR/$NAME.svg"
 ID="ai.storyteller.$NAME"
 TMP="$(mktemp -d)"
@@ -33,7 +33,7 @@ sed 's/viewBox="0 0 512 512"/viewBox="-62.136 -62.136 636.272 636.272"/' "$SVG" 
 grep -q 'viewBox="-62.136' "$MAC" || { echo "error: expected viewBox=\"0 0 512 512\" in $SVG" >&2; exit 1; }
 
 render "$SVG" 1024 "$DIR/$NAME-1024.png"
-# Runtime window/Dock icon on macOS (embedded by apps/basecraft); other platforms use hicolor 256.
+# Runtime window/Dock icon on macOS (embedded by apps/protocraft); other platforms use hicolor 256.
 render "$MAC" 512 "$DIR/$NAME-macos-512.png"
 
 # Linux hicolor theme.
@@ -45,7 +45,7 @@ mkdir -p "$DIR/hicolor/scalable/apps"
 cp "$SVG" "$DIR/hicolor/scalable/apps/$ID.svg"
 
 # Windows .ico: needs the `cargo xtask ico <out.ico> <pngs...>` task (WordCraft has one; it is not
-# part of the BaseCraft contract yet). Skipped with a note until it exists.
+# part of the ProtoCraft contract yet). Skipped with a note until it exists.
 if (cd "$ROOT" && cargo xtask help 2>/dev/null | grep -q '\bico\b'); then
   ICO_PNGS=()
   for s in 16 20 24 32 40 48 64 128 256; do

@@ -1,6 +1,6 @@
-# Contributing to BaseCraft
+# Contributing to ProtoCraft
 
-BaseCraft is the baseline the "-craft" apps are made from, so a change here reaches every app
+ProtoCraft is the baseline the "-craft" apps are made from, so a change here reaches every app
 that is created after it. That is the reason for the small number of firm rules below; the
 reasoning behind the design is in [docs/architecture.md](docs/architecture.md), and the working
 rules for agents (which apply to people as well) are in [AGENTS.md](AGENTS.md).

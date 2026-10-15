@@ -1,15 +1,15 @@
 [package]
-name = "basecraft-ui-egui"
+name = "protocraft-ui-egui"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "BaseCraft egui front end (title bar, menus, ribbon, panes, status bar, dialogs, control); swappable: nothing below depends on it"
+description = "ProtoCraft egui front end (title bar, menus, ribbon, panes, status bar, dialogs, control); swappable: nothing below depends on it"
 
 [lints]
 workspace = true
 
 [dependencies]
-basecraft-engine = { workspace = true }
+protocraft-engine = { workspace = true }
 egui = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

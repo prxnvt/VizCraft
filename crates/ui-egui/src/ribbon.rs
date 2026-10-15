@@ -110,7 +110,7 @@ fn insert(app: &mut CraftApp, ui: &mut Ui) {
         big(ui, app, "note", "Note", "insert.note", json!({}));
         menu_button(ui, app, "plus", "Note\nFrom", "Insert a note with content", true, |ui, app| {
             menu_item(ui, app, "Empty note", "insert.note", json!({}));
-            menu_item(ui, app, "Today's date", "insert.note", json!({"title": "Today", "body": basecraft_engine::cmd::now_iso()}));
+            menu_item(ui, app, "Today's date", "insert.note", json!({"title": "Today", "body": protocraft_engine::cmd::now_iso()}));
             menu_item(ui, app, "Checklist", "insert.note", json!({"title": "Checklist", "body": "[ ] First\n[ ] Second\n[ ] Third"}));
         });
     });

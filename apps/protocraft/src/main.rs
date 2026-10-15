@@ -1,8 +1,8 @@
-//! BaseCraft desktop app.
+//! ProtoCraft desktop app.
 //!
-//! Usage: `basecraft [--control <port>] [--sample] [--version] [files...]`
+//! Usage: `protocraft [--control <port>] [--sample] [--version] [files...]`
 //!
-//! `--control <port>` (or `BASECRAFT_CONTROL_PORT`) starts a localhost JSON-lines control server:
+//! `--control <port>` (or `PROTOCRAFT_CONTROL_PORT`) starts a localhost JSON-lines control server:
 //! `{"id":1,"method":"engine.execute","params":{"command":"file.new","params":{}}}`.
 //! See `docs/control-protocol.md`.
 //!
@@ -13,8 +13,8 @@
 
 mod control_server;
 
-use basecraft_engine::Session;
-use basecraft_ui_egui::{CraftApp, Services, UiState, window_geometry::WindowGeometry};
+use protocraft_engine::Session;
+use protocraft_ui_egui::{CraftApp, Services, UiState, window_geometry::WindowGeometry};
 
 /// The app: the first window's document, and the restored window geometry until the first frame
 /// has checked it against the monitors.
@@ -26,7 +26,7 @@ struct App {
 impl eframe::App for App {
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Documents Finder asked us to open (double click, Open With, the Dock icon).
-        for path in basecraft_macos_open::take_pending() {
+        for path in protocraft_macos_open::take_pending() {
             if let Err(e) = self.root.run("file.open", serde_json::json!({"path": path})) {
                 self.root.status(format!("Couldn't open {path}: {e}"));
             }
@@ -59,20 +59,20 @@ impl eframe::App for App {
 /// `ui.json` in the platform's per-user configuration directory.
 fn prefs_path() -> Option<std::path::PathBuf> {
     let base = if cfg!(target_os = "macos") {
-        std::env::var_os("HOME").map(|h| std::path::PathBuf::from(h).join("Library/Application Support/BaseCraft"))
+        std::env::var_os("HOME").map(|h| std::path::PathBuf::from(h).join("Library/Application Support/ProtoCraft"))
     } else if cfg!(windows) {
-        std::env::var_os("APPDATA").map(|a| std::path::PathBuf::from(a).join("BaseCraft"))
+        std::env::var_os("APPDATA").map(|a| std::path::PathBuf::from(a).join("ProtoCraft"))
     } else {
         std::env::var_os("XDG_CONFIG_HOME")
             .map(std::path::PathBuf::from)
             .or_else(|| std::env::var_os("HOME").map(|h| std::path::PathBuf::from(h).join(".config")))
-            .map(|c| c.join("basecraft"))
+            .map(|c| c.join("protocraft"))
     };
     base.map(|b| b.join("ui.json"))
 }
 
 fn no_prefs() -> bool {
-    std::env::var_os("BASECRAFT_NO_PREFS").is_some()
+    std::env::var_os("PROTOCRAFT_NO_PREFS").is_some()
 }
 
 fn load_prefs(app: &mut CraftApp) {
@@ -115,7 +115,7 @@ fn services() -> Services {
     Services {
         pick_open: Some(Box::new(|_purpose: &str| {
             rfd::FileDialog::new()
-                .add_filter("BaseCraft documents", &["json"])
+                .add_filter("ProtoCraft documents", &["json"])
                 .add_filter("All files", &["*"])
                 .pick_file()
                 .map(|p| p.to_string_lossy().to_string())
@@ -128,10 +128,10 @@ fn services() -> Services {
 /// A document window: no title bar of its own (the app draws one), files can be dropped on it.
 fn window_builder() -> egui::ViewportBuilder {
     let builder = egui::ViewportBuilder::default()
-        .with_title("BaseCraft")
-        .with_app_id("com.storytold.basecraft")
+        .with_title("ProtoCraft")
+        .with_app_id("com.storytold.protocraft")
         .with_inner_size([1440.0, 920.0])
-        .with_min_inner_size([basecraft_ui_egui::window_geometry::MIN_SIZE.x, basecraft_ui_egui::window_geometry::MIN_SIZE.y])
+        .with_min_inner_size([protocraft_ui_egui::window_geometry::MIN_SIZE.x, protocraft_ui_egui::window_geometry::MIN_SIZE.y])
         .with_drag_and_drop(true)
         .with_fullsize_content_view(true)
         .with_titlebar_shown(false)
@@ -143,7 +143,7 @@ fn window_builder() -> egui::ViewportBuilder {
 }
 
 fn main() -> eframe::Result {
-    let mut control_port: Option<u16> = std::env::var("BASECRAFT_CONTROL_PORT").ok().and_then(|p| p.parse().ok());
+    let mut control_port: Option<u16> = std::env::var("PROTOCRAFT_CONTROL_PORT").ok().and_then(|p| p.parse().ok());
     let mut files = Vec::new();
     let mut sample = false;
     let mut args = std::env::args().skip(1);
@@ -152,11 +152,11 @@ fn main() -> eframe::Result {
             "--control" => control_port = args.next().and_then(|p| p.parse().ok()),
             "--sample" => sample = true,
             "--version" => {
-                println!("basecraft {}", env!("CARGO_PKG_VERSION"));
+                println!("protocraft {}", env!("CARGO_PKG_VERSION"));
                 return Ok(());
             }
             "--help" | "-h" => {
-                println!("basecraft [--control <port>] [--sample] [--version] [files...]");
+                println!("protocraft [--control <port>] [--sample] [--version] [files...]");
                 return Ok(());
             }
             _ => files.push(a),
@@ -167,15 +167,15 @@ fn main() -> eframe::Result {
     if let Some(window) = restored {
         options.viewport = window.apply(options.viewport);
     }
-    basecraft_macos_open::install();
+    protocraft_macos_open::install();
     eframe::run_native(
-        "BaseCraft",
+        "ProtoCraft",
         options,
         Box::new(move |cc| {
-            let doc = if sample { basecraft_engine::sample::sample_document() } else { basecraft_engine::Document::new() };
+            let doc = if sample { protocraft_engine::sample::sample_document() } else { protocraft_engine::Document::new() };
             {
                 let ctx = cc.egui_ctx.clone();
-                basecraft_macos_open::set_waker(move || ctx.request_repaint());
+                protocraft_macos_open::set_waker(move || ctx.request_repaint());
             }
             let mut app = CraftApp::new(Session::new(doc), services());
             load_prefs(&mut app);
@@ -187,7 +187,7 @@ fn main() -> eframe::Result {
             }
             for f in files {
                 if let Err(e) = app.run("file.open", serde_json::json!({"path": f})) {
-                    eprintln!("basecraft: {f}: {e}");
+                    eprintln!("protocraft: {f}: {e}");
                 }
             }
             Ok(Box::new(App { root: app, restored }))

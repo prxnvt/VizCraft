@@ -1,9 +1,9 @@
 [package]
-name = "basecraft-engine"
+name = "protocraft-engine"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "BaseCraft engine: Session, undo, the command registry; nothing here knows about egui"
+description = "ProtoCraft engine: Session, undo, the command registry; nothing here knows about egui"
 
 [lints]
 workspace = true

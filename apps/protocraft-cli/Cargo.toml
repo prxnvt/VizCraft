@@ -1,14 +1,14 @@
 [package]
-name = "basecraft-cli"
+name = "protocraft-cli"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish = false
-description = "BaseCraft command line: run commands headless, list the registry"
+description = "ProtoCraft command line: run commands headless, list the registry"
 
 [lints]
 workspace = true
 
 [dependencies]
-basecraft-engine = { workspace = true }
+protocraft-engine = { workspace = true }
 serde_json = { workspace = true }

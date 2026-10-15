@@ -53,8 +53,8 @@ impl Dialog {
 
     fn title(&self) -> &'static str {
         match self {
-            Dialog::Quit => "BaseCraft",
-            Dialog::About => "About BaseCraft",
+            Dialog::Quit => "ProtoCraft",
+            Dialog::About => "About ProtoCraft",
             Dialog::Preferences { .. } => "Preferences",
             Dialog::Zoom { .. } => "Zoom",
             Dialog::Commands { .. } => "Search Commands",
@@ -135,11 +135,11 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog) -> bool {
             done
         }
         Dialog::About => {
-            ui.label(egui::RichText::new("BaseCraft").font(semibold(22.0)));
+            ui.label(egui::RichText::new("ProtoCraft").font(semibold(22.0)));
             ui.label(format!("Version {}", env!("CARGO_PKG_VERSION")));
             ui.label("The baseline every craft app starts from: window chrome, menus, ribbon, panes,\npreferences and a control channel, over a tiny sample document.");
             ui.add_space(6.0);
-            ui.hyperlink_to("Source code: github.com/storytold/basecraft", "https://github.com/storytold/basecraft");
+            ui.hyperlink_to("Source code: github.com/storytold/protocraft", "https://github.com/storytold/protocraft");
             ui.add_space(6.0);
             ui.label(egui::RichText::new("MIT OR Apache-2.0. Fonts: Inter and JetBrains Mono (SIL Open Font License).").small().weak());
             let (ok, cancel) = buttons(ui, "Close");
@@ -177,7 +177,7 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog) -> bool {
                     ui.radio_value(percent, p, format!("{p}%"));
                 }
             });
-            ui.add(egui::Slider::new(percent, basecraft_engine::cmd::view::MIN_ZOOM..=basecraft_engine::cmd::view::MAX_ZOOM).suffix("%"));
+            ui.add(egui::Slider::new(percent, protocraft_engine::cmd::view::MIN_ZOOM..=protocraft_engine::cmd::view::MAX_ZOOM).suffix("%"));
             let (ok, cancel) = buttons(ui, "OK");
             if ok {
                 let _ = app.run("view.zoom", json!({"value": *percent}));
@@ -220,7 +220,7 @@ mod tests {
 
     #[test]
     fn dialogs_open_by_name_and_report_it() {
-        let app = CraftApp::new(basecraft_engine::Session::new(basecraft_engine::Document::new()), crate::Services::default());
+        let app = CraftApp::new(protocraft_engine::Session::new(protocraft_engine::Document::new()), crate::Services::default());
         for name in ["quit", "about", "preferences", "zoom", "commands"] {
             let d = Dialog::open(name, &app).unwrap_or_else(|| panic!("{name}"));
             assert_eq!(d.name(), name);

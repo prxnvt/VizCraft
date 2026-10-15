@@ -99,7 +99,7 @@ impl Session {
             doc,
             path: None,
             dirty: false,
-            author: "BaseCraft User".into(),
+            author: "ProtoCraft User".into(),
             view: ViewState::default(),
             registry: crate::cmd::registry(),
             ui_requests: Vec::new(),

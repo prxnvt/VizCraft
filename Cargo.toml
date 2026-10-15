@@ -1,20 +1,20 @@
 [workspace]
 resolver = "3"
 members = ["crates/*", "apps/*", "xtask"]
-default-members = ["crates/*", "apps/basecraft", "apps/basecraft-cli", "xtask"]
+default-members = ["crates/*", "apps/protocraft", "apps/protocraft-cli", "xtask"]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 rust-version = "1.90"
-repository = "https://github.com/storytold/basecraft"
+repository = "https://github.com/storytold/protocraft"
 
 [workspace.dependencies]
 # internal
-basecraft-engine = { path = "crates/engine" }
-basecraft-ui-egui = { path = "crates/ui-egui" }
-basecraft-macos-open = { path = "crates/macos-open" }
+protocraft-engine = { path = "crates/engine" }
+protocraft-ui-egui = { path = "crates/ui-egui" }
+protocraft-macos-open = { path = "crates/macos-open" }
 
 # foundation
 thiserror = "2"

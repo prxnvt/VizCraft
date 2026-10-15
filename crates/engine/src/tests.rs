@@ -157,7 +157,7 @@ fn clipboard_edits_the_selection() {
 
 #[test]
 fn save_and_open_round_trip() {
-    let dir = std::env::temp_dir().join(format!("basecraft-engine-test-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("protocraft-engine-test-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("notes.craft.json");
     let mut s = s();

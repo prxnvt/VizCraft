@@ -1,9 +1,9 @@
-//! BaseCraft command line: the engine without a window.
+//! ProtoCraft command line: the engine without a window.
 //!
 //! ```text
-//! basecraft-cli commands                       table of id, label, shortcut, enabled
-//! basecraft-cli run [--open FILE] --cmd ID[=JSON] ... [--save OUT]
-//! basecraft-cli --version
+//! protocraft-cli commands                       table of id, label, shortcut, enabled
+//! protocraft-cli run [--open FILE] --cmd ID[=JSON] ... [--save OUT]
+//! protocraft-cli --version
 //! ```
 //!
 //! `run` opens a document (or starts blank), runs each command in order, prints each result as
@@ -12,10 +12,10 @@
 
 use std::process::ExitCode;
 
-use basecraft_engine::{Document, Session};
+use protocraft_engine::{Document, Session};
 use serde_json::{Value, json};
 
-const USAGE: &str = "basecraft-cli commands | run [--open FILE] --cmd ID[=JSON] ... [--save OUT] | --version";
+const USAGE: &str = "protocraft-cli commands | run [--open FILE] --cmd ID[=JSON] ... [--save OUT] | --version";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -23,7 +23,7 @@ fn main() -> ExitCode {
         Some("commands") => commands(),
         Some("run") => run(&args[1..]),
         Some("--version") => {
-            println!("basecraft-cli {}", env!("CARGO_PKG_VERSION"));
+            println!("protocraft-cli {}", env!("CARGO_PKG_VERSION"));
             ExitCode::SUCCESS
         }
         _ => {

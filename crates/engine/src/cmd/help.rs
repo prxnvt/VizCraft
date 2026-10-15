@@ -5,7 +5,7 @@ use serde_json::json;
 use crate::CommandSpec;
 
 pub fn specs() -> Vec<CommandSpec> {
-    vec![CommandSpec::new("help.about", "About BaseCraft", "Help", |s, _| {
+    vec![CommandSpec::new("help.about", "About ProtoCraft", "Help", |s, _| {
         s.ui_requests.push(json!({"open": "about"}));
         Ok(json!({"version": env!("CARGO_PKG_VERSION")}))
     })]

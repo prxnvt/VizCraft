@@ -5,19 +5,19 @@
      The crafts/rebuild.sh installer reads CFBundleName from this file to find the installed app
      and <CFBundleName>BuildCommit from the installed Info.plist to decide whether to rebuild, so
      keep both keys and keep the prefix of the BuildCommit key equal to CFBundleName.
-     `cargo xtask new-craft` renames BaseCraft/basecraft here like everywhere else. -->
+     `cargo xtask new-craft` renames ProtoCraft/protocraft here like everywhere else. -->
 <plist version="1.0">
 <dict>
   <key>CFBundleDevelopmentRegion</key>
   <string>en</string>
   <key>CFBundleDisplayName</key>
-  <string>BaseCraft</string>
+  <string>ProtoCraft</string>
   <key>CFBundleName</key>
-  <string>BaseCraft</string>
+  <string>ProtoCraft</string>
   <key>CFBundleExecutable</key>
-  <string>BaseCraft</string>
+  <string>ProtoCraft</string>
   <key>CFBundleIdentifier</key>
-  <string>ai.storyteller.basecraft</string>
+  <string>ai.storyteller.protocraft</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundlePackageType</key>
@@ -28,12 +28,12 @@
   <string>@SHORT_VERSION@</string>
   <key>CFBundleVersion</key>
   <string>@SHORT_VERSION@</string>
-  <key>BaseCraftVersion</key>
+  <key>ProtoCraftVersion</key>
   <string>@VERSION@</string>
-  <key>BaseCraftBuildCommit</key>
+  <key>ProtoCraftBuildCommit</key>
   <string>@BUILD_SHA@</string>
   <key>CFBundleIconFile</key>
-  <string>BaseCraft</string>
+  <string>ProtoCraft</string>
   <key>LSApplicationCategoryType</key>
   <string>public.app-category.productivity</string>
   <!-- Must match MACOSX_DEPLOYMENT_TARGET in package.sh. Big Sur is the first release on
@@ -47,7 +47,7 @@
   <key>NSRequiresAquaSystemAppearance</key>
   <false/>
   <key>NSHumanReadableCopyright</key>
-  <string>Copyright (c) 2026 BaseCraft contributors. MIT OR Apache-2.0.</string>
+  <string>Copyright (c) 2026 ProtoCraft contributors. MIT OR Apache-2.0.</string>
 
   <!-- Documents the app opens from Finder (double click, Open With, Dock drops). The sample
        model saves `.craft.json`; a new craft replaces this with its own types and content types
@@ -56,7 +56,7 @@
   <array>
     <dict>
       <key>CFBundleTypeName</key>
-      <string>BaseCraft Document</string>
+      <string>ProtoCraft Document</string>
       <key>CFBundleTypeRole</key>
       <string>Editor</string>
       <key>LSHandlerRank</key>
@@ -67,7 +67,7 @@
       </array>
       <key>LSItemContentTypes</key>
       <array>
-        <string>ai.storyteller.basecraft.document</string>
+        <string>ai.storyteller.protocraft.document</string>
       </array>
     </dict>
   </array>
@@ -75,9 +75,9 @@
   <array>
     <dict>
       <key>UTTypeIdentifier</key>
-      <string>ai.storyteller.basecraft.document</string>
+      <string>ai.storyteller.protocraft.document</string>
       <key>UTTypeDescription</key>
-      <string>BaseCraft Document</string>
+      <string>ProtoCraft Document</string>
       <key>UTTypeConformsTo</key>
       <array>
         <string>public.json</string>

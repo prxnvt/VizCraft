@@ -1,6 +1,6 @@
-//! BaseCraft's egui front end (L6): an Office-style window (title bar with quick access
+//! ProtoCraft's egui front end (L6): an Office-style window (title bar with quick access
 //! toolbar, optional in-window menu bar, ribbon, side panes, canvas, status bar, dialogs) over
-//! `basecraft-engine`.
+//! `protocraft-engine`.
 //!
 //! The UI is thin: it reads `Session` state and acts through [`CraftApp::run`] (command ids), so
 //! menus, ribbon, shortcuts, the palette and the control channel all reach the same behaviour.
@@ -24,7 +24,7 @@ pub mod window_geometry;
 
 use std::sync::mpsc::Receiver;
 
-use basecraft_engine::Session;
+use protocraft_engine::Session;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
@@ -43,9 +43,9 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.saveAsDialog", "Save As...", "", "{}"),
     ("ui.inWindowMenus", "Menu Bar in Window", "", r#"{"value"?: bool}"#),
     ("ui.newWindow", "New Window", "", r#"{"template"?: "blank|sample"}"#),
-    ("app.about", "About BaseCraft", "", "{}"),
+    ("app.about", "About ProtoCraft", "", "{}"),
     ("app.preferences", "Preferences", "Mod+,", "{}"),
-    ("app.quit", "Quit BaseCraft", "Mod+Q", "{}"),
+    ("app.quit", "Quit ProtoCraft", "Mod+Q", "{}"),
 ];
 
 /// Platform services injected by the host (file dialogs, file I/O). All optional: without a
@@ -208,7 +208,7 @@ impl CraftApp {
         // Web: saving becomes a download.
         if self.services.download.is_some() && matches!(id, "file.save" | "file.saveAs") {
             let name = params.get("path").and_then(Value::as_str).map(str::to_string).unwrap_or_else(|| format!("{}.craft.json", self.title_stem()));
-            let bytes = basecraft_engine::io::save_bytes(&name, &self.session.doc).map_err(|e| e.to_string())?;
+            let bytes = protocraft_engine::io::save_bytes(&name, &self.session.doc).map_err(|e| e.to_string())?;
             if let Some(d) = &self.services.download {
                 d(&name, &bytes);
             }
@@ -361,7 +361,7 @@ impl CraftApp {
 
     /// Ask for a path and save there.
     pub fn save_as_dialog(&mut self) {
-        let name = format!("{}.{}", self.title_stem(), basecraft_engine::io::EXTENSION);
+        let name = format!("{}.{}", self.title_stem(), protocraft_engine::io::EXTENSION);
         let picked = self.services.pick_save.as_ref().and_then(|f| f(&name));
         if let Some(path) = picked {
             let _ = self.run("file.save", json!({"path": path}));
@@ -373,7 +373,7 @@ impl CraftApp {
         match &self.session.path {
             Some(p) => {
                 let name = p.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
-                let stem = name.strip_suffix(&format!(".{}", basecraft_engine::io::EXTENSION)).unwrap_or(&name);
+                let stem = name.strip_suffix(&format!(".{}", protocraft_engine::io::EXTENSION)).unwrap_or(&name);
                 if stem.is_empty() { "Untitled".into() } else { stem.to_string() }
             }
             None if self.session.doc.title.is_empty() => "Untitled".into(),
@@ -490,7 +490,7 @@ impl CraftApp {
             });
         }
         dialogs::show(self, &ctx);
-        let title = format!("{}{} - BaseCraft", self.title_stem(), if self.session.dirty { " (edited)" } else { "" });
+        let title = format!("{}{} - ProtoCraft", self.title_stem(), if self.session.dirty { " (edited)" } else { "" });
         ctx.send_viewport_cmd(egui::ViewportCommand::Title(title));
         self.frame_ms = now_ms() - t0;
     }
@@ -500,7 +500,7 @@ impl CraftApp {
         let Some(inbox) = self.services.inbox.clone() else { return };
         let files = std::mem::take(&mut *inbox.lock().unwrap_or_else(|e| e.into_inner()));
         for (name, bytes) in files {
-            match basecraft_engine::io::load_bytes(&name, &bytes) {
+            match protocraft_engine::io::load_bytes(&name, &bytes) {
                 Ok(doc) => {
                     self.session.set_document(doc);
                     self.session.path = None;
@@ -600,7 +600,7 @@ mod tests {
     use super::*;
 
     fn app() -> CraftApp {
-        CraftApp::new(Session::new(basecraft_engine::sample::sample_document()), Services::default())
+        CraftApp::new(Session::new(protocraft_engine::sample::sample_document()), Services::default())
     }
 
     #[test]
@@ -674,7 +674,7 @@ mod tests {
     #[test]
     fn title_stem_prefers_the_file_name() {
         let mut a = app();
-        assert_eq!(a.title_stem(), "Welcome to BaseCraft");
+        assert_eq!(a.title_stem(), "Welcome to ProtoCraft");
         a.session.path = Some("/tmp/Plans.craft.json".into());
         assert_eq!(a.title_stem(), "Plans");
         a.session.path = None;

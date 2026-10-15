@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 /// Directories whose contents are assets.
 pub const ASSET_DIRS: &[&str] = &["assets", "packaging"];
 /// Extensions that are source, not assets, even inside the asset directories.
-pub const SOURCE_EXT: &[&str] = &["md", "sh", "plist", "py"];
+pub const SOURCE_EXT: &[&str] = &["md", "sh", "plist", "py", "in"];
 
 /// Whether a repository-relative path (forward slashes) must be attributed.
 pub fn is_asset(rel: &str) -> bool {

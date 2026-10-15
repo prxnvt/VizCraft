@@ -130,7 +130,7 @@ pub fn status_bar(app: &mut CraftApp, ui: &mut Ui) {
                         let _ = app.run("view.zoomIn", json!({}));
                     }
                     let mut v = app.session.view.zoom;
-                    let range = basecraft_engine::cmd::view::MIN_ZOOM / 100.0..=basecraft_engine::cmd::view::MAX_ZOOM / 100.0;
+                    let range = protocraft_engine::cmd::view::MIN_ZOOM / 100.0..=protocraft_engine::cmd::view::MAX_ZOOM / 100.0;
                     ui.spacing_mut().slider_width = 110.0;
                     if ui.add(egui::Slider::new(&mut v, range).logarithmic(true).show_value(false)).changed() {
                         let _ = app.run("view.zoom", json!({"value": (v * 100.0).round()}));
