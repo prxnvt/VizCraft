@@ -204,8 +204,14 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
                 )
                 .color(t.text),
             );
-            ui.add_space(4.0);
-            ui.hyperlink_to("Source code: github.com/storytold/protocraft", "https://github.com/storytold/protocraft");
+            // The link comes from the package metadata, so a craft made from the baseline links
+            // to its own repository (or shows none) instead of ProtoCraft's.
+            let repo = env!("CARGO_PKG_REPOSITORY");
+            if !repo.is_empty() {
+                ui.add_space(4.0);
+                let shown = repo.trim_start_matches("https://").trim_start_matches("http://");
+                ui.hyperlink_to(format!("Source code: {shown}"), repo);
+            }
             ui.add_space(4.0);
             ui.label(
                 egui::RichText::new("Licensed under MIT OR Apache-2.0. Fonts: Inter and JetBrains Mono (SIL Open Font License).")

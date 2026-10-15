@@ -3,6 +3,7 @@ name = "protocraft-ui-egui"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
 description = "ProtoCraft egui front end (title bar, menus, ribbon, panes, status bar, dialogs, control); swappable: nothing below depends on it"
 
 [lints]
@@ -16,6 +17,11 @@ serde_json = { workspace = true }
 log = { workspace = true }
 # PNG encoding for `ui.screenshot` (the control channel writes window captures to disk).
 image = { workspace = true }
+
+# The browser has no `SystemTime`; `web_time` is the same API over `performance.now()`, so
+# status messages fade and screenshots time out there too.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-time = "1"
 
 [dev-dependencies]
 egui_kittest = { workspace = true, features = ["wgpu", "snapshot"] }
