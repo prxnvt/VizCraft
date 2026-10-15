@@ -824,7 +824,8 @@ fn navigation(app: &mut CraftApp, ui: &mut Ui) {
         }
         let preview: String = n.body.lines().next().unwrap_or("").chars().take(40).collect();
         if !preview.is_empty() {
-            ui.label(egui::RichText::new(preview).small().color(t.text_dim));
+            // One line, cut with an ellipsis: a wrapped preview would push the list about.
+            ui.add(egui::Label::new(egui::RichText::new(preview).small().color(t.text_dim)).truncate());
         }
     }
     if let Some(i) = pick {

@@ -252,7 +252,9 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
                     ui.radio_value(percent, p, format!("{p}%"));
                 }
             });
-            ui.add(egui::Slider::new(percent, protocraft_engine::cmd::view::MIN_ZOOM..=protocraft_engine::cmd::view::MAX_ZOOM).suffix("%"));
+            ui.spacing_mut().slider_width = 220.0;
+            let range = protocraft_engine::cmd::view::MIN_ZOOM..=protocraft_engine::cmd::view::MAX_ZOOM;
+            widgets::slider(ui, egui::Slider::new(percent, range).suffix("%"), 320.0);
             let (ok, cancel) = buttons(ui, "OK", Some("Cancel"), keys);
             if ok {
                 let _ = app.run("view.zoom", json!({"value": *percent}));

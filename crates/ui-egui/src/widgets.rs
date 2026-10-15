@@ -437,6 +437,19 @@ pub fn icon_button(ui: &mut Ui, icon: &str, tip: &str, size: f32, enabled: bool)
     resp.on_hover_text(tip).clicked() && enabled
 }
 
+/// A horizontal slider `width` points wide that reads on every background: egui paints the rail
+/// in the text-field colour, which disappears on a white dialog and on the dark status bar, and
+/// an unbounded slider in a dialog stretches the dialog towards the window's height, so the rail
+/// takes the strong border colour and the slider gets one row.
+pub fn slider(ui: &mut Ui, slider: egui::Slider<'_>, width: f32) -> Response {
+    let t = Tokens::get(ui.ctx());
+    ui.scope(|ui| {
+        ui.visuals_mut().widgets.inactive.bg_fill = t.border_strong;
+        ui.allocate_ui_with_layout(vec2(width, 24.0), egui::Layout::left_to_right(egui::Align::Center), |ui| ui.add(slider)).inner
+    })
+    .inner
+}
+
 /// A filled accent button for the primary action of a dialog.
 pub fn primary_button(ui: &mut Ui, label: &str) -> Response {
     let t = Tokens::get(ui.ctx());

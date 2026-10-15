@@ -141,7 +141,7 @@ pub fn status_bar(app: &mut CraftApp, ui: &mut Ui) {
                     let mut v = app.session.view.zoom;
                     let range = protocraft_engine::cmd::view::MIN_ZOOM / 100.0..=protocraft_engine::cmd::view::MAX_ZOOM / 100.0;
                     ui.spacing_mut().slider_width = 110.0;
-                    if ui.add(egui::Slider::new(&mut v, range).logarithmic(true).show_value(false)).changed() {
+                    if widgets::slider(ui, egui::Slider::new(&mut v, range).logarithmic(true).show_value(false), 116.0).changed() {
                         let _ = app.run("view.zoom", json!({"value": (v * 100.0).round()}));
                     }
                     status_button(ui, app, "minus", "view.zoomOut");
