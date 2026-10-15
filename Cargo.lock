@@ -2654,6 +2654,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "protocraft-web"
+version = "0.1.0"
+dependencies = [
+ "eframe",
+ "egui",
+ "js-sys",
+ "log",
+ "protocraft-engine",
+ "protocraft-ui-egui",
+ "rfd",
+ "serde_json",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
 name = "pxfm"
 version = "0.1.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
