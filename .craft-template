@@ -1,0 +1,2 @@
+# Marks this checkout as the craft template: ~/Workspace/crafts/rebuild.sh skips folders with this file,
+# so the baseline itself is never built into /Applications. `cargo xtask new-craft` does not copy it.
