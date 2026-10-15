@@ -24,7 +24,7 @@ tasks:
   wasm            cargo check --target wasm32-unknown-unknown for the engine and ui-egui crates
   ico <out.ico> <in.png>...
                   pack square PNGs (<= 256 px) into a Windows .ico (used by packaging/icons.sh)
-  new-craft <name> [--into <dir>]
+  new-craft <name> [--into <dir>] [--display-name \"<Display Name>\"]
                   copy this repository to <dir> (default ../<name>) renaming protocraft -> <name>
   version         print the workspace version and the git commit
   help            this text
