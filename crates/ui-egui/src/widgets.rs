@@ -1,16 +1,51 @@
-//! Ribbon widgets: large and small command buttons, groups, menu buttons, tooltips.
-//! Each button runs a command by id, so the ribbon never has behaviour of its own.
+//! Ribbon widgets: big and small command buttons, toggles, split buttons, menu buttons, combo
+//! fields, groups and tooltips. Each button runs a command by id, so the ribbon never has
+//! behaviour of its own; labels, shortcuts, locations and enablement come from the registry (or
+//! [`UI_COMMANDS`] for `ui.*` and `app.*` commands).
+//!
+//! Every widget registers accessibility info (`WidgetInfo`), so tests find it by its label.
 
-use egui::{Align2, CornerRadius, Rect, Response, Sense, Stroke, Ui, pos2, vec2};
+use egui::{Align2, CornerRadius, Rect, Response, Sense, Stroke, Ui, WidgetInfo, WidgetType, pos2, vec2};
 use serde_json::Value;
 
-use crate::theme::{Tokens, regular};
+use crate::theme::{Tokens, regular, semibold};
 use crate::{CraftApp, UI_COMMANDS, icons};
 
 /// Height of the ribbon content area (without group labels).
 pub const CONTENT_H: f32 = 66.0;
 /// Height of the group label row under the content.
 pub const LABEL_H: f32 = 16.0;
+/// Vertical padding inside the ribbon panel (top and bottom together).
+pub const RIBBON_PAD_V: f32 = 10.0;
+/// Height of the ribbon body panel.
+pub const BODY_H: f32 = CONTENT_H + LABEL_H + RIBBON_PAD_V;
+/// Big button: icon size and centre line, label font size, first label line and line step,
+/// minimum width. Two label lines end at 63, just inside `CONTENT_H`.
+pub const BIG_ICON: f32 = 32.0;
+pub const BIG_ICON_CY: f32 = 18.0;
+pub const BIG_LABEL_Y: f32 = 37.0;
+pub const BIG_FONT: f32 = 11.5;
+pub const BIG_LINE_H: f32 = 13.0;
+pub const BIG_MIN_W: f32 = 44.0;
+/// Horizontal padding around a big button's label.
+pub const BIG_PAD_X: f32 = 12.0;
+/// Small button: height, icon size, icon cell width (icon plus padding), label padding.
+pub const SMALL_H: f32 = 22.0;
+pub const SMALL_ICON: f32 = 16.0;
+pub const SMALL_ICON_W: f32 = 24.0;
+pub const SMALL_FONT: f32 = 11.5;
+pub const SMALL_PAD_X: f32 = 6.0;
+/// Width of the arrow part of a split or menu button (small) and the dropdown glyph.
+pub const ARROW_W: f32 = 12.0;
+pub const ARROW_GLYPH: f32 = 9.0;
+/// Corner radius of button backgrounds.
+pub const BUTTON_RADIUS: u8 = 4;
+/// Space between a group's content and the dividing rule, and after the rule.
+pub const GROUP_GAP: f32 = 6.0;
+/// Width of a vertical gap control inside a group.
+pub const GAP_W: f32 = 6.0;
+/// Default minimum width of a dropdown menu.
+pub const MENU_MIN_W: f32 = 200.0;
 
 /// The portable shortcut string for a command (engine or UI), first alternative only.
 pub fn shortcut_of(app: &CraftApp, id: &str) -> &'static str {
@@ -34,12 +69,22 @@ pub fn shortcut_text(app: &CraftApp, id: &str) -> String {
     }
 }
 
-/// The label a command is registered with (engine or UI).
+/// The label a command is registered with (engine or UI). Empty for an unknown id.
 pub fn label_of(app: &CraftApp, id: &str) -> &'static str {
     match app.session.registry.get(id) {
         Some(spec) => spec.label,
         None => UI_COMMANDS.iter().find(|(i, ..)| *i == id).map(|(_, l, ..)| *l).unwrap_or(""),
     }
+}
+
+/// Where a command lives (`Home > Clipboard`), for tooltips. UI commands have no location.
+pub fn location_of(app: &CraftApp, id: &str) -> &'static str {
+    app.session.registry.get(id).map(|s| s.location).unwrap_or("")
+}
+
+/// Whether `id` names a command at all (engine or UI).
+pub fn exists(app: &CraftApp, id: &str) -> bool {
+    app.session.registry.get(id).is_some() || UI_COMMANDS.iter().any(|(i, ..)| *i == id)
 }
 
 /// Whether a command exists and is enabled. UI commands are always enabled.
@@ -55,27 +100,48 @@ pub fn disabled_reason(app: &CraftApp, id: &str) -> Option<&'static str> {
     app.session.registry.get(id).and_then(|s| (s.enabled)(&app.session))
 }
 
-/// A tooltip with the label, shortcut, location and (when disabled) the reason.
+/// A big button's label: the registry label, broken onto two lines at the space nearest the
+/// middle when it is long enough to want it (`Select All` becomes `Select` over `All`).
+pub fn big_label(label: &str) -> String {
+    if label.chars().count() < 9 || !label.contains(' ') {
+        return label.to_string();
+    }
+    let mid = label.len() / 2;
+    let best = label.match_indices(' ').map(|(i, _)| i).min_by_key(|i| i.abs_diff(mid));
+    match best {
+        Some(i) => format!("{}\n{}", &label[..i], &label[i + 1..]),
+        None => label.to_string(),
+    }
+}
+
+/// A tooltip with the label, shortcut, location and (when disabled) why it is not available.
 pub fn tooltip(app: &CraftApp, resp: Response, label: &str, id: &str) -> Response {
     let sc = shortcut_text(app, id);
-    let desc = app.session.registry.get(id).map(|s| s.location).unwrap_or("");
+    let desc = location_of(app, id);
+    let on = enabled(app, id);
     let reason = disabled_reason(app, id);
     resp.on_hover_ui(|ui| {
         ui.set_max_width(260.0);
         let head = if sc.is_empty() { label.to_string() } else { format!("{label} ({sc})") };
-        ui.label(egui::RichText::new(head).font(crate::theme::semibold(12.0)));
+        ui.label(egui::RichText::new(head).font(semibold(12.0)));
         if !desc.is_empty() {
             ui.label(egui::RichText::new(desc).small().weak());
         }
-        if let Some(why) = reason {
-            ui.label(egui::RichText::new(format!("Not available: {why}")).small().weak());
+        if !on {
+            let why = match reason {
+                Some(why) => format!("Not available right now: {why}"),
+                None => "Not available right now".to_string(),
+            };
+            ui.label(egui::RichText::new(why).small().weak());
         }
     })
 }
 
 /// Hover, pressed and checked backgrounds shared by every button.
-fn bg(ui: &Ui, r: Rect, resp: &Response, checked: bool, t: &Tokens) {
-    let fill = if resp.is_pointer_button_down_on() {
+fn bg(ui: &Ui, r: Rect, resp: &Response, checked: bool, on: bool, t: &Tokens) {
+    let fill = if !on {
+        return;
+    } else if resp.is_pointer_button_down_on() {
         t.pressed
     } else if checked {
         t.checked
@@ -84,9 +150,9 @@ fn bg(ui: &Ui, r: Rect, resp: &Response, checked: bool, t: &Tokens) {
     } else {
         return;
     };
-    ui.painter().rect_filled(r, CornerRadius::same(4), fill);
+    ui.painter().rect_filled(r, CornerRadius::same(BUTTON_RADIUS), fill);
     if checked {
-        ui.painter().rect_stroke(r, CornerRadius::same(4), Stroke::new(1.0, t.accent.linear_multiply(0.5)), egui::StrokeKind::Inside);
+        ui.painter().rect_stroke(r, CornerRadius::same(BUTTON_RADIUS), Stroke::new(1.0, t.accent.linear_multiply(0.5)), egui::StrokeKind::Inside);
     }
 }
 
@@ -95,82 +161,184 @@ fn text_width(ui: &Ui, s: &str, font: egui::FontId) -> f32 {
     ui.ctx().fonts_mut(|f| f.layout_no_wrap(s.to_string(), font, t.text).size().x)
 }
 
-/// A large ribbon button: 32 px icon over a (possibly two-line) label.
+/// Icon and text colours for an enabled or disabled control.
+fn colors(t: &Tokens, on: bool) -> (egui::Color32, egui::Color32, egui::Color32) {
+    if on { (t.icon, t.accent, t.text) } else { (t.text_disabled, t.text_disabled, t.text_disabled) }
+}
+
+/// Paint the body of a big button: icon over label lines; returns the rect of the last line.
+/// With `arrow`, the last line moves left to leave room for a dropdown glyph beside it.
+fn paint_big(ui: &Ui, r: Rect, icon: &str, label: &str, on: bool, arrow: bool, t: &Tokens) -> Rect {
+    let (ic, ac, tc) = colors(t, on);
+    icons::paint(ui.painter(), Rect::from_center_size(pos2(r.center().x, r.min.y + BIG_ICON_CY), vec2(BIG_ICON, BIG_ICON)), icon, ic, ac);
+    let mut y = r.min.y + BIG_LABEL_Y;
+    let mut last = Rect::NOTHING;
+    let lines: Vec<&str> = label.split('\n').collect();
+    for (i, l) in lines.iter().enumerate() {
+        let shift = if arrow && i + 1 == lines.len() { (ARROW_GLYPH + 4.0) / 2.0 } else { 0.0 };
+        last = ui.painter().text(pos2(r.center().x - shift, y), Align2::CENTER_TOP, l, regular(BIG_FONT), tc);
+        y += BIG_LINE_H;
+    }
+    last
+}
+
+/// Paint the body of a small button: icon at the left, optional label.
+fn paint_small(ui: &Ui, r: Rect, icon: &str, label: Option<&str>, on: bool, t: &Tokens) {
+    let (ic, ac, tc) = colors(t, on);
+    icons::paint(ui.painter(), Rect::from_center_size(pos2(r.min.x + SMALL_ICON_W / 2.0, r.center().y), vec2(SMALL_ICON, SMALL_ICON)), icon, ic, ac);
+    if let Some(l) = label {
+        ui.painter().text(pos2(r.min.x + SMALL_ICON_W, r.center().y), Align2::LEFT_CENTER, l, regular(SMALL_FONT), tc);
+    }
+}
+
+fn big_width(ui: &Ui, label: &str, extra: f32) -> f32 {
+    let galley_w = label.split('\n').map(|l| text_width(ui, l, regular(BIG_FONT))).fold(0.0, f32::max);
+    (galley_w + BIG_PAD_X + extra).max(BIG_MIN_W)
+}
+
+fn small_width(ui: &Ui, label: Option<&str>) -> f32 {
+    SMALL_ICON_W + label.map(|l| text_width(ui, l, regular(SMALL_FONT)) + SMALL_PAD_X).unwrap_or(0.0)
+}
+
+fn run_if(app: &mut CraftApp, resp: &Response, on: bool, id: &str, params: Value) {
+    if resp.clicked() && on {
+        let _ = app.run(id, params);
+    }
+}
+
+/// A big ribbon button: 32 px icon over a (possibly two-line) label. Runs `id` with `params`.
 pub fn big(ui: &mut Ui, app: &mut CraftApp, icon: &str, label: &str, id: &str, params: Value) -> Response {
     let t = Tokens::get(ui.ctx());
-    let galley_w = label.split('\n').map(|l| text_width(ui, l, regular(11.5))).fold(0.0, f32::max);
-    let w = (galley_w + 12.0).max(44.0);
-    let (r, resp) = ui.allocate_exact_size(vec2(w, CONTENT_H), Sense::click());
+    let (r, resp) = ui.allocate_exact_size(vec2(big_width(ui, label, 0.0), CONTENT_H), Sense::click());
     let on = enabled(app, id);
-    bg(ui, r, &resp, false, &t);
-    let ic = Rect::from_center_size(pos2(r.center().x, r.min.y + 20.0), vec2(32.0, 32.0));
-    let (c, a) = if on { (t.icon, t.accent) } else { (t.text_disabled, t.text_disabled) };
-    icons::paint(ui.painter(), ic, icon, c, a);
-    let mut y = r.min.y + 43.0;
-    for l in label.split('\n') {
-        ui.painter().text(pos2(r.center().x, y), Align2::CENTER_TOP, l, regular(11.5), if on { t.text } else { t.text_disabled });
-        y += 13.0;
-    }
-    let resp = tooltip(app, resp, &label.replace('\n', " "), id);
-    if resp.clicked() && on {
-        let _ = app.run(id, params);
-    }
+    let name = label.replace('\n', " ");
+    resp.widget_info(|| WidgetInfo::labeled(WidgetType::Button, on, &name));
+    bg(ui, r, &resp, false, on, &t);
+    paint_big(ui, r, icon, label, on, false, &t);
+    let resp = tooltip(app, resp, &name, id);
+    run_if(app, &resp, on, id, params);
     resp
 }
 
-/// A small button: 16 px icon with an optional label; `checked` draws the toggled state.
-pub fn small(ui: &mut Ui, app: &mut CraftApp, icon: &str, label: Option<&str>, tip: &str, id: &str, params: Value, checked: bool) -> Response {
+/// A small button: 16 px icon with an optional label. Runs `id` with `params`; `tip` names it.
+pub fn small(ui: &mut Ui, app: &mut CraftApp, icon: &str, label: Option<&str>, tip: &str, id: &str, params: Value) -> Response {
+    small_checked(ui, app, icon, label, tip, id, params, false)
+}
+
+/// A small button drawn in the toggled state when `checked` (pane toggles, dark mode).
+pub fn toggle(ui: &mut Ui, app: &mut CraftApp, icon: &str, label: Option<&str>, tip: &str, id: &str, params: Value, checked: bool) -> Response {
+    small_checked(ui, app, icon, label, tip, id, params, checked)
+}
+
+fn small_checked(ui: &mut Ui, app: &mut CraftApp, icon: &str, label: Option<&str>, tip: &str, id: &str, params: Value, checked: bool) -> Response {
     let t = Tokens::get(ui.ctx());
-    let text_w = label.map(|l| text_width(ui, l, regular(11.5)) + 6.0).unwrap_or(0.0);
-    let (r, resp) = ui.allocate_exact_size(vec2(24.0 + text_w, 22.0), Sense::click());
+    let (r, resp) = ui.allocate_exact_size(vec2(small_width(ui, label), SMALL_H), Sense::click());
     let on = enabled(app, id);
-    bg(ui, r, &resp, checked, &t);
-    let ic = Rect::from_center_size(pos2(r.min.x + 12.0, r.center().y), vec2(17.0, 17.0));
-    let (c, a) = if on { (t.icon, t.accent) } else { (t.text_disabled, t.text_disabled) };
-    icons::paint(ui.painter(), ic, icon, c, a);
-    if let Some(l) = label {
-        ui.painter().text(pos2(r.min.x + 24.0, r.center().y), Align2::LEFT_CENTER, l, regular(11.5), if on { t.text } else { t.text_disabled });
-    }
+    resp.widget_info(|| WidgetInfo::selected(WidgetType::Button, on, checked, tip));
+    bg(ui, r, &resp, checked, on, &t);
+    paint_small(ui, r, icon, label, on, &t);
     let resp = tooltip(app, resp, tip, id);
-    if resp.clicked() && on {
-        let _ = app.run(id, params);
-    }
+    run_if(app, &resp, on, id, params);
     resp
 }
 
-/// A button that only opens a menu (icon, label and a dropdown arrow).
-pub fn menu_button(ui: &mut Ui, app: &mut CraftApp, icon: &str, label: &str, tip: &str, big_btn: bool, menu: impl FnOnce(&mut Ui, &mut CraftApp)) {
+/// A split button: the main part runs `id`, the arrow part opens `menu`. Big: icon over the
+/// label with the arrow under it; small: icon and label with the arrow at the right.
+pub fn split(
+    ui: &mut Ui,
+    app: &mut CraftApp,
+    icon: &str,
+    label: &str,
+    id: &str,
+    params: Value,
+    big_btn: bool,
+    menu: impl FnOnce(&mut Ui, &mut CraftApp),
+) -> Response {
     let t = Tokens::get(ui.ctx());
-    let resp = if big_btn {
-        let galley_w = label.split('\n').map(|l| text_width(ui, l, regular(11.5))).fold(0.0, f32::max);
-        let w = (galley_w + 22.0).max(44.0);
-        let (r, resp) = ui.allocate_exact_size(vec2(w, CONTENT_H), Sense::click());
-        bg(ui, r, &resp, false, &t);
-        icons::paint(ui.painter(), Rect::from_center_size(pos2(r.center().x, r.min.y + 20.0), vec2(32.0, 32.0)), icon, t.icon, t.accent);
-        let lines: Vec<&str> = label.split('\n').collect();
-        let mut y = r.min.y + 43.0;
-        for (i, l) in lines.iter().enumerate() {
-            let g = ui.painter().text(pos2(r.center().x, y), Align2::CENTER_TOP, *l, regular(11.5), t.text);
-            if i + 1 == lines.len() {
-                icons::paint(ui.painter(), Rect::from_center_size(pos2(g.max.x + 6.0, g.center().y), vec2(9.0, 9.0)), "dropdown", t.icon, t.accent);
-            }
-            y += 13.0;
-        }
-        resp
+    let on = enabled(app, id);
+    let name = label.replace('\n', " ");
+    let (main, arrow) = if big_btn {
+        let w = big_width(ui, label, 0.0);
+        // The arrow lives in a strip under the label; the main part is everything above.
+        let lines = label.split('\n').count() as f32;
+        let main_h = BIG_LABEL_Y + BIG_LINE_H * lines;
+        let (r, resp) = ui.allocate_exact_size(vec2(w, CONTENT_H), Sense::hover());
+        let main_r = Rect::from_min_size(r.min, vec2(w, main_h));
+        let arrow_r = Rect::from_min_max(pos2(r.min.x, r.min.y + main_h), r.max);
+        let main = ui.interact(main_r, resp.id.with("main"), Sense::click());
+        let arrow = ui.interact(arrow_r, resp.id.with("arrow"), Sense::click());
+        bg(ui, main_r, &main, false, on, &t);
+        bg(ui, arrow_r, &arrow, false, true, &t);
+        paint_big(ui, r, icon, label, on, false, &t);
+        let glyph = Rect::from_center_size(pos2(r.center().x, arrow_r.center().y - 1.0), vec2(ARROW_GLYPH + 3.0, ARROW_GLYPH + 3.0));
+        icons::paint(ui.painter(), glyph, "dropdown", t.icon, t.accent);
+        (main, arrow)
     } else {
-        let text_w = text_width(ui, label, regular(11.5)) + 6.0;
-        let (r, resp) = ui.allocate_exact_size(vec2(24.0 + text_w + 10.0, 22.0), Sense::click());
-        bg(ui, r, &resp, false, &t);
-        icons::paint(ui.painter(), Rect::from_center_size(pos2(r.min.x + 12.0, r.center().y), vec2(17.0, 17.0)), icon, t.icon, t.accent);
-        ui.painter().text(pos2(r.min.x + 24.0, r.center().y), Align2::LEFT_CENTER, label, regular(11.5), t.text);
-        icons::paint(ui.painter(), Rect::from_center_size(pos2(r.max.x - 6.0, r.center().y), vec2(9.0, 9.0)), "dropdown", t.icon, t.accent);
-        resp
+        let w = small_width(ui, Some(label));
+        let (r, main) = ui.allocate_exact_size(vec2(w, SMALL_H), Sense::click());
+        let (ar, arrow) = ui.allocate_exact_size(vec2(ARROW_W, SMALL_H), Sense::click());
+        bg(ui, r, &main, false, on, &t);
+        bg(ui, ar, &arrow, false, true, &t);
+        paint_small(ui, r, icon, Some(label), on, &t);
+        icons::paint(ui.painter(), Rect::from_center_size(ar.center(), vec2(ARROW_GLYPH, ARROW_GLYPH)), "dropdown", t.icon, t.accent);
+        (main, arrow)
     };
-    let resp = resp.on_hover_text(tip);
-    egui::Popup::menu(&resp).show(|ui| {
-        ui.set_min_width(200.0);
+    main.widget_info(|| WidgetInfo::labeled(WidgetType::Button, on, &name));
+    arrow.widget_info(|| WidgetInfo::labeled(WidgetType::Button, true, format!("{name} options")));
+    let main = tooltip(app, main, &name, id);
+    run_if(app, &main, on, id, params);
+    let arrow = arrow.on_hover_text(format!("{name} options"));
+    egui::Popup::menu(&arrow).show(|ui| {
+        ui.set_min_width(MENU_MIN_W);
         menu(ui, app);
     });
+    main
+}
+
+/// A button that only opens a menu (icon, label and a dropdown arrow). `tip` is its name.
+pub fn menu_button(
+    ui: &mut Ui,
+    app: &mut CraftApp,
+    icon: &str,
+    label: &str,
+    tip: &str,
+    big_btn: bool,
+    menu: impl FnOnce(&mut Ui, &mut CraftApp),
+) -> Response {
+    let t = Tokens::get(ui.ctx());
+    let resp = if big_btn {
+        let (r, resp) = ui.allocate_exact_size(vec2(big_width(ui, label, ARROW_GLYPH + 4.0), CONTENT_H), Sense::click());
+        bg(ui, r, &resp, false, true, &t);
+        let last = paint_big(ui, r, icon, label, true, true, &t);
+        // The arrow follows the last line, which moved left to make room for it.
+        icons::paint(
+            ui.painter(),
+            Rect::from_center_size(pos2(last.max.x + 6.0, last.center().y), vec2(ARROW_GLYPH, ARROW_GLYPH)),
+            "dropdown",
+            t.icon,
+            t.accent,
+        );
+        resp
+    } else {
+        let (r, resp) = ui.allocate_exact_size(vec2(small_width(ui, Some(label)) + ARROW_W, SMALL_H), Sense::click());
+        bg(ui, r, &resp, false, true, &t);
+        paint_small(ui, r, icon, Some(label), true, &t);
+        icons::paint(
+            ui.painter(),
+            Rect::from_center_size(pos2(r.max.x - ARROW_W / 2.0, r.center().y), vec2(ARROW_GLYPH, ARROW_GLYPH)),
+            "dropdown",
+            t.icon,
+            t.accent,
+        );
+        resp
+    };
+    resp.widget_info(|| WidgetInfo::labeled(WidgetType::Button, true, tip));
+    let resp = resp.on_hover_text(tip);
+    egui::Popup::menu(&resp).show(|ui| {
+        ui.set_min_width(MENU_MIN_W);
+        menu(ui, app);
+    });
+    resp
 }
 
 /// A menu item that runs a command and closes the menu. Shows the shortcut; disabled when the
@@ -178,15 +346,55 @@ pub fn menu_button(ui: &mut Ui, app: &mut CraftApp, icon: &str, label: &str, tip
 pub fn menu_item(ui: &mut Ui, app: &mut CraftApp, label: &str, id: &str, params: Value) {
     let sc = shortcut_text(app, id);
     let on = enabled(app, id);
-    let resp = ui.add_enabled(on, egui::Button::new(label).shortcut_text(sc).min_size(vec2(200.0, 0.0)));
+    let resp = ui.add_enabled(on, egui::Button::new(label).shortcut_text(sc).min_size(vec2(MENU_MIN_W, 0.0)));
     if resp.clicked() {
         let _ = app.run(id, params);
         ui.close();
     }
 }
 
-/// A ribbon group: content, a centred label below and a divider on the right.
-pub fn group(ui: &mut Ui, title: &str, app: &mut CraftApp, add: impl FnOnce(&mut Ui, &mut CraftApp)) {
+/// A ribbon-style text field with a dropdown list of `items`; `current` shows when the field is
+/// not being edited. Returns a value the user chose from the list or typed and confirmed with
+/// Enter. `id` keeps the edit state apart from other combos.
+pub fn combo(ui: &mut Ui, id: &str, width: f32, current: &str, items: &[String]) -> Option<String> {
+    let mut out = None;
+    let edit_id = ui.id().with(("combo_text", id));
+    let mut text = ui.data_mut(|d| d.get_temp::<String>(edit_id)).unwrap_or_else(|| current.to_string());
+    let t = Tokens::get(ui.ctx());
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing = vec2(0.0, 0.0);
+        let te = egui::TextEdit::singleline(&mut text).desired_width(width - ARROW_W - 8.0).font(regular(12.0)).margin(vec2(4.0, 3.0));
+        let resp = ui.add(te);
+        if resp.has_focus() {
+            ui.data_mut(|d| d.insert_temp(edit_id, text.clone()));
+        } else {
+            ui.data_mut(|d| d.remove::<String>(edit_id));
+        }
+        if resp.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+            out = Some(text.clone());
+        }
+        let (ar, aresp) = ui.allocate_exact_size(vec2(ARROW_W + 4.0, resp.rect.height()), Sense::click());
+        aresp.widget_info(|| WidgetInfo::labeled(WidgetType::Button, true, format!("{id} options")));
+        ui.painter().rect(ar, 0.0, if aresp.hovered() { t.hover } else { t.input }, Stroke::new(1.0, t.input_border), egui::StrokeKind::Inside);
+        icons::paint(ui.painter(), Rect::from_center_size(ar.center(), vec2(ARROW_GLYPH, ARROW_GLYPH)), "dropdown", t.icon, t.accent);
+        egui::Popup::menu(&aresp).show(|ui| {
+            egui::ScrollArea::vertical().max_height(420.0).show(ui, |ui| {
+                ui.set_min_width(width + 40.0);
+                for it in items {
+                    if ui.selectable_label(it == current, it).clicked() {
+                        out = Some(it.clone());
+                        ui.close();
+                    }
+                }
+            });
+        });
+    });
+    out
+}
+
+/// A ribbon group: content, a centred label below and, when `rule` is set, a dividing rule on
+/// the right. Returns the group's rect.
+pub fn group(ui: &mut Ui, title: &str, rule: bool, app: &mut CraftApp, add: impl FnOnce(&mut Ui, &mut CraftApp)) -> Rect {
     let t = Tokens::get(ui.ctx());
     let label_w = text_width(ui, title, regular(11.0));
     let start = ui.cursor().min;
@@ -197,16 +405,18 @@ pub fn group(ui: &mut Ui, title: &str, app: &mut CraftApp, add: impl FnOnce(&mut
             add(ui, app);
         });
     });
-    let r = inner.response.rect;
-    let r = Rect::from_min_max(start, pos2(r.max.x, start.y + CONTENT_H + LABEL_H));
+    let r = Rect::from_min_max(start, pos2(inner.response.rect.max.x, start.y + CONTENT_H + LABEL_H));
     ui.painter().text(pos2(r.center().x, r.max.y - 8.0), Align2::CENTER_CENTER, title, regular(11.0), t.group_label);
-    ui.add_space(5.0);
-    let x = ui.cursor().min.x;
-    ui.painter().line_segment([pos2(x, start.y + 4.0), pos2(x, start.y + CONTENT_H + LABEL_H - 4.0)], Stroke::new(1.0, t.border));
-    ui.add_space(6.0);
+    if rule {
+        ui.add_space(GROUP_GAP - 1.0);
+        let x = ui.cursor().min.x;
+        ui.painter().line_segment([pos2(x, start.y + 4.0), pos2(x, start.y + CONTENT_H + LABEL_H - 4.0)], Stroke::new(1.0, t.border));
+        ui.add_space(GROUP_GAP);
+    }
+    r
 }
 
-/// A vertical stack of small buttons inside a group.
+/// A vertical stack of small controls inside a group.
 pub fn stack(ui: &mut Ui, add: impl FnOnce(&mut Ui)) {
     ui.vertical(|ui| {
         ui.spacing_mut().item_spacing = vec2(1.0, 0.0);
@@ -214,12 +424,13 @@ pub fn stack(ui: &mut Ui, add: impl FnOnce(&mut Ui)) {
     });
 }
 
-/// A plain icon button (title bar, status bar). Returns true when clicked.
+/// A plain icon button (title bar, status bar). `tip` is its name. Returns true when clicked.
 pub fn icon_button(ui: &mut Ui, icon: &str, tip: &str, size: f32, enabled: bool) -> bool {
     let t = Tokens::get(ui.ctx());
     let (r, resp) = ui.allocate_exact_size(vec2(size + 8.0, size + 6.0), Sense::click());
+    resp.widget_info(|| WidgetInfo::labeled(WidgetType::Button, enabled, tip));
     if resp.hovered() && enabled {
-        ui.painter().rect_filled(r, 4.0, t.hover);
+        ui.painter().rect_filled(r, BUTTON_RADIUS as f32, t.hover);
     }
     let c = if enabled { t.icon } else { t.text_disabled };
     icons::paint(ui.painter(), Rect::from_center_size(r.center(), vec2(size, size)), icon, c, if enabled { t.accent } else { c });
@@ -230,4 +441,19 @@ pub fn icon_button(ui: &mut Ui, icon: &str, tip: &str, size: f32, enabled: bool)
 pub fn primary_button(ui: &mut Ui, label: &str) -> Response {
     let t = Tokens::get(ui.ctx());
     ui.add(egui::Button::new(egui::RichText::new(label).color(t.on_accent)).fill(t.accent).min_size(vec2(72.0, 24.0)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::big_label;
+
+    #[test]
+    fn big_labels_break_long_names_at_the_middle_space() {
+        assert_eq!(big_label("Undo"), "Undo");
+        assert_eq!(big_label("Zoom In"), "Zoom In");
+        assert_eq!(big_label("Select All"), "Select\nAll");
+        assert_eq!(big_label("Navigation Pane"), "Navigation\nPane");
+        assert_eq!(big_label("Search Commands"), "Search\nCommands");
+        assert_eq!(big_label("Preferences"), "Preferences");
+    }
 }
