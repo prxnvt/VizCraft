@@ -20,7 +20,7 @@ tasks:
   ci              fmt --check, clippy -D warnings, test, assets, layers, wasm (stops at first failure)
   layers          enforce the crate dependency layering (docs/architecture.md, Layers)
   assets          check that every file under assets/ and packaging/ has a row in ATTRIBUTION.md
-  wasm            cargo check --target wasm32-unknown-unknown for the engine and ui-egui crates
+  wasm            cargo check --target wasm32-unknown-unknown for the engine, ui-egui and *-web crates
   new-craft <name> [--into <dir>]
                   copy this repository to <dir> (default ../<name>) renaming protocraft -> <name>
   version         print the workspace version and the git commit
@@ -124,12 +124,13 @@ enum Outcome {
     Skipped(String),
 }
 
-/// Workspace crates that must build for the web: the engine and the egui front end.
+/// Workspace crates that must build for the web: the engine, the egui front end and the web
+/// shell(s) (`apps/*-web`, which are not default members and so are only ever built here).
 fn wasm_set() -> Result<Vec<String>, String> {
     let crates = layers::from_metadata(&metadata()?)?;
     let set: Vec<String> = crates
         .iter()
-        .filter(|c| matches!(layers::classify(c), Some(layers::Class::Engine | layers::Class::UiEgui)))
+        .filter(|c| matches!(layers::classify(c), Some(layers::Class::Engine | layers::Class::UiEgui)) || c.name.ends_with("-web"))
         .map(|c| c.name.clone())
         .collect();
     if set.is_empty() { Err("wasm: no engine or ui-egui crate in the workspace".into()) } else { Ok(set) }
