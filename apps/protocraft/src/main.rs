@@ -253,7 +253,7 @@ fn main() -> eframe::Result {
     let mut files = Vec::new();
     let mut sample = false;
     let mut in_window_menus = std::env::var_os("PROTOCRAFT_IN_WINDOW_MENUS").is_some_and(|v| v != "0" && !v.is_empty());
-    let mut window_pos = std::env::var("PROTOCRAFT_WINDOW_POS").ok().and_then(|v| parse_window_pos(&v));
+    let mut window_pos = None;
     let mut args = std::env::args().skip(1);
     while let Some(a) = args.next() {
         match a.as_str() {
