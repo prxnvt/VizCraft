@@ -1,0 +1,4 @@
+# egui_kittest scratch output; only the reference PNGs are committed.
+*.new.png
+*.diff.png
+*.old.png
