@@ -18,6 +18,8 @@ fn app() -> CraftApp {
 fn harness_at(width: f32, tab: &str) -> Harness {
     let mut a = app();
     a.ui.tab = tab.into();
+    // The History pane has its own Undo and Redo buttons; these tests look for the ribbon's.
+    a.ui.panes.close("history");
     let mut h = egui_kittest::Harness::builder().with_size(vec2(width, 700.0)).build_ui_state(
         |ui, app: &mut CraftApp| {
             app.logic(ui.ctx());
