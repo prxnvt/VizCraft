@@ -1,5 +1,7 @@
-//! The File page (Backstage): a full-window page with New, Open, Save, Save As, recent files
-//! and the document's facts. Opened by the File tab; Escape or Back returns to the document.
+//! The File page (Backstage): a full-window page with New, Open, Save, Save As, Preferences and
+//! About in a coloured column, the recent files and the document's facts beside it. Opened by
+//! the File tab (`ui.tab {"tab": "File"}` or `ui.backstage`); Escape or the back arrow returns
+//! to the document. Every row runs a command, nothing here has behaviour of its own.
 
 use egui::{Align2, Sense, Stroke, Ui, pos2, vec2};
 use serde_json::json;
@@ -26,7 +28,7 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
         }))
         .show(ui, |ui| {
             ui.spacing_mut().item_spacing = vec2(0.0, 2.0);
-            if nav_item(ui, "Back", true) {
+            if back_button(ui) {
                 let _ = app.run("ui.backstage", json!({"value": false}));
             }
             ui.add_space(14.0);
@@ -53,7 +55,18 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
         let where_ = app.session.path.as_ref().map(|p| p.to_string_lossy().to_string()).unwrap_or_else(|| "Not saved yet".into());
         ui.label(egui::RichText::new(where_).font(regular(12.0)).color(t.text_dim));
         ui.add_space(20.0);
-        ui.label(egui::RichText::new("Recent").font(medium(14.0)).color(t.text));
+        ui.horizontal(|ui| {
+            ui.label(egui::RichText::new("Recent").font(medium(14.0)).color(t.text));
+            if !app.ui.recent.is_empty() {
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    ui.set_width(ui.available_width().min(520.0));
+                    if ui.add(egui::Button::new(egui::RichText::new("Clear Recent").font(regular(11.5)).color(t.accent_text)).frame(false)).clicked()
+                    {
+                        let _ = app.run("ui.clearRecent", json!({}));
+                    }
+                });
+            }
+        });
         ui.add_space(6.0);
         if app.ui.recent.is_empty() {
             ui.label(egui::RichText::new("Files you open or save appear here.").color(t.text_dim));
@@ -94,6 +107,21 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
             }
         });
     });
+}
+
+/// The back arrow at the top of the command column (drawn, not a glyph). Returns true when clicked.
+fn back_button(ui: &mut Ui) -> bool {
+    let t = Tokens::get(ui.ctx());
+    let (r, resp) = ui.allocate_exact_size(vec2(36.0, 30.0), Sense::click());
+    if resp.hovered() {
+        ui.painter().rect_filled(r, 15.0, t.on_accent.gamma_multiply(0.18));
+    }
+    let c = r.center();
+    let s = Stroke::new(1.8, t.on_accent);
+    ui.painter().line_segment([c + vec2(-7.0, 0.0), c + vec2(7.0, 0.0)], s);
+    ui.painter().line_segment([c + vec2(-7.0, 0.0), c + vec2(-2.0, -5.0)], s);
+    ui.painter().line_segment([c + vec2(-7.0, 0.0), c + vec2(-2.0, 5.0)], s);
+    resp.on_hover_text("Back to the document (Escape)").clicked()
 }
 
 /// A row in the coloured command column. Returns true when clicked.
