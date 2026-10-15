@@ -33,7 +33,7 @@ pub use control::ControlRequest;
 /// Commands that live in the UI layer: `(id, label, shortcut, params)`. Listed so the palette,
 /// menus and control channel see them next to the engine's.
 pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
-    ("ui.tab", "Switch Ribbon Tab", "", r#"{"tab": "File|Home|Insert|View|Help"}"#),
+    ("ui.tab", "Switch Ribbon Tab", "", r#"{"tab": "File|Home|View|Help"}"#),
     ("ui.collapseRibbon", "Collapse the Ribbon", "Mod+F1", r#"{"value"?: bool}"#),
     ("ui.commands", "Search Commands", "Mod+Shift+P", "{}"),
     ("ui.dialog", "Open Dialog", "", r#"{"name": "commands|zoom|about|preferences|quit|shortcuts|message", "title"?: string, "text"?: string}"#),
@@ -687,9 +687,9 @@ mod tests {
         // Prefs from an older build (missing fields) and an empty name keep the defaults.
         let mut a = app();
         let default = a.session.author.clone();
-        a.apply_prefs(serde_json::from_str(r#"{"tab": "Insert", "author": "  "}"#).unwrap());
+        a.apply_prefs(serde_json::from_str(r#"{"tab": "View", "author": "  "}"#).unwrap());
         assert_eq!(a.session.author, default);
-        assert_eq!(a.ui.tab, "Insert");
+        assert_eq!(a.ui.tab, "View");
         assert_eq!(a.ui.panes, panes::PaneLayout::default());
     }
 
@@ -721,7 +721,7 @@ mod tests {
         a.run("app.quit", json!({})).unwrap();
         assert!(a.quit_requested, "a clean document closes at once");
         let mut a = app();
-        a.run("edit.setText", json!({"text": "changed"})).unwrap();
+        a.run("edit.setTitle", json!({"title": "changed"})).unwrap();
         a.run("app.quit", json!({})).unwrap();
         assert!(a.asking_before_closing());
         assert!(!a.quit_requested);
@@ -734,7 +734,9 @@ mod tests {
     #[test]
     fn title_stem_prefers_the_file_name() {
         let mut a = app();
-        assert_eq!(a.title_stem(), "Welcome to ProtoCraft");
+        assert_eq!(a.title_stem(), "Untitled");
+        a.session.doc.title = "My Project".into();
+        assert_eq!(a.title_stem(), "My Project");
         a.session.path = Some("/tmp/Plans.craft.json".into());
         assert_eq!(a.title_stem(), "Plans");
         a.session.path = None;

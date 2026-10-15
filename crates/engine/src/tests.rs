@@ -29,7 +29,6 @@ fn unknown_and_disabled_commands_are_errors() {
     let mut s = s();
     assert_eq!(s.run("nope.nothing", &json!({})), Err(EngineError::Unknown("nope.nothing".into())));
     assert!(matches!(s.run("edit.undo", &json!({})), Err(EngineError::Disabled(_))));
-    assert!(matches!(s.run("edit.copy", &json!({})), Err(EngineError::Disabled(_))), "copy with nothing selected");
 }
 
 #[test]
@@ -52,8 +51,6 @@ fn hostile_params_never_panic() {
         for j in &junk {
             let mut s = s();
             let _ = s.run(spec.id, j);
-            assert!(!s.doc.notes.is_empty(), "{}: emptied the document", spec.id);
-            assert!(s.sel.note < s.doc.notes.len(), "{}: selection off the end", spec.id);
         }
     }
 }
@@ -63,7 +60,6 @@ fn a_panicking_command_restores_the_document() {
     let mut s = s();
     let mut specs = s.registry.all().to_vec();
     specs.push(crate::CommandSpec::new("edit.boom", "Boom", "Tests", |s, _| {
-        s.doc.notes.clear();
         s.doc.title = "half done".into();
         let v: Vec<u8> = Vec::new();
         let _ = v[3];
@@ -84,39 +80,24 @@ fn undo_round_trips() {
     let mut s = s();
     let original = s.doc.clone();
     let rev0 = s.rev();
-    run(&mut s, "edit.setText", json!({"text": "hello", "note": 0}));
+    run(&mut s, "edit.setTitle", json!({"title": "First"}));
     assert!(s.dirty);
     assert!(s.rev() > rev0);
-    assert_eq!(s.undo_label(), Some("Typing"));
-    run(&mut s, "insert.note", json!({"title": "New"}));
-    assert_eq!(s.doc.notes.len(), 4);
-    assert_eq!(s.undo_label(), Some("Note"));
+    assert_eq!(s.undo_label(), Some("Document Title"));
+    run(&mut s, "edit.setTitle", json!({"title": "Second"}));
+    assert_eq!(s.doc.title, "Second");
+    assert_eq!(s.undo_label(), Some("Document Title"));
     run(&mut s, "edit.undo", json!({}));
-    assert_eq!(s.doc.notes.len(), 3);
-    assert_eq!(s.redo_label(), Some("Note"));
+    assert_eq!(s.doc.title, "First");
+    assert_eq!(s.redo_label(), Some("Document Title"));
     run(&mut s, "edit.undo", json!({}));
     assert_eq!(s.doc, original);
     assert!(!s.can_undo());
     run(&mut s, "edit.redo", json!({}));
+    assert_eq!(s.doc.title, "First");
     run(&mut s, "edit.redo", json!({}));
-    assert_eq!(s.doc.notes.len(), 4);
-    assert_eq!(s.doc.notes[0].body, "hello");
+    assert_eq!(s.doc.title, "Second");
     assert!(!s.can_redo());
-}
-
-#[test]
-fn typing_coalesces_but_other_commands_split_it() {
-    let mut s = s();
-    run(&mut s, "edit.setText", json!({"text": "a"}));
-    run(&mut s, "edit.setText", json!({"text": "ab"}));
-    run(&mut s, "edit.setText", json!({"text": "abc"}));
-    run(&mut s, "edit.undo", json!({}));
-    assert_eq!(s.doc.notes[0].body, sample::sample_document().notes[0].body, "three keystrokes are one step");
-    run(&mut s, "edit.setText", json!({"text": "x"}));
-    run(&mut s, "edit.selectAll", json!({}));
-    run(&mut s, "edit.setText", json!({"text": "xy"}));
-    run(&mut s, "edit.undo", json!({}));
-    assert_eq!(s.doc.notes[0].body, "x", "a selection command closes the typing group");
 }
 
 #[test]
@@ -138,30 +119,21 @@ fn view_commands_are_not_undo_steps() {
 }
 
 #[test]
-fn clipboard_edits_the_selection() {
+fn clipboard_template_errors() {
     let mut s = s();
-    run(&mut s, "edit.setText", json!({"text": "hello world"}));
-    run(&mut s, "edit.select", json!({"start": 0, "end": 5}));
-    assert_eq!(run(&mut s, "edit.copy", json!({}))["text"], "hello");
-    run(&mut s, "edit.cut", json!({}));
-    assert_eq!(s.doc.notes[0].body, " world");
-    run(&mut s, "edit.paste", json!({}));
-    assert_eq!(s.doc.notes[0].body, "hello world");
-    run(&mut s, "edit.selectAll", json!({}));
-    run(&mut s, "edit.paste", json!({"text": "bye"}));
-    assert_eq!(s.doc.notes[0].body, "bye");
-    assert_eq!(s.sel.end, 3);
-    run(&mut s, "edit.undo", json!({}));
-    assert_eq!(s.doc.notes[0].body, "hello world");
+    assert!(matches!(s.run("edit.cut", &json!({})), Err(EngineError::Failed(_))));
+    assert!(matches!(s.run("edit.copy", &json!({})), Err(EngineError::Failed(_))));
+    assert!(matches!(s.run("edit.paste", &json!({})), Err(EngineError::Failed(_))));
+    assert!(matches!(s.run("edit.selectAll", &json!({})), Err(EngineError::Failed(_))));
 }
 
 #[test]
 fn save_and_open_round_trip() {
     let dir = std::env::temp_dir().join(format!("protocraft-engine-test-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
-    let path = dir.join("notes.craft.json");
+    let path = dir.join("template.craft.json");
     let mut s = s();
-    run(&mut s, "edit.setText", json!({"text": "saved text"}));
+    run(&mut s, "edit.setTitle", json!({"title": "saved title"}));
     run(&mut s, "file.setAuthor", json!({"name": "Ada"}));
     let r = run(&mut s, "file.save", json!({"path": path.to_string_lossy()}));
     assert_eq!(r["saved"], true);
@@ -202,13 +174,13 @@ fn save_without_a_path_asks_the_ui() {
 #[test]
 fn new_document_clears_history_and_path() {
     let mut s = s();
-    run(&mut s, "edit.setText", json!({"text": "x"}));
+    run(&mut s, "edit.setTitle", json!({"title": "x"}));
     s.path = Some("somewhere.craft.json".into());
     run(&mut s, "file.new", json!({}));
     assert!(!s.can_undo());
     assert!(!s.dirty);
     assert_eq!(s.path, None);
-    assert_eq!(s.doc.notes.len(), 1);
+    assert_eq!(s.doc.title, "");
     run(&mut s, "file.new", json!({"template": "sample"}));
     assert_eq!(s.doc, sample::sample_document());
 }

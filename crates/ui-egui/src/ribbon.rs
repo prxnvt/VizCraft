@@ -181,8 +181,8 @@ fn has_selection(app: &CraftApp) -> bool {
 /// Zoom steps offered by the View tab's zoom field.
 pub const ZOOM_STEPS: &[u32] = &[50, 75, 100, 125, 150, 200, 300];
 
-/// The default tabs: Home (Clipboard, Undo, Notes), Insert (Notes), View (Zoom, Show,
-/// Appearance), Help (Help, Settings), plus a contextual Selection tab while text is selected.
+/// The default tabs: Home (Clipboard, Undo), View (Zoom, Show, Appearance), Help (Help,
+/// Settings), plus a contextual Selection tab while text or elements are selected.
 /// A craft edits this function to declare its own ribbon.
 pub fn tabs(_app: &CraftApp) -> Vec<Tab> {
     use Control::*;
@@ -206,24 +206,7 @@ pub fn tabs(_app: &CraftApp) -> Vec<Tab> {
                     ],
                 ),
                 Group::new("Undo", vec![Big { id: "edit.undo", icon: "undo" }, Big { id: "edit.redo", icon: "redo" }]),
-                Group::new("Notes", vec![Big { id: "insert.note", icon: "noteNew" }, Big { id: "edit.deleteNote", icon: "noteDelete" }]),
             ],
-        ),
-        Tab::new(
-            "Insert",
-            vec![Group::new(
-                "Notes",
-                vec![Split {
-                    id: "insert.note",
-                    icon: "note",
-                    big: true,
-                    menu: vec![
-                        ("Empty note", "insert.note", json!({})),
-                        ("Today's date", "insert.note", json!({"title": "Today", "body": protocraft_engine::cmd::now_iso()})),
-                        ("Checklist", "insert.note", json!({"title": "Checklist", "body": "[ ] First\n[ ] Second\n[ ] Third"})),
-                    ],
-                }],
-            )],
         ),
         Tab::new(
             "View",

@@ -211,8 +211,6 @@ fn inspect(args: &[String]) -> Result<(), CliError> {
     }
     println!("{path}");
     println!("  title:     {}", if doc.title.is_empty() { "(untitled)" } else { &doc.title });
-    println!("  notes:     {}", doc.notes.len());
-    println!("  chars:     {}", doc.char_count());
     if !doc.core.author.is_empty() {
         println!("  author:    {}", doc.core.author);
     }
@@ -223,17 +221,6 @@ fn inspect(args: &[String]) -> Result<(), CliError> {
         println!("  created:   {}", doc.core.created);
     }
     println!("  revision:  {}", doc.core.revision);
-    for (i, n) in doc.notes.iter().enumerate() {
-        let first = n.body.lines().next().unwrap_or("");
-        let preview: String = first.chars().take(60).collect();
-        let more = if first.chars().count() > 60 { "..." } else { "" };
-        println!(
-            "  [{i}] {} ({} chars){}",
-            if n.title.is_empty() { "(untitled note)" } else { &n.title },
-            n.body.chars().count(),
-            if preview.is_empty() { String::new() } else { format!(": {preview}{more}") }
-        );
-    }
     Ok(())
 }
 

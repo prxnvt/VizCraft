@@ -181,8 +181,8 @@ mod tests {
         let back: crate::UiState = serde_json::from_str(&json).unwrap();
         assert_eq!(back.window, Some(saved()));
         // Prefs written before the saved-geometry feature have no window.
-        let old: crate::UiState = serde_json::from_str(r#"{"tab":"Insert"}"#).unwrap();
+        let old: crate::UiState = serde_json::from_str(r#"{"tab":"View"}"#).unwrap();
         assert_eq!(old.window, None);
-        assert_eq!(old.tab, "Insert");
+        assert_eq!(old.tab, "View");
     }
 }

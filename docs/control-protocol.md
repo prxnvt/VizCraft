@@ -105,7 +105,7 @@ Returns one JSON object with everything a script needs to check its work without
 |---|---|
 | `ui` | the `UiState` as it would be persisted: `tab`, `ribbonCollapsed`, `dark`, `recent`, `author`, `panes`, `window`, `inWindowMenus` |
 | `view` | the engine `ViewState`: `zoom`, `darkMode`, `navPane`, `propsPane` |
-| `selection` | the engine selection: `note`, `start`, `end` (character offsets) |
+| `selection` | the active selection: `start`, `end` (offsets) |
 | `dialog` | the open dialog as `{"dialog": "<name>", ...its fields}`, or `null` |
 | `backstage` | whether the File page is showing |
 | `window` | `[width, height]` in points |
@@ -113,7 +113,6 @@ Returns one JSON object with everything a script needs to check its work without
 | `path` | the document's file, or `null` |
 | `dirty` | whether the document has unsaved changes |
 | `rev` | the document revision, bumped on every change |
-| `notes` | how many notes the sample document has |
 | `canUndo`, `canRedo` | whether Undo and Redo are available |
 | `undoLabel`, `redoLabel` | the label of the next undo or redo step, or `null` |
 | `status` | the current status-bar message, or `null` |

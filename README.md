@@ -8,9 +8,9 @@ Everything a WordCraft, GridCraft, DeckCraft or VectorCraft shares lives here on
 craft begins with the chrome finished and spends its time on the thing that makes it different:
 the document model.
 
-In place of a real model ProtoCraft carries a trivial sample, "notes": a list of titled text
-entries, saved as JSON (`.craft.json`). It exists to exercise the chrome and to show where a real
-model plugs in; the first job of a new craft is to replace it.
+In place of an application-specific model ProtoCraft carries a minimal generic baseline document,
+saved as JSON (`.craft.json`). It provides standard chrome, commands, menus, ribbon, and control
+channel for any craft app (such as a DAW, diagram editor, animation suite, or DB schema editor) to build upon.
 
 The design is written down once, in [docs/architecture.md](docs/architecture.md). That file is
 the contract the crates are built against; this README tells you how to use the repository, and
@@ -39,7 +39,7 @@ pointing the wrong way fails CI rather than quietly spreading.
 ```sh
 cargo run --release -p protocraft                      # an empty document
 cargo run --release -p protocraft -- --sample          # the built-in sample document
-cargo run --release -p protocraft -- notes.craft.json  # open a file
+cargo run --release -p protocraft -- project.craft.json  # open a file
 cargo run --release -p protocraft -- --sample --control 7990   # plus the control channel
 ```
 

@@ -102,7 +102,7 @@ fn status_button(ui: &mut Ui, app: &mut CraftApp, icon: &str, id: &str) {
     }
 }
 
-/// The status bar: note position and size on the left, status message, zoom on the right.
+/// The status bar: status on the left, transient message, zoom on the right.
 pub fn status_bar(app: &mut CraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     egui::Panel::bottom("status")
@@ -119,12 +119,7 @@ pub fn status_bar(app: &mut CraftApp, ui: &mut Ui) {
                 let st = |ui: &mut Ui, s: &str| {
                     ui.add(egui::Label::new(egui::RichText::new(s).font(regular(11.5)).color(t.text_dim)).sense(Sense::click()))
                 };
-                let n = app.session.doc.notes.len();
-                st(ui, &format!("Note {} of {n}", app.session.sel.note + 1));
-                let chars = app.session.doc.char_count();
-                let sel = app.session.selected_text().chars().count();
-                let txt = if sel > 0 { format!("{sel} of {chars} characters") } else { format!("{chars} characters") };
-                st(ui, &txt);
+                st(ui, "Ready");
                 if let Some((msg, at)) = &app.status_msg
                     && crate::now_ms() - at < 6000.0
                 {

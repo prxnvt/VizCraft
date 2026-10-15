@@ -812,60 +812,29 @@ fn drop_before(keys: &[String], rects: &[Rect], dragged: &str, y: f32) -> Option
     }
 }
 
-fn navigation(app: &mut CraftApp, ui: &mut Ui) {
+fn navigation(_app: &mut CraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
-    let mut pick = None;
-    for (i, n) in app.session.doc.notes.iter().enumerate() {
-        let title = if n.title.trim().is_empty() { format!("Note {}", i + 1) } else { n.title.clone() };
-        let selected = i == app.session.sel.note;
-        let resp = ui.add_sized([ui.available_width(), 24.0], egui::Button::selectable(selected, title));
-        if resp.clicked() {
-            pick = Some(i);
-        }
-        let preview: String = n.body.lines().next().unwrap_or("").chars().take(40).collect();
-        if !preview.is_empty() {
-            // One line, cut with an ellipsis: a wrapped preview would push the list about.
-            ui.add(egui::Label::new(egui::RichText::new(preview).small().color(t.text_dim)).truncate());
-        }
-    }
-    if let Some(i) = pick {
-        let _ = app.run("edit.select", json!({"note": i, "start": 0, "end": 0}));
-    }
-    ui.add_space(6.0);
-    if ui.button("New note").clicked() {
-        let _ = app.run("insert.note", json!({}));
-    }
+    ui.add_space(8.0);
+    ui.label(egui::RichText::new("No items").small().color(t.text_dim));
 }
 
 fn properties(app: &mut CraftApp, ui: &mut Ui) {
-    let note = app.session.sel.note;
-    let Some(n) = app.session.doc.notes.get(note) else { return };
-    let mut title = n.title.clone();
-    let chars = n.body.chars().count();
-    let words = n.body.split_whitespace().count();
-    ui.label(egui::RichText::new("Note title").small().weak());
-    // The field edits a copy; the document changes through a command, so it is undoable.
-    if ui.add(egui::TextEdit::singleline(&mut title).desired_width(f32::INFINITY)).changed() {
-        let _ = app.run("edit.setNoteTitle", json!({"title": title, "note": note}));
-    }
-    ui.add_space(8.0);
     ui.label(egui::RichText::new("Document title").small().weak());
     let mut doc_title = app.session.doc.title.clone();
     if ui.add(egui::TextEdit::singleline(&mut doc_title).desired_width(f32::INFINITY)).changed() {
         let _ = app.run("edit.setTitle", json!({"title": doc_title}));
     }
     ui.add_space(10.0);
-    egui::Grid::new("note_props").num_columns(2).spacing([12.0, 4.0]).show(ui, |ui| {
-        ui.label(egui::RichText::new("Words").weak());
-        ui.label(words.to_string());
-        ui.end_row();
-        ui.label(egui::RichText::new("Characters").weak());
-        ui.label(chars.to_string());
-        ui.end_row();
-        ui.label(egui::RichText::new("Notes").weak());
-        ui.label(app.session.doc.notes.len().to_string());
-        ui.end_row();
+    egui::Grid::new("doc_props").num_columns(2).spacing([12.0, 4.0]).show(ui, |ui| {
         let core = &app.session.doc.core;
+        ui.label(egui::RichText::new("Revision").weak());
+        ui.label(core.revision.to_string());
+        ui.end_row();
+        if !app.session.author.is_empty() {
+            ui.label(egui::RichText::new("Author").weak());
+            ui.label(&app.session.author);
+            ui.end_row();
+        }
         if !core.modified.is_empty() {
             ui.label(egui::RichText::new("Saved").weak());
             ui.label(&core.modified);

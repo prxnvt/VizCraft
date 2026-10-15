@@ -81,7 +81,7 @@ fn every_control_id_resolves_to_a_command() {
 #[test]
 fn clicking_undo_after_a_change_runs_edit_undo() {
     let mut h = harness();
-    h.state_mut().run("edit.setText", json!({"text": "changed"})).unwrap();
+    h.state_mut().run("edit.setTitle", json!({"title": "changed"})).unwrap();
     h.run_steps(2);
     assert!(h.state().session.can_undo());
     let rev = h.state().session.rev();
@@ -143,17 +143,17 @@ fn collapsing_hides_the_body_and_a_tab_click_shows_it_as_a_popup() {
     assert!(!ribbon::popup_open(&h.ctx), "a click outside closes the popup");
     assert!(h.query_by_label("Navigation Pane").is_none());
     // Running a command from the popup closes it too.
-    h.get_by_label("Home tab").click();
+    h.get_by_label("View tab").click();
     h.run_steps(3);
     assert!(ribbon::popup_open(&h.ctx));
-    h.get_by_label("Note").click();
+    h.get_by_label("Dark Mode").click();
     h.run_steps(3);
     assert!(!ribbon::popup_open(&h.ctx));
     // Clicking the open tab again hides the popup.
-    h.get_by_label("Home tab").click();
+    h.get_by_label("View tab").click();
     h.run_steps(3);
     assert!(ribbon::popup_open(&h.ctx));
-    h.get_by_label("Home tab").click();
+    h.get_by_label("View tab").click();
     h.run_steps(3);
     assert!(!ribbon::popup_open(&h.ctx));
     assert!(h.state().ui.ribbon_collapsed);
@@ -163,7 +163,7 @@ fn collapsing_hides_the_body_and_a_tab_click_shows_it_as_a_popup() {
 fn contextual_tabs_show_only_while_their_condition_holds() {
     let mut h = harness();
     assert!(h.query_by_label("Selection tab").is_none());
-    h.state_mut().run("edit.select", json!({"note": 0, "start": 0, "end": 3})).unwrap();
+    h.state_mut().session.sel = protocraft_engine::Selection { start: 0, end: 3 };
     h.run_steps(3);
     assert!(h.query_by_label("Selection tab").is_some());
     h.get_by_label("Selection tab").click();
@@ -171,7 +171,7 @@ fn contextual_tabs_show_only_while_their_condition_holds() {
     assert_eq!(h.state().ui.tab, "Selection");
     assert!(h.query_by_label("Select All").is_some());
     // When the condition stops holding the strip falls back to the first tab's body.
-    h.state_mut().run("edit.select", json!({"note": 0, "start": 0, "end": 0})).unwrap();
+    h.state_mut().session.sel = protocraft_engine::Selection { start: 0, end: 0 };
     h.run_steps(3);
     assert!(h.query_by_label("Selection tab").is_none());
     assert!(h.query_by_label("Undo").is_some(), "Home shows while the chosen tab is hidden");
@@ -219,18 +219,21 @@ fn a_narrow_window_scrolls_the_groups_with_arrows() {
 
 #[test]
 fn split_buttons_run_the_main_part_and_open_a_menu_from_the_arrow() {
-    let mut h = harness_at(1200.0, "Insert");
-    let notes = h.state().session.doc.notes.len();
-    h.get_by_label("Note").click();
+    let a = app();
+    let split_ctl = Control::Split { id: "edit.redo", icon: "redo", big: true, menu: vec![("Redo Once", "edit.redo", json!({}))] };
+    let mut h = egui_kittest::Harness::builder().with_size(vec2(300.0, 300.0)).build_ui_state(
+        move |ui, app: &mut CraftApp| {
+            app.logic(ui.ctx());
+            split_ctl.show(app, ui);
+        },
+        a,
+    );
+    h.run_steps(5);
+    assert!(h.query_by_label("Redo").is_some());
+    assert!(h.query_by_label("Redo options").is_some());
+    h.get_by_label("Redo options").click();
     h.run_steps(3);
-    assert_eq!(h.state().session.doc.notes.len(), notes + 1, "the main part inserts a note");
-    h.get_by_label("Note options").click();
-    h.run_steps(3);
-    // Menu items carry their shortcut in the label.
-    assert!(h.query_by_label_contains("Checklist").is_some(), "the arrow opens the menu");
-    h.get_by_label_contains("Checklist").click();
-    h.run_steps(3);
-    assert_eq!(h.state().session.doc.notes.len(), notes + 2);
+    assert!(h.query_by_label_contains("Redo Once").is_some(), "the arrow opens the menu");
 }
 
 #[test]

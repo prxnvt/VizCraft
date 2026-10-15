@@ -23,7 +23,7 @@ pub fn registry() -> Registry {
 
 /// The standard result: the selection after the command.
 pub fn sel_result(s: &Session) -> CmdResult {
-    Ok(json!({"note": s.sel.note, "start": s.sel.start, "end": s.sel.end}))
+    Ok(json!({"start": s.sel.start, "end": s.sel.end}))
 }
 
 /// ISO-8601 timestamp (UTC, seconds), without a date-time dependency.

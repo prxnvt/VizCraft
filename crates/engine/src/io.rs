@@ -30,11 +30,10 @@ pub fn load_bytes(name: &str, bytes: &[u8]) -> Result<Document, EngineError> {
         return Err(EngineError::Failed(format!("{name}: only .{EXTENSION} files are supported")));
     }
     let bad = |e: serde_json::Error| EngineError::Failed(format!("{name}: {e}"));
-    let mut doc = match serde_json::from_slice::<File>(bytes) {
+    let doc = match serde_json::from_slice::<File>(bytes) {
         Ok(f) => f.document,
         Err(_) => serde_json::from_slice::<Document>(bytes).map_err(bad)?,
     };
-    doc.ensure_nonempty();
     Ok(doc)
 }
 

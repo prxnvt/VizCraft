@@ -78,7 +78,6 @@ pub fn inspect(app: &CraftApp, ctx: &egui::Context) -> Value {
         "path": app.session.path,
         "dirty": app.session.dirty,
         "rev": app.session.rev(),
-        "notes": app.session.doc.notes.len(),
         "canUndo": app.session.can_undo(),
         "canRedo": app.session.can_redo(),
         "undoLabel": app.session.undo_label(),
@@ -458,11 +457,11 @@ mod tests {
         }
         assert_eq!(v["dialog"], Value::Null);
         assert_eq!(v["dirty"], false);
-        app.run("edit.setText", json!({"text": "x"})).unwrap();
+        app.run("edit.setTitle", json!({"title": "x"})).unwrap();
         app.run("ui.dialog", json!({"name": "zoom"})).unwrap();
         let v = call(&mut app, "ui.inspect", json!({}))["result"].clone();
         assert_eq!(v["dirty"], true);
-        assert_eq!(v["undoLabel"], "Typing");
+        assert_eq!(v["undoLabel"], "Document Title");
         assert_eq!(v["dialog"]["dialog"], "zoom");
     }
 
@@ -542,7 +541,7 @@ mod tests {
             "ui.resize",
             "ui.focus",
             "view.zoomIn",
-            "edit.setText",
+            "edit.setTitle",
             "ui.tab",
             "nonsense",
             "",
@@ -555,7 +554,7 @@ mod tests {
             json!(5),
             json!({"command": 5, "params": "x", "path": [], "value": {}, "x": "a", "y": null, "key": 3, "text": 1, "frames": -1}),
             json!({"command": "", "path": "", "x": 1e300, "y": -1e300, "toX": f64::NAN, "toY": 0, "steps": 1e30, "count": 1e30, "frames": 1e30, "width": -1, "height": 1e30}),
-            json!({"command": "edit.setText", "params": {"text": 5, "note": 1e9}, "path": "/panes/left", "value": "not a list", "key": "", "text": "\u{0}\u{ffff}"}),
+            json!({"command": "edit.setTitle", "params": {"title": 5}, "path": "/panes/left", "value": "not a list", "key": "", "text": "\u{0}\u{ffff}"}),
             json!({"path": "/window", "value": {"width": "x"}, "x": 0, "y": 0, "toX": 0, "toY": 0, "button": "none", "frames": 0}),
             json!({"path": "a.b.c.d.e.f", "value": 1, "command": "ui.dialog", "params": {"name": "nothing"}}),
         ];

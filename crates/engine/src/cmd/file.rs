@@ -47,7 +47,7 @@ fn open(s: &mut Session, v: &Value) -> CmdResult {
     let doc = crate::io::load_bytes(path, &bytes)?;
     s.set_document(doc);
     s.path = Some(path.into());
-    Ok(json!({"path": path, "notes": s.doc.notes.len()}))
+    Ok(json!({"path": path}))
 }
 
 fn save(s: &mut Session, v: &Value) -> CmdResult {

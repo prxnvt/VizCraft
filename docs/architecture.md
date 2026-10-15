@@ -2,9 +2,9 @@
 
 ProtoCraft is the baseline every new "-craft" app starts from: the window chrome, menus, ribbon,
 panes, multi-window handling, preferences, control channel and repository conventions that
-WordCraft, GridCraft, DeckCraft, VectorCraft and the other crafts share, with a trivial sample
-document ("notes": a list of titled text entries) standing in for the real model. A new craft is
-made with `cargo xtask new-craft <name>` (copies and renames), then replaces the sample model.
+WordCraft, GridCraft, DeckCraft, VectorCraft and the other crafts share, with a clean baseline
+document model ready to be extended. A new craft is made with `cargo xtask new-craft <name>`
+(copies and renames), then implements its own domain model.
 
 Everything here is the contract agents build against in parallel. Change it only together with
 the code that depends on it, and say so in the commit message.

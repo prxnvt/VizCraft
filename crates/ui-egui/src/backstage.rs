@@ -91,8 +91,7 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
         let core = app.session.doc.core.clone();
         egui::Grid::new("backstage_facts").num_columns(2).spacing([16.0, 4.0]).show(ui, |ui| {
             for (k, v) in [
-                ("Notes", app.session.doc.notes.len().to_string()),
-                ("Characters", app.session.doc.char_count().to_string()),
+                ("Title", app.session.doc.title.clone()),
                 ("Author", core.author),
                 ("Last saved", core.modified),
                 ("Saved by", core.last_modified_by),

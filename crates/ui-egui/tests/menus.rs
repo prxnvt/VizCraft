@@ -107,7 +107,7 @@ fn recent_files_appear_in_open_recent_with_clear() {
 #[test]
 fn clicking_edit_undo_in_the_bar_undoes_a_change() {
     let mut a = app();
-    a.run("edit.setText", json!({"text": "changed by the test"})).unwrap();
+    a.run("edit.setTitle", json!({"title": "changed by the test"})).unwrap();
     assert!(a.session.can_undo());
     let mut h = harness(a);
     h.get_by_label("Edit").click();
@@ -171,7 +171,7 @@ fn clicking_outside_closes_the_menu_without_acting_underneath() {
 #[test]
 fn keyboard_walks_the_menu() {
     let mut a = app();
-    a.run("edit.setText", json!({"text": "typed"})).unwrap();
+    a.run("edit.setTitle", json!({"title": "typed"})).unwrap();
     let mut h = harness(a);
     h.get_by_label("Edit").click();
     h.run_steps(2);
@@ -187,7 +187,7 @@ fn keyboard_walks_the_menu() {
 #[test]
 fn shortcuts_dispatch_and_respect_dialogs() {
     let mut a = app();
-    a.run("edit.setText", json!({"text": "typed"})).unwrap();
+    a.run("edit.setTitle", json!({"title": "typed"})).unwrap();
     let mut h = harness(a);
     h.key_press_modifiers(Modifiers::COMMAND, Key::Z);
     h.run_steps(2);

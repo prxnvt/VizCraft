@@ -6,22 +6,20 @@ use serde_json::Value;
 use crate::doc::Document;
 use crate::{CommandInfo, EngineError, Registry};
 
-/// The selection: a character range in one note's body. `start <= end` is not required
+/// The selection: character or element range. `start <= end` is not required
 /// (`end` is where the caret is); [`Selection::ordered`] sorts them.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Selection {
-    /// Index of the current note.
-    pub note: usize,
-    /// Character offsets into the note body.
+    /// Character or element offsets.
     pub start: usize,
     pub end: usize,
 }
 
 impl Selection {
-    /// A collapsed selection (a caret) at the start of a note.
-    pub fn caret(note: usize, at: usize) -> Self {
-        Selection { note, start: at, end: at }
+    /// A collapsed selection (a caret).
+    pub fn caret(at: usize) -> Self {
+        Selection { start: at, end: at }
     }
     /// Nothing is selected.
     pub fn is_collapsed(&self) -> bool {
@@ -77,7 +75,7 @@ pub struct Session {
     pub ui_requests: Vec<Value>,
     /// One-shot message for the status bar, taken by the UI.
     pub status: String,
-    /// The current note and the selected range in it.
+    /// The active selection.
     pub sel: Selection,
     /// Internal clipboard, used when the host gives `edit.paste` no text.
     pub clipboard: String,
@@ -93,8 +91,7 @@ pub struct Session {
 
 impl Session {
     /// A session on this document, with the full registry.
-    pub fn new(mut doc: Document) -> Self {
-        doc.ensure_nonempty();
+    pub fn new(doc: Document) -> Self {
         Session {
             doc,
             path: None,
@@ -181,8 +178,7 @@ impl Session {
     }
 
     /// Replace the document (new, open): fresh history, not dirty.
-    pub fn set_document(&mut self, mut doc: Document) {
-        doc.ensure_nonempty();
+    pub fn set_document(&mut self, doc: Document) {
         self.doc = doc;
         self.sel = Selection::default();
         self.history.clear();
@@ -201,25 +197,8 @@ impl Session {
         self.dirty = false;
     }
 
-    /// Keep the selection inside the document.
-    pub fn clamp_selection(&mut self) {
-        self.doc.ensure_nonempty();
-        self.sel.note = self.sel.note.min(self.doc.notes.len() - 1);
-        let len = self.doc.notes.get(self.sel.note).map_or(0, |n| n.body.chars().count());
-        self.sel.start = self.sel.start.min(len);
-        self.sel.end = self.sel.end.min(len);
-    }
-
-    /// Body of the current note.
-    pub fn current_body(&self) -> &str {
-        self.doc.notes.get(self.sel.note).map_or("", |n| n.body.as_str())
-    }
-
-    /// The selected text.
-    pub fn selected_text(&self) -> String {
-        let (a, b) = self.sel.ordered();
-        self.current_body().chars().skip(a).take(b - a).collect()
-    }
+    /// Keep the selection inside valid bounds.
+    pub fn clamp_selection(&mut self) {}
 
     /// Run a command by id with JSON params. Unknown ids and disabled commands are errors. A
     /// command that changes the document becomes an undo step (consecutive typing is one step);

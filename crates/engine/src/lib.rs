@@ -19,7 +19,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-pub use doc::{CoreProps, Document, Note};
+pub use doc::{CoreProps, Document};
 pub use session::{Selection, Session, ViewState};
 
 /// Why a command did not run (or did not finish).

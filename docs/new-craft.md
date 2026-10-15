@@ -43,7 +43,7 @@ Options:
 - If `git commit` fails for want of an identity, the copy is in place and staged; the message
   gives the `git config` lines and the commit to run.
 
-What you have now is ProtoCraft under a new name: the chrome, the notes sample, the control
+What you have now is ProtoCraft under a new name: the chrome, the baseline document, the control
 channel and the CLI all work. Commit nothing else until `cargo xtask ci` is green, then tag it;
 it is the point you compare against when something breaks later.
 
@@ -61,22 +61,19 @@ Then make the repository yours:
   turns the template's URL into `github.com/storytold/gridcraft`, so point it at the real one
   (or remove the link) before the first release.
 
-## 2. Replace the sample document model
+## 2. Define your application model
 
-The sample model lives in `crates/engine/src`: `doc.rs` (`Document`, `Note`, `CoreProps`),
-`io.rs` (the `.craft.json` format), `sample.rs` (the `--sample` document) and, in `session.rs`,
-`Selection` (a character range in one note), which `Session.sel` holds. The commands that know
-about notes are `insert.note` (`cmd/insert.rs`) and, in `cmd/edit.rs`, the text commands
-`edit.cut`, `edit.copy`, `edit.paste`, `edit.selectAll`, `edit.select`, `edit.setText`,
-`edit.setNoteTitle`, `edit.setTitle` and `edit.deleteNote`; `edit.undo` and `edit.redo` are
-model-independent. The engine tests for all of them are in `crates/engine/src/tests.rs` (one file,
-not next to each command).
+The document model lives in `crates/engine/src`: `doc.rs` (`Document`, `CoreProps`), `io.rs`
+(the `.craft.json` format), `sample.rs` (the `--sample` document) and, in `session.rs`,
+`Selection`, which `Session.sel` holds. Common global commands `edit.cut`, `edit.copy`,
+`edit.paste`, `edit.selectAll`, `edit.setTitle` are registered in `cmd/edit.rs`; `edit.undo`
+and `edit.redo` are model-independent. Insertion commands live in `cmd/insert.rs`. The engine
+tests are in `crates/engine/src/tests.rs`.
 
-The UI crate reaches the model directly in a handful of places, so swapping it does touch
-`crates/ui-egui`: `canvas.rs` (the note editor), `panes.rs` (the navigation and properties
-panes), `chrome.rs` (the status bar's note count), `backstage.rs` (the document statistics),
-`control.rs` (the `notes` field of `ui.inspect`) and the kittest tests in `tests/`. Searching the
-crate for `doc.notes`, `doc.title`, `Note` and `sel` finds every one.
+The UI crate connects to the model in `crates/ui-egui`: `canvas.rs` (the central workspace area),
+`panes.rs` (the side panes), `chrome.rs` (the status bar), `backstage.rs` (the document statistics),
+and the kittest tests in `tests/`. Searching the crate for `doc.title` and `sel` finds where the UI
+connects to the session.
 
 Do it in two passes so the app keeps building between commits:
 

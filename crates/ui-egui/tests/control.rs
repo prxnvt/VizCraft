@@ -69,9 +69,9 @@ fn execute_runs_commands_and_reports_errors() {
     let r = rig.call("engine.execute", json!({"command": "view.zoomIn", "params": {}}));
     assert_eq!(r["ok"], true, "{r}");
     assert!((rig.app().session.view.zoom - 1.1).abs() < 1e-5);
-    let r = rig.call("engine.execute", json!({"command": "edit.setText", "params": {"text": "from the channel"}}));
+    let r = rig.call("engine.execute", json!({"command": "edit.setTitle", "params": {"title": "from the channel"}}));
     assert_eq!(r["ok"], true, "{r}");
-    assert_eq!(rig.app().session.doc.notes[0].body, "from the channel");
+    assert_eq!(rig.app().session.doc.title, "from the channel");
     let r = rig.call("engine.execute", json!({"command": "edit.undo"}));
     assert_eq!(r["ok"], true);
     let r = rig.call("engine.execute", json!({"command": "edit.undo"}));
@@ -114,7 +114,7 @@ fn inspect_has_the_documented_shape() {
         assert!(v["view"].get(k).is_some(), "view.{k} missing in {v}");
     }
     assert_eq!(v["window"], json!([1200.0, 800.0]));
-    assert_eq!(v["title"], "Welcome to ProtoCraft");
+    assert_eq!(v["title"], "Untitled");
     assert_eq!(v["dialog"], Value::Null);
     assert_eq!(v["dirty"], false);
     assert!(v["perf"]["frameMs"].is_number());
@@ -293,5 +293,5 @@ fn hostile_params_never_panic_through_the_channel() {
             assert!(r["ok"].is_boolean(), "{m} {j}: {r}");
         }
     }
-    assert!(!rig.app().session.doc.notes.is_empty());
+    assert!(!rig.app().session.author.is_empty());
 }

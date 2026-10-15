@@ -145,9 +145,6 @@ pub fn menu_tree(app: &CraftApp) -> Vec<Menu> {
                 Item::Cmd("Paste", "edit.paste", json!({})),
                 Item::Cmd("Select All", "edit.selectAll", json!({})),
                 Item::Sep,
-                Item::Cmd("Insert Note", "insert.note", json!({})),
-                Item::Cmd("Delete Note", "edit.deleteNote", json!({})),
-                Item::Sep,
                 Item::Cmd("Find...", "ui.find", json!({})),
             ],
         },
@@ -772,7 +769,7 @@ mod tests {
         let mut a = app();
         assert_eq!(entry(&a, "file.open").label, "Open...");
         assert_eq!(entry(&a, "edit.undo").label, "Undo");
-        a.run("edit.setText", json!({"text": "hello"})).unwrap();
+        a.run("edit.setTitle", json!({"title": "hello"})).unwrap();
         let e = entry(&a, "edit.undo");
         assert!(e.enabled);
         assert!(e.label.starts_with("Undo "), "{}", e.label);
@@ -786,7 +783,7 @@ mod tests {
         let k0 = structure_key(&a);
         a.session.view.dark_mode = true;
         assert_eq!(structure_key(&a), k0, "a check mark is state, not structure");
-        a.run("edit.setText", json!({"text": "hello"})).unwrap();
+        a.run("edit.setTitle", json!({"title": "hello"})).unwrap();
         let k1 = structure_key(&a);
         assert_ne!(k1, k0, "the undo label changed");
         a.ui.recent.push("/tmp/a.craft.json".into());
