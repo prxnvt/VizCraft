@@ -1,15 +1,22 @@
 # Packaging
 
 This folder holds what turns the built binaries into something people install: the icon
-script and the macOS bundle template today; the macOS package script, and the Linux and Windows
-packaging, arrive with Cascade 3 of the [roadmap](../ROADMAP.md), adapted from WordCraft's.
+script, the macOS bundle and its package script, and the Linux desktop entry. Windows has no
+script yet; see [Windows](#windows). The macOS parts are adapted from WordCraft's.
 
 | File | Job |
 |---|---|
-| `icons.sh` | Renders every icon size from `assets/app-icon/protocraft.svg`: the 1024 master, the macOS-grid 512, the Linux hicolor set, the `.icns` (and the `.ico` once an `ico` xtask exists). Needs `rsvg-convert` or `resvg`, and `iconutil` on macOS. Outputs are committed and listed in `ATTRIBUTION.md`, so builds never need these tools. |
-| `macos/Info.plist.in` | The bundle's `Info.plist` with `@VERSION@`, `@SHORT_VERSION@` and `@BUILD_SHA@` placeholders for `package.sh` to fill. |
-| `macos/package.sh` (Cascade 3) | Builds the release binaries, assembles `ProtoCraft.app`, signs it (ad hoc by default), optionally notarises, and writes a DMG plus a zip of the CLI. |
-| `macos/entitlements.plist` (Cascade 3) | Hardened-runtime entitlements; empty on purpose (pure Rust, no JIT, not sandboxed). |
+| `icons.sh` | Renders every icon size from `assets/app-icon/protocraft.svg`: the 1024 master, the macOS-grid 512, the Linux hicolor set, the `.icns` and the `.ico` (through `cargo xtask ico`). Uses `rsvg-convert` or `resvg` when installed; on a Mac without either it falls back to Quick Look (`qlmanage`, one 1024 render per SVG) and `sips` for the smaller sizes, and `iconutil` writes the `.icns`. Outputs are committed and listed in `ATTRIBUTION.md`, so builds never need these tools. |
+| `env.sh` | Sourced by the package scripts: `ROOT`, `VERSION` (from `[workspace.package]`), `DIST`, `PROTOCRAFT_BUILD_SHA`, `CARGO_TARGET_DIR`, and the helpers that copy licences (including the craft-fonts ones) into a package. |
+| `macos/Info.plist.in` | The bundle's `Info.plist` with `@VERSION@`, `@SHORT_VERSION@` and `@BUILD_SHA@` placeholders for `package.sh` to fill. Declares the `.craft.json` document type (`LSHandlerRank` Owner, with its exported UTI). |
+| `macos/package.sh` | Builds the release binaries, assembles `ProtoCraft.app`, signs it (ad hoc by default), optionally notarises, and writes a DMG plus a zip of the CLI. `--arch universal|aarch64|x86_64`, `--skip-build`, `--no-dmg`. |
+| `macos/entitlements.plist` | Hardened-runtime entitlements; empty on purpose (pure Rust, no JIT, not sandboxed). |
+| `linux/ai.storyteller.protocraft.desktop` | Freedesktop launcher entry; see [Linux](#linux). |
+
+The `ico` xtask (`cargo xtask ico <out.ico> <in.png>...`, `xtask/src/ico.rs`) packs square PNGs of
+at most 256 px into a Windows `.ico` with PNG-compressed entries; `icons.sh` calls it.
+`apps/protocraft/build.rs` embeds that `.ico` and a VERSIONINFO block into `protocraft.exe` with
+`winresource` when the target is Windows and does nothing elsewhere.
 
 ## The macOS bundle
 
@@ -40,8 +47,23 @@ Notarisation runs only with a real identity and `APPLE_ID`, `APPLE_PASSWORD` and
 `APPLE_TEAM_ID` set.
 
 The version comes from `[workspace.package] version` in the root `Cargo.toml`, read by
-`packaging/env.sh` (also Cascade 3); `PROTOCRAFT_VERSION` overrides it and `PROTOCRAFT_BUILD_SHA`
-is the commit baked into the binaries and the plist.
+`packaging/env.sh`; `PROTOCRAFT_VERSION` overrides it and `PROTOCRAFT_BUILD_SHA` (default: `git
+rev-parse HEAD`) is the commit written into the plist as `ProtoCraftBuildCommit`.
+
+`package.sh` keeps the names in two places only: `CRATE=protocraft` at the top (the GUI crate; the
+CLI is `$CRATE-cli`) and `CFBundleName` in `Info.plist.in`, which it reads with PlistBuddy for the
+bundle, executable and icon names. It refuses to package when `CFBundleExecutable` or
+`CFBundleIconFile` differ from `CFBundleName`. `cargo xtask new-craft` renames all of them.
+
+`CARGO_TARGET_DIR` is honoured when set (the bundle then lands under it); unset, it is
+`<repo>/target`. To build and check a bundle by hand:
+
+```sh
+packaging/macos/package.sh --arch aarch64 --no-dmg
+plutil -lint target/macos-package/ProtoCraft.app/Contents/Info.plist
+codesign --verify --deep --strict --verbose=2 target/macos-package/ProtoCraft.app
+target/macos-package/ProtoCraft.app/Contents/MacOS/ProtoCraft --sample
+```
 
 ## What the local installer expects
 
@@ -65,6 +87,22 @@ The installer also sets `CARGO_BUILD_JOBS` to leave cores free, writes the build
 `crafts/.build-logs/<folder>.log`, and keeps the previously installed app in
 `crafts/.previous-builds/`. Nothing in the craft needs to know about those.
 
+### Adding a craft to the installer
+
+`rebuild.sh` has no fixed app list and no dry run: it builds every folder directly under
+`~/Workspace/crafts/` that has an executable `packaging/macos/package.sh`, and finds the app's
+name in that folder's `packaging/macos/Info.plist.in`. Nothing in `rebuild.sh` changes for a new
+craft. To add one:
+
+1. Check the craft out as `~/Workspace/crafts/<folder>` (a git clone or worktree; the folder name
+   is what `./rebuild.sh <folder>` takes, so use the crate name, e.g. `protocraft`).
+2. Optionally add a row to the table in `~/Workspace/crafts/README.md` (`| protocraft | ProtoCraft |
+   (baseline) |`); it is documentation only.
+3. Run `./rebuild.sh --list` to see it, then `./rebuild.sh <folder>` to build and install it.
+
+The baseline itself satisfies every row of the table above; the checks in
+[The macOS bundle](#the-macos-bundle) are what the installer does after `package.sh`.
+
 ## After `new-craft`
 
 The rename changes `ProtoCraft` to the new display name in the template (and therefore
@@ -72,6 +110,44 @@ The rename changes `ProtoCraft` to the new display name in the template (and the
 id to `ai.storyteller.<name>` and the icon file names. What a craft still has to do by hand:
 
 - Draw its own icon SVG and rerun `icons.sh`.
-- Declare the document types it opens (`CFBundleDocumentTypes`, and `UTExportedTypeDeclarations`
-  for its own format) and set `LSApplicationCategoryType`.
+- Replace the sample `.craft.json` document type (`CFBundleDocumentTypes` and the matching
+  `UTExportedTypeDeclarations` entry) with the types it opens, keeping `LSHandlerRank` on each
+  (`Owner` for its own format, `Alternate` for formats other apps own), and set
+  `LSApplicationCategoryType`. Mirror the change in the Linux desktop entry's `MimeType=` and in
+  `build.rs`'s `FileDescription`.
 - Check `NSHumanReadableCopyright`.
+
+## Linux
+
+There is no Linux package script yet. The pieces a `.deb`/`.rpm` (nfpm) or Flatpak needs are in
+place and follow the freedesktop layout, so a package only has to copy them:
+
+| Source | Installed as |
+|---|---|
+| `target/release/protocraft`, `target/release/protocraft-cli` | `/usr/bin/protocraft`, `/usr/bin/protocraft-cli` |
+| `packaging/linux/ai.storyteller.protocraft.desktop` | `/usr/share/applications/ai.storyteller.protocraft.desktop` |
+| `assets/app-icon/hicolor/<size>/apps/ai.storyteller.protocraft.png` (16 to 512) | `/usr/share/icons/hicolor/<size>/apps/` |
+| `assets/app-icon/hicolor/scalable/apps/ai.storyteller.protocraft.svg` | `/usr/share/icons/hicolor/scalable/apps/` |
+
+The desktop entry's `Icon=` and `StartupWMClass=` are the bundle id, which is also the hicolor
+file name; the app must set its window class to the same id for the taskbar to pick the icon up.
+A real craft replaces `GenericName`, `Comment`, `Categories`, `Keywords` and `MimeType` (and ships
+a `<id>.mime.xml` under `/usr/share/mime/packages/` when the format is its own, plus an AppStream
+`<id>.metainfo.xml` for software centres). After installing, run `update-desktop-database` and
+`gtk-update-icon-cache /usr/share/icons/hicolor`. WordCraft's `packaging/linux/` (nfpm.yaml,
+postinst.sh, flatpak manifests) is the reference when the script is written.
+
+## Windows
+
+There is no Windows package script yet. What exists:
+
+- `assets/app-icon/protocraft.ico` (16 to 256 px) and `apps/protocraft/build.rs`, which embeds it
+  and the VERSIONINFO (product name, description, copyright) into `protocraft.exe` through
+  `winresource`. A cross-compile from macOS or Linux without a resource compiler only warns;
+  `PROTOCRAFT_REQUIRE_WINRES=1` makes that an error for release builds.
+- `cargo build --release --target x86_64-pc-windows-msvc -p protocraft -p protocraft-cli` on a
+  Windows runner produces the two executables; a zip of them with the licences is the minimum
+  release artefact.
+
+An installer (WiX `.wxs` + `signtool`, as in WordCraft's `packaging/windows/`) registers the
+`.craft.json` extension and the Start menu entry; it is not part of the baseline.
