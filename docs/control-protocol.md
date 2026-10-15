@@ -126,11 +126,8 @@ them in its own copy of this file. `ui.set` is the write side of `ui`: it accept
 dark mode, collapse the ribbon or hide a pane and then screenshot. The whole state is validated:
 an unknown path or a value of the wrong type is an error and leaves the state as it was. Pane
 widths are clamped to the layout's limits and a window geometry that cannot be real is dropped,
-as when the preferences file is read.
-
-Known limit: once a side pane is showing, egui keeps the width the user dragged it to, so
-`ui.set panes.leftWidth` is reported in the reply but the panel keeps its width until the pane
-module applies external changes.
+as when the preferences file is read. Setting `panes.leftWidth` or `panes.rightWidth` applies to
+open side panels live.
 
 ### `ui.menus`
 

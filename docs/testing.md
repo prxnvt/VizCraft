@@ -114,12 +114,13 @@ PORT=$(grep -o 'listening on 127.0.0.1:[0-9]*' /tmp/app.log | sed 's/.*://')
 
 The app opens a real window on the developer's desk. Keep it out of their way:
 
-- Put it on a secondary monitor as soon as it is up. The windows agent is adding
-  `PROTOCRAFT_WINDOW_POS=x,y` to the desktop app so the window opens where you say; until then,
-  or on a build without it, move it right after launch:
+- Put it on a secondary monitor. `PROTOCRAFT_WINDOW_POS=x,y` (or `--window-pos x,y`) opens the
+  first window with its top-left corner there, overriding the saved geometry; a window opened
+  later (Cmd+N) cascades from the one in front, so move every window after one opens:
 
   ```sh
-  osascript -e 'tell application "System Events" to set position of every window of process "protocraft" to {-2500, 100}'
+  PROTOCRAFT_NO_PREFS=1 PROTOCRAFT_WINDOW_POS=-2500,100 protocraft --sample --control 7990
+  osascript -e 'tell application "System Events" to tell process "protocraft" to set position of every window to {-2500, 100}'
   ```
 
   (on this machine the left external monitor spans x -2560..0).

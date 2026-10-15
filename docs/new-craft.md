@@ -165,10 +165,10 @@ Contextual tabs (shown only when something is selected) are tabs with a conditio
 tab strip calls it each frame. The active tab is `UiState.tab` and is set by `ui.tab`, so a test
 can switch tabs by command.
 
-Panes live in `crates/ui-egui/src/panes/`. A pane is a struct implementing the `Pane` trait
-(id, title, which side it prefers, `show(&mut self, app, ui)`) registered with the pane manager.
-Visibility is a `ViewState` flag toggled by a `view.*` command (so it is in the menus) and the
-layout (side, width, order) is in `UiState.panes` (so it persists). A pane shows state and
+Panes live in `crates/ui-egui/src/panes.rs`. A pane is declared as a `PaneSpec` in `panes`
+(key, title, side, default width, and a draw function). Visibility and layout (side, width, order)
+live in `UiState.panes` (`PaneLayout`), persisted across launches. The Window menu builds its
+list of open panes via `panes::window_menu_items(app)` with check marks. A pane shows state and
 dispatches commands, the same as the canvas.
 
 ## 6. Menus

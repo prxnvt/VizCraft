@@ -435,10 +435,18 @@ fn sync_view_flags(app: &mut CraftApp, ctx: &egui::Context) {
     ctx.data_mut(|d| d.insert_temp(mirror_id(), now));
 }
 
+/// The toggle command of a pane (`ui.pane.<key>`), as spelled in [`crate::UI_COMMANDS`]; a pane
+/// without a row there has no menu item, so a craft adding a pane adds the row too (the
+/// `registry_has_the_three_panes_and_commands` test checks).
+pub fn command_id(key: &str) -> Option<&'static str> {
+    crate::UI_COMMANDS.iter().map(|(id, ..)| *id).find(|id| id.strip_prefix("ui.pane.") == Some(key))
+}
+
 /// Window menu entries: one per pane, `(title, command id, checked)`. The id is the pane's
-/// toggle command (`ui.pane.<key>`), so a menu item needs no params.
-pub fn window_menu_items(app: &CraftApp) -> Vec<(String, String, bool)> {
-    panes().iter().map(|p| (p.title.to_string(), format!("ui.pane.{}", p.key), app.ui.panes.is_open(p.key))).collect()
+/// toggle command (`ui.pane.<key>`), so a menu item needs no params; the strings are static so
+/// the menu tree can hold them as [`crate::menus::Item::Check`].
+pub fn window_menu_items(app: &CraftApp) -> Vec<(&'static str, &'static str, bool)> {
+    panes().iter().filter_map(|p| Some((p.title, command_id(p.key)?, app.ui.panes.is_open(p.key)))).collect()
 }
 
 /// `ui.*` commands of the pane manager; `None` when `id` is not one of them.
@@ -816,7 +824,8 @@ fn navigation(app: &mut CraftApp, ui: &mut Ui) {
         }
         let preview: String = n.body.lines().next().unwrap_or("").chars().take(40).collect();
         if !preview.is_empty() {
-            ui.label(egui::RichText::new(preview).small().color(t.text_dim));
+            // One line, cut with an ellipsis: a wrapped preview would push the list about.
+            ui.add(egui::Label::new(egui::RichText::new(preview).small().color(t.text_dim)).truncate());
         }
     }
     if let Some(i) = pick {

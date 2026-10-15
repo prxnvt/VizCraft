@@ -6,8 +6,9 @@
 //! `{"id":1,"method":"engine.execute","params":{"command":"file.new","params":{}}}`.
 //! See `docs/control-protocol.md`.
 //!
-//! `--in-window-menus` (or `PROTOCRAFT_IN_WINDOW_MENUS=1`) skips the native macOS menu bar; the
-//! window draws its own menu bar instead, as on other platforms.
+//! `--in-window-menus` (or `PROTOCRAFT_IN_WINDOW_MENUS=1`) starts with the menu bar drawn inside
+//! the window instead of the native macOS one, as on other platforms; it is the same switch as
+//! View > "Menu Bar in Window", which takes effect at once and is saved with the preferences.
 //!
 //! `--window-pos x,y` (or `PROTOCRAFT_WINDOW_POS="x,y"`) puts the first window's outer top-left
 //! corner at that screen position, overriding the saved geometry, so test runs can be placed on a
@@ -35,7 +36,8 @@ struct App {
     windows: windows::Windows,
     #[cfg(target_os = "macos")]
     menu: Option<native_menu::NativeMenu>,
-    /// Draw the menu bar inside the window instead of installing the native one.
+    /// The menu bar is drawn inside the window (the native one is not installed). Follows the
+    /// front window's `ui.in_window_menus` each frame.
     #[cfg(target_os = "macos")]
     in_window_menus: bool,
 }
@@ -73,23 +75,34 @@ impl App {
         }
     }
 
-    /// Menu items chosen since the last frame (macOS native bar), as (new windows, quit).
+    /// Keep the native bar in step with the "Menu Bar in Window" preference: the front window's
+    /// flag is the truth, is copied to every window, and installs or removes the native bar the
+    /// frame it changes. Then run the items chosen since the last frame in the front window;
+    /// `quit` is set for `app.quit` (the host asks every window) and Cmd+W closes the front
+    /// window the way its close button does.
     #[cfg(target_os = "macos")]
-    fn menu_events(&mut self, ctx: &egui::Context, new_windows: &mut Vec<String>, quit: &mut bool) {
-        if self.in_window_menus {
+    fn menu_events(&mut self, ctx: &egui::Context, quit: &mut bool) {
+        let in_window = self.windows.front(&mut self.root).ui.in_window_menus;
+        if in_window != self.in_window_menus {
+            self.in_window_menus = in_window;
+            self.root.ui.in_window_menus = in_window;
+            for app in self.windows.apps_mut() {
+                app.ui.in_window_menus = in_window;
+            }
+        }
+        if in_window {
+            if let Some(menu) = self.menu.take() {
+                menu.remove();
+            }
             return;
         }
         let menu = self.menu.get_or_insert_with(|| native_menu::NativeMenu::install(ctx, &self.root));
         for (id, params) in menu.take_events() {
             match id.as_str() {
                 "app.quit" => *quit = true,
-                // Cmd+W closes the window (asking to save), as in other Mac apps.
                 "file.close" => self.windows.close_front(ctx),
-                // Cmd+N opens a fresh window instead of swapping the document in front of you.
-                "file.new" | "ui.newWindow" => {
-                    new_windows.push(params.get("template").and_then(serde_json::Value::as_str).unwrap_or("blank").to_string())
-                }
-                _ => native_menu::run_item(self.windows.front(&mut self.root), ctx, &id, params),
+                // Everything else, File > New included, behaves as the in-window bar's item does.
+                _ => protocraft_ui_egui::menus::run_item(self.windows.front(&mut self.root), ctx, &id, params),
             }
         }
     }
@@ -97,9 +110,12 @@ impl App {
 
 impl eframe::App for App {
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let (mut new_windows, mut quit) = self.windows.take_requests();
+        let mut quit = false;
         #[cfg(target_os = "macos")]
-        self.menu_events(ctx, &mut new_windows, &mut quit);
+        self.menu_events(ctx, &mut quit);
+        // Requests the other windows made (last frame's layout, or a menu item just now).
+        let (mut new_windows, quit_all) = self.windows.take_requests();
+        quit |= quit_all;
         // Documents Finder asked us to open (double click, Open With, the Dock icon).
         for path in protocraft_macos_open::take_pending() {
             self.open_document(ctx, &path);
@@ -284,6 +300,9 @@ fn main() -> eframe::Result {
             if in_window_menus {
                 app.ui.in_window_menus = true;
             }
+            // The host's copy starts from what the window asks for (flag, or the saved preference).
+            #[cfg(target_os = "macos")]
+            let in_window_menus = app.ui.in_window_menus;
             if let Some(port) = control_port {
                 let rx = control_server::start(port, cc.egui_ctx.clone());
                 app = app.with_control(rx);

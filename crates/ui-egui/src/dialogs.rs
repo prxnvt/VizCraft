@@ -204,8 +204,14 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
                 )
                 .color(t.text),
             );
-            ui.add_space(4.0);
-            ui.hyperlink_to("Source code: github.com/storytold/protocraft", "https://github.com/storytold/protocraft");
+            // The link comes from the package metadata, so a craft made from the baseline links
+            // to its own repository (or shows none) instead of ProtoCraft's.
+            let repo = env!("CARGO_PKG_REPOSITORY");
+            if !repo.is_empty() {
+                ui.add_space(4.0);
+                let shown = repo.trim_start_matches("https://").trim_start_matches("http://");
+                ui.hyperlink_to(format!("Source code: {shown}"), repo);
+            }
             ui.add_space(4.0);
             ui.label(
                 egui::RichText::new("Licensed under MIT OR Apache-2.0. Fonts: Inter and JetBrains Mono (SIL Open Font License).")
@@ -235,8 +241,9 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
                     ui.end_row();
                 }
                 ui.label(egui::RichText::new("Panes").color(t.text_dim));
-                // cascade 3: run the pane layout reset once panes are dockable.
-                ui.add_enabled(false, egui::Button::new("Reset pane layout")).on_disabled_hover_text("Panes are not dockable yet");
+                if ui.button("Reset pane layout").on_hover_text("Every pane back on its default side at its default size").clicked() {
+                    let _ = app.run("ui.panesReset", json!({}));
+                }
                 ui.end_row();
             });
             let (ok, cancel) = buttons(ui, "OK", Some("Cancel"), keys);
@@ -251,7 +258,9 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
                     ui.radio_value(percent, p, format!("{p}%"));
                 }
             });
-            ui.add(egui::Slider::new(percent, protocraft_engine::cmd::view::MIN_ZOOM..=protocraft_engine::cmd::view::MAX_ZOOM).suffix("%"));
+            ui.spacing_mut().slider_width = 220.0;
+            let range = protocraft_engine::cmd::view::MIN_ZOOM..=protocraft_engine::cmd::view::MAX_ZOOM;
+            widgets::slider(ui, egui::Slider::new(percent, range).suffix("%"), 320.0);
             let (ok, cancel) = buttons(ui, "OK", Some("Cancel"), keys);
             if ok {
                 let _ = app.run("view.zoom", json!({"value": *percent}));

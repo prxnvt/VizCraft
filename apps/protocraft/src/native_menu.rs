@@ -3,7 +3,9 @@
 //! Preferences, Services, Hide, Hide Others, Show All, Quit) and the Window menu are added here.
 //!
 //! Chosen items come back to the host as command ids with their params; the host runs them in
-//! the window in front, except `app.quit`, `file.close` and `file.new` which act across windows.
+//! the window in front through `menus::run_item` (the same path as the in-window bar and the
+//! shortcuts, so File > New opens a window in both), except `app.quit` and `file.close`, which
+//! act across windows.
 
 use std::str::FromStr;
 use std::sync::mpsc::{Receiver, channel};
@@ -167,11 +169,6 @@ impl NativeMenu {
             self.fill(app, &sub, &m.items);
             match m.role {
                 MenuRole::Window => {
-                    let _ = sub.append_items(&[
-                        &PredefinedMenuItem::separator(),
-                        &PredefinedMenuItem::minimize(None),
-                        &PredefinedMenuItem::maximize(None),
-                    ]);
                     // AppKit lists the open windows below our items.
                     sub.set_as_windows_menu_for_nsapp();
                 }
@@ -188,6 +185,13 @@ impl NativeMenu {
     fn fill(&mut self, app: &CraftApp, sub: &Submenu, items: &[Item]) {
         for item in items {
             match item {
+                // The tree's Minimize and Zoom are placeholders; AppKit's own items do the job.
+                Item::Cmd(_, "window.minimize", _) => {
+                    let _ = sub.append(&PredefinedMenuItem::minimize(None));
+                }
+                Item::Cmd(_, "window.zoom", _) => {
+                    let _ = sub.append(&PredefinedMenuItem::maximize(None));
+                }
                 Item::Cmd(label, id, params) => {
                     let _ = sub.append(&self.item(app, label, id, params.clone()));
                 }
@@ -243,9 +247,16 @@ impl NativeMenu {
         self.bound.len().to_string()
     }
 
+    /// Take the bar down again (the user turned "Menu Bar in Window" on): the window draws its
+    /// own from the same tree from the next frame.
+    pub fn remove(self) {
+        MenuEvent::set_event_handler::<fn(MenuEvent)>(None);
+        self._menu.remove_for_nsapp();
+    }
+
     /// Menu items chosen since the last call: (command id, params). The host runs them in the
-    /// front window with [`run_item`], except `app.quit`, `file.close` and `file.new`, which it
-    /// handles across windows.
+    /// front window with `menus::run_item`, except `app.quit` and `file.close`, which it handles
+    /// across windows.
     pub fn take_events(&self) -> Vec<(String, Value)> {
         let mut out = Vec::new();
         while let Ok(ev) = self.events.try_recv() {
@@ -260,21 +271,6 @@ impl NativeMenu {
             }
         }
         out
-    }
-}
-
-/// Run a menu item in one window's app.
-pub fn run_item(app: &mut CraftApp, ctx: &egui::Context, id: &str, params: Value) {
-    match app.run(id, params) {
-        // Copy and cut reach the system clipboard through egui.
-        Ok(v) if matches!(id, "edit.copy" | "edit.cut") => {
-            if let Some(t) = v.get("text").and_then(Value::as_str)
-                && !t.is_empty()
-            {
-                ctx.copy_text(t.to_string());
-            }
-        }
-        _ => {}
     }
 }
 
