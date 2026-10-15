@@ -60,7 +60,12 @@ impl Side {
     }
 }
 
+use std::sync::RwLock;
+
+static CUSTOM_PANES: RwLock<Option<Vec<PaneSpec>>> = RwLock::new(None);
+
 /// One pane the manager can show.
+#[derive(Clone, Copy, Debug)]
 pub struct PaneSpec {
     /// Stable key used in `PaneLayout`, commands and `ui.set` (`navigation`).
     pub key: &'static str,
@@ -74,12 +79,44 @@ pub struct PaneSpec {
     pub show: fn(&mut CraftApp, &mut Ui),
 }
 
+impl PartialEq for PaneSpec {
+    fn eq(&self, other: &Self) -> bool {
+        self.key == other.key && self.title == other.title && self.default_side == other.default_side && self.default_width == other.default_width
+    }
+}
+
+impl PaneSpec {
+    /// Create a new pane specification.
+    pub const fn new(key: &'static str, title: &'static str, default_side: Side, default_width: f32, show: fn(&mut CraftApp, &mut Ui)) -> Self {
+        Self { key, title, default_side, default_width, show }
+    }
+}
+
+/// Register custom pane specifications for the application.
+pub fn set_panes(specs: Vec<PaneSpec>) {
+    if let Ok(mut lock) = CUSTOM_PANES.write() {
+        *lock = Some(specs);
+    }
+}
+
+/// Reset pane specifications to the default set.
+pub fn reset_panes() {
+    if let Ok(mut lock) = CUSTOM_PANES.write() {
+        *lock = None;
+    }
+}
+
 /// Every pane, in the order the Window menu lists them.
 pub fn panes() -> Vec<PaneSpec> {
+    if let Ok(lock) = CUSTOM_PANES.read()
+        && let Some(custom) = lock.as_ref()
+    {
+        return custom.clone();
+    }
     vec![
-        PaneSpec { key: "navigation", title: "Navigation", default_side: Side::Left, default_width: 240.0, show: navigation },
-        PaneSpec { key: "properties", title: "Properties", default_side: Side::Right, default_width: 260.0, show: properties },
-        PaneSpec { key: "history", title: "History", default_side: Side::Right, default_width: 260.0, show: history },
+        PaneSpec::new("navigation", "Navigation", Side::Left, 240.0, navigation),
+        PaneSpec::new("properties", "Properties", Side::Right, 260.0, properties),
+        PaneSpec::new("history", "History", Side::Right, 260.0, history),
     ]
 }
 
@@ -937,5 +974,17 @@ mod tests {
         l.resize(&keys, &hs, 0, f32::NAN);
         l.resize(&keys, &hs, 7, 10.0);
         l.resize(&keys, &[], 0, 10.0);
+    }
+
+    #[test]
+    fn custom_pane_registration_and_reset() {
+        assert_eq!(panes().len(), 3);
+        set_panes(vec![PaneSpec::new("custom", "Custom Pane", Side::Left, 200.0, |_app, _ui| {})]);
+        assert_eq!(panes().len(), 1);
+        assert_eq!(spec("custom").unwrap().title, "Custom Pane");
+        assert!(spec("navigation").is_none());
+        reset_panes();
+        assert_eq!(panes().len(), 3);
+        assert!(spec("navigation").is_some());
     }
 }

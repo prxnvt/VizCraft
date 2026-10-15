@@ -6,28 +6,67 @@ use serde_json::Value;
 use crate::doc::Document;
 use crate::{CommandInfo, EngineError, Registry};
 
-/// The selection: character or element range. `start <= end` is not required
-/// (`end` is where the caret is); [`Selection::ordered`] sorts them.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// The selection state: selected entity IDs, primary element, and an optional continuous range
+/// (such as a temporal span in a DAW or animation, or bounds).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Selection {
-    /// Character or element offsets.
-    pub start: usize,
-    pub end: usize,
+    /// Primary selected element identifier, if any.
+    pub primary: Option<String>,
+    /// Set of multi-selected element identifiers.
+    pub items: Vec<String>,
+    /// Optional range (such as temporal [t0, t1] in ms or coordinate offsets).
+    pub range: Option<(u64, u64)>,
 }
 
 impl Selection {
-    /// A collapsed selection (a caret).
-    pub fn caret(at: usize) -> Self {
-        Selection { start: at, end: at }
+    /// An empty selection.
+    pub fn empty() -> Self {
+        Selection::default()
     }
-    /// Nothing is selected.
-    pub fn is_collapsed(&self) -> bool {
-        self.start == self.end
+    /// A single selected item.
+    pub fn single(id: impl Into<String>) -> Self {
+        let id = id.into();
+        Selection { primary: Some(id.clone()), items: vec![id], range: None }
     }
-    /// `(low, high)` character offsets.
-    pub fn ordered(&self) -> (usize, usize) {
-        if self.start <= self.end { (self.start, self.end) } else { (self.end, self.start) }
+    /// A range selection.
+    pub fn range(start: u64, end: u64) -> Self {
+        Selection { primary: None, items: Vec::new(), range: Some((start, end)) }
+    }
+    /// Whether the selection is empty.
+    pub fn is_empty(&self) -> bool {
+        self.primary.is_none() && self.items.is_empty() && self.range.is_none()
+    }
+    /// Whether `id` is part of the selection.
+    pub fn contains(&self, id: &str) -> bool {
+        self.items.iter().any(|i| i == id) || self.primary.as_deref() == Some(id)
+    }
+    /// Select a single item.
+    pub fn select_single(&mut self, id: impl Into<String>) {
+        let id = id.into();
+        self.primary = Some(id.clone());
+        self.items = vec![id];
+    }
+    /// Toggle item selection.
+    pub fn toggle(&mut self, id: impl Into<String>) {
+        let id = id.into();
+        if let Some(pos) = self.items.iter().position(|i| i == &id) {
+            self.items.remove(pos);
+            if self.primary.as_deref() == Some(&id) {
+                self.primary = self.items.first().cloned();
+            }
+        } else {
+            self.items.push(id.clone());
+            if self.primary.is_none() {
+                self.primary = Some(id);
+            }
+        }
+    }
+    /// Clear the selection.
+    pub fn clear(&mut self) {
+        self.primary = None;
+        self.items.clear();
+        self.range = None;
     }
 }
 
@@ -37,6 +76,8 @@ impl Selection {
 pub struct ViewState {
     /// 1.0 = 100%.
     pub zoom: f32,
+    /// 2D pan offset in canvas coordinate units.
+    pub pan: [f32; 2],
     pub dark_mode: bool,
     pub nav_pane: bool,
     pub props_pane: bool,
@@ -44,7 +85,27 @@ pub struct ViewState {
 
 impl Default for ViewState {
     fn default() -> Self {
-        ViewState { zoom: 1.0, dark_mode: false, nav_pane: true, props_pane: true }
+        ViewState { zoom: 1.0, pan: [0.0, 0.0], dark_mode: false, nav_pane: true, props_pane: true }
+    }
+}
+
+/// Playback / transport state for time-based crafts (DAW, animation suite).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct TransportState {
+    /// Whether playback is running.
+    pub playing: bool,
+    /// Current playhead position in milliseconds.
+    pub time_ms: u64,
+    /// Playback tempo in beats per minute, or frames per second.
+    pub tempo: f32,
+    /// Whether looping is enabled.
+    pub looping: bool,
+}
+
+impl Default for TransportState {
+    fn default() -> Self {
+        TransportState { playing: false, time_ms: 0, tempo: 120.0, looping: false }
     }
 }
 
@@ -69,6 +130,7 @@ pub struct Session {
     /// User name, stamped into the metadata on save.
     pub author: String,
     pub view: ViewState,
+    pub transport: TransportState,
     pub registry: Registry,
     /// Requests from commands to the UI (`{"open": "about"}`, `{"close": true}`), drained by the
     /// UI after each command. Programmatic callers never see a dialog.
@@ -98,6 +160,7 @@ impl Session {
             dirty: false,
             author: "ProtoCraft User".into(),
             view: ViewState::default(),
+            transport: TransportState::default(),
             registry: crate::cmd::registry(),
             ui_requests: Vec::new(),
             status: String::new(),
@@ -209,7 +272,7 @@ impl Session {
             return Err(EngineError::Disabled(format!("{id}: {why}")));
         }
         let before_doc = self.doc.clone();
-        let before_sel = self.sel;
+        let before_sel = self.sel.clone();
         self.no_undo = false;
         let run = spec.run;
         // A bug inside one command must not take the app down with the user's work in it.

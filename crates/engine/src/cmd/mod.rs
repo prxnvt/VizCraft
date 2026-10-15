@@ -4,6 +4,7 @@ pub mod edit;
 pub mod file;
 pub mod help;
 pub mod insert;
+pub mod transport;
 pub mod view;
 
 use serde_json::json;
@@ -16,6 +17,7 @@ pub fn registry() -> Registry {
     v.extend(file::specs());
     v.extend(edit::specs());
     v.extend(view::specs());
+    v.extend(transport::specs());
     v.extend(insert::specs());
     v.extend(help::specs());
     Registry::new(v)
@@ -23,7 +25,11 @@ pub fn registry() -> Registry {
 
 /// The standard result: the selection after the command.
 pub fn sel_result(s: &Session) -> CmdResult {
-    Ok(json!({"start": s.sel.start, "end": s.sel.end}))
+    Ok(json!({
+        "primary": s.sel.primary,
+        "items": s.sel.items,
+        "range": s.sel.range,
+    }))
 }
 
 /// ISO-8601 timestamp (UTC, seconds), without a date-time dependency.

@@ -175,7 +175,7 @@ pub fn combo_value(text: &str) -> Value {
 }
 
 fn has_selection(app: &CraftApp) -> bool {
-    !app.session.sel.is_collapsed()
+    !app.session.sel.is_empty()
 }
 
 /// Zoom steps offered by the View tab's zoom field.

@@ -32,9 +32,15 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
                 let _ = app.run("ui.backstage", json!({"value": false}));
             }
             ui.add_space(14.0);
-            for (label, id) in
-                [("New", "file.new"), ("Open", "file.open"), ("Save", "file.save"), ("Save As", "file.saveAs"), ("Close", "file.close")]
-            {
+            for (label, id) in [
+                ("New", "file.new"),
+                ("Open", "file.open"),
+                ("Save", "file.save"),
+                ("Save As", "file.saveAs"),
+                ("Export", "file.export"),
+                ("Import", "file.import"),
+                ("Close", "file.close"),
+            ] {
                 if nav_item(ui, label, crate::widgets::enabled(app, id)) {
                     let _ = app.run(id, json!({}));
                     if id != "file.close" {

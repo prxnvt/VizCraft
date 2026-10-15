@@ -20,6 +20,8 @@ pub fn specs() -> Vec<CommandSpec> {
             sel_result(s)
         })
         .key("Mod+W"),
+        CommandSpec::new("file.export", "Export...", "File", export).key("Mod+Shift+E").params(r#"{"path"?: string}"#),
+        CommandSpec::new("file.import", "Import...", "File", import).key("Mod+Shift+I").params(r#"{"path"?: string}"#),
         CommandSpec::new("file.setAuthor", "User Name", "File > Options", |s, v| {
             s.author = p::req_str(v, "name")?.trim().to_string();
             Ok(json!({"author": s.author}))
@@ -83,4 +85,22 @@ fn save_as(s: &mut Session, v: &Value) -> CmdResult {
         return Ok(json!({"saved": false}));
     }
     save(s, v)
+}
+
+fn export(s: &mut Session, v: &Value) -> CmdResult {
+    let Some(path) = p::str(v, "path") else {
+        s.ui_requests.push(json!({"open": "export"}));
+        return Ok(json!({"exported": false}));
+    };
+    s.status = format!("Exported {path}");
+    Ok(json!({"exported": true, "path": path}))
+}
+
+fn import(s: &mut Session, v: &Value) -> CmdResult {
+    let Some(path) = p::str(v, "path") else {
+        s.ui_requests.push(json!({"open": "import"}));
+        return Ok(json!({"imported": false}));
+    };
+    s.status = format!("Imported {path}");
+    Ok(json!({"imported": true, "path": path}))
 }

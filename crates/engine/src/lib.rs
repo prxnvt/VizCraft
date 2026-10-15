@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 pub use doc::{CoreProps, Document};
-pub use session::{Selection, Session, ViewState};
+pub use session::{Selection, Session, TransportState, ViewState};
 
 /// Why a command did not run (or did not finish).
 #[derive(Debug, thiserror::Error, Clone, PartialEq, Eq)]
@@ -160,6 +160,10 @@ pub mod p {
     /// A non-negative integer param (floats are truncated).
     pub fn usize(v: &Value, k: &str) -> Option<usize> {
         v.get(k).and_then(|x| x.as_u64().or_else(|| x.as_f64().filter(|f| *f >= 0.0 && f.is_finite()).map(|f| f as u64))).map(|n| n as usize)
+    }
+    /// A non-negative 64-bit integer param.
+    pub fn u64(v: &Value, k: &str) -> Option<u64> {
+        v.get(k).and_then(|x| x.as_u64().or_else(|| x.as_f64().filter(|f| *f >= 0.0 && f.is_finite()).map(|f| f as u64)))
     }
     /// A boolean param.
     pub fn bool(v: &Value, k: &str) -> Option<bool> {

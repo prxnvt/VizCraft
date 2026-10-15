@@ -113,7 +113,7 @@ fn is_shortcut_key(key: Key, m: Modifiers) -> bool {
             | Key::F19
             | Key::F20
     );
-    m.command || m.ctrl || m.alt || fkey
+    m.command || m.ctrl || m.alt || fkey || (key == Key::Space && !m.shift)
 }
 
 /// Run the commands bound to this frame's key presses and consume those keys, so a text field
@@ -139,8 +139,8 @@ pub fn shortcuts(app: &mut CraftApp, ctx: &egui::Context) {
         }
         let Some(name) = key_name(key) else { continue };
         let Some(id) = command_for(app, &combo(m, name)) else { continue };
-        // Rule 3: the field keeps its editing keys.
-        if text_focused && text_field_owns(id) {
+        // Rule 3: the field keeps its editing keys and normal typing.
+        if text_focused && (text_field_owns(id) || key == Key::Space) {
             continue;
         }
         ctx.input_mut(|i| i.consume_key(m, key));
@@ -186,7 +186,9 @@ mod tests {
         assert_eq!(key_name(Key::Equals), Some("="));
         assert_eq!(key_name(Key::ArrowLeft), Some("Left"));
         assert_eq!(key_name(Key::Num0), Some("0"));
+        assert_eq!(key_name(Key::Space), Some("Space"));
         assert!(is_shortcut_key(Key::F5, Modifiers::NONE));
+        assert!(is_shortcut_key(Key::Space, Modifiers::NONE));
         assert!(is_shortcut_key(Key::P, Modifiers::COMMAND | Modifiers::SHIFT));
         assert!(!is_shortcut_key(Key::A, Modifiers::SHIFT), "Shift+letter is typing");
     }
@@ -227,14 +229,28 @@ mod tests {
                     Key::Slash,
                     Key::Num0,
                     Key::F1,
+                    Key::Space,
                     Key::A,
+                    Key::B,
                     Key::C,
+                    Key::D,
+                    Key::E,
                     Key::F,
+                    Key::G,
+                    Key::H,
+                    Key::I,
+                    Key::J,
+                    Key::K,
+                    Key::L,
+                    Key::M,
                     Key::N,
                     Key::O,
                     Key::P,
                     Key::Q,
+                    Key::R,
                     Key::S,
+                    Key::T,
+                    Key::U,
                     Key::V,
                     Key::W,
                     Key::X,

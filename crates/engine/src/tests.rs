@@ -17,7 +17,7 @@ fn registry_ids_are_unique_and_prefixed() {
     for c in reg.all() {
         assert!(seen.insert(c.id), "duplicate id {}", c.id);
         let prefix = c.id.split('.').next().unwrap();
-        assert!(["file", "edit", "view", "insert", "help"].contains(&prefix), "{}: unexpected prefix", c.id);
+        assert!(["file", "edit", "view", "insert", "transport", "help"].contains(&prefix), "{}: unexpected prefix", c.id);
         assert!(!c.label.is_empty() && !c.location.is_empty(), "{}: label and location are required", c.id);
     }
     assert_eq!(reg.by_shortcut("mod+s").map(|c| c.id), Some("file.save"));
@@ -195,4 +195,82 @@ fn commands_report_enablement() {
     let save = infos.iter().find(|c| c.id == "file.save").unwrap();
     assert!(save.enabled);
     assert_eq!(save.shortcut, "Mod+S");
+}
+
+#[test]
+fn transport_commands_control_playback() {
+    let mut s = s();
+    assert!(!s.transport.playing);
+    assert_eq!(s.transport.time_ms, 0);
+    run(&mut s, "transport.togglePlay", json!({}));
+    assert!(s.transport.playing);
+    run(&mut s, "transport.seek", json!({"timeMs": 1500}));
+    assert_eq!(s.transport.time_ms, 1500);
+    run(&mut s, "transport.setTempo", json!({"tempo": 140.0}));
+    assert_eq!(s.transport.tempo, 140.0);
+    run(&mut s, "transport.toggleLoop", json!({}));
+    assert!(s.transport.looping);
+    run(&mut s, "transport.stop", json!({}));
+    assert!(!s.transport.playing);
+    assert_eq!(s.transport.time_ms, 0);
+}
+
+#[test]
+fn pan_commands_update_view_state() {
+    let mut s = s();
+    assert_eq!(s.view.pan, [0.0, 0.0]);
+    run(&mut s, "view.pan", json!({"dx": 10.0, "dy": -20.0}));
+    assert_eq!(s.view.pan, [10.0, -20.0]);
+    run(&mut s, "view.pan", json!({"x": 50.0, "y": 60.0}));
+    assert_eq!(s.view.pan, [50.0, 60.0]);
+    run(&mut s, "view.resetPan", json!({}));
+    assert_eq!(s.view.pan, [0.0, 0.0]);
+}
+
+#[test]
+fn export_and_import_commands() {
+    let mut s = s();
+    let r = run(&mut s, "file.export", json!({}));
+    assert_eq!(r["exported"], false);
+    assert_eq!(s.ui_requests.pop(), Some(json!({"open": "export"})));
+
+    let r = run(&mut s, "file.export", json!({"path": "/tmp/out.svg"}));
+    assert_eq!(r["exported"], true);
+    assert_eq!(r["path"], "/tmp/out.svg");
+
+    let r = run(&mut s, "file.import", json!({}));
+    assert_eq!(r["imported"], false);
+    assert_eq!(s.ui_requests.pop(), Some(json!({"open": "import"})));
+
+    let r = run(&mut s, "file.import", json!({"path": "/tmp/in.svg"}));
+    assert_eq!(r["imported"], true);
+    assert_eq!(r["path"], "/tmp/in.svg");
+}
+
+#[test]
+fn selection_model_methods() {
+    let mut sel = crate::Selection::empty();
+    assert!(sel.is_empty());
+    assert!(!sel.contains("node1"));
+
+    sel.select_single("node1");
+    assert!(!sel.is_empty());
+    assert_eq!(sel.primary, Some("node1".into()));
+    assert!(sel.contains("node1"));
+
+    sel.toggle("node2");
+    assert_eq!(sel.items.len(), 2);
+    assert!(sel.contains("node2"));
+
+    sel.toggle("node1");
+    assert_eq!(sel.items.len(), 1);
+    assert!(!sel.contains("node1"));
+    assert_eq!(sel.primary, Some("node2".into()));
+
+    sel.clear();
+    assert!(sel.is_empty());
+
+    let range_sel = crate::Selection::range(100, 500);
+    assert_eq!(range_sel.range, Some((100, 500)));
+    assert!(!range_sel.is_empty());
 }

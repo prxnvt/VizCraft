@@ -163,7 +163,7 @@ fn collapsing_hides_the_body_and_a_tab_click_shows_it_as_a_popup() {
 fn contextual_tabs_show_only_while_their_condition_holds() {
     let mut h = harness();
     assert!(h.query_by_label("Selection tab").is_none());
-    h.state_mut().session.sel = protocraft_engine::Selection { start: 0, end: 3 };
+    h.state_mut().session.sel = protocraft_engine::Selection::single("elem1");
     h.run_steps(3);
     assert!(h.query_by_label("Selection tab").is_some());
     h.get_by_label("Selection tab").click();
@@ -171,7 +171,7 @@ fn contextual_tabs_show_only_while_their_condition_holds() {
     assert_eq!(h.state().ui.tab, "Selection");
     assert!(h.query_by_label("Select All").is_some());
     // When the condition stops holding the strip falls back to the first tab's body.
-    h.state_mut().session.sel = protocraft_engine::Selection { start: 0, end: 0 };
+    h.state_mut().session.sel = protocraft_engine::Selection::empty();
     h.run_steps(3);
     assert!(h.query_by_label("Selection tab").is_none());
     assert!(h.query_by_label("Undo").is_some(), "Home shows while the chosen tab is hidden");
