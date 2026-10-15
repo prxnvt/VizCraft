@@ -1,35 +1,108 @@
 //! ProtoCraft desktop app.
 //!
-//! Usage: `protocraft [--control <port>] [--sample] [--version] [files...]`
+//! Usage: `protocraft [--control <port>] [--sample] [--in-window-menus] [--window-pos x,y] [--version] [files...]`
 //!
 //! `--control <port>` (or `PROTOCRAFT_CONTROL_PORT`) starts a localhost JSON-lines control server:
 //! `{"id":1,"method":"engine.execute","params":{"command":"file.new","params":{}}}`.
 //! See `docs/control-protocol.md`.
 //!
-//! One window for now. Cascade 2 adds `windows.rs` (several document windows in one process) and
-//! `native_menu.rs` (the macOS menu bar); [`App`] is shaped so they slot in next to `root`.
+//! `--in-window-menus` (or `PROTOCRAFT_IN_WINDOW_MENUS=1`) skips the native macOS menu bar; the
+//! window draws its own menu bar instead, as on other platforms.
+//!
+//! `--window-pos x,y` (or `PROTOCRAFT_WINDOW_POS="x,y"`) puts the first window's outer top-left
+//! corner at that screen position, overriding the saved geometry, so test runs can be placed on a
+//! spare monitor (`--window-pos -2500,100`) without moving them afterwards.
+//!
+//! Several document windows live in one process (`windows.rs`); on macOS the menu bar is native
+//! (`native_menu.rs`) and Finder's open requests arrive through `protocraft-macos-open`.
 #![cfg_attr(all(target_os = "windows", not(debug_assertions)), windows_subsystem = "windows")]
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
 mod control_server;
+#[cfg(target_os = "macos")]
+mod native_menu;
+mod windows;
 
 use protocraft_engine::Session;
 use protocraft_ui_egui::{CraftApp, Services, UiState, window_geometry::WindowGeometry};
 
-/// The app: the first window's document, and the restored window geometry until the first frame
-/// has checked it against the monitors.
+/// The app: the first window's document, the restored window geometry until the first frame has
+/// checked it against the monitors, the other document windows, and (macOS) the native menu bar
+/// once installed.
 struct App {
     root: CraftApp,
     restored: Option<WindowGeometry>,
+    windows: windows::Windows,
+    #[cfg(target_os = "macos")]
+    menu: Option<native_menu::NativeMenu>,
+    /// Draw the menu bar inside the window instead of installing the native one.
+    #[cfg(target_os = "macos")]
+    in_window_menus: bool,
+}
+
+impl App {
+    /// A new document window (File > New Window, Cmd+N), with the preferences of the window in front.
+    fn open_window(&mut self, ctx: &egui::Context, template: &str) {
+        let prefs = self.windows.front(&mut self.root).prefs();
+        let mut app = CraftApp::new(Session::new(protocraft_engine::Document::new()), services());
+        app.apply_prefs(prefs);
+        app.ui.window = None;
+        app.integrated_titlebar = cfg!(target_os = "macos");
+        if template != "blank"
+            && let Err(e) = app.run("file.new", serde_json::json!({"template": template}))
+        {
+            eprintln!("protocraft: new {template}: {e}");
+        }
+        self.windows.open(ctx, app, window_builder());
+    }
+
+    /// A document Finder asked us to open: in the window in front if that holds an untouched new
+    /// document, otherwise in a new window (so nothing open is replaced).
+    fn open_document(&mut self, ctx: &egui::Context, path: &str) {
+        let front = self.windows.front(&mut self.root);
+        if front.session.dirty || front.session.path.is_some() {
+            self.open_window(ctx, "blank");
+        }
+        // A new window is the one in front now.
+        let app = self.windows.front(&mut self.root);
+        match app.run("file.open", serde_json::json!({"path": path})) {
+            Ok(_) => {
+                let _ = app.run("ui.backstage", serde_json::json!({"value": false}));
+            }
+            Err(e) => app.status(format!("Couldn't open {path}: {e}")),
+        }
+    }
+
+    /// Menu items chosen since the last frame (macOS native bar), as (new windows, quit).
+    #[cfg(target_os = "macos")]
+    fn menu_events(&mut self, ctx: &egui::Context, new_windows: &mut Vec<String>, quit: &mut bool) {
+        if self.in_window_menus {
+            return;
+        }
+        let menu = self.menu.get_or_insert_with(|| native_menu::NativeMenu::install(ctx, &self.root));
+        for (id, params) in menu.take_events() {
+            match id.as_str() {
+                "app.quit" => *quit = true,
+                // Cmd+W closes the window (asking to save), as in other Mac apps.
+                "file.close" => self.windows.close_front(ctx),
+                // Cmd+N opens a fresh window instead of swapping the document in front of you.
+                "file.new" | "ui.newWindow" => {
+                    new_windows.push(params.get("template").and_then(serde_json::Value::as_str).unwrap_or("blank").to_string())
+                }
+                _ => native_menu::run_item(self.windows.front(&mut self.root), ctx, &id, params),
+            }
+        }
+    }
 }
 
 impl eframe::App for App {
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        let (mut new_windows, mut quit) = self.windows.take_requests();
+        #[cfg(target_os = "macos")]
+        self.menu_events(ctx, &mut new_windows, &mut quit);
         // Documents Finder asked us to open (double click, Open With, the Dock icon).
         for path in protocraft_macos_open::take_pending() {
-            if let Err(e) = self.root.run("file.open", serde_json::json!({"path": path})) {
-                self.root.status(format!("Couldn't open {path}: {e}"));
-            }
+            self.open_document(ctx, &path);
         }
         self.root.logic(ctx);
         let prev = self.root.ui.window;
@@ -37,12 +110,20 @@ impl eframe::App for App {
         if let Some(pos) = self.restored.take().and_then(|g| ctx.input(|i| g.rescue_position(i.viewport()))) {
             ctx.send_viewport_cmd(egui::ViewportCommand::OuterPosition(pos));
         }
-        // Single window: a new window request opens the document here, and quit-all is a quit.
-        if let Some(template) = self.root.new_window_request.take() {
-            let _ = self.root.run("file.new", serde_json::json!({"template": template}));
+        // Requests made by the menu run above or the root window this frame.
+        new_windows.extend(self.root.new_window_request.take());
+        quit |= std::mem::take(&mut self.root.quit_all_request);
+        for template in new_windows {
+            self.open_window(ctx, &template);
         }
-        if std::mem::take(&mut self.root.quit_all_request) {
-            let _ = self.root.run("app.quit", serde_json::json!({}));
+        if quit {
+            self.windows.quit();
+        }
+        self.windows.root_logic(ctx, &mut self.root);
+        // The menu reflects the front window after this frame's commands have run.
+        #[cfg(target_os = "macos")]
+        if let Some(menu) = &mut self.menu {
+            menu.refresh(self.windows.front(&mut self.root));
         }
     }
     fn raw_input_hook(&mut self, _ctx: &egui::Context, raw: &mut egui::RawInput) {
@@ -50,6 +131,8 @@ impl eframe::App for App {
     }
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         self.root.ui(ui);
+        let ctx = ui.ctx().clone();
+        self.windows.show(&ctx);
     }
     fn on_exit(&mut self) {
         save_prefs(&self.root);
@@ -125,6 +208,13 @@ fn services() -> Services {
     }
 }
 
+/// `"x,y"` as a window position; whitespace around the numbers is fine, anything else is `None`.
+fn parse_window_pos(s: &str) -> Option<[f32; 2]> {
+    let (x, y) = s.split_once(',')?;
+    let (x, y) = (x.trim().parse::<f32>().ok()?, y.trim().parse::<f32>().ok()?);
+    (x.is_finite() && y.is_finite()).then_some([x, y])
+}
+
 /// A document window: no title bar of its own (the app draws one), files can be dropped on it.
 fn window_builder() -> egui::ViewportBuilder {
     let builder = egui::ViewportBuilder::default()
@@ -146,26 +236,35 @@ fn main() -> eframe::Result {
     let mut control_port: Option<u16> = std::env::var("PROTOCRAFT_CONTROL_PORT").ok().and_then(|p| p.parse().ok());
     let mut files = Vec::new();
     let mut sample = false;
+    let mut in_window_menus = std::env::var_os("PROTOCRAFT_IN_WINDOW_MENUS").is_some_and(|v| v != "0" && !v.is_empty());
+    let mut window_pos = std::env::var("PROTOCRAFT_WINDOW_POS").ok().and_then(|v| parse_window_pos(&v));
     let mut args = std::env::args().skip(1);
     while let Some(a) = args.next() {
         match a.as_str() {
             "--control" => control_port = args.next().and_then(|p| p.parse().ok()),
             "--sample" => sample = true,
+            "--in-window-menus" => in_window_menus = true,
+            "--window-pos" => window_pos = args.next().and_then(|v| parse_window_pos(&v)),
             "--version" => {
                 println!("protocraft {}", env!("CARGO_PKG_VERSION"));
                 return Ok(());
             }
             "--help" | "-h" => {
-                println!("protocraft [--control <port>] [--sample] [--version] [files...]");
+                println!("protocraft [--control <port>] [--sample] [--in-window-menus] [--window-pos x,y] [--version] [files...]");
                 return Ok(());
             }
             _ => files.push(a),
         }
     }
     let mut options = eframe::NativeOptions { viewport: window_builder(), ..Default::default() };
-    let restored = saved_window();
+    let mut restored = saved_window();
     if let Some(window) = restored {
         options.viewport = window.apply(options.viewport);
+    }
+    if let Some(pos) = window_pos {
+        // An explicit position wins over the saved one and is not second-guessed on the first frame.
+        options.viewport = options.viewport.with_position(pos);
+        restored = None;
     }
     protocraft_macos_open::install();
     eframe::run_native(
@@ -181,6 +280,10 @@ fn main() -> eframe::Result {
             load_prefs(&mut app);
             app.ui.window = restored;
             app.integrated_titlebar = cfg!(target_os = "macos");
+            app.multi_window = true;
+            if in_window_menus {
+                app.ui.in_window_menus = true;
+            }
             if let Some(port) = control_port {
                 let rx = control_server::start(port, cc.egui_ctx.clone());
                 app = app.with_control(rx);
@@ -190,7 +293,29 @@ fn main() -> eframe::Result {
                     eprintln!("protocraft: {f}: {e}");
                 }
             }
-            Ok(Box::new(App { root: app, restored }))
+            Ok(Box::new(App {
+                root: app,
+                restored,
+                windows: windows::Windows::default(),
+                #[cfg(target_os = "macos")]
+                menu: None,
+                #[cfg(target_os = "macos")]
+                in_window_menus,
+            }))
         }),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_window_pos;
+
+    #[test]
+    fn window_pos_parses_two_numbers() {
+        assert_eq!(parse_window_pos("-2500,100"), Some([-2500.0, 100.0]));
+        assert_eq!(parse_window_pos(" 10 , 20.5 "), Some([10.0, 20.5]));
+        assert_eq!(parse_window_pos("10"), None);
+        assert_eq!(parse_window_pos("a,b"), None);
+        assert_eq!(parse_window_pos("inf,0"), None);
+    }
 }
