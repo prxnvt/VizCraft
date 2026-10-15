@@ -43,6 +43,13 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.saveAsDialog", "Save As...", "", "{}"),
     ("ui.inWindowMenus", "Menu Bar in Window", "", r#"{"value"?: bool}"#),
     ("ui.newWindow", "New Window", "", r#"{"template"?: "blank|sample"}"#),
+    ("ui.pane", "Toggle Pane", "", r#"{"name": "navigation|properties|history", "value"?: bool, "side"?: "left|right"}"#),
+    ("ui.pane.navigation", "Navigation Pane", "", r#"{"value"?: bool}"#),
+    ("ui.pane.properties", "Properties Pane", "", r#"{"value"?: bool}"#),
+    ("ui.pane.history", "History Pane", "", r#"{"value"?: bool}"#),
+    ("ui.paneSide", "Move Pane to Side", "", r#"{"name": "navigation|properties|history", "side": "left|right"}"#),
+    ("ui.collapsePanes", "Collapse Side Panes", "", r#"{"side": "left|right", "value"?: bool}"#),
+    ("ui.panesReset", "Reset Panes", "", "{}"),
     ("app.about", "About ProtoCraft", "", "{}"),
     ("app.preferences", "Preferences", "Mod+,", "{}"),
     ("app.quit", "Quit ProtoCraft", "Mod+Q", "{}"),
@@ -266,6 +273,9 @@ impl CraftApp {
 
     /// Commands that live in the UI layer. `None` when `id` is not one of them.
     fn ui_command(&mut self, id: &str, p: &Value) -> Option<Result<Value, String>> {
+        if let Some(r) = panes::ui_command(self, id, p) {
+            return Some(r);
+        }
         let s = |k: &str| p.get(k).and_then(Value::as_str);
         let b = |k: &str| p.get(k).and_then(Value::as_bool);
         Some(Ok(match id {
