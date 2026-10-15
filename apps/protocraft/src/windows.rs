@@ -187,7 +187,12 @@ impl Windows {
             unsaved: e.app.has_unsaved(),
             asking: e.app.asking_before_closing(),
         }));
-        match quit_step(&states, self.asked.take()) {
+        let step = quit_step(&states, self.asked);
+        if step != QuitStep::Wait {
+            // The answer to the last prompt has been seen; a later step must not read it again.
+            self.asked = None;
+        }
+        match step {
             QuitStep::Wait => {}
             QuitStep::Cancel => self.quitting = false,
             QuitStep::Ask(id) => {

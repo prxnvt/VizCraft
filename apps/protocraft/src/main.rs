@@ -1,6 +1,6 @@
 //! ProtoCraft desktop app.
 //!
-//! Usage: `protocraft [--control <port>] [--sample] [--in-window-menus] [--version] [files...]`
+//! Usage: `protocraft [--control <port>] [--sample] [--in-window-menus] [--window-pos x,y] [--version] [files...]`
 //!
 //! `--control <port>` (or `PROTOCRAFT_CONTROL_PORT`) starts a localhost JSON-lines control server:
 //! `{"id":1,"method":"engine.execute","params":{"command":"file.new","params":{}}}`.
@@ -8,6 +8,10 @@
 //!
 //! `--in-window-menus` (or `PROTOCRAFT_IN_WINDOW_MENUS=1`) skips the native macOS menu bar; the
 //! window draws its own menu bar instead, as on other platforms.
+//!
+//! `--window-pos x,y` (or `PROTOCRAFT_WINDOW_POS="x,y"`) puts the first window's outer top-left
+//! corner at that screen position, overriding the saved geometry, so test runs can be placed on a
+//! spare monitor (`--window-pos -2500,100`) without moving them afterwards.
 //!
 //! Several document windows live in one process (`windows.rs`); on macOS the menu bar is native
 //! (`native_menu.rs`) and Finder's open requests arrive through `protocraft-macos-open`.
@@ -204,6 +208,13 @@ fn services() -> Services {
     }
 }
 
+/// `"x,y"` as a window position; whitespace around the numbers is fine, anything else is `None`.
+fn parse_window_pos(s: &str) -> Option<[f32; 2]> {
+    let (x, y) = s.split_once(',')?;
+    let (x, y) = (x.trim().parse::<f32>().ok()?, y.trim().parse::<f32>().ok()?);
+    (x.is_finite() && y.is_finite()).then_some([x, y])
+}
+
 /// A document window: no title bar of its own (the app draws one), files can be dropped on it.
 fn window_builder() -> egui::ViewportBuilder {
     let builder = egui::ViewportBuilder::default()
@@ -226,27 +237,34 @@ fn main() -> eframe::Result {
     let mut files = Vec::new();
     let mut sample = false;
     let mut in_window_menus = std::env::var_os("PROTOCRAFT_IN_WINDOW_MENUS").is_some_and(|v| v != "0" && !v.is_empty());
+    let mut window_pos = std::env::var("PROTOCRAFT_WINDOW_POS").ok().and_then(|v| parse_window_pos(&v));
     let mut args = std::env::args().skip(1);
     while let Some(a) = args.next() {
         match a.as_str() {
             "--control" => control_port = args.next().and_then(|p| p.parse().ok()),
             "--sample" => sample = true,
             "--in-window-menus" => in_window_menus = true,
+            "--window-pos" => window_pos = args.next().and_then(|v| parse_window_pos(&v)),
             "--version" => {
                 println!("protocraft {}", env!("CARGO_PKG_VERSION"));
                 return Ok(());
             }
             "--help" | "-h" => {
-                println!("protocraft [--control <port>] [--sample] [--in-window-menus] [--version] [files...]");
+                println!("protocraft [--control <port>] [--sample] [--in-window-menus] [--window-pos x,y] [--version] [files...]");
                 return Ok(());
             }
             _ => files.push(a),
         }
     }
     let mut options = eframe::NativeOptions { viewport: window_builder(), ..Default::default() };
-    let restored = saved_window();
+    let mut restored = saved_window();
     if let Some(window) = restored {
         options.viewport = window.apply(options.viewport);
+    }
+    if let Some(pos) = window_pos {
+        // An explicit position wins over the saved one and is not second-guessed on the first frame.
+        options.viewport = options.viewport.with_position(pos);
+        restored = None;
     }
     protocraft_macos_open::install();
     eframe::run_native(
@@ -286,4 +304,18 @@ fn main() -> eframe::Result {
             }))
         }),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_window_pos;
+
+    #[test]
+    fn window_pos_parses_two_numbers() {
+        assert_eq!(parse_window_pos("-2500,100"), Some([-2500.0, 100.0]));
+        assert_eq!(parse_window_pos(" 10 , 20.5 "), Some([10.0, 20.5]));
+        assert_eq!(parse_window_pos("10"), None);
+        assert_eq!(parse_window_pos("a,b"), None);
+        assert_eq!(parse_window_pos("inf,0"), None);
+    }
 }
