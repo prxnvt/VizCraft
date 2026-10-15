@@ -235,8 +235,9 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
                     ui.end_row();
                 }
                 ui.label(egui::RichText::new("Panes").color(t.text_dim));
-                // cascade 3: run the pane layout reset once panes are dockable.
-                ui.add_enabled(false, egui::Button::new("Reset pane layout")).on_disabled_hover_text("Panes are not dockable yet");
+                if ui.button("Reset pane layout").on_hover_text("Every pane back on its default side at its default size").clicked() {
+                    let _ = app.run("ui.panesReset", json!({}));
+                }
                 ui.end_row();
             });
             let (ok, cancel) = buttons(ui, "OK", Some("Cancel"), keys);

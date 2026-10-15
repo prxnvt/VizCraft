@@ -24,7 +24,7 @@ use egui::{Align2, Id, Key, Modifiers, Order, Pos2, Rect, Sense, Stroke, Ui, pos
 use serde_json::{Value, json};
 
 use crate::theme::{Tokens, regular};
-use crate::{CraftApp, widgets};
+use crate::{CraftApp, panes, widgets};
 
 /// One entry of a menu.
 #[derive(Clone, Debug, PartialEq)]
@@ -119,6 +119,18 @@ pub fn menu_tree(app: &CraftApp) -> Vec<Menu> {
         Item::Check("Navigation Pane", "view.navigationPane", json!({})),
         Item::Check("Properties Pane", "view.propertiesPane", json!({})),
     ]);
+    // The panes, one check item each (`ui.pane.<key>`), then the layout reset. The native bar
+    // appends the system Minimize and Zoom and the list of open windows after these.
+    let mut window = vec![
+        Item::Cmd("New Window", "ui.newWindow", json!({})),
+        Item::Sep,
+        Item::Cmd("Minimize", "window.minimize", json!({})),
+        Item::Cmd("Zoom", "window.zoom", json!({})),
+        Item::Sep,
+        Item::Header("Panes"),
+    ];
+    window.extend(panes::window_menu_items(app).into_iter().map(|(title, id, _)| Item::Check(title, id, json!({}))));
+    window.extend([Item::Sep, Item::Cmd("Reset Panes", "ui.panesReset", json!({}))]);
     vec![
         Menu { title: "File", role: MenuRole::Normal, items: file },
         Menu {
@@ -140,18 +152,7 @@ pub fn menu_tree(app: &CraftApp) -> Vec<Menu> {
             ],
         },
         Menu { title: "View", role: MenuRole::Normal, items: view },
-        Menu {
-            title: "Window",
-            role: MenuRole::Window,
-            items: vec![
-                Item::Cmd("New Window", "ui.newWindow", json!({})),
-                Item::Sep,
-                Item::Cmd("Minimize", "window.minimize", json!({})),
-                Item::Cmd("Zoom", "window.zoom", json!({})),
-                // cascade 3: list panes from panes::window_menu_items (a separator, then one
-                // Check item per pane: title, id, checked).
-            ],
-        },
+        Menu { title: "Window", role: MenuRole::Window, items: window },
         Menu {
             title: "Help",
             role: MenuRole::Help,
@@ -224,7 +225,7 @@ fn entry_with_label(app: &CraftApp, id: &str, label: String) -> Entry {
         "view.dark" => app.session.view.dark_mode,
         "ui.collapseRibbon" => app.ui.ribbon_collapsed,
         "ui.inWindowMenus" => app.ui.in_window_menus,
-        _ => false,
+        _ => id.strip_prefix("ui.pane.").is_some_and(|key| app.ui.panes.is_open(key)),
     };
     let enabled = !PLACEHOLDERS.contains(&id) && widgets::enabled(app, id);
     Entry { label, shortcut: widgets::shortcut_text(app, id), enabled, checked }
@@ -790,6 +791,23 @@ mod tests {
         assert_ne!(k1, k0, "the undo label changed");
         a.ui.recent.push("/tmp/a.craft.json".into());
         assert_ne!(structure_key(&a), k1, "a recent file changed the tree");
+    }
+
+    #[test]
+    fn window_menu_lists_every_pane_with_its_state() {
+        let mut a = app();
+        let window = menu_tree(&a).into_iter().find(|m| m.role == MenuRole::Window).unwrap();
+        let checks: Vec<(&str, &str)> =
+            window.items.iter().filter_map(|i| if let Item::Check(l, id, _) = i { Some((*l, *id)) } else { None }).collect();
+        let expected: Vec<(&str, &str)> = panes::panes().iter().map(|p| (p.title, panes::command_id(p.key).unwrap())).collect();
+        assert_eq!(checks, expected, "one check item per pane, in pane order");
+        assert!(find_item(&window.items, "ui.panesReset").is_some(), "Reset Panes is on the Window menu");
+        assert!(entry(&a, "ui.pane.history").checked, "open panes are checked");
+        a.run("ui.pane.history", json!({})).unwrap();
+        assert!(!entry(&a, "ui.pane.history").checked);
+        let k = structure_key(&a);
+        a.run("ui.pane.history", json!({})).unwrap();
+        assert_eq!(structure_key(&a), k, "a pane's check mark is state, not structure");
     }
 
     #[test]

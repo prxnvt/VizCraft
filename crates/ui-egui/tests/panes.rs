@@ -116,7 +116,7 @@ fn window_menu_items_track_the_layout() {
     let items = panes::window_menu_items(&a);
     assert_eq!(items.len(), 3);
     assert!(items.iter().all(|(_, _, on)| *on));
-    assert_eq!(items[0], ("Navigation".to_string(), "ui.pane.navigation".to_string(), true));
+    assert_eq!(items[0], ("Navigation", "ui.pane.navigation", true));
     for (_, id, _) in &items {
         a.run(id, json!({})).unwrap();
     }
@@ -313,6 +313,28 @@ fn splitter_drag_resizes_the_upper_pane() {
     let after = h.state().ui.panes.height("properties");
     assert!((after - (DEFAULT_HEIGHT + 80.0)).abs() < 4.0, "properties grew by the drag: {after}");
     assert!(after >= MIN_HEIGHT);
+}
+
+#[test]
+fn ui_set_width_resizes_the_side_live() {
+    let mut h = harness(app());
+    assert_eq!(h.state().ui.panes.left_width, 240.0, "the default width after a few frames");
+    // `ui.set panes.leftWidth` (the control channel) changes the layout; the next frame pushes it
+    // into the panel, and the frames after keep it (the manager reads the panel's width back).
+    control::set(h.state_mut(), "panes.leftWidth", json!(300)).unwrap();
+    h.run_steps(3);
+    assert!((h.state().ui.panes.left_width - 300.0).abs() < 1.0, "left side is 300 wide: {}", h.state().ui.panes.left_width);
+    control::set(h.state_mut(), "panes.rightWidth", json!(400)).unwrap();
+    h.run_steps(3);
+    assert!((h.state().ui.panes.right_width - 400.0).abs() < 1.0, "right side is 400 wide: {}", h.state().ui.panes.right_width);
+    // Back to a narrower width too, and a reset returns the defaults.
+    control::set(h.state_mut(), "panes.leftWidth", json!(180)).unwrap();
+    h.run_steps(3);
+    assert!((h.state().ui.panes.left_width - 180.0).abs() < 1.0);
+    h.state_mut().run("ui.panesReset", json!({})).unwrap();
+    h.run_steps(3);
+    assert_eq!(h.state().ui.panes.left_width, 240.0);
+    assert_eq!(h.state().ui.panes.right_width, 260.0);
 }
 
 #[test]

@@ -91,6 +91,17 @@ pub fn title_bar(app: &mut CraftApp, ui: &mut Ui) {
         });
 }
 
+/// A status bar icon button for a command. Its name carries the shortcut (`Zoom In (Cmd =)`),
+/// which also keeps it apart from the ribbon's button of the same label in tests.
+fn status_button(ui: &mut Ui, app: &mut CraftApp, icon: &str, id: &str) {
+    let label = widgets::label_of(app, id);
+    let sc = widgets::shortcut_text(app, id);
+    let tip = if sc.is_empty() { label.to_string() } else { format!("{label} ({sc})") };
+    if widgets::icon_button(ui, icon, &tip, 12.0, widgets::enabled(app, id)) {
+        let _ = app.run(id, json!({}));
+    }
+}
+
 /// The status bar: note position and size on the left, status message, zoom on the right.
 pub fn status_bar(app: &mut CraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
@@ -126,18 +137,14 @@ pub fn status_bar(app: &mut CraftApp, ui: &mut Ui) {
                     if st(ui, &format!("{z}%")).on_hover_text("Zoom").clicked() {
                         let _ = app.run("ui.dialog", json!({"name": "zoom"}));
                     }
-                    if widgets::icon_button(ui, "plus", "Zoom In", 12.0, true) {
-                        let _ = app.run("view.zoomIn", json!({}));
-                    }
+                    status_button(ui, app, "plus", "view.zoomIn");
                     let mut v = app.session.view.zoom;
                     let range = protocraft_engine::cmd::view::MIN_ZOOM / 100.0..=protocraft_engine::cmd::view::MAX_ZOOM / 100.0;
                     ui.spacing_mut().slider_width = 110.0;
                     if ui.add(egui::Slider::new(&mut v, range).logarithmic(true).show_value(false)).changed() {
                         let _ = app.run("view.zoom", json!({"value": (v * 100.0).round()}));
                     }
-                    if widgets::icon_button(ui, "minus", "Zoom Out", 12.0, true) {
-                        let _ = app.run("view.zoomOut", json!({}));
-                    }
+                    status_button(ui, app, "minus", "view.zoomOut");
                 });
             });
         });

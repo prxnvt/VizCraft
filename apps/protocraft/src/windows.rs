@@ -92,6 +92,12 @@ impl Windows {
         }
     }
 
+    /// Every window's app besides the root's (a preference that applies to the whole app is
+    /// copied into each).
+    pub fn apps_mut(&mut self) -> impl Iterator<Item = &mut CraftApp> {
+        self.extras.iter_mut().map(|e| &mut e.app)
+    }
+
     /// Open `app` in a new window shaped like `base`, cascaded from the window in front.
     pub fn open(&mut self, ctx: &egui::Context, mut app: CraftApp, base: ViewportBuilder) {
         app.multi_window = true;
