@@ -9,7 +9,7 @@ contains and what has landed; update the state column when a piece merges.
 
 | Measure | Value |
 |---|---|
-| Cascade | 3 complete; baseline ready for new crafts |
+| Cascade | 4 complete; baseline ready for new crafts (DAW, diagram, animation, schema) |
 | App runs | full chrome (ribbon, panes, menus, dialogs, control channel, multi-window, web shell) |
 | Crafts made from the baseline | verified end-to-end with new-craft test |
 
@@ -63,7 +63,19 @@ result.
 Done when: a new craft made from `main` can be installed into `/Applications` by `rebuild.sh`
 with its own name and icon, and the kittest snapshots guard the chrome.
 
-## After Cascade 3
+## Cascade 4: generic baseline extensions (done)
+
+Generalize ProtoCraft from a text-focused template into a clean, reusable foundation for diverse desktop crafts (arrangers/DAWs, diagram editors, animation suites, database schema visualizers).
+
+| Piece | Contents | State |
+|---|---|---|
+| Selection generalization | `Selection`: primary selection, multi-item IDs, continuous range support, helper methods | done |
+| 2D viewport pan and zoom | `ViewState.pan`, `view.pan`, `view.resetPan`, `Viewport2D` screen/world math in `canvas.rs` | done |
+| Transport controls | `TransportState`, playback controls (`transport.*`) for time/timeline crafts | done |
+| Pluggable side panes | `PaneSpec::new`, `set_panes`, `reset_panes` in `panes.rs` for modular pane registries | done |
+| Export and Import | `file.export` and `file.import` command slots wired to menus and backstage | done |
+
+## Future work
 
 Not scheduled, listed so they are not forgotten:
 

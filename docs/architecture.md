@@ -53,11 +53,13 @@ Command id prefixes: `file.*`, `edit.*`, `view.*`, `insert.*`, `format.*`, `wind
 
 ```rust
 pub struct Session {
-    pub doc: Document,                 // the sample model (crates/engine/src/doc.rs)
+    pub doc: Document,                 // the generic baseline document (crates/engine/src/doc.rs)
     pub path: Option<PathBuf>,
     pub dirty: bool,
     pub author: String,
-    pub view: ViewState,               // zoom (f32, 1.0 = 100%), dark_mode, pane visibility flags (nav_pane, props_pane, ...)
+    pub sel: Selection,                // generalized selection (primary, items: Vec<String>, range: Option<(u64, u64)>)
+    pub transport: TransportState,     // playback / time transport (playing, time_ms, tempo, looping)
+    pub view: ViewState,               // zoom (f32), pan ([f32; 2]), dark_mode, pane visibility flags
     pub registry: Registry,            // Registry::get(id) -> Option<&CommandSpec>, Registry::all() -> &[CommandSpec]
     pub ui_requests: Vec<Value>,       // requests to the UI, drained by the UI after each command
     pub status: String,                // one-shot status message, taken by the UI
@@ -74,7 +76,7 @@ pub mod io { pub fn save_bytes(name: &str, doc: &Document) -> Result<Vec<u8>, En
 pub mod sample { pub fn sample_document() -> Document; }
 ```
 
-The sample document format is JSON (`.craft.json`); `file.open`/`file.save`/`file.saveAs`/`file.new`
+The sample document format is JSON (`.craft.json`); `file.open`/`file.save`/`file.saveAs`/`file.export`/`file.import`/`file.new`
 exist and are what the chrome exercises. Engine crate root carries
 `#![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]`.
 A test `hostile_params_never_panic` runs every command with junk params.
@@ -82,7 +84,8 @@ A test `hostile_params_never_panic` runs every command with junk params.
 ## UI (`protocraft-ui-egui`) public API
 
 Modules: `theme`, `icons`, `widgets`, `chrome` (title bar + status bar), `menus` (menu tree +
-in-window menu bar), `ribbon`, `panes`, `dialogs`, `keys`, `control`, `window_geometry`,
+in-window menu bar), `ribbon`, `panes` (side panes, `PaneSpec`, `set_panes`), `canvas` (`Viewport2D`
+screen/world projections, pan & zoom), `dialogs`, `keys`, `control`, `window_geometry`,
 `backstage` (optional File page).
 
 ```rust
