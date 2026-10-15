@@ -149,3 +149,29 @@ Several agents work in this repository at once, in separate worktrees (`AGENTS.m
   orchestrator, not in someone else's module.
 - Tests that open the real app do not belong in `cargo test`; they would collide on ports and
   windows. Use the kittest harness or `ui_shot` instead.
+
+## Snapshot tests
+
+`crates/ui-egui/tests/snapshots.rs` renders the whole window offscreen (egui_kittest with wgpu,
+1280x800 at 1 pixel per point) and compares it pixel by pixel with the PNGs in
+`crates/ui-egui/tests/snapshots/<os>/`. One test, eight pictures: the Home tab in light and dark
+mode, the View tab's ribbon, the in-window Edit menu open, the collapsed ribbon's popup, both pane
+sides folded, the About dialog and the command palette. They are test fixtures, not assets, so
+they need no `ATTRIBUTION.md` rows (`cargo xtask assets` scans `assets/` and `packaging/` only).
+
+The test is part of `cargo test` and so of `cargo xtask ci`, and it passes with a note instead of
+failing when it cannot run: no wgpu adapter on the machine, `PROTOCRAFT_SKIP_SNAPSHOTS=1` in the
+environment, or no reference folder for this OS yet (shortcut text is platform-specific, so
+macOS references do not match Linux or Windows; the first run on a new OS records its own set).
+
+When a snapshot differs the test fails and writes `<name>.new.png` and `<name>.diff.png` next to
+the reference (both gitignored). Look at the diff; if the change is intended, record the new
+references and commit the PNGs with the code that changed them:
+
+```sh
+UPDATE_SNAPSHOTS=1 cargo test -p protocraft-ui-egui --test snapshots
+```
+
+`UPDATE_SNAPSHOTS=1` rewrites only the snapshots that failed; `UPDATE_SNAPSHOTS=force` rewrites
+all of them. Keep the set small (under 3 MB in total) and at 1 pixel per point; `ui_shot` is the
+tool for high-resolution pictures to look at.

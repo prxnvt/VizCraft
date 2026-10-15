@@ -65,15 +65,23 @@ reading or writing them, which tests and screenshot sessions use.
 ## Making a new craft
 
 ```sh
-cargo xtask new-craft gridcraft        # writes ../gridcraft
+cargo xtask new-craft gridcraft                                  # writes ../gridcraft
+cargo xtask new-craft notecraft --display-name "Note Craft"      # a display name of your own
+cargo xtask new-craft gridcraft --into ~/elsewhere/gridcraft     # another destination
 ```
 
-`new-craft` copies this repository to a sibling folder and renames `protocraft`, `ProtoCraft` and
-`PROTOCRAFT` everywhere (crate names, binaries, the bundle id `ai.storyteller.<name>`, the
-preferences folder, environment variables, the icon file names, docs), then initialises a fresh
-git history. What you get is a working app called by the new name, with the sample model still
-inside. From there, [docs/new-craft.md](docs/new-craft.md) walks through replacing the model,
-growing the command registry, adding ribbon tabs, panes and menus, and packaging.
+`new-craft` copies the tracked files of this repository to a sibling folder and renames
+`protocraft`, `ProtoCraft` and `PROTOCRAFT` everywhere (crate names, binaries, the bundle id
+`ai.storyteller.<name>`, the preferences folder, environment variables, the icon file names, docs),
+runs `cargo fmt` on the copy (a name of a different length moves lines across the rustfmt width),
+then initialises a fresh git history with one commit and prints the next steps. The name is
+lowercase ASCII letters ending in `craft`; the display name defaults to the name with its first
+letter and the C of Craft raised (`gridcraft` becomes `GridCraft`), or `--display-name` sets it
+(letters, digits and single spaces; where it is glued to an identifier, as in
+`GridCraftOpenDocumentsHandler`, the spaces are dropped). A destination that already exists, in
+any letter case, is refused. What you get is a working app called by the new name, with the sample
+model still inside. From there, [docs/new-craft.md](docs/new-craft.md) walks through replacing the
+model, growing the command registry, adding ribbon tabs, panes and menus, and packaging.
 
 ## Replacing the sample document model
 
