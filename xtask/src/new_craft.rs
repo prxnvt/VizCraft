@@ -158,11 +158,19 @@ enum Spelling {
     Lower,
 }
 
+/// Tracked files that belong to the template only and must not travel into a craft. The root
+/// marker `.craft-template` tells `crafts/rebuild.sh` to skip the baseline, so it is never
+/// installed to /Applications; a craft without the marker is picked up by the installer.
+pub fn skipped(rel: &str) -> bool {
+    rel == ".craft-template"
+}
+
 /// Copy `files` (paths relative to `src`) into `dest`, renaming paths and rewriting UTF-8 contents.
-/// Binary files are copied byte for byte. Returns the number of files written.
+/// Binary files are copied byte for byte; template-only files ([`skipped`]) are left out. Returns
+/// the number of files written.
 pub fn copy_tree(src: &Path, files: &[String], dest: &Path, names: &Names) -> Result<usize, String> {
     let mut n = 0;
-    for rel in files {
+    for rel in files.iter().filter(|rel| !skipped(rel)) {
         let from = src.join(rel);
         let to = dest.join(rewrite(rel, names));
         if let Some(parent) = to.parent() {
@@ -288,8 +296,8 @@ pub fn next_steps(dest: &Path, names: &Names) -> String {
     format!(
         "next steps:\n\
          \x20 cd {dest}\n\
-         \x20 cargo xtask ci                      # proves the copy builds and passes every gate\n\
-         \x20 cargo run -p {lower} -- --sample    # the app under its new name\n\
+         \x20 cargo xtask ci                     # proves the copy builds and passes every gate\n\
+         \x20 cargo run -p {lower} -- --sample   # the app under its new name\n\
          then follow docs/new-craft.md (in the copy) from step 2: replace the sample model.",
         dest = dest.display(),
         lower = names.lower
@@ -484,8 +492,14 @@ mod tests {
         .unwrap();
         std::fs::write(src.join(format!("packaging/{}.icns", b.display)), [0u8, 159, 146, 150, b'b', b'a', b's', b'e']).unwrap();
         std::fs::write(src.join("packaging/run.sh"), format!("#!/bin/sh\nopen {}.app\n", b.display)).unwrap();
-        let files: Vec<String> =
-            vec!["Cargo.toml".into(), format!("apps/{}/src/main.rs", b.lower), format!("packaging/{}.icns", b.display), "packaging/run.sh".into()];
+        std::fs::write(src.join(".craft-template"), "").unwrap();
+        let files: Vec<String> = vec![
+            "Cargo.toml".into(),
+            format!("apps/{}/src/main.rs", b.lower),
+            format!("packaging/{}.icns", b.display),
+            "packaging/run.sh".into(),
+            ".craft-template".into(),
+        ];
 
         let n = copy_tree(&src, &files, &dest, &derive("quuxcraft", None).unwrap()).unwrap();
         assert_eq!(n, 4);
@@ -501,6 +515,16 @@ mod tests {
         assert_eq!(std::fs::read(dest.join("packaging/QuuxCraft.icns")).unwrap(), [0u8, 159, 146, 150, b'b', b'a', b's', b'e']);
         assert_eq!(std::fs::read_to_string(dest.join("packaging/run.sh")).unwrap(), "#!/bin/sh\nopen QuuxCraft.app\n");
         assert!(!dest.join(format!("apps/{}", b.lower)).exists());
+        // The template marker stays behind: the copy is a craft, not a template.
+        assert!(!dest.join(".craft-template").exists());
         std::fs::remove_dir_all(&base_dir).unwrap();
+    }
+
+    #[test]
+    fn template_marker_is_skipped() {
+        assert!(skipped(".craft-template"));
+        for kept in ["Cargo.toml", ".gitignore", ".cargo/config.toml", "docs/.craft-template", "craft-template"] {
+            assert!(!skipped(kept), "{kept}");
+        }
     }
 }
