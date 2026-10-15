@@ -1,0 +1,109 @@
+//! The File page (Backstage): a full-window page with New, Open, Save, Save As, recent files
+//! and the document's facts. Opened by the File tab; Escape or Back returns to the document.
+
+use egui::{Align2, Sense, Stroke, Ui, pos2, vec2};
+use serde_json::json;
+
+use crate::CraftApp;
+use crate::theme::{Tokens, medium, regular, semibold};
+
+/// Width of the command column on the left.
+const NAV_W: f32 = 200.0;
+
+/// Draw the File page over the whole window.
+pub fn show(app: &mut CraftApp, ui: &mut Ui) {
+    let t = Tokens::get(ui.ctx());
+    if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+        let _ = app.run("ui.backstage", json!({"value": false}));
+    }
+    egui::Panel::left("backstage_nav")
+        .exact_size(NAV_W)
+        .frame(egui::Frame::NONE.fill(t.accent).inner_margin(egui::Margin {
+            left: 12,
+            right: 12,
+            top: if app.integrated_titlebar { 40 } else { 16 },
+            bottom: 12,
+        }))
+        .show(ui, |ui| {
+            ui.spacing_mut().item_spacing = vec2(0.0, 2.0);
+            if nav_item(ui, "Back", true) {
+                let _ = app.run("ui.backstage", json!({"value": false}));
+            }
+            ui.add_space(14.0);
+            for (label, id) in
+                [("New", "file.new"), ("Open", "file.open"), ("Save", "file.save"), ("Save As", "file.saveAs"), ("Close", "file.close")]
+            {
+                if nav_item(ui, label, crate::widgets::enabled(app, id)) {
+                    let _ = app.run(id, json!({}));
+                    if id != "file.close" {
+                        let _ = app.run("ui.backstage", json!({"value": false}));
+                    }
+                }
+            }
+            ui.add_space(14.0);
+            if nav_item(ui, "Preferences", true) {
+                let _ = app.run("app.preferences", json!({}));
+            }
+            if nav_item(ui, "About", true) {
+                let _ = app.run("help.about", json!({}));
+            }
+        });
+    egui::CentralPanel::default().frame(egui::Frame::NONE.fill(t.ribbon).inner_margin(egui::Margin::symmetric(36, 28))).show(ui, |ui| {
+        ui.label(egui::RichText::new(app.title_stem()).font(semibold(24.0)).color(t.text));
+        let where_ = app.session.path.as_ref().map(|p| p.to_string_lossy().to_string()).unwrap_or_else(|| "Not saved yet".into());
+        ui.label(egui::RichText::new(where_).font(regular(12.0)).color(t.text_dim));
+        ui.add_space(20.0);
+        ui.label(egui::RichText::new("Recent").font(medium(14.0)).color(t.text));
+        ui.add_space(6.0);
+        if app.ui.recent.is_empty() {
+            ui.label(egui::RichText::new("Files you open or save appear here.").color(t.text_dim));
+        }
+        let recent = app.ui.recent.clone();
+        for path in recent {
+            let name = std::path::Path::new(&path).file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_else(|| path.clone());
+            let (r, resp) = ui.allocate_exact_size(vec2(ui.available_width().min(520.0), 40.0), Sense::click());
+            if resp.hovered() {
+                ui.painter().rect_filled(r, 4.0, t.hover);
+            }
+            ui.painter().text(pos2(r.min.x + 10.0, r.min.y + 12.0), Align2::LEFT_CENTER, &name, medium(12.5), t.text);
+            ui.painter().text(pos2(r.min.x + 10.0, r.min.y + 28.0), Align2::LEFT_CENTER, &path, regular(11.0), t.text_dim);
+            if resp.clicked() {
+                let _ = app.run("file.open", json!({"path": path}));
+                let _ = app.run("ui.backstage", json!({"value": false}));
+            }
+        }
+        ui.add_space(24.0);
+        ui.label(egui::RichText::new("Document").font(medium(14.0)).color(t.text));
+        ui.add_space(6.0);
+        let core = app.session.doc.core.clone();
+        egui::Grid::new("backstage_facts").num_columns(2).spacing([16.0, 4.0]).show(ui, |ui| {
+            for (k, v) in [
+                ("Notes", app.session.doc.notes.len().to_string()),
+                ("Characters", app.session.doc.char_count().to_string()),
+                ("Author", core.author),
+                ("Last saved", core.modified),
+                ("Saved by", core.last_modified_by),
+                ("Saves", core.revision.to_string()),
+            ] {
+                if v.is_empty() {
+                    continue;
+                }
+                ui.label(egui::RichText::new(k).color(t.text_dim));
+                ui.label(v);
+                ui.end_row();
+            }
+        });
+    });
+}
+
+/// A row in the coloured command column. Returns true when clicked.
+fn nav_item(ui: &mut Ui, label: &str, enabled: bool) -> bool {
+    let t = Tokens::get(ui.ctx());
+    let (r, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 30.0), Sense::click());
+    if resp.hovered() && enabled {
+        ui.painter().rect_stroke(r, 4.0, Stroke::new(1.0, t.on_accent), egui::StrokeKind::Inside);
+    }
+    let color = if enabled { t.on_accent } else { t.on_accent.gamma_multiply(0.5) };
+    ui.painter().text(r.left_center() + vec2(10.0, 0.0), Align2::LEFT_CENTER, label, medium(13.0), color);
+    resp.clicked() && enabled
+}
