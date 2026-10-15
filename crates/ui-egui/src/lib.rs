@@ -36,7 +36,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.tab", "Switch Ribbon Tab", "", r#"{"tab": "File|Home|Insert|View|Help"}"#),
     ("ui.collapseRibbon", "Collapse the Ribbon", "Mod+F1", r#"{"value"?: bool}"#),
     ("ui.commands", "Search Commands", "Mod+Shift+P", "{}"),
-    ("ui.dialog", "Open Dialog", "", r#"{"name": "commands|zoom|about|preferences|quit"}"#),
+    ("ui.dialog", "Open Dialog", "", r#"{"name": "commands|zoom|about|preferences|quit|shortcuts|message", "title"?: string, "text"?: string}"#),
     ("ui.closeDialog", "Close Dialog", "", "{}"),
     ("ui.backstage", "File Page", "", r#"{"value"?: bool}"#),
     ("ui.openFileDialog", "Open...", "", "{}"),
@@ -50,6 +50,12 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.paneSide", "Move Pane to Side", "", r#"{"name": "navigation|properties|history", "side": "left|right"}"#),
     ("ui.collapsePanes", "Collapse Side Panes", "", r#"{"side": "left|right", "value"?: bool}"#),
     ("ui.panesReset", "Reset Panes", "", "{}"),
+    ("ui.clearRecent", "Clear Recent Files", "", "{}"),
+    ("ui.shortcuts", "Keyboard Shortcuts", "Mod+/", "{}"),
+    ("ui.print", "Print", "Mod+P", "{}"),
+    ("ui.find", "Find", "Mod+F", "{}"),
+    ("window.minimize", "Minimize", "", "{}"),
+    ("window.zoom", "Zoom Window", "", "{}"),
     ("app.about", "About ProtoCraft", "", "{}"),
     ("app.preferences", "Preferences", "Mod+,", "{}"),
     ("app.quit", "Quit ProtoCraft", "Mod+Q", "{}"),
@@ -298,7 +304,13 @@ impl CraftApp {
                 json!({"dialog": "commands"})
             }
             "ui.dialog" => {
-                self.dialog = dialogs::Dialog::open(s("name").unwrap_or(""), self);
+                self.dialog = match s("name").unwrap_or("") {
+                    "message" => Some(dialogs::Dialog::Message {
+                        title: s("title").unwrap_or("ProtoCraft").to_string(),
+                        text: s("text").unwrap_or("").to_string(),
+                    }),
+                    name => dialogs::Dialog::open(name, self),
+                };
                 json!({"dialog": self.dialog.as_ref().map(|d| d.name())})
             }
             "ui.closeDialog" => {
@@ -324,6 +336,20 @@ impl CraftApp {
             "ui.newWindow" => {
                 self.new_window(s("template").unwrap_or("blank"));
                 json!({})
+            }
+            "ui.clearRecent" => {
+                self.ui.recent.clear();
+                json!({"recent": []})
+            }
+            "ui.shortcuts" => {
+                self.dialog = dialogs::Dialog::open("shortcuts", self);
+                json!({"dialog": "shortcuts"})
+            }
+            // Placeholders (`menus::PLACEHOLDERS`): listed so every front sees them, shown
+            // disabled in menus; running one by id only reports that it is not there yet.
+            "ui.print" | "ui.find" | "window.minimize" | "window.zoom" => {
+                self.status(format!("{} is not available in this craft yet", widgets::label_of(self, id)));
+                json!({"placeholder": true})
             }
             "app.about" => {
                 self.dialog = dialogs::Dialog::open("about", self);

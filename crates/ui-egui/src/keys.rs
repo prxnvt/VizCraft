@@ -2,11 +2,24 @@
 //!
 //! A shortcut is written portably: `Mod+S`, `Mod+Shift+Z`, `Alt+F4`, `F1`. `Mod` is Cmd on macOS
 //! and Ctrl elsewhere (egui's `command` modifier). Alternatives are separated by ` / `.
+//!
+//! Precedence, from the top:
+//! 1. An open dialog owns the keyboard: Enter and Escape are its, and no shortcut fires until it
+//!    closes (the Quit prompt must not be undone from under itself).
+//! 2. An open in-window menu owns the keyboard the same way (arrows, Enter, Escape walk it).
+//! 3. A focused text field keeps the editing keys egui implements for it: Mod+X, Mod+C, Mod+V,
+//!    Mod+A, Mod+Z and Mod+Shift+Z act on the field, not the document.
+//! 4. Everything else is looked up in the engine registry first, then in `UI_COMMANDS`. A key
+//!    bound to a disabled command is swallowed and does nothing, so the field under it does not
+//!    see a key the menu says belongs to a command.
+//!
+//! Only modifier combinations and function keys are shortcuts; plain keys and Shift+letter are
+//! typing. On macOS with the native menu bar the host feeds menu key equivalents back through
+//! egui so this rule applies there too.
 
 use egui::{Key, Modifiers};
-use serde_json::json;
 
-use crate::{CraftApp, UI_COMMANDS};
+use crate::{CraftApp, UI_COMMANDS, menus};
 
 /// The registry's name for a key, or `None` for keys no shortcut uses.
 pub fn key_name(k: Key) -> Option<&'static str> {
@@ -15,7 +28,7 @@ pub fn key_name(k: Key) -> Option<&'static str> {
         Key::Equals | Key::Plus => "=",
         Key::Comma => ",",
         Key::Period => ".",
-        Key::Slash => "/",
+        Key::Slash | Key::Questionmark => "/",
         Key::Semicolon => ";",
         Key::OpenBracket => "[",
         Key::CloseBracket => "]",
@@ -46,6 +59,22 @@ pub fn combo(m: Modifiers, key: &str) -> String {
     s
 }
 
+/// A portable shortcut string (all alternatives) as the platform shows it: glyphs on macOS
+/// (`Cmd Shift Z` as symbols), `Ctrl+Shift+Z` elsewhere; alternatives joined with " or ".
+pub fn pretty(sc: &str) -> String {
+    sc.split(" / ")
+        .filter(|a| !a.is_empty())
+        .map(|a| {
+            if cfg!(target_os = "macos") {
+                a.replace("Mod+", "\u{2318}").replace("Shift+", "\u{21e7}").replace("Alt+", "\u{2325}").replace("Ctrl+", "\u{2303}")
+            } else {
+                a.replace("Mod+", "Ctrl+")
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" or ")
+}
+
 /// The command bound to a shortcut string: engine first, then UI commands.
 pub fn command_for(app: &CraftApp, combo: &str) -> Option<&'static str> {
     if let Some(spec) = app.session.registry.by_shortcut(combo) {
@@ -56,12 +85,44 @@ pub fn command_for(app: &CraftApp, combo: &str) -> Option<&'static str> {
 
 /// Shortcuts egui's text fields handle themselves; while one is focused they stay with it.
 fn text_field_owns(id: &str) -> bool {
-    matches!(id, "edit.cut" | "edit.copy" | "edit.paste" | "edit.selectAll")
+    matches!(id, "edit.cut" | "edit.copy" | "edit.paste" | "edit.selectAll" | "edit.undo" | "edit.redo")
+}
+
+/// Whether a key press counts as a shortcut at all (modifier combination or function key).
+fn is_shortcut_key(key: Key, m: Modifiers) -> bool {
+    let fkey = matches!(
+        key,
+        Key::F1
+            | Key::F2
+            | Key::F3
+            | Key::F4
+            | Key::F5
+            | Key::F6
+            | Key::F7
+            | Key::F8
+            | Key::F9
+            | Key::F10
+            | Key::F11
+            | Key::F12
+            | Key::F13
+            | Key::F14
+            | Key::F15
+            | Key::F16
+            | Key::F17
+            | Key::F18
+            | Key::F19
+            | Key::F20
+    );
+    m.command || m.ctrl || m.alt || fkey
 }
 
 /// Run the commands bound to this frame's key presses and consume those keys, so a text field
 /// does not also act on them. Called from `logic`, before layout.
 pub fn shortcuts(app: &mut CraftApp, ctx: &egui::Context) {
+    // Rules 1 and 2: a dialog or an open menu has the keyboard.
+    if app.dialog.is_some() || menus::is_open(ctx) {
+        return;
+    }
     let text_focused = ctx.egui_wants_keyboard_input();
     let presses: Vec<(Key, Modifiers)> = ctx.input(|i| {
         i.events
@@ -73,40 +134,48 @@ pub fn shortcuts(app: &mut CraftApp, ctx: &egui::Context) {
             .collect()
     });
     for (key, m) in presses {
-        // Plain keys and Shift+letter are typing; only modifier combos and function keys are shortcuts.
-        let is_fkey =
-            matches!(key, Key::F1 | Key::F2 | Key::F3 | Key::F4 | Key::F5 | Key::F6 | Key::F7 | Key::F8 | Key::F9 | Key::F10 | Key::F11 | Key::F12);
-        if !(m.command || m.ctrl || m.alt || is_fkey) {
+        if !is_shortcut_key(key, m) {
             continue;
         }
         let Some(name) = key_name(key) else { continue };
         let Some(id) = command_for(app, &combo(m, name)) else { continue };
+        // Rule 3: the field keeps its editing keys.
         if text_focused && text_field_owns(id) {
             continue;
         }
         ctx.input_mut(|i| i.consume_key(m, key));
-        if id == "file.new" {
-            // Cmd+N opens a fresh window instead of swapping the document in front of you.
-            app.new_window("blank");
+        // Rule 4: a disabled command swallows its key and does nothing.
+        if !menus::entry(app, id).enabled {
             continue;
         }
-        match app.run(id, json!({})) {
-            // Copy and cut reach the system clipboard through egui.
-            Ok(v) if matches!(id, "edit.copy" | "edit.cut") => {
-                if let Some(t) = v.get("text").and_then(serde_json::Value::as_str)
-                    && !t.is_empty()
-                {
-                    ctx.copy_text(t.to_string());
-                }
-            }
-            _ => {}
-        }
+        menus::run_item(app, ctx, id, serde_json::json!({}));
     }
+}
+
+/// Every command with a shortcut, as `(label, keys)` in registry order then UI order, for the
+/// Keyboard Shortcuts dialog. Keys are platform text ([`pretty`]).
+pub fn shortcut_table(app: &CraftApp) -> Vec<(String, String)> {
+    let engine = app.session.registry.all().iter().map(|c| (c.id, c.label, c.shortcut));
+    let ui = UI_COMMANDS.iter().map(|(id, label, sc, _)| (*id, *label, *sc));
+    engine
+        .chain(ui)
+        .filter(|(_, _, sc)| !sc.is_empty())
+        .map(|(id, label, sc)| {
+            // The menu's wording where the command has one (Open..., Save As...).
+            let menu_label = menus::entry(app, id).label;
+            let label = if menu_label.is_empty() { label.to_string() } else { menu_label };
+            (label, pretty(sc))
+        })
+        .collect()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn app() -> CraftApp {
+        CraftApp::new(protocraft_engine::Session::new(protocraft_engine::Document::new()), crate::Services::default())
+    }
 
     #[test]
     fn combos_match_registry_spelling() {
@@ -117,11 +186,25 @@ mod tests {
         assert_eq!(key_name(Key::Equals), Some("="));
         assert_eq!(key_name(Key::ArrowLeft), Some("Left"));
         assert_eq!(key_name(Key::Num0), Some("0"));
+        assert!(is_shortcut_key(Key::F5, Modifiers::NONE));
+        assert!(is_shortcut_key(Key::P, Modifiers::COMMAND | Modifiers::SHIFT));
+        assert!(!is_shortcut_key(Key::A, Modifiers::SHIFT), "Shift+letter is typing");
+    }
+
+    #[test]
+    fn pretty_uses_platform_glyphs() {
+        let p = pretty("Mod+Shift+Z / Mod+Y");
+        if cfg!(target_os = "macos") {
+            assert_eq!(p, "\u{2318}\u{21e7}Z or \u{2318}Y");
+        } else {
+            assert_eq!(p, "Ctrl+Shift+Z or Ctrl+Y");
+        }
+        assert_eq!(pretty(""), "");
     }
 
     #[test]
     fn every_registered_shortcut_is_reachable_from_a_key() {
-        let app = CraftApp::new(protocraft_engine::Session::new(protocraft_engine::Document::new()), crate::Services::default());
+        let app = app();
         let all: Vec<(&str, &str)> = app
             .session
             .registry
@@ -131,6 +214,7 @@ mod tests {
             .chain(UI_COMMANDS.iter().map(|(id, _, sc, _)| (*id, *sc)))
             .filter(|(_, sc)| !sc.is_empty())
             .collect();
+        assert!(!all.is_empty());
         for (id, sc) in all {
             for alt in sc.split(" / ") {
                 let key = alt.rsplit('+').next().unwrap();
@@ -145,6 +229,7 @@ mod tests {
                     Key::F1,
                     Key::A,
                     Key::C,
+                    Key::F,
                     Key::N,
                     Key::O,
                     Key::P,
@@ -162,5 +247,14 @@ mod tests {
                 assert_eq!(command_for(&app, alt), Some(id), "{id}: {alt} resolves to the wrong command");
             }
         }
+    }
+
+    #[test]
+    fn shortcut_table_lists_labels_and_keys() {
+        let app = app();
+        let table = shortcut_table(&app);
+        assert!(table.iter().any(|(l, k)| l == "Save" && !k.is_empty()));
+        assert!(table.iter().any(|(l, _)| l == "Open..."), "menu wording wins: {table:?}");
+        assert!(table.iter().all(|(_, k)| !k.contains("Mod+")), "portable spelling leaks: {table:?}");
     }
 }
