@@ -11,9 +11,27 @@ Start the app with a port:
 cargo run --release -p protocraft -- --sample --control 7990     # or PROTOCRAFT_CONTROL_PORT=7990
 ```
 
+The app prints `protocraft: control server listening on 127.0.0.1:7990` on stderr once the port
+is bound. `--control 0` asks the OS for a free port and prints the one it got, so a script that
+cannot know which ports are free parses that line. A port that is already taken is reported
+(`control server failed to bind ...`) and the app runs without control.
+
 The server listens on `127.0.0.1` only. A client sends one JSON object per line and gets one
 reply line per request, in order. Several clients may connect; each connection is served on its
-own thread and requests are handled on the UI thread one frame at a time.
+own thread and requests are handled on the UI thread one frame at a time. A client that
+disconnects mid-request is dropped; the app does not care. Request lines longer than 16 MB are
+refused.
+
+The CLI is the one-shot client, so scripts do not need `nc`:
+
+```sh
+protocraft-cli control 7990 ui.inspect                          # host:port or just the port
+protocraft-cli control 127.0.0.1:7990 engine.execute '{"command":"view.zoomIn"}'
+printf '%s\n' '{"id":1,"method":"ui.inspect"}' | protocraft-cli control 7990 -    # requests from stdin
+```
+
+It prints the reply line and exits 0 when `ok` is true, 1 otherwise (or when the app cannot be
+reached), 2 for a usage mistake.
 
 ```json
 {"id": 1, "method": "engine.execute", "params": {"command": "file.new", "params": {}}}
@@ -31,6 +49,8 @@ defaults to `{}`.
 | `{"id": ..., "ok": true, "result": <any>}` | the method ran; `result` is method-specific |
 | `{"id": ..., "ok": false, "error": "<message>"}` | the method failed; the document is unchanged |
 | `{"ok": false, "error": "bad JSON: ..."}` | the line did not parse; no `id` because none was read |
+| `{"id": ..., "ok": false, "error": "bad request: ..."}` | the line parsed but was not an object with a string `method` |
+| `{"id": ..., "ok": false, "error": "unknown method ..."}` | the method is neither a protocol method nor a command id |
 | `{"id": ..., "ok": false, "error": "timeout"}` | the UI did not answer within 60 seconds (window hidden or blocked) |
 
 A failed `engine.execute` leaves the document as it was: `Session::run` restores it, including
@@ -43,17 +63,26 @@ after a caught panic. An unknown command id is an error, not a crash.
 | `engine.execute` | `command` (an id), `params?` (object, default `{}`) | the command's result; engine commands and `ui.*` commands alike |
 | `engine.commands` | none | array of `{id, label, location, shortcut, params, enabled, reason?}` for every command, UI commands included |
 | `ui.inspect` | none | the UI state, see below |
-| `ui.set` | `path` (dotted path into `UiState`, e.g. `dark`, `panes.navPane`, `ribbonCollapsed`), `value` | the updated `UiState` |
+| `ui.set` | `path` (dotted path or JSON pointer into `UiState`: `dark`, `panes.leftWidth`, `/ribbonCollapsed`), `value` | the updated `UiState`; unknown paths and wrong types are errors |
+| `ui.menus` | none | the menu tree, see below |
 | `ui.click` | `x`, `y` (window points), `button?` (`left` default, `right`), `count?` (1 to 3), `shift?`, `cmd?`, `alt?` | `{"queued": true}` |
 | `ui.move` | `x`, `y` | `{"queued": true}` |
 | `ui.drag` | `x`, `y`, `toX`, `toY`, `steps?` (default 8), `shift?`, `cmd?`, `alt?` | `{"queued": true}` |
 | `ui.key` | `key` (`A`, `Enter`, `Escape`, `Left`, `F2`, `Space`, `Tab`, egui key names), `shift?`, `alt?`, `cmd?` | `{"queued": true}` |
 | `ui.text` | `text` | `{"queued": true}` |
+| `ui.wait` | `frames?` (default 1, at most 10000) | `{"waited": true}`, sent after that many frames have run |
 | `ui.screenshot` | `path?` | `{"path", "width", "height"}`; see below |
+| `ui.resize` | `width`, `height` (points, clamped to the window's minimum size) | `{"width", "height"}`; asks the window to resize |
+| `ui.focus` | none | `{}`; asks the window for focus (the desktop app only) |
 | `app.quit` | none | `{}`; quits every window without asking about unsaved changes |
 
-Any other method name is treated as a command id with `params` as its params, so
-`{"method": "edit.undo"}` is the short form of `engine.execute`.
+A method name that is a command id (engine or `ui.*`) runs that command with `params` as its
+params, so `{"method": "edit.undo"}` is the short form of `engine.execute`. Any other name is
+`unknown method`, never a silent no-op.
+
+Every param reader tolerates junk: a wrong type is treated as missing (and reported when the
+param is required), numbers are clamped, nothing panics. The UI tests feed every method hostile
+params to keep it that way.
 
 `cmd` means the platform's primary modifier: Command on macOS, Control elsewhere, the same
 meaning as `Mod` in shortcut strings. Coordinates are in window points (logical pixels, as egui
@@ -75,20 +104,60 @@ Returns one JSON object with everything a script needs to check its work without
 | Field | Content |
 |---|---|
 | `ui` | the `UiState` as it would be persisted: `tab`, `ribbonCollapsed`, `dark`, `recent`, `author`, `panes`, `window`, `inWindowMenus` |
-| `view` | the engine `ViewState`: zoom, dark mode, pane visibility flags |
-| `dialog` | the open dialog, or `null` |
+| `view` | the engine `ViewState`: `zoom`, `darkMode`, `navPane`, `propsPane` |
+| `selection` | the engine selection: `note`, `start`, `end` (character offsets) |
+| `dialog` | the open dialog as `{"dialog": "<name>", ...its fields}`, or `null` |
+| `backstage` | whether the File page is showing |
 | `window` | `[width, height]` in points |
 | `title` | the window title stem (document name) |
+| `path` | the document's file, or `null` |
 | `dirty` | whether the document has unsaved changes |
 | `rev` | the document revision, bumped on every change |
-| `undoLabel` | the label of the next undo step, or `null` |
+| `notes` | how many notes the sample document has |
+| `canUndo`, `canRedo` | whether Undo and Redo are available |
+| `undoLabel`, `redoLabel` | the label of the next undo or redo step, or `null` |
 | `status` | the current status-bar message, or `null` |
-| `perf` | `{"frameMs": ...}` |
+| `perf` | `{"frameMs": ...}`, how long the last layout took |
 
-A craft adds its own fields (canvas rectangle, selection, caret, hit regions) next to these and
-documents them in its own copy of this file. `ui.set` is the write side of `ui`: it accepts any
-path into `UiState` and replies with the whole state after the change, so a test can switch to
-dark mode, collapse the ribbon or hide a pane and then screenshot.
+A craft adds its own fields (canvas rectangle, caret, hit regions) next to these and documents
+them in its own copy of this file. `ui.set` is the write side of `ui`: it accepts any path into
+`UiState`, dotted (`panes.leftWidth`, snake_case segments are accepted too) or as a JSON pointer
+(`/panes/leftWidth`), and replies with the whole state after the change, so a test can switch to
+dark mode, collapse the ribbon or hide a pane and then screenshot. The whole state is validated:
+an unknown path or a value of the wrong type is an error and leaves the state as it was. Pane
+widths are clamped to the layout's limits and a window geometry that cannot be real is dropped,
+as when the preferences file is read.
+
+Known limit: once a side pane is showing, egui keeps the width the user dragged it to, so
+`ui.set panes.leftWidth` is reported in the reply but the panel keeps its width until the pane
+module applies external changes.
+
+### `ui.menus`
+
+Returns the menu tree the in-window bar and the native macOS bar are built from, so a script can
+find out what the menus offer and how each entry looks right now:
+
+```json
+[{"title": "File", "role": "normal", "items": [
+   {"label": "New", "id": "file.new", "params": {}, "shortcut": "Cmd N", "enabled": true, "checked": false, "check": false},
+   {"label": "Open Recent", "items": [{"recent": "/tmp/Plans.craft.json", "id": "file.open", "params": {"path": "..."}}]},
+   {"sep": true},
+   {"header": "..."}
+ ]}, ...]
+```
+
+`role` is `normal`, `app`, `window` or `help` (where the native bar places the menu). `check`
+marks entries drawn with a check box; `checked` is their state. `shortcut` is the platform text
+(glyphs on macOS, `Ctrl+S` elsewhere); the portable `Mod+S` form is in `engine.commands`. Press
+any entry with `engine.execute` and its `id` and `params`.
+
+### `ui.wait`
+
+`ui.wait {"frames": 10}` replies once ten more frames have run. Queued input lands one pointer
+event per frame (so a drag with eight steps takes about ten frames), and a command's effect on
+the layout shows one frame later; `ui.wait` is the way to let that happen before `ui.inspect`
+without guessing with sleeps. The app repaints while a wait is pending, so it does not stall on a
+window that would otherwise sit idle.
 
 ### `ui.screenshot`
 
@@ -97,18 +166,30 @@ not taken on the frame the request arrives: the app waits for at least three fra
 queued input to be processed, then asks the viewport for a screenshot, and replies once the image
 has been received and written. The reply, `{"path": ..., "width": ..., "height": ...}`, therefore
 arrives a few frames later than other replies; keep it last in a pipelined batch, or send it on
-its own. Without `path` the image is written to `/tmp/protocraft-screenshot.png`. The size is in
+its own. Without `path` the image is written to `protocraft-screenshot.png` in the system
+temporary directory (`$TMPDIR` on macOS, `/tmp` on Linux); the reply says where. The size is in
 physical pixels, so on a Retina display it is twice the window size in points.
 
 With several windows open the control channel belongs to the app, not a window, and acts on the
 window in front; `ui.screenshot` captures that window. Because eframe draws additional viewports
 inside the root window's frame, a screenshot while a non-root window is in front fails with an
 error rather than returning the wrong image. Screenshots work with the screen locked and do not
-steal focus, which is what makes them usable from an agent running in the background.
+steal focus, which is what makes them usable from an agent running in the background. When a
+screenshot is all that is needed, the headless `ui_shot` example renders the window without
+opening one at all (`docs/testing.md`).
 
-## Examples with nc
+## Examples
 
-Open the sample, zoom in, then screenshot:
+With the CLI, one request at a time:
+
+```sh
+protocraft-cli control 7990 engine.execute '{"command":"view.zoomIn","params":{}}'
+protocraft-cli control 7990 ui.set '{"path":"dark","value":true}'
+protocraft-cli control 7990 ui.screenshot '{"path":"/tmp/zoomed.png"}'
+protocraft-cli control 7990 ui.menus | jq '.result[] | .title'
+```
+
+With `nc`, several pipelined. Open the sample, zoom in, then screenshot:
 
 ```sh
 printf '%s\n' \

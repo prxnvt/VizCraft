@@ -1,42 +1,107 @@
-//! ProtoCraft command line: the engine without a window.
+//! ProtoCraft command line: the engine without a window, and a one-shot client for the running
+//! app's control channel.
 //!
 //! ```text
-//! protocraft-cli commands                       table of id, label, shortcut, enabled
-//! protocraft-cli run [--open FILE] --cmd ID[=JSON] ... [--save OUT]
+//! protocraft-cli commands [--json]                           every engine command: id, label, shortcut, enabled
+//! protocraft-cli run [--open FILE | --sample] --cmd ID[=JSON] ... [--save OUT] [--json]
+//!                                                            run commands headless, in order, then save
+//! protocraft-cli inspect FILE [--json]                       document summary (or the document as JSON)
+//! protocraft-cli control HOST:PORT METHOD [JSON]             one request to a running app, reply on stdout
+//! protocraft-cli control HOST:PORT -                         forward request lines from stdin, one reply each
 //! protocraft-cli --version
 //! ```
 //!
-//! `run` opens a document (or starts blank), runs each command in order, prints each result as
-//! a JSON line and optionally saves. A failing command stops the run with exit code 1.
+//! Exit codes: 0 success, 1 a command, file or request failed (the reason is on stderr, or in
+//! the reply for `control`), 2 usage error.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
+use std::io::{BufRead, BufReader, Write};
+use std::net::{SocketAddr, TcpStream, ToSocketAddrs};
 use std::process::ExitCode;
+use std::time::Duration;
 
 use protocraft_engine::{Document, Session};
 use serde_json::{Value, json};
 
-const USAGE: &str = "protocraft-cli commands | run [--open FILE] --cmd ID[=JSON] ... [--save OUT] | --version";
+const USAGE: &str = "\
+protocraft-cli: ProtoCraft from the command line
+
+USAGE:
+  protocraft-cli commands [--json]                       every engine command: id, label, shortcut, enabled
+  protocraft-cli run [--open FILE | --sample] --cmd ID[=JSON] ... [--save OUT] [--json]
+                                                         run commands headless, in order, then save
+  protocraft-cli inspect FILE [--json]                   document summary (or the whole document as JSON)
+  protocraft-cli control HOST:PORT METHOD [JSON]         one request to a running app (started with --control PORT)
+  protocraft-cli control HOST:PORT -                     forward request lines from stdin, one reply line each
+  protocraft-cli --version
+
+Exit codes: 0 success, 1 a command, file or request failed, 2 usage error.
+";
+
+/// Why a subcommand did not finish: a usage mistake (exit 2) or a failure (exit 1).
+enum CliError {
+    Usage(String),
+    Failed(String),
+}
+
+fn usage(msg: impl Into<String>) -> CliError {
+    CliError::Usage(msg.into())
+}
+fn failed(msg: impl Into<String>) -> CliError {
+    CliError::Failed(msg.into())
+}
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    match args.first().map(String::as_str) {
-        Some("commands") => commands(),
+    let result = match args.first().map(String::as_str) {
+        Some("commands") => commands(&args[1..]),
         Some("run") => run(&args[1..]),
-        Some("--version") => {
+        Some("inspect") => inspect(&args[1..]),
+        Some("control") => control(&args[1..]),
+        Some("--version" | "-V") => {
             println!("protocraft-cli {}", env!("CARGO_PKG_VERSION"));
-            ExitCode::SUCCESS
+            Ok(())
         }
-        _ => {
-            eprintln!("{USAGE}");
+        Some("--help" | "-h" | "help") => {
+            print!("{USAGE}");
+            Ok(())
+        }
+        Some(other) => Err(usage(format!("unknown subcommand `{other}`"))),
+        None => Err(usage("a subcommand is required")),
+    };
+    match result {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(CliError::Usage(m)) => {
+            eprintln!("protocraft-cli: {m}\n\n{USAGE}");
             ExitCode::from(2)
+        }
+        Err(CliError::Failed(m)) => {
+            eprintln!("protocraft-cli: {m}");
+            ExitCode::FAILURE
         }
     }
 }
 
-/// Every command, as a fixed-width table (enablement is for a fresh blank document).
-fn commands() -> ExitCode {
+/// `--json` anywhere in `args`; everything else is returned for the subcommand to parse.
+fn take_json_flag(args: &[String]) -> (bool, Vec<String>) {
+    let json = args.iter().any(|a| a == "--json");
+    (json, args.iter().filter(|a| *a != "--json").cloned().collect())
+}
+
+/// `commands [--json]`: every engine command (enablement is for a fresh blank document). The
+/// `ui.*` and `app.*` commands live in the UI layer; `control HOST:PORT engine.commands` lists
+/// those too.
+fn commands(args: &[String]) -> Result<(), CliError> {
+    let (as_json, rest) = take_json_flag(args);
+    if let Some(a) = rest.first() {
+        return Err(usage(format!("commands: unexpected argument `{a}`")));
+    }
     let s = Session::new(Document::new());
     let infos = s.commands();
+    if as_json {
+        println!("{}", serde_json::to_string_pretty(&infos).map_err(|e| failed(e.to_string()))?);
+        return Ok(());
+    }
     let w_id = infos.iter().map(|c| c.id.len()).max().unwrap_or(2).max(2);
     let w_label = infos.iter().map(|c| c.label.len()).max().unwrap_or(5).max(5);
     let w_sc = infos.iter().map(|c| c.shortcut.len()).max().unwrap_or(8).max(8);
@@ -45,67 +110,203 @@ fn commands() -> ExitCode {
         let enabled = if c.enabled { "yes".to_string() } else { format!("no ({})", c.reason) };
         println!("{:<w_id$}  {:<w_label$}  {:<w_sc$}  {enabled}", c.id, c.label, c.shortcut);
     }
-    ExitCode::SUCCESS
+    Ok(())
 }
 
-/// `run [--open FILE] --cmd ID[=JSON] ... [--save OUT]`.
-fn run(args: &[String]) -> ExitCode {
-    let mut open: Option<String> = None;
+/// Open a document file into a fresh session.
+fn open(path: &str) -> Result<Session, CliError> {
+    let mut s = Session::new(Document::new());
+    s.run("file.open", &json!({"path": path})).map_err(|e| failed(format!("{path}: {e}")))?;
+    Ok(s)
+}
+
+/// `run [--open FILE | --sample] --cmd ID[=JSON] ... [--save OUT] [--json]`.
+fn run(args: &[String]) -> Result<(), CliError> {
+    let (as_json, rest) = take_json_flag(args);
+    let mut open_path: Option<String> = None;
+    let mut sample = false;
     let mut save: Option<String> = None;
     let mut cmds: Vec<(String, Value)> = Vec::new();
-    let mut it = args.iter();
+    let mut it = rest.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
-            "--open" => open = it.next().cloned(),
-            "--save" => save = it.next().cloned(),
+            "--open" => open_path = Some(it.next().ok_or_else(|| usage("--open needs a file"))?.clone()),
+            "--sample" => sample = true,
+            "--save" => save = Some(it.next().ok_or_else(|| usage("--save needs a file"))?.clone()),
             "--cmd" => {
-                let Some(spec) = it.next() else {
-                    eprintln!("--cmd needs ID[=JSON]");
-                    return ExitCode::from(2);
-                };
+                let spec = it.next().ok_or_else(|| usage("--cmd needs ID[=JSON]"))?;
                 let (id, params) = match spec.split_once('=') {
-                    Some((id, js)) => match serde_json::from_str::<Value>(js) {
-                        Ok(v) => (id.to_string(), v),
-                        Err(e) => {
-                            eprintln!("{id}: bad JSON params: {e}");
-                            return ExitCode::from(2);
-                        }
-                    },
+                    Some((id, js)) => {
+                        let v = serde_json::from_str::<Value>(js).map_err(|e| usage(format!("{id}: bad JSON params: {e}")))?;
+                        (id.to_string(), v)
+                    }
                     None => (spec.clone(), json!({})),
                 };
+                if id.trim().is_empty() {
+                    return Err(usage("--cmd: empty command id"));
+                }
                 cmds.push((id, params));
             }
-            other => {
-                eprintln!("unknown argument {other}\n{USAGE}");
-                return ExitCode::from(2);
-            }
+            other => return Err(usage(format!("run: unknown argument `{other}`"))),
         }
     }
-    let mut s = Session::new(Document::new());
-    if let Some(path) = open
-        && let Err(e) = s.run("file.open", &json!({"path": path}))
-    {
-        eprintln!("open: {e}");
-        return ExitCode::FAILURE;
+    if open_path.is_some() && sample {
+        return Err(usage("run: --open and --sample exclude each other"));
     }
+    if cmds.is_empty() && save.is_none() {
+        return Err(usage("run: nothing to do; give at least one --cmd or --save"));
+    }
+    let mut s = match &open_path {
+        Some(p) => open(p)?,
+        None if sample => Session::new(protocraft_engine::sample::sample_document()),
+        None => Session::new(Document::new()),
+    };
     for (id, params) in cmds {
-        match s.run(&id, &params) {
-            Ok(v) => println!("{}", json!({"command": id, "ok": true, "result": v})),
-            Err(e) => {
-                println!("{}", json!({"command": id, "ok": false, "error": e.to_string()}));
-                return ExitCode::FAILURE;
-            }
-        }
+        let r = s.run(&id, &params);
         // A command may ask the UI for something; headless there is none, so say so.
         for req in std::mem::take(&mut s.ui_requests) {
-            eprintln!("{id}: UI request ignored: {req}");
+            eprintln!("protocraft-cli: {id}: UI request ignored (no window): {req}");
+        }
+        match r {
+            Ok(v) => {
+                if as_json {
+                    println!("{}", json!({"command": id, "ok": true, "result": v}));
+                } else {
+                    println!("{id}: ok {v}");
+                }
+            }
+            Err(e) => {
+                if as_json {
+                    println!("{}", json!({"command": id, "ok": false, "error": e.to_string()}));
+                    return Err(failed(format!("{id} failed")));
+                }
+                return Err(failed(format!("{id}: {e}")));
+            }
         }
     }
-    if let Some(path) = save
-        && let Err(e) = s.run("file.save", &json!({"path": path}))
-    {
-        eprintln!("save: {e}");
-        return ExitCode::FAILURE;
+    if let Some(path) = save {
+        s.run("file.save", &json!({"path": path})).map_err(|e| failed(format!("save {path}: {e}")))?;
+        if as_json {
+            println!("{}", json!({"saved": path}));
+        } else {
+            println!("saved {path}");
+        }
     }
-    ExitCode::SUCCESS
+    Ok(())
+}
+
+/// `inspect FILE [--json]`: a summary of the document, or the document itself as JSON.
+fn inspect(args: &[String]) -> Result<(), CliError> {
+    let (as_json, rest) = take_json_flag(args);
+    let path = match rest.as_slice() {
+        [p] => p,
+        [] => return Err(usage("inspect needs a file")),
+        [_, extra, ..] => return Err(usage(format!("inspect: unexpected argument `{extra}`"))),
+    };
+    let s = open(path)?;
+    let doc = &s.doc;
+    if as_json {
+        println!("{}", serde_json::to_string_pretty(doc).map_err(|e| failed(e.to_string()))?);
+        return Ok(());
+    }
+    println!("{path}");
+    println!("  title:     {}", if doc.title.is_empty() { "(untitled)" } else { &doc.title });
+    println!("  notes:     {}", doc.notes.len());
+    println!("  chars:     {}", doc.char_count());
+    if !doc.core.author.is_empty() {
+        println!("  author:    {}", doc.core.author);
+    }
+    if !doc.core.last_modified_by.is_empty() {
+        println!("  modified:  {} by {}", doc.core.modified, doc.core.last_modified_by);
+    }
+    if !doc.core.created.is_empty() {
+        println!("  created:   {}", doc.core.created);
+    }
+    println!("  revision:  {}", doc.core.revision);
+    for (i, n) in doc.notes.iter().enumerate() {
+        let first = n.body.lines().next().unwrap_or("");
+        let preview: String = first.chars().take(60).collect();
+        let more = if first.chars().count() > 60 { "..." } else { "" };
+        println!(
+            "  [{i}] {} ({} chars){}",
+            if n.title.is_empty() { "(untitled note)" } else { &n.title },
+            n.body.chars().count(),
+            if preview.is_empty() { String::new() } else { format!(": {preview}{more}") }
+        );
+    }
+    Ok(())
+}
+
+/// `HOST:PORT`, or just `PORT` for the loopback address the app listens on.
+fn resolve(addr: &str) -> Result<SocketAddr, CliError> {
+    let spec = if addr.chars().all(|c| c.is_ascii_digit()) { format!("127.0.0.1:{addr}") } else { addr.to_string() };
+    spec.to_socket_addrs()
+        .map_err(|e| usage(format!("control: bad address `{addr}`: {e}")))?
+        .next()
+        .ok_or_else(|| usage(format!("control: bad address `{addr}`")))
+}
+
+/// Connect to the app's control server, or say how to start one.
+fn connect(addr: &str) -> Result<TcpStream, CliError> {
+    let sa = resolve(addr)?;
+    let stream = TcpStream::connect_timeout(&sa, Duration::from_secs(5))
+        .map_err(|e| failed(format!("cannot reach the ProtoCraft app at {sa}: {e} (start it with `protocraft --control PORT`)")))?;
+    // Screenshots answer a few frames late and the server gives the UI 60 s; wait a little longer.
+    let _ = stream.set_read_timeout(Some(Duration::from_secs(70)));
+    let _ = stream.set_nodelay(true);
+    Ok(stream)
+}
+
+/// Send one line, read one reply line.
+fn exchange(stream: &mut TcpStream, reader: &mut BufReader<TcpStream>, line: &str) -> Result<Value, CliError> {
+    writeln!(stream, "{line}").map_err(|e| failed(format!("control: send failed: {e}")))?;
+    stream.flush().map_err(|e| failed(format!("control: send failed: {e}")))?;
+    let mut reply = String::new();
+    match reader.read_line(&mut reply) {
+        Ok(0) => Err(failed("control: the app closed the connection without a reply")),
+        Ok(_) => serde_json::from_str::<Value>(reply.trim_end()).map_err(|e| failed(format!("control: bad reply `{}`: {e}", reply.trim_end()))),
+        Err(e) if e.kind() == std::io::ErrorKind::WouldBlock || e.kind() == std::io::ErrorKind::TimedOut => {
+            Err(failed("control: no reply within 70 s (is the window hidden or the app stuck?)"))
+        }
+        Err(e) => Err(failed(format!("control: read failed: {e}"))),
+    }
+}
+
+/// `control HOST:PORT METHOD [JSON]` or `control HOST:PORT -` (requests from stdin). Replies are
+/// printed as JSON lines; the exit code is 1 when any reply has `ok: false`.
+fn control(args: &[String]) -> Result<(), CliError> {
+    let (addr, method, params) = match args {
+        [addr, method] => (addr, method, None),
+        [addr, method, params] => (addr, method, Some(params)),
+        [] | [_] => return Err(usage("control needs HOST:PORT and a METHOD (or `-` to read requests from stdin)")),
+        [_, _, _, extra, ..] => return Err(usage(format!("control: unexpected argument `{extra}`"))),
+    };
+    let mut stream = connect(addr)?;
+    let mut reader = BufReader::new(stream.try_clone().map_err(|e| failed(e.to_string()))?);
+    if method == "-" {
+        let stdin = std::io::stdin();
+        let mut all_ok = true;
+        for line in stdin.lock().lines() {
+            let line = line.map_err(|e| failed(format!("stdin: {e}")))?;
+            if line.trim().is_empty() {
+                continue;
+            }
+            let reply = exchange(&mut stream, &mut reader, line.trim())?;
+            all_ok &= reply.get("ok") == Some(&Value::Bool(true));
+            println!("{reply}");
+        }
+        return if all_ok { Ok(()) } else { Err(failed("a request failed (see the replies above)")) };
+    }
+    let params = match params {
+        Some(p) => serde_json::from_str::<Value>(p).map_err(|e| usage(format!("control: params are not JSON: {e}")))?,
+        None => json!({}),
+    };
+    let request = json!({"id": 1, "method": method, "params": params});
+    let reply = exchange(&mut stream, &mut reader, &request.to_string())?;
+    println!("{reply}");
+    if reply.get("ok") == Some(&Value::Bool(true)) {
+        Ok(())
+    } else {
+        Err(failed(format!("{method}: {}", reply.get("error").and_then(Value::as_str).unwrap_or("failed"))))
+    }
 }

@@ -146,6 +146,8 @@ pub struct CraftApp {
     queued_shots: Vec<(u64, f64, u32)>,
     /// Screenshots issued and waiting for the frame: (token, path, reply, deadline).
     pending_shots: Vec<(u64, Option<String>, std::sync::mpsc::Sender<Value>, f64)>,
+    /// `ui.wait` requests: (frames still to run, reply).
+    pending_waits: Vec<(u32, std::sync::mpsc::Sender<Value>)>,
     /// Input events injected by the control channel.
     pub(crate) synthetic: Vec<egui::Event>,
     styled: bool,
@@ -173,6 +175,7 @@ impl CraftApp {
             shot_token: 0,
             queued_shots: Vec::new(),
             pending_shots: Vec::new(),
+            pending_waits: Vec::new(),
             synthetic: Vec::new(),
             styled: false,
             fonts_frames: 0,
@@ -432,6 +435,7 @@ impl CraftApp {
             theme::apply(ctx, &if dark { theme::Tokens::dark() } else { theme::Tokens::light() });
             self.applied_dark = Some(dark);
         }
+        self.tick_waits(ctx);
         self.drain_control(ctx);
         self.drain_inbox();
         self.collect_screenshots(ctx);
@@ -563,9 +567,32 @@ impl CraftApp {
                     self.queued_shots.push((token, now_ms() + 120.0, 0));
                     self.pending_shots.push((token, path, reply, now_ms() + 8000.0));
                 }
+                control::Outcome::Wait { frames } => {
+                    self.pending_waits.push((frames, reply));
+                    ctx.request_repaint();
+                }
             }
         }
         self.control_rx = Some(rx);
+    }
+
+    /// Count down `ui.wait` requests, one frame each; reply when they reach zero.
+    fn tick_waits(&mut self, ctx: &egui::Context) {
+        if self.pending_waits.is_empty() {
+            return;
+        }
+        self.pending_waits.retain_mut(|(frames, reply)| {
+            *frames = frames.saturating_sub(1);
+            if *frames == 0 {
+                let _ = reply.send(json!({"ok": true, "result": {"waited": true}}));
+                false
+            } else {
+                true
+            }
+        });
+        if !self.pending_waits.is_empty() {
+            ctx.request_repaint();
+        }
     }
 
     fn issue_screenshots(&mut self, ctx: &egui::Context) {
