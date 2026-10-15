@@ -24,6 +24,7 @@ links to the contract rather than repeating it.
 | `crates/ui-egui` | `protocraft-ui-egui`: the egui front end. Theme, icons, chrome, menus, ribbon, panes, dialogs, keys, control channel handling. Depends on `egui` only, not eframe. |
 | `crates/macos-open` | Finder "Open Documents" (odoc Apple Event) support, behind a safe API. |
 | `apps/protocraft` | The desktop binary: eframe, native menu (muda on macOS), file dialogs (rfd), multi-window host, control server. |
+| `apps/protocraft-web` | Browser shell: wasm32-unknown-unknown target run through trunk / wasm-bindgen. |
 | `apps/protocraft-cli` | Headless command line: run commands against a document, list the registry. |
 | `xtask` | `cargo xtask ci`, `layers`, `assets`, `wasm`, `new-craft`. |
 | `assets/` | Fonts (Inter, JetBrains Mono) and the app icon. Every file here has a row in [ATTRIBUTION.md](ATTRIBUTION.md). |

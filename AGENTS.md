@@ -100,6 +100,10 @@ Comments say why, in plain words; doc comments on every public item.
   Set `PROTOCRAFT_NO_PREFS=1` so the run does not pick up or overwrite your own preferences.
 - `cargo run --release -p protocraft-cli -- --help` lists the headless subcommands (run commands
   against a file, print the registry).
+- Desktop window etiquette: see [docs/testing.md](docs/testing.md#desktop-app-etiquette).
+  Launch on the secondary monitor (`PROTOCRAFT_WINDOW_POS=-2500,100`), quit immediately via
+  control channel (`app.quit`) or Don't Save, and verify with `pgrep -fl protocraft`. Prefer
+  the headless `ui_shot` example when only screenshots are needed.
 - Shell gotcha: `mv` and `cp` may be aliased interactive on the dev machine; use `/bin/mv -f`
   and `/bin/cp -f`.
 
