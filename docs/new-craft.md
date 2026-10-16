@@ -20,7 +20,7 @@ cargo run --release -p gridcraft -- --sample
 no `.git/`, nothing untracked: commit first if you want local changes in the copy), renames
 `protocraft`, `ProtoCraft` and `PROTOCRAFT` in every file name and every file (crate and package
 names, the binaries, the bundle id `ai.storyteller.gridcraft`, the preferences folder
-`GridCraft`, `GRIDCRAFT_CONTROL_PORT`, `GRIDCRAFT_NO_PREFS` and `GRIDCRAFT_WINDOW_POS`, the icon
+`GridCraft`, `GRIDCRAFT_CONTROL_PORT` and `GRIDCRAFT_NO_PREFS`, the icon
 file names, these docs), runs `cargo fmt --all` on the copy (a name of a different length moves
 lines across the rustfmt width, and `cargo xtask ci` starts with `fmt --check`), and runs
 `git init` with one commit. It then prints the commands above as the next steps.

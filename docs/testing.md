@@ -114,12 +114,12 @@ PORT=$(grep -o 'listening on 127.0.0.1:[0-9]*' /tmp/app.log | sed 's/.*://')
 
 The app opens a real window on the developer's desk. Keep it out of their way:
 
-- Put it on a secondary monitor. `PROTOCRAFT_WINDOW_POS=x,y` (or `--window-pos x,y`) opens the
-  first window with its top-left corner there, overriding the saved geometry; a window opened
-  later (Cmd+N) cascades from the one in front, so move every window after one opens:
+- Put it on a secondary monitor. `--window-pos x,y` opens the first window with its top-left
+  corner there, overriding the saved geometry; a window opened later (Cmd+N) cascades from the
+  one in front, so move every window after one opens:
 
   ```sh
-  PROTOCRAFT_NO_PREFS=1 PROTOCRAFT_WINDOW_POS=-2500,100 protocraft --sample --control 7990
+  PROTOCRAFT_NO_PREFS=1 protocraft --sample --control 7990 --window-pos -2500,100
   osascript -e 'tell application "System Events" to tell process "protocraft" to set position of every window to {-2500, 100}'
   ```
 

@@ -10,7 +10,7 @@
 //! the window instead of the native macOS one, as on other platforms; it is the same switch as
 //! View > "Menu Bar in Window", which takes effect at once and is saved with the preferences.
 //!
-//! `--window-pos x,y` (or `PROTOCRAFT_WINDOW_POS="x,y"`) puts the first window's outer top-left
+//! `--window-pos x,y` puts the first window's outer top-left
 //! corner at that screen position, overriding the saved geometry, so test runs can be placed on a
 //! spare monitor (`--window-pos -2500,100`) without moving them afterwards.
 //!
