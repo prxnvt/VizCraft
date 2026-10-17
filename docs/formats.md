@@ -19,7 +19,10 @@ from. The native `.vizcraft` file and SVG export are built; everything else is p
 
 - Format code lives in `crates/formats` (`vizcraft-formats`), which knows the diagram model and
   nothing about the UI or the engine ([architecture.md](architecture.md)). The engine's
-  `crates/engine/src/io.rs` only picks a format from the file name and calls it.
+  `crates/engine/src/io.rs` only picks a format from the file name and calls it. The parsers
+  that do not need the model are leaf crates: `crates/drawio` (draw.io files and CSV) and
+  `crates/mermaid` (Mermaid text) produce faithful intermediate forms, and `crates/formats`
+  maps those onto VizCraft documents.
 - Bytes in, bytes out: readers take a byte slice, writers return a byte vector, so the desktop,
   the CLI, the MCP server and the web build share one code path.
 - Every file is untrusted. Bound every size (file length, decompressed length, element count,

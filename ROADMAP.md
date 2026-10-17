@@ -57,7 +57,7 @@ diagram through the MCP server alone.
 | Arrange | Align, distribute, bring forward and send backward, flip, rotate, size and position; Arrange ribbon tab | `crates/engine/src/cmd/arrange.rs`, `crates/ui-egui/src/ribbon.rs` | planned |
 | Snap, grid, rulers, guides | Snap to grid, shapes and connection points; grid display; rulers; draggable guides; dynamic alignment guides while dragging | `crates/ui-egui/src/canvas.rs`, `crates/diagram` (snap math) | planned |
 | Themes and styles | Themes, quick styles, format painter, fill, line, shadow, gradient; Design ribbon tab; `design.*` commands | `crates/diagram`, `crates/engine/src/cmd/design.rs`, `crates/ui-egui/src/ribbon.rs` | planned |
-| Better routing | Line jumps where connectors cross; orthogonal rerouting that avoids obstacles | `crates/diagram` | planned |
+| Better routing | Line jumps where connectors cross; orthogonal rerouting that avoids obstacles | `crates/routing` (router and jumps, done), `crates/diagram` (wiring) | router done; wiring planned |
 | Shape Data pane | Key and value data on shapes, edited in a pane; `data.*` commands | `crates/engine/src/cmd/data.rs`, `crates/ui-egui/src/panes.rs` | planned |
 | Pan and Zoom pane | Overview of the page with the visible area as a draggable frame | `crates/ui-egui/src/panes.rs` | planned |
 | Find and replace | Search shape text and shape data, replace | `crates/engine/src/cmd/edit.rs`, `crates/ui-egui/src/dialogs.rs` | planned |
@@ -70,10 +70,10 @@ shapes can be built and exported to PNG and PDF, by hand and over the control ch
 
 | Piece | Contents | Lands in | State |
 |---|---|---|---|
-| .drawio read and write | Multi-page files, compressed pages (deflate and base64), styles mapped to VizCraft styles; `quick-xml` and `zip` patterns ported from deckcraft's `pptx` and WordCraft's `docx`, adding `flate2` and `base64` | `crates/formats` | planned |
-| Mermaid import | Flowchart, sequence, class, state and ER diagrams | `crates/formats` | planned |
-| CSV import | draw.io-style CSV with layout and connection hints | `crates/formats` | planned |
-| Auto-layout | Layered, tree, radial and force layouts; re-layout a page or a selection; `layout.*` commands | `crates/diagram`, `crates/engine/src/cmd/layout.rs` | planned |
+| .drawio read and write | Multi-page files, compressed pages (deflate and base64), styles mapped to VizCraft styles; `quick-xml` and `zip` patterns ported from deckcraft's `pptx` and WordCraft's `docx`, adding `flate2` and `base64` | `crates/drawio` (codec, done), `crates/formats` (mapping) | codec done; mapping planned |
+| Mermaid import | Flowchart, sequence, class, state and ER diagrams | `crates/mermaid` (parser, done), `crates/formats` (mapping) | parser done; mapping planned |
+| CSV import | draw.io-style CSV with layout and connection hints | `crates/drawio` (parser, done), `crates/formats` (mapping) | parser done; mapping planned |
+| Auto-layout | Layered, tree, radial and force layouts; re-layout a page or a selection; `layout.*` commands | `crates/layout` (algorithms, done), `crates/diagram`, `crates/engine/src/cmd/layout.rs` | algorithms done; commands planned |
 | Stencil search | Keyword index over every stencil; search box in the Shapes pane | `crates/stencils`, `crates/ui-egui/src/panes.rs` | planned |
 | MCP draw.io-style tools | `open_xml`, `open_mermaid`, `open_csv`, `search_shapes`, `get_reference`, `list_pages`, `get_page`, `set_page`, with `layout` and `routing` options | `crates/mcp` | planned |
 | MCP resources and Headless backend | Resources for pages, shapes, commands and stencils; a Headless backend that hosts a `Session` in process, so no window is needed | `crates/mcp` | planned |

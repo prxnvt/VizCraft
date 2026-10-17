@@ -19,6 +19,10 @@ the code that depends on it, and say so in the commit message.
 | model | `crates/diagram` (`vizcraft-diagram`) | Geometry (points, rects, transforms, paths), shape outlines and connection points, the document model, hit testing, glue and connector routing. Depends on serde only |
 | model | `crates/stencils` (`vizcraft-stencils`) | Built-in stencil catalog: Basic and Flowchart sets, masters with default size and style, keyword search. Depends on `diagram` only |
 | model | `crates/formats` (`vizcraft-formats`) | File formats, bytes in and bytes out: `.vizcraft` native JSON (`native::save`, `native::load`) and SVG export (`svg::export_page`). Depends on `diagram` only |
+| model | `crates/mermaid` (`vizcraft-mermaid`) | Mermaid parser: flowchart, sequence, class, state and ER text to a typed IR with a common node, edge and group view (`Diagram::to_graph`); warnings for unsupported statements. No workspace dependencies |
+| model | `crates/drawio` (`vizcraft-drawio`) | draw.io codec: `.drawio` files (inline or compressed pages), the mxGraphModel cell IR, style strings, HTML labels, page list/get/set, and draw.io-style CSV import. No workspace dependencies |
+| model | `crates/layout` (`vizcraft-layout`) | Automatic layout over an index-based graph: layered (Sugiyama), tidy tree, radial and force-directed, all four directions, deterministic. No workspace dependencies |
+| model | `crates/routing` (`vizcraft-routing`) | Connector routing over obstacle rectangles: orthogonal routes around shapes, nudging of shared segments, line-jump positions. No workspace dependencies |
 | L4 | `crates/engine` (`vizcraft-engine`) | `Session`, undo, command registry, I/O; `engine::doc` re-exports the diagram `Document` |
 | L6 | `crates/ui-egui` (`vizcraft-ui-egui`) | egui front end: theme, chrome, menus, ribbon, panes, dialogs, keys, control |
 | platform | `crates/macos-open` | Finder Open Documents (odoc) Apple Event, safe API |
