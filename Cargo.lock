@@ -3631,7 +3631,9 @@ dependencies = [
  "log",
  "serde",
  "serde_json",
+ "vizcraft-diagram",
  "vizcraft-engine",
+ "vizcraft-stencils",
  "web-time",
 ]
 

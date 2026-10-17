@@ -35,6 +35,26 @@ pub const NAMES: &[&str] = &[
     "dark",
     "menuBar",
     "ribbon",
+    // Text
+    "bold",
+    "italic",
+    "fontColor",
+    // Diagram
+    "pointer",
+    "connector",
+    "text",
+    "fill",
+    "lineColor",
+    "lineWeight",
+    "rotateLeft",
+    "rotateRight",
+    "delete",
+    "routeStraight",
+    "routeOrthogonal",
+    "routeCurved",
+    "arrowStart",
+    "arrowEnd",
+    "shape",
     // App
     "settings",
     "info",
@@ -292,6 +312,112 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
             pen.frect(5.0, 7.5, 7.5, 9.0, a);
             pen.frect(9.0, 7.5, 11.5, 9.0, a);
         }
+        // Text
+        "bold" => {
+            // A B built from strokes, drawn heavier than the rest of the set.
+            let b = Pen { p, r, c, w: pen.w * 1.7 };
+            b.line(&[(11.5, 10.0), (6.0, 10.0), (6.0, 3.5), (10.5, 3.5)]);
+            b.arc(10.5, 6.75, 3.25, -FRAC_PI_2, PI, c);
+            b.line(&[(6.0, 10.0), (6.0, 16.5), (11.5, 16.5)]);
+            b.arc(11.5, 13.25, 3.25, FRAC_PI_2, -PI, c);
+        }
+        "italic" => {
+            pen.line(&[(12.5, 3.5), (7.5, 16.5)]);
+            pen.line(&[(9.5, 3.5), (15.5, 3.5)]);
+            pen.line(&[(4.5, 16.5), (10.5, 16.5)]);
+        }
+        "fontColor" => {
+            pen.line(&[(5.0, 13.5), (10.0, 2.5), (15.0, 13.5)]);
+            pen.line(&[(7.0, 9.5), (13.0, 9.5)]);
+            pen.frect(3.0, 15.5, 17.0, 18.5, a);
+        }
+        // Diagram
+        "pointer" => {
+            pen.closed(&[(5.0, 2.5), (5.0, 15.5), (8.5, 12.5), (11.0, 17.5), (13.0, 16.5), (10.5, 11.5), (15.0, 11.0)], c);
+        }
+        "connector" => {
+            pen.rect(2.5, 2.5, 7.5, 7.5, c);
+            pen.rect(12.5, 12.5, 17.5, 17.5, c);
+            pen.line_c(&[(7.5, 5.0), (10.0, 5.0), (10.0, 15.0), (12.5, 15.0)], a);
+        }
+        "text" => {
+            pen.line(&[(4.5, 4.0), (15.5, 4.0)]);
+            pen.line(&[(4.5, 4.0), (4.5, 6.0)]);
+            pen.line(&[(15.5, 4.0), (15.5, 6.0)]);
+            pen.line(&[(10.0, 4.0), (10.0, 16.0)]);
+            pen.line_c(&[(7.5, 16.0), (12.5, 16.0)], a);
+        }
+        "fill" => {
+            // A tipped bucket with a drop running off it, over the colour bar.
+            pen.closed(&[(3.5, 8.0), (9.0, 2.5), (14.5, 8.0), (9.0, 13.5)], c);
+            pen.line(&[(3.5, 8.0), (14.5, 8.0)]);
+            pen.fcircle(16.0, 11.0, 1.4, a);
+            pen.frect(3.0, 15.5, 17.0, 18.5, a);
+        }
+        "lineColor" => {
+            // A pencil over the colour bar.
+            pen.closed(&[(4.0, 13.5), (12.0, 3.5), (15.0, 6.0), (7.0, 14.0), (4.0, 14.0)], c);
+            pen.line(&[(10.5, 5.0), (13.5, 7.5)]);
+            pen.frect(3.0, 15.5, 17.0, 18.5, a);
+        }
+        "lineWeight" => {
+            pen.frect(3.0, 4.0, 17.0, 4.8, c);
+            pen.frect(3.0, 8.5, 17.0, 10.0, c);
+            pen.frect(3.0, 13.5, 17.0, 16.0, a);
+        }
+        "rotateLeft" => {
+            pen.arc(10.0, 10.0, 6.0, 0.0, -PI, c);
+            pen.fill(&[(1.5, 9.5), (6.5, 9.5), (4.0, 13.5)], a);
+            pen.rect(7.5, 13.0, 12.5, 18.0, c);
+        }
+        "rotateRight" => {
+            pen.arc(10.0, 10.0, 6.0, PI, PI, c);
+            pen.fill(&[(13.5, 9.5), (18.5, 9.5), (16.0, 13.5)], a);
+            pen.rect(7.5, 13.0, 12.5, 18.0, c);
+        }
+        "delete" => {
+            pen.line(&[(3.5, 5.5), (16.5, 5.5)]);
+            pen.line(&[(8.0, 5.5), (8.0, 3.0), (12.0, 3.0), (12.0, 5.5)]);
+            pen.closed(&[(5.5, 5.5), (6.5, 17.0), (13.5, 17.0), (14.5, 5.5)], c);
+            pen.line_c(&[(8.5, 8.5), (8.5, 14.0)], a);
+            pen.line_c(&[(11.5, 8.5), (11.5, 14.0)], a);
+        }
+        "routeStraight" => {
+            pen.line(&[(4.0, 16.0), (16.0, 4.0)]);
+            pen.fcircle(4.0, 16.0, 1.8, a);
+            pen.fcircle(16.0, 4.0, 1.8, a);
+        }
+        "routeOrthogonal" => {
+            pen.line(&[(4.0, 16.0), (10.0, 16.0), (10.0, 4.0), (16.0, 4.0)]);
+            pen.fcircle(4.0, 16.0, 1.8, a);
+            pen.fcircle(16.0, 4.0, 1.8, a);
+        }
+        "routeCurved" => {
+            let (p0, p1, p2, p3) = ((4.0f32, 16.0f32), (13.0f32, 16.0f32), (7.0f32, 4.0f32), (16.0f32, 4.0f32));
+            let pts: Vec<(f32, f32)> = (0..=16)
+                .map(|i| {
+                    let t = i as f32 / 16.0;
+                    let u = 1.0 - t;
+                    let (b0, b1, b2, b3) = (u * u * u, 3.0 * u * u * t, 3.0 * u * t * t, t * t * t);
+                    (b0 * p0.0 + b1 * p1.0 + b2 * p2.0 + b3 * p3.0, b0 * p0.1 + b1 * p1.1 + b2 * p2.1 + b3 * p3.1)
+                })
+                .collect();
+            pen.line(&pts);
+            pen.fcircle(4.0, 16.0, 1.8, a);
+            pen.fcircle(16.0, 4.0, 1.8, a);
+        }
+        "arrowStart" => {
+            pen.line(&[(7.0, 10.0), (17.0, 10.0)]);
+            pen.fill(&[(2.5, 10.0), (8.0, 6.5), (8.0, 13.5)], a);
+        }
+        "arrowEnd" => {
+            pen.line(&[(3.0, 10.0), (13.0, 10.0)]);
+            pen.fill(&[(17.5, 10.0), (12.0, 6.5), (12.0, 13.5)], a);
+        }
+        "shape" => {
+            pen.rect(3.0, 8.0, 12.0, 17.0, c);
+            pen.circle(12.5, 7.5, 4.5, a);
+        }
         // App
         "settings" => {
             pen.circle(10.0, 10.0, 3.0, c);
@@ -372,4 +498,33 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
 /// Whether `name` is a drawn icon (not the letter-tile fallback).
 pub fn known(name: &str) -> bool {
     NAMES.contains(&name)
+}
+
+/// Paint the outline of a diagram shape kind fitted inside `r`, keeping the master's `w` to `h`
+/// proportions (squashed towards square so a long, flat master still reads at 16 px). Used by the
+/// Insert gallery, so every master gets its own icon from the same geometry the canvas draws.
+pub fn paint_kind(p: &Painter, r: Rect, kind: vizcraft_diagram::ShapeKind, w: f32, h: f32, c: Color32, a: Color32) {
+    let (w, h) = (if w.is_finite() && w > 0.0 { w } else { 1.0 }, if h.is_finite() && h > 0.0 { h } else { 1.0 });
+    // Halfway between the true aspect and a square: a 140 by 50 terminator stays recognisable
+    // without becoming a sliver.
+    let aspect = ((w / h).clamp(0.25, 4.0)).sqrt();
+    let side = r.width().min(r.height()) * 0.86;
+    let (bw, bh) = if aspect >= 1.0 { (side, side / aspect) } else { (side * aspect, side) };
+    let o = r.center() - vec2(bw / 2.0, bh / 2.0);
+    let stroke = Stroke::new(stroke_width(r.width().min(r.height())), c);
+    let to_screen = |pt: vizcraft_diagram::Point| pos2(o.x + pt.x as f32, o.y + pt.y as f32);
+    for line in kind.outline(f64::from(bw), f64::from(bh)).flatten(0.25) {
+        let pts: Vec<Pos2> = line.points.iter().map(|q| to_screen(*q)).collect();
+        if line.closed {
+            p.add(Shape::closed_line(pts, stroke));
+        } else {
+            p.add(Shape::line(pts, stroke));
+        }
+    }
+    if let Some(detail) = kind.detail(f64::from(bw), f64::from(bh)) {
+        for line in detail.flatten(0.25) {
+            let pts: Vec<Pos2> = line.points.iter().map(|q| to_screen(*q)).collect();
+            p.add(Shape::line(pts, Stroke::new(stroke.width, a)));
+        }
+    }
 }

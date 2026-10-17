@@ -11,6 +11,8 @@ workspace = true
 
 [dependencies]
 vizcraft-engine = { workspace = true }
+vizcraft-diagram = { workspace = true }
+vizcraft-stencils = { workspace = true }
 egui = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
