@@ -6,6 +6,7 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 use serde_json::{Value, json};
 
 use crate::backend::Backend;
+use crate::diagram;
 use crate::line::{Line, read_bounded};
 use crate::tools::{self, call_tool, is_tool, tool_definitions};
 use crate::{COMMANDS_URI, MAX_MESSAGE_BYTES};
@@ -30,7 +31,11 @@ const INSTRUCTIONS: &str = "VizCraft is a diagram editor. Every action in it is 
 (`shape.add`, `connector.add`, `edit.undo`, `file.saveAs`): find commands and their params with \
 command_list, run one with command_run or several in order with command_batch. Check the result with \
 doc_inspect (JSON) or screenshot (PNG of the window). Coordinates are pixels at 100% zoom with y \
-pointing down. The resource vizcraft://commands holds the same catalog as command_list.";
+pointing down. The resource vizcraft://commands holds the same catalog as command_list. For whole \
+diagrams, open_xml, open_mermaid and open_csv fill a page from draw.io XML, Mermaid or CSV (with \
+optional automatic layout and shape-avoiding routing); list_pages, get_page and set_page read and \
+replace pages as draw.io XML; search_shapes finds stencil masters and their style strings; \
+get_reference explains the accepted XML, styles, layouts, Mermaid and CSV.";
 
 /// An MCP server bound to one backend.
 pub struct Server {
@@ -222,6 +227,9 @@ impl Server {
                 {
                     return Err((INVALID_PARAMS, format!("unknown argument `{key}` for `{name}`")));
                 }
+                // The diagram tools check every argument against their schema up front, so a
+                // wrong type or value is a protocol error rather than a half-run import.
+                diagram::validate(name, &args).map_err(|e| (INVALID_PARAMS, format!("`{name}`: {e}")))?;
                 Ok(call_tool(self.backend.as_mut(), name, &args).to_value())
             }
             "resources/list" => Ok(json!({"resources": [{
