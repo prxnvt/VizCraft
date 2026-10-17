@@ -717,7 +717,10 @@ struct DocumentRepr {
 impl From<DocumentRepr> for Document {
     fn from(r: DocumentRepr) -> Self {
         let mut doc = Document { title: r.title, core: r.core, pages: r.pages, id_seq: r.id_seq, model: Model::new() };
-        doc.sanitize();
+        // Pages only: the model is a separate section the caller sets afterwards, so checking view
+        // references here would clear every one of them. The caller runs `sanitize` once the
+        // model is in place.
+        doc.sanitize_pages();
         doc
     }
 }
@@ -736,13 +739,18 @@ impl Document {
     /// Make the document safe to work on: at least one page, every number in range, a sane model,
     /// and view references that point at model items (see [`crate::views::sanitize_refs`]).
     pub fn sanitize(&mut self) {
+        self.sanitize_pages();
+        self.model.sanitize();
+        crate::views::sanitize_refs(self);
+    }
+    /// At least one page and every page, shape and connector in range; the model and view
+    /// references are left alone.
+    fn sanitize_pages(&mut self) {
         if self.pages.is_empty() {
             let id = self.next_id("p");
             self.pages.push(Page::new(id, "Page-1"));
         }
         self.pages.iter_mut().for_each(Page::sanitize);
-        self.model.sanitize();
-        crate::views::sanitize_refs(self);
     }
     /// A fresh id such as `s7` or `c8`: the counter goes up by one (shared by every prefix, so an
     /// id is never reused after a delete) and skips any number already taken by a loaded file.

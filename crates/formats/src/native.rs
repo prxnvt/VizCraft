@@ -12,10 +12,10 @@
 //! because the loader fills missing fields with defaults. A bare document without the wrapper
 //! loads too, also with an empty model.
 
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::Serialize;
 use serde_json::Value;
+use vizcraft_diagram::Document;
 use vizcraft_diagram::vizcraft_model::{self, Model};
-use vizcraft_diagram::{CoreProps, Document, Page};
 
 use crate::FormatError;
 
@@ -94,11 +94,10 @@ pub fn load(bytes: &[u8]) -> Result<Document, FormatError> {
             (doc_value, model)
         }
     };
-    let parts: DocumentIn = serde_json::from_value(doc_value).map_err(|e| FormatError::Invalid(e.to_string()))?;
-    // Built from parts rather than through `Document`'s own deserializer, because that one
-    // sanitizes against an empty model and would clear every view reference before the model
-    // is in place. With the model set first, one sanitize repairs references against it.
-    let mut doc = Document { title: parts.title, core: parts.core, pages: parts.pages, id_seq: parts.id_seq, model };
+    // The document's own loader leaves view references alone; with the model set, one sanitize
+    // repairs them against it.
+    let mut doc: Document = serde_json::from_value(doc_value).map_err(|e| FormatError::Invalid(e.to_string()))?;
+    doc.model = model;
     doc.sanitize();
     Ok(doc)
 }
@@ -131,51 +130,6 @@ fn schema_number(v: &Value) -> Option<u64> {
         let f = v.as_f64().filter(|f| f.is_finite() && *f > 0.0)?;
         // `as` saturates for huge values, which still reads as too new.
         Some(f.ceil() as u64)
-    })
-}
-
-/// The document as stored, read field by field with the same tolerance as the diagram crate's
-/// own loader (missing or wrong-typed fields take defaults, unreadable pages are dropped).
-#[derive(Deserialize, Default)]
-#[serde(default, rename_all = "camelCase")]
-struct DocumentIn {
-    #[serde(deserialize_with = "lenient")]
-    title: String,
-    #[serde(deserialize_with = "lenient")]
-    core: CoreProps,
-    #[serde(deserialize_with = "lenient_vec")]
-    pages: Vec<Page>,
-    #[serde(deserialize_with = "lenient")]
-    id_seq: u64,
-}
-
-/// Either the wanted value or anything else (which is ignored).
-#[derive(Deserialize)]
-#[serde(untagged)]
-enum Lenient<T> {
-    Value(T),
-    Other(serde::de::IgnoredAny),
-}
-
-/// Any deserializable value, falling back to `T::default()` when the input has the wrong shape.
-fn lenient<'de, D: Deserializer<'de>, T: Deserialize<'de> + Default>(d: D) -> Result<T, D::Error> {
-    Ok(match Lenient::<T>::deserialize(d)? {
-        Lenient::Value(v) => v,
-        Lenient::Other(_) => T::default(),
-    })
-}
-
-/// A list that keeps the items that parse and drops the rest; a non-list reads as empty.
-fn lenient_vec<'de, D: Deserializer<'de>, T: Deserialize<'de>>(d: D) -> Result<Vec<T>, D::Error> {
-    Ok(match Lenient::<Vec<Lenient<T>>>::deserialize(d)? {
-        Lenient::Value(items) => items
-            .into_iter()
-            .filter_map(|i| match i {
-                Lenient::Value(v) => Some(v),
-                Lenient::Other(_) => None,
-            })
-            .collect(),
-        Lenient::Other(_) => Vec::new(),
     })
 }
 
