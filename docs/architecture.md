@@ -1,23 +1,25 @@
 # VizCraft architecture (the contract)
 
-VizCraft is the baseline every new "-craft" app starts from: the window chrome, menus, ribbon,
-panes, multi-window handling, preferences, control channel and repository conventions that
-WordCraft, GridCraft, DeckCraft, VectorCraft and the other crafts share, with a clean baseline
-document model ready to be extended. A new craft is made with `cargo xtask new-craft <name>`
-(copies and renames), then implements its own domain model.
+VizCraft is a clean-room, open-source desktop diagramming app written in Rust and egui, aiming
+for the feature range of Visio, with an MCP server shaped like draw.io's so agents can create and
+edit diagrams. Today the window chrome, menus, ribbon, panes, multiple windows, preferences,
+control channel and command registry are finished, around a placeholder document model; the
+diagram model is planned (see [Planned (not yet built)](#planned-not-yet-built) and
+[ROADMAP.md](../ROADMAP.md)).
 
-Everything here is the contract agents build against in parallel. Change it only together with
+This file is the contract agents build against in parallel. The sections up to Conventions
+describe the code as it is. Change it only together with
 the code that depends on it, and say so in the commit message.
 
 ## Layers (enforced by `cargo xtask layers`)
 
 | Layer | Crate | Job |
 |---|---|---|
-| L4 | `crates/engine` (`vizcraft-engine`) | `Session`, undo, command registry, sample document model, I/O |
+| L4 | `crates/engine` (`vizcraft-engine`) | `Session`, undo, command registry, placeholder document model, I/O |
 | L6 | `crates/ui-egui` (`vizcraft-ui-egui`) | egui front end: theme, chrome, menus, ribbon, panes, dialogs, keys, control |
 | platform | `crates/macos-open` | Finder Open Documents (odoc) Apple Event, safe API |
-| apps | `apps/vizcraft`, `apps/vizcraft-cli` (later `apps/vizcraft-web`) | binaries |
-| tooling | `xtask` | `cargo xtask ci`, `layers`, `assets`, `wasm`, `new-craft` |
+| apps | `apps/vizcraft`, `apps/vizcraft-cli`, `apps/vizcraft-web` | desktop app, headless CLI, wasm shell (see [docs/web.md](web.md)) |
+| tooling | `xtask` | `cargo xtask ci`, `layers`, `assets`, `wasm`, `ico`, `version` |
 
 Nothing in `engine` depends on egui/eframe/winit/rfd/muda. `ui-egui` depends on `egui` only (not
 eframe). Only `apps/*` touch eframe, rfd, muda. `unsafe_code = "forbid"` everywhere except
@@ -47,22 +49,25 @@ a command that needs one pushes `{"open": "<dialog>"}` to `session.ui_requests` 
 handles it.
 
 Command id prefixes: `file.*`, `edit.*`, `view.*`, `insert.*`, `format.*`, `window.*`, `help.*`,
-`ui.*` (UI layer), `app.*` (app-level: `app.quit`, `app.preferences`, `app.about`).
+`transport.*` (playback, to be removed in Cascade 1), `ui.*` (UI layer), `app.*` (app-level:
+`app.quit`, `app.preferences`, `app.about`). `insert.*` and `format.*` are reserved; no engine
+command uses them yet.
 
 ## Engine (`vizcraft-engine`) public API
 
 ```rust
 pub struct Session {
-    pub doc: Document,                 // the generic baseline document (crates/engine/src/doc.rs)
+    pub doc: Document,                 // placeholder model: title and metadata (crates/engine/src/doc.rs)
     pub path: Option<PathBuf>,
     pub dirty: bool,
     pub author: String,
     pub sel: Selection,                // generalized selection (primary, items: Vec<String>, range: Option<(u64, u64)>)
-    pub transport: TransportState,     // playback / time transport (playing, time_ms, tempo, looping)
+    pub transport: TransportState,     // playback state (playing, time_ms, tempo, looping); removed in Cascade 1
     pub view: ViewState,               // zoom (f32), pan ([f32; 2]), dark_mode, pane visibility flags
     pub registry: Registry,            // Registry::get(id) -> Option<&CommandSpec>, Registry::all() -> &[CommandSpec]
     pub ui_requests: Vec<Value>,       // requests to the UI, drained by the UI after each command
     pub status: String,                // one-shot status message, taken by the UI
+    pub clipboard: String,             // in-process clipboard for edit.cut / edit.copy / edit.paste
     // private: undo/redo stacks
 }
 impl Session {
@@ -76,8 +81,10 @@ pub mod io { pub fn save_bytes(name: &str, doc: &Document) -> Result<Vec<u8>, En
 pub mod sample { pub fn sample_document() -> Document; }
 ```
 
-The sample document format is JSON (`.craft.json`); `file.open`/`file.save`/`file.saveAs`/`file.export`/`file.import`/`file.new`
-exist and are what the chrome exercises. Engine crate root carries
+The placeholder document format is JSON (`.craft.json`, `io::EXTENSION`); Cascade 1 replaces it
+with `.vizcraft` (see [docs/formats.md](formats.md)). `file.new`, `file.open`, `file.save`,
+`file.saveAs`, `file.close`, `file.export` and `file.import` exist and are what the chrome
+exercises; `file.export` and `file.import` are slots that the diagram formats will fill. Engine crate root carries
 `#![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]`.
 A test `hostile_params_never_panic` runs every command with junk params.
 
@@ -85,7 +92,7 @@ A test `hostile_params_never_panic` runs every command with junk params.
 
 Modules: `theme`, `icons`, `widgets`, `chrome` (title bar + status bar), `menus` (menu tree +
 in-window menu bar), `ribbon`, `panes` (side panes, `PaneSpec`, `set_panes`), `canvas` (`Viewport2D`
-screen/world projections, pan & zoom), `dialogs`, `keys`, `control`, `window_geometry`,
+screen/world projections, pan and zoom: middle-drag or Cmd+left-drag, Ctrl off macOS), `dialogs`, `keys`, `control`, `window_geometry`,
 `backstage` (optional File page).
 
 ```rust
@@ -148,7 +155,7 @@ changes are asked about) and the Window menu, and delivers item ids back to the 
 
 ### Multi-window (`apps/vizcraft/src/windows.rs`)
 
-Pattern from WordCraft/GridCraft: the first window is eframe's root viewport, further windows are
+The first window is eframe's root viewport, further windows are
 immediate viewports each with its own `CraftApp`. Cmd+N opens a window in the same process (one
 Dock icon). Closing the root while others exist hands the root to the next window. Quit asks
 each window with unsaved changes in turn; Cancel stops quitting. Cmd+W closes the front window
@@ -160,7 +167,7 @@ JSON lines on 127.0.0.1: `{"id":1,"method":"engine.execute","params":{"command":
 -> `{"id":1,"ok":true,"result":...}`. Methods: `engine.execute`, `engine.commands`, `ui.inspect`,
 `ui.set {path, value}` (UiState), `ui.click {x,y,button?,count?,shift?,cmd?}`, `ui.move`,
 `ui.drag`, `ui.key {key, shift?, alt?, cmd?}`, `ui.text {text}`, `ui.screenshot {path?}`,
-`app.quit`. See `docs/control-protocol.md`.
+`app.quit`. See [docs/control-protocol.md](control-protocol.md).
 
 ### Preferences
 
@@ -177,3 +184,71 @@ in it and restored (sanitized) at launch.
   Microsoft/Adobe/Avid/Autodesk iconography, ever.
 - Commit after every arc that builds; `cargo xtask ci` before every commit.
 - No emoji anywhere (code, comments, docs, UI text). Use words.
+
+## Planned (not yet built)
+
+This section is plan, not contract. Nothing below exists in the code yet. When a piece from
+[ROADMAP.md](../ROADMAP.md) lands, move its part of this section up into the contract above, in
+the same commit as the code, and update [docs/parity.md](parity.md).
+
+### Planned crates and layering
+
+| Layer | Crate | Job |
+|---|---|---|
+| model | `crates/diagram` (`vizcraft-diagram`) | Pages, layers, shapes, connectors, groups and containers, text, styles and themes, shape data; geometry, hit testing, glue, connector routing, auto-layout. No egui, no command plumbing |
+| model | `crates/stencils` (`vizcraft-stencils`) | Built-in stencil library: original shapes defined in code, categories, keyword search index |
+| I/O | `crates/formats` (`vizcraft-formats`) | `.vizcraft` native JSON, .drawio read and write, Mermaid and CSV import, SVG, PNG and PDF export, .vsdx import |
+| L4 | `crates/engine` | Gains `cmd/` modules for the new command prefixes; `Session.doc` becomes the diagram `Document` |
+| L6 | `crates/ui-egui` | Diagram canvas (handles, connector drag, snap, rulers, guides), page tabs, new panes and ribbon tabs |
+| tooling | `crates/mcp` (`vizcraft-mcp`) | Stdio JSON-RPC MCP server, launched by `vizcraft-cli mcp` |
+
+`diagram` and `stencils` sit below `engine` and depend on neither egui nor the engine. `formats`
+sits beside `engine`: it depends on `diagram` (and `stencils` for import mapping), and the engine
+calls it from `file.*` commands. `mcp` is tooling: it either talks to a running app over the
+control channel (Remote backend) or hosts a headless `Session` in process (Headless backend); it
+never depends on `ui-egui`. `xtask/src/layers.rs` gains each crate when it lands.
+
+### Diagram model sketch
+
+| Type | Holds |
+|---|---|
+| `Document` | Metadata (the current `CoreProps`), ordered pages, themes and named styles, stencil references used |
+| `Page` | Id, name, size and orientation, units, optional background page reference, layers, shapes, connectors |
+| `Shape` | Id, stencil or master reference, geometry (x, y, w, h, rotation), text, style, shape data (key and value pairs), connection points, parent container or group, layer membership |
+| `Connector` | Id, source and target glue (shape plus connection point, or a free point), route style (straight, orthogonal, curved), waypoints, arrowheads at each end, label text, style |
+| `Theme`, `Style` | Theme colours, fonts and effects; styles for fill, line, shadow, gradient and text, referenced by name from shapes and connectors |
+| `Layer` | Id, name, flags: visible, locked, printable, colour |
+
+Glue is dynamic when it names only a shape (the connector picks the nearest connection point as
+shapes move) and point glue when it names a connection point. Ids are strings and are what
+`Selection.items` holds.
+
+### Planned command prefixes
+
+New prefixes join the existing `file.*`, `edit.*`, `view.*`, `insert.*`, `format.*`, `window.*`,
+`help.*`, `ui.*` and `app.*`:
+
+| Prefix | Covers | Module |
+|---|---|---|
+| `shape.*` | Add, delete, move, resize, rotate, text, style of shapes | `crates/engine/src/cmd/shape.rs` |
+| `connector.*` | Add, glue, unglue, route style, waypoints, arrowheads, label | `crates/engine/src/cmd/connector.rs` |
+| `page.*` | Add, delete, rename, reorder, page setup, background page | `crates/engine/src/cmd/page.rs` |
+| `layer.*` | Add, delete, rename, flags, assign shapes | `crates/engine/src/cmd/layer.rs` |
+| `arrange.*` | Align, distribute, order, group, ungroup, flip, rotate, size and position | `crates/engine/src/cmd/arrange.rs` |
+| `design.*` | Themes, quick styles, page background, format painter | `crates/engine/src/cmd/design.rs` |
+| `data.*` | Shape data, data graphics, data import | `crates/engine/src/cmd/data.rs` |
+| `layout.*` | Auto-layout (layered, tree, radial, force) of a page or selection | `crates/engine/src/cmd/layout.rs` |
+
+Every new command follows [Everything is a command](#everything-is-a-command): undoable when it
+changes the document, covered by `hostile_params_never_panic`, never opening a dialog when run
+by id.
+
+### MCP server mapping
+
+The MCP server adds no behaviour of its own. Generic tools (`command_list`, `command_run`,
+`command_batch`) expose the registry, so every command above is reachable the day it lands;
+`doc_inspect` and `screenshot` map to `ui.inspect` and `ui.screenshot`. The draw.io-style tools
+(`open_xml`, `open_mermaid`, `open_csv`, `search_shapes`, `get_reference`, `list_pages`,
+`get_page`, `set_page`) are thin wrappers that call `formats` for parsing and writing and run
+commands for every change, so undo and the control channel see them. Tool list, resources and
+launch: [docs/mcp.md](mcp.md). File formats and their public sources: [docs/formats.md](formats.md).
