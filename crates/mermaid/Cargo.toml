@@ -1,0 +1,17 @@
+[package]
+name = "vizcraft-mermaid"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "VizCraft Mermaid parser: Mermaid text to a typed diagram IR (flowchart, state, ER, class, sequence)"
+
+[lints]
+workspace = true
+
+[dependencies]
+serde = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
