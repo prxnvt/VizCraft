@@ -3441,6 +3441,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "vizcraft-mermaid"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "vizcraft-ui-egui"
 version = "0.1.0"
 dependencies = [
