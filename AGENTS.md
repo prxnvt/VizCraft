@@ -85,7 +85,7 @@ another tool's rendering of it. A stencil set that needs image files follows the
 
 ## MCP
 
-The MCP server (planned `crates/mcp`, launched by `vizcraft-cli mcp`) exposes engine commands by
+The MCP server (`crates/mcp`, launched by `vizcraft-cli mcp`) exposes engine commands by
 id. Every new command is reachable through the generic command tool with no extra work, because
 the tool reads the registry. Add a dedicated MCP tool only for a workflow draw.io's MCP server
 covers (opening XML, Mermaid or CSV, shape search, page listing and editing) or one that cannot be

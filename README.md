@@ -78,11 +78,12 @@ Preferences (theme, ribbon state, pane layout, window geometry, recent files) pe
 `ui.json` under the platform's application-support folder; `VIZCRAFT_NO_PREFS=1` runs without
 reading or writing them, which tests and screenshot sessions use.
 
-## MCP server (planned)
+## MCP server
 
-The MCP server does not exist yet; it arrives in Cascade 1 with a minimal tool set and grows to
-draw.io parity in Cascade 3. It will run over stdio (`vizcraft-cli mcp`) against either a running
-app through the control channel or an in-process headless session. Every engine command is
+The MCP server runs over stdio (`vizcraft-cli mcp [--connect ADDR]`) against a running app
+through the control channel. Today it has the generic tools (`command_list`, `command_run`,
+`command_batch`, `doc_inspect`, `screenshot`); it grows to draw.io parity, with an in-process
+headless session, in Cascade 3. Every engine command is
 reachable through generic command tools, and dedicated tools mirror the workflows draw.io's MCP
 server offers (open XML, Mermaid or CSV, search shapes, list and edit pages). The design and the
 tool table are in [docs/mcp.md](docs/mcp.md); the file formats it reads and writes are in
@@ -127,7 +128,7 @@ owns one `CraftApp` per window; the public API is listed in the contract.
 | [docs/architecture.md](docs/architecture.md) | The design contract: crates, layers, `Session`, commands, the UI API, and the planned diagram crates. |
 | [docs/parity.md](docs/parity.md) | The Visio-class feature catalog, with the cascade and state of each feature. |
 | [docs/formats.md](docs/formats.md) | The file formats VizCraft reads and writes, each with its public specification. |
-| [docs/mcp.md](docs/mcp.md) | The planned MCP server: backends, tools, resources, launch. |
+| [docs/mcp.md](docs/mcp.md) | The MCP server: backends, tools, resources, launch. |
 | [docs/control-protocol.md](docs/control-protocol.md) | The JSON-lines control channel: methods, params, replies. |
 | [docs/testing.md](docs/testing.md) | Tests, snapshots and desktop-app etiquette. |
 | [docs/web.md](docs/web.md) | The browser build. |

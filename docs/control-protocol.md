@@ -3,7 +3,7 @@
 The control channel lets a script, a test or an agent drive the running app: run commands,
 inspect state, inject pointer and keyboard input, and take screenshots of the window. It is the
 same path the menus and ribbon use (everything dispatches by command id), so what a script does is
-what a person clicking would get. The planned MCP server's `Remote` backend speaks this protocol
+what a person clicking would get. The MCP server's `Remote` backend speaks this protocol
 to the running app ([mcp.md](mcp.md)).
 
 Start the app with a port:

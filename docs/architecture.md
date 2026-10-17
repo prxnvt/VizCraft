@@ -18,6 +18,7 @@ the code that depends on it, and say so in the commit message.
 | L4 | `crates/engine` (`vizcraft-engine`) | `Session`, undo, command registry, placeholder document model, I/O |
 | L6 | `crates/ui-egui` (`vizcraft-ui-egui`) | egui front end: theme, chrome, menus, ribbon, panes, dialogs, keys, control |
 | platform | `crates/macos-open` | Finder Open Documents (odoc) Apple Event, safe API |
+| mcp | `crates/mcp` (`vizcraft-mcp`) | Stdio JSON-RPC MCP server, launched by `vizcraft-cli mcp`; same rank as `ui-egui`, so neither depends on the other, and no UI toolkit (see [docs/mcp.md](mcp.md)) |
 | apps | `apps/vizcraft`, `apps/vizcraft-cli`, `apps/vizcraft-web` | desktop app, headless CLI, wasm shell (see [docs/web.md](web.md)) |
 | tooling | `xtask` | `cargo xtask ci`, `layers`, `assets`, `wasm`, `ico`, `version` |
 
@@ -44,7 +45,7 @@ pub struct CommandSpec {
 UI-only commands are `ui.*` and live in `ui-egui` (`CraftApp::ui_command`); they are listed in
 `ui_egui::UI_COMMANDS: &[(&str /*id*/, &str /*label*/, &str /*shortcut*/, &str /*params*/)]` so
 the palette, menus and control channel see them. The menus, ribbon, shortcuts, command palette,
-CLI, control channel and (later) MCP all dispatch by id. Programmatic calls never open dialogs:
+CLI, control channel and MCP server all dispatch by id. Programmatic calls never open dialogs:
 a command that needs one pushes `{"open": "<dialog>"}` to `session.ui_requests` and the UI
 handles it.
 
@@ -199,13 +200,10 @@ the same commit as the code, and update [docs/parity.md](parity.md).
 | I/O | `crates/formats` (`vizcraft-formats`) | `.vizcraft` native JSON, .drawio read and write, Mermaid and CSV import, SVG, PNG and PDF export, .vsdx import |
 | L4 | `crates/engine` | Gains `cmd/` modules for the new command prefixes; `Session.doc` becomes the diagram `Document` |
 | L6 | `crates/ui-egui` | Diagram canvas (handles, connector drag, snap, rulers, guides), page tabs, new panes and ribbon tabs |
-| tooling | `crates/mcp` (`vizcraft-mcp`) | Stdio JSON-RPC MCP server, launched by `vizcraft-cli mcp` |
 
 `diagram` and `stencils` sit below `engine` and depend on neither egui nor the engine. `formats`
 sits beside `engine`: it depends on `diagram` (and `stencils` for import mapping), and the engine
-calls it from `file.*` commands. `mcp` is tooling: it either talks to a running app over the
-control channel (Remote backend) or hosts a headless `Session` in process (Headless backend); it
-never depends on `ui-egui`. `xtask/src/layers.rs` gains each crate when it lands.
+calls it from `file.*` commands. `xtask/src/layers.rs` gains each crate when it lands.
 
 ### Diagram model sketch
 
@@ -244,9 +242,11 @@ by id.
 
 ### MCP server mapping
 
-The MCP server adds no behaviour of its own. Generic tools (`command_list`, `command_run`,
-`command_batch`) expose the registry, so every command above is reachable the day it lands;
-`doc_inspect` and `screenshot` map to `ui.inspect` and `ui.screenshot`. The draw.io-style tools
+Built in Cascade 1 (contract): the MCP server adds no behaviour of its own. Generic tools
+(`command_list`, `command_run`, `command_batch`) expose the registry, so every command above is
+reachable the day it lands; `doc_inspect` and `screenshot` map to `ui.inspect` and
+`ui.screenshot`, through the `Remote` backend over the control channel. Planned for Cascade 3: a
+`Headless` backend hosting a `Session` in process, and the draw.io-style tools
 (`open_xml`, `open_mermaid`, `open_csv`, `search_shapes`, `get_reference`, `list_pages`,
 `get_page`, `set_page`) are thin wrappers that call `formats` for parsing and writing and run
 commands for every change, so undo and the control channel see them. Tool list, resources and

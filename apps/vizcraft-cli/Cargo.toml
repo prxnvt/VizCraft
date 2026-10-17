@@ -4,11 +4,12 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish = false
-description = "VizCraft command line: run commands headless, list the registry"
+description = "VizCraft command line: run commands headless, list the registry, drive the app, serve MCP"
 
 [lints]
 workspace = true
 
 [dependencies]
 vizcraft-engine = { workspace = true }
+vizcraft-mcp = { workspace = true }
 serde_json = { workspace = true }

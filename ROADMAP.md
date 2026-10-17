@@ -13,7 +13,7 @@ merges, and the matching rows in [docs/parity.md](docs/parity.md) when a feature
 | Cascade | 0 done; Cascade 1 (diagram core) is next |
 | App runs | full chrome: ribbon, panes, menus, dialogs, command palette, control channel, multiple windows, web shell |
 | Document model | placeholder (title and metadata only); no diagram features yet |
-| MCP server | planned for Cascade 1 (minimal) and Cascade 3 (draw.io-style tools) |
+| MCP server | minimal server with the generic tools (Remote backend); draw.io-style tools in Cascade 3 |
 
 ## Cascade 0: rename and documentation reset (done)
 
@@ -41,7 +41,7 @@ and drive it all from an agent.
 | SVG export | `file.export` with `{format: "svg"}` writes the current page | `crates/formats` | planned |
 | Remove transport, restore Space pan | Delete `transport.*` and `TransportState` (playback has no use in a diagram app); Space+drag pans the canvas again alongside middle-drag and Cmd+drag | `crates/engine/src/cmd/transport.rs`, `session.rs`, `crates/ui-egui/src/canvas.rs` | done |
 | App icon | An original VizCraft icon drawn for the app, rendered by `packaging/icons.sh`, with its `ATTRIBUTION.md` row | `packaging/`, `assets/` | done |
-| Minimal MCP server | Stdio JSON-RPC server with `command_list`, `command_run`, `command_batch`, `doc_inspect`, `screenshot` over the control channel (Remote backend); protocol core ported from VectorCraft's `crates/mcp`; launched by `vizcraft-cli mcp` | `crates/mcp` (new), `apps/vizcraft-cli` | planned |
+| Minimal MCP server | Stdio JSON-RPC server with `command_list`, `command_run`, `command_batch`, `doc_inspect`, `screenshot` over the control channel (Remote backend); protocol core ported from VectorCraft's `crates/mcp`; launched by `vizcraft-cli mcp` | `crates/mcp` (new), `apps/vizcraft-cli` | done |
 
 Done when: a person can draw a small flowchart (shapes, text, glued connectors that follow when
 shapes move), save it as `.vizcraft`, reopen it, export SVG, and an agent can build the same

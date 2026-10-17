@@ -8,6 +8,7 @@
 //! vizcraft-cli inspect FILE [--json]                       document summary (or the document as JSON)
 //! vizcraft-cli control HOST:PORT METHOD [JSON]             one request to a running app, reply on stdout
 //! vizcraft-cli control HOST:PORT -                         forward request lines from stdin, one reply each
+//! vizcraft-cli mcp [--connect ADDR]                        MCP server on stdio, driving the running app
 //! vizcraft-cli --version
 //! ```
 //!
@@ -33,6 +34,9 @@ USAGE:
   vizcraft-cli inspect FILE [--json]                   document summary (or the whole document as JSON)
   vizcraft-cli control HOST:PORT METHOD [JSON]         one request to a running app (started with --control PORT)
   vizcraft-cli control HOST:PORT -                     forward request lines from stdin, one reply line each
+  vizcraft-cli mcp [--connect ADDR]                    MCP server (JSON-RPC on stdin and stdout) driving the app
+                                                         at ADDR (HOST:PORT or PORT; default 127.0.0.1:7990, or
+                                                         the port in VIZCRAFT_CONTROL_PORT)
   vizcraft-cli --version
 
 Exit codes: 0 success, 1 a command, file or request failed, 2 usage error.
@@ -58,6 +62,7 @@ fn main() -> ExitCode {
         Some("run") => run(&args[1..]),
         Some("inspect") => inspect(&args[1..]),
         Some("control") => control(&args[1..]),
+        Some("mcp") => mcp(&args[1..]),
         Some("--version" | "-V") => {
             println!("vizcraft-cli {}", env!("CARGO_PKG_VERSION"));
             Ok(())
@@ -231,6 +236,44 @@ fn resolve(addr: &str) -> Result<SocketAddr, CliError> {
         .map_err(|e| usage(format!("control: bad address `{addr}`: {e}")))?
         .next()
         .ok_or_else(|| usage(format!("control: bad address `{addr}`")))
+}
+
+/// `mcp [--connect ADDR]`: serve MCP on stdio until the client closes stdin.
+///
+/// The server starts even when the app is not running yet, because MCP clients launch their
+/// servers up front; each tool call then says that no app is listening, and the first call after
+/// the app starts connects. Stdout belongs to the protocol, so every message here goes to stderr.
+fn mcp(args: &[String]) -> Result<(), CliError> {
+    let mut connect_to: Option<String> = None;
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "--connect" => connect_to = Some(it.next().ok_or_else(|| usage("--connect needs HOST:PORT or PORT"))?.clone()),
+            "--headless" => return Err(usage("mcp: --headless is planned (Cascade 3); start the app with --control PORT and use --connect")),
+            other => return Err(usage(format!("mcp: unknown argument `{other}`"))),
+        }
+    }
+    let addr = match connect_to {
+        Some(a) => a,
+        None => match std::env::var("VIZCRAFT_CONTROL_PORT") {
+            Ok(p) if !p.trim().is_empty() => {
+                let port: u16 = p.trim().parse().map_err(|_| usage(format!("VIZCRAFT_CONTROL_PORT `{p}` is not a port number")))?;
+                format!("127.0.0.1:{port}")
+            }
+            _ => vizcraft_mcp::DEFAULT_ADDR.to_string(),
+        },
+    };
+    let spec = if addr.chars().all(|c| c.is_ascii_digit()) { format!("127.0.0.1:{addr}") } else { addr };
+    let mut remote = vizcraft_mcp::Remote::new(&spec).map_err(|e| usage(format!("mcp: {e}")))?;
+    match remote.probe() {
+        Ok(()) => eprintln!("vizcraft-cli mcp: connected to the VizCraft app at {}", remote.addr()),
+        Err(e) => eprintln!("vizcraft-cli mcp: {e}; serving anyway, tool calls will retry"),
+    }
+    vizcraft_mcp::logging::install();
+    let mut server = vizcraft_mcp::Server::new(Box::new(remote));
+    let stdin = std::io::stdin();
+    let stdout = std::io::stdout();
+    server.serve(stdin.lock(), stdout.lock()).map_err(|e| failed(format!("mcp: stdio failed: {e}")))
 }
 
 /// Connect to the app's control server, or say how to start one.

@@ -170,11 +170,11 @@ When a feature lands, change its State in the same commit as the code. States:
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| `command_list` | 1 | planned | Every command id, label and params doc |
-| `command_run` | 1 | planned | Run one command by id |
-| `command_batch` | 1 | planned | Run several commands in order |
-| `doc_inspect` | 1 | planned | Document and UI state as JSON |
-| `screenshot` | 1 | planned | PNG of the window |
+| `command_list` | 1 | done | Every command id, label and params doc |
+| `command_run` | 1 | done | Run one command by id |
+| `command_batch` | 1 | done | Run several commands in order |
+| `doc_inspect` | 1 | done | Document and UI state as JSON |
+| `screenshot` | 1 | done | PNG of the window |
 | `open_xml` | 3 | planned | Load a diagram from .drawio XML |
 | `open_mermaid` | 3 | planned | Load a diagram from Mermaid text |
 | `open_csv` | 3 | planned | Load a diagram from CSV |
@@ -184,8 +184,9 @@ When a feature lands, change its State in the same commit as the code. States:
 | `get_page` | 3 | planned | One page as structured data |
 | `set_page` | 3 | planned | Replace or update one page |
 | `layout` and `routing` options | 3 | planned | Auto-layout and connector routing applied on open |
-| Resources for pages, shapes, commands, stencils | 3 | planned | Read-only MCP resources |
-| Remote backend | 1 | planned | Drives a running app over the control channel |
+| Commands resource | 1 | done | `vizcraft://commands` |
+| Resources for pages, shapes, stencils | 3 | planned | Read-only MCP resources |
+| Remote backend | 1 | done | Drives a running app over the control channel |
 | Headless backend | 3 | planned | Hosts a `Session` in process, no window |
 
 Tool shapes, resources and launch details are in [docs/mcp.md](mcp.md).
