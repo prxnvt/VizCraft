@@ -256,10 +256,11 @@ pub struct Connection {
     pub in_max: Option<u32>,
 }
 
-/// A style change for the views of elements whose property has a value. For bound shapes the
-/// named style fields are controlled by the pack: when any conditional style of the element's
-/// type matches, its value wins; otherwise the glyph's value applies. Fields left `None` are not
-/// controlled.
+/// A style change for the views of elements whose property has a value. The named style fields
+/// of bound shapes change only when the match changes: when this style starts matching (it is
+/// the first matching style naming the field), its value is set; when no style matches any more,
+/// the glyph's value comes back. A new element or view gets the matching values once. Otherwise
+/// the fields are left alone, so hand styling wins. Fields left `None` are not touched.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct ConditionalStyle {
