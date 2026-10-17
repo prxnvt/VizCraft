@@ -34,6 +34,7 @@ mod line;
 pub mod logging;
 mod notation;
 mod reference;
+mod resources;
 mod server;
 mod tools;
 

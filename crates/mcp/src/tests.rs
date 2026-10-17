@@ -774,7 +774,14 @@ fn notation_resources_are_listed_and_read() {
     assert!(init["capabilities"]["resources"].is_object(), "{init}");
 
     let list = result(&mut s, 2, "resources/list", json!({}));
-    let uris: Vec<&str> = list["resources"].as_array().unwrap().iter().map(|r| r["uri"].as_str().unwrap()).collect();
+    // Page and stencil entries are covered in resources.rs.
+    let uris: Vec<&str> = list["resources"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| r["uri"].as_str().unwrap())
+        .filter(|u| *u == COMMANDS_URI || u.starts_with(NOTATION_URI))
+        .collect();
     assert_eq!(uris, [COMMANDS_URI, NOTATION_URI, "vizcraft://notation/basic", "vizcraft://notation/flowchart"], "packs with bad ids are skipped");
     for r in list["resources"].as_array().unwrap() {
         assert_eq!(r["mimeType"], "application/json", "{r}");
@@ -782,7 +789,13 @@ fn notation_resources_are_listed_and_read() {
     }
 
     let templates = result(&mut s, 3, "resources/templates/list", json!({}));
-    let forms: Vec<&str> = templates["resourceTemplates"].as_array().unwrap().iter().map(|t| t["uriTemplate"].as_str().unwrap()).collect();
+    let forms: Vec<&str> = templates["resourceTemplates"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|t| t["uriTemplate"].as_str().unwrap())
+        .filter(|u| u.starts_with(NOTATION_URI))
+        .collect();
     assert_eq!(forms, ["vizcraft://notation/{pack}", "vizcraft://notation/{pack}/{type}"]);
     take_side(&fake);
 
@@ -850,7 +863,14 @@ fn bad_notation_uris_are_not_found_and_send_nothing() {
 fn an_app_without_notation_commands_lists_only_the_catalog() {
     let (mut s, _) = server();
     let list = result(&mut s, 1, "resources/list", json!({}));
-    let uris: Vec<&str> = list["resources"].as_array().unwrap().iter().map(|r| r["uri"].as_str().unwrap()).collect();
+    // Page and stencil entries are covered in resources.rs.
+    let uris: Vec<&str> = list["resources"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| r["uri"].as_str().unwrap())
+        .filter(|u| *u == COMMANDS_URI || u.starts_with(NOTATION_URI))
+        .collect();
     assert_eq!(uris, [COMMANDS_URI, NOTATION_URI]);
     let v = rpc(&mut s, 2, "resources/read", json!({"uri": NOTATION_URI}));
     assert_eq!(v["error"]["code"], -32002, "{v}");
