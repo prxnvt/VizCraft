@@ -1,6 +1,6 @@
-# ProtoCraft: instructions for agents
+# VizCraft: instructions for agents
 
-ProtoCraft is the baseline the "-craft" apps start from (`cargo xtask new-craft <name>`): a
+VizCraft is the baseline the "-craft" apps start from (`cargo xtask new-craft <name>`): a
 clean-room, open-source Rust and egui desktop app with the chrome finished and a trivial sample
 document inside. These instructions travel with every craft made from it. Where a craft has its
 own additions (a parity catalog, format specs, an MCP server), its own `AGENTS.md` adds them
@@ -85,8 +85,8 @@ Comments say why, in plain words; doc comments on every public item.
 
 ## Running and looking at the app
 
-- `cargo run --release -p protocraft -- --sample --control 7990` starts the app with the sample
-  document and the control channel on `127.0.0.1:7990` (`PROTOCRAFT_CONTROL_PORT` works too).
+- `cargo run --release -p vizcraft -- --sample --control 7990` starts the app with the sample
+  document and the control channel on `127.0.0.1:7990` (`VIZCRAFT_CONTROL_PORT` works too).
 - Drive it with one JSON object per line. Run a command, then take a screenshot and read the PNG:
 
   ```sh
@@ -97,12 +97,12 @@ Comments say why, in plain words; doc comments on every public item.
   Methods, params and replies: [docs/control-protocol.md](docs/control-protocol.md). `ui.inspect`
   returns the UI state as JSON, so check state through it before reaching for a screenshot.
 - For UI work, look at the result. Take the screenshot, open the PNG, compare with what you meant.
-  Set `PROTOCRAFT_NO_PREFS=1` so the run does not pick up or overwrite your own preferences.
-- `cargo run --release -p protocraft-cli -- --help` lists the headless subcommands (run commands
+  Set `VIZCRAFT_NO_PREFS=1` so the run does not pick up or overwrite your own preferences.
+- `cargo run --release -p vizcraft-cli -- --help` lists the headless subcommands (run commands
   against a file, print the registry).
 - Desktop window etiquette: see [docs/testing.md](docs/testing.md#desktop-app-etiquette).
   Launch on the secondary monitor (`--window-pos -2500,100`), quit immediately via
-  control channel (`app.quit`) or Don't Save, and verify with `pgrep -fl protocraft`. Prefer
+  control channel (`app.quit`) or Don't Save, and verify with `pgrep -fl vizcraft`. Prefer
   the headless `ui_shot` example when only screenshots are needed.
 - Shell gotcha: `mv` and `cp` may be aliased interactive on the dev machine; use `/bin/mv -f`
   and `/bin/cp -f`.

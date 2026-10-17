@@ -6,16 +6,16 @@ script yet; see [Windows](#windows). The macOS parts are adapted from WordCraft'
 
 | File | Job |
 |---|---|
-| `icons.sh` | Renders every icon size from `assets/app-icon/protocraft.svg`: the 1024 master, the macOS-grid 512, the Linux hicolor set, the `.icns` and the `.ico` (through `cargo xtask ico`). Uses `rsvg-convert` or `resvg` when installed; on a Mac without either it falls back to Quick Look (`qlmanage`, one 1024 render per SVG) and `sips` for the smaller sizes, and `iconutil` writes the `.icns`. Outputs are committed and listed in `ATTRIBUTION.md`, so builds never need these tools. |
-| `env.sh` | Sourced by the package scripts: `ROOT`, `VERSION` (from `[workspace.package]`), `DIST`, `PROTOCRAFT_BUILD_SHA`, `CARGO_TARGET_DIR`, and the helpers that copy licences (including the craft-fonts ones) into a package. |
+| `icons.sh` | Renders every icon size from `assets/app-icon/vizcraft.svg`: the 1024 master, the macOS-grid 512, the Linux hicolor set, the `.icns` and the `.ico` (through `cargo xtask ico`). Uses `rsvg-convert` or `resvg` when installed; on a Mac without either it falls back to Quick Look (`qlmanage`, one 1024 render per SVG) and `sips` for the smaller sizes, and `iconutil` writes the `.icns`. Outputs are committed and listed in `ATTRIBUTION.md`, so builds never need these tools. |
+| `env.sh` | Sourced by the package scripts: `ROOT`, `VERSION` (from `[workspace.package]`), `DIST`, `VIZCRAFT_BUILD_SHA`, `CARGO_TARGET_DIR`, and the helpers that copy licences (including the craft-fonts ones) into a package. |
 | `macos/Info.plist.in` | The bundle's `Info.plist` with `@VERSION@`, `@SHORT_VERSION@` and `@BUILD_SHA@` placeholders for `package.sh` to fill. Declares the `.craft.json` document type (`LSHandlerRank` Owner, with its exported UTI). |
-| `macos/package.sh` | Builds the release binaries, assembles `ProtoCraft.app`, signs it (ad hoc by default), optionally notarises, and writes a DMG plus a zip of the CLI. `--arch universal|aarch64|x86_64`, `--skip-build`, `--no-dmg`. |
+| `macos/package.sh` | Builds the release binaries, assembles `VizCraft.app`, signs it (ad hoc by default), optionally notarises, and writes a DMG plus a zip of the CLI. `--arch universal|aarch64|x86_64`, `--skip-build`, `--no-dmg`. |
 | `macos/entitlements.plist` | Hardened-runtime entitlements; empty on purpose (pure Rust, no JIT, not sandboxed). |
-| `linux/ai.storyteller.protocraft.desktop` | Freedesktop launcher entry; see [Linux](#linux). |
+| `linux/ai.storyteller.vizcraft.desktop` | Freedesktop launcher entry; see [Linux](#linux). |
 
 The `ico` xtask (`cargo xtask ico <out.ico> <in.png>...`, `xtask/src/ico.rs`) packs square PNGs of
 at most 256 px into a Windows `.ico` with PNG-compressed entries; `icons.sh` calls it.
-`apps/protocraft/build.rs` embeds that `.ico` and a VERSIONINFO block into `protocraft.exe` with
+`apps/vizcraft/build.rs` embeds that `.ico` and a VERSIONINFO block into `vizcraft.exe` with
 `winresource` when the target is Windows and does nothing elsewhere.
 
 ## The macOS bundle
@@ -23,21 +23,21 @@ at most 256 px into a Windows `.ico` with PNG-compressed entries; `icons.sh` cal
 `package.sh` assembles this layout under `$CARGO_TARGET_DIR/macos-package/`:
 
 ```
-ProtoCraft.app/
+VizCraft.app/
   Contents/
     Info.plist              from macos/Info.plist.in with the placeholders substituted
     PkgInfo                 "APPL????"
     MacOS/
-      ProtoCraft             the apps/protocraft binary, renamed to CFBundleExecutable
+      VizCraft             the apps/vizcraft binary, renamed to CFBundleExecutable
     Resources/
-      ProtoCraft.icns        assets/app-icon/protocraft.icns, renamed to CFBundleIconFile
+      VizCraft.icns        assets/app-icon/vizcraft.icns, renamed to CFBundleIconFile
       OFL-<family>.txt      licences of craft-fonts fonts, only when built with CRAFT_FONTS_DIR
 ```
 
 The executable and the icon carry the display name because `CFBundleExecutable` and
-`CFBundleIconFile` in the template say `ProtoCraft`; the build artefacts keep their lowercase
-crate names until they are copied in. The bundle id is `ai.storyteller.protocraft`; the
-preferences folder `~/Library/Application Support/ProtoCraft/` is derived from the display name
+`CFBundleIconFile` in the template say `VizCraft`; the build artefacts keep their lowercase
+crate names until they are copied in. The bundle id is `ai.storyteller.vizcraft`; the
+preferences folder `~/Library/Application Support/VizCraft/` is derived from the display name
 by the app, not from the bundle.
 
 Signing is inside out: the executable first, then the bundle, both with the hardened runtime and
@@ -47,10 +47,10 @@ Notarisation runs only with a real identity and `APPLE_ID`, `APPLE_PASSWORD` and
 `APPLE_TEAM_ID` set.
 
 The version comes from `[workspace.package] version` in the root `Cargo.toml`, read by
-`packaging/env.sh`; `PROTOCRAFT_VERSION` overrides it and `PROTOCRAFT_BUILD_SHA` (default: `git
-rev-parse HEAD`) is the commit written into the plist as `ProtoCraftBuildCommit`.
+`packaging/env.sh`; `VIZCRAFT_VERSION` overrides it and `VIZCRAFT_BUILD_SHA` (default: `git
+rev-parse HEAD`) is the commit written into the plist as `VizCraftBuildCommit`.
 
-`package.sh` keeps the names in two places only: `CRATE=protocraft` at the top (the GUI crate; the
+`package.sh` keeps the names in two places only: `CRATE=vizcraft` at the top (the GUI crate; the
 CLI is `$CRATE-cli`) and `CFBundleName` in `Info.plist.in`, which it reads with PlistBuddy for the
 bundle, executable and icon names. It refuses to package when `CFBundleExecutable` or
 `CFBundleIconFile` differ from `CFBundleName`. `cargo xtask new-craft` renames all of them.
@@ -60,9 +60,9 @@ bundle, executable and icon names. It refuses to package when `CFBundleExecutabl
 
 ```sh
 packaging/macos/package.sh --arch aarch64 --no-dmg
-plutil -lint target/macos-package/ProtoCraft.app/Contents/Info.plist
-codesign --verify --deep --strict --verbose=2 target/macos-package/ProtoCraft.app
-target/macos-package/ProtoCraft.app/Contents/MacOS/ProtoCraft --sample
+plutil -lint target/macos-package/VizCraft.app/Contents/Info.plist
+codesign --verify --deep --strict --verbose=2 target/macos-package/VizCraft.app
+target/macos-package/VizCraft.app/Contents/MacOS/VizCraft --sample
 ```
 
 ## What the local installer expects
@@ -74,8 +74,8 @@ must provide:
 | Requirement | Why |
 |---|---|
 | An executable `packaging/macos/package.sh` | `rebuild.sh` only considers folders that have one, and runs it as `DIST=<repo>/target/dist packaging/macos/package.sh --arch aarch64`. The script must accept `--arch` and honour `DIST`. |
-| `packaging/macos/Info.plist.in` with `CFBundleName` | `rebuild.sh` reads the name with PlistBuddy to know what the installed app is called (`ProtoCraft.app`) and whether it is running (`pgrep -x ProtoCraft`). |
-| A `<CFBundleName>BuildCommit` key in the installed `Info.plist` | `rebuild.sh` compares it with the checkout's `HEAD` to skip apps that are up to date. The template's `ProtoCraftBuildCommit` is filled from `@BUILD_SHA@`; keep the key's prefix equal to `CFBundleName` after a rename. |
+| `packaging/macos/Info.plist.in` with `CFBundleName` | `rebuild.sh` reads the name with PlistBuddy to know what the installed app is called (`VizCraft.app`) and whether it is running (`pgrep -x VizCraft`). |
+| A `<CFBundleName>BuildCommit` key in the installed `Info.plist` | `rebuild.sh` compares it with the checkout's `HEAD` to skip apps that are up to date. The template's `VizCraftBuildCommit` is filled from `@BUILD_SHA@`; keep the key's prefix equal to `CFBundleName` after a rename. |
 | The bundle at `target/macos-package/<CFBundleName>.app` | That is where `rebuild.sh` picks the built app up from, so `package.sh` must write its work directory under `CARGO_TARGET_DIR` (which `rebuild.sh` leaves at the default `target/`). |
 | A signature that passes `codesign --verify --strict` | The installer verifies the copy in `/Applications` and rolls back to the previous build if it fails; ad-hoc signing passes. |
 | `CFBundleShortVersionString` | Printed in the installer's success line. |
@@ -95,8 +95,8 @@ name in that folder's `packaging/macos/Info.plist.in`. Nothing in `rebuild.sh` c
 craft. To add one:
 
 1. Check the craft out as `~/Workspace/crafts/<folder>` (a git clone or worktree; the folder name
-   is what `./rebuild.sh <folder>` takes, so use the crate name, e.g. `protocraft`).
-2. Optionally add a row to the table in `~/Workspace/crafts/README.md` (`| protocraft | ProtoCraft |
+   is what `./rebuild.sh <folder>` takes, so use the crate name, e.g. `vizcraft`).
+2. Optionally add a row to the table in `~/Workspace/crafts/README.md` (`| vizcraft | VizCraft |
    (baseline) |`); it is documentation only.
 3. Run `./rebuild.sh --list` to see it, then `./rebuild.sh <folder>` to build and install it.
 
@@ -105,7 +105,7 @@ The baseline itself satisfies every row of the table above; the checks in
 
 ## After `new-craft`
 
-The rename changes `ProtoCraft` to the new display name in the template (and therefore
+The rename changes `VizCraft` to the new display name in the template (and therefore
 `CFBundleName`, `CFBundleExecutable`, `CFBundleIconFile` and the `BuildCommit` key), the bundle
 id to `ai.storyteller.<name>` and the icon file names. What a craft still has to do by hand:
 
@@ -124,10 +124,10 @@ place and follow the freedesktop layout, so a package only has to copy them:
 
 | Source | Installed as |
 |---|---|
-| `target/release/protocraft`, `target/release/protocraft-cli` | `/usr/bin/protocraft`, `/usr/bin/protocraft-cli` |
-| `packaging/linux/ai.storyteller.protocraft.desktop` | `/usr/share/applications/ai.storyteller.protocraft.desktop` |
-| `assets/app-icon/hicolor/<size>/apps/ai.storyteller.protocraft.png` (16 to 512) | `/usr/share/icons/hicolor/<size>/apps/` |
-| `assets/app-icon/hicolor/scalable/apps/ai.storyteller.protocraft.svg` | `/usr/share/icons/hicolor/scalable/apps/` |
+| `target/release/vizcraft`, `target/release/vizcraft-cli` | `/usr/bin/vizcraft`, `/usr/bin/vizcraft-cli` |
+| `packaging/linux/ai.storyteller.vizcraft.desktop` | `/usr/share/applications/ai.storyteller.vizcraft.desktop` |
+| `assets/app-icon/hicolor/<size>/apps/ai.storyteller.vizcraft.png` (16 to 512) | `/usr/share/icons/hicolor/<size>/apps/` |
+| `assets/app-icon/hicolor/scalable/apps/ai.storyteller.vizcraft.svg` | `/usr/share/icons/hicolor/scalable/apps/` |
 
 The desktop entry's `Icon=` and `StartupWMClass=` are the bundle id, which is also the hicolor
 file name; the app must set its window class to the same id for the taskbar to pick the icon up.
@@ -141,11 +141,11 @@ postinst.sh, flatpak manifests) is the reference when the script is written.
 
 There is no Windows package script yet. What exists:
 
-- `assets/app-icon/protocraft.ico` (16 to 256 px) and `apps/protocraft/build.rs`, which embeds it
-  and the VERSIONINFO (product name, description, copyright) into `protocraft.exe` through
+- `assets/app-icon/vizcraft.ico` (16 to 256 px) and `apps/vizcraft/build.rs`, which embeds it
+  and the VERSIONINFO (product name, description, copyright) into `vizcraft.exe` through
   `winresource`. A cross-compile from macOS or Linux without a resource compiler only warns;
-  `PROTOCRAFT_REQUIRE_WINRES=1` makes that an error for release builds.
-- `cargo build --release --target x86_64-pc-windows-msvc -p protocraft -p protocraft-cli` on a
+  `VIZCRAFT_REQUIRE_WINRES=1` makes that an error for release builds.
+- `cargo build --release --target x86_64-pc-windows-msvc -p vizcraft -p vizcraft-cli` on a
   Windows runner produces the two executables; a zip of them with the licences is the minimum
   release artefact.
 

@@ -20,7 +20,7 @@ pub fn save_bytes(name: &str, doc: &Document) -> Result<Vec<u8>, EngineError> {
     if !is_json(name) {
         return Err(EngineError::Failed(format!("{name}: only .{EXTENSION} files are supported")));
     }
-    let file = File { format: "protocraft".into(), version: 1, document: doc.clone() };
+    let file = File { format: "vizcraft".into(), version: 1, document: doc.clone() };
     serde_json::to_vec_pretty(&file).map_err(|e| EngineError::Failed(format!("{name}: {e}")))
 }
 

@@ -13,17 +13,17 @@
 #   MACOS_KEYCHAIN        keychain holding the identity (optional)
 # Notarization (env; all three needed, and a real identity):
 #   APPLE_ID, APPLE_PASSWORD (app-specific password), APPLE_TEAM_ID
-# Other env: DIST, CARGO_TARGET_DIR, PROTOCRAFT_VERSION, PROTOCRAFT_BUILD_SHA (see ../env.sh),
+# Other env: DIST, CARGO_TARGET_DIR, VIZCRAFT_VERSION, VIZCRAFT_BUILD_SHA (see ../env.sh),
 # CRAFT_FONTS_DIR (optional extra fonts; their licences are copied into the bundle).
 set -euo pipefail
 # shellcheck source=../env.sh
 . "$(dirname "${BASH_SOURCE[0]}")/../env.sh"
 HERE="$ROOT/packaging/macos"
 
-# The one place the crate names live; `cargo xtask new-craft` renames them with everything else.
+# The one place the crate names live.
 # The display name (what the bundle, the executable and the icon are called) comes from the
 # plist template, so the two cannot drift apart.
-CRATE=protocraft
+CRATE=vizcraft
 CLI_CRATE="$CRATE-cli"
 APP_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleName' "$HERE/Info.plist.in")"
 [ -n "$APP_NAME" ] || { echo "error: no CFBundleName in $HERE/Info.plist.in" >&2; exit 1; }
@@ -65,7 +65,7 @@ else
   warn "macOS: APPLE_ID / APPLE_PASSWORD / APPLE_TEAM_ID incomplete; signed but not notarized"
 fi
 
-echo "==> $APP_NAME $VERSION for macOS ($ARCH), identity: $IDENTITY, notarize: $NOTARIZE, commit: ${PROTOCRAFT_BUILD_SHA:-unknown}"
+echo "==> $APP_NAME $VERSION for macOS ($ARCH), identity: $IDENTITY, notarize: $NOTARIZE, commit: ${VIZCRAFT_BUILD_SHA:-unknown}"
 
 # ---- build -------------------------------------------------------------------------------------
 if [ "$SKIP_BUILD" = 0 ]; then
@@ -119,7 +119,7 @@ cp "$ROOT/assets/app-icon/$CRATE.icns" "$APP/Contents/Resources/$APP_NAME.icns"
 # Licences of the embedded craft-fonts fonts (only when built with CRAFT_FONTS_DIR).
 copy_font_licences "$APP/Contents/Resources"
 sed -e "s/@VERSION@/$VERSION/g" -e "s/@SHORT_VERSION@/$SHORT_VERSION/g" \
-  -e "s/@BUILD_SHA@/${PROTOCRAFT_BUILD_SHA:-unknown}/g" \
+  -e "s/@BUILD_SHA@/${VIZCRAFT_BUILD_SHA:-unknown}/g" \
   "$HERE/Info.plist.in" >"$APP/Contents/Info.plist"
 plutil -lint "$APP/Contents/Info.plist"
 # The template must name the executable and icon the way they were just copied in.

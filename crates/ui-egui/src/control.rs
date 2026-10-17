@@ -54,7 +54,7 @@ pub const MAX_WAIT_FRAMES: u32 = 10_000;
 
 /// Where `ui.screenshot` writes when the request names no path.
 pub fn default_screenshot_path() -> String {
-    std::env::temp_dir().join("protocraft-screenshot.png").to_string_lossy().to_string()
+    std::env::temp_dir().join("vizcraft-screenshot.png").to_string_lossy().to_string()
 }
 
 fn ok(v: Value) -> Outcome {
@@ -357,7 +357,7 @@ mod tests {
     use super::*;
 
     fn app() -> CraftApp {
-        CraftApp::new(protocraft_engine::Session::new(protocraft_engine::sample::sample_document()), crate::Services::default())
+        CraftApp::new(vizcraft_engine::Session::new(vizcraft_engine::sample::sample_document()), crate::Services::default())
     }
 
     fn call(app: &mut CraftApp, method: &str, params: Value) -> Value {

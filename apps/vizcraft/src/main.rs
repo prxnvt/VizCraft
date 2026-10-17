@@ -1,12 +1,12 @@
-//! ProtoCraft desktop app.
+//! VizCraft desktop app.
 //!
-//! Usage: `protocraft [--control <port>] [--sample] [--in-window-menus] [--window-pos x,y] [--version] [files...]`
+//! Usage: `vizcraft [--control <port>] [--sample] [--in-window-menus] [--window-pos x,y] [--version] [files...]`
 //!
-//! `--control <port>` (or `PROTOCRAFT_CONTROL_PORT`) starts a localhost JSON-lines control server:
+//! `--control <port>` (or `VIZCRAFT_CONTROL_PORT`) starts a localhost JSON-lines control server:
 //! `{"id":1,"method":"engine.execute","params":{"command":"file.new","params":{}}}`.
 //! See `docs/control-protocol.md`.
 //!
-//! `--in-window-menus` (or `PROTOCRAFT_IN_WINDOW_MENUS=1`) starts with the menu bar drawn inside
+//! `--in-window-menus` (or `VIZCRAFT_IN_WINDOW_MENUS=1`) starts with the menu bar drawn inside
 //! the window instead of the native macOS one, as on other platforms; it is the same switch as
 //! View > "Menu Bar in Window", which takes effect at once and is saved with the preferences.
 //!
@@ -15,7 +15,7 @@
 //! spare monitor (`--window-pos -2500,100`) without moving them afterwards.
 //!
 //! Several document windows live in one process (`windows.rs`); on macOS the menu bar is native
-//! (`native_menu.rs`) and Finder's open requests arrive through `protocraft-macos-open`.
+//! (`native_menu.rs`) and Finder's open requests arrive through `vizcraft-macos-open`.
 #![cfg_attr(all(target_os = "windows", not(debug_assertions)), windows_subsystem = "windows")]
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
@@ -24,8 +24,8 @@ mod control_server;
 mod native_menu;
 mod windows;
 
-use protocraft_engine::Session;
-use protocraft_ui_egui::{CraftApp, Services, UiState, window_geometry::WindowGeometry};
+use vizcraft_engine::Session;
+use vizcraft_ui_egui::{CraftApp, Services, UiState, window_geometry::WindowGeometry};
 
 /// The app: the first window's document, the restored window geometry until the first frame has
 /// checked it against the monitors, the other document windows, and (macOS) the native menu bar
@@ -46,14 +46,14 @@ impl App {
     /// A new document window (File > New Window, Cmd+N), with the preferences of the window in front.
     fn open_window(&mut self, ctx: &egui::Context, template: &str) {
         let prefs = self.windows.front(&mut self.root).prefs();
-        let mut app = CraftApp::new(Session::new(protocraft_engine::Document::new()), services());
+        let mut app = CraftApp::new(Session::new(vizcraft_engine::Document::new()), services());
         app.apply_prefs(prefs);
         app.ui.window = None;
         app.integrated_titlebar = cfg!(target_os = "macos");
         if template != "blank"
             && let Err(e) = app.run("file.new", serde_json::json!({"template": template}))
         {
-            eprintln!("protocraft: new {template}: {e}");
+            eprintln!("vizcraft: new {template}: {e}");
         }
         self.windows.open(ctx, app, window_builder());
     }
@@ -102,7 +102,7 @@ impl App {
                 "app.quit" => *quit = true,
                 "file.close" => self.windows.close_front(ctx),
                 // Everything else, File > New included, behaves as the in-window bar's item does.
-                _ => protocraft_ui_egui::menus::run_item(self.windows.front(&mut self.root), ctx, &id, params),
+                _ => vizcraft_ui_egui::menus::run_item(self.windows.front(&mut self.root), ctx, &id, params),
             }
         }
     }
@@ -117,7 +117,7 @@ impl eframe::App for App {
         let (mut new_windows, quit_all) = self.windows.take_requests();
         quit |= quit_all;
         // Documents Finder asked us to open (double click, Open With, the Dock icon).
-        for path in protocraft_macos_open::take_pending() {
+        for path in vizcraft_macos_open::take_pending() {
             self.open_document(ctx, &path);
         }
         self.root.logic(ctx);
@@ -158,20 +158,20 @@ impl eframe::App for App {
 /// `ui.json` in the platform's per-user configuration directory.
 fn prefs_path() -> Option<std::path::PathBuf> {
     let base = if cfg!(target_os = "macos") {
-        std::env::var_os("HOME").map(|h| std::path::PathBuf::from(h).join("Library/Application Support/ProtoCraft"))
+        std::env::var_os("HOME").map(|h| std::path::PathBuf::from(h).join("Library/Application Support/VizCraft"))
     } else if cfg!(windows) {
-        std::env::var_os("APPDATA").map(|a| std::path::PathBuf::from(a).join("ProtoCraft"))
+        std::env::var_os("APPDATA").map(|a| std::path::PathBuf::from(a).join("VizCraft"))
     } else {
         std::env::var_os("XDG_CONFIG_HOME")
             .map(std::path::PathBuf::from)
             .or_else(|| std::env::var_os("HOME").map(|h| std::path::PathBuf::from(h).join(".config")))
-            .map(|c| c.join("protocraft"))
+            .map(|c| c.join("vizcraft"))
     };
     base.map(|b| b.join("ui.json"))
 }
 
 fn no_prefs() -> bool {
-    std::env::var_os("PROTOCRAFT_NO_PREFS").is_some()
+    std::env::var_os("VIZCRAFT_NO_PREFS").is_some()
 }
 
 fn load_prefs(app: &mut CraftApp) {
@@ -214,7 +214,7 @@ fn services() -> Services {
     Services {
         pick_open: Some(Box::new(|_purpose: &str| {
             rfd::FileDialog::new()
-                .add_filter("ProtoCraft documents", &["json"])
+                .add_filter("VizCraft documents", &["json"])
                 .add_filter("All files", &["*"])
                 .pick_file()
                 .map(|p| p.to_string_lossy().to_string())
@@ -234,10 +234,10 @@ fn parse_window_pos(s: &str) -> Option<[f32; 2]> {
 /// A document window: no title bar of its own (the app draws one), files can be dropped on it.
 fn window_builder() -> egui::ViewportBuilder {
     let builder = egui::ViewportBuilder::default()
-        .with_title("ProtoCraft")
-        .with_app_id("com.storytold.protocraft")
+        .with_title("VizCraft")
+        .with_app_id("com.storytold.vizcraft")
         .with_inner_size([1440.0, 920.0])
-        .with_min_inner_size([protocraft_ui_egui::window_geometry::MIN_SIZE.x, protocraft_ui_egui::window_geometry::MIN_SIZE.y])
+        .with_min_inner_size([vizcraft_ui_egui::window_geometry::MIN_SIZE.x, vizcraft_ui_egui::window_geometry::MIN_SIZE.y])
         .with_drag_and_drop(true)
         .with_fullsize_content_view(true)
         .with_titlebar_shown(false)
@@ -249,10 +249,10 @@ fn window_builder() -> egui::ViewportBuilder {
 }
 
 fn main() -> eframe::Result {
-    let mut control_port: Option<u16> = std::env::var("PROTOCRAFT_CONTROL_PORT").ok().and_then(|p| p.parse().ok());
+    let mut control_port: Option<u16> = std::env::var("VIZCRAFT_CONTROL_PORT").ok().and_then(|p| p.parse().ok());
     let mut files = Vec::new();
     let mut sample = false;
-    let mut in_window_menus = std::env::var_os("PROTOCRAFT_IN_WINDOW_MENUS").is_some_and(|v| v != "0" && !v.is_empty());
+    let mut in_window_menus = std::env::var_os("VIZCRAFT_IN_WINDOW_MENUS").is_some_and(|v| v != "0" && !v.is_empty());
     let mut window_pos = None;
     let mut args = std::env::args().skip(1);
     while let Some(a) = args.next() {
@@ -262,11 +262,11 @@ fn main() -> eframe::Result {
             "--in-window-menus" => in_window_menus = true,
             "--window-pos" => window_pos = args.next().and_then(|v| parse_window_pos(&v)),
             "--version" => {
-                println!("protocraft {}", env!("CARGO_PKG_VERSION"));
+                println!("vizcraft {}", env!("CARGO_PKG_VERSION"));
                 return Ok(());
             }
             "--help" | "-h" => {
-                println!("protocraft [--control <port>] [--sample] [--in-window-menus] [--window-pos x,y] [--version] [files...]");
+                println!("vizcraft [--control <port>] [--sample] [--in-window-menus] [--window-pos x,y] [--version] [files...]");
                 return Ok(());
             }
             _ => files.push(a),
@@ -282,15 +282,15 @@ fn main() -> eframe::Result {
         options.viewport = options.viewport.with_position(pos);
         restored = None;
     }
-    protocraft_macos_open::install();
+    vizcraft_macos_open::install();
     eframe::run_native(
-        "ProtoCraft",
+        "VizCraft",
         options,
         Box::new(move |cc| {
-            let doc = if sample { protocraft_engine::sample::sample_document() } else { protocraft_engine::Document::new() };
+            let doc = if sample { vizcraft_engine::sample::sample_document() } else { vizcraft_engine::Document::new() };
             {
                 let ctx = cc.egui_ctx.clone();
-                protocraft_macos_open::set_waker(move || ctx.request_repaint());
+                vizcraft_macos_open::set_waker(move || ctx.request_repaint());
             }
             let mut app = CraftApp::new(Session::new(doc), services());
             load_prefs(&mut app);
@@ -309,7 +309,7 @@ fn main() -> eframe::Result {
             }
             for f in files {
                 if let Err(e) = app.run("file.open", serde_json::json!({"path": f})) {
-                    eprintln!("protocraft: {f}: {e}");
+                    eprintln!("vizcraft: {f}: {e}");
                 }
             }
             Ok(Box::new(App {

@@ -73,7 +73,7 @@ impl Dialog {
     fn title(&self) -> String {
         match self {
             Dialog::Quit => "Unsaved Changes".into(),
-            Dialog::About => "About ProtoCraft".into(),
+            Dialog::About => "About VizCraft".into(),
             Dialog::Preferences { .. } => "Preferences".into(),
             Dialog::Zoom { .. } => "Zoom".into(),
             Dialog::Commands { .. } => "Command Palette".into(),
@@ -196,7 +196,7 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
             done
         }
         Dialog::About => {
-            ui.label(egui::RichText::new("ProtoCraft").font(semibold(22.0)).color(t.text));
+            ui.label(egui::RichText::new("VizCraft").font(semibold(22.0)).color(t.text));
             ui.label(egui::RichText::new(format!("Version {}", env!("CARGO_PKG_VERSION"))).color(t.text_dim));
             ui.label(
                 egui::RichText::new(
@@ -205,7 +205,7 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
                 .color(t.text),
             );
             // The link comes from the package metadata, so a craft made from the baseline links
-            // to its own repository (or shows none) instead of ProtoCraft's.
+            // to its own repository (or shows none) instead of VizCraft's.
             let repo = env!("CARGO_PKG_REPOSITORY");
             if !repo.is_empty() {
                 ui.add_space(4.0);
@@ -259,7 +259,7 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
                 }
             });
             ui.spacing_mut().slider_width = 220.0;
-            let range = protocraft_engine::cmd::view::MIN_ZOOM..=protocraft_engine::cmd::view::MAX_ZOOM;
+            let range = vizcraft_engine::cmd::view::MIN_ZOOM..=vizcraft_engine::cmd::view::MAX_ZOOM;
             widgets::slider(ui, egui::Slider::new(percent, range).suffix("%"), 320.0);
             let (ok, cancel) = buttons(ui, "OK", Some("Cancel"), keys);
             if ok {
@@ -410,7 +410,7 @@ mod tests {
     use super::*;
 
     fn app() -> CraftApp {
-        CraftApp::new(protocraft_engine::Session::new(protocraft_engine::Document::new()), crate::Services::default())
+        CraftApp::new(vizcraft_engine::Session::new(vizcraft_engine::Document::new()), crate::Services::default())
     }
 
     #[test]

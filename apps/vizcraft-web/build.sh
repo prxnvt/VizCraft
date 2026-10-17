@@ -1,7 +1,7 @@
 #!/bin/sh
-# Build the ProtoCraft web shell into dist/web without trunk or wasm-pack.
+# Build the VizCraft web shell into dist/web without trunk or wasm-pack.
 #
-#   apps/protocraft-web/build.sh [--debug]
+#   apps/vizcraft-web/build.sh [--debug]
 #
 # Steps: cargo build for wasm32-unknown-unknown, then the wasm-bindgen CLI (the version that
 # matches the wasm-bindgen crate in Cargo.lock) writes the JS glue and the .wasm next to a copy
@@ -28,20 +28,20 @@ if ! command -v wasm-bindgen >/dev/null 2>&1; then
   want=$(grep -A1 '^name = "wasm-bindgen"$' "$root/Cargo.lock" | sed -n 's/^version = "\(.*\)"/\1/p')
   echo "build.sh: the wasm-bindgen CLI is not installed. Install the version Cargo.lock uses:" >&2
   echo "    cargo install wasm-bindgen-cli --version ${want:-<see Cargo.lock>}" >&2
-  echo "or build with trunk instead: cd apps/protocraft-web && trunk build --release" >&2
+  echo "or build with trunk instead: cd apps/vizcraft-web && trunk build --release" >&2
   exit 1
 fi
 
-(cd "$root" && cargo build $flag --target wasm32-unknown-unknown -p protocraft-web)
-wasm=$target_dir/wasm32-unknown-unknown/$profile/protocraft-web.wasm
+(cd "$root" && cargo build $flag --target wasm32-unknown-unknown -p vizcraft-web)
+wasm=$target_dir/wasm32-unknown-unknown/$profile/vizcraft-web.wasm
 rm -rf "$dist"
 mkdir -p "$dist"
-wasm-bindgen "$wasm" --out-dir "$dist" --out-name protocraft-web --target web --no-typescript
+wasm-bindgen "$wasm" --out-dir "$dist" --out-name vizcraft-web --target web --no-typescript
 if command -v wasm-opt >/dev/null 2>&1 && [ "$profile" = release ]; then
-  wasm-opt -Oz -o "$dist/protocraft-web_bg.wasm" "$dist/protocraft-web_bg.wasm"
+  wasm-opt -Oz -o "$dist/vizcraft-web_bg.wasm" "$dist/vizcraft-web_bg.wasm"
 fi
 # index.html without the trunk directive, plus the two-line module loader trunk would inject.
 sed -e '/data-trunk/d' \
-    -e 's|</body>|  <script type="module">import init from "./protocraft-web.js"; init();</script>\n</body>|' \
+    -e 's|</body>|  <script type="module">import init from "./vizcraft-web.js"; init();</script>\n</body>|' \
     "$here/index.html" > "$dist/index.html"
 echo "built $dist ($(du -sh "$dist" | cut -f1)); serve it with: python3 -m http.server -d $dist 8772"

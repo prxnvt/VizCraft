@@ -8,10 +8,10 @@ what a person clicking would get.
 Start the app with a port:
 
 ```sh
-cargo run --release -p protocraft -- --sample --control 7990     # or PROTOCRAFT_CONTROL_PORT=7990
+cargo run --release -p vizcraft -- --sample --control 7990     # or VIZCRAFT_CONTROL_PORT=7990
 ```
 
-The app prints `protocraft: control server listening on 127.0.0.1:7990` on stderr once the port
+The app prints `vizcraft: control server listening on 127.0.0.1:7990` on stderr once the port
 is bound. `--control 0` asks the OS for a free port and prints the one it got, so a script that
 cannot know which ports are free parses that line. A port that is already taken is reported
 (`control server failed to bind ...`) and the app runs without control.
@@ -25,9 +25,9 @@ refused.
 The CLI is the one-shot client, so scripts do not need `nc`:
 
 ```sh
-protocraft-cli control 7990 ui.inspect                          # host:port or just the port
-protocraft-cli control 127.0.0.1:7990 engine.execute '{"command":"view.zoomIn"}'
-printf '%s\n' '{"id":1,"method":"ui.inspect"}' | protocraft-cli control 7990 -    # requests from stdin
+vizcraft-cli control 7990 ui.inspect                          # host:port or just the port
+vizcraft-cli control 127.0.0.1:7990 engine.execute '{"command":"view.zoomIn"}'
+printf '%s\n' '{"id":1,"method":"ui.inspect"}' | vizcraft-cli control 7990 -    # requests from stdin
 ```
 
 It prints the reply line and exits 0 when `ok` is true, 1 otherwise (or when the app cannot be
@@ -162,7 +162,7 @@ not taken on the frame the request arrives: the app waits for at least three fra
 queued input to be processed, then asks the viewport for a screenshot, and replies once the image
 has been received and written. The reply, `{"path": ..., "width": ..., "height": ...}`, therefore
 arrives a few frames later than other replies; keep it last in a pipelined batch, or send it on
-its own. Without `path` the image is written to `protocraft-screenshot.png` in the system
+its own. Without `path` the image is written to `vizcraft-screenshot.png` in the system
 temporary directory (`$TMPDIR` on macOS, `/tmp` on Linux); the reply says where. The size is in
 physical pixels, so on a Retina display it is twice the window size in points.
 
@@ -179,10 +179,10 @@ opening one at all (`docs/testing.md`).
 With the CLI, one request at a time:
 
 ```sh
-protocraft-cli control 7990 engine.execute '{"command":"view.zoomIn","params":{}}'
-protocraft-cli control 7990 ui.set '{"path":"dark","value":true}'
-protocraft-cli control 7990 ui.screenshot '{"path":"/tmp/zoomed.png"}'
-protocraft-cli control 7990 ui.menus | jq '.result[] | .title'
+vizcraft-cli control 7990 engine.execute '{"command":"view.zoomIn","params":{}}'
+vizcraft-cli control 7990 ui.set '{"path":"dark","value":true}'
+vizcraft-cli control 7990 ui.screenshot '{"path":"/tmp/zoomed.png"}'
+vizcraft-cli control 7990 ui.menus | jq '.result[] | .title'
 ```
 
 With `nc`, several pipelined. Open the sample, zoom in, then screenshot:

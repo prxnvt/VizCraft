@@ -1,6 +1,6 @@
 [package]
-name = "protocraft-web"
-description = "ProtoCraft in the browser (eframe web runner, WebGPU with WebGL2 fallback)"
+name = "vizcraft-web"
+description = "VizCraft in the browser (eframe web runner, WebGPU with WebGL2 fallback)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -10,12 +10,12 @@ publish = false
 workspace = true
 
 [[bin]]
-name = "protocraft-web"
+name = "vizcraft-web"
 path = "src/main.rs"
 
 [dependencies]
-protocraft-engine = { workspace = true }
-protocraft-ui-egui = { workspace = true }
+vizcraft-engine = { workspace = true }
+vizcraft-ui-egui = { workspace = true }
 egui = { workspace = true }
 log = { workspace = true }
 serde_json = { workspace = true }

@@ -1,6 +1,6 @@
-# ProtoCraft roadmap
+# VizCraft roadmap
 
-ProtoCraft is built in cascades: groups of pieces that several agents build in parallel against
+VizCraft is built in cascades: groups of pieces that several agents build in parallel against
 the contract in [docs/architecture.md](docs/architecture.md), then integrate. Each cascade ends
 with `cargo xtask ci` green on `main` and the app runnable. This file says what each cascade
 contains and what has landed; update the state column when a piece merges.
@@ -26,11 +26,11 @@ Three agents, three branches, no shared files.
 
 | Piece | Contents | State |
 |---|---|---|
-| Foundation | `protocraft-engine`: `Session`, undo and redo, `Registry` and `CommandSpec`, the notes sample model, JSON I/O, `file.*`, `edit.*`, `view.*` commands, `hostile_params_never_panic`; `ui-egui` scaffolding: `theme::Tokens`, fonts from `assets/fonts`, `UiState`, `CraftApp` with `logic` and `ui`; the assets (fonts) in place | done |
+| Foundation | `vizcraft-engine`: `Session`, undo and redo, `Registry` and `CommandSpec`, the notes sample model, JSON I/O, `file.*`, `edit.*`, `view.*` commands, `hostile_params_never_panic`; `ui-egui` scaffolding: `theme::Tokens`, fonts from `assets/fonts`, `UiState`, `CraftApp` with `logic` and `ui`; the assets (fonts) in place | done |
 | Docs | `README.md`, `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `ROADMAP.md`, licences and `NOTICE`, `ATTRIBUTION.md`, `docs/control-protocol.md`, `docs/new-craft.md`, the placeholder app icon and `packaging/icons.sh`, the macOS `Info.plist.in` and `packaging/README.md` | done |
 | xtask | `cargo xtask ci` (fmt, clippy, tests, assets, layers, wasm), `layers`, `assets`, `wasm`, `new-craft` | done |
 
-Done when: `cargo xtask ci` passes on the merged branch, `cargo run -p protocraft -- --sample`
+Done when: `cargo xtask ci` passes on the merged branch, `cargo run -p vizcraft -- --sample`
 opens the sample in a window with the theme applied, and `cargo xtask new-craft probe` produces
 a sibling that passes `ci` under its new name.
 
@@ -40,11 +40,11 @@ Six pieces built in parallel against the `CraftApp` and `Session` APIs from Casc
 
 | Piece | Contents | State |
 |---|---|---|
-| Multi-window and native menu | `apps/protocraft/src/windows.rs`: root viewport plus immediate viewports, one `CraftApp` each, Cmd+N in-process, root hand-over on close, quit asking each dirty window in turn, Cmd+W; `native_menu.rs` (muda, macOS) built from `menus::menu_tree` with the app and Window menus; `macos-open` with the real `imp` | done |
+| Multi-window and native menu | `apps/vizcraft/src/windows.rs`: root viewport plus immediate viewports, one `CraftApp` each, Cmd+N in-process, root hand-over on close, quit asking each dirty window in turn, Cmd+W; `native_menu.rs` (muda, macOS) built from `menus::menu_tree` with the app and Window menus; `macos-open` with the real `imp` | done |
 | Ribbon | `ribbon.rs`: tab strip, groups from command ids, large and small buttons, toggles, dropdowns, collapse, contextual tabs; `icons.rs` drawn in code | done |
 | Pane manager | `panes/`: `Pane` trait, left and right side panels, drag to resize and reorder, `PaneLayout` persisted in `UiState`, `view.*` toggles | done |
 | In-window menu bar and dialogs | `menus.rs`: `menu_tree`, `entry`, `menu_bar`, `in_window_menus`; `dialogs.rs` with the Save-changes, About and Preferences dialogs driven by `ui_requests`; `keys.rs` shortcut parsing and dispatch; `chrome.rs` title bar (integrated on macOS) and status bar; `backstage.rs` | done |
-| Control channel and CLI | `control.rs` handling every method in `docs/control-protocol.md` with screenshots through the viewport; `apps/protocraft/src/control_server.rs`; `--control`, `--sample`, file arguments; `apps/protocraft-cli` running commands headless and printing the registry; preferences at the platform path with `PROTOCRAFT_NO_PREFS`; `window_geometry.rs` | done |
+| Control channel and CLI | `control.rs` handling every method in `docs/control-protocol.md` with screenshots through the viewport; `apps/vizcraft/src/control_server.rs`; `--control`, `--sample`, file arguments; `apps/vizcraft-cli` running commands headless and printing the registry; preferences at the platform path with `VIZCRAFT_NO_PREFS`; `window_geometry.rs` | done |
 
 Done when: every window strip in the contract's layout order is on screen, both light and dark,
 the menus agree between the native bar and the in-window bar, and a script over the control
@@ -65,7 +65,7 @@ with its own name and icon, and the kittest snapshots guard the chrome.
 
 ## Cascade 4: generic baseline extensions (done)
 
-Generalize ProtoCraft from a text-focused template into a clean, reusable foundation for diverse desktop crafts (arrangers/DAWs, diagram editors, animation suites, database schema visualizers).
+Generalize VizCraft from a text-focused template into a clean, reusable foundation for diverse desktop crafts (arrangers/DAWs, diagram editors, animation suites, database schema visualizers).
 
 | Piece | Contents | State |
 |---|---|---|
@@ -79,7 +79,7 @@ Generalize ProtoCraft from a text-focused template into a clean, reusable founda
 
 Not scheduled, listed so they are not forgotten:
 
-- `apps/protocraft-web`: the wasm build as a runnable app (the `wasm` gate already compiles it).
+- `apps/vizcraft-web`: the wasm build as a runnable app (the `wasm` gate already compiles it).
 - An MCP server over the control channel, shared by the crafts the way WordCraft's is.
 - A command palette with fuzzy search over `engine.commands`.
 - Autosave and crash recovery in the baseline, so every craft inherits them.

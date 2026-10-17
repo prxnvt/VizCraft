@@ -1,14 +1,14 @@
-//! ProtoCraft command line: the engine without a window, and a one-shot client for the running
+//! VizCraft command line: the engine without a window, and a one-shot client for the running
 //! app's control channel.
 //!
 //! ```text
-//! protocraft-cli commands [--json]                           every engine command: id, label, shortcut, enabled
-//! protocraft-cli run [--open FILE | --sample] --cmd ID[=JSON] ... [--save OUT] [--json]
+//! vizcraft-cli commands [--json]                           every engine command: id, label, shortcut, enabled
+//! vizcraft-cli run [--open FILE | --sample] --cmd ID[=JSON] ... [--save OUT] [--json]
 //!                                                            run commands headless, in order, then save
-//! protocraft-cli inspect FILE [--json]                       document summary (or the document as JSON)
-//! protocraft-cli control HOST:PORT METHOD [JSON]             one request to a running app, reply on stdout
-//! protocraft-cli control HOST:PORT -                         forward request lines from stdin, one reply each
-//! protocraft-cli --version
+//! vizcraft-cli inspect FILE [--json]                       document summary (or the document as JSON)
+//! vizcraft-cli control HOST:PORT METHOD [JSON]             one request to a running app, reply on stdout
+//! vizcraft-cli control HOST:PORT -                         forward request lines from stdin, one reply each
+//! vizcraft-cli --version
 //! ```
 //!
 //! Exit codes: 0 success, 1 a command, file or request failed (the reason is on stderr, or in
@@ -20,20 +20,20 @@ use std::net::{SocketAddr, TcpStream, ToSocketAddrs};
 use std::process::ExitCode;
 use std::time::Duration;
 
-use protocraft_engine::{Document, Session};
 use serde_json::{Value, json};
+use vizcraft_engine::{Document, Session};
 
 const USAGE: &str = "\
-protocraft-cli: ProtoCraft from the command line
+vizcraft-cli: VizCraft from the command line
 
 USAGE:
-  protocraft-cli commands [--json]                       every engine command: id, label, shortcut, enabled
-  protocraft-cli run [--open FILE | --sample] --cmd ID[=JSON] ... [--save OUT] [--json]
+  vizcraft-cli commands [--json]                       every engine command: id, label, shortcut, enabled
+  vizcraft-cli run [--open FILE | --sample] --cmd ID[=JSON] ... [--save OUT] [--json]
                                                          run commands headless, in order, then save
-  protocraft-cli inspect FILE [--json]                   document summary (or the whole document as JSON)
-  protocraft-cli control HOST:PORT METHOD [JSON]         one request to a running app (started with --control PORT)
-  protocraft-cli control HOST:PORT -                     forward request lines from stdin, one reply line each
-  protocraft-cli --version
+  vizcraft-cli inspect FILE [--json]                   document summary (or the whole document as JSON)
+  vizcraft-cli control HOST:PORT METHOD [JSON]         one request to a running app (started with --control PORT)
+  vizcraft-cli control HOST:PORT -                     forward request lines from stdin, one reply line each
+  vizcraft-cli --version
 
 Exit codes: 0 success, 1 a command, file or request failed, 2 usage error.
 ";
@@ -59,7 +59,7 @@ fn main() -> ExitCode {
         Some("inspect") => inspect(&args[1..]),
         Some("control") => control(&args[1..]),
         Some("--version" | "-V") => {
-            println!("protocraft-cli {}", env!("CARGO_PKG_VERSION"));
+            println!("vizcraft-cli {}", env!("CARGO_PKG_VERSION"));
             Ok(())
         }
         Some("--help" | "-h" | "help") => {
@@ -72,11 +72,11 @@ fn main() -> ExitCode {
     match result {
         Ok(()) => ExitCode::SUCCESS,
         Err(CliError::Usage(m)) => {
-            eprintln!("protocraft-cli: {m}\n\n{USAGE}");
+            eprintln!("vizcraft-cli: {m}\n\n{USAGE}");
             ExitCode::from(2)
         }
         Err(CliError::Failed(m)) => {
-            eprintln!("protocraft-cli: {m}");
+            eprintln!("vizcraft-cli: {m}");
             ExitCode::FAILURE
         }
     }
@@ -158,14 +158,14 @@ fn run(args: &[String]) -> Result<(), CliError> {
     }
     let mut s = match &open_path {
         Some(p) => open(p)?,
-        None if sample => Session::new(protocraft_engine::sample::sample_document()),
+        None if sample => Session::new(vizcraft_engine::sample::sample_document()),
         None => Session::new(Document::new()),
     };
     for (id, params) in cmds {
         let r = s.run(&id, &params);
         // A command may ask the UI for something; headless there is none, so say so.
         for req in std::mem::take(&mut s.ui_requests) {
-            eprintln!("protocraft-cli: {id}: UI request ignored (no window): {req}");
+            eprintln!("vizcraft-cli: {id}: UI request ignored (no window): {req}");
         }
         match r {
             Ok(v) => {
@@ -237,7 +237,7 @@ fn resolve(addr: &str) -> Result<SocketAddr, CliError> {
 fn connect(addr: &str) -> Result<TcpStream, CliError> {
     let sa = resolve(addr)?;
     let stream = TcpStream::connect_timeout(&sa, Duration::from_secs(5))
-        .map_err(|e| failed(format!("cannot reach the ProtoCraft app at {sa}: {e} (start it with `protocraft --control PORT`)")))?;
+        .map_err(|e| failed(format!("cannot reach the VizCraft app at {sa}: {e} (start it with `vizcraft --control PORT`)")))?;
     // Screenshots answer a few frames late and the server gives the UI 60 s; wait a little longer.
     let _ = stream.set_read_timeout(Some(Duration::from_secs(70)));
     let _ = stream.set_nodelay(true);

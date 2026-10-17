@@ -5,9 +5,9 @@
 use std::sync::mpsc::{Receiver, Sender};
 
 use egui_kittest::Harness;
-use protocraft_engine::Session;
-use protocraft_ui_egui::{ControlRequest, CraftApp, Services};
 use serde_json::{Value, json};
+use vizcraft_engine::Session;
+use vizcraft_ui_egui::{ControlRequest, CraftApp, Services};
 
 struct Rig {
     harness: Harness<'static, CraftApp>,
@@ -17,7 +17,7 @@ struct Rig {
 impl Rig {
     fn new() -> Self {
         let (tx, rx) = std::sync::mpsc::channel::<ControlRequest>();
-        let app = CraftApp::new(Session::new(protocraft_engine::sample::sample_document()), Services::default()).with_control(rx);
+        let app = CraftApp::new(Session::new(vizcraft_engine::sample::sample_document()), Services::default()).with_control(rx);
         let mut harness = Harness::builder().with_size(egui::vec2(1200.0, 800.0)).build_ui_state(
             |ui, app: &mut CraftApp| {
                 let ctx = ui.ctx().clone();

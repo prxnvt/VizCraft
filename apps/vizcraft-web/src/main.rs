@@ -1,7 +1,7 @@
-//! ProtoCraft in the browser.
+//! VizCraft in the browser.
 //!
-//! Runs the same [`protocraft_ui_egui::CraftApp`] as the desktop app through eframe's web runner
-//! (wgpu: WebGPU where available, WebGL2 otherwise). Build with `apps/protocraft-web/build.sh`
+//! Runs the same [`vizcraft_ui_egui::CraftApp`] as the desktop app through eframe's web runner
+//! (wgpu: WebGPU where available, WebGL2 otherwise). Build with `apps/vizcraft-web/build.sh`
 //! (or `trunk build --release` from that directory); see `docs/web.md`.
 //!
 //! Differences from the desktop app: one document per page (New Window replaces the document),
@@ -21,5 +21,5 @@ fn main() {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
-    eprintln!("protocraft-web only runs in the browser: build it with apps/protocraft-web/build.sh (docs/web.md)");
+    eprintln!("vizcraft-web only runs in the browser: build it with apps/vizcraft-web/build.sh (docs/web.md)");
 }

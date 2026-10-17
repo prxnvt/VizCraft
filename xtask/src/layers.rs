@@ -1,8 +1,8 @@
 //! Dependency layering rules (docs/architecture.md, "Layers").
 //!
 //! The rules work on a small model built from `cargo metadata --no-deps` so they can be unit
-//! tested without cargo. Crates are classified by name suffix and manifest path, so the same
-//! rules hold for `protocraft-*` and for every craft made with `cargo xtask new-craft`.
+//! tested without cargo. Crates are classified by name suffix and manifest path, so the rules
+//! hold for every `vizcraft-*` crate without listing them.
 
 use serde_json::Value;
 use std::path::Path;
@@ -224,7 +224,7 @@ mod tests {
             ),
             c(
                 prefix,
-                "/r/apps/protocraft/Cargo.toml",
+                "/r/apps/vizcraft/Cargo.toml",
                 &[
                     (&p("engine"), Normal, true),
                     (&p("ui-egui"), Normal, true),
@@ -233,14 +233,14 @@ mod tests {
                     ("muda", Normal, false),
                 ],
             ),
-            c(&p("cli"), "/r/apps/protocraft-cli/Cargo.toml", &[(&p("engine"), Normal, true)]),
+            c(&p("cli"), "/r/apps/vizcraft-cli/Cargo.toml", &[(&p("engine"), Normal, true)]),
             c("xtask", "/r/xtask/Cargo.toml", &[("serde_json", Normal, false)]),
         ]
     }
 
     #[test]
     fn baseline_graph_passes_for_any_craft_name() {
-        for prefix in ["protocraft", "notecraft"] {
+        for prefix in ["vizcraft", "notecraft"] {
             let g = baseline(prefix);
             assert!(check(&g).is_empty(), "{prefix}: {:?}", check(&g));
         }
@@ -248,96 +248,96 @@ mod tests {
 
     #[test]
     fn classification() {
-        let g = baseline("protocraft");
+        let g = baseline("vizcraft");
         let classes: Vec<_> = g.iter().map(classify).collect();
         assert_eq!(
             classes,
             vec![Some(Class::Engine), Some(Class::Platform), Some(Class::UiEgui), Some(Class::App), Some(Class::App), Some(Class::Tooling)]
         );
-        assert_eq!(classify(&c("protocraft-web", "/r/apps/protocraft-web/Cargo.toml", &[])), Some(Class::App));
-        assert_eq!(classify(&c("protocraft-mystery", "/r/crates/mystery/Cargo.toml", &[])), None);
+        assert_eq!(classify(&c("vizcraft-web", "/r/apps/vizcraft-web/Cargo.toml", &[])), Some(Class::App));
+        assert_eq!(classify(&c("vizcraft-mystery", "/r/crates/mystery/Cargo.toml", &[])), None);
     }
 
     #[test]
     fn engine_must_not_use_ui_crates() {
         for dep in ["egui", "egui_extras", "eframe", "winit", "rfd", "muda", "arboard"] {
-            let v = check(&[c("protocraft-engine", "/r/crates/engine/Cargo.toml", &[(dep, Normal, false)])]);
+            let v = check(&[c("vizcraft-engine", "/r/crates/engine/Cargo.toml", &[(dep, Normal, false)])]);
             assert!(matches!(&v[..], [Violation::EngineUsesUi { dep: d, .. }] if d == dep), "{dep}: {v:?}");
         }
         // Dev-dependencies count too: the engine's tests must stay headless.
-        assert!(!check(&[c("protocraft-engine", "/r/crates/engine/Cargo.toml", &[("egui_kittest", Dev, false)])]).is_empty());
-        assert!(check(&[c("protocraft-engine", "/r/crates/engine/Cargo.toml", &[("serde_json", Normal, false)])]).is_empty());
+        assert!(!check(&[c("vizcraft-engine", "/r/crates/engine/Cargo.toml", &[("egui_kittest", Dev, false)])]).is_empty());
+        assert!(check(&[c("vizcraft-engine", "/r/crates/engine/Cargo.toml", &[("serde_json", Normal, false)])]).is_empty());
     }
 
     #[test]
     fn ui_egui_may_use_egui_but_not_a_window_host() {
         let ok = c(
-            "protocraft-ui-egui",
+            "vizcraft-ui-egui",
             "/r/crates/ui-egui/Cargo.toml",
             &[("egui", Normal, false), ("egui_extras", Normal, false), ("arboard", Normal, false)],
         );
         assert!(check(&[ok]).is_empty());
         for dep in ["eframe", "winit", "rfd", "muda"] {
-            let v = check(&[c("protocraft-ui-egui", "/r/crates/ui-egui/Cargo.toml", &[(dep, Normal, false)])]);
+            let v = check(&[c("vizcraft-ui-egui", "/r/crates/ui-egui/Cargo.toml", &[(dep, Normal, false)])]);
             assert!(matches!(&v[..], [Violation::AppOnlyDep { dep: d, .. }] if d == dep), "{dep}: {v:?}");
         }
     }
 
     #[test]
     fn platform_and_tooling_stay_clear_of_hosts() {
-        assert!(!check(&[c("protocraft-macos-open", "/r/crates/macos-open/Cargo.toml", &[("winit", Normal, false)])]).is_empty());
+        assert!(!check(&[c("vizcraft-macos-open", "/r/crates/macos-open/Cargo.toml", &[("winit", Normal, false)])]).is_empty());
         assert!(!check(&[c("xtask", "/r/xtask/Cargo.toml", &[("rfd", Normal, false)])]).is_empty());
     }
 
     #[test]
     fn upward_and_sideways_workspace_deps_flagged() {
-        let mut g = baseline("protocraft");
-        g[0].deps.push(Dep { name: "protocraft-ui-egui".into(), kind: Normal, workspace: true });
-        assert!(matches!(&check(&g)[..], [Violation::Upward { krate, dep }] if krate == "protocraft-engine" && dep == "protocraft-ui-egui"));
+        let mut g = baseline("vizcraft");
+        g[0].deps.push(Dep { name: "vizcraft-ui-egui".into(), kind: Normal, workspace: true });
+        assert!(matches!(&check(&g)[..], [Violation::Upward { krate, dep }] if krate == "vizcraft-engine" && dep == "vizcraft-ui-egui"));
 
-        let mut g = baseline("protocraft");
-        g[2].deps.push(Dep { name: "protocraft".into(), kind: Dev, workspace: true });
-        assert!(matches!(&check(&g)[..], [Violation::Upward { krate, .. }] if krate == "protocraft-ui-egui"));
+        let mut g = baseline("vizcraft");
+        g[2].deps.push(Dep { name: "vizcraft".into(), kind: Dev, workspace: true });
+        assert!(matches!(&check(&g)[..], [Violation::Upward { krate, .. }] if krate == "vizcraft-ui-egui"));
 
-        let mut g = baseline("protocraft");
-        g[1].deps.push(Dep { name: "protocraft-engine".into(), kind: Normal, workspace: true });
-        assert!(matches!(&check(&g)[..], [Violation::Upward { krate, .. }] if krate == "protocraft-macos-open"));
+        let mut g = baseline("vizcraft");
+        g[1].deps.push(Dep { name: "vizcraft-engine".into(), kind: Normal, workspace: true });
+        assert!(matches!(&check(&g)[..], [Violation::Upward { krate, .. }] if krate == "vizcraft-macos-open"));
 
-        let mut g = baseline("protocraft");
-        g[0].deps.push(Dep { name: "protocraft-macos-open".into(), kind: Normal, workspace: true });
-        assert!(matches!(&check(&g)[..], [Violation::Upward { krate, .. }] if krate == "protocraft-engine"));
+        let mut g = baseline("vizcraft");
+        g[0].deps.push(Dep { name: "vizcraft-macos-open".into(), kind: Normal, workspace: true });
+        assert!(matches!(&check(&g)[..], [Violation::Upward { krate, .. }] if krate == "vizcraft-engine"));
     }
 
     #[test]
     fn nothing_depends_on_xtask_and_unknown_crates_are_errors() {
-        let mut g = baseline("protocraft");
+        let mut g = baseline("vizcraft");
         g[4].deps.push(Dep { name: "xtask".into(), kind: Normal, workspace: true });
-        assert!(matches!(&check(&g)[..], [Violation::DependsOnTooling { krate }] if krate == "protocraft-cli"));
+        assert!(matches!(&check(&g)[..], [Violation::DependsOnTooling { krate }] if krate == "vizcraft-cli"));
 
-        let v = check(&[c("protocraft-mystery", "/r/crates/mystery/Cargo.toml", &[])]);
-        assert!(matches!(&v[..], [Violation::Unregistered { krate }] if krate == "protocraft-mystery"));
+        let v = check(&[c("vizcraft-mystery", "/r/crates/mystery/Cargo.toml", &[])]);
+        assert!(matches!(&v[..], [Violation::Unregistered { krate }] if krate == "vizcraft-mystery"));
     }
 
     #[test]
     fn self_dev_dependency_ignored() {
-        assert!(check(&[c("protocraft-engine", "/r/crates/engine/Cargo.toml", &[("protocraft-engine", Dev, true)])]).is_empty());
+        assert!(check(&[c("vizcraft-engine", "/r/crates/engine/Cargo.toml", &[("vizcraft-engine", Dev, true)])]).is_empty());
     }
 
     #[test]
     fn metadata_parsing() {
         let meta: Value = serde_json::from_str(
             r#"{"packages":[
-                {"name":"protocraft-ui-egui","manifest_path":"/x/crates/ui-egui/Cargo.toml","dependencies":[
-                    {"name":"protocraft-engine","kind":null,"path":"/x/crates/engine"},
+                {"name":"vizcraft-ui-egui","manifest_path":"/x/crates/ui-egui/Cargo.toml","dependencies":[
+                    {"name":"vizcraft-engine","kind":null,"path":"/x/crates/engine"},
                     {"name":"egui","kind":null},
                     {"name":"egui_kittest","kind":"dev"}]},
-                {"name":"protocraft-engine","manifest_path":"/x/crates/engine/Cargo.toml","dependencies":[]}
+                {"name":"vizcraft-engine","manifest_path":"/x/crates/engine/Cargo.toml","dependencies":[]}
             ]}"#,
         )
         .unwrap();
         let g = from_metadata(&meta).unwrap();
         assert_eq!(g.len(), 2);
-        let ui = g.iter().find(|c| c.name == "protocraft-ui-egui").unwrap();
+        let ui = g.iter().find(|c| c.name == "vizcraft-ui-egui").unwrap();
         assert!(ui.deps[0].workspace && !ui.deps[1].workspace);
         assert_eq!(ui.deps[2].kind, Dev);
         assert!(check(&g).is_empty());

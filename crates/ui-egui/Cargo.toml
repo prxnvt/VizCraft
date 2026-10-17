@@ -1,16 +1,16 @@
 [package]
-name = "protocraft-ui-egui"
+name = "vizcraft-ui-egui"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "ProtoCraft egui front end (title bar, menus, ribbon, panes, status bar, dialogs, control); swappable: nothing below depends on it"
+description = "VizCraft egui front end (title bar, menus, ribbon, panes, status bar, dialogs, control); swappable: nothing below depends on it"
 
 [lints]
 workspace = true
 
 [dependencies]
-protocraft-engine = { workspace = true }
+vizcraft-engine = { workspace = true }
 egui = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

@@ -1,9 +1,9 @@
 [package]
-name = "protocraft-engine"
+name = "vizcraft-engine"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "ProtoCraft engine: Session, undo, the command registry; nothing here knows about egui"
+description = "VizCraft engine: Session, undo, the command registry; nothing here knows about egui"
 
 [lints]
 workspace = true

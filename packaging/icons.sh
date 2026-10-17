@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Regenerate every app icon from assets/app-icon/protocraft.svg.
+# Regenerate every app icon from assets/app-icon/vizcraft.svg.
 #
 # Needs an SVG rasteriser: rsvg-convert (brew install librsvg) or resvg (brew install resvg /
 # cargo install resvg). On a Mac without either, Quick Look (qlmanage) renders the SVG once at
@@ -12,7 +12,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIR="$ROOT/assets/app-icon"
-NAME="protocraft"
+NAME="vizcraft"
 SVG="$DIR/$NAME.svg"
 ID="ai.storyteller.$NAME"
 TMP="$(mktemp -d)"
@@ -51,7 +51,7 @@ sed 's/viewBox="0 0 512 512"/viewBox="-62.136 -62.136 636.272 636.272"/' "$SVG" 
 grep -q 'viewBox="-62.136' "$MAC" || { echo "error: expected viewBox=\"0 0 512 512\" in $SVG" >&2; exit 1; }
 
 render "$SVG" 1024 "$DIR/$NAME-1024.png"
-# Runtime window/Dock icon on macOS (embedded by apps/protocraft); other platforms use hicolor 256.
+# Runtime window/Dock icon on macOS (embedded by apps/vizcraft); other platforms use hicolor 256.
 render "$MAC" 512 "$DIR/$NAME-macos-512.png"
 
 # Linux hicolor theme.

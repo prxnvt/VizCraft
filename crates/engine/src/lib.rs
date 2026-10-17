@@ -1,4 +1,4 @@
-//! ProtoCraft engine (L4): the [`Session`], undo, and the command registry.
+//! VizCraft engine (L4): the [`Session`], undo, and the command registry.
 //!
 //! **Everything is a command.** Each user-visible action is a [`CommandSpec`] with a stable id
 //! (`file.save`, `edit.undo`, `view.zoomIn`), a label, the ribbon/menu location, a default

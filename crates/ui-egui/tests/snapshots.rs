@@ -3,8 +3,8 @@
 //! state-based tests cannot see.
 //!
 //! The test needs a GPU (or a software rasterizer wgpu can use). When no wgpu adapter exists, or
-//! `PROTOCRAFT_SKIP_SNAPSHOTS` is set, it prints a note and passes, so `cargo xtask ci` stays
-//! green on machines without one. `UPDATE_SNAPSHOTS=1 cargo test -p protocraft-ui-egui --test snapshots`
+//! `VIZCRAFT_SKIP_SNAPSHOTS` is set, it prints a note and passes, so `cargo xtask ci` stays
+//! green on machines without one. `UPDATE_SNAPSHOTS=1 cargo test -p vizcraft-ui-egui --test snapshots`
 //! rewrites the PNGs that changed (`docs/testing.md`, Snapshot tests).
 //!
 //! Shortcut text differs by platform (Cmd glyphs on macOS, `Ctrl+` elsewhere), so the references
@@ -17,9 +17,9 @@
 use egui_kittest::kittest::Queryable;
 use egui_kittest::wgpu::WgpuTestRenderer;
 use egui_kittest::{Harness, SnapshotOptions, SnapshotResults};
-use protocraft_engine::Session;
-use protocraft_ui_egui::{CraftApp, Services};
 use serde_json::json;
+use vizcraft_engine::Session;
+use vizcraft_ui_egui::{CraftApp, Services};
 
 const WIDTH: f32 = 1280.0;
 const HEIGHT: f32 = 800.0;
@@ -33,8 +33,8 @@ fn output_dir() -> String {
 /// without an adapter, so the panic is caught and silenced (this is the only test in the binary,
 /// so swapping the hook races with nothing).
 fn wgpu_available() -> bool {
-    if std::env::var_os("PROTOCRAFT_SKIP_SNAPSHOTS").is_some() {
-        eprintln!("snapshots: skipped (PROTOCRAFT_SKIP_SNAPSHOTS is set)");
+    if std::env::var_os("VIZCRAFT_SKIP_SNAPSHOTS").is_some() {
+        eprintln!("snapshots: skipped (VIZCRAFT_SKIP_SNAPSHOTS is set)");
         return false;
     }
     let hook = std::panic::take_hook();
@@ -54,7 +54,7 @@ fn wgpu_available() -> bool {
 
 /// The window at 1280x800 with the sample document, laid out the way the host does it.
 fn window(dark: bool) -> Harness<'static, CraftApp> {
-    let mut app = CraftApp::new(Session::new(protocraft_engine::sample::sample_document()), Services::default());
+    let mut app = CraftApp::new(Session::new(vizcraft_engine::sample::sample_document()), Services::default());
     app.ui.in_window_menus = true;
     app.integrated_titlebar = false;
     app.session.view.dark_mode = dark;

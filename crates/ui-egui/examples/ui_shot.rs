@@ -1,10 +1,10 @@
-//! Headless window screenshots: the whole ProtoCraft window rendered offscreen with
+//! Headless window screenshots: the whole VizCraft window rendered offscreen with
 //! `egui_kittest` and wgpu, driven by a script of control requests. No window opens, nothing
 //! steals focus, and it works with the screen locked, which is what makes it usable from an
 //! agent running in the background or in CI on a machine with a GPU.
 //!
 //! ```text
-//! cargo run -p protocraft-ui-egui --example ui_shot -- [--size 1440x920] [--scale 2] [--dark] [--empty] script.jsonl
+//! cargo run -p vizcraft-ui-egui --example ui_shot -- [--size 1440x920] [--scale 2] [--dark] [--empty] script.jsonl
 //! ```
 //!
 //! The script is JSON lines. Each line is a control request, the same JSON the socket takes
@@ -31,9 +31,9 @@
 use std::process::ExitCode;
 
 use egui_kittest::Harness;
-use protocraft_engine::Session;
-use protocraft_ui_egui::{ControlRequest, CraftApp, Services};
 use serde_json::{Value, json};
+use vizcraft_engine::Session;
+use vizcraft_ui_egui::{ControlRequest, CraftApp, Services};
 
 const USAGE: &str = "usage: ui_shot [--size WxH] [--scale N] [--dark] [--empty] script.jsonl";
 
@@ -128,7 +128,7 @@ fn main() -> ExitCode {
         }
     }
 
-    let doc = if opts.empty { protocraft_engine::Document::new() } else { protocraft_engine::sample::sample_document() };
+    let doc = if opts.empty { vizcraft_engine::Document::new() } else { vizcraft_engine::sample::sample_document() };
     let (tx, rx) = std::sync::mpsc::channel::<ControlRequest>();
     let mut app = CraftApp::new(Session::new(doc), Services::default()).with_control(rx);
     app.integrated_titlebar = cfg!(target_os = "macos");
@@ -153,7 +153,7 @@ fn main() -> ExitCode {
             // Give whatever the previous requests changed a few frames to be drawn, as the app does.
             step_n(&mut harness, 4);
             let path = params.get("path").and_then(Value::as_str).filter(|p| !p.trim().is_empty()).map(str::to_string);
-            let path = path.unwrap_or_else(protocraft_ui_egui::control::default_screenshot_path);
+            let path = path.unwrap_or_else(vizcraft_ui_egui::control::default_screenshot_path);
             match harness.render() {
                 Ok(img) => match img.save(&path) {
                     Ok(()) => json!({"ok": true, "result": {"path": path, "width": img.width(), "height": img.height()}}),

@@ -9,7 +9,7 @@ The example below makes "GridCraft", a spreadsheet. Replace the name and the mod
 ## 1. Create the repository
 
 ```sh
-cd ~/Workspace/crafts/craft-baseline                 # the template (ProtoCraft)
+cd ~/Workspace/crafts/craft-baseline                 # the template (VizCraft)
 cargo xtask new-craft gridcraft                      # writes ../gridcraft
 cd ../gridcraft
 cargo xtask ci                                       # proves the copy builds and passes every gate
@@ -18,7 +18,7 @@ cargo run --release -p gridcraft -- --sample
 
 `new-craft` copies the tracked files of the repository to a sibling folder (so no `target/`,
 no `.git/`, nothing untracked: commit first if you want local changes in the copy), renames
-`protocraft`, `ProtoCraft` and `PROTOCRAFT` in every file name and every file (crate and package
+`vizcraft`, `VizCraft` and `VIZCRAFT` in every file name and every file (crate and package
 names, the binaries, the bundle id `ai.storyteller.gridcraft`, the preferences folder
 `GridCraft`, `GRIDCRAFT_CONTROL_PORT` and `GRIDCRAFT_NO_PREFS`, the icon
 file names, these docs), runs `cargo fmt --all` on the copy (a name of a different length moves
@@ -31,8 +31,8 @@ Options:
   its first letter raised plus `Craft` (`gridcraft` becomes `GridCraft`).
 - `--display-name "Grid Craft"` sets the display name instead: ASCII letters and digits, words
   separated by single spaces. It is used in titles, menus, the About dialog, the preferences
-  folder and the bundle name; where `ProtoCraft` is glued to an identifier in code
-  (`ProtoCraftOpenDocumentsHandler`, the `ProtoCraftVersion` plist key) the spaces are dropped so
+  folder and the bundle name; where `VizCraft` is glued to an identifier in code
+  (`VizCraftOpenDocumentsHandler`, the `VizCraftVersion` plist key) the spaces are dropped so
   the code still compiles. Packaging scripts are not yet quoted for a name with a space in it, so
   check `packaging/` before you ship such a craft.
 - `--into <dir>` writes somewhere other than the sibling folder. A destination that already
@@ -43,7 +43,7 @@ Options:
 - If `git commit` fails for want of an identity, the copy is in place and staged; the message
   gives the `git config` lines and the commit to run.
 
-What you have now is ProtoCraft under a new name: the chrome, the baseline document, the control
+What you have now is VizCraft under a new name: the chrome, the baseline document, the control
 channel and the CLI all work. Commit nothing else until `cargo xtask ci` is green, then tag it;
 it is the point you compare against when something breaks later.
 
@@ -54,7 +54,7 @@ Then make the repository yours:
 - `AGENTS.md`: add the craft-specific sections (what product it resembles and how it may be
   observed, which public specifications its formats come from, its parity catalog if it keeps
   one). The shared rules stay.
-- `ROADMAP.md`: replace the ProtoCraft cascades with the craft's milestones.
+- `ROADMAP.md`: replace the VizCraft cascades with the craft's milestones.
 - `NOTICE`, `LICENSE-*`: the copyright line reads "GridCraft contributors" after the rename;
   adjust if the craft has another owner.
 - The About dialog (`crates/ui-egui/src/dialogs.rs`) links to the source repository; the rename
@@ -224,7 +224,7 @@ README](../packaging/README.md) describes the bundle and what the local installe
 
 ## 10. Keep the baseline close
 
-When you fix something in the chrome, fix it in ProtoCraft too (or first), so the next craft
+When you fix something in the chrome, fix it in VizCraft too (or first), so the next craft
 starts without the bug. A craft diverges in its model, its canvas, its commands and its tabs; the
 title bar, menus, pane manager, preferences, control channel and the `xtask` gates should stay
 recognisably the same code, which is what makes agents productive across the crafts.

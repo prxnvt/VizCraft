@@ -75,7 +75,7 @@ cat > /tmp/shot.jsonl <<'EOF'
 {"method": "ui.set", "params": {"path": "ribbonCollapsed", "value": true}}
 {"method": "ui.screenshot", "params": {"path": "/tmp/ribbon-collapsed.png"}}
 EOF
-cargo run -p protocraft-ui-egui --example ui_shot -- --size 1440x920 --dark /tmp/shot.jsonl
+cargo run -p vizcraft-ui-egui --example ui_shot -- --size 1440x920 --dark /tmp/shot.jsonl
 ```
 
 Each line is a control request without the `id` (`docs/control-protocol.md`); one reply line is
@@ -93,20 +93,20 @@ When only the real app will do (native menus, file dialogs, window geometry, mul
 it with a control port and talk to it with the CLI:
 
 ```sh
-PROTOCRAFT_NO_PREFS=1 cargo run --release -p protocraft -- --sample --control 7990
-protocraft-cli control 7990 ui.inspect
-protocraft-cli control 7990 engine.execute '{"command":"view.zoomIn","params":{}}'
-protocraft-cli control 7990 ui.screenshot '{"path":"/tmp/zoomed.png"}'
-protocraft-cli control 7990 app.quit
+VIZCRAFT_NO_PREFS=1 cargo run --release -p vizcraft -- --sample --control 7990
+vizcraft-cli control 7990 ui.inspect
+vizcraft-cli control 7990 engine.execute '{"command":"view.zoomIn","params":{}}'
+vizcraft-cli control 7990 ui.screenshot '{"path":"/tmp/zoomed.png"}'
+vizcraft-cli control 7990 app.quit
 ```
 
 `control` takes `host:port` or just the port, prints the reply line, and exits 0 only when the
 reply says `ok: true`. `control PORT -` forwards request lines from stdin, one reply each, for a
-whole script. `PROTOCRAFT_NO_PREFS=1` keeps the run from reading or overwriting your own
+whole script. `VIZCRAFT_NO_PREFS=1` keeps the run from reading or overwriting your own
 preferences. `--control 0` picks a free port and prints it:
 
 ```sh
-protocraft --control 0 --sample 2> /tmp/app.log &
+vizcraft --control 0 --sample 2> /tmp/app.log &
 PORT=$(grep -o 'listening on 127.0.0.1:[0-9]*' /tmp/app.log | sed 's/.*://')
 ```
 
@@ -119,8 +119,8 @@ The app opens a real window on the developer's desk. Keep it out of their way:
   one in front, so move every window after one opens:
 
   ```sh
-  PROTOCRAFT_NO_PREFS=1 protocraft --sample --control 7990 --window-pos -2500,100
-  osascript -e 'tell application "System Events" to tell process "protocraft" to set position of every window to {-2500, 100}'
+  VIZCRAFT_NO_PREFS=1 vizcraft --sample --control 7990 --window-pos -2500,100
+  osascript -e 'tell application "System Events" to tell process "vizcraft" to set position of every window to {-2500, 100}'
   ```
 
   (on this machine the left external monitor spans x -2560..0).
@@ -129,8 +129,8 @@ The app opens a real window on the developer's desk. Keep it out of their way:
   closed a dirty window), dismiss it through the channel first: `ui.inspect` shows
   `"dialog": {"dialog": "quit"}`, then `ui.click` on Don't Save or `ui.key` as the dialog
   documents, then `app.quit`.
-- Confirm nothing is left: `pgrep -fl protocraft || echo none`, and kill stragglers from your own
-  target directory with `pkill -f 'target-<branch>.*protocraft'`.
+- Confirm nothing is left: `pgrep -fl vizcraft || echo none`, and kill stragglers from your own
+  target directory with `pkill -f 'target-<branch>.*vizcraft'`.
 - Prefer `ui_shot` over the real app whenever a screenshot is all you need.
 
 ## Parallel-agent etiquette
@@ -160,7 +160,7 @@ sides folded, the About dialog and the command palette. They are test fixtures, 
 they need no `ATTRIBUTION.md` rows (`cargo xtask assets` scans `assets/` and `packaging/` only).
 
 The test is part of `cargo test` and so of `cargo xtask ci`, and it passes with a note instead of
-failing when it cannot run: no wgpu adapter on the machine, `PROTOCRAFT_SKIP_SNAPSHOTS=1` in the
+failing when it cannot run: no wgpu adapter on the machine, `VIZCRAFT_SKIP_SNAPSHOTS=1` in the
 environment, or no reference folder for this OS yet (shortcut text is platform-specific, so
 macOS references do not match Linux or Windows; the first run on a new OS records its own set).
 
@@ -169,7 +169,7 @@ the reference (both gitignored). Look at the diff; if the change is intended, re
 references and commit the PNGs with the code that changed them:
 
 ```sh
-UPDATE_SNAPSHOTS=1 cargo test -p protocraft-ui-egui --test snapshots
+UPDATE_SNAPSHOTS=1 cargo test -p vizcraft-ui-egui --test snapshots
 ```
 
 `UPDATE_SNAPSHOTS=1` rewrites only the snapshots that failed; `UPDATE_SNAPSHOTS=force` rewrites

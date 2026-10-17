@@ -2,13 +2,13 @@
 //! `ui.set` values, and a few frames of real layout and pointer input under egui_kittest.
 
 use egui_kittest::Harness;
-use protocraft_engine::Session;
-use protocraft_ui_egui::panes::{self, DEFAULT_HEIGHT, MAX_WIDTH, MIN_HEIGHT, MIN_WIDTH, PaneLayout, Side};
-use protocraft_ui_egui::{CraftApp, Services, UI_COMMANDS, control};
 use serde_json::{Value, json};
+use vizcraft_engine::Session;
+use vizcraft_ui_egui::panes::{self, DEFAULT_HEIGHT, MAX_WIDTH, MIN_HEIGHT, MIN_WIDTH, PaneLayout, Side};
+use vizcraft_ui_egui::{CraftApp, Services, UI_COMMANDS, control};
 
 fn app() -> CraftApp {
-    CraftApp::new(Session::new(protocraft_engine::sample::sample_document()), Services::default())
+    CraftApp::new(Session::new(vizcraft_engine::sample::sample_document()), Services::default())
 }
 
 fn layout(v: &Value) -> PaneLayout {

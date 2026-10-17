@@ -1,6 +1,6 @@
-# ProtoCraft architecture (the contract)
+# VizCraft architecture (the contract)
 
-ProtoCraft is the baseline every new "-craft" app starts from: the window chrome, menus, ribbon,
+VizCraft is the baseline every new "-craft" app starts from: the window chrome, menus, ribbon,
 panes, multi-window handling, preferences, control channel and repository conventions that
 WordCraft, GridCraft, DeckCraft, VectorCraft and the other crafts share, with a clean baseline
 document model ready to be extended. A new craft is made with `cargo xtask new-craft <name>`
@@ -13,10 +13,10 @@ the code that depends on it, and say so in the commit message.
 
 | Layer | Crate | Job |
 |---|---|---|
-| L4 | `crates/engine` (`protocraft-engine`) | `Session`, undo, command registry, sample document model, I/O |
-| L6 | `crates/ui-egui` (`protocraft-ui-egui`) | egui front end: theme, chrome, menus, ribbon, panes, dialogs, keys, control |
+| L4 | `crates/engine` (`vizcraft-engine`) | `Session`, undo, command registry, sample document model, I/O |
+| L6 | `crates/ui-egui` (`vizcraft-ui-egui`) | egui front end: theme, chrome, menus, ribbon, panes, dialogs, keys, control |
 | platform | `crates/macos-open` | Finder Open Documents (odoc) Apple Event, safe API |
-| apps | `apps/protocraft`, `apps/protocraft-cli` (later `apps/protocraft-web`) | binaries |
+| apps | `apps/vizcraft`, `apps/vizcraft-cli` (later `apps/vizcraft-web`) | binaries |
 | tooling | `xtask` | `cargo xtask ci`, `layers`, `assets`, `wasm`, `new-craft` |
 
 Nothing in `engine` depends on egui/eframe/winit/rfd/muda. `ui-egui` depends on `egui` only (not
@@ -49,7 +49,7 @@ handles it.
 Command id prefixes: `file.*`, `edit.*`, `view.*`, `insert.*`, `format.*`, `window.*`, `help.*`,
 `ui.*` (UI layer), `app.*` (app-level: `app.quit`, `app.preferences`, `app.about`).
 
-## Engine (`protocraft-engine`) public API
+## Engine (`vizcraft-engine`) public API
 
 ```rust
 pub struct Session {
@@ -81,7 +81,7 @@ exist and are what the chrome exercises. Engine crate root carries
 `#![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]`.
 A test `hostile_params_never_panic` runs every command with junk params.
 
-## UI (`protocraft-ui-egui`) public API
+## UI (`vizcraft-ui-egui`) public API
 
 Modules: `theme`, `icons`, `widgets`, `chrome` (title bar + status bar), `menus` (menu tree +
 in-window menu bar), `ribbon`, `panes` (side panes, `PaneSpec`, `set_panes`), `canvas` (`Viewport2D`
@@ -146,7 +146,7 @@ The desktop app's `native_menu.rs` (muda, macOS only) builds from `menu_tree`, a
 (About, Settings, Services, Hide, Hide Others, Show All, Quit as our own `app.quit` so unsaved
 changes are asked about) and the Window menu, and delivers item ids back to the host each frame.
 
-### Multi-window (`apps/protocraft/src/windows.rs`)
+### Multi-window (`apps/vizcraft/src/windows.rs`)
 
 Pattern from WordCraft/GridCraft: the first window is eframe's root viewport, further windows are
 immediate viewports each with its own `CraftApp`. Cmd+N opens a window in the same process (one
@@ -154,7 +154,7 @@ Dock icon). Closing the root while others exist hands the root to the next windo
 each window with unsaved changes in turn; Cancel stops quitting. Cmd+W closes the front window
 asking to save. The control channel stays with the app when the first window closes.
 
-### Control channel (`--control <port>`, `PROTOCRAFT_CONTROL_PORT`)
+### Control channel (`--control <port>`, `VIZCRAFT_CONTROL_PORT`)
 
 JSON lines on 127.0.0.1: `{"id":1,"method":"engine.execute","params":{"command":"file.new","params":{}}}`
 -> `{"id":1,"ok":true,"result":...}`. Methods: `engine.execute`, `engine.commands`, `ui.inspect`,
@@ -164,8 +164,8 @@ JSON lines on 127.0.0.1: `{"id":1,"method":"engine.execute","params":{"command":
 
 ### Preferences
 
-`~/Library/Application Support/ProtoCraft/ui.json` (macOS), `%APPDATA%\ProtoCraft\ui.json`,
-`$XDG_CONFIG_HOME/protocraft/ui.json`. `PROTOCRAFT_NO_PREFS=1` disables. Window geometry is saved
+`~/Library/Application Support/VizCraft/ui.json` (macOS), `%APPDATA%\VizCraft\ui.json`,
+`$XDG_CONFIG_HOME/vizcraft/ui.json`. `VIZCRAFT_NO_PREFS=1` disables. Window geometry is saved
 in it and restored (sanitized) at launch.
 
 ## Conventions

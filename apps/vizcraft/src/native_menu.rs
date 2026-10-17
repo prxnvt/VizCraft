@@ -12,9 +12,9 @@ use std::sync::mpsc::{Receiver, channel};
 
 use muda::accelerator::Accelerator;
 use muda::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu};
-use protocraft_ui_egui::menus::{self, Item, MenuRole};
-use protocraft_ui_egui::{CraftApp, widgets};
 use serde_json::{Value, json};
+use vizcraft_ui_egui::menus::{self, Item, MenuRole};
+use vizcraft_ui_egui::{CraftApp, widgets};
 
 /// The native menu bar and the command behind each of its items.
 pub struct NativeMenu {
@@ -138,8 +138,8 @@ impl NativeMenu {
         self.bound.clear();
         self.tree = menus::menu_tree(app);
         let menu = Menu::new();
-        let app_menu = Submenu::new("ProtoCraft", true);
-        let _ = app_menu.append_items(&[&self.item(app, "About ProtoCraft", "app.about", json!({})), &PredefinedMenuItem::separator()]);
+        let app_menu = Submenu::new("VizCraft", true);
+        let _ = app_menu.append_items(&[&self.item(app, "About VizCraft", "app.about", json!({})), &PredefinedMenuItem::separator()]);
         // An `App` menu in the tree contributes its items to the app menu.
         for m in self.tree.clone().iter().filter(|m| m.role == MenuRole::App) {
             self.fill(app, &app_menu, &m.items);

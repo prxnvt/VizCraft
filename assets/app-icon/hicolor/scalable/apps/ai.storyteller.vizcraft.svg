@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- ProtoCraft placeholder app icon. Original work by ProtoCraft contributors, MIT OR Apache-2.0.
+  <!-- VizCraft placeholder app icon. Original work by VizCraft contributors, MIT OR Apache-2.0.
        A rounded tile with a plinth of three widening bars (the base) and a block resting on it
        (the craft built on top). A new craft replaces this with its own drawing. -->
   <rect width="512" height="512" rx="112" fill="#2F5D62"/>

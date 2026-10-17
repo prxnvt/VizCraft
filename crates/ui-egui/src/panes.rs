@@ -60,9 +60,32 @@ impl Side {
     }
 }
 
-use std::sync::RwLock;
+/// Panes a craft registered with [`set_panes`]; `None` means the default set.
+#[cfg(not(test))]
+static CUSTOM_PANES: std::sync::RwLock<Option<Vec<PaneSpec>>> = std::sync::RwLock::new(None);
 
-static CUSTOM_PANES: RwLock<Option<Vec<PaneSpec>>> = RwLock::new(None);
+// Unit tests run in parallel threads of one process; a process-wide registry would let the test
+// that registers custom panes leak them into every other test running at the same moment.
+#[cfg(test)]
+thread_local! {
+    static CUSTOM_PANES: std::cell::RefCell<Option<Vec<PaneSpec>>> = const { std::cell::RefCell::new(None) };
+}
+
+fn store_custom_panes(specs: Option<Vec<PaneSpec>>) {
+    #[cfg(not(test))]
+    if let Ok(mut lock) = CUSTOM_PANES.write() {
+        *lock = specs;
+    }
+    #[cfg(test)]
+    CUSTOM_PANES.with(|c| *c.borrow_mut() = specs);
+}
+
+fn custom_panes() -> Option<Vec<PaneSpec>> {
+    #[cfg(not(test))]
+    return CUSTOM_PANES.read().ok().and_then(|lock| lock.clone());
+    #[cfg(test)]
+    return CUSTOM_PANES.with(|c| c.borrow().clone());
+}
 
 /// One pane the manager can show.
 #[derive(Clone, Copy, Debug)]
@@ -94,24 +117,18 @@ impl PaneSpec {
 
 /// Register custom pane specifications for the application.
 pub fn set_panes(specs: Vec<PaneSpec>) {
-    if let Ok(mut lock) = CUSTOM_PANES.write() {
-        *lock = Some(specs);
-    }
+    store_custom_panes(Some(specs));
 }
 
 /// Reset pane specifications to the default set.
 pub fn reset_panes() {
-    if let Ok(mut lock) = CUSTOM_PANES.write() {
-        *lock = None;
-    }
+    store_custom_panes(None);
 }
 
 /// Every pane, in the order the Window menu lists them.
 pub fn panes() -> Vec<PaneSpec> {
-    if let Ok(lock) = CUSTOM_PANES.read()
-        && let Some(custom) = lock.as_ref()
-    {
-        return custom.clone();
+    if let Some(custom) = custom_panes() {
+        return custom;
     }
     vec![
         PaneSpec::new("navigation", "Navigation", Side::Left, 240.0, navigation),

@@ -5,13 +5,13 @@
 use egui::{Key, Modifiers};
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
-use protocraft_engine::{Document, Session};
-use protocraft_ui_egui::menus::{self, Item};
-use protocraft_ui_egui::{CraftApp, Services, UI_COMMANDS};
 use serde_json::json;
+use vizcraft_engine::{Document, Session};
+use vizcraft_ui_egui::menus::{self, Item};
+use vizcraft_ui_egui::{CraftApp, Services, UI_COMMANDS};
 
 fn app() -> CraftApp {
-    let mut app = CraftApp::new(Session::new(protocraft_engine::sample::sample_document()), Services::default());
+    let mut app = CraftApp::new(Session::new(vizcraft_engine::sample::sample_document()), Services::default());
     // The bar is drawn on every platform when the preference says so.
     app.ui.in_window_menus = true;
     app

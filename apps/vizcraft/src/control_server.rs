@@ -6,15 +6,15 @@
 //! goes away mid-request is simply dropped. A request the UI does not answer within
 //! [`REPLY_TIMEOUT`] (the window is hidden, or a modal has the thread) gets `timeout` back and the
 //! connection stays usable. Port `0` asks the OS for a free port; the chosen one is printed as
-//! `protocraft: control server listening on 127.0.0.1:<port>` so a script can parse it.
+//! `vizcraft: control server listening on 127.0.0.1:<port>` so a script can parse it.
 
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::time::Duration;
 
-use protocraft_ui_egui::ControlRequest;
 use serde_json::{Value, json};
+use vizcraft_ui_egui::ControlRequest;
 
 /// How long a client waits for the UI thread before the request is answered with `timeout`.
 pub const REPLY_TIMEOUT: Duration = Duration::from_secs(60);
@@ -29,12 +29,12 @@ pub fn start(port: u16, ctx: egui::Context) -> Receiver<ControlRequest> {
     let listener = match TcpListener::bind(("127.0.0.1", port)) {
         Ok(l) => l,
         Err(e) => {
-            eprintln!("protocraft: control server failed to bind 127.0.0.1:{port}: {e} (is another instance using --control {port}?)");
+            eprintln!("vizcraft: control server failed to bind 127.0.0.1:{port}: {e} (is another instance using --control {port}?)");
             return rx;
         }
     };
     let bound = listener.local_addr().map(|a| a.port()).unwrap_or(port);
-    eprintln!("protocraft: control server listening on 127.0.0.1:{bound}");
+    eprintln!("vizcraft: control server listening on 127.0.0.1:{bound}");
     std::thread::spawn(move || {
         for stream in listener.incoming() {
             let stream = match stream {

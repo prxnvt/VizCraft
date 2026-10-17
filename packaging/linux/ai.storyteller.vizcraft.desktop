@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=VizCraft
+GenericName=Craft Baseline
+Comment=VizCraft desktop app; the template the craft apps are made from
+Exec=vizcraft %F
+TryExec=vizcraft
+Icon=ai.storyteller.vizcraft
+Terminal=false
+StartupNotify=true
+StartupWMClass=ai.storyteller.vizcraft
+Categories=Office;
+Keywords=craft;vizcraft;
+MimeType=application/json;

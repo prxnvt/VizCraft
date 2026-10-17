@@ -3,16 +3,16 @@
 
 use egui::{Rect, Shape, pos2, vec2};
 use egui_kittest::kittest::Queryable as _;
-use protocraft_engine::Session;
-use protocraft_ui_egui::ribbon::{self, Control, Group, Overflow, Tab};
-use protocraft_ui_egui::theme::Tokens;
-use protocraft_ui_egui::{CraftApp, Services, UI_COMMANDS, icons, widgets};
 use serde_json::json;
+use vizcraft_engine::Session;
+use vizcraft_ui_egui::ribbon::{self, Control, Group, Overflow, Tab};
+use vizcraft_ui_egui::theme::Tokens;
+use vizcraft_ui_egui::{CraftApp, Services, UI_COMMANDS, icons, widgets};
 
 type Harness = egui_kittest::Harness<'static, CraftApp>;
 
 fn app() -> CraftApp {
-    CraftApp::new(Session::new(protocraft_engine::sample::sample_document()), Services::default())
+    CraftApp::new(Session::new(vizcraft_engine::sample::sample_document()), Services::default())
 }
 
 fn harness_at(width: f32, tab: &str) -> Harness {
@@ -163,7 +163,7 @@ fn collapsing_hides_the_body_and_a_tab_click_shows_it_as_a_popup() {
 fn contextual_tabs_show_only_while_their_condition_holds() {
     let mut h = harness();
     assert!(h.query_by_label("Selection tab").is_none());
-    h.state_mut().session.sel = protocraft_engine::Selection::single("elem1");
+    h.state_mut().session.sel = vizcraft_engine::Selection::single("elem1");
     h.run_steps(3);
     assert!(h.query_by_label("Selection tab").is_some());
     h.get_by_label("Selection tab").click();
@@ -171,7 +171,7 @@ fn contextual_tabs_show_only_while_their_condition_holds() {
     assert_eq!(h.state().ui.tab, "Selection");
     assert!(h.query_by_label("Select All").is_some());
     // When the condition stops holding the strip falls back to the first tab's body.
-    h.state_mut().session.sel = protocraft_engine::Selection::empty();
+    h.state_mut().session.sel = vizcraft_engine::Selection::empty();
     h.run_steps(3);
     assert!(h.query_by_label("Selection tab").is_none());
     assert!(h.query_by_label("Undo").is_some(), "Home shows while the chosen tab is hidden");
@@ -281,10 +281,10 @@ fn icons_draw_inside_their_box_at_every_size() {
     assert!(shapes_of("nothing", 20.0, false).iter().any(|s| matches!(s, Shape::Text(_))));
 }
 
-/// `PROTOCRAFT_ICON_SHEET=/path.png` saves every icon at 16, 20 and 32 px in both themes for review.
+/// `VIZCRAFT_ICON_SHEET=/path.png` saves every icon at 16, 20 and 32 px in both themes for review.
 #[test]
 fn icon_sheet() {
-    let Ok(path) = std::env::var("PROTOCRAFT_ICON_SHEET") else { return };
+    let Ok(path) = std::env::var("VIZCRAFT_ICON_SHEET") else { return };
     let n = icons::NAMES.len() as f32;
     let mut h = egui_kittest::Harness::builder().with_size(vec2(n * 40.0 + 16.0, 260.0)).with_pixels_per_point(2.0).build_ui(|ui| {
         let full = ui.max_rect();

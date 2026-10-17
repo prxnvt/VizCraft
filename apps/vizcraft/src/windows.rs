@@ -7,7 +7,7 @@
 //! window with unsaved changes in turn; Cancel on any of them stops quitting.
 
 use egui::{Pos2, Rect, Vec2, ViewportBuilder, ViewportCommand, ViewportId, vec2};
-use protocraft_ui_egui::CraftApp;
+use vizcraft_ui_egui::CraftApp;
 
 /// How far a new window sits from the one in front, in points, right and down.
 pub const CASCADE: f32 = 28.0;
@@ -102,7 +102,7 @@ impl Windows {
     pub fn open(&mut self, ctx: &egui::Context, mut app: CraftApp, base: ViewportBuilder) {
         app.multi_window = true;
         self.next_id += 1;
-        let id = ViewportId::from_hash_of(("protocraft-window", self.next_id));
+        let id = ViewportId::from_hash_of(("vizcraft-window", self.next_id));
         let front = match self.extras.iter().find(|e| Some(e.id) == self.focused) {
             Some(e) => e.outer,
             None => ctx.input(|i| i.viewport().outer_rect),

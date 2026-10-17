@@ -1,14 +1,14 @@
 //! The browser shell: web `Services` (picker, inbox, download), drag and drop, preferences in
 //! `localStorage`, and the eframe web runner.
 
-use protocraft_engine::Session;
-use protocraft_ui_egui::{CraftApp, Inbox, Services, UiState};
+use vizcraft_engine::Session;
+use vizcraft_ui_egui::{CraftApp, Inbox, Services, UiState};
 use wasm_bindgen::JsCast as _;
 
-const CANVAS_ID: &str = "protocraft_canvas";
-const LOADING_ID: &str = "protocraft_loading";
+const CANVAS_ID: &str = "vizcraft_canvas";
+const LOADING_ID: &str = "vizcraft_loading";
 /// The `localStorage` key for `UiState`, the same JSON the desktop app keeps in `ui.json`.
-const PREFS_KEY: &str = "protocraft.ui";
+const PREFS_KEY: &str = "vizcraft.ui";
 
 pub fn start() {
     eframe::WebLogger::init(log::LevelFilter::Info).ok();
@@ -33,11 +33,10 @@ pub fn start() {
                 options,
                 Box::new(move |cc| {
                     if let Some(rs) = &cc.wgpu_render_state {
-                        log::info!("protocraft-web: wgpu backend {:?}", rs.adapter.get_info().backend);
+                        log::info!("vizcraft-web: wgpu backend {:?}", rs.adapter.get_info().backend);
                     }
                     let inbox: Inbox = Inbox::default();
-                    let doc =
-                        if query().contains("sample") { protocraft_engine::sample::sample_document() } else { protocraft_engine::Document::new() };
+                    let doc = if query().contains("sample") { vizcraft_engine::sample::sample_document() } else { vizcraft_engine::Document::new() };
                     let mut app = CraftApp::new(Session::new(doc), services(inbox.clone(), cc.egui_ctx.clone()));
                     // One document per page: there is no second window to open.
                     app.multi_window = false;
@@ -56,7 +55,7 @@ pub fn start() {
         if let Some(el) = document.get_element_by_id(LOADING_ID) {
             match result {
                 Ok(()) => el.remove(),
-                Err(e) => el.set_inner_html(&format!("<p>ProtoCraft failed to start: {e:?}</p><p>A browser with WebGPU or WebGL2 is required.</p>")),
+                Err(e) => el.set_inner_html(&format!("<p>VizCraft failed to start: {e:?}</p><p>A browser with WebGPU or WebGL2 is required.</p>")),
             }
         }
     });
@@ -120,7 +119,7 @@ fn services(inbox: Inbox, ctx: egui::Context) -> Services {
         open_async: Some(Box::new(move |_purpose: &str| {
             let inbox = open_inbox.clone();
             let ctx = ctx.clone();
-            let dialog = rfd::AsyncFileDialog::new().add_filter("ProtoCraft documents", &["json"]);
+            let dialog = rfd::AsyncFileDialog::new().add_filter("VizCraft documents", &["json"]);
             wasm_bindgen_futures::spawn_local(async move {
                 let Some(file) = dialog.pick_file().await else {
                     return;

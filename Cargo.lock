@@ -2599,79 +2599,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d595e54a326bc53c1c197b32d295e14b169e3cfeaa8dc82b529f947fba6bcf5"
 
 [[package]]
-name = "protocraft"
-version = "0.1.0"
-dependencies = [
- "eframe",
- "egui",
- "log",
- "muda",
- "protocraft-engine",
- "protocraft-macos-open",
- "protocraft-ui-egui",
- "rfd",
- "serde_json",
- "winresource",
-]
-
-[[package]]
-name = "protocraft-cli"
-version = "0.1.0"
-dependencies = [
- "protocraft-engine",
- "serde_json",
-]
-
-[[package]]
-name = "protocraft-engine"
-version = "0.1.0"
-dependencies = [
- "log",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "protocraft-macos-open"
-version = "0.1.0"
-dependencies = [
- "objc2 0.6.5",
- "objc2-foundation 0.3.2",
-]
-
-[[package]]
-name = "protocraft-ui-egui"
-version = "0.1.0"
-dependencies = [
- "egui",
- "egui_kittest",
- "image",
- "log",
- "protocraft-engine",
- "serde",
- "serde_json",
- "web-time",
-]
-
-[[package]]
-name = "protocraft-web"
-version = "0.1.0"
-dependencies = [
- "eframe",
- "egui",
- "js-sys",
- "log",
- "protocraft-engine",
- "protocraft-ui-egui",
- "rfd",
- "serde_json",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
-]
-
-[[package]]
 name = "pxfm"
 version = "0.1.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3461,6 +3388,79 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "vizcraft"
+version = "0.1.0"
+dependencies = [
+ "eframe",
+ "egui",
+ "log",
+ "muda",
+ "rfd",
+ "serde_json",
+ "vizcraft-engine",
+ "vizcraft-macos-open",
+ "vizcraft-ui-egui",
+ "winresource",
+]
+
+[[package]]
+name = "vizcraft-cli"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "vizcraft-engine",
+]
+
+[[package]]
+name = "vizcraft-engine"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "vizcraft-macos-open"
+version = "0.1.0"
+dependencies = [
+ "objc2 0.6.5",
+ "objc2-foundation 0.3.2",
+]
+
+[[package]]
+name = "vizcraft-ui-egui"
+version = "0.1.0"
+dependencies = [
+ "egui",
+ "egui_kittest",
+ "image",
+ "log",
+ "serde",
+ "serde_json",
+ "vizcraft-engine",
+ "web-time",
+]
+
+[[package]]
+name = "vizcraft-web"
+version = "0.1.0"
+dependencies = [
+ "eframe",
+ "egui",
+ "js-sys",
+ "log",
+ "rfd",
+ "serde_json",
+ "vizcraft-engine",
+ "vizcraft-ui-egui",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
 
 [[package]]
 name = "walkdir"

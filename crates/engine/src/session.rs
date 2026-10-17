@@ -158,7 +158,7 @@ impl Session {
             doc,
             path: None,
             dirty: false,
-            author: "ProtoCraft User".into(),
+            author: "VizCraft User".into(),
             view: ViewState::default(),
             transport: TransportState::default(),
             registry: crate::cmd::registry(),

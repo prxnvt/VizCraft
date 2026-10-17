@@ -174,7 +174,7 @@ mod tests {
     use super::*;
 
     fn app() -> CraftApp {
-        CraftApp::new(protocraft_engine::Session::new(protocraft_engine::Document::new()), crate::Services::default())
+        CraftApp::new(vizcraft_engine::Session::new(vizcraft_engine::Document::new()), crate::Services::default())
     }
 
     #[test]

@@ -72,7 +72,7 @@ mod imp {
 
     define_class!(
         #[unsafe(super(NSObject))]
-        #[name = "ProtoCraftOpenDocumentsHandler"]
+        #[name = "VizCraftOpenDocumentsHandler"]
         struct OpenHandler;
 
         unsafe impl NSObjectProtocol for OpenHandler {}

@@ -160,7 +160,7 @@ pub fn menu_tree(app: &CraftApp) -> Vec<Menu> {
                 Item::Cmd("Keyboard Shortcuts...", "ui.shortcuts", json!({})),
                 Item::Cmd("Command Palette", "ui.commands", json!({})),
                 Item::Sep,
-                Item::Cmd("About ProtoCraft", "help.about", json!({})),
+                Item::Cmd("About VizCraft", "help.about", json!({})),
             ],
         },
     ]
@@ -738,7 +738,7 @@ mod tests {
     use super::*;
 
     fn app() -> CraftApp {
-        CraftApp::new(protocraft_engine::Session::new(protocraft_engine::Document::new()), crate::Services::default())
+        CraftApp::new(vizcraft_engine::Session::new(vizcraft_engine::Document::new()), crate::Services::default())
     }
 
     #[test]

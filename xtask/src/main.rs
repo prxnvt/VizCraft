@@ -8,7 +8,6 @@
 mod assets;
 mod ico;
 mod layers;
-mod new_craft;
 mod version;
 
 use std::path::{Path, PathBuf};
@@ -24,8 +23,6 @@ tasks:
   wasm            cargo check --target wasm32-unknown-unknown for the engine, ui-egui and *-web crates
   ico <out.ico> <in.png>...
                   pack square PNGs (<= 256 px) into a Windows .ico (used by packaging/icons.sh)
-  new-craft <name> [--into <dir>] [--display-name \"<Display Name>\"]
-                  copy this repository to <dir> (default ../<name>) renaming protocraft -> <name>
   version         print the workspace version and the git commit
   help            this text
 ";
@@ -39,7 +36,6 @@ fn main() -> ExitCode {
         Some("assets") => assets::run(&root()),
         Some("wasm") => cmd_wasm().map(|_| ()),
         Some("ico") => ico::run(&rest),
-        Some("new-craft") => new_craft::run(&root(), &rest),
         Some("version") => version::run(&root()),
         Some("-h" | "--help" | "help") | None => {
             print!("{USAGE}");

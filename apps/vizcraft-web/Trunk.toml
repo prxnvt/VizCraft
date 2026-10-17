@@ -1,4 +1,4 @@
-# Build with: trunk build --release   (from apps/protocraft-web); build.sh is the trunk-free way.
+# Build with: trunk build --release   (from apps/vizcraft-web); build.sh is the trunk-free way.
 [build]
 target = "index.html"
 dist = "../../dist/web"
