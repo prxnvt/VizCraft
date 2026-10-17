@@ -1,10 +1,13 @@
 # Feature parity catalog
 
-This catalog lists the Visio-class features VizCraft aims for, grouped by area, with the cascade
-in [ROADMAP.md](../ROADMAP.md) that schedules each and its state. It names features only: this is
-a clean-room project, so descriptions are our own words and never another product's wording (see
-[AGENTS.md](../AGENTS.md)). The MCP tools that mirror draw.io's MCP server are listed under Agent
-integration.
+This catalog lists the features VizCraft aims for, grouped by area, with the cascade in
+[ROADMAP.md](../ROADMAP.md) that schedules each and its state. It covers Visio-class editing
+and the engineering-workbench features (semantic model, notation packs, validation and
+identity, workspace, patterns, code-scaffold generation and the three audience packs) from
+[docs/research/professional-features.md](research/professional-features.md). It names features
+only: this is a clean-room project, so descriptions are our own words and never another product's
+wording (see [AGENTS.md](../AGENTS.md)). The MCP tools that mirror draw.io's MCP server are listed
+under Agent integration.
 
 When a feature lands, change its State in the same commit as the code. States:
 
@@ -99,7 +102,7 @@ When a feature lands, change its State in the same commit as the code. States:
 | Groups | 2 | planned | Move and resize as one |
 | Containers | 2 | planned | Members move with the container; container fits its members |
 | Swimlanes | 2 | planned | Lanes in a cross-functional flowchart |
-| Pools and lanes | 4 | planned | BPMN variant of swimlanes |
+| Pools and lanes | 6 | planned | BPMN variant of swimlanes |
 
 ## Themes and styles
 
@@ -127,7 +130,7 @@ When a feature lands, change its State in the same commit as the code. States:
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
 | Shape data | 2 | planned | Key and value pairs on shapes; Shape Data pane |
-| Data graphics | 4 | planned | Callouts, icon sets, colour by value |
+| Data graphics | 8 | planned | Callouts, icon sets, colour by value |
 | Import from CSV | 3 | planned | draw.io-style CSV; org charts from CSV in Cascade 4 |
 
 ## Diagram types and templates
@@ -135,22 +138,208 @@ When a feature lands, change its State in the same commit as the code. States:
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
 | Flowchart | 1 | done | Flowchart stencil set in the Shapes pane and Insert tab |
-| Cross-functional flowchart | 4 | planned | Template on swimlanes from Cascade 2 |
-| Org chart | 4 | planned | Stencils and a CSV-driven template |
-| UML | 4 | planned | Class, sequence, state, activity, use case |
-| BPMN | 4 | planned | Events, activities, gateways, pools and lanes |
-| ER | 4 | planned | Entities and crow's foot relationships |
-| Network | 4 | planned | Generic devices drawn originally; no vendor brand icons |
-| Timeline | 4 | planned | Timeline shapes and template |
+| Cross-functional flowchart | 8 | planned | Template on swimlanes from Cascade 2 |
+| Org chart | 8 | planned | Stencils and a CSV-driven template |
+| UML | 6 | planned | Class, sequence, state, activity, use case |
+| BPMN | 6 | planned | Events, activities, gateways, pools and lanes |
+| ER | 6 | planned | Entities and crow's foot relationships |
+| Network | 8 | planned | Generic devices drawn originally; no vendor brand icons |
+| Timeline | 8 | planned | Timeline shapes and template |
 
 ## Review
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| Comments | 4 | planned | On shapes and pages |
-| Hyperlinks | 4 | planned | To pages, shapes and URLs |
-| Validation | 4 | planned | Rule sets with an issues pane |
+| Comments | 8 | planned | On shapes and pages |
+| Hyperlinks | 8 | planned | To pages, shapes and URLs |
+| Validation | 4A | planned | Rule sets with an issues pane |
 | Find and replace | 2 | planned | Shape text and shape data |
+
+## Semantic model and notation packs
+
+| Feature | Cascade | State | Notes |
+|---|---|---|---|
+| Semantic model | 4A | planned | `vizcraft-model`: elements, relationships and a containment tree, with stable ids and pack-qualified types |
+| Views over the model | 4A | planned | One element shown in many views; geometry lives in the view, keyed by element id |
+| Shape-to-element references | 4A | planned | Optional `Shape.element` and `Connector.relationship`; shapes without one stay free drawing |
+| Delete from view or from model | 4A | planned | Removing a shape from a view keeps the element unless asked |
+| Model section in `.vizcraft` | 4A | planned | Versioned; older files load as free drawing |
+| Notation pack format | 4A | planned | `vizcraft-notation`: versioned JSON or TOML packs with element types, property schemas, ports, glyphs, palette groups, viewpoints, identifier formats and rules |
+| Connection table | 4A | planned | Legal source type, relationship type and target type, with multiplicity |
+| Conditional styles | 4A | planned | Styles keyed on property values, declared in the pack |
+| Viewpoints | 4A | planned | Named filters of allowed types per view |
+| Basic and Flowchart packs | 4A | planned | The existing sets re-expressed as the first two packs |
+| Rules engine, live | 4A | planned | Cheap rules after every command |
+| Rules engine, batch | 4A | planned | Expensive rules on selection, page or project |
+| Structured issues | 4A | planned | Rule id, severity, element ids, message; returned with every MCP command batch |
+| Notation schema discovery over MCP | 4A | planned | Agents list packs, types, properties and legal relationships |
+| Implied relationships | 6 | planned | Parent-level links derived from child links (C4 first) |
+| Impact analysis, relationship matrix, baselines and model diff | 7 | planned | Analysis over the model |
+| Runtime-loaded packs | 8 | planned | Third-party packs loaded from files at run time |
+
+## Workspace and insertion
+
+| Feature | Cascade | State | Notes |
+|---|---|---|---|
+| Model tree pane | 4B | planned | Default left tab; containment tree with views per element and a Diagrams branch |
+| Model tree Context mode | 4B | planned | Follows the canvas selection |
+| Scoped Palette pane | 4B | planned | Replaces the full-height tile grid; filtered by the active notation and viewpoint |
+| Patterns tab | 5A | planned | Pattern library filtered by audience and notation, with parameter forms |
+| Typed Inspector | 4B | planned | Grows the Shape Data pane; Standard and Expert modes; relationships list; appears in N views; Format tab |
+| Problems tab | 4B | planned | Validation issues; click to navigate |
+| Tables tab | 5B | planned | Model-derived lists and matrices, edited in place |
+| Search results tab | 4B | planned | Bottom dock |
+| Generate tab | 5B | planned | Scaffold preview diff and run log |
+| Agent activity view | 4B | planned | Each agent batch as one undoable transaction |
+| Hover suggest-and-connect | 4B | planned | Clone and connect, suggesting only legal next element types |
+| Double-click insert picker | 4B | planned | Type to insert on empty canvas |
+| Keyboard chaining | 4B | planned | Alt+Shift+Arrow adds a connected element |
+| Magic connector | 4B | planned | Offers only legal relationship types |
+| Command palette over the model | 4B | planned | Cmd/Ctrl+K over commands, element types, patterns and elements by name or tag |
+| Notation ribbon tabs | 4B | planned | Contextual tab per active notation, plus Model, Validate and Generate tabs |
+| New from notation | 4B | planned | Backstage grouped by audience |
+| Drill-down breadcrumbs | 4B | planned | Navigation between parent and child views |
+
+## Validation and identity
+
+| Feature | Cascade | State | Notes |
+|---|---|---|---|
+| Identity registry | 4A | planned | Project-wide tags and reference designations |
+| Auto-numbering | 4A | planned | Loop numbers, line numbers and designations handed out by the registry |
+| Uniqueness checks | 4A | planned | Duplicate tags raise a live issue; the Inspector shows the check as you type |
+| Composed identifiers | 4A | planned | Identifier formats declared by the pack (for example letters, loop number and suffix) |
+| ISA-5.1 tags and composed line numbers | 6 | planned | Configurable formats in the P&ID pack, not hardcoded letter tables |
+| IEC 81346 reference designations | 7 | planned | Electrical pack |
+| Off-page connector pairing | 4A | planned | Paired objects, matched by identifier |
+| Unmatched off-page detection | 4A | planned | An off-page connector with no continuation raises an issue |
+| Cross-reference display | 7 | planned | Live cross-references between paired items in the electrical pack |
+| Flowchart rules | 4A | planned | Unconnected connectors and dangling decisions, declared in the Flowchart pack |
+| Statechart checks | 6 | planned | Unreachable states, dead ends, unknown events |
+| Memory map checks | 6 | planned | Overlap, alignment, overflow |
+| Cross-sheet continuity | 6 | planned | P&ID batch rule |
+| Port compatibility | 7 | planned | Component and port architecture pack |
+
+## Patterns
+
+| Feature | Cascade | State | Notes |
+|---|---|---|---|
+| Pattern framework | 5A | planned | `vizcraft-patterns`: typed-parameter generators that emit model elements in one undo step |
+| `pattern.insert` | 5A | planned | One command with a discoverable parameter schema, also over MCP |
+| `pattern.reparameterize` | 5A | planned | Change parameters later, keeping manual label edits |
+| Pattern provenance | 5A | planned | The inserted group records pattern id and parameter values |
+| Table-driven pattern sync | 5B | planned | Both ways where unambiguous: RACI to swimlanes, parent-id table to org chart, cause-and-effect table to matrix |
+| Layout primitives | 5A | planned | Pipeline with parallel band, two-row chain, hub and spoke, bands and swimlanes, matrix, nested containers, concentric rings, timeline, N-channel voter |
+| Single PID loop | 6 | planned | Tag, loop number, controller type; layered with feedback return; ST FB call and I/O entries |
+| Cascade, ratio, feedforward plus feedback, split range, selector/override | 6 | planned | Industrial P&ID; layered with nested inner loop; ST skeleton per loop |
+| Interlock, permissive, cause-and-effect matrix | 6 | planned | Industrial logic; logic tree or matrix; ST Boolean logic per row |
+| SFC start-up or shutdown, ISA-88 phase state machine | 6, 7 | planned | SFC in Cascade 6, ISA-88 phase machine with the ISA-88/95 pack in 7; ST CASE machine, PLCopen SFC |
+| Motor or valve control module | 6 | planned | Containers; ST FB skeleton |
+| MooN voting, duty/standby | 6 | planned | Shared by industrial and embedded; N-channel voter; voter logic stub |
+| Purdue reference, IEC 62443 zones and conduits | 6 | planned | Horizontal bands and containers; asset and conduit inventory |
+| ISA-88 physical or procedural hierarchy | 7 | planned | Tree from a table; CAEX or B2MML |
+| Hierarchical statechart | 6 | planned | Layered inside nested containers; C or Rust state machine |
+| Boot sequence, bootloader A/B update, power states, watchdog supervision | 6 | planned | Layered or hub; state machine plus linker regions |
+| ISR-to-task deferral, producer/consumer ring buffer | 6 | planned | Swimlanes by execution context or pipeline; task table and queue declarations |
+| Driver or comms stack layering | 6 | planned | Horizontal bands; interface headers |
+| Microservice topology, gateway/BFF | 6 | planned | Layered or hub; Compose or Kubernetes skeleton |
+| Saga, transactional outbox | 6 | planned | Two-row chain or hub; handler and compensation stubs |
+| CQRS plus event sourcing, pub/sub | 6 | planned | Two-path layered or hub; AsyncAPI and event schemas |
+| Strangler fig, hexagonal | 6 | planned | Layered or concentric rings; port traits and adapter stubs |
+| Medallion, CI/CD | 6 | planned | Pipeline; pipeline config skeleton |
+| Multi-region deployment | 6 | planned | Nested containers; Terraform module skeleton |
+| Workflow pattern fragments | 5A | planned | Parallel split, exclusive choice, N-of-M join, multiple instances, cancel region; BPMN XML once the BPMN pack lands in 6 |
+| Approval chain, RACI to swimlanes, SIPOC, value stream map, Kanban, stage-gate | 8 | planned | General pack; swimlanes, matrix or timeline; BPMN XML or CSV |
+| Org chart from table, capability map, Team Topologies, context map | 7, 8 | planned | Org chart in the General pack (8); capability, Team Topologies and DDD packs in 7; catalogue CSV |
+
+## Code-scaffold generation
+
+| Feature | Cascade | State | Notes |
+|---|---|---|---|
+| Generation as commands | 5B | planned | `generate.preview`, `generate.run`, `generate.check`; Generate tab, CLI and MCP |
+| CI check mode | 5B | planned | `vizcraft-cli generate --check` fails when output is stale |
+| Generator spec file | 5B | planned | Target, options, output directory and model scope, versioned in the repository |
+| Ownership manifest | 5B | planned | Every generated file with its last checksum; writes only owned files in the declared directory |
+| Generation gap by default | 5B | planned | Rust: generated module plus a user-implemented trait; C: generated `.c` calling `extern` prototypes |
+| Protected regions keyed by element id | 5B | planned | Only for single-file targets such as a PLC POU |
+| Traceability markers | 5B | planned | `vizcraft:id=<element id>` on every generated construct; rename map |
+| Deterministic output | 5B | planned | Regenerating an unchanged model is byte-identical |
+| No silent overwrite | 5B | planned | Preview diff; three-way merge or stop with an issue when an owned file changed |
+| Construct-support matrices | 5B | planned | Unsupported constructs raise issues, or are flattened on opt-in |
+| Standard intermediates | 6, 7 | planned | SVD, DBC, OpenAPI, AsyncAPI, protobuf, PLCopen XML rather than runtimes |
+| Fidelity tests by re-import | 6 | planned | DDL, SCXML, SVD and OpenAPI output re-imported in tests and compared with the model |
+| Re-import contract | 5B | planned | Model ids kept; geometry kept for existing ids; new elements placed with `layout.incremental`; removed ones flagged |
+| Table exports | 5B | planned | CSV, XLSX, Markdown |
+| Embedded targets | 6, 7 | planned | Statechart C and Rust, C headers, SVD, ld `MEMORY`, packet code, WaveJSON (6); interface headers, task tables, ROS 2 skeletons, DBC (7) |
+| Enterprise targets | 6, 7 | planned | Structurizr DSL, DDL, DBML, migrations, ORM entities, class skeletons, BPMN XML, OpenAPI, AsyncAPI, protobuf, STRIDE lists (6); PlantUML, D2, DOT, ArchiMate exchange, HTML site (7) |
+| Industrial targets | 6, 7 | planned | ST interlocks, ST CASE machines, FB skeletons, global variable lists, industrial lists (6); PLCopen XML, NodeSet2, Proteus XML, CAEX, B2MML (7) |
+
+## Industrial automation pack
+
+| Feature | Cascade | State | Notes |
+|---|---|---|---|
+| P&ID and PFD | 6 | planned | DEXPI-named equipment, nozzles, piping segments, inline valves, instrumentation functions, signal lines |
+| Paired off-page connectors | 6 | planned | On the 4A identity registry |
+| Line, equipment, instrument and valve lists | 6 | planned | Table views; CSV and XLSX |
+| Instrument index and I/O list | 6 | planned | I/O points with signal type, range, rack, slot, channel |
+| Alarm list | 6 | planned | ISA-18.2-shaped |
+| Loops and loop diagrams | 6 | planned | Loops as model objects; loop diagrams generated per loop |
+| Cause-and-effect matrix | 6 | planned | Matrix view linked to tags; ST Boolean interlocks per row |
+| Interlock and permissive logic trees | 6 | planned | |
+| SFC | 6 | planned | Steps and transitions; ST `CASE` state machines |
+| Control modules | 6 | planned | Motor and valve modules with states, feedbacks, interlocks, hand/off/auto; ST function block skeletons; global variable list from the I/O list |
+| Purdue bands and IEC 62443 zones and conduits | 6 | planned | Purdue as a starting draft; zones with SL-T; asset and conduit inventory CSV |
+| PLCopen XML | 7 | planned | IEC 61131-10 POUs and SFC |
+| OPC UA NodeSet2 | 7 | planned | Tag hierarchy |
+| DEXPI Proteus XML | 7 | planned | DEXPI 2.0 once final |
+| AutomationML CAEX | 7 | planned | |
+| ISA-88/95 hierarchy | 7 | planned | Physical and procedural models as an outline; equipment hierarchy CSV; B2MML and BatchML |
+| Electrical | 7 | planned | IEC 81346 designations, contacts and coils with cross-references, terminals, wires, potentials; terminal, wire and cable lists, BOM |
+| MTP | Future | planned | Waits for the standard to settle |
+
+## Embedded and systems pack
+
+| Feature | Cascade | State | Notes |
+|---|---|---|---|
+| Statechart | 6 | planned | Composite and orthogonal states, history, guards, entry, do and exit, events with payloads |
+| SCXML import and export | 6 | planned | |
+| Statechart to C | 6 | planned | Switch style or table style; QP-style handlers |
+| Statechart to Rust | 6 | planned | `statig` (hierarchical) or `smlang` (flat) |
+| Transition-coverage test sequences | 6 | planned | |
+| Statechart simulator | 7 | planned | Validated against the SCXML conformance corpus |
+| Register map | 6 | planned | Address map, register file, register, field, enums |
+| SVD import and export | 6 | planned | Import through `svd-parser`; export feeds svd2rust |
+| C register header | 6 | planned | Offsets, masks, optional struct overlay |
+| WaveDrom bitfield JSON and Markdown register tables | 6 | planned | |
+| SystemRDL and IP-XACT import | 7 | planned | |
+| Memory map | 6 | planned | Regions; GNU ld `MEMORY {}` block and C constants |
+| GNU ld map import | 7 | planned | |
+| Packet and frame layouts | 6 | planned | 32-bit grid; C packed struct, Rust (de)serialiser, RFC-style ASCII, test vectors |
+| Timing diagrams | 6 | planned | WaveJSON import and export; SVG |
+| Component and port architecture | 7 | planned | AUTOSAR port kinds; DOT import; interface headers |
+| RTOS and ROS 2 graphs | 7 | planned | Task tables (FreeRTOS, Zephyr, RTIC); ROS 2 package skeleton with launch file |
+| CAN and protocol sequences | 7 | planned | DBC export (DBC import later); per-lifeline protocol skeletons |
+
+## Enterprise and software pack
+
+| Feature | Cascade | State | Notes |
+|---|---|---|---|
+| C4 | 6 | planned | Person, system, container, component, deployment; drill-down |
+| Structurizr DSL import and export | 6 | planned | |
+| Mermaid C4 import and Mermaid export | 6 | planned | |
+| Compose and Kubernetes skeletons | 6 | planned | From deployment views |
+| ER levels and DDL | 6 | planned | Conceptual, logical, physical; SQL DDL per dialect; DDL import |
+| DBML, migration diff and ORM entities | 6 | planned | Diesel, SeaORM, SQLAlchemy, JPA |
+| UML code skeletons | 6 | planned | Rust, Java, C#, TypeScript, Python by generation gap; JSON Schema |
+| Mermaid class, sequence and state into the model | 6 | planned | Over the existing `vizcraft-mermaid` parser |
+| BPMN 2.0 XML with DI | 6 | planned | Stable ids; engine extensions as an optional profile; DMN later |
+| OpenAPI 3.1 and AsyncAPI 3.0 export | 6 | planned | Plus protobuf with gRPC services and event JSON Schema |
+| DFD and threat model | 6 | planned | STRIDE threat list, pytm export |
+| PlantUML, D2 and DOT import and export | 7 | planned | |
+| ArchiMate 4 | 7 | planned | Once the specification is read; 3.2 Open Exchange import; HTML report |
+| Reverse engineering | 7 | planned | OpenAPI, AsyncAPI, Kubernetes and Compose, Terraform |
+| DDD and event storming | 7 | planned | Bounded contexts, context-map patterns, repository-per-context skeletons |
+| Capability map and Team Topologies | 7 | planned | Heat-mapped tiles; CSV import |
+| HTML documentation site | 7 | planned | |
 
 ## Import and export
 
@@ -163,7 +352,7 @@ When a feature lands, change its State in the same commit as the code. States:
 | .drawio read and write | 3 | planned | Multi-page, compressed pages |
 | Mermaid import | 3 | planned | Flowchart, sequence, class, state, ER |
 | CSV import | 3 | planned | draw.io-style CSV |
-| .vsdx import | 4 | planned | From the public MS-VSDX specification |
+| .vsdx import | 8 | planned | From the public MS-VSDX specification |
 | Export and import command slots | 0 | done (chrome) | `file.export` writes SVG; `file.import` awaits the Cascade 3 formats |
 
 ## Agent integration

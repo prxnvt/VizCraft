@@ -293,6 +293,132 @@ Every new command follows [Everything is a command](#everything-is-a-command): u
 changes the document, covered by `hostile_params_never_panic`, never opening a dialog when run
 by id.
 
+### Model-backed workbench (Cascades 4A to 8)
+
+From Cascade 4A, shapes become views of typed elements in a semantic model, and notations ship as
+data packs. The reasoning and sources are in
+[docs/research/professional-features.md](research/professional-features.md); the pieces and their
+order are in [ROADMAP.md](../ROADMAP.md).
+
+#### New crates
+
+All four sit in the model layer: below `engine`, no egui, no engine dependency, wasm safe, with the
+standard crate-root `deny` list. When each lands, `MODEL_SUFFIXES` in `xtask/src/layers.rs` gains
+its suffix (`-model`, `-notation`, `-patterns`, `-codegen`) and the contract table above gains its
+row.
+
+| Layer | Crate | Job | Depends on |
+|---|---|---|---|
+| model | `crates/model` (`vizcraft-model`) | Semantic model: elements, relationships, containment, views, identity registry, model queries and derived tables | `diagram` |
+| model | `crates/notation` (`vizcraft-notation`) | Notation pack schema and loader, connection table, conditional styles, viewpoints, identifier formats, rules engine | `model`, `diagram` |
+| model | `crates/patterns` (`vizcraft-patterns`) | Pattern generators with typed parameters, provenance and reparameterize, emitting model edits | `model`, `notation`, `layout` |
+| model | `crates/codegen` (`vizcraft-codegen`) | Generator framework under the regeneration contract: specs, manifests, deterministic writers, merge, targets | `model`, `notation` |
+
+`formats` gains the model section of `.vizcraft` and pack-specific importers and exporters
+(SCXML, SVD, DDL, BPMN XML and so on); `engine` gains the command modules for the new prefixes and
+runs live rules after each command; `mcp` gains notation schema discovery and returns issues with
+each batch; `ui-egui` gains the model tree, scoped palette, Inspector, bottom dock and canvas
+insertion.
+
+#### Semantic model sketch
+
+| Type | Holds |
+|---|---|
+| `Element` | Stable id (caller-chosen or registry-issued), pack-qualified type (`pid.CentrifugalPump`, `c4.Container`), typed properties checked against the type's schema, tags, owner (its parent in the containment tree) |
+| `Relationship` | Id, pack-qualified type, source and target element ids with optional ports, properties |
+| Containment | Tree of elements under the project root (packages, plant areas, composite states); an element has one owner |
+| `View` | Id, viewpoint (the named filter of allowed types), layout; geometry keyed by element id, never stored in the model |
+| `Shape.element`, `Connector.relationship` | Optional references from today's diagram items; an item without one stays free drawing, so Cascade 1 to 3 documents keep working |
+
+Deleting a shape removes it from its view; deleting from the model removes the element, its
+relationships and every view item that references it. One element may appear in many views.
+
+#### Notation pack schema outline
+
+A pack is a versioned JSON or TOML file, loaded by `vizcraft-notation`, and is the single source
+for the palette, hover suggestions, the magic connector, the validator, the Inspector and MCP
+schema discovery. Basic and Flowchart are the first two packs.
+
+| Section | Declares |
+|---|---|
+| Header | Pack id (the type prefix), version, audience, schema version |
+| Element types | Name, property schema (type, unit, enum, required, default), ports, default size |
+| Glyphs | Original outlines drawn from public specification descriptions |
+| Connection table | Source type, relationship type, target type, multiplicity |
+| Conditional styles | Style changes keyed on property values |
+| Palette groups and viewpoints | Grouping for the palette; named filters of allowed types per view |
+| Identifier formats | Composed identifiers (for example letters plus loop number plus suffix) used by the identity registry |
+| Rules | Rule id, severity (Error, Warning, Info), live or batch, the check |
+| Templates, patterns, exporters | What the pack supports, by id |
+
+#### Rules engine
+
+Cheap rules run live after every document-changing command (illegal relationship, missing required
+property, duplicate tag); expensive rules run in batch on a selection, page or project
+(reachability, cross-sheet continuity). An issue is a structured record of rule id, severity,
+element ids and message. Issues feed the Problems tab, and the MCP server returns the issues a
+command batch raised in that batch's result, so an agent can repair its own mistakes.
+
+#### Identity registry
+
+A project-wide registry in `vizcraft-model` hands out and checks tags and reference designations:
+auto-numbering, uniqueness, and identifiers composed from a pack's identifier format. Off-page
+connectors are paired objects matched by identifier; an end with no partner raises an issue.
+
+#### Derived table views
+
+Tables and matrices (instrument index, I/O list, line list, cause-and-effect matrix, relationship
+matrix, RACI) are views over the model computed by queries in `vizcraft-model`, editable in place:
+an edit in a table is a model command. They export through `formats` as CSV, XLSX or Markdown.
+Generated diagrams (implied-relationship roll-ups, drill-down child views, loop diagrams) are views
+too.
+
+#### Code-scaffold generation contract
+
+`vizcraft-codegen` writes code only under these rules:
+
+| Clause | Rule |
+|---|---|
+| Generation is a command | `generate.preview`, `generate.run`, `generate.check`; CLI `vizcraft-cli generate --check` for CI; reachable over MCP |
+| Configuration in the repository | A generator spec file names target, options, output directory and model scope |
+| Explicit ownership | A manifest lists each generated file and its last checksum; only owned files inside the declared directory are written |
+| Separation by default | Generation gap per language (Rust trait implemented by the user; C `extern` prototypes); partial classes where the language has them |
+| Regions only when unavoidable | Single-file targets use protected regions keyed by element id, never by position or name |
+| Traceability | `vizcraft:id=<element id>` on every generated construct; renames go through a rename map |
+| Determinism | Stable ordering and formatting; an unchanged model regenerates byte-identically |
+| No silent overwrite | Preview diff; a changed owned file is three-way merged (last generated, on disk, new) or generation stops with an issue |
+| Honest targets | Each target declares a construct-support matrix; unsupported constructs raise issues or are flattened on opt-in |
+| Standard intermediates | Emit SVD, DBC, OpenAPI, AsyncAPI, protobuf, PLCopen XML rather than runtimes |
+| Verified fidelity | Where an importer exists, tests re-import generated output and compare it with the model |
+
+Re-import follows the same rule in reverse: imported elements keep model ids, re-import updates
+the model, keeps view geometry for existing ids, places new elements with `layout.incremental` and
+flags removed ones.
+
+#### Pattern generators
+
+A pattern in `vizcraft-patterns` is a generator with typed parameters (counts, labels, mode enums,
+tag prefixes, a data table). `pattern.insert(name, args)` emits model elements and relationships,
+applies one of the layout primitives in `vizcraft-layout`, and commits as one undoable compound
+command. The inserted group records the pattern id and parameter values (provenance), so
+`pattern.reparameterize` can regenerate it with new values while keeping manual label edits. The
+parameter schema of every pattern is discoverable through `pattern.list` and MCP.
+
+#### Planned workbench command prefixes
+
+These join the prefixes above:
+
+| Prefix | Covers | Cascade |
+|---|---|---|
+| `model.*` | Project-level model operations: containment moves, show in all views, delete from model | 4A |
+| `element.*` | Create, set property, retag, delete from view | 4A |
+| `relationship.*` | Create, retype, reconnect, set property | 4A |
+| `validate.*` | Run batch rules, list and filter issues | 4A |
+| `notation.*` | List packs, describe a type, legal relationships from an element | 4A |
+| `pattern.*` | `pattern.list`, `pattern.insert`, `pattern.reparameterize` | 5A |
+| `generate.*` | `generate.preview`, `generate.run`, `generate.check` | 5B |
+| `layout.full`, `layout.incremental`, `layout.route` | Rearrange everything; pin existing nodes and place new ones; reroute connectors without moving nodes | 3 (requested addition) |
+
 ### MCP server mapping
 
 Built in Cascade 1 (contract): the MCP server adds no behaviour of its own. Generic tools
