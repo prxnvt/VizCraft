@@ -1,14 +1,17 @@
 //! Command implementations, one module per menu: each exposes `specs()`.
 
+pub mod connector;
 pub mod edit;
 pub mod file;
 pub mod help;
 pub mod insert;
+pub mod shape;
 pub mod view;
 
-use serde_json::json;
+use serde_json::{Value, json};
+use vizcraft_diagram::Page;
 
-use crate::{CmdResult, Registry, Session};
+use crate::{CmdResult, EngineError, Registry, Session};
 
 /// The full registry, in menu order.
 pub fn registry() -> Registry {
@@ -16,6 +19,8 @@ pub fn registry() -> Registry {
     v.extend(file::specs());
     v.extend(edit::specs());
     v.extend(view::specs());
+    v.extend(shape::specs());
+    v.extend(connector::specs());
     v.extend(insert::specs());
     v.extend(help::specs());
     Registry::new(v)
@@ -28,6 +33,224 @@ pub fn sel_result(s: &Session) -> CmdResult {
         "items": s.sel.items,
         "range": s.sel.range,
     }))
+}
+
+/// `extra` (an object) with the selection after the command merged in as `primary` and `items`,
+/// so a command can report the ids it touched and the selection in one result.
+pub fn with_sel(s: &Session, mut extra: Value) -> CmdResult {
+    if let Some(o) = extra.as_object_mut() {
+        o.insert("primary".into(), json!(s.sel.primary));
+        o.insert("items".into(), json!(s.sel.items));
+    }
+    Ok(extra)
+}
+
+/// Most ids one command accepts: a list longer than this is refused rather than walked, so a
+/// hostile caller cannot make one command allocate or loop without bound.
+pub const MAX_IDS: usize = 10_000;
+
+/// Largest move or offset in one command: far beyond any page, small enough that adding it to a
+/// clamped coordinate stays finite (an infinite sum would reset the coordinate to zero).
+pub const MAX_DELTA: f64 = 2.0e7;
+
+/// Smallest shape width or height a command leaves, so a shape never collapses to nothing that
+/// cannot be clicked or resized back.
+pub const MIN_SIZE: f64 = 1.0;
+
+/// Drop selected ids that no longer name a shape or connector (after a delete, a cut or a
+/// document change), keeping the primary in the list. Called at the end of every command that
+/// changes shapes; `Session::clamp_selection` stays an empty hook.
+pub fn prune_selection(s: &mut Session) {
+    let doc = &s.doc;
+    s.sel.items.retain(|id| doc.page().is_some_and(|p| p.contains_id(id)));
+    if s.sel.primary.as_ref().is_some_and(|p| !s.sel.items.contains(p)) {
+        s.sel.primary = s.sel.items.first().cloned();
+    }
+}
+
+/// Select exactly `ids` (the first is the primary).
+pub fn select(s: &mut Session, ids: Vec<String>) {
+    s.sel.primary = ids.first().cloned();
+    s.sel.items = ids;
+    s.sel.range = None;
+}
+
+/// The `ids` param: `None` when absent or null, else a list of strings of at most [`MAX_IDS`].
+/// Anything else (a string, a number, an array with a non-string in it) is a params error, so a
+/// typo is reported instead of silently acting on the selection.
+pub fn ids_param(v: &Value) -> Result<Option<Vec<String>>, EngineError> {
+    match v.get("ids") {
+        None | Some(Value::Null) => Ok(None),
+        Some(Value::Array(a)) => {
+            if a.len() > MAX_IDS {
+                return Err(EngineError::Params(format!("`ids` has more than {MAX_IDS} entries")));
+            }
+            a.iter()
+                .map(|x| x.as_str().map(str::to_string).ok_or_else(|| EngineError::Params("`ids` must be an array of strings".into())))
+                .collect::<Result<Vec<_>, _>>()
+                .map(Some)
+        }
+        Some(_) => Err(EngineError::Params("`ids` must be an array of strings".into())),
+    }
+}
+
+/// An optional finite number param: absent or null is `None`; a string, NaN-like text or any other
+/// non-number is a params error.
+pub fn num(v: &Value, k: &str) -> Result<Option<f64>, EngineError> {
+    match v.get(k) {
+        None | Some(Value::Null) => Ok(None),
+        Some(x) => x.as_f64().filter(|f| f.is_finite()).map(Some).ok_or_else(|| EngineError::Params(format!("`{k}` must be a number"))),
+    }
+}
+
+/// A required finite number param.
+pub fn req_num(v: &Value, k: &str) -> Result<f64, EngineError> {
+    num(v, k)?.ok_or_else(|| EngineError::Params(format!("`{k}` (number) is required")))
+}
+
+/// An optional string param: absent or null is `None`, a non-string is a params error.
+pub fn opt_str<'a>(v: &'a Value, k: &str) -> Result<Option<&'a str>, EngineError> {
+    match v.get(k) {
+        None | Some(Value::Null) => Ok(None),
+        Some(Value::String(t)) => Ok(Some(t)),
+        Some(_) => Err(EngineError::Params(format!("`{k}` must be a string"))),
+    }
+}
+
+/// An optional boolean param: absent or null is `None`, a non-boolean is a params error.
+pub fn opt_bool(v: &Value, k: &str) -> Result<Option<bool>, EngineError> {
+    match v.get(k) {
+        None | Some(Value::Null) => Ok(None),
+        Some(Value::Bool(b)) => Ok(Some(*b)),
+        Some(_) => Err(EngineError::Params(format!("`{k}` must be true or false"))),
+    }
+}
+
+/// The active page, mutably. A document always has one after `sanitize`; the error is a guard.
+pub fn page_mut(s: &mut Session) -> Result<&mut Page, EngineError> {
+    s.doc.page_mut().ok_or_else(|| EngineError::Failed("the document has no page".into()))
+}
+
+/// Enabled when the active page has at least one shape.
+pub fn has_shapes(s: &Session) -> Option<&'static str> {
+    if s.doc.page().is_some_and(|p| !p.shapes.is_empty()) { None } else { Some("add a shape first") }
+}
+
+/// Enabled when the active page has at least one connector.
+pub fn has_connectors(s: &Session) -> Option<&'static str> {
+    if s.doc.page().is_some_and(|p| !p.connectors.is_empty()) { None } else { Some("add a connector first") }
+}
+
+/// Enabled when something is selected.
+pub fn has_selection(s: &Session) -> Option<&'static str> {
+    if s.sel.items.is_empty() { Some("select a shape or connector first") } else { None }
+}
+
+/// Which items a command acts on.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Kinds {
+    /// Shapes only.
+    Shapes,
+    /// Connectors only.
+    Connectors,
+    /// Shapes and connectors.
+    Both,
+}
+
+impl Kinds {
+    fn accepts(self, page: &Page, id: &str) -> bool {
+        match self {
+            Kinds::Shapes => page.shape(id).is_some(),
+            Kinds::Connectors => page.connector(id).is_some(),
+            Kinds::Both => page.contains_id(id),
+        }
+    }
+    fn noun(self) -> &'static str {
+        match self {
+            Kinds::Shapes => "shape",
+            Kinds::Connectors => "connector",
+            Kinds::Both => "shape or connector",
+        }
+    }
+}
+
+/// The items a command with an `ids?` param acts on: the given ids (each must name an item of the
+/// right kind on the page, or the command fails without changing anything), else the selected
+/// items of that kind. Duplicates are dropped; an empty result is a params error that says what
+/// to select.
+pub fn targets(s: &Session, v: &Value, kinds: Kinds) -> Result<Vec<String>, EngineError> {
+    let Some(page) = s.doc.page() else { return Err(EngineError::Failed("the document has no page".into())) };
+    let mut out: Vec<String> = Vec::new();
+    match ids_param(v)? {
+        Some(ids) => {
+            for id in ids {
+                if !kinds.accepts(page, &id) {
+                    return Err(EngineError::Params(format!("`{}` is not a {} on this page", short(&id), kinds.noun())));
+                }
+                if !out.contains(&id) {
+                    out.push(id);
+                }
+            }
+        }
+        None => {
+            for id in &s.sel.items {
+                if kinds.accepts(page, id) && !out.contains(id) {
+                    out.push(id.clone());
+                }
+            }
+        }
+    }
+    if out.is_empty() {
+        return Err(EngineError::Params(format!("select a {} first (or pass `ids`)", kinds.noun())));
+    }
+    Ok(out)
+}
+
+/// An id or name cut to a readable length for an error message (a hostile caller may send
+/// megabytes).
+pub fn short(t: &str) -> String {
+    let mut out: String = t.chars().take(64).collect();
+    if out.len() < t.len() {
+        out.push_str("...");
+    }
+    out
+}
+
+/// Delete shapes and connectors by id (unknown ids are skipped). Connectors are removed first;
+/// then each connector still glued to a deleted shape is either removed too, when both of its
+/// ends were glued to deleted shapes (it would be left hanging in empty space), or has the glued
+/// end turned into a free end where it was drawn, so a single deleted step leaves its arrows in
+/// place to re-glue. Returns `{"deleted": [ids], "detached": [connector ids]}` and the selection.
+pub fn delete_items(s: &mut Session, ids: &[String]) -> CmdResult {
+    let page = page_mut(s)?;
+    let shapes: Vec<String> = ids.iter().filter(|id| page.shape(id).is_some()).cloned().collect();
+    let mut connectors: Vec<String> = ids.iter().filter(|id| page.connector(id).is_some()).cloned().collect();
+    let gone = |id: Option<&str>| id.is_some_and(|i| shapes.iter().any(|s| s == i));
+    let mut detached = Vec::new();
+    for c in &page.connectors {
+        if connectors.contains(&c.id) {
+            continue;
+        }
+        match (gone(c.start.shape()), gone(c.end.shape())) {
+            (true, true) => connectors.push(c.id.clone()),
+            (true, false) | (false, true) => detached.push(c.id.clone()),
+            (false, false) => {}
+        }
+    }
+    let mut deleted = Vec::new();
+    for id in &connectors {
+        if page.remove_connector(id).is_some() {
+            deleted.push(id.clone());
+        }
+    }
+    for id in &shapes {
+        page.detach_shape(id);
+        if page.remove_shape(id).is_some() {
+            deleted.push(id.clone());
+        }
+    }
+    prune_selection(s);
+    with_sel(s, json!({"deleted": deleted, "detached": detached}))
 }
 
 /// ISO-8601 timestamp (UTC, seconds), without a date-time dependency.
