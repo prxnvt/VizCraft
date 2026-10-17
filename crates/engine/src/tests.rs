@@ -628,3 +628,20 @@ fn cut_copies_then_deletes() {
     assert_eq!(page(&s).shapes.len(), 6);
     assert_eq!(shape(&s, &s.sel.items[0]).text, "Fix input");
 }
+
+#[test]
+fn chosen_ids_let_one_batch_add_and_connect() {
+    let mut s = blank();
+    run(&mut s, "shape.add", json!({"stencil": "flowchart.process", "x": 0, "y": 0, "id": "start"}));
+    run(&mut s, "shape.add", json!({"stencil": "flowchart.process", "x": 0, "y": 200, "id": "next"}));
+    let r = run(&mut s, "connector.add", json!({"from": {"shape": "start"}, "to": {"shape": "next"}, "id": "link"}));
+    assert_eq!(r["id"], "link");
+    assert_eq!(conn(&s, "link").id, "link");
+    // Taken, empty, too long and odd ids are refused; the counter still skips chosen ids.
+    for bad in [json!("start"), json!(""), json!("x".repeat(65)), json!("a b"), json!("p1")] {
+        params_err(&mut s, "shape.add", json!({"stencil": "basic.rectangle", "x": 0, "y": 0, "id": bad}));
+    }
+    params_err(&mut s, "shape.add", json!({"stencil": "basic.rectangle", "x": 0, "y": 0, "id": 7}));
+    let r = run(&mut s, "shape.add", json!({"stencil": "basic.rectangle", "x": 0, "y": 0}));
+    assert!(!["start", "next", "link"].contains(&r["id"].as_str().unwrap()));
+}

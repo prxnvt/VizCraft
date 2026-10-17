@@ -127,6 +127,24 @@ pub fn opt_bool(v: &Value, k: &str) -> Result<Option<bool>, EngineError> {
 }
 
 /// The active page, mutably. A document always has one after `sanitize`; the error is a guard.
+/// Longest id a caller may choose for a new shape or connector.
+const MAX_CHOSEN_ID: usize = 64;
+
+/// The id for a new item: the caller's `id` when given, else the next free one with `prefix`.
+/// Agents name items so one `command_batch` can add shapes and connect them without reading ids
+/// back; a chosen id must be short, plain (letters, digits, `_`, `-`, `.`) and not already used.
+pub fn new_id(s: &mut Session, v: &Value, prefix: &str) -> Result<String, EngineError> {
+    let Some(id) = opt_str(v, "id")? else { return Ok(s.doc.next_id(prefix)) };
+    let plain = |c: char| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.');
+    if id.is_empty() || id.len() > MAX_CHOSEN_ID || !id.chars().all(plain) {
+        return Err(EngineError::Params(format!("`id` must be 1 to {MAX_CHOSEN_ID} letters, digits, `_`, `-` or `.`")));
+    }
+    if s.doc.contains_id(id) {
+        return Err(EngineError::Params(format!("`{id}` is already used")));
+    }
+    Ok(id.to_string())
+}
+
 pub fn page_mut(s: &mut Session) -> Result<&mut Page, EngineError> {
     s.doc.page_mut().ok_or_else(|| EngineError::Failed("the document has no page".into()))
 }

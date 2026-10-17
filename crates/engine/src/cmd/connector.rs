@@ -16,7 +16,7 @@ use crate::{CmdResult, CommandSpec, EngineError, Session, p};
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("connector.add", "Add Connector", "Insert > Connector", add).params(
-            r#"{"from": end, "to": end, "route"?: "straight"|"orthogonal"|"curved", "text"?: string, "startArrow"?: arrow, "endArrow"?: arrow} -> {"id"}; end = {"shape": id, "point"?: index} or {"x": n, "y": n}"#,
+            r#"{"from": end, "to": end, "route"?: "straight"|"orthogonal"|"curved", "text"?: string, "startArrow"?: arrow, "endArrow"?: arrow, "id"?: string} -> {"id"}; end = {"shape": id, "point"?: index} or {"x": n, "y": n}"#,
         ),
         CommandSpec::new("connector.glue", "Glue Connector", "Canvas", glue)
             .params(r#"{"id": string, "end": "start"|"end", "shape"?: id, "point"?: index, "x"?: n, "y"?: n}"#)
@@ -82,7 +82,7 @@ fn add(s: &mut Session, v: &Value) -> CmdResult {
     let start_arrow = arrow_param(v, "startArrow")?;
     let end_arrow = arrow_param(v, "endArrow")?;
     let text = opt_str(v, "text")?;
-    let id = s.doc.next_id("c");
+    let id = super::new_id(s, v, "c")?;
     let mut c = Connector::new(id.clone(), from, to);
     if let Some(r) = route {
         c.route = r;

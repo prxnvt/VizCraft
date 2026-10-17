@@ -10,9 +10,9 @@ merges, and the matching rows in [docs/parity.md](docs/parity.md) when a feature
 
 | Measure | Value |
 |---|---|
-| Cascade | 0 done; Cascade 1 (diagram core) in progress |
-| App runs | full chrome: ribbon, panes, menus, dialogs, command palette, control channel, multiple windows, web shell |
-| Document model | `vizcraft-diagram` model and `vizcraft-stencils` catalog in the engine; commands, canvas and formats in progress |
+| Cascade | 0 and 1 done; Cascade 2 (editing richness) is next |
+| App runs | a small diagram editor: canvas with shapes, text and glued connectors, Shapes pane, Home, Insert and Connector ribbon tabs, inside the full chrome (menus, dialogs, command palette, control channel, multiple windows, web shell) |
+| Document model | `vizcraft-diagram` (one page per document for now), `vizcraft-stencils` (Basic and Flowchart), saved as `.vizcraft`, exported as SVG |
 | MCP server | minimal server with the generic tools (Remote backend); draw.io-style tools in Cascade 3 |
 
 ## Cascade 0: rename and documentation reset (done)
@@ -23,7 +23,7 @@ merges, and the matching rows in [docs/parity.md](docs/parity.md) when a feature
 | Template machinery removed | The xtask subcommand that copied the template, and the template marker file, deleted | done |
 | Documentation rewritten | README, AGENTS, this roadmap, the architecture contract, the parity catalog and the planned MCP and format specs describe VizCraft the diagramming app | done |
 
-## Cascade 1: diagram core
+## Cascade 1: diagram core (done)
 
 The smallest useful diagram editor: draw shapes, type in them, connect them, save, export SVG,
 and drive it all from an agent.

@@ -16,7 +16,7 @@ use crate::{CmdResult, CommandSpec, EngineError, Session, p};
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("shape.add", "Add Shape", "Insert > Shapes", add)
-            .params(r#"{"stencil": string, "x": n, "y": n, "w"?: n, "h"?: n, "text"?: string} -> {"id"}; x, y is the top-left"#),
+            .params(r#"{"stencil": string, "x": n, "y": n, "w"?: n, "h"?: n, "text"?: string, "id"?: string} -> {"id"}; x, y is the top-left"#),
         CommandSpec::new("shape.delete", "Delete Shape", "Home > Editing", delete).params(r#"{"ids"?: [string]} (default: selection)"#).when(has_shapes),
         CommandSpec::new("shape.move", "Move", "Home > Arrange", move_shapes)
             .params(r#"{"ids"?: [string], "dx": n, "dy": n} or {"id": string, "x": n, "y": n}"#)
@@ -50,7 +50,7 @@ fn add(s: &mut Session, v: &Value) -> CmdResult {
     let w = num(v, "w")?.map(size);
     let h = num(v, "h")?.map(size);
     let text = opt_str(v, "text")?;
-    let id = s.doc.next_id("s");
+    let id = super::new_id(s, v, "s")?;
     let mut shape = vizcraft_stencils::new_shape(stencil, id.clone(), x, y, w, h)
         .ok_or_else(|| EngineError::Params(format!("unknown stencil `{}`", short(stencil))))?;
     if let Some(t) = text {

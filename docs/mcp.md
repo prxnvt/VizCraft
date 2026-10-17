@@ -73,7 +73,13 @@ every feature, including ones added after the server ships.
 | `doc_inspect` | none | JSON text: the `ui.inspect` report (title, path, dirty, rev, selection, undo and redo labels, view, dialog, status) | `ui.inspect` |
 | `screenshot` | none | An `image` block (`image/png`, base64) of the front window, then a text block `{width, height, bytes}` in physical pixels | `ui.screenshot` to a file in the system temporary directory, read back (at most 48 MB, must be a PNG) and deleted |
 
-Planned for Cascade 3: `doc_inspect {page?}` once documents report pages and shapes, and
+To build a diagram in one `command_batch`, name the items: `shape.add` and `connector.add`
+take an optional `id` (letters, digits, `_`, `-`, `.`, up to 64 characters, not already used),
+so later entries in the same batch can glue connectors to shapes added earlier. Without `id` the
+engine picks one and returns it. `doc_inspect` already includes a `diagram` summary of the page
+(size, shape and connector counts, selection).
+
+Planned for Cascade 3: `doc_inspect {page?}` to report a chosen page, and
 `screenshot {page?, window?, scale?}` to render one page offscreen instead of the window.
 
 ### Diagram tools (Cascade 3, planned)

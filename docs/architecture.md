@@ -67,12 +67,12 @@ must name existing items or nothing changes. Each document change is one undo st
 
 | Command | Params |
 |---|---|
-| `shape.add` | `{stencil, x, y, w?, h?, text?}` (x, y = top-left of the frame) -> `{id}` |
+| `shape.add` | `{stencil, x, y, w?, h?, text?, id?}` (x, y = top-left of the frame; `id` lets a caller name it) -> `{id}` |
 | `shape.delete` | `{ids?}`; connectors glued to a deleted shape keep a free end there, and go when both ends are deleted |
 | `shape.move` | `{ids?, dx, dy}` or `{id, x, y}` |
 | `shape.resize`, `shape.rotate` | `{id, x?, y?, w, h}`; `{ids?, angle}` (absolute degrees) |
 | `shape.setText`, `shape.setStyle` | `{id, text}`; `{ids?, fill?, line?, lineWidth?, fontSize?, fontColor?, bold?, italic?}` |
-| `connector.add` | `{from, to, route?, text?, startArrow?, endArrow?}`, an end is `{shape, point?}` or `{x, y}` -> `{id}` |
+| `connector.add` | `{from, to, route?, text?, startArrow?, endArrow?, id?}`, an end is `{shape, point?}` or `{x, y}` -> `{id}` |
 | `connector.glue` | `{id, end: "start" \| "end", shape?, point?, x?, y?}` |
 | `connector.setRoute`, `connector.setArrows`, `connector.setText` | `{ids?, route}`; `{ids?, start?, end?}`; `{id, text}` |
 | `edit.select`, `edit.selectNone`, `edit.selectAll`, `edit.delete` | `{ids, add?}`; `{}` |
