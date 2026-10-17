@@ -1,6 +1,7 @@
 //! The tool list and dispatch. The Cascade 1 tools here give generic access to the command
-//! registry, the document summary and a screenshot; every new engine command is reachable
-//! through `command_run` with no change here. The diagram tools live in `diagram.rs`.
+//! registry, the document summary and a screenshot (of the window, or of one page rendered by
+//! the engine's PNG export); every new engine command is reachable through `command_run` with no
+//! change here. The diagram tools live in `diagram.rs`.
 
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -18,6 +19,14 @@ const PNG_SIGNATURE: &[u8] = b"\x89PNG\r\n\x1a\n";
 
 /// Longest command id accepted; real ids are a few dozen characters.
 const MAX_ID_CHARS: usize = 200;
+
+/// Longest page name accepted by `screenshot` and `doc_inspect`.
+const MAX_PAGE_CHARS: usize = 256;
+/// Highest zero-based page index accepted; documents have far fewer pages.
+const MAX_PAGE_INDEX: u64 = 100_000;
+/// Smallest and largest page render scale `screenshot` accepts, the range the renderer uses.
+const MIN_SCALE: f64 = 0.25;
+const MAX_SCALE: f64 = 4.0;
 
 /// What a tool call returns: MCP content blocks and whether the call failed.
 #[derive(Debug, Clone, PartialEq)]
@@ -124,17 +133,34 @@ fn generic_definitions() -> Vec<Value> {
             "doc_inspect",
             "Inspect the document",
             "Return the app's state as JSON: document title and path, unsaved changes, revision, \
-             selection, undo and redo labels, zoom, open panes and dialogs. Use it to check the \
+             selection, undo and redo labels, zoom, and with a window the open panes and dialogs \
+             (the headless backend says `headless: true`). Give `page` to add that page's entry \
+             `{index, id, name, width, height, shapes, connectors}` as `page`. Use it to check the \
              effect of a command without a screenshot.",
-            object(json!({}), &[]),
+            object(json!({"page": page_prop("A page to report on, by id, name or zero-based index")}), &[]),
             true,
         ),
         tool(
             "screenshot",
             "Take a screenshot",
-            "Capture the VizCraft window as a PNG image, after any queued input has been processed, \
-             and return it inline with its size in pixels.",
-            object(json!({}), &[]),
+            "Return a PNG image inline with its size in pixels. With a running app and no arguments \
+             it captures the VizCraft window after any queued input has been processed. Given \
+             `page` or `scale`, with `window: false`, or on the headless backend, it renders one \
+             page of the document instead (white background, the first page unless `page` names \
+             another), which needs no window.",
+            object(
+                json!({
+                    "page": page_prop("The page to render, by id, name or zero-based index (default: the first page)"),
+                    "window": {"type": "boolean", "description": "true: capture the app window (needs the running app); false: render a page"},
+                    "scale": {
+                        "type": "number",
+                        "minimum": MIN_SCALE,
+                        "maximum": MAX_SCALE,
+                        "description": "Pixels per page unit when rendering a page (default 1)",
+                    },
+                }),
+                &[],
+            ),
             true,
         ),
     ]
@@ -161,8 +187,8 @@ pub fn call_tool(backend: &mut dyn Backend, name: &str, args: &Value) -> ToolRes
         "command_list" => command_list(backend, args),
         "command_run" => command_run(backend, args),
         "command_batch" => return command_batch(backend, args),
-        "doc_inspect" => backend.call("ui.inspect", json!({})).map(|v| ToolResult::json(&v)),
-        "screenshot" => screenshot(backend),
+        "doc_inspect" => doc_inspect(backend, args),
+        "screenshot" => screenshot(backend, args),
         other => Err(format!("unknown tool `{other}`")),
     };
     outcome.unwrap_or_else(ToolResult::error)
@@ -285,21 +311,111 @@ fn screenshot_path() -> std::path::PathBuf {
     std::env::temp_dir().join(format!("vizcraft-mcp-{}-{n}.png", std::process::id()))
 }
 
-fn screenshot(backend: &mut dyn Backend) -> Result<ToolResult, String> {
-    if !backend.has_ui() {
-        return Err("screenshot needs the running app; this backend has no window".into());
+/// The `page` schema shared by `screenshot` and `doc_inspect`: an id or name, or an index.
+fn page_prop(what: &str) -> Value {
+    json!({
+        "type": ["string", "integer"],
+        "minLength": 1,
+        "maxLength": MAX_PAGE_CHARS,
+        "minimum": 0,
+        "maximum": MAX_PAGE_INDEX,
+        "description": what,
+    })
+}
+
+/// The optional `page` argument checked against [`page_prop`]: a non-empty string or an index.
+fn page_arg(args: &Map<String, Value>) -> Result<Option<Value>, String> {
+    match args.get("page") {
+        None | Some(Value::Null) => Ok(None),
+        Some(Value::String(t)) if t.is_empty() => Err("`page` is empty".into()),
+        Some(Value::String(t)) if t.chars().count() > MAX_PAGE_CHARS => Err(format!("`page` is longer than {MAX_PAGE_CHARS} characters")),
+        Some(p @ Value::String(_)) => Ok(Some(p.clone())),
+        Some(Value::Number(n)) => match n.as_u64() {
+            Some(i) if i <= MAX_PAGE_INDEX => Ok(Some(json!(i))),
+            _ => Err(format!("`page` must be a name, an id or an index from 0 to {MAX_PAGE_INDEX}")),
+        },
+        Some(_) => Err("`page` must be a string or an integer".into()),
+    }
+}
+
+/// `doc_inspect {page?}`: `ui.inspect`, plus the `page.list` entry for `page` when given.
+fn doc_inspect(backend: &mut dyn Backend, args: &Map<String, Value>) -> Result<ToolResult, String> {
+    let page = page_arg(args)?;
+    let mut report = backend.call("ui.inspect", json!({}))?;
+    if let Some(r) = page {
+        let listed = backend.call("engine.execute", json!({"command": "page.list", "params": {}}))?;
+        let pages = listed.get("pages").and_then(Value::as_array).cloned().unwrap_or_default();
+        // The same order the engine resolves page references in: id, then name, then index.
+        let field = |key: &str| pages.iter().find(|p| p.get(key).is_some_and(|v| *v == r)).cloned();
+        let by_index = || r.as_str().and_then(|t| t.trim().parse::<u64>().ok()).map(|i| json!(i)).or_else(|| r.as_u64().map(|i| json!(i)));
+        let entry =
+            field("id").or_else(|| field("name")).or_else(|| by_index().and_then(|i| pages.iter().find(|p| p.get("index") == Some(&i)).cloned()));
+        let Some(entry) = entry else {
+            return Err(format!("no page {r} (list_pages shows the pages)"));
+        };
+        match report.as_object_mut() {
+            Some(obj) => {
+                obj.insert("page".into(), entry);
+            }
+            None => report = json!({"inspect": report, "page": entry}),
+        }
+    }
+    Ok(ToolResult::json(&report))
+}
+
+/// `screenshot {page?, window?, scale?}`: the app window, or one page rendered to PNG.
+fn screenshot(backend: &mut dyn Backend, args: &Map<String, Value>) -> Result<ToolResult, String> {
+    let page = page_arg(args)?;
+    let window = match args.get("window") {
+        None | Some(Value::Null) => None,
+        Some(Value::Bool(b)) => Some(*b),
+        Some(_) => return Err("`window` must be true or false".into()),
+    };
+    let scale = match args.get("scale") {
+        None | Some(Value::Null) => None,
+        Some(v) => match v.as_f64() {
+            Some(f) if (MIN_SCALE..=MAX_SCALE).contains(&f) => Some(f),
+            _ => return Err(format!("`scale` must be a number from {MIN_SCALE} to {MAX_SCALE}")),
+        },
+    };
+    let render_page = page.is_some() || scale.is_some() || window == Some(false) || !backend.has_ui();
+    if window == Some(true) {
+        if !backend.has_ui() {
+            return Err("screenshot `window: true` needs the running app; this backend has no window (leave `window` out to render a page)".into());
+        }
+        if render_page {
+            return Err("`window: true` captures the whole window; it takes no `page` or `scale`".into());
+        }
     }
     let path = screenshot_path();
     let path_text = path.to_string_lossy().to_string();
-    let reply = backend.call("ui.screenshot", json!({"path": path_text}));
+    let reply = if render_page {
+        let mut params = Map::new();
+        params.insert("path".into(), json!(path_text));
+        params.insert("format".into(), json!("png"));
+        if let Some(p) = &page {
+            params.insert("page".into(), p.clone());
+        }
+        if let Some(f) = scale {
+            params.insert("scale".into(), json!(f));
+        }
+        backend.call("engine.execute", json!({"command": "file.export", "params": params})).map_err(|e| format!("file.export failed: {e}"))
+    } else {
+        backend.call("ui.screenshot", json!({"path": path_text}))
+    };
     // Read back only the file we named, whatever the reply says, and always remove it.
+    let page_id = reply.as_ref().ok().and_then(|r| r.get("page")).filter(|p| render_page && !p.is_null()).cloned();
     let png = reply.and_then(|_| read_png(&path));
     std::fs::remove_file(&path).ok();
     let (png, width, height) = png?;
+    let mut size = json!({"width": width, "height": height, "bytes": png.len()});
+    if let (Some(obj), Some(id)) = (size.as_object_mut(), page_id) {
+        obj.insert("page".into(), id);
+    }
     Ok(ToolResult {
         content: vec![
             json!({"type": "image", "data": base64::encode(&png), "mimeType": "image/png"}),
-            json!({"type": "text", "text": json!({"width": width, "height": height, "bytes": png.len()}).to_string()}),
+            json!({"type": "text", "text": size.to_string()}),
         ],
         is_error: false,
     })

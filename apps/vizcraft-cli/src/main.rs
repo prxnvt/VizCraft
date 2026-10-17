@@ -8,7 +8,9 @@
 //! vizcraft-cli inspect FILE [--json]                       document summary (or the document as JSON)
 //! vizcraft-cli control HOST:PORT METHOD [JSON]             one request to a running app, reply on stdout
 //! vizcraft-cli control HOST:PORT -                         forward request lines from stdin, one reply each
-//! vizcraft-cli mcp [--connect ADDR]                        MCP server on stdio, driving the running app
+//! vizcraft-cli mcp [--connect ADDR | --headless]           MCP server on stdio, driving the running app or,
+//!                                                            with --headless or when no app listens, an
+//!                                                            engine session in this process
 //! vizcraft-cli --version
 //! ```
 //!
@@ -34,9 +36,12 @@ USAGE:
   vizcraft-cli inspect FILE [--json]                   document summary (or the whole document as JSON)
   vizcraft-cli control HOST:PORT METHOD [JSON]         one request to a running app (started with --control PORT)
   vizcraft-cli control HOST:PORT -                     forward request lines from stdin, one reply line each
-  vizcraft-cli mcp [--connect ADDR]                    MCP server (JSON-RPC on stdin and stdout) driving the app
-                                                         at ADDR (HOST:PORT or PORT; default 127.0.0.1:7990, or
-                                                         the port in VIZCRAFT_CONTROL_PORT)
+  vizcraft-cli mcp [--connect ADDR | --headless]      MCP server (JSON-RPC on stdin and stdout). --connect drives
+                                                         the app at ADDR (HOST:PORT or PORT) and waits for it;
+                                                         --headless works on a document in this process with no
+                                                         window; with neither it drives the app at 127.0.0.1:7990
+                                                         (or the port in VIZCRAFT_CONTROL_PORT) when one listens
+                                                         there and runs headless otherwise
   vizcraft-cli --version
 
 Exit codes: 0 success, 1 a command, file or request failed, 2 usage error.
@@ -249,39 +254,90 @@ fn resolve(addr: &str) -> Result<SocketAddr, CliError> {
         .ok_or_else(|| usage(format!("control: bad address `{addr}`")))
 }
 
-/// `mcp [--connect ADDR]`: serve MCP on stdio until the client closes stdin.
-///
-/// The server starts even when the app is not running yet, because MCP clients launch their
-/// servers up front; each tool call then says that no app is listening, and the first call after
-/// the app starts connects. Stdout belongs to the protocol, so every message here goes to stderr.
-fn mcp(args: &[String]) -> Result<(), CliError> {
+/// Which backend `mcp` serves.
+#[derive(Debug, PartialEq, Eq)]
+enum McpBackend {
+    /// `--headless`: an engine session in this process.
+    Headless,
+    /// `--connect ADDR`: the app at this address, retried on every call until it answers.
+    Connect(String),
+    /// No flag: the app at this address if one listens now, else headless.
+    Auto(String),
+}
+
+/// `HOST:PORT` as given, or `PORT` as a loopback address.
+fn loopback_spec(addr: &str) -> String {
+    if addr.chars().all(|c| c.is_ascii_digit()) { format!("127.0.0.1:{addr}") } else { addr.to_string() }
+}
+
+/// Parse the `mcp` arguments; `env_port` is `VIZCRAFT_CONTROL_PORT`, read by the caller so this
+/// stays testable.
+fn mcp_backend(args: &[String], env_port: Option<&str>) -> Result<McpBackend, CliError> {
     let mut connect_to: Option<String> = None;
+    let mut headless = false;
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
             "--connect" => connect_to = Some(it.next().ok_or_else(|| usage("--connect needs HOST:PORT or PORT"))?.clone()),
-            "--headless" => return Err(usage("mcp: --headless is planned (Cascade 3); start the app with --control PORT and use --connect")),
+            "--headless" => headless = true,
             other => return Err(usage(format!("mcp: unknown argument `{other}`"))),
         }
     }
-    let addr = match connect_to {
-        Some(a) => a,
-        None => match std::env::var("VIZCRAFT_CONTROL_PORT") {
-            Ok(p) if !p.trim().is_empty() => {
-                let port: u16 = p.trim().parse().map_err(|_| usage(format!("VIZCRAFT_CONTROL_PORT `{p}` is not a port number")))?;
-                format!("127.0.0.1:{port}")
+    match (headless, connect_to) {
+        (true, Some(_)) => Err(usage("mcp: --headless and --connect exclude each other")),
+        (true, None) => Ok(McpBackend::Headless),
+        (false, Some(a)) => Ok(McpBackend::Connect(loopback_spec(&a))),
+        (false, None) => match env_port.map(str::trim).filter(|p| !p.is_empty()) {
+            Some(p) => {
+                let port: u16 = p.parse().map_err(|_| usage(format!("VIZCRAFT_CONTROL_PORT `{p}` is not a port number")))?;
+                Ok(McpBackend::Auto(format!("127.0.0.1:{port}")))
             }
-            _ => vizcraft_mcp::DEFAULT_ADDR.to_string(),
+            None => Ok(McpBackend::Auto(vizcraft_mcp::DEFAULT_ADDR.to_string())),
         },
-    };
-    let spec = if addr.chars().all(|c| c.is_ascii_digit()) { format!("127.0.0.1:{addr}") } else { addr };
-    let mut remote = vizcraft_mcp::Remote::new(&spec).map_err(|e| usage(format!("mcp: {e}")))?;
-    match remote.probe() {
-        Ok(()) => eprintln!("vizcraft-cli mcp: connected to the VizCraft app at {}", remote.addr()),
-        Err(e) => eprintln!("vizcraft-cli mcp: {e}; serving anyway, tool calls will retry"),
     }
+}
+
+/// `mcp [--connect ADDR | --headless]`: serve MCP on stdio until the client closes stdin.
+///
+/// With `--connect` the server starts even when the app is not running yet, because MCP clients
+/// launch their servers up front; each tool call then says that no app is listening, and the
+/// first call after the app starts connects. With no flag a missing app means headless, so an
+/// agent gets a working server either way. Stdout belongs to the protocol, so every message here
+/// goes to stderr.
+fn mcp(args: &[String]) -> Result<(), CliError> {
+    let env_port = std::env::var("VIZCRAFT_CONTROL_PORT").ok();
+    let backend: Box<dyn vizcraft_mcp::Backend> = match mcp_backend(args, env_port.as_deref())? {
+        McpBackend::Headless => {
+            eprintln!("vizcraft-cli mcp: headless, working on a document in this process with no window");
+            Box::new(vizcraft_mcp::Headless::new())
+        }
+        McpBackend::Connect(spec) => {
+            let mut remote = vizcraft_mcp::Remote::new(&spec).map_err(|e| usage(format!("mcp: {e}")))?;
+            match remote.probe() {
+                Ok(()) => eprintln!("vizcraft-cli mcp: connected to the VizCraft app at {}", remote.addr()),
+                Err(e) => eprintln!("vizcraft-cli mcp: {e}; serving anyway, tool calls will retry"),
+            }
+            Box::new(remote)
+        }
+        McpBackend::Auto(spec) => {
+            let mut remote = vizcraft_mcp::Remote::new(&spec).map_err(|e| usage(format!("mcp: {e}")))?;
+            match remote.probe() {
+                Ok(()) => {
+                    eprintln!("vizcraft-cli mcp: connected to the VizCraft app at {}", remote.addr());
+                    Box::new(remote)
+                }
+                Err(_) => {
+                    eprintln!(
+                        "vizcraft-cli mcp: no VizCraft app is listening at {}; running headless (no window). Pass --connect to wait for the app instead",
+                        remote.addr()
+                    );
+                    Box::new(vizcraft_mcp::Headless::new())
+                }
+            }
+        }
+    };
     vizcraft_mcp::logging::install();
-    let mut server = vizcraft_mcp::Server::new(Box::new(remote));
+    let mut server = vizcraft_mcp::Server::new(backend);
     let stdin = std::io::stdin();
     let stdout = std::io::stdout();
     server.serve(stdin.lock(), stdout.lock()).map_err(|e| failed(format!("mcp: stdio failed: {e}")))
@@ -349,5 +405,36 @@ fn control(args: &[String]) -> Result<(), CliError> {
         Ok(())
     } else {
         Err(failed(format!("{method}: {}", reply.get("error").and_then(Value::as_str).unwrap_or("failed"))))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn args(list: &[&str]) -> Vec<String> {
+        list.iter().map(|a| (*a).to_string()).collect()
+    }
+
+    fn is_usage(r: Result<McpBackend, CliError>) -> bool {
+        matches!(r, Err(CliError::Usage(_)))
+    }
+
+    #[test]
+    fn mcp_arguments_pick_the_backend() {
+        assert_eq!(mcp_backend(&args(&["--headless"]), None).ok(), Some(McpBackend::Headless));
+        assert_eq!(mcp_backend(&args(&["--headless"]), Some("7991")).ok(), Some(McpBackend::Headless));
+        assert_eq!(mcp_backend(&args(&["--connect", "7995"]), None).ok(), Some(McpBackend::Connect("127.0.0.1:7995".into())));
+        assert_eq!(mcp_backend(&args(&["--connect", "localhost:7996"]), Some("1")).ok(), Some(McpBackend::Connect("localhost:7996".into())));
+        assert_eq!(mcp_backend(&[], None).ok(), Some(McpBackend::Auto(vizcraft_mcp::DEFAULT_ADDR.into())));
+        assert_eq!(mcp_backend(&[], Some(" 7993 ")).ok(), Some(McpBackend::Auto("127.0.0.1:7993".into())));
+        assert_eq!(mcp_backend(&[], Some("")).ok(), Some(McpBackend::Auto(vizcraft_mcp::DEFAULT_ADDR.into())));
+
+        assert!(is_usage(mcp_backend(&args(&["--headless", "--connect", "7990"]), None)));
+        assert!(is_usage(mcp_backend(&args(&["--connect", "7990", "--headless"]), None)));
+        assert!(is_usage(mcp_backend(&args(&["--connect"]), None)));
+        assert!(is_usage(mcp_backend(&args(&["--bogus"]), None)));
+        assert!(is_usage(mcp_backend(&[], Some("not-a-port"))));
+        assert!(is_usage(mcp_backend(&[], Some("70000"))));
     }
 }

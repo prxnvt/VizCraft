@@ -5,7 +5,7 @@ use crate::{FormatError, native, svg};
 
 /// A small flowchart built from the catalog: three shapes (one rotated, one with multi-line
 /// text and markup characters), two glued connectors with different heads and one label.
-fn sample() -> Document {
+pub(crate) fn sample() -> Document {
     let mut doc = Document::new();
     doc.title = "Formats test".into();
     doc.core.author = "Ada".into();

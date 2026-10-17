@@ -254,7 +254,7 @@ fn unknown_methods_tools_and_arguments_are_errors() {
     assert_eq!(err_code(&mut s, 1, "nope/nothing", json!({})), -32601);
     assert_eq!(err_code(&mut s, 2, "tools/call", json!({"name": "draw_everything"})), -32602);
     assert_eq!(err_code(&mut s, 3, "tools/call", json!({"arguments": {}})), -32602);
-    assert_eq!(err_code(&mut s, 4, "tools/call", json!({"name": "doc_inspect", "arguments": {"page": 1}})), -32602);
+    assert_eq!(err_code(&mut s, 4, "tools/call", json!({"name": "doc_inspect", "arguments": {"bogus": 1}})), -32602);
     let r = result(&mut s, 5, "tools/call", json!({"name": "command_run", "arguments": "id"}));
     assert_eq!(r["isError"], true, "{r}");
 }

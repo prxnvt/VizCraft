@@ -3,6 +3,8 @@
 //! - [`native`]: the `.vizcraft` file, a versioned JSON wrapper around the diagram
 //!   [`Document`](vizcraft_diagram::Document); also reads the version 1 placeholder files.
 //! - [`svg`]: export of one page as a standalone SVG 1.1 document.
+//! - [`png`]: export of one page as a PNG image, the SVG export rasterised with resvg and the
+//!   bundled Inter fonts.
 //! - [`drawio`]: `.drawio` files read and written through `vizcraft-drawio`.
 //! - [`csv`]: draw.io-style CSV import, placed with the auto-layout.
 //! - [`mermaid`]: Mermaid import through `vizcraft-mermaid`, placed with the auto-layout.
@@ -16,6 +18,7 @@ pub mod csv;
 pub mod drawio;
 pub mod mermaid;
 pub mod native;
+pub mod png;
 pub mod svg;
 
 use vizcraft_diagram::Page;
