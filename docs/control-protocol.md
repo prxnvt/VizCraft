@@ -3,7 +3,8 @@
 The control channel lets a script, a test or an agent drive the running app: run commands,
 inspect state, inject pointer and keyboard input, and take screenshots of the window. It is the
 same path the menus and ribbon use (everything dispatches by command id), so what a script does is
-what a person clicking would get.
+what a person clicking would get. The planned MCP server's `Remote` backend speaks this protocol
+to the running app ([mcp.md](mcp.md)).
 
 Start the app with a port:
 
@@ -118,8 +119,8 @@ Returns one JSON object with everything a script needs to check its work without
 | `status` | the current status-bar message, or `null` |
 | `perf` | `{"frameMs": ...}`, how long the last layout took |
 
-A craft adds its own fields (canvas rectangle, caret, hit regions) next to these and documents
-them in its own copy of this file. `ui.set` is the write side of `ui`: it accepts any path into
+As the diagram canvas lands, VizCraft adds its own fields (canvas rectangle, active page,
+selected shapes, hit regions) next to these and documents them here. `ui.set` is the write side of `ui`: it accepts any path into
 `UiState`, dotted (`panes.leftWidth`, snake_case segments are accepted too) or as a JSON pointer
 (`/panes/leftWidth`), and replies with the whole state after the change, so a test can switch to
 dark mode, collapse the ribbon or hide a pane and then screenshot. The whole state is validated:
@@ -235,10 +236,13 @@ echo '{"id":9,"method":"app.quit"}' | nc 127.0.0.1 7990
 it ends after the replies. On macOS the system `nc` works as shown; GNU netcat wants `-q 1` to
 wait for the replies before exiting.
 
-## Conventions for a craft that extends the protocol
+## Extending the protocol
+
+VizCraft's own methods follow these rules:
+
 
 - Keep the reply shape. New methods return `ok` and `result` or `ok: false` and `error`.
-- Name methods by subject: `document.inspect`, `ui.clickText`, `sheet.read`. Methods that act on
+- Name methods by subject: `document.inspect`, `page.inspect`, `ui.clickShape`. Methods that act on
   the document should also exist as commands, so the CLI and the menus get them for free; the
   method is then only a convenience.
 - Document every method here, in the table, with its params and its result.

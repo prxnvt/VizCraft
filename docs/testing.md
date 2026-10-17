@@ -1,4 +1,4 @@
-# Testing a craft
+# Testing VizCraft
 
 Four layers, cheapest first. Reach for the next one only when the one before cannot see what
 you changed.
@@ -110,7 +110,7 @@ vizcraft --control 0 --sample 2> /tmp/app.log &
 PORT=$(grep -o 'listening on 127.0.0.1:[0-9]*' /tmp/app.log | sed 's/.*://')
 ```
 
-### Window etiquette
+### Desktop app etiquette
 
 The app opens a real window on the developer's desk. Keep it out of their way:
 
