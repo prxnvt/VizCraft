@@ -1,14 +1,14 @@
 # File formats
 
 What VizCraft reads and writes, when each format lands, and the public source each one is built
-from. The native `.vizcraft` file, SVG export, `.drawio` read and write and CSV import are built;
-the rest is planned ([ROADMAP.md](../ROADMAP.md)).
+from. The native `.vizcraft` file, SVG export, `.drawio` read and write, Mermaid import and CSV
+import are built; the rest is planned ([ROADMAP.md](../ROADMAP.md)).
 
 | Format | Direction | Cascade | Public source |
 |---|---|---|---|
 | `.vizcraft` (native JSON) | read, write (built; also reads `.craft.json`) | 1 | Our own; documented below |
 | `.drawio` (mxGraph XML) | read, write (built: every page; import into a page) | 3 | draw.io documentation; the Apache-2.0 mxGraph and draw.io format documentation |
-| Mermaid | import | 3 | Mermaid syntax documentation |
+| Mermaid | import (built: flowchart, sequence, class, state, ER) | 3 | Mermaid syntax documentation |
 | CSV | import (built) | 3 | draw.io documentation on CSV import |
 | SVG | export (built: one page) | 1 | W3C SVG 1.1 |
 | PNG | export | 2 | W3C PNG specification |
@@ -49,6 +49,9 @@ files.
 
 - **Written:** always version 2, the diagram model as serialized by `vizcraft-diagram`
   (camelCase fields, colours as `#rrggbb`, glue ends as `{"shape", "point"?}` or `{"x", "y"}`).
+  Cascade 3 added optional fields that are left out when empty, so the version stays 2:
+  connector `waypoints` (stored bends), `avoid` (route around shapes) and `jumps` (line jumps),
+  and an `ext` map on shapes, connectors and pages holding data from other formats.
 - **Read:** version 2; version 1 (the Cascade 0 placeholder: title and metadata only, which
   loads with that title and metadata and one blank page); a wrapper without a `version` (read
   as 1); and a bare document without the wrapper.
@@ -126,10 +129,31 @@ reads and writes names ending in `.drawio` or `.drawio.xml` as draw.io files, ev
 
 ## Mermaid
 
-Import of Mermaid text for five diagram kinds: flowchart, sequence, class, state and
-entity-relationship. Each becomes shapes and connectors on a page, placed by the auto-layout
-engine (layered by default). Unsupported statements are reported, not guessed at. Cascade 3,
-with the `open_mermaid` MCP tool.
+Import of Mermaid text (`vizcraft_formats::mermaid::import`, the `file.import` command with
+`format: "mermaid"` and the `open_mermaid` MCP tool) for five diagram kinds: flowchart, state,
+class, entity-relationship and sequence. The syntax comes from the Mermaid documentation and is
+parsed by `crates/mermaid`; the result is one page.
+
+- Flowchart, state, class and ER diagrams use the layered auto-layout in the Mermaid direction.
+  Each subgraph, composite state, region or namespace is laid out on its own and becomes a
+  background rectangle behind its members, titled with the group label.
+- Node shapes become the closest Basic or Flowchart master (diamond to decision, stadium to
+  terminator, subroutine to predefined process, cylinder to database, hexagon to preparation,
+  and so on); unknown shapes become rectangles with a warning. Start and end states are small
+  filled circles, fork and join are thin bars. Shapes are sized from their text: class members,
+  ER attributes and state descriptions are extra lines, stereotypes a `<<name>>` first line.
+- Mermaid ids are kept as shape ids when they are plain and free. Edges become connectors glued
+  to both shapes, with arrowheads and labels; class and ER cardinalities are written into the
+  label (`1 places 0..*`). Thick links are drawn wider; invisible links only guide the layout.
+- `classDef`, `class`, `style` and `linkStyle` set fill, line colour, line width, text colour,
+  font size, bold and italic.
+- Sequence diagrams are placed directly: participants in a row, a lifeline under each, messages
+  as horizontal connectors in order, notes as note shapes, boxes as background rectangles, and
+  `autonumber` as numbered labels. Blocks, activations and create/destroy are not drawn yet.
+- What the model cannot show yet (the Mermaid shape name, dotted or dashed lines, crow's foot
+  markers, links and tooltips) is kept in `ext` under `mermaid.*` keys. Everything skipped is
+  reported as a warning, with its line number when it comes from the parser; syntax errors fail
+  the import with a line and column.
 
 ## CSV
 

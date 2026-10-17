@@ -16,9 +16,9 @@ the code that depends on it, and say so in the commit message.
 
 | Layer | Crate | Job |
 |---|---|---|
-| model | `crates/diagram` (`vizcraft-diagram`) | Geometry (points, rects, transforms, paths), shape outlines and connection points, the document model, hit testing, glue and connector routing. Depends on serde only |
+| model | `crates/diagram` (`vizcraft-diagram`) | Geometry (points, rects, transforms, paths), shape outlines and connection points, the document model, hit testing, glue and connector routing, auto-layout (`autolayout`), obstacle-avoiding routes (`autoroute`) and line jumps (`jumps`). Depends on serde, `layout` and `routing` |
 | model | `crates/stencils` (`vizcraft-stencils`) | Built-in stencil catalog: Basic and Flowchart sets, masters with default size and style, keyword search. Depends on `diagram` only |
-| model | `crates/formats` (`vizcraft-formats`) | File formats, bytes in and bytes out: `.vizcraft` native JSON (`native::save`, `native::load`) and SVG export (`svg::export_page`). Depends on `diagram` only |
+| model | `crates/formats` (`vizcraft-formats`) | File formats, bytes in and bytes out: `.vizcraft` native JSON (`native::save`, `native::load`), SVG export (`svg::export_page`), `.drawio` (`drawio::{load, save, import, page_xml, master_style}`), Mermaid (`mermaid::import`) and CSV (`csv::import`) import into `Imported { pages, warnings }`. Depends on `diagram`, `stencils`, `drawio`, `mermaid` and `layout` |
 | model | `crates/mermaid` (`vizcraft-mermaid`) | Mermaid parser: flowchart, sequence, class, state and ER text to a typed IR with a common node, edge and group view (`Diagram::to_graph`); warnings for unsupported statements. No workspace dependencies |
 | model | `crates/drawio` (`vizcraft-drawio`) | draw.io codec: `.drawio` files (inline or compressed pages), the mxGraphModel cell IR, style strings, HTML labels, page list/get/set, and draw.io-style CSV import. No workspace dependencies |
 | model | `crates/layout` (`vizcraft-layout`) | Automatic layout over an index-based graph: layered (Sugiyama), tidy tree, radial and force-directed, all four directions, deterministic. No workspace dependencies |
@@ -58,7 +58,7 @@ a command that needs one pushes `{"open": "<dialog>"}` to `session.ui_requests` 
 handles it.
 
 Command id prefixes: `file.*`, `edit.*`, `view.*`, `shape.*` (`crates/engine/src/cmd/shape.rs`),
-`connector.*` (`cmd/connector.rs`), `insert.*`, `format.*`, `window.*`, `help.*`, `ui.*` (UI layer), `app.*` (app-level: `app.quit`,
+`connector.*` (`cmd/connector.rs`), `page.*` (`cmd/page.rs`), `layout.*` (`cmd/layout.rs`), `insert.*`, `format.*`, `window.*`, `help.*`, `ui.*` (UI layer), `app.*` (app-level: `app.quit`,
 `app.preferences`, `app.about`). `insert.*` and `format.*` are reserved; no engine
 command uses them yet.
 
@@ -77,6 +77,20 @@ must name existing items or nothing changes. Each document change is one undo st
 | `connector.setRoute`, `connector.setArrows`, `connector.setText` | `{ids?, route}`; `{ids?, start?, end?}`; `{id, text}` |
 | `edit.select`, `edit.selectNone`, `edit.selectAll`, `edit.delete` | `{ids, add?}`; `{}` |
 | `edit.cut`, `edit.copy`, `edit.paste` | copy returns `{text}` holding `{"vizcraft": "clip", "shapes", "connectors"}`; paste takes `{text?}` |
+| `connector.reroute`, `connector.setJumps` | `{ids?, avoid?}` (true: route around shapes and keep clear; false: clear bends); `{ids?, on}` |
+| `shape.search` | `{query, limit?}` -> `{masters: [{id, label, category, keywords, w, h, style}]}` (`style` is the draw.io style string) |
+
+Interop and layout commands (Cascade 3). Each is one undo step; a page is named by id, name or
+zero-based index (`Document::find_page`).
+
+| Command | Params |
+|---|---|
+| `file.import` | `{path? \| text?, format?: "drawio" \| "mermaid" \| "csv", page?, replace?, layout?, direction?, routing?: "orthogonal"}` -> `{page, ids, warnings}`; imported ids are kept when plain and free (`Document::adopt`); with a `layout` on a page that has shapes, the existing shapes stay and new ones are placed incrementally |
+| `file.export` | `{path?, format?: "svg" \| "drawio"}` |
+| `page.list`, `page.get`, `page.set` | `{path?}`; `{page?, path?, format?: "drawio" \| "vizcraft"}`; `{page, xml, path?, layout?, direction?, routing?}`; with `path` they read or edit that file and leave the session alone |
+| `layout.full` | `{algorithm?: "layered" \| "tree" \| "radial" \| "force", direction?, nodeSpacing?, layerSpacing?, ids?}`: the named shapes, else a selection of two or more, else the page; the page grows to fit |
+| `layout.incremental` | `{ids, algorithm?, direction?, nodeSpacing?, layerSpacing?}`: places only `ids`, every other shape stays |
+| `layout.route` | `{ids?}`: routes connectors around shapes, never moves a shape |
 
 ## Engine (`vizcraft-engine`) public API
 
@@ -108,8 +122,11 @@ pub mod sample { pub fn sample_document() -> Document; }
 
 Documents are `.vizcraft` files (`io::EXTENSION`), versioned JSON read and written by
 `vizcraft-formats` (a model-class crate beside `diagram`); `io` dispatches by file name and
-still reads `.craft.json` and `.json`. `file.export {path, format?}` writes the first page as
-SVG through `io::export_bytes`; `file.import` is a slot for the Cascade 3 formats. See
+still reads `.craft.json` and `.json`; `.drawio` and `.drawio.xml` names open and save as draw.io.
+`file.export {path, format?}` writes the first page as SVG, or the document as draw.io, through
+`io::export_bytes`; `file.import` brings in draw.io, Mermaid and CSV. After every command that
+changes the document, `Session::run` calls `vizcraft_diagram::autoroute::refresh`, inside the same
+undo step, so connectors that avoid shapes are rerouted when anything moves. See
 [docs/formats.md](formats.md). Engine crate root carries
 `#![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]`.
 A test `hostile_params_never_panic` runs every command with junk params.
@@ -117,7 +134,7 @@ A test `hostile_params_never_panic` runs every command with junk params.
 ## UI (`vizcraft-ui-egui`) public API
 
 Modules: `theme`, `icons`, `widgets`, `chrome` (title bar + status bar), `menus` (menu tree +
-in-window menu bar), `ribbon` (Home, Insert, View, Help, and the contextual Connector tab),
+in-window menu bar), `ribbon` (Home, Insert, Design, View, Help, and the contextual Connector tab),
 `panes` (side panes, `PaneSpec`, `set_panes`; Shapes, Navigation, Properties, History),
 `canvas` (the diagram canvas: `Viewport2D` screen/world projections; drawing of the page, shapes,
 text and connectors; selection, marquee, move, resize and rotate handles, connector drag and
@@ -218,13 +235,18 @@ shape's frame centre.
 | Type | Holds |
 |---|---|
 | `Document` | `title`, `core: CoreProps` (author, timestamps, revision), `pages: Vec<Page>` (always at least one), `id_seq`; `next_id(prefix)` hands out `s1`, `c2` and so on, never reused |
-| `Page` | Id, name, width and height (1100 x 850 by default), `shapes` and `connectors` in z order |
-| `Shape` | Id, `stencil` master id (`basic.rectangle`), `kind: ShapeKind` (16 outlines), frame `x, y, w, h`, `angle_deg`, text, `Style`, optional custom connection points (normalized; kinds default to top, right, bottom, left) |
-| `Connector` | Id, `start` and `end` as `End::Glued { shape, point: Option<usize> }` (no point = dynamic glue) or `End::Free { x, y }`, `route` (`straight`, `orthogonal`, `curved`), arrowheads per end (`none`, `triangle`, `open`, `diamond`, `circle`), label text, `Style` |
+| `Page` | Id, name, width and height (1100 x 850 by default), `shapes` and `connectors` in z order, `ext` |
+| `Shape` | Id, `stencil` master id (`basic.rectangle`), `kind: ShapeKind` (16 outlines), frame `x, y, w, h`, `angle_deg`, text, `Style`, optional custom connection points (normalized; kinds default to top, right, bottom, left), `ext` (data from other formats kept for round trips) |
+| `Connector` | Id, `start` and `end` as `End::Glued { shape, point: Option<usize> }` (no point = dynamic glue) or `End::Free { x, y }`, `route` (`straight`, `orthogonal`, `curved`), arrowheads per end (`none`, `triangle`, `open`, `diamond`, `circle`), label text, `Style`, `waypoints` (stored bends), `avoid` (route around shapes), `jumps` (line jumps), `ext` |
 | `Style` | Fill, line colour and width, font size and colour, bold, italic; colours serialize as `#rrggbb` |
 
-Routing and glue are pure functions of shape geometry (`resolve_ends`, `route_path`,
-`connector_geometry`), so moving a shape moves its connectors with no extra bookkeeping. Hit
+Routing and glue are pure functions of shape geometry and the connector's stored `waypoints`
+(`resolve_ends`, `route_path`, `connector_geometry`), so moving a shape moves its connectors with
+no extra bookkeeping. Bends of `avoid` connectors come from `autoroute::{reroute, refresh}`
+(`vizcraft-routing`), stored because routing is too costly to redo every frame; the canvas and
+SVG export draw through `jumps::page_geometry` for line jumps. `autolayout::{layout_items,
+layout_incremental}` place shapes with `vizcraft-layout`. `Document::{find_page, add_page, adopt}`
+serve the importers and page commands. Hit
 testing (`shape_at`, `connector_at`, `shapes_in_rect`, `connection_point_at`) uses the real
 outline and rotation. Loading is tolerant: missing or wrong-typed fields take defaults, and
 `sanitize` clamps sizes, coordinates and text length. `vizcraft-stencils` provides `sets()`,
@@ -282,12 +304,11 @@ New prefixes join the existing `file.*`, `edit.*`, `view.*`, `shape.*`, `connect
 
 | Prefix | Covers | Module |
 |---|---|---|
-| `page.*` | Add, delete, rename, reorder, page setup, background page | `crates/engine/src/cmd/page.rs` |
+| `page.*` | Add, delete, rename, reorder, page setup, background page (`page.list`, `page.get`, `page.set` are built) | `crates/engine/src/cmd/page.rs` |
 | `layer.*` | Add, delete, rename, flags, assign shapes | `crates/engine/src/cmd/layer.rs` |
 | `arrange.*` | Align, distribute, order, group, ungroup, flip, rotate, size and position | `crates/engine/src/cmd/arrange.rs` |
 | `design.*` | Themes, quick styles, page background, format painter | `crates/engine/src/cmd/design.rs` |
 | `data.*` | Shape data, data graphics, data import | `crates/engine/src/cmd/data.rs` |
-| `layout.*` | Auto-layout (layered, tree, radial, force) of a page or selection | `crates/engine/src/cmd/layout.rs` |
 
 Every new command follows [Everything is a command](#everything-is-a-command): undoable when it
 changes the document, covered by `hostile_params_never_panic`, never opening a dialog when run
@@ -417,16 +438,16 @@ These join the prefixes above:
 | `notation.*` | List packs, describe a type, legal relationships from an element | 4A |
 | `pattern.*` | `pattern.list`, `pattern.insert`, `pattern.reparameterize` | 5A |
 | `generate.*` | `generate.preview`, `generate.run`, `generate.check` | 5B |
-| `layout.full`, `layout.incremental`, `layout.route` | Rearrange everything; pin existing nodes and place new ones; reroute connectors without moving nodes | 3 (requested addition) |
+| `layout.full`, `layout.incremental`, `layout.route` | Rearrange everything; pin existing nodes and place new ones; reroute connectors without moving nodes | 3 (built) |
 
 ### MCP server mapping
 
 Built in Cascade 1 (contract): the MCP server adds no behaviour of its own. Generic tools
 (`command_list`, `command_run`, `command_batch`) expose the registry, so every command above is
 reachable the day it lands; `doc_inspect` and `screenshot` map to `ui.inspect` and
-`ui.screenshot`, through the `Remote` backend over the control channel. Planned for Cascade 3: a
-`Headless` backend hosting a `Session` in process, and the draw.io-style tools
-(`open_xml`, `open_mermaid`, `open_csv`, `search_shapes`, `get_reference`, `list_pages`,
-`get_page`, `set_page`) are thin wrappers that call `formats` for parsing and writing and run
-commands for every change, so undo and the control channel see them. Tool list, resources and
+`ui.screenshot`, through the `Remote` backend over the control channel. Built in Cascade 3: the
+draw.io-style tools (`open_xml`, `open_mermaid`, `open_csv`, `search_shapes`, `get_reference`,
+`list_pages`, `get_page`, `set_page`) each send one engine command (`file.import`, `page.*`,
+`shape.search`; `get_reference` is static text), so undo and the control channel see them.
+Planned: a `Headless` backend hosting a `Session` in process, and MCP resources. Tool list, resources and
 launch: [docs/mcp.md](mcp.md). File formats and their public sources: [docs/formats.md](formats.md).

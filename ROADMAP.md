@@ -22,11 +22,11 @@ notation, and the audience packs follow in Cascade 6.
 
 | Measure | Value |
 |---|---|
-| Cascade | 0 and 1 done; Cascade 2 (trimmed) and Cascade 3 in progress; Cascade 4A (model core) next |
+| Cascade | 0 and 1 done; Cascade 3 interop, layout, routing and MCP tools done (stencil search, MCP resources and the Headless backend remain); Cascade 2 (trimmed) in progress; Cascade 4A (model core) next |
 | Direction | Model-backed engineering workbench: semantic model, notation packs, rules, patterns and code-scaffold generators, then industrial, embedded and enterprise packs |
-| App runs | a small diagram editor: canvas with shapes, text and glued connectors, Shapes pane, Home, Insert and Connector ribbon tabs, inside the full chrome (menus, dialogs, command palette, control channel, multiple windows, web shell) |
-| Document model | `vizcraft-diagram` (one page per document for now), `vizcraft-stencils` (Basic and Flowchart), saved as `.vizcraft`, exported as SVG |
-| MCP server | minimal server with the generic tools (Remote backend); draw.io-style tools in Cascade 3 |
+| App runs | a small diagram editor: canvas with shapes, text and glued connectors (obstacle-avoiding routes, line jumps), Shapes pane, Home, Insert, Design and Connector ribbon tabs, auto-layout, .drawio open and save, Mermaid and CSV import, inside the full chrome (menus, dialogs, command palette, control channel, multiple windows, web shell) |
+| Document model | `vizcraft-diagram` (multi-page documents reachable through `page.*` and draw.io files; the canvas shows the first page until page tabs land), `vizcraft-stencils` (Basic and Flowchart), saved as `.vizcraft` or `.drawio`, exported as SVG |
+| MCP server | generic tools plus the draw.io-style diagram tools (Remote backend); resources and the Headless backend are next |
 
 ## Cascade 0: rename and documentation reset (done)
 
@@ -68,13 +68,13 @@ patterns; the Shape Data pane is the first form of the typed Inspector.
 
 | Piece | Contents | Lands in | State |
 |---|---|---|---|
-| Pages | Multiple pages, page tabs, background pages, page setup (size, orientation, units); `page.*` commands | `crates/diagram`, `crates/engine/src/cmd/page.rs`, `crates/ui-egui/src/canvas.rs` | done |
+| Pages | Multiple pages, page tabs, background pages, page setup (size, orientation, units); `page.*` editing commands | `crates/diagram`, `crates/engine/src/cmd/page.rs`, `crates/ui-egui/src/canvas.rs` | planned (Cascade 3 added multi-page documents and `page.list`, `page.get`, `page.set`; the canvas shows the first page) |
 | Layers | Layers with visible, lock and print flags, assign shapes; Layers pane; `layer.*` commands | `crates/diagram`, `crates/engine/src/cmd/layer.rs`, `crates/ui-egui/src/panes.rs` | planned |
 | Groups, containers and swimlanes | Group and ungroup, containers that hold members and fit them, swimlanes; the substrate for statechart composites, zones, lanes and nested-container patterns | `crates/diagram`, `crates/engine/src/cmd/arrange.rs` | planned |
 | Arrange | Align, distribute, bring forward and send backward, flip, rotate, size and position; Arrange ribbon tab | `crates/engine/src/cmd/arrange.rs`, `crates/ui-egui/src/ribbon.rs` | planned |
 | Snap, grid, rulers, guides | Snap to grid, shapes and connection points; grid display; rulers; draggable guides; dynamic alignment guides while dragging | `crates/ui-egui/src/canvas.rs`, `crates/diagram` (snap math) | planned |
 | Light themes and styles | A small set of our own document themes, quick styles, format painter, fill, line, shadow, gradient; Design ribbon tab; `design.*` commands. Kept light: notation packs add conditional styles in Cascade 4A | `crates/diagram`, `crates/engine/src/cmd/design.rs`, `crates/ui-egui/src/ribbon.rs` | planned |
-| Better routing | Line jumps where connectors cross; orthogonal rerouting that avoids obstacles | `crates/routing` (router and jumps, done), `crates/diagram` (wiring) | router done; wiring planned |
+| Better routing | Line jumps where connectors cross; orthogonal rerouting that avoids obstacles | `crates/routing` (router and jumps), `crates/diagram` (`autoroute`, `jumps`, stored waypoints) | done (wired in Cascade 3) |
 | Shape Data pane (first Inspector) | Typed key and value data on shapes, edited in a right-dock pane; each key may carry schema hooks (type, unit, enum, required, default) that notation packs fill in later; Cascade 4B grows the pane into the Inspector; `data.*` commands | `crates/engine/src/cmd/data.rs`, `crates/ui-egui/src/panes.rs` | planned |
 | Pan and Zoom pane | Overview of the page with the visible area as a draggable frame | `crates/ui-egui/src/panes.rs` | planned |
 | Find and replace | Search shape text and shape data, replace | `crates/engine/src/cmd/edit.rs`, `crates/ui-egui/src/dialogs.rs` | planned |
@@ -91,26 +91,28 @@ Cascade 4A specification work.
 
 | Piece | Contents | Lands in | State |
 |---|---|---|---|
-| .drawio read and write | Multi-page files, compressed pages (deflate and base64), styles mapped to VizCraft styles; `quick-xml` and `zip` patterns ported from deckcraft's `pptx` and WordCraft's `docx`, adding `flate2` and `base64` | `crates/drawio` (codec, done), `crates/formats` (mapping) | codec done; mapping planned |
-| Mermaid import | Flowchart, sequence, class, state and ER diagrams | `crates/mermaid` (parser, done), `crates/formats` (mapping) | parser done; mapping planned |
-| CSV import | draw.io-style CSV with layout and connection hints | `crates/drawio` (parser, done), `crates/formats` (mapping) | parser done; mapping planned |
-| Auto-layout | Layered, tree, radial and force layouts; re-layout a page or a selection; `layout.*` commands | `crates/layout` (algorithms, done), `crates/diagram`, `crates/engine/src/cmd/layout.rs` | algorithms done; commands planned |
+| .drawio read and write | Multi-page files, compressed pages (deflate and base64), styles mapped to VizCraft styles, unknown keys kept for round trips; `file.open`, `file.save`, `file.export`, `file.import`, `page.list`, `page.get`, `page.set` | `crates/drawio` (codec), `crates/formats` (mapping), `crates/engine/src/cmd/{file,page}.rs` | done (groups, containers and layers are flattened until Cascade 2 models them) |
+| Mermaid import | Flowchart, sequence, class, state and ER diagrams, laid out, subgraphs as background boxes | `crates/mermaid` (parser), `crates/formats` (mapping) | done |
+| CSV import | draw.io-style CSV with layout and connection hints | `crates/drawio` (parser), `crates/formats` (mapping) | done |
+| Auto-layout | Layered, tree, radial and force layouts: `layout.full` (page or selection), `layout.incremental` (existing shapes pinned), `layout.route` (connectors only); Design ribbon tab | `crates/layout` (algorithms), `crates/diagram` (`autolayout`), `crates/engine/src/cmd/layout.rs`, `crates/ui-egui/src/ribbon.rs` | done |
 | Stencil search | Keyword index over every stencil; search box in the Shapes pane | `crates/stencils`, `crates/ui-egui/src/panes.rs` | planned |
-| MCP draw.io-style tools | `open_xml`, `open_mermaid`, `open_csv`, `search_shapes`, `get_reference`, `list_pages`, `get_page`, `set_page`, with `layout` and `routing` options | `crates/mcp` | planned |
+| MCP draw.io-style tools | `open_xml`, `open_mermaid`, `open_csv`, `search_shapes`, `get_reference`, `list_pages`, `get_page`, `set_page`, with `layout` and `routing` options; each tool is one engine command (`file.import`, `page.*`, `shape.search`) | `crates/mcp`, `crates/engine` | done |
 | MCP resources and Headless backend | Resources for pages, shapes, commands and stencils; a Headless backend that hosts a `Session` in process, so no window is needed | `crates/mcp` | planned |
 
 Done when: a .drawio file round-trips with its pages and connections intact, and an agent can
 create, inspect and edit a diagram from Mermaid or CSV through the MCP tools with or without a
 running window.
 
-Additions requested by the research for Cascade 3 (see
+Additions requested by the research for Cascade 3 (done; see
 [docs/research/professional-features.md](docs/research/professional-features.md)): layout is
 exposed as three commands, because agents and people share documents: `layout.full` rearranges
 everything, `layout.incremental` pins existing nodes and places only new ones, and `layout.route`
 reroutes connectors without moving any node. Importers (draw.io, Mermaid, CSV) preserve source ids
 where they are free and assign stable ids otherwise, and their mapping layer stays a thin function
 from parser IR to commands, so that once Cascade 4A lands they write model elements and re-imports
-keep view geometry for existing ids.
+keep view geometry for existing ids. As built, importers produce pages that `Document::adopt`
+merges, keeping plain free source ids and renaming only clashes, and `file.import` with a
+`layout` on a non-empty page places new shapes with `layout.incremental`'s placement.
 
 ## Cascade 4A: model core
 

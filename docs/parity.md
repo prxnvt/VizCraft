@@ -53,9 +53,9 @@ When a feature lands, change its State in the same commit as the code. States:
 | Point glue | 1 | done | `connector.glue` with a connection point index |
 | Arrowheads | 1 | done | `connector.setArrows`: none, triangle, open, diamond, circle |
 | Connector labels | 1 | done | `connector.setText` |
-| Waypoints | 2 | planned | User-placed bends |
-| Line jumps | 2 | planned | Hops where connectors cross |
-| Obstacle-avoiding rerouting | 2 | planned | Orthogonal routes that go around shapes |
+| Waypoints | 2 | partly done (3) | Stored bends on connectors, set by routing and read from .drawio; dragging bends by hand is planned |
+| Line jumps | 2 | done (3) | Hops where connectors cross; `connector.setJumps`, Design tab |
+| Obstacle-avoiding rerouting | 2 | done (3) | Orthogonal routes around shapes, kept clear after every change; `layout.route`, `connector.reroute` |
 
 ## Text
 
@@ -70,7 +70,7 @@ When a feature lands, change its State in the same commit as the code. States:
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| Multiple pages and page tabs | 2 | planned | `page.*` commands |
+| Multiple pages and page tabs | 2 | partly done (3) | Multi-page documents with `page.list`, `page.get`, `page.set`; page tabs and editing commands planned |
 | Background pages | 2 | planned | A page shown behind others |
 | Page setup | 2 | planned | Size, orientation, units |
 | Auto-size page to content | 2 | planned | Page grows with the drawing |
@@ -93,7 +93,7 @@ When a feature lands, change its State in the same commit as the code. States:
 | Group and ungroup | 2 | planned | `arrange.*` commands |
 | Rotate and flip | 2 | planned | Rotate by angle, flip horizontal and vertical |
 | Size and position | 2 | planned | Numeric x, y, width, height, angle |
-| Auto-layout | 3 | planned | Layered, tree, radial, force; whole page or selection |
+| Auto-layout | 3 | done | Layered, tree, radial, force; `layout.full` (page or selection), `layout.incremental` (existing shapes pinned), `layout.route` |
 
 ## Containers, swimlanes and groups
 
@@ -131,7 +131,7 @@ When a feature lands, change its State in the same commit as the code. States:
 |---|---|---|---|
 | Shape data | 2 | planned | Key and value pairs on shapes; Shape Data pane |
 | Data graphics | 8 | planned | Callouts, icon sets, colour by value |
-| Import from CSV | 3 | planned | draw.io-style CSV; org charts from CSV in Cascade 4 |
+| Import from CSV | 3 | done | draw.io-style CSV; org charts from CSV in Cascade 4 |
 
 ## Diagram types and templates
 
@@ -349,11 +349,11 @@ When a feature lands, change its State in the same commit as the code. States:
 | SVG export | 1 | done | First page, through `file.export {path, format?}` |
 | PNG export | 2 | planned | Page or all pages |
 | PDF export | 2 | planned | Page or all pages |
-| .drawio read and write | 3 | planned | Multi-page, compressed pages |
-| Mermaid import | 3 | planned | Flowchart, sequence, class, state, ER |
-| CSV import | 3 | planned | draw.io-style CSV |
+| .drawio read and write | 3 | done | Multi-page, compressed pages; groups, containers and layers flattened for now |
+| Mermaid import | 3 | done | Flowchart, sequence, class, state, ER |
+| CSV import | 3 | done | draw.io-style CSV |
 | .vsdx import | 8 | planned | From the public MS-VSDX specification |
-| Export and import command slots | 0 | done (chrome) | `file.export` writes SVG; `file.import` awaits the Cascade 3 formats |
+| Export and import command slots | 0 | done | `file.export` writes SVG and .drawio; `file.import` reads .drawio, Mermaid and CSV |
 
 ## Agent integration
 
@@ -364,15 +364,15 @@ When a feature lands, change its State in the same commit as the code. States:
 | `command_batch` | 1 | done | Run several commands in order |
 | `doc_inspect` | 1 | done | Document and UI state as JSON |
 | `screenshot` | 1 | done | PNG of the window |
-| `open_xml` | 3 | planned | Load a diagram from .drawio XML |
-| `open_mermaid` | 3 | planned | Load a diagram from Mermaid text |
-| `open_csv` | 3 | planned | Load a diagram from CSV |
-| `search_shapes` | 3 | planned | Keyword search over stencils |
-| `get_reference` | 3 | planned | Format and style reference for agents |
-| `list_pages` | 3 | planned | Pages of the open document |
-| `get_page` | 3 | planned | One page as structured data |
-| `set_page` | 3 | planned | Replace or update one page |
-| `layout` and `routing` options | 3 | planned | Auto-layout and connector routing applied on open |
+| `open_xml` | 3 | done | Load a diagram from .drawio XML |
+| `open_mermaid` | 3 | done | Load a diagram from Mermaid text |
+| `open_csv` | 3 | done | Load a diagram from CSV |
+| `search_shapes` | 3 | done | Keyword search over stencils |
+| `get_reference` | 3 | done | Format and style reference for agents |
+| `list_pages` | 3 | done | Pages of the open document |
+| `get_page` | 3 | done | One page as structured data |
+| `set_page` | 3 | done | Replace or update one page |
+| `layout` and `routing` options | 3 | done | Auto-layout and connector routing applied on open |
 | Commands resource | 1 | done | `vizcraft://commands` |
 | Resources for pages, shapes, stencils | 3 | planned | Read-only MCP resources |
 | Remote backend | 1 | done | Drives a running app over the control channel |
