@@ -8,9 +8,8 @@ diagrams the way a person does.
 
 Today the application chrome is complete and the diagram model is being built. The window,
 native and in-window menus, ribbon, side panes, several windows in one process, preferences, a
-command registry, a command-line tool and a JSON control channel all work; the document is still
-a minimal placeholder (a title and metadata, saved as `.craft.json`) that the diagram model
-replaces in Cascade 1. What lands when is in [ROADMAP.md](ROADMAP.md), and the Visio-class
+command registry, a command-line tool and a JSON control channel all work; the document is the
+diagram model (pages, shapes, connectors) being built in Cascade 1. What lands when is in [ROADMAP.md](ROADMAP.md), and the Visio-class
 feature catalog with the state of each feature is in [docs/parity.md](docs/parity.md).
 
 The design is written down once, in [docs/architecture.md](docs/architecture.md). That file is
@@ -21,7 +20,7 @@ links to the contract rather than repeating it.
 
 | Path | What it is |
 |---|---|
-| `crates/engine` | `vizcraft-engine`: `Session`, undo, selection, the command registry, the placeholder document model, file I/O. Knows nothing about egui. |
+| `crates/engine` | `vizcraft-engine`: `Session`, undo, selection, the command registry, file I/O; its document is the `vizcraft-diagram` model. Knows nothing about egui. |
 | `crates/ui-egui` | `vizcraft-ui-egui`: the egui front end. Theme, icons, chrome, menus, ribbon, panes, canvas viewport, dialogs, keys, control channel handling. Depends on `egui` only, not eframe. |
 | `crates/macos-open` | Finder "Open Documents" (odoc Apple Event) support, behind a safe API. |
 | `apps/vizcraft` | The desktop binary: eframe, native menu (muda on macOS), file dialogs (rfd), multi-window host, control server. |

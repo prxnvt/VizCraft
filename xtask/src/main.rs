@@ -130,7 +130,9 @@ fn wasm_set() -> Result<Vec<String>, String> {
     let crates = layers::from_metadata(&metadata()?)?;
     let set: Vec<String> = crates
         .iter()
-        .filter(|c| matches!(layers::classify(c), Some(layers::Class::Engine | layers::Class::UiEgui)) || c.name.ends_with("-web"))
+        .filter(|c| {
+            matches!(layers::classify(c), Some(layers::Class::Model | layers::Class::Engine | layers::Class::UiEgui)) || c.name.ends_with("-web")
+        })
         .map(|c| c.name.clone())
         .collect();
     if set.is_empty() { Err("wasm: no engine or ui-egui crate in the workspace".into()) } else { Ok(set) }

@@ -1,0 +1,12 @@
+[package]
+name = "vizcraft-stencils"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "VizCraft stencil catalog: the built-in Basic and Flowchart masters, defined in code"
+
+[lints]
+workspace = true
+
+[dependencies]
+vizcraft-diagram = { workspace = true }

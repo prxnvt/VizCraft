@@ -3,8 +3,9 @@
 VizCraft is a clean-room, open-source desktop diagramming app written in Rust and egui, aiming
 for the feature range of Visio, with an MCP server shaped like draw.io's so agents can create and
 edit diagrams. Today the window chrome, menus, ribbon, panes, multiple windows, preferences,
-control channel and command registry are finished, around a placeholder document model; the
-diagram model is planned (see [Planned (not yet built)](#planned-not-yet-built) and
+control channel and command registry are finished, and the diagram model (`vizcraft-diagram`,
+`vizcraft-stencils`) is the engine's document; the rest of the diagram editor is being built
+cascade by cascade (see [Planned (not yet built)](#planned-not-yet-built) and
 [ROADMAP.md](../ROADMAP.md)).
 
 This file is the contract agents build against in parallel. The sections up to Conventions
@@ -15,7 +16,9 @@ the code that depends on it, and say so in the commit message.
 
 | Layer | Crate | Job |
 |---|---|---|
-| L4 | `crates/engine` (`vizcraft-engine`) | `Session`, undo, command registry, placeholder document model, I/O |
+| model | `crates/diagram` (`vizcraft-diagram`) | Geometry (points, rects, transforms, paths), shape outlines and connection points, the document model, hit testing, glue and connector routing. Depends on serde only |
+| model | `crates/stencils` (`vizcraft-stencils`) | Built-in stencil catalog: Basic and Flowchart sets, masters with default size and style, keyword search. Depends on `diagram` only |
+| L4 | `crates/engine` (`vizcraft-engine`) | `Session`, undo, command registry, I/O; `engine::doc` re-exports the diagram `Document` |
 | L6 | `crates/ui-egui` (`vizcraft-ui-egui`) | egui front end: theme, chrome, menus, ribbon, panes, dialogs, keys, control |
 | platform | `crates/macos-open` | Finder Open Documents (odoc) Apple Event, safe API |
 | mcp | `crates/mcp` (`vizcraft-mcp`) | Stdio JSON-RPC MCP server, launched by `vizcraft-cli mcp`; same rank as `ui-egui`, so neither depends on the other, and no UI toolkit (see [docs/mcp.md](mcp.md)) |
@@ -58,7 +61,7 @@ command uses them yet.
 
 ```rust
 pub struct Session {
-    pub doc: Document,                 // placeholder model: title and metadata (crates/engine/src/doc.rs)
+    pub doc: Document,                 // vizcraft_diagram::Document, re-exported by crates/engine/src/doc.rs
     pub path: Option<PathBuf>,
     pub dirty: bool,
     pub author: String,
@@ -175,6 +178,27 @@ JSON lines on 127.0.0.1: `{"id":1,"method":"engine.execute","params":{"command":
 `$XDG_CONFIG_HOME/vizcraft/ui.json`. `VIZCRAFT_NO_PREFS=1` disables. Window geometry is saved
 in it and restored (sanitized) at launch.
 
+## Diagram model (`vizcraft-diagram`, `vizcraft-stencils`)
+
+Both crates sit below the engine (`xtask layers` class `model`): no egui, no engine, wasm safe.
+Units are `f64` world units, pixels at 100% zoom, y down; angles are degrees clockwise about the
+shape's frame centre.
+
+| Type | Holds |
+|---|---|
+| `Document` | `title`, `core: CoreProps` (author, timestamps, revision), `pages: Vec<Page>` (always at least one), `id_seq`; `next_id(prefix)` hands out `s1`, `c2` and so on, never reused |
+| `Page` | Id, name, width and height (1100 x 850 by default), `shapes` and `connectors` in z order |
+| `Shape` | Id, `stencil` master id (`basic.rectangle`), `kind: ShapeKind` (16 outlines), frame `x, y, w, h`, `angle_deg`, text, `Style`, optional custom connection points (normalized; kinds default to top, right, bottom, left) |
+| `Connector` | Id, `start` and `end` as `End::Glued { shape, point: Option<usize> }` (no point = dynamic glue) or `End::Free { x, y }`, `route` (`straight`, `orthogonal`, `curved`), arrowheads per end (`none`, `triangle`, `open`, `diamond`, `circle`), label text, `Style` |
+| `Style` | Fill, line colour and width, font size and colour, bold, italic; colours serialize as `#rrggbb` |
+
+Routing and glue are pure functions of shape geometry (`resolve_ends`, `route_path`,
+`connector_geometry`), so moving a shape moves its connectors with no extra bookkeeping. Hit
+testing (`shape_at`, `connector_at`, `shapes_in_rect`, `connection_point_at`) uses the real
+outline and rotation. Loading is tolerant: missing or wrong-typed fields take defaults, and
+`sanitize` clamps sizes, coordinates and text length. `vizcraft-stencils` provides `sets()`,
+`master(id)`, `search(query)` and `new_shape(master_id, id, x, y, w?, h?)`.
+
 ## Conventions
 
 - Rust 2024, `rustfmt.toml` (max_width 150), clippy `-D warnings`, no `unwrap`/`expect`/panics in
@@ -195,17 +219,17 @@ the same commit as the code, and update [docs/parity.md](parity.md).
 
 | Layer | Crate | Job |
 |---|---|---|
-| model | `crates/diagram` (`vizcraft-diagram`) | Pages, layers, shapes, connectors, groups and containers, text, styles and themes, shape data; geometry, hit testing, glue, connector routing, auto-layout. No egui, no command plumbing |
-| model | `crates/stencils` (`vizcraft-stencils`) | Built-in stencil library: original shapes defined in code, categories, keyword search index |
+| model | `crates/diagram` | Grows layers, groups and containers, themes, shape data, waypoints and auto-layout (Cascades 2 to 4) |
+| model | `crates/stencils` | Grows the domain stencil sets and a full keyword index (Cascades 3 and 4) |
 | I/O | `crates/formats` (`vizcraft-formats`) | `.vizcraft` native JSON, .drawio read and write, Mermaid and CSV import, SVG, PNG and PDF export, .vsdx import |
-| L4 | `crates/engine` | Gains `cmd/` modules for the new command prefixes; `Session.doc` becomes the diagram `Document` |
+| L4 | `crates/engine` | Gains `cmd/` modules for the new command prefixes |
 | L6 | `crates/ui-egui` | Diagram canvas (handles, connector drag, snap, rulers, guides), page tabs, new panes and ribbon tabs |
 
 `diagram` and `stencils` sit below `engine` and depend on neither egui nor the engine. `formats`
 sits beside `engine`: it depends on `diagram` (and `stencils` for import mapping), and the engine
 calls it from `file.*` commands. `xtask/src/layers.rs` gains each crate when it lands.
 
-### Diagram model sketch
+### Diagram model sketch (later cascades)
 
 | Type | Holds |
 |---|---|

@@ -10,6 +10,9 @@ use std::path::Path;
 /// Where a workspace crate sits.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Class {
+    /// Model layer (diagram, stencils): plain data and geometry below the engine; no UI toolkit,
+    /// no engine, no front end.
+    Model,
     /// L4: the model, undo, command registry; knows nothing about any UI toolkit.
     Engine,
     /// L6: the egui front end; uses egui but not a window host.
@@ -32,7 +35,8 @@ fn is_egui(name: &str) -> bool {
 /// Window hosts and desktop services that only the apps may use.
 const APP_ONLY: &[&str] = &["eframe", "winit", "rfd", "muda"];
 
-/// Everything the engine must stay clear of (the app-only set, egui, and the clipboard).
+/// Everything the engine and the model layer must stay clear of (the app-only set, egui, and the
+/// clipboard).
 fn forbidden_in_engine(name: &str) -> bool {
     is_egui(name) || APP_ONLY.contains(&name) || name == "arboard"
 }
@@ -70,6 +74,9 @@ pub fn classify(c: &Crate) -> Option<Class> {
     if c.name == "xtask" {
         return Some(Class::Tooling);
     }
+    if c.name.ends_with("-diagram") || c.name.ends_with("-stencils") {
+        return Some(Class::Model);
+    }
     if c.name.ends_with("-engine") {
         return Some(Class::Engine);
     }
@@ -88,6 +95,7 @@ pub fn classify(c: &Crate) -> Option<Class> {
 
 pub fn describe(class: Option<Class>) -> String {
     match class {
+        Some(Class::Model) => "model".into(),
         Some(Class::Engine) => "L4".into(),
         Some(Class::UiEgui) => "L6".into(),
         Some(Class::Platform) => "platform".into(),
@@ -100,10 +108,12 @@ pub fn describe(class: Option<Class>) -> String {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Violation {
-    /// A crate the rules cannot place: not `*-engine`, `*-ui-egui`, `*-macos-open`, `xtask` or under `apps/`.
+    /// A crate the rules cannot place: not `*-diagram`, `*-stencils`, `*-engine`, `*-ui-egui`, `*-macos-open`, `xtask` or under `apps/`.
     Unregistered { krate: String },
     /// The engine pulls in a UI toolkit or desktop service.
     EngineUsesUi { krate: String, dep: String },
+    /// A model crate (diagram, stencils) pulls in a UI toolkit or desktop service.
+    ModelUsesUi { krate: String, dep: String },
     /// A non-app crate uses a window host or desktop service (eframe, winit, rfd, muda).
     AppOnlyDep { krate: String, dep: String },
     /// A workspace dependency that points the wrong way (engine -> ui, anything -> app, platform -> anything).
@@ -117,28 +127,33 @@ impl std::fmt::Display for Violation {
         match self {
             Violation::Unregistered { krate } => write!(
                 f,
-                "{krate}: unknown workspace crate; name it <craft>-engine, <craft>-ui-egui, <craft>-macos-open, put it under apps/, or extend xtask/src/layers.rs"
+                "{krate}: unknown workspace crate; name it <craft>-diagram, <craft>-stencils, <craft>-engine, <craft>-ui-egui, <craft>-macos-open, put it under apps/, or extend xtask/src/layers.rs"
             ),
             Violation::EngineUsesUi { krate, dep } => {
                 write!(f, "{krate} depends on `{dep}`; the engine and the MCP server must not know about egui/eframe/winit/rfd/muda/arboard")
             }
+            Violation::ModelUsesUi { krate, dep } => {
+                write!(f, "{krate} (model) depends on `{dep}`; the model layer must not know about egui/eframe/winit/rfd/muda/arboard")
+            }
             Violation::AppOnlyDep { krate, dep } => write!(f, "{krate} depends on `{dep}`; only apps/* may use eframe, winit, rfd, muda"),
             Violation::Upward { krate, dep } => {
-                write!(f, "{krate} -> {dep}: dependencies must point down the layer table (engine <- ui-egui <- apps)")
+                write!(f, "{krate} -> {dep}: dependencies must point down the layer table (model <- engine <- ui-egui <- apps)")
             }
             Violation::DependsOnTooling { krate } => write!(f, "{krate} depends on xtask; tooling is not a library"),
         }
     }
 }
 
-/// Rank used for the direction check: a crate may only depend on strictly lower ranks.
+/// Rank used for the direction check: a crate may only depend on strictly lower ranks (model
+/// crates may also depend on each other: stencils builds on diagram).
 fn rank(class: Class) -> u8 {
     match class {
-        Class::Platform | Class::Engine => 0,
+        Class::Model => 0,
+        Class::Platform | Class::Engine => 1,
         // Same rank as ui-egui, so neither can depend on the other.
-        Class::UiEgui | Class::Mcp => 1,
-        Class::App => 2,
-        Class::Tooling => 3,
+        Class::UiEgui | Class::Mcp => 2,
+        Class::App => 3,
+        Class::Tooling => 4,
     }
 }
 
@@ -159,6 +174,7 @@ pub fn check(crates: &[Crate]) -> Vec<Violation> {
                 let target = crates.iter().find(|x| x.name == d.name).and_then(classify);
                 match target {
                     Some(Class::Tooling) => out.push(Violation::DependsOnTooling { krate: c.name.clone() }),
+                    Some(Class::Model) if class == Class::Model => {}
                     Some(t) if class == Class::Platform || rank(t) >= rank(class) => {
                         out.push(Violation::Upward { krate: c.name.clone(), dep: d.name.clone() });
                     }
@@ -171,6 +187,7 @@ pub fn check(crates: &[Crate]) -> Vec<Violation> {
                 Class::Engine | Class::Mcp if forbidden_in_engine(&d.name) => {
                     out.push(Violation::EngineUsesUi { krate: c.name.clone(), dep: d.name.clone() })
                 }
+                Class::Model if forbidden_in_engine(&d.name) => out.push(Violation::ModelUsesUi { krate: c.name.clone(), dep: d.name.clone() }),
                 Class::UiEgui | Class::Platform | Class::Tooling if APP_ONLY.contains(&d.name.as_str()) => {
                     out.push(Violation::AppOnlyDep { krate: c.name.clone(), dep: d.name.clone() });
                 }
@@ -224,7 +241,11 @@ mod tests {
     fn baseline(prefix: &str) -> Vec<Crate> {
         let p = |s: &str| format!("{prefix}-{s}");
         vec![
-            c(&p("engine"), "/r/crates/engine/Cargo.toml", &[("serde", Normal, false), ("thiserror", Normal, false)]),
+            c(
+                &p("engine"),
+                "/r/crates/engine/Cargo.toml",
+                &[("serde", Normal, false), ("thiserror", Normal, false), (&p("diagram"), Normal, true), (&p("stencils"), Normal, true)],
+            ),
             c(&p("macos-open"), "/r/crates/macos-open/Cargo.toml", &[("objc2", Normal, false)]),
             c(
                 &p("ui-egui"),
@@ -244,6 +265,8 @@ mod tests {
             ),
             c(&p("cli"), "/r/apps/vizcraft-cli/Cargo.toml", &[(&p("engine"), Normal, true)]),
             c("xtask", "/r/xtask/Cargo.toml", &[("serde_json", Normal, false)]),
+            c(&p("diagram"), "/r/crates/diagram/Cargo.toml", &[("serde", Normal, false), ("proptest", Dev, false)]),
+            c(&p("stencils"), "/r/crates/stencils/Cargo.toml", &[(&p("diagram"), Normal, true)]),
         ]
     }
 
@@ -261,7 +284,16 @@ mod tests {
         let classes: Vec<_> = g.iter().map(classify).collect();
         assert_eq!(
             classes,
-            vec![Some(Class::Engine), Some(Class::Platform), Some(Class::UiEgui), Some(Class::App), Some(Class::App), Some(Class::Tooling)]
+            vec![
+                Some(Class::Engine),
+                Some(Class::Platform),
+                Some(Class::UiEgui),
+                Some(Class::App),
+                Some(Class::App),
+                Some(Class::Tooling),
+                Some(Class::Model),
+                Some(Class::Model)
+            ]
         );
         assert_eq!(classify(&c("vizcraft-web", "/r/apps/vizcraft-web/Cargo.toml", &[])), Some(Class::App));
         assert_eq!(classify(&c("vizcraft-mystery", "/r/crates/mystery/Cargo.toml", &[])), None);
@@ -276,6 +308,35 @@ mod tests {
         // Dev-dependencies count too: the engine's tests must stay headless.
         assert!(!check(&[c("vizcraft-engine", "/r/crates/engine/Cargo.toml", &[("egui_kittest", Dev, false)])]).is_empty());
         assert!(check(&[c("vizcraft-engine", "/r/crates/engine/Cargo.toml", &[("serde_json", Normal, false)])]).is_empty());
+    }
+
+    #[test]
+    fn model_must_not_use_ui_crates_or_point_up() {
+        for name in ["vizcraft-diagram", "vizcraft-stencils"] {
+            let manifest = format!("/r/crates/{}/Cargo.toml", name.trim_start_matches("vizcraft-"));
+            for dep in ["egui", "egui_kittest", "eframe", "winit", "rfd", "muda", "arboard"] {
+                let v = check(&[c(name, &manifest, &[(dep, Normal, false)])]);
+                assert!(matches!(&v[..], [Violation::ModelUsesUi { dep: d, .. }] if d == dep), "{name} {dep}: {v:?}");
+            }
+            assert!(check(&[c(name, &manifest, &[("serde", Normal, false), ("proptest", Dev, false)])]).is_empty());
+        }
+        // The model sits below the engine and the UI: depending on either points up.
+        for up in ["vizcraft-engine", "vizcraft-ui-egui"] {
+            let mut g = baseline("vizcraft");
+            g[6].deps.push(Dep { name: up.into(), kind: Normal, workspace: true });
+            assert!(matches!(&check(&g)[..], [Violation::Upward { krate, dep }] if krate == "vizcraft-diagram" && dep == up), "{up}");
+        }
+        // Stencils on diagram is sideways within the model layer and allowed; the reverse is too,
+        // since cargo itself rejects a cycle.
+        assert!(check(&baseline("vizcraft")).is_empty());
+        // The UI may read the model directly.
+        let mut g = baseline("vizcraft");
+        g[2].deps.push(Dep { name: "vizcraft-diagram".into(), kind: Normal, workspace: true });
+        assert!(check(&g).is_empty());
+        // Platform glue stays free of every workspace crate, the model included.
+        let mut g = baseline("vizcraft");
+        g[1].deps.push(Dep { name: "vizcraft-diagram".into(), kind: Normal, workspace: true });
+        assert!(matches!(&check(&g)[..], [Violation::Upward { krate, .. }] if krate == "vizcraft-macos-open"));
     }
 
     #[test]
@@ -331,11 +392,14 @@ mod tests {
     fn mcp_sits_between_engine_and_apps() {
         let mut g = baseline("vizcraft");
         g.push(c("vizcraft-mcp", "/r/crates/mcp/Cargo.toml", &[("vizcraft-engine", Normal, true), ("serde_json", Normal, false)]));
-        g[4].deps.push(Dep { name: "vizcraft-mcp".into(), kind: Normal, workspace: true });
+        let idx = |g: &[Crate], name: &str| g.iter().position(|x| x.name == name).unwrap();
+        let cli = idx(&g, "vizcraft-cli");
+        g[cli].deps.push(Dep { name: "vizcraft-mcp".into(), kind: Normal, workspace: true });
         assert!(check(&g).is_empty(), "{:?}", check(&g));
-        assert_eq!(classify(&g[6]), Some(Class::Mcp));
+        let mcp = idx(&g, "vizcraft-mcp");
+        assert_eq!(classify(&g[mcp]), Some(Class::Mcp));
 
-        g[6].deps.push(Dep { name: "vizcraft-ui-egui".into(), kind: Normal, workspace: true });
+        g[mcp].deps.push(Dep { name: "vizcraft-ui-egui".into(), kind: Normal, workspace: true });
         assert!(matches!(&check(&g)[..], [Violation::Upward { krate, .. }] if krate == "vizcraft-mcp"));
         let v = check(&[c("vizcraft-mcp", "/r/crates/mcp/Cargo.toml", &[("egui", Normal, false)])]);
         assert!(matches!(&v[..], [Violation::EngineUsesUi { .. }]), "{v:?}");

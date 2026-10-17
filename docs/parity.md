@@ -32,12 +32,12 @@ When a feature lands, change its State in the same commit as the code. States:
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| Basic shapes | 1 | planned | Rectangle, rounded rectangle, ellipse, diamond, triangle, parallelogram, hexagon, cylinder, document, cloud |
+| Basic shapes | 1 | partial | Rectangle, rounded rectangle, ellipse, diamond, triangle, parallelogram, hexagon, cylinder, document, cloud; outlines in `vizcraft-diagram`, commands pending |
 | Select, move, resize, rotate | 1 | planned | Handles on the canvas and `shape.*` commands |
 | Multi-select and marquee | 1 | planned | Uses the existing `Selection` |
 | Shapes pane | 1 | planned | Stencil browser; click or drag to insert |
-| Basic and Flowchart stencils | 1 | planned | Original shapes defined in code |
-| Connection points | 1 | planned | Per-shape points connectors glue to |
+| Basic and Flowchart stencils | 1 | partial | Original shapes defined in code (`vizcraft-stencils`); insertion arrives with the shape commands and Shapes pane |
+| Connection points | 1 | partial | Per-shape points connectors glue to; in the model, editing arrives with the canvas |
 | Stencil search | 3 | planned | Keyword index over every stencil |
 | Custom stencils | Future | planned | Plugin stencil sets loaded from files |
 

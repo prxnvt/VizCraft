@@ -10,9 +10,9 @@ merges, and the matching rows in [docs/parity.md](docs/parity.md) when a feature
 
 | Measure | Value |
 |---|---|
-| Cascade | 0 done; Cascade 1 (diagram core) is next |
+| Cascade | 0 done; Cascade 1 (diagram core) in progress |
 | App runs | full chrome: ribbon, panes, menus, dialogs, command palette, control channel, multiple windows, web shell |
-| Document model | placeholder (title and metadata only); no diagram features yet |
+| Document model | `vizcraft-diagram` model and `vizcraft-stencils` catalog in the engine; commands, canvas and formats in progress |
 | MCP server | minimal server with the generic tools (Remote backend); draw.io-style tools in Cascade 3 |
 
 ## Cascade 0: rename and documentation reset (done)
@@ -30,9 +30,9 @@ and drive it all from an agent.
 
 | Piece | Contents | Lands in | State |
 |---|---|---|---|
-| Diagram model | `vizcraft-diagram`: `Document`, `Page`, `Shape`, `Connector`, ids, geometry (position, size, rotation), text, basic style, connection points, hit testing in world space; geometry helpers ported from VectorCraft's `geom` where they fit | `crates/diagram` (new) | planned |
+| Diagram model | `vizcraft-diagram`: `Document`, `Page`, `Shape`, `Connector`, ids, geometry (position, size, rotation), text, basic style, connection points, hit testing in world space; geometry helpers ported from VectorCraft's `geom` where they fit | `crates/diagram` (new) | done |
 | Native file format | `.vizcraft` JSON read and write, versioned, replacing the placeholder `.craft.json` model in the engine | `crates/formats` (new), `crates/engine/src/io.rs` | planned |
-| Basic shapes and stencils | Rectangle, rounded rectangle, ellipse, diamond, triangle, parallelogram, hexagon, cylinder, document, cloud; Basic and Flowchart stencil sets defined in code, with categories | `crates/stencils` (new) | planned |
+| Basic shapes and stencils | Rectangle, rounded rectangle, ellipse, diamond, triangle, parallelogram, hexagon, cylinder, document, cloud; Basic and Flowchart stencil sets defined in code, with categories | `crates/stencils` (new) | done |
 | Shape commands | `shape.add`, `shape.delete`, `shape.move`, `shape.resize`, `shape.rotate`, `shape.setText`, `shape.setStyle`, each undoable and covered by `hostile_params_never_panic` | `crates/engine/src/cmd/shape.rs` | planned |
 | Connector commands and routing | `connector.add`, `connector.glue`, `connector.setRoute`, `connector.setArrows`; dynamic glue (to the shape) and point glue (to a connection point); straight, orthogonal and curved routes; arrowheads | `crates/diagram` (routing), `crates/engine/src/cmd/connector.rs` | planned |
 | Diagram canvas | Draw the page through `Viewport2D`; select, multi-select, marquee; move, resize and rotate handles; connector drag from connection points; in-place text editing | `crates/ui-egui/src/canvas.rs` | done |

@@ -16,6 +16,8 @@ vizcraft-engine = { path = "crates/engine" }
 vizcraft-ui-egui = { path = "crates/ui-egui" }
 vizcraft-macos-open = { path = "crates/macos-open" }
 vizcraft-mcp = { path = "crates/mcp" }
+vizcraft-diagram = { path = "crates/diagram" }
+vizcraft-stencils = { path = "crates/stencils" }
 
 # foundation
 thiserror = "2"
@@ -23,6 +25,9 @@ serde = { version = "1", features = ["derive", "rc"] }
 serde_json = { version = "1", features = ["float_roundtrip"] }
 log = "0.4"
 image = { version = "0.25", default-features = false, features = ["png"] }
+
+# testing
+proptest = "1"
 
 # ui
 egui = "0.36"
