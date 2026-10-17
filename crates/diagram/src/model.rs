@@ -3,6 +3,7 @@
 //! Every type is plain data with serde. Fields are camelCase on disk, every field has a default,
 //! and wrong-typed values fall back to defaults, so `{}` and files from newer versions load.
 
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -197,6 +198,10 @@ pub struct Shape {
     /// Connection points in normalized `0..1` frame coordinates. Empty means the kind's defaults.
     #[serde(deserialize_with = "lenient_vec")]
     pub connection_points: Vec<Point>,
+    /// Data from other formats that VizCraft does not model yet (for example `drawio.style`), kept
+    /// so writing the file back loses nothing.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "BTreeMap::is_empty")]
+    pub ext: BTreeMap<String, String>,
 }
 
 impl Default for Shape {
@@ -213,6 +218,7 @@ impl Default for Shape {
             text: String::new(),
             style: Style::DEFAULT,
             connection_points: Vec::new(),
+            ext: BTreeMap::new(),
         }
     }
 }
@@ -236,6 +242,7 @@ impl Shape {
         for p in &mut self.connection_points {
             *p = Point::new(finite(p.x, 0.5).clamp(0.0, 1.0), finite(p.y, 0.5).clamp(0.0, 1.0));
         }
+        sanitize_ext(&mut self.ext);
     }
     /// The unrotated frame.
     pub fn frame(&self) -> Rect {
@@ -292,6 +299,41 @@ impl Shape {
 }
 
 /// Keep at most `max` bytes of `s`, cutting at a char boundary.
+/// Most bends one connector keeps.
+pub const MAX_WAYPOINTS: usize = 1000;
+
+/// Most `ext` entries one item keeps.
+pub const MAX_EXT_ENTRIES: usize = 256;
+
+/// Longest `ext` key kept, in bytes; longer keys are dropped.
+const MAX_EXT_KEY: usize = 256;
+
+/// Longest id an import or a caller may choose.
+pub const MAX_ID: usize = 64;
+
+/// Whether `id` is a plain id a caller may choose: 1 to [`MAX_ID`] letters, digits, `_`, `-` or `.`.
+pub fn is_plain_id(id: &str) -> bool {
+    !id.is_empty() && id.len() <= MAX_ID && id.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.'))
+}
+
+fn is_false(b: &bool) -> bool {
+    !*b
+}
+
+/// Keep `ext` bounded: at most [`MAX_EXT_ENTRIES`] entries, short keys, values capped at
+/// [`MAX_TEXT`].
+fn sanitize_ext(ext: &mut BTreeMap<String, String>) {
+    ext.retain(|k, _| !k.is_empty() && k.len() <= MAX_EXT_KEY);
+    while ext.len() > MAX_EXT_ENTRIES {
+        if ext.pop_last().is_none() {
+            break;
+        }
+    }
+    for v in ext.values_mut() {
+        truncate(v, MAX_TEXT);
+    }
+}
+
 fn truncate(s: &mut String, max: usize) {
     if s.len() > max {
         let mut cut = max;
@@ -447,6 +489,19 @@ pub struct Connector {
     /// Line and text style (the fill is unused).
     #[serde(deserialize_with = "lenient")]
     pub style: Style,
+    /// Bends between the ends, in world coordinates. Empty means the route is worked out from the
+    /// glue alone; set by obstacle-avoiding routing or read from a file.
+    #[serde(deserialize_with = "lenient_vec", skip_serializing_if = "Vec::is_empty")]
+    pub waypoints: Vec<Point>,
+    /// Route around shapes: the engine recomputes `waypoints` after every document change.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_false")]
+    pub avoid: bool,
+    /// Draw a small hop wherever this connector crosses one drawn before it.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_false")]
+    pub jumps: bool,
+    /// Data from other formats that VizCraft does not model yet, kept for round trips.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "BTreeMap::is_empty")]
+    pub ext: BTreeMap<String, String>,
 }
 
 impl Default for Connector {
@@ -460,6 +515,10 @@ impl Default for Connector {
             end_arrow: Arrow::Triangle,
             text: String::new(),
             style: Style { fill: Color::TRANSPARENT, ..Style::DEFAULT },
+            waypoints: Vec::new(),
+            avoid: false,
+            jumps: false,
+            ext: BTreeMap::new(),
         }
     }
 }
@@ -479,6 +538,11 @@ impl Connector {
         }
         truncate(&mut self.text, MAX_TEXT);
         self.style.sanitize();
+        self.waypoints.truncate(MAX_WAYPOINTS);
+        for p in &mut self.waypoints {
+            *p = Point::new(finite(p.x, 0.0), finite(p.y, 0.0));
+        }
+        sanitize_ext(&mut self.ext);
     }
     /// Whether either end is glued to `shape`.
     pub fn touches(&self, shape: &str) -> bool {
@@ -508,6 +572,9 @@ pub struct Page {
     /// Connectors, back to front (drawn above the shapes).
     #[serde(deserialize_with = "lenient_vec")]
     pub connectors: Vec<Connector>,
+    /// Data from other formats that VizCraft does not model yet, kept for round trips.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "BTreeMap::is_empty")]
+    pub ext: BTreeMap<String, String>,
 }
 
 impl Default for Page {
@@ -531,6 +598,7 @@ impl Page {
             height: Self::DEFAULT_HEIGHT,
             shapes: Vec::new(),
             connectors: Vec::new(),
+            ext: BTreeMap::new(),
         }
     }
     /// The page sheet as a rectangle at the origin.
@@ -544,6 +612,7 @@ impl Page {
         self.height = dim(self.height, Self::DEFAULT_HEIGHT);
         self.shapes.iter_mut().for_each(Shape::sanitize);
         self.connectors.iter_mut().for_each(Connector::sanitize);
+        sanitize_ext(&mut self.ext);
     }
     /// The shape with this id.
     pub fn shape(&self, id: &str) -> Option<&Shape> {
@@ -704,5 +773,84 @@ impl Document {
     /// Remove a connector from whichever page has it.
     pub fn remove_connector(&mut self, id: &str) -> Option<Connector> {
         self.pages.iter_mut().find_map(|p| p.remove_connector(id))
+    }
+    /// The index of the page `r` names: an exact page id first, then an exact page name, then a
+    /// zero-based index. The same order the draw.io page tools use, so agents can pass any of them.
+    pub fn find_page(&self, r: &str) -> Option<usize> {
+        self.pages
+            .iter()
+            .position(|p| p.id == r)
+            .or_else(|| self.pages.iter().position(|p| p.name == r))
+            .or_else(|| r.trim().parse::<usize>().ok().filter(|&i| i < self.pages.len()))
+    }
+    /// Append a blank page called `name` (or `Page-N` when empty) with a fresh id; returns its index.
+    pub fn add_page(&mut self, name: &str) -> usize {
+        let id = self.next_id("p");
+        let name = if name.is_empty() { format!("Page-{}", self.pages.len().saturating_add(1)) } else { name.to_string() };
+        let mut page = Page::new(id, name);
+        truncate(&mut page.name, MAX_TEXT);
+        self.pages.push(page);
+        self.pages.len().saturating_sub(1)
+    }
+    /// Put the shapes and connectors of `src` on page `index`, after clearing it when `replace`
+    /// is set, and return their ids (shapes first, then connectors, in `src` order).
+    ///
+    /// Imported ids are kept when they are plain ([`is_plain_id`]) and free in this document, so a
+    /// Mermaid node `A` stays addressable as `A`; any other id gets a fresh one and connector glue
+    /// is rewritten to match. Glue to a shape that is neither in `src` nor on the target page
+    /// becomes a free end at the origin. An index past the last page changes nothing. With
+    /// `replace`, the page also takes `src`'s `ext` data; its id, name and size stay.
+    pub fn adopt(&mut self, index: usize, src: Page, replace: bool) -> Vec<String> {
+        if index >= self.pages.len() {
+            return Vec::new();
+        }
+        if replace && let Some(page) = self.pages.get_mut(index) {
+            page.shapes.clear();
+            page.connectors.clear();
+            page.ext = src.ext.clone();
+        }
+        let mut renamed: HashMap<String, String> = HashMap::new();
+        let mut ids = Vec::with_capacity(src.shapes.len().saturating_add(src.connectors.len()));
+        // Every id in use, so large imports check each wanted id in constant time.
+        let mut used: HashSet<String> = self
+            .pages
+            .iter()
+            .flat_map(|p| p.shapes.iter().map(|s| s.id.clone()).chain(p.connectors.iter().map(|c| c.id.clone())).chain([p.id.clone()]))
+            .collect();
+        for mut shape in src.shapes {
+            let id = self.adopted_id(&shape.id, "s", &mut used);
+            renamed.entry(std::mem::take(&mut shape.id)).or_insert_with(|| id.clone());
+            shape.id = id.clone();
+            shape.sanitize();
+            ids.push(id);
+            if let Some(page) = self.pages.get_mut(index) {
+                page.shapes.push(shape);
+            }
+        }
+        for mut c in src.connectors {
+            let id = self.adopted_id(&c.id, "c", &mut used);
+            c.id = id.clone();
+            for end in [&mut c.start, &mut c.end] {
+                if let End::Glued { shape, .. } = end {
+                    if let Some(new) = renamed.get(shape.as_str()) {
+                        *shape = new.clone();
+                    } else if !self.pages.get(index).is_some_and(|p| p.shape(shape).is_some()) {
+                        *end = End::free(Point::ZERO);
+                    }
+                }
+            }
+            c.sanitize();
+            ids.push(id);
+            if let Some(page) = self.pages.get_mut(index) {
+                page.connectors.push(c);
+            }
+        }
+        ids
+    }
+    /// `wanted` when it is plain and not in `used`, else a fresh id; either way it joins `used`.
+    fn adopted_id(&mut self, wanted: &str, prefix: &str, used: &mut HashSet<String>) -> String {
+        let id = if is_plain_id(wanted) && !used.contains(wanted) { wanted.to_string() } else { self.next_id(prefix) };
+        used.insert(id.clone());
+        id
     }
 }

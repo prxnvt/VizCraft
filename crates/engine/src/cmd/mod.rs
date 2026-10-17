@@ -5,6 +5,8 @@ pub mod edit;
 pub mod file;
 pub mod help;
 pub mod insert;
+pub mod layout;
+pub mod page;
 pub mod shape;
 pub mod view;
 
@@ -21,6 +23,8 @@ pub fn registry() -> Registry {
     v.extend(view::specs());
     v.extend(shape::specs());
     v.extend(connector::specs());
+    v.extend(page::specs());
+    v.extend(layout::specs());
     v.extend(insert::specs());
     v.extend(help::specs());
     Registry::new(v)

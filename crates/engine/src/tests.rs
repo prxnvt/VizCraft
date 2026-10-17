@@ -64,8 +64,9 @@ fn hostile_params_never_panic() {
         json!({"text": "not json at all"}),
     ];
     for spec in reg.all() {
-        // File commands touch the disk; given a path they would write junk files.
-        if spec.id.starts_with("file.") {
+        // File commands touch the disk; given a path they would write junk files. `page.set` with a
+        // path edits a file on disk the same way.
+        if spec.id.starts_with("file.") || spec.id == "page.set" {
             continue;
         }
         for j in &junk {

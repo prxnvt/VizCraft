@@ -3,14 +3,33 @@
 //! - [`native`]: the `.vizcraft` file, a versioned JSON wrapper around the diagram
 //!   [`Document`](vizcraft_diagram::Document); also reads the version 1 placeholder files.
 //! - [`svg`]: export of one page as a standalone SVG 1.1 document.
+//! - [`drawio`]: `.drawio` files read and written through `vizcraft-drawio`.
+//! - [`csv`]: draw.io-style CSV import, placed with the auto-layout.
+//! - [`mermaid`]: Mermaid import through `vizcraft-mermaid`, placed with the auto-layout.
 //!
 //! Bytes in, bytes out: readers take a byte slice and writers return a byte vector, with no file
 //! system access, so the desktop app, the CLI, the MCP server and the web build share one code
 //! path. Every input is untrusted: sizes are capped and errors are returned, never panics.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
+pub mod csv;
+pub mod drawio;
+pub mod mermaid;
 pub mod native;
 pub mod svg;
+
+use vizcraft_diagram::Page;
+
+/// What an importer produces: one or more pages of shapes and connectors, with ids as the source
+/// named them (the engine's `Document::adopt` renames any that clash), plus warnings about
+/// anything the source held that could not be brought across.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Imported {
+    /// Pages in source order; at least one on success.
+    pub pages: Vec<Page>,
+    /// Statements, cells or rows that were skipped or simplified, in plain words.
+    pub warnings: Vec<String>,
+}
 
 /// Why a file could not be read or written.
 #[derive(Debug, thiserror::Error, Clone, PartialEq, Eq)]
@@ -43,6 +62,9 @@ pub enum FormatError {
     /// Encoding failed (should not happen for a valid document).
     #[error("could not encode the document: {0}")]
     Encode(String),
+    /// A foreign source (draw.io, Mermaid, CSV) could not be read; the text says why.
+    #[error("{0}")]
+    Import(String),
 }
 
 #[cfg(test)]

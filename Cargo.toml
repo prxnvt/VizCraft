@@ -19,6 +19,10 @@ vizcraft-mcp = { path = "crates/mcp" }
 vizcraft-diagram = { path = "crates/diagram" }
 vizcraft-stencils = { path = "crates/stencils" }
 vizcraft-formats = { path = "crates/formats" }
+vizcraft-drawio = { path = "crates/drawio" }
+vizcraft-mermaid = { path = "crates/mermaid" }
+vizcraft-layout = { path = "crates/layout" }
+vizcraft-routing = { path = "crates/routing" }
 
 # foundation
 thiserror = "2"

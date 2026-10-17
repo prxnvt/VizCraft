@@ -3587,6 +3587,8 @@ dependencies = [
  "proptest",
  "serde",
  "serde_json",
+ "vizcraft-layout",
+ "vizcraft-routing",
 ]
 
 [[package]]
@@ -3622,6 +3624,8 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.21",
  "vizcraft-diagram",
+ "vizcraft-drawio",
+ "vizcraft-mermaid",
  "vizcraft-stencils",
 ]
 

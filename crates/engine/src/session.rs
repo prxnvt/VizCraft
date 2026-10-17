@@ -264,6 +264,11 @@ impl Session {
         };
         match &result {
             Ok(_) => {
+                // Connectors that avoid shapes are rerouted after every change, inside the same
+                // undo step, so a moved shape never leaves a route running through another.
+                if !matches!(id, "edit.undo" | "edit.redo") && self.doc != before_doc {
+                    vizcraft_diagram::autoroute::refresh(&mut self.doc);
+                }
                 let manages_history = matches!(id, "edit.undo" | "edit.redo") || self.no_undo;
                 if !manages_history && self.doc != before_doc {
                     self.record(spec.label, before_doc, before_sel);

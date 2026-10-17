@@ -348,3 +348,113 @@ proptest! {
         let _: Page = serde_json::from_str(&json).unwrap();
     }
 }
+
+#[test]
+fn adopt_keeps_free_plain_ids_and_renames_clashes() {
+    let mut doc = Document::new();
+    let page = doc.page_mut().unwrap();
+    page.shapes.push(Shape::new("A", ShapeKind::Rectangle, 0.0, 0.0, 10.0, 10.0));
+    let mut src = Page::new("x", "x");
+    src.shapes.push(Shape::new("A", ShapeKind::Rectangle, 0.0, 0.0, 10.0, 10.0));
+    src.shapes.push(Shape::new("B", ShapeKind::Ellipse, 50.0, 0.0, 10.0, 10.0));
+    src.shapes.push(Shape::new("not plain!", ShapeKind::Ellipse, 90.0, 0.0, 10.0, 10.0));
+    src.connectors.push(Connector::new("e1", End::dynamic("A"), End::dynamic("not plain!")));
+    src.connectors.push(Connector::new("e2", End::dynamic("B"), End::dynamic("missing")));
+    let ids = doc.adopt(0, src, false);
+    assert_eq!(ids.len(), 5);
+    assert_ne!(ids[0], "A", "A was taken, so the imported A is renamed");
+    assert_eq!(ids[1], "B");
+    assert!(is_plain_id(&ids[2]));
+    let page = doc.page().unwrap();
+    assert_eq!(page.shapes.len(), 4);
+    let e1 = page.connector("e1").unwrap();
+    assert_eq!(e1.start.shape(), Some(ids[0].as_str()));
+    assert_eq!(e1.end.shape(), Some(ids[2].as_str()));
+    let e2 = page.connector("e2").unwrap();
+    assert_eq!(e2.start.shape(), Some("B"));
+    assert!(e2.end.shape().is_none(), "glue to a shape that is nowhere becomes a free end");
+}
+
+#[test]
+fn adopt_with_replace_clears_the_page_and_ignores_a_missing_page() {
+    let mut doc = Document::new();
+    doc.page_mut().unwrap().shapes.push(Shape::new("old", ShapeKind::Rectangle, 0.0, 0.0, 10.0, 10.0));
+    let mut src = Page::new("x", "x");
+    src.shapes.push(Shape::new("old", ShapeKind::Rectangle, 5.0, 5.0, 10.0, 10.0));
+    assert_eq!(doc.adopt(0, src.clone(), true), vec!["old".to_string()]);
+    assert_eq!(doc.page().unwrap().shapes.len(), 1);
+    assert!(doc.adopt(7, src, true).is_empty());
+}
+
+#[test]
+fn find_page_by_id_name_or_index_and_add_page() {
+    let mut doc = Document::new();
+    let i = doc.add_page("Second");
+    assert_eq!(i, 1);
+    let id = doc.pages[1].id.clone();
+    assert_eq!(doc.find_page(&id), Some(1));
+    assert_eq!(doc.find_page("Second"), Some(1));
+    assert_eq!(doc.find_page("Page-1"), Some(0));
+    assert_eq!(doc.find_page("1"), Some(1));
+    assert_eq!(doc.find_page("2"), None);
+    assert_eq!(doc.find_page("nope"), None);
+    assert_eq!(doc.add_page(""), 2);
+    assert_eq!(doc.pages[2].name, "Page-3");
+}
+
+#[test]
+fn layout_items_places_a_chain_without_overlaps() {
+    use crate::autolayout::{Options, layout_items};
+    let mut page = Page::new("p", "p");
+    // All start on top of each other.
+    for id in ["a", "b", "c", "d"] {
+        page.shapes.push(Shape::new(id, ShapeKind::Rectangle, 0.0, 0.0, 100.0, 60.0));
+    }
+    for (a, b) in [("a", "b"), ("b", "c"), ("b", "d")] {
+        let mut c = Connector::new(format!("{a}{b}"), End::dynamic(a), End::dynamic(b));
+        c.waypoints.push(Point::new(1.0, 1.0));
+        page.connectors.push(c);
+    }
+    layout_items(&mut page, None, &Options::default()).unwrap();
+    for (i, s) in page.shapes.iter().enumerate() {
+        assert!(s.x >= 40.0 - 1e-9 && s.y >= 40.0 - 1e-9);
+        for t in page.shapes.iter().skip(i + 1) {
+            let (a, b) = (s.frame(), t.frame());
+            let overlap = a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+            assert!(!overlap, "{} and {} overlap", s.id, t.id);
+        }
+    }
+    // Top to bottom by default: each child is below its parent.
+    assert!(page.shape("b").unwrap().y > page.shape("a").unwrap().y);
+    assert!(page.connectors.iter().all(|c| c.waypoints.is_empty()), "stale bends are dropped");
+}
+
+#[test]
+fn layout_items_on_a_selection_keeps_its_corner_and_leaves_others() {
+    use crate::autolayout::{Options, layout_items};
+    let mut page = Page::new("p", "p");
+    page.shapes.push(Shape::new("a", ShapeKind::Rectangle, 300.0, 200.0, 100.0, 60.0));
+    page.shapes.push(Shape::new("b", ShapeKind::Rectangle, 300.0, 200.0, 100.0, 60.0));
+    page.shapes.push(Shape::new("z", ShapeKind::Rectangle, 0.0, 0.0, 100.0, 60.0));
+    let ids = vec!["a".to_string(), "b".to_string()];
+    layout_items(&mut page, Some(&ids), &Options::default()).unwrap();
+    let (a, b) = (page.shape("a").unwrap(), page.shape("b").unwrap());
+    assert!((a.x.min(b.x) - 300.0).abs() < 1e-6 && (a.y.min(b.y) - 200.0).abs() < 1e-6);
+    assert_eq!((page.shape("z").unwrap().x, page.shape("z").unwrap().y), (0.0, 0.0));
+}
+
+#[test]
+fn new_connector_fields_round_trip_and_stay_off_disk_when_empty() {
+    let c = Connector::new("c1", End::dynamic("a"), End::dynamic("b"));
+    let json = serde_json::to_string(&c).unwrap();
+    assert!(["\"waypoints\"", "\"avoid\"", "\"jumps\"", "\"ext\""].iter().all(|k| !json.contains(k)), "{json}");
+    let mut c2 = c.clone();
+    c2.waypoints = vec![Point::new(1.0, 2.0)];
+    c2.avoid = true;
+    c2.jumps = true;
+    c2.ext.insert("drawio.style".into(), "dashed=1".into());
+    let back: Connector = serde_json::from_str(&serde_json::to_string(&c2).unwrap()).unwrap();
+    assert_eq!(back, c2);
+    let junk: Connector = serde_json::from_str(r#"{"waypoints": 5, "avoid": "yes", "ext": [1]}"#).unwrap();
+    assert!(junk.waypoints.is_empty() && !junk.avoid && junk.ext.is_empty());
+}
