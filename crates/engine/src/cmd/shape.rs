@@ -1,4 +1,4 @@
-//! Shape commands: add, delete, move, resize, rotate, text and style.
+//! Shape commands: add, delete, move, resize, rotate, text, style, and a stencil search.
 //!
 //! Positions are world units (pixels at 100% zoom), y down. A shape's `x, y` is the top-left of
 //! its unrotated frame; rotation turns the frame about its centre. Connectors need no bookkeeping
@@ -29,7 +29,44 @@ pub fn specs() -> Vec<CommandSpec> {
                 r##"{"ids"?: [string], "fill"?: "#rrggbb", "line"?: "#rrggbb", "lineWidth"?: n, "fontSize"?: n, "fontColor"?: "#rrggbb", "bold"?: bool, "italic"?: bool}"##,
             )
             .when(has_shapes),
+        CommandSpec::new("shape.search", "Search Shapes", "Shapes pane", search).params(
+            r#"{"query": string, "limit"?: n (default 20, at most 200)} -> {"masters": [{"id", "label", "category", "keywords", "w", "h", "style"}]}; style is the draw.io style string"#,
+        ),
     ]
+}
+
+/// Results returned when `limit` is not given.
+const DEFAULT_SEARCH_LIMIT: usize = 20;
+/// Most results one search returns, whatever `limit` asks for.
+const MAX_SEARCH_LIMIT: usize = 200;
+/// Longest query looked at; real queries are a few words, and the rest is ignored.
+const MAX_QUERY_CHARS: usize = 1000;
+
+/// Stencil masters matching every word of `query`, with the draw.io style that opens as each.
+/// It reads the library only, so the document never changes.
+fn search(_s: &mut Session, v: &Value) -> CmdResult {
+    let query: String = p::req_str(v, "query")?.chars().take(MAX_QUERY_CHARS).collect();
+    let limit = match num(v, "limit")? {
+        None => DEFAULT_SEARCH_LIMIT,
+        // Clamped as a float first so a huge or negative number cannot overflow the cast.
+        Some(n) => n.clamp(1.0, MAX_SEARCH_LIMIT as f64) as usize,
+    };
+    let masters: Vec<Value> = vizcraft_stencils::search(&query)
+        .into_iter()
+        .take(limit)
+        .map(|m| {
+            json!({
+                "id": m.id,
+                "label": m.label,
+                "category": m.category,
+                "keywords": m.keywords,
+                "w": m.w,
+                "h": m.h,
+                "style": vizcraft_formats::drawio::master_style(m),
+            })
+        })
+        .collect();
+    Ok(json!({"masters": masters}))
 }
 
 fn coord(v: f64) -> f64 {
@@ -241,4 +278,45 @@ fn set_style(s: &mut Session, v: &Value) -> CmdResult {
 
 fn not_a_shape(id: &str) -> EngineError {
     EngineError::Params(format!("`{}` is not a shape on this page", short(id)))
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::{Value, json};
+
+    use crate::Session;
+
+    fn masters(r: &Value) -> Vec<Value> {
+        r["masters"].as_array().cloned().unwrap_or_default()
+    }
+
+    #[test]
+    fn search_finds_masters_with_styles_and_leaves_the_document_alone() {
+        let mut s = Session::new(crate::sample::sample_document());
+        let before = s.doc.clone();
+        let r = s.run("shape.search", &json!({"query": "rectangle"})).unwrap();
+        let found = masters(&r);
+        let rect = found.iter().find(|m| m["id"] == "basic.rectangle").unwrap_or_else(|| panic!("{r}"));
+        assert_eq!(rect["category"], "Shapes");
+        assert!(rect["w"].as_f64().unwrap() > 0.0 && rect["h"].as_f64().unwrap() > 0.0);
+        assert!(rect["keywords"].is_array());
+        assert!(rect["style"].as_str().unwrap().contains("vizcraft=basic.rectangle"), "{rect}");
+        assert!(masters(&s.run("shape.search", &json!({"query": "no such shape anywhere"})).unwrap()).is_empty());
+        assert_eq!(s.doc, before);
+        assert!(!s.can_undo());
+    }
+
+    #[test]
+    fn search_limit_is_clamped() {
+        let mut s = Session::new(crate::sample::sample_document());
+        let all = masters(&s.run("shape.search", &json!({"query": "", "limit": 1e300})).unwrap()).len();
+        assert!(all > 1 && all <= 200);
+        assert_eq!(masters(&s.run("shape.search", &json!({"query": "", "limit": 1})).unwrap()).len(), 1);
+        assert_eq!(masters(&s.run("shape.search", &json!({"query": "", "limit": -5})).unwrap()).len(), 1);
+        assert_eq!(masters(&s.run("shape.search", &json!({"query": ""})).unwrap()).len(), all.min(20));
+        for bad in [json!({}), json!({"query": 3}), json!({"query": "x", "limit": "many"})] {
+            assert!(s.run("shape.search", &bad).is_err(), "{bad}");
+        }
+        assert!(s.run("shape.search", &json!({"query": "a ".repeat(100_000)})).is_ok());
+    }
 }

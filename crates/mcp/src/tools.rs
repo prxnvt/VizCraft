@@ -1,5 +1,6 @@
-//! The Cascade 1 tools: generic access to the command registry, the document summary and a
-//! screenshot. Every new engine command is reachable through `command_run` with no change here.
+//! The tool list and dispatch. The Cascade 1 tools here give generic access to the command
+//! registry, the document summary and a screenshot; every new engine command is reachable
+//! through `command_run` with no change here. The diagram tools live in `diagram.rs`.
 
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -54,7 +55,7 @@ impl ToolResult {
     }
 }
 
-fn tool(name: &str, title: &str, description: &str, input_schema: Value, read_only: bool) -> Value {
+pub(crate) fn tool(name: &str, title: &str, description: &str, input_schema: Value, read_only: bool) -> Value {
     json!({
         "name": name,
         "title": title,
@@ -64,12 +65,18 @@ fn tool(name: &str, title: &str, description: &str, input_schema: Value, read_on
     })
 }
 
-fn object(properties: Value, required: &[&str]) -> Value {
+pub(crate) fn object(properties: Value, required: &[&str]) -> Value {
     json!({"type": "object", "properties": properties, "required": required, "additionalProperties": false})
 }
 
-/// The tool list for `tools/list`.
+/// The tool list for `tools/list`: the generic tools, then the diagram tools.
 pub fn tool_definitions() -> Vec<Value> {
+    let mut defs = generic_definitions();
+    defs.extend(crate::diagram::definitions());
+    defs
+}
+
+fn generic_definitions() -> Vec<Value> {
     let command_item = object(
         json!({
             "id": {"type": "string", "description": "Command id, such as `shape.add` or `edit.undo`"},
@@ -141,6 +148,9 @@ pub(crate) fn is_tool(name: &str) -> bool {
 /// Run tool `name` with `args` against `backend`. Unknown names and bad arguments come back as
 /// tool errors; this never panics on what a client sends.
 pub fn call_tool(backend: &mut dyn Backend, name: &str, args: &Value) -> ToolResult {
+    if crate::diagram::is_diagram_tool(name) {
+        return crate::diagram::call(backend, name, args);
+    }
     let empty = Map::new();
     let args = match args {
         Value::Object(o) => o,

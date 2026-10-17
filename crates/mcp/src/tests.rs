@@ -23,6 +23,8 @@ fn tiny_png() -> Vec<u8> {
 #[derive(Default, Clone)]
 struct Fake {
     executed: Arc<Mutex<Vec<String>>>,
+    /// Every `engine.execute` request as sent: `{command, params}`.
+    calls: Arc<Mutex<Vec<Value>>>,
 }
 
 impl Backend for Fake {
@@ -35,7 +37,10 @@ impl Backend for Fake {
             ])),
             "engine.execute" => {
                 let id = params.get("command").and_then(Value::as_str).unwrap_or_default().to_string();
-                if id.starts_with("fail.") {
+                if let Ok(mut calls) = self.calls.lock() {
+                    calls.push(params.clone());
+                }
+                if id.starts_with("fail.") || params.to_string().contains("please fail") {
                     return Err(format!("{id} refused"));
                 }
                 if id == "boom.panic" {
@@ -116,11 +121,28 @@ fn initialize_negotiates_the_version() {
 }
 
 #[test]
-fn tools_list_names_the_five_tools_with_schemas() {
+fn tools_list_names_every_tool_with_schemas() {
     let (mut s, _) = server();
     let tools = result(&mut s, 1, "tools/list", json!({}))["tools"].as_array().unwrap().clone();
     let names: Vec<&str> = tools.iter().map(|t| t["name"].as_str().unwrap()).collect();
-    assert_eq!(names, ["command_list", "command_run", "command_batch", "doc_inspect", "screenshot"]);
+    assert_eq!(
+        names,
+        [
+            "command_list",
+            "command_run",
+            "command_batch",
+            "doc_inspect",
+            "screenshot",
+            "open_xml",
+            "open_mermaid",
+            "open_csv",
+            "list_pages",
+            "get_page",
+            "set_page",
+            "search_shapes",
+            "get_reference"
+        ]
+    );
     for t in &tools {
         assert_eq!(t["inputSchema"]["type"], "object", "{t}");
         assert!(t["description"].as_str().unwrap().len() > 40, "{t}");
@@ -332,4 +354,238 @@ fn remote_says_when_no_app_is_listening_and_refuses_other_hosts() {
     assert!(e.contains(&format!("--control {port}")), "{e}");
     assert!(Remote::new("192.0.2.1:7990").unwrap_err().contains("loopback"));
     assert!(Remote::new("not an address").is_err());
+}
+
+// ---- Diagram tools (Cascade 3) ----
+
+/// The `engine.execute` requests the fake has seen, then forget them.
+fn take_calls(fake: &Fake) -> Vec<Value> {
+    std::mem::take(&mut *fake.calls.lock().unwrap())
+}
+
+/// The JSON-RPC error message of a failed request.
+fn err_message(s: &mut Server, id: u64, method: &str, params: Value) -> String {
+    let v = rpc(s, id, method, params);
+    assert_eq!(v["error"]["code"], -32602, "{v}");
+    v["error"]["message"].as_str().unwrap().to_string()
+}
+
+#[test]
+fn diagram_tools_have_strict_schemas_and_hints() {
+    let (mut s, _) = server();
+    let tools = result(&mut s, 1, "tools/list", json!({}))["tools"].as_array().unwrap().clone();
+    let get = |n: &str| tools.iter().find(|t| t["name"] == n).unwrap_or_else(|| panic!("no tool {n}")).clone();
+    for (name, required, read_only) in [
+        ("open_xml", vec!["xml"], false),
+        ("open_mermaid", vec!["source"], false),
+        ("open_csv", vec!["csv"], false),
+        ("list_pages", vec![], true),
+        ("get_page", vec!["page"], true),
+        ("set_page", vec!["page", "xml"], false),
+        ("search_shapes", vec!["query"], true),
+        ("get_reference", vec![], true),
+    ] {
+        let t = get(name);
+        let schema = &t["inputSchema"];
+        assert_eq!(schema["type"], "object", "{t}");
+        assert_eq!(schema["additionalProperties"], false, "{t}");
+        assert_eq!(schema["required"], json!(required), "{t}");
+        for (key, prop) in schema["properties"].as_object().unwrap() {
+            assert!(prop["description"].as_str().is_some_and(|d| d.len() > 10), "{name}.{key} needs a description");
+            assert!(prop.get("type").is_some(), "{name}.{key} needs a type");
+        }
+        assert_eq!(t["annotations"]["readOnlyHint"], read_only, "{t}");
+        assert_eq!(t["annotations"]["destructiveHint"], !read_only, "{t}");
+        assert!(t["description"].as_str().unwrap().len() > 80, "{t}");
+    }
+    let open = get("open_mermaid");
+    assert_eq!(open["inputSchema"]["properties"]["layout"]["enum"], json!(["layered", "tree", "radial", "force"]));
+    assert_eq!(open["inputSchema"]["properties"]["direction"]["enum"], json!(["TB", "BT", "LR", "RL"]));
+    assert_eq!(open["inputSchema"]["properties"]["routing"]["enum"], json!(["orthogonal"]));
+    assert_eq!(get("get_page")["inputSchema"]["properties"]["format"]["enum"], json!(["drawio", "vizcraft"]));
+}
+
+#[test]
+fn each_diagram_tool_sends_its_one_command() {
+    let (mut s, fake) = server();
+    let cases = [
+        (
+            "open_xml",
+            json!({"xml": "<mxGraphModel/>", "page": "Main", "layout": "tree", "direction": "LR", "routing": "orthogonal"}),
+            json!({"command": "file.import", "params": {"text": "<mxGraphModel/>", "format": "drawio", "replace": true, "page": "Main", "layout": "tree", "direction": "LR", "routing": "orthogonal"}}),
+        ),
+        (
+            "open_xml",
+            json!({"xml": "<mxfile/>"}),
+            json!({"command": "file.import", "params": {"text": "<mxfile/>", "format": "drawio", "replace": true}}),
+        ),
+        (
+            "open_mermaid",
+            json!({"source": "flowchart LR\nA-->B", "page": 1, "layout": "force"}),
+            json!({"command": "file.import", "params": {"text": "flowchart LR\nA-->B", "format": "mermaid", "replace": true, "page": 1, "layout": "force"}}),
+        ),
+        (
+            "open_csv",
+            json!({"csv": "id\n1", "routing": "orthogonal", "page": null}),
+            json!({"command": "file.import", "params": {"text": "id\n1", "format": "csv", "replace": true, "routing": "orthogonal"}}),
+        ),
+        ("list_pages", json!({}), json!({"command": "page.list", "params": {}})),
+        ("list_pages", json!({"path": "/tmp/a.drawio"}), json!({"command": "page.list", "params": {"path": "/tmp/a.drawio"}})),
+        ("get_page", json!({"page": 0}), json!({"command": "page.get", "params": {"page": 0}})),
+        (
+            "get_page",
+            json!({"page": "p1", "path": "x.vizcraft", "format": "vizcraft"}),
+            json!({"command": "page.get", "params": {"page": "p1", "path": "x.vizcraft", "format": "vizcraft"}}),
+        ),
+        (
+            "set_page",
+            json!({"page": "New", "xml": "<mxGraphModel/>", "path": "b.drawio", "layout": "layered", "direction": "BT", "routing": "orthogonal"}),
+            json!({"command": "page.set", "params": {"page": "New", "xml": "<mxGraphModel/>", "path": "b.drawio", "layout": "layered", "direction": "BT", "routing": "orthogonal"}}),
+        ),
+        ("search_shapes", json!({"query": "decision"}), json!({"command": "shape.search", "params": {"query": "decision"}})),
+        ("search_shapes", json!({"query": "", "limit": 5}), json!({"command": "shape.search", "params": {"query": "", "limit": 5}})),
+    ];
+    for (i, (name, args, expected)) in cases.into_iter().enumerate() {
+        let (err, r) = tool(&mut s, i as u64 + 1, name, args.clone());
+        assert!(!err, "{name} {args}: {r}");
+        assert_eq!(take_calls(&fake), std::slice::from_ref(&expected), "{name} {args}");
+        // The command's result comes back as JSON text, as command_run reports it.
+        assert_eq!(r["ran"], expected["command"], "{r}");
+        assert_eq!(r["params"], expected["params"], "{r}");
+    }
+}
+
+#[test]
+fn bad_diagram_arguments_are_invalid_params_and_send_nothing() {
+    let (mut s, fake) = server();
+    let bad = [
+        ("open_xml", json!({})),
+        ("open_xml", json!({"xml": ""})),
+        ("open_xml", json!({"xml": 5})),
+        ("open_xml", json!({"xml": "<a/>", "layout": "grid"})),
+        ("open_xml", json!({"xml": "<a/>", "direction": "tb"})),
+        ("open_xml", json!({"xml": "<a/>", "routing": "straight"})),
+        ("open_xml", json!({"xml": "<a/>", "page": -1})),
+        ("open_xml", json!({"xml": "<a/>", "page": 1.5})),
+        ("open_xml", json!({"xml": "<a/>", "page": true})),
+        ("open_xml", json!({"xml": "<a/>", "replace": false})),
+        ("open_mermaid", json!({"xml": "flowchart"})),
+        ("open_mermaid", json!({"source": null})),
+        ("open_csv", json!({"csv": ["a"]})),
+        ("list_pages", json!({"path": 3})),
+        ("list_pages", json!({"path": ""})),
+        ("get_page", json!({})),
+        ("get_page", json!({"page": 0, "format": "svg"})),
+        ("get_page", json!({"page": "x".repeat(300)})),
+        ("set_page", json!({"page": 0})),
+        ("set_page", json!({"xml": "<a/>"})),
+        ("search_shapes", json!({})),
+        ("search_shapes", json!({"query": "a", "limit": 0})),
+        ("search_shapes", json!({"query": "a", "limit": 201})),
+        ("search_shapes", json!({"query": "a", "limit": "10"})),
+        ("get_reference", json!({"topic": 1})),
+        ("get_reference", json!({"chapter": "xml"})),
+    ];
+    for (i, (name, args)) in bad.into_iter().enumerate() {
+        let code = err_code(&mut s, i as u64 + 1, "tools/call", json!({"name": name, "arguments": args.clone()}));
+        assert_eq!(code, -32602, "{name} {args}");
+    }
+    let code = err_code(&mut s, 100, "tools/call", json!({"name": "open_xml", "arguments": "xml"}));
+    assert_eq!(code, -32602);
+    let msg = err_message(&mut s, 101, "tools/call", json!({"name": "open_xml", "arguments": {"xml": "<a/>", "layout": "grid"}}));
+    assert!(msg.contains("layered") && msg.contains("force"), "{msg}");
+    assert!(take_calls(&fake).is_empty(), "nothing reached the backend");
+
+    // Called directly, the same checks give a tool error instead.
+    let mut backend = fake.clone();
+    let r = crate::call_tool(&mut backend, "open_csv", &json!({"csv": 1}));
+    assert!(r.is_error);
+    assert!(take_calls(&fake).is_empty());
+}
+
+#[test]
+fn a_failing_command_is_a_tool_error_with_the_reason() {
+    let (mut s, _) = server();
+    for (name, args) in [
+        ("open_xml", json!({"xml": "please fail"})),
+        ("open_mermaid", json!({"source": "please fail"})),
+        ("open_csv", json!({"csv": "please fail"})),
+        ("list_pages", json!({"path": "please fail"})),
+        ("get_page", json!({"page": "please fail"})),
+        ("set_page", json!({"page": 0, "xml": "please fail"})),
+        ("search_shapes", json!({"query": "please fail"})),
+    ] {
+        let (err, msg) = tool(&mut s, 1, name, args);
+        assert!(err, "{name}: {msg}");
+        let msg = msg.as_str().unwrap();
+        assert!(msg.contains("failed") && msg.contains("refused"), "{name}: {msg}");
+    }
+}
+
+#[test]
+fn get_reference_answers_without_the_backend() {
+    let (mut s, fake) = server();
+    let (err, all) = tool(&mut s, 1, "get_reference", json!({}));
+    assert!(!err);
+    let all = all.as_str().unwrap().to_string();
+    for topic in ["xml", "styles", "shapes", "layout", "routing", "mermaid", "csv"] {
+        assert!(all.contains(&format!("`{topic}`")), "index lists {topic}");
+        let (err, body) = tool(&mut s, 2, "get_reference", json!({"topic": topic}));
+        assert!(!err, "{topic}");
+        let body = body.as_str().unwrap();
+        assert!(body.len() > 200, "{topic}");
+        assert!(all.contains(body), "everything includes {topic}");
+    }
+    let (_, styles) = tool(&mut s, 3, "get_reference", json!({"topic": "styles"}));
+    assert!(styles.as_str().unwrap().contains("vizcraft=<master id>"));
+    let (_, xml) = tool(&mut s, 4, "get_reference", json!({"topic": "xml"}));
+    assert!(xml.as_str().unwrap().contains("sourcePoint"));
+    let msg = err_message(&mut s, 5, "tools/call", json!({"name": "get_reference", "arguments": {"topic": "colours"}}));
+    assert!(msg.contains("xml") && msg.contains("csv"), "{msg}");
+    // Direct callers get the topic list as a tool error.
+    let mut backend = fake.clone();
+    let r = crate::call_tool(&mut backend, "get_reference", &json!({"topic": "colours"}));
+    assert!(r.is_error);
+    assert!(r.content[0]["text"].as_str().unwrap().contains("mermaid"));
+    assert!(take_calls(&fake).is_empty());
+}
+
+#[test]
+fn hostile_diagram_arguments_never_panic() {
+    let (mut s, _) = server();
+    let names = ["open_xml", "open_mermaid", "open_csv", "list_pages", "get_page", "set_page", "search_shapes", "get_reference"];
+    let values = [
+        json!(null),
+        json!(true),
+        json!(-1),
+        json!(u64::MAX),
+        json!(i64::MIN),
+        json!(1e308),
+        json!(""),
+        json!("\u{0}\u{feff}<<<]]>"),
+        json!("x".repeat(100_000)),
+        json!([]),
+        json!({"a": {"b": [1, 2, {"c": null}]}}),
+    ];
+    let keys = ["xml", "source", "csv", "page", "path", "format", "layout", "direction", "routing", "query", "limit", "topic", "junk"];
+    let mut id = 1;
+    for name in names {
+        for key in keys {
+            for v in &values {
+                for args in [json!({ key: v }), json!({"xml": "<a/>", "source": "x", "csv": "x", "query": "q", "page": 0, key: v})] {
+                    let reply = rpc(&mut s, id, "tools/call", json!({"name": name, "arguments": args}));
+                    id += 1;
+                    let ok = reply["result"]["isError"].is_boolean() || reply["error"]["code"] == -32602;
+                    assert!(ok, "{name} {key}: {reply}");
+                }
+            }
+        }
+        for args in [json!(null), json!(7), json!("text"), json!([1])] {
+            let reply = rpc(&mut s, id, "tools/call", json!({"name": name, "arguments": args}));
+            id += 1;
+            assert!(reply.get("result").is_some() || reply["error"]["code"] == -32602, "{name}: {reply}");
+            let mut fake = Fake::default();
+            let _ = crate::call_tool(&mut fake, name, &args);
+        }
+    }
 }
