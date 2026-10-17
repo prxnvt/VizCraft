@@ -14,7 +14,8 @@
 //!    see a key the menu says belongs to a command.
 //!
 //! Only modifier combinations and function keys are shortcuts; plain keys and Shift+letter are
-//! typing. On macOS with the native menu bar the host feeds menu key equivalents back through
+//! typing. Bare Delete and Backspace are the exception: they delete the canvas selection, but
+//! only while no text field has the keyboard (in a field they delete characters). On macOS with the native menu bar the host feeds menu key equivalents back through
 //! egui so this rule applies there too.
 
 use egui::{Key, Modifiers};
@@ -88,8 +89,12 @@ fn text_field_owns(id: &str) -> bool {
     matches!(id, "edit.cut" | "edit.copy" | "edit.paste" | "edit.selectAll" | "edit.undo" | "edit.redo")
 }
 
-/// Whether a key press counts as a shortcut at all (modifier combination or function key).
-fn is_shortcut_key(key: Key, m: Modifiers) -> bool {
+/// Whether a key press counts as a shortcut at all: a modifier combination, a function key, or
+/// bare Delete / Backspace while no text field is focused.
+fn is_shortcut_key(key: Key, m: Modifiers, text_focused: bool) -> bool {
+    if matches!(key, Key::Delete | Key::Backspace) && !text_focused {
+        return true;
+    }
     let fkey = matches!(
         key,
         Key::F1
@@ -135,7 +140,7 @@ pub fn shortcuts(app: &mut CraftApp, ctx: &egui::Context) {
             .collect()
     });
     for (key, m) in presses {
-        if !is_shortcut_key(key, m) {
+        if !is_shortcut_key(key, m, text_focused) {
             continue;
         }
         let Some(name) = key_name(key) else { continue };
@@ -188,10 +193,14 @@ mod tests {
         assert_eq!(key_name(Key::ArrowLeft), Some("Left"));
         assert_eq!(key_name(Key::Num0), Some("0"));
         assert_eq!(key_name(Key::Space), Some("Space"));
-        assert!(is_shortcut_key(Key::F5, Modifiers::NONE));
-        assert!(!is_shortcut_key(Key::Space, Modifiers::NONE), "bare Space pans the canvas");
-        assert!(is_shortcut_key(Key::P, Modifiers::COMMAND | Modifiers::SHIFT));
-        assert!(!is_shortcut_key(Key::A, Modifiers::SHIFT), "Shift+letter is typing");
+        assert!(is_shortcut_key(Key::F5, Modifiers::NONE, false));
+        assert!(!is_shortcut_key(Key::Space, Modifiers::NONE, false), "bare Space pans the canvas");
+        assert!(is_shortcut_key(Key::P, Modifiers::COMMAND | Modifiers::SHIFT, false));
+        assert!(!is_shortcut_key(Key::A, Modifiers::SHIFT, false), "Shift+letter is typing");
+        assert!(is_shortcut_key(Key::Delete, Modifiers::NONE, false), "Delete deletes the selection");
+        assert!(is_shortcut_key(Key::Backspace, Modifiers::NONE, false));
+        assert!(!is_shortcut_key(Key::Backspace, Modifiers::NONE, true), "in a text field Backspace edits the text");
+        assert_eq!(command_for(&app(), "Delete"), Some("edit.delete"));
     }
 
     #[test]
@@ -231,6 +240,8 @@ mod tests {
                     Key::Num0,
                     Key::F1,
                     Key::Space,
+                    Key::Delete,
+                    Key::Backspace,
                     Key::A,
                     Key::B,
                     Key::C,

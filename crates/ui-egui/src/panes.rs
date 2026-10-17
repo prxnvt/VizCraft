@@ -131,6 +131,7 @@ pub fn panes() -> Vec<PaneSpec> {
         return custom;
     }
     vec![
+        PaneSpec::new("shapes", "Shapes", Side::Left, 240.0, shapes),
         PaneSpec::new("navigation", "Navigation", Side::Left, 240.0, navigation),
         PaneSpec::new("properties", "Properties", Side::Right, 260.0, properties),
         PaneSpec::new("history", "History", Side::Right, 260.0, history),
@@ -180,6 +181,11 @@ impl Default for PaneLayout {
         };
         for p in panes() {
             l.side_mut(p.default_side).push(p.key.to_string());
+        }
+        // Navigation has nothing to list until pages arrive; it starts folded to its header so
+        // the Shapes pane above it gets the height.
+        if l.is_open("shapes") && l.is_open("navigation") {
+            l.collapsed.push("navigation".into());
         }
         l
     }
@@ -866,6 +872,110 @@ fn drop_before(keys: &[String], rects: &[Rect], dragged: &str, y: f32) -> Option
     }
 }
 
+/// Drag-and-drop payload of a master dragged from the Shapes pane onto the canvas.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MasterDrag(pub String);
+
+/// Size of one master tile in the Shapes pane.
+const TILE: egui::Vec2 = egui::vec2(66.0, 66.0);
+
+/// A small drawing of a master's outline, fitted into `r` (document colours: it previews what
+/// the master inserts).
+fn master_preview(painter: &egui::Painter, m: &vizcraft_stencils::Master, r: Rect) {
+    use crate::canvas::draw::{color, pos};
+    let (w, h) = (m.w.max(1.0), m.h.max(1.0));
+    let k = (f64::from(r.width()) / w).min(f64::from(r.height()) / h);
+    let (w, h) = (w * k, h * k);
+    let origin = r.center() - vec2(w as f32, h as f32) / 2.0;
+    let place = |p: vizcraft_diagram::Point| origin + pos(p).to_vec2();
+    let stroke = Stroke::new(1.0, color(m.style.line));
+    for pl in m.kind.outline(w, h).flatten(0.3) {
+        let pts: Vec<egui::Pos2> = pl.points.iter().map(|p| place(*p)).collect();
+        if pl.closed {
+            let tris = crate::canvas::tess::triangulate(&pts);
+            let mut mesh = egui::epaint::Mesh::default();
+            for p in &pts {
+                mesh.colored_vertex(*p, color(m.style.fill));
+            }
+            for [a, b, c] in tris {
+                mesh.add_triangle(a, b, c);
+            }
+            painter.add(egui::Shape::mesh(mesh));
+            painter.add(egui::Shape::closed_line(pts, stroke));
+        } else {
+            painter.add(egui::Shape::line(pts, stroke));
+        }
+    }
+    if let Some(d) = m.kind.detail(w, h) {
+        for pl in d.flatten(0.3) {
+            let pts: Vec<egui::Pos2> = pl.points.iter().map(|p| place(*p)).collect();
+            painter.add(if pl.closed { egui::Shape::closed_line(pts, stroke) } else { egui::Shape::line(pts, stroke) });
+        }
+    }
+}
+
+/// One master tile: preview and label. Click inserts at the view centre; dragging carries a
+/// [`MasterDrag`] to the canvas.
+fn master_tile(app: &mut CraftApp, ui: &mut Ui, m: &'static vizcraft_stencils::Master) {
+    let t = Tokens::get(ui.ctx());
+    let (r, resp) = ui.allocate_exact_size(TILE, Sense::click_and_drag());
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, m.label));
+    let resp = resp.on_hover_text(m.label);
+    if resp.hovered() || resp.dragged() {
+        ui.painter().rect_filled(r, CornerRadius::same(4), t.hover);
+    }
+    let art = Rect::from_min_size(r.min + vec2(14.0, 6.0), vec2(r.width() - 28.0, 30.0));
+    master_preview(ui.painter(), m, art);
+    // One line when it fits; two-word labels wrap; a single long word shrinks to fit instead of
+    // breaking mid-word.
+    let room = r.width() - 4.0;
+    let mut galley = ui.painter().layout_no_wrap(m.label.to_string(), regular(10.5), t.text);
+    if galley.size().x > room {
+        galley = if m.label.contains(' ') {
+            ui.painter().layout(m.label.to_string(), regular(10.5), t.text, room)
+        } else {
+            let size = (10.5 * room / galley.size().x).max(7.0);
+            ui.painter().layout_no_wrap(m.label.to_string(), regular(size), t.text)
+        };
+    }
+    let at = pos2(r.center().x - galley.size().x / 2.0, art.bottom() + 4.0);
+    ui.painter().with_clip_rect(r).galley(at, galley, t.text);
+    if resp.dragged() {
+        egui::DragAndDrop::set_payload(ui.ctx(), MasterDrag(m.id.to_string()));
+        ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+        // A ghost of the master follows the pointer.
+        if let Some(p) = ui.ctx().pointer_interact_pos() {
+            let layer = egui::LayerId::new(egui::Order::Tooltip, egui::Id::new("master-drag-ghost"));
+            let ghost = Rect::from_center_size(p, vec2(48.0, 32.0));
+            master_preview(&ui.ctx().layer_painter(layer), m, ghost);
+        }
+    }
+    if resp.clicked() {
+        let at = crate::canvas::insert_point(app);
+        crate::canvas::insert_master(app, m.id, at);
+    }
+}
+
+/// The Shapes pane: each stencil set as a collapsible section of master tiles.
+fn shapes(app: &mut CraftApp, ui: &mut Ui) {
+    let cols = ((ui.available_width() / TILE.x).floor() as usize).max(1);
+    for set in vizcraft_stencils::sets() {
+        egui::CollapsingHeader::new(egui::RichText::new(set.name).font(semibold(12.0)))
+            .id_salt(("stencil-set", set.id))
+            .default_open(true)
+            .show_unindented(ui, |ui| {
+                ui.spacing_mut().item_spacing = vec2(0.0, 2.0);
+                for row in set.masters.chunks(cols) {
+                    ui.horizontal(|ui| {
+                        for m in row {
+                            master_tile(app, ui, m);
+                        }
+                    });
+                }
+            });
+    }
+}
+
 fn navigation(_app: &mut CraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     ui.add_space(8.0);
@@ -995,13 +1105,13 @@ mod tests {
 
     #[test]
     fn custom_pane_registration_and_reset() {
-        assert_eq!(panes().len(), 3);
+        assert_eq!(panes().len(), 4);
         set_panes(vec![PaneSpec::new("custom", "Custom Pane", Side::Left, 200.0, |_app, _ui| {})]);
         assert_eq!(panes().len(), 1);
         assert_eq!(spec("custom").unwrap().title, "Custom Pane");
         assert!(spec("navigation").is_none());
         reset_panes();
-        assert_eq!(panes().len(), 3);
+        assert_eq!(panes().len(), 4);
         assert!(spec("navigation").is_some());
     }
 }

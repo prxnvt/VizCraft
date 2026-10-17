@@ -29,9 +29,9 @@ fn harness(app: CraftApp) -> Harness<'static, CraftApp> {
 }
 
 #[test]
-fn registry_has_the_three_panes_and_commands() {
+fn registry_has_the_four_panes_and_commands() {
     let keys: Vec<&str> = panes::panes().iter().map(|p| p.key).collect();
-    assert_eq!(keys, ["navigation", "properties", "history"]);
+    assert_eq!(keys, ["shapes", "navigation", "properties", "history"]);
     for p in panes::panes() {
         assert!(p.default_width >= MIN_WIDTH && p.default_width <= MAX_WIDTH);
         assert!(!p.title.is_empty());
@@ -42,7 +42,8 @@ fn registry_has_the_three_panes_and_commands() {
         assert!(UI_COMMANDS.iter().any(|(i, ..)| *i == id), "{id} is listed");
     }
     let l = PaneLayout::default();
-    assert_eq!(l.left, ["navigation"]);
+    assert_eq!(l.left, ["shapes", "navigation"], "Shapes opens on the left above Navigation");
+    assert!(l.is_collapsed("navigation") && !l.is_collapsed("shapes"), "Navigation starts folded so Shapes gets the height");
     assert_eq!(l.right, ["properties", "history"], "the right side stacks two panes by default");
 }
 
@@ -77,7 +78,7 @@ fn ui_pane_side_moves_and_opens() {
     let mut a = app();
     let r = a.run("ui.paneSide", json!({"name": "properties", "side": "left"})).unwrap();
     let l = layout(&r);
-    assert_eq!(l.left, ["navigation", "properties"]);
+    assert_eq!(l.left, ["shapes", "navigation", "properties"]);
     assert_eq!(l.right, ["history"]);
     a.run("ui.pane", json!({"name": "history", "value": false})).unwrap();
     assert!(a.ui.panes.right.is_empty());
@@ -114,9 +115,10 @@ fn collapse_commands_fold_a_side() {
 fn window_menu_items_track_the_layout() {
     let mut a = app();
     let items = panes::window_menu_items(&a);
-    assert_eq!(items.len(), 3);
+    assert_eq!(items.len(), 4);
     assert!(items.iter().all(|(_, _, on)| *on));
-    assert_eq!(items[0], ("Navigation", "ui.pane.navigation", true));
+    assert_eq!(items[0], ("Shapes", "ui.pane.shapes", true));
+    assert_eq!(items[1], ("Navigation", "ui.pane.navigation", true));
     for (_, id, _) in &items {
         a.run(id, json!({})).unwrap();
     }
@@ -136,7 +138,7 @@ fn persistence_round_trips_through_prefs() {
     let mut second = app();
     second.apply_prefs(serde_json::from_str(&saved).unwrap());
     assert_eq!(second.ui.panes, first.ui.panes);
-    assert_eq!(second.ui.panes.left, ["navigation", "history"]);
+    assert_eq!(second.ui.panes.left, ["shapes", "navigation", "history"]);
     assert!(second.ui.panes.left_collapsed);
     assert!(second.ui.panes.is_collapsed("history"));
     assert_eq!(second.ui.panes.height("navigation"), 300.0);
@@ -276,7 +278,7 @@ fn view_commands_and_pane_commands_agree() {
     h.state_mut().run("ui.paneSide", json!({"name": "properties", "side": "left"})).unwrap();
     h.run_steps(2);
     assert!(h.state().session.view.props_pane);
-    assert_eq!(h.state().ui.panes.left, ["navigation", "properties"]);
+    assert_eq!(h.state().ui.panes.left, ["shapes", "navigation", "properties"]);
 }
 
 #[test]

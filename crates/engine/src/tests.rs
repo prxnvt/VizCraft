@@ -529,8 +529,10 @@ fn connector_commands_are_disabled_without_connectors() {
     assert_eq!(route.reason, "add a connector first");
     assert!(infos.iter().find(|c| c.id == "connector.add").unwrap().enabled);
     assert!(!infos.iter().find(|c| c.id == "shape.move").unwrap().enabled);
-    assert!(params_err(&mut blank(), "edit.copy", json!({})).contains("select"));
-    assert!(params_err(&mut blank(), "edit.cut", json!({})).contains("select"));
+    // Cut and Copy are greyed with nothing selected, like Delete.
+    for id in ["edit.copy", "edit.cut"] {
+        assert!(matches!(blank().run(id, &json!({})), Err(EngineError::Disabled(m)) if m.contains("select")), "{id}");
+    }
     assert_eq!(infos.iter().find(|c| c.id == "edit.delete").unwrap().reason, "select a shape or connector first");
 }
 
