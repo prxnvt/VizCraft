@@ -1,11 +1,11 @@
 //! The model types: elements, relationships, containment and views.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 
 use crate::serde_util::{lenient, lenient_map, lenient_vec};
-use crate::{MAX_ELEMENTS, MAX_RELATIONSHIPS, SCHEMA_VERSION};
+use crate::{MAX_DEPTH, MAX_ELEMENTS, MAX_RELATIONSHIPS, SCHEMA_VERSION};
 
 /// A property value: a flag, a number or text. Enumerations are text naming one of the values
 /// the property's schema allows. On disk it is the plain JSON value (`true`, `4.5`, `"open"`).
@@ -230,15 +230,16 @@ impl Model {
         self.packs.is_empty() && self.elements.is_empty() && self.relationships.is_empty()
     }
 
+    /// Most notation packs a model lists; a file with more keeps the first ones.
+    pub const MAX_PACKS: usize = 256;
+
     /// Make the model safe to work on: cap counts ([`MAX_ELEMENTS`], [`MAX_RELATIONSHIPS`],
     /// `MAX_PROPERTIES`) and lengths (`MAX_ID`, `MAX_KEY`, `MAX_TAG`, `MAX_TEXT`), drop items with
     /// an empty or duplicate id, drop relationships whose ends are missing, clear owners that are
     /// missing, and break ownership cycles and chains deeper than `MAX_DEPTH` by moving the
     /// offending element to the root. Idempotent.
     pub fn sanitize(&mut self) {
-        // Contract stub; the c4a-model piece fills in the repairs listed above.
-        self.elements.truncate(MAX_ELEMENTS);
-        self.relationships.truncate(MAX_RELATIONSHIPS);
+        crate::repair::sanitize(self);
     }
 
     /// The element with this id.
@@ -340,30 +341,66 @@ impl Model {
     /// Ids of every element owned by `id`, directly or through other elements, parents before
     /// their children; bounded by `MAX_DEPTH` and safe on cyclic input.
     pub fn descendants(&self, id: &str) -> Vec<String> {
-        // Contract stub; the c4a-model piece implements the walk.
-        let _ = id;
-        Vec::new()
+        let index = crate::repair::ChildIndex::new(self);
+        index
+            .subtree(self, &[id], Some(MAX_DEPTH))
+            .into_iter()
+            .skip(1)
+            .map(|i| self.elements.get(i).map_or_else(String::new, |e| e.id.clone()))
+            .collect()
     }
 
     /// Owners of `id` from its parent up to the root; bounded by `MAX_DEPTH` and safe on cyclic
     /// input.
     pub fn ancestors(&self, id: &str) -> Vec<String> {
-        // Contract stub; the c4a-model piece implements the walk.
-        let _ = id;
-        Vec::new()
+        let by_id = crate::repair::by_id(self);
+        let mut out = Vec::new();
+        let mut seen: HashSet<&str> = HashSet::new();
+        seen.insert(id);
+        let mut cur = by_id.get(id).and_then(|&i| self.elements.get(i));
+        while let Some(e) = cur {
+            let Some(owner) = e.owner.as_deref() else { break };
+            // A cycle or a dangling owner ends the walk: the first repeated or missing owner is
+            // where the chain stops making sense.
+            if out.len() >= MAX_DEPTH || !seen.insert(owner) {
+                break;
+            }
+            let Some(next) = by_id.get(owner).and_then(|&i| self.elements.get(i)) else { break };
+            out.push(next.id.clone());
+            cur = Some(next);
+        }
+        out
     }
 
     /// Move `id` under `owner` (`None`: to the project root). Refused when either is missing or
     /// when `owner` is `id` or one of its descendants.
     pub fn set_owner(&mut self, id: &str, owner: Option<&str>) -> Result<(), ModelError> {
-        // Contract stub; the c4a-model piece adds the cycle check.
-        if let Some(o) = owner
-            && self.element(o).is_none()
-        {
-            return Err(ModelError::Unknown(o.to_string()));
+        let by_id = crate::repair::by_id(self);
+        if !by_id.contains_key(id) {
+            return Err(ModelError::Unknown(id.to_string()));
         }
+        if let Some(o) = owner {
+            if !by_id.contains_key(o) {
+                return Err(ModelError::Unknown(o.to_string()));
+            }
+            // Walk up from the new owner rather than down from `id`: the walk is as long as one
+            // chain, not the whole subtree, and it is not cut by the depth bound, so even an
+            // unsanitized deep tree cannot slip a cycle past the check.
+            let mut seen: HashSet<&str> = HashSet::new();
+            let mut cur = Some(o);
+            while let Some(c) = cur {
+                if c == id {
+                    return Err(ModelError::Cycle(id.to_string()));
+                }
+                if !seen.insert(c) {
+                    break;
+                }
+                cur = by_id.get(c).and_then(|&i| self.elements.get(i)).and_then(|e| e.owner.as_deref());
+            }
+        }
+        let owner = owner.map(str::to_string);
         let e = self.element_mut(id).ok_or_else(|| ModelError::Unknown(id.to_string()))?;
-        e.owner = owner.map(str::to_string);
+        e.owner = owner;
         Ok(())
     }
 
@@ -371,17 +408,33 @@ impl Model {
     /// relationship touching a removed element, and each relationship named in `ids`. Unknown ids
     /// are skipped. Removing view items that draw them is the caller's job (the diagram document).
     pub fn remove(&mut self, ids: &[String]) -> Removed {
-        // Contract stub without descendants; the c4a-model piece adds the cascade.
         let mut out = Removed::default();
-        for id in ids {
-            if let Some(i) = self.elements.iter().position(|e| &e.id == id) {
-                out.elements.push(self.elements.remove(i).id);
+        // The cascade is not cut at the depth bound: an unsanitized deeper tree must not leave
+        // owned elements behind pointing at a removed owner.
+        let doomed: Vec<usize> = {
+            let index = crate::repair::ChildIndex::new(self);
+            let roots: Vec<&str> = ids.iter().map(String::as_str).collect();
+            index.subtree(self, &roots, None)
+        };
+        let mut gone_idx = vec![false; self.elements.len()];
+        for &i in &doomed {
+            if let (Some(flag), Some(e)) = (gone_idx.get_mut(i), self.elements.get(i)) {
+                *flag = true;
+                out.elements.push(e.id.clone());
             }
         }
-        let gone = |x: &String| out.elements.contains(x);
+        let gone: HashSet<String> = out.elements.iter().cloned().collect();
+        let named: HashSet<&str> = ids.iter().map(String::as_str).collect();
+        let mut flags = gone_idx.into_iter();
+        self.elements.retain(|_| !flags.next().unwrap_or(false));
+        for e in &mut self.elements {
+            if e.owner.as_ref().is_some_and(|o| gone.contains(o)) {
+                e.owner = None;
+            }
+        }
         let mut kept = Vec::with_capacity(self.relationships.len());
         for r in std::mem::take(&mut self.relationships) {
-            if ids.contains(&r.id) || gone(&r.source) || gone(&r.target) {
+            if named.contains(r.id.as_str()) || gone.contains(&r.source) || gone.contains(&r.target) {
                 out.relationships.push(r.id);
             } else {
                 kept.push(r);
