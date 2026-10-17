@@ -4,8 +4,9 @@ VizCraft's [Model Context Protocol](https://modelcontextprotocol.io) server lets
 edit and look at diagrams. It lands in two steps: a minimal server with the generic command tools
 in Cascade 1 (**built**), and the diagram tools that match draw.io's MCP server feature for
 feature in Cascade 3 (**built**; the Headless backend, the page and shape resources and
-`screenshot {page?}` are still **planned**, [ROADMAP.md](../ROADMAP.md)). Each section below says
-which.
+`screenshot {page?}` are still **planned**, [ROADMAP.md](../ROADMAP.md)). Cascade 4A adds the
+notation schema resources and the issues reported with each command call (**built**). Each
+section below says which.
 
 ## Design
 
@@ -21,11 +22,11 @@ which.
 
 | Method | Behaviour |
 |---|---|
-| `initialize` | Answers with the client's `protocolVersion` when it is one we speak (`2026-07-28`, `2025-11-25`, `2025-06-18`, `2025-03-26`, `2024-11-05`), otherwise `2025-06-18`. Capabilities: `tools`, `resources`, `logging`. `instructions` explain the command model and name the backend |
+| `initialize` | Answers with the client's `protocolVersion` when it is one we speak (`2026-07-28`, `2025-11-25`, `2025-06-18`, `2025-03-26`, `2024-11-05`), otherwise `2025-06-18`. Capabilities: `tools`, `resources` (the command catalog and the notation schemas; `listChanged: false`), `logging`. `instructions` explain the command model, point at the notation resources and the `issues` keys, and name the backend |
 | `ping` | `{}` |
 | `tools/list`, `tools/call` | The tools below. An unknown tool name or an argument the tool's schema does not list is a JSON-RPC error (`-32602`); a tool that runs and fails returns `isError: true` with the reason as text |
-| `resources/list`, `resources/read` | The resources below; an unknown URI is `-32002` |
-| `resources/templates/list` | An empty list; the page and shape templates are planned |
+| `resources/list`, `resources/read` | The resources below; an unknown URI is `-32002`. The list asks the app for its notation packs (`notation.list`) and adds one entry per pack; when the app cannot answer, only the fixed entries are listed |
+| `resources/templates/list` | `vizcraft://notation/{pack}` and `vizcraft://notation/{pack}/{type}`; the page and shape templates are planned |
 | `logging/setLevel` | Turns `notifications/message` log records on at an RFC 5424 level (`null` turns them off) |
 | anything else | `-32601` method not found |
 
@@ -70,8 +71,8 @@ every feature, including ones added after the server ships.
 | Tool | Params | Result | Control methods |
 |---|---|---|---|
 | `command_list` | `prefix?` (string): keep ids that start with it | JSON text `{count, commands}`; each command is `{id, label, location, shortcut, params, enabled, reason?}` | `engine.commands` |
-| `command_run` | `id` (string), `params?` (object, default `{}`) | JSON text: the command's result. A failing command gives `isError: true` and `<id> failed: <reason>` | `engine.execute` |
-| `command_batch` | `commands`: 1 to 256 entries of `{id, params?}` | JSON text `{completed, results: [{id, result}]}`. Every entry is checked before any runs (a bad entry runs nothing and names its index). At the first failing command it stops with `isError: true` and `{completed, failedIndex, failedId, error, results}`; the commands before it stay applied, each its own undo step | `engine.execute`, once per entry |
+| `command_run` | `id` (string), `params?` (object, default `{}`) | JSON text: the command's result, plus `issues` and `openIssues` (see [Issues on each call](#issues-on-each-call-cascade-4a-built)). A failing command gives `isError: true` and `<id> failed: <reason>` | `engine.execute`; `validate.list` before and after |
+| `command_batch` | `commands`: 1 to 256 entries of `{id, params?}` | JSON text `{completed, results: [{id, result}], issues?, openIssues?}`. Every entry is checked before any runs (a bad entry runs nothing and names its index). At the first failing command it stops with `isError: true` and `{completed, failedIndex, failedId, error, results, issues?, openIssues?}`; the commands before it stay applied, each its own undo step | `engine.execute`, once per entry; `validate.list` before the first and after the last that ran |
 | `doc_inspect` | none | JSON text: the `ui.inspect` report (title, path, dirty, rev, selection, undo and redo labels, view, dialog, status) | `ui.inspect` |
 | `screenshot` | none | An `image` block (`image/png`, base64) of the front window, then a text block `{width, height, bytes}` in physical pixels | `ui.screenshot` to a file in the system temporary directory, read back (at most 48 MB, must be a PNG) and deleted |
 
@@ -80,6 +81,34 @@ take an optional `id` (letters, digits, `_`, `-`, `.`, up to 64 characters, not 
 so later entries in the same batch can glue connectors to shapes added earlier. Without `id` the
 engine picks one and returns it. `doc_inspect` already includes a `diagram` summary of the page
 (size, shape and connector counts, selection).
+
+### Issues on each call (Cascade 4A, built)
+
+When the document carries a notation model, live rules check it after every change and the
+engine keeps a list of structured issues. So that an agent sees a problem in the reply to the call
+that caused it, `command_run` and `command_batch` report them:
+
+| Key | Value |
+|---|---|
+| `issues` | The issues this call raised: the live issues after the call that were not live before it, in the order the app lists them. Each is `{rule, severity, message, subjects, items, page?}`: `severity` is `error`, `warning` or `info`, `subjects` are element and relationship ids, `items` the shapes and connectors that draw them |
+| `openIssues` | How many issues are live after the call, counting older ones |
+
+The server reads the live list with the engine command `validate.list {}` once before the call
+and once after it (for a batch, before the first command and after the last one that ran,
+including a batch that stopped at a failure; a batch rejected before running reads nothing).
+Two issues are the same when rule, subjects, items and page match (the engine's `Issue::key`); a
+reworded message does not make an issue new, and an issue fixed by the call simply drops out of
+`openIssues`.
+
+Placement: for `command_batch` the keys sit in the result object beside `completed`. For
+`command_run` they are added to the command's result object; when that result is not an object,
+or already has its own `issues` or `openIssues` key (such as `validate.run` or `validate.list`
+run by hand), the result is left exactly as the command returned it and a second text block holds
+`{issues, openIssues}`. A failing `command_run` stays a plain text error.
+
+An app without `validate.list` (built before Cascade 4A), a broken connection or a reply without
+an `issues` array leaves both keys out; the call itself never fails for it. When the reading
+before the call fails, no reading is attempted after it.
 
 Planned for Cascade 3: `doc_inspect {page?}` to report a chosen page, and
 `screenshot {page?, window?, scale?}` to render one page offscreen instead of the window.
@@ -107,7 +136,7 @@ argument (and, for enums, the allowed values). `null` counts as not given.
 | `get_page` | `page`, `path?`, `format?` (`drawio`, the default, or `vizcraft`) | `page.get {page, path?, format?}` | `{page, format, content}`: draw.io `mxGraphModel` XML or VizCraft JSON as a string |
 | `set_page` | `page`, `xml` (string), `path?`, `layout?`, `direction?`, `routing?` | `page.set {page, xml, path?, layout?, direction?, routing?}` | `{page, ids, warnings}` |
 | `search_shapes` | `query` (string, up to 1000 characters; empty lists every master), `limit?` (1 to 200, default 20) | `shape.search {query, limit?}` | `{masters: [{id, label, category, keywords, w, h, style}]}`; `style` is a draw.io style string, including `vizcraft=<id>`, that opens as that master |
-| `get_reference` | `topic?`: `xml`, `styles`, `shapes`, `layout`, `routing`, `mermaid` or `csv` | none: static text in the server | Plain text (Markdown). Without `topic`, an index of the topics followed by all of them |
+| `get_reference` | `topic?`: `xml`, `styles`, `shapes`, `layout`, `routing`, `mermaid`, `csv` or `model` | none: static text in the server | Plain text (Markdown). Without `topic`, an index of the topics followed by all of them |
 
 Shared params:
 
@@ -128,7 +157,10 @@ the open document is one undo step. The tool annotations mark `list_pages`, `get
 `get_reference` holds our own notes on what the importers accept: the draw.io XML subset (root
 and layer cells, vertex and edge cells, geometry with bend points and loose end points, edge
 label cells, and what is flattened), the style mapping table, master ids and the `vizcraft=<id>`
-style key, the layout and routing options, the five Mermaid kinds and the CSV header directives.
+style key, the layout and routing options, the five Mermaid kinds and the CSV header directives;
+the `model` topic covers model-backed diagrams: notation discovery (the resources below and
+`notation.list`, `notation.describe`, `notation.legal`), `element.create`, `relationship.create`,
+`validate.run`, `validate.list` and the `issues` keys.
 An unknown topic is `-32602` with the list of topics.
 
 The engine command `shape.search` is new with these tools: it reads the stencil library only,
@@ -142,6 +174,16 @@ is always enabled and never changes the document.
 | `vizcraft://shape/{id}` | One shape as JSON: geometry, text, style, shape data, connections | 3 |
 | `vizcraft://commands` | The command catalog as a JSON array, the same list as `command_list` (built) | 1 |
 | `vizcraft://stencils` | The stencil catalog: categories and masters with keywords | 3 |
+| `vizcraft://notation` | The notation packs the app knows: the result of `notation.list {}`, `{packs: [{id, version, name, audience, description, types}]}` (built) | 4A |
+| `vizcraft://notation/{pack}` | One pack's schema: the result of `notation.describe {pack}` (built; listed once per pack, and a template) | 4A |
+| `vizcraft://notation/{pack}/{type}` | One element or relationship type with its properties, ports and legal relationships: the result of `notation.describe {pack, type}`. Type ids are pack-qualified, such as `vizcraft://notation/flowchart/flowchart.process` (built; a template) | 4A |
+
+The notation resources are `application/json` text, read live from the app through
+`engine.execute`, so they always match the packs it has loaded. A URI is at most 300 characters;
+pack and type ids are letters, digits and `_`, with `.` only between two names, at most 100
+characters each. Any other form (an empty segment, a trailing slash, a query, percent escapes,
+extra segments) is `-32002` without asking the app. A pack or type the app does not know, or an
+app without the notation commands, is `-32002` too, with the app's reason in the message.
 
 ## Registering with a client
 

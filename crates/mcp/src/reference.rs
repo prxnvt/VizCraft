@@ -11,6 +11,7 @@ pub(crate) const TOPICS: &[(&str, &str, &str)] = &[
     ("routing", "Connectors that avoid shapes, and line jumps", ROUTING),
     ("mermaid", "The Mermaid diagram kinds open_mermaid understands", MERMAID),
     ("csv", "The CSV header directives open_csv understands", CSV),
+    ("model", "Model-backed diagrams: notation packs, elements, relationships and issues", MODEL),
 ];
 
 /// The names of every topic.
@@ -231,4 +232,39 @@ id,name,role,manager
 2,Ben,Lead,1
 3,Cy,Engineer,2
 ```
+";
+
+const MODEL: &str = "\
+## Model
+
+A diagram can be backed by a model: elements (a process step, a data store) and the
+relationships between them (a flow), each with a type from a notation pack, a name, an optional
+tag and typed properties. Shapes and connectors are views of them, so one element can appear on
+several pages. Shapes made from a pack master (every Flowchart master, for instance) create
+their element automatically; Basic shapes stay free drawing.
+
+Discover a pack before building with it:
+
+| Ask | How |
+|---|---|
+| Which packs exist | Read the resource `vizcraft://notation`, or run `notation.list {}` |
+| One pack's types, properties, legal connections and rules | Read `vizcraft://notation/{pack}`, or run `notation.describe {pack}` |
+| One type | Read `vizcraft://notation/{pack}/{type}` (type ids are pack-qualified, such as `flowchart.process`), or run `notation.describe {pack, type}` |
+| What may connect to what | `notation.legal {from, to?}` with element or type ids |
+
+Build with command_run or command_batch:
+
+| Command | Effect |
+|---|---|
+| `element.create {type, name?, tag?, owner?, properties?, id?, x?, y?, w?, h?, page?}` | Adds an element; with `x` and `y` it is also drawn on the page. Returns `{id, tag, shape?}` |
+| `relationship.create {from, to, type?, name?, properties?, id?, strict?}` | Connects two elements (element or shape ids). Without `type` the pack's default is used; `strict: true` refuses a connection the pack does not allow instead of recording it. Returns `{id, connector?}` |
+| `validate.run {scope?, ids?}` | Runs every rule, including the slower batch checks (unreachable steps, unmatched references), over the selection, the page or everything (`all`) |
+| `validate.list {severity?, rule?}` | The live issues, optionally filtered |
+
+Live rules run after every change. Each issue is `{rule, severity, message, subjects, items,
+page?}`: `subjects` are element and relationship ids, `items` the shapes and connectors that draw
+them. The results of command_run and command_batch carry `issues` (the issues that call raised)
+and `openIssues` (how many are open in all), so an agent sees an illegal connection or a
+duplicate tag in the reply to the call that made it. An app that does not check models leaves
+both keys out.
 ";

@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use serde_json::{Map, Value, json};
 
 use crate::backend::Backend;
-use crate::{MAX_BATCH, base64};
+use crate::{MAX_BATCH, base64, issues};
 
 /// Largest screenshot the server will read back and inline, in bytes. A full window on a large
 /// Retina display is a few megabytes; anything far beyond that is not a screenshot we asked for.
@@ -101,7 +101,8 @@ fn generic_definitions() -> Vec<Value> {
             "Run one command by id with optional params, exactly as the menu or ribbon would, and \
              return its result (commands that create something return the new id). Each run is one \
              undo step. Commands never open dialogs when called this way; ones that need a path take \
-             it as a param.",
+             it as a param. When the app checks a notation model, the result also carries `issues` \
+             (the rule problems this run raised) and `openIssues` (how many are open in all).",
             object(
                 json!({
                     "id": {"type": "string", "description": "Command id from command_list"},
@@ -116,7 +117,9 @@ fn generic_definitions() -> Vec<Value> {
             "Run several commands",
             "Run a list of commands in order, each its own undo step. Stops at the first one that \
              fails and reports its index, id and error together with the results of the ones that \
-             ran before it; the earlier commands stay applied. At most 256 commands per call.",
+             ran before it; the earlier commands stay applied. At most 256 commands per call. When the \
+             app checks a notation model, the result also carries `issues` (the rule problems the \
+             commands that ran raised) and `openIssues` (how many are open in all).",
             object(json!({"commands": {"type": "array", "items": command_item, "minItems": 1, "maxItems": MAX_BATCH}}), &["commands"]),
             false,
         ),
@@ -232,8 +235,25 @@ fn execute(backend: &mut dyn Backend, s: &Step) -> Result<Value, String> {
 
 fn command_run(backend: &mut dyn Backend, args: &Map<String, Value>) -> Result<ToolResult, String> {
     let s = step(args)?;
+    let before = issues::live(backend);
     let result = execute(backend, &s).map_err(|e| format!("{} failed: {e}", s.id))?;
-    Ok(ToolResult::json(&result))
+    let Some(report) = issues::report(backend, before.as_deref()) else {
+        return Ok(ToolResult::json(&result));
+    };
+    match result {
+        // The usual case: an object result gains the two keys.
+        Value::Object(mut o) if !o.contains_key("issues") && !o.contains_key("openIssues") => {
+            o.extend(report);
+            Ok(ToolResult::json(&Value::Object(o)))
+        }
+        // A result that is not an object, or that has its own `issues` (such as `validate.run`),
+        // stays exactly as the command returned it; the report follows as a second text block.
+        other => {
+            let mut r = ToolResult::json(&other);
+            r.content.push(json!({"type": "text", "text": Value::Object(report).to_string()}));
+            Ok(r)
+        }
+    }
 }
 
 fn command_batch(backend: &mut dyn Backend, args: &Map<String, Value>) -> ToolResult {
@@ -260,22 +280,35 @@ fn command_batch(backend: &mut dyn Backend, args: &Map<String, Value>) -> ToolRe
             Err(e) => return ToolResult::error(format!("commands[{i}]: {e}; nothing was run")),
         }
     }
+    let before = issues::live(backend);
     let mut results = Vec::with_capacity(steps.len());
     for (i, s) in steps.iter().enumerate() {
         match execute(backend, s) {
             Ok(r) => results.push(json!({"id": s.id, "result": r})),
             Err(e) => {
-                return ToolResult::error_json(&json!({
+                // The commands before the failure stay applied, so what they raised is reported too.
+                let mut body = json!({
                     "completed": i,
                     "failedIndex": i,
                     "failedId": s.id,
                     "error": e,
                     "results": results,
-                }));
+                });
+                add_issues(&mut body, issues::report(backend, before.as_deref()));
+                return ToolResult::error_json(&body);
             }
         }
     }
-    ToolResult::json(&json!({"completed": results.len(), "results": results}))
+    let mut body = json!({"completed": results.len(), "results": results});
+    add_issues(&mut body, issues::report(backend, before.as_deref()));
+    ToolResult::json(&body)
+}
+
+/// Put the `issues` and `openIssues` keys, when there are any, into a batch result object.
+fn add_issues(body: &mut Value, report: Option<Map<String, Value>>) {
+    if let (Value::Object(o), Some(report)) = (body, report) {
+        o.extend(report);
+    }
 }
 
 /// A fresh file name in the system temporary directory for one screenshot.

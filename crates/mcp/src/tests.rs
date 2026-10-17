@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 
 use serde_json::{Value, json};
 
-use crate::{Backend, COMMANDS_URI, MAX_BATCH, MAX_MESSAGE_BYTES, Remote, Server};
+use crate::{Backend, COMMANDS_URI, MAX_BATCH, MAX_MESSAGE_BYTES, NOTATION_URI, Remote, Server};
 
 /// The smallest valid PNG header the screenshot path accepts: signature, IHDR length and type,
 /// then width 3 and height 2.
@@ -20,11 +20,61 @@ fn tiny_png() -> Vec<u8> {
 }
 
 /// A fake app: a few commands, a log of what ran, and canned answers for the `ui.*` methods.
+///
+/// By default it is an app from before the model core: `validate.list` and the `notation.*`
+/// commands are unknown. [`Fake::modern`] turns them on.
 #[derive(Default, Clone)]
 struct Fake {
     executed: Arc<Mutex<Vec<String>>>,
-    /// Every `engine.execute` request as sent: `{command, params}`.
+    /// Every `engine.execute` request as sent: `{command, params}` (the issue and notation
+    /// commands the server sends by itself are logged in `side` instead).
     calls: Arc<Mutex<Vec<Value>>>,
+    /// The live issues, or `None` when `validate.list` is unknown. A command with
+    /// `params.addIssue` appends that issue, one with `params.clearIssues` empties the list.
+    issues: Arc<Mutex<Option<Vec<Value>>>>,
+    /// Whether the `notation.*` commands exist.
+    notation: bool,
+    /// The `validate.list` and `notation.*` requests as sent: `{command, params}`.
+    side: Arc<Mutex<Vec<Value>>>,
+}
+
+impl Fake {
+    /// An app with the model core: live issues (none yet) and two notation packs.
+    fn modern() -> Self {
+        Fake { issues: Arc::new(Mutex::new(Some(Vec::new()))), notation: true, ..Fake::default() }
+    }
+
+    /// Answer the commands the server sends by itself, or `None` for any other command.
+    fn side_command(&self, id: &str, params: &Value) -> Option<Result<Value, String>> {
+        if !matches!(id, "validate.list" | "notation.list" | "notation.describe") {
+            return None;
+        }
+        if let Ok(mut side) = self.side.lock() {
+            side.push(params.clone());
+        }
+        let unknown = Err(format!("unknown command `{id}`"));
+        let p = params.get("params").cloned().unwrap_or(Value::Null);
+        Some(match id {
+            "validate.list" => match self.issues.lock().unwrap().as_ref() {
+                Some(list) => Ok(json!({"issues": list})),
+                None => unknown,
+            },
+            _ if !self.notation => unknown,
+            "notation.list" => Ok(json!({"packs": [
+                {"id": "basic", "version": "1", "name": "Basic", "audience": "everyone", "description": "Plain shapes.", "types": []},
+                {"id": "flowchart", "version": "1", "name": "Flowchart", "audience": "everyone", "description": "Process flows.", "types": ["flowchart.process"]},
+                {"id": "bad id/x", "name": "Hostile"},
+                {"name": "No id"},
+            ]})),
+            _ => match (p.get("pack").and_then(Value::as_str), p.get("type").and_then(Value::as_str)) {
+                (Some("flowchart"), None) => Ok(json!({"id": "flowchart", "elementTypes": [{"id": "flowchart.process"}]})),
+                (Some("flowchart"), Some("flowchart.process")) => Ok(json!({"id": "flowchart.process", "properties": []})),
+                (Some(pack), None) => Err(format!("unknown pack `{pack}`")),
+                (_, Some(ty)) => Err(format!("unknown type `{ty}`")),
+                _ => Err("missing `pack`".into()),
+            },
+        })
+    }
 }
 
 impl Backend for Fake {
@@ -37,6 +87,9 @@ impl Backend for Fake {
             ])),
             "engine.execute" => {
                 let id = params.get("command").and_then(Value::as_str).unwrap_or_default().to_string();
+                if let Some(answer) = self.side_command(&id, &params) {
+                    return answer;
+                }
                 if let Ok(mut calls) = self.calls.lock() {
                     calls.push(params.clone());
                 }
@@ -51,6 +104,14 @@ impl Backend for Fake {
                 }
                 if let Ok(mut log) = self.executed.lock() {
                     log.push(id.clone());
+                }
+                if let Some(list) = self.issues.lock().unwrap().as_mut() {
+                    if params["params"]["clearIssues"] == true {
+                        list.clear();
+                    }
+                    if let Some(issue) = params["params"].get("addIssue") {
+                        list.push(issue.clone());
+                    }
                 }
                 Ok(json!({"ran": id, "params": params.get("params").cloned().unwrap_or(Value::Null)}))
             }
@@ -588,4 +649,242 @@ fn hostile_diagram_arguments_never_panic() {
             let _ = crate::call_tool(&mut fake, name, &args);
         }
     }
+}
+
+// ---- Model core (Cascade 4A): issues on each call and notation resources ----
+
+fn modern_server() -> (Server, Fake) {
+    let fake = Fake::modern();
+    (Server::new(Box::new(fake.clone())), fake)
+}
+
+fn issue(rule: &str, subjects: &[&str], message: &str) -> Value {
+    json!({"rule": rule, "severity": "error", "message": message, "subjects": subjects, "items": [], "page": "p1"})
+}
+
+/// The `validate.list` and `notation.*` requests the fake has seen, then forget them.
+fn take_side(fake: &Fake) -> Vec<Value> {
+    std::mem::take(&mut *fake.side.lock().unwrap())
+}
+
+#[test]
+fn command_run_reports_the_issues_it_raised() {
+    let (mut s, fake) = modern_server();
+    let old = issue("flowchart.illegalFlow", &["r1"], "Store to store");
+    *fake.issues.lock().unwrap() = Some(vec![old.clone()]);
+    let new = issue("flowchart.duplicateTag", &["e1", "e2"], "Two steps tagged S1");
+    // The same problem reworded is not new: issues are compared by rule, subjects, items and page.
+    let reworded = issue("flowchart.illegalFlow", &["r1"], "Data to data");
+    let (err, r) = tool(&mut s, 1, "command_run", json!({"id": "element.retag", "params": {"addIssue": new}}));
+    assert!(!err, "{r}");
+    assert_eq!(r["ran"], "element.retag", "the command's own keys stay");
+    assert_eq!(r["issues"], json!([new]));
+    assert_eq!(r["openIssues"], 2);
+    let sent: Vec<Value> = take_side(&fake).into_iter().map(|c| c["command"].clone()).collect();
+    assert_eq!(sent, ["validate.list", "validate.list"], "read once before and once after");
+
+    let (_, r) = tool(&mut s, 2, "command_run", json!({"id": "shape.move", "params": {"addIssue": reworded}}));
+    assert_eq!(r["issues"], json!([]));
+    assert_eq!(r["openIssues"], 3);
+
+    let (_, r) = tool(&mut s, 3, "command_run", json!({"id": "edit.undo", "params": {"clearIssues": true}}));
+    assert_eq!(r["issues"], json!([]));
+    assert_eq!(r["openIssues"], 0);
+    assert_eq!(*fake.executed.lock().unwrap(), ["element.retag", "shape.move", "edit.undo"], "issue reads are not commands run");
+
+    // A failing command stays a plain text error.
+    let (err, msg) = tool(&mut s, 4, "command_run", json!({"id": "fail.this", "params": {"addIssue": issue("x", &[], "")}}));
+    assert!(err);
+    assert!(msg.as_str().unwrap().contains("fail.this refused"), "{msg}");
+}
+
+#[test]
+fn command_run_keeps_results_that_are_not_plain_objects() {
+    let (mut s, fake) = modern_server();
+    *fake.issues.lock().unwrap() = Some(vec![issue("a.rule", &["e1"], "")]);
+    // `validate.list` run by hand has its own `issues`: it comes back untouched, the report follows.
+    let r = result(&mut s, 1, "tools/call", json!({"name": "command_run", "arguments": {"id": "validate.list"}}));
+    let blocks = r["content"].as_array().unwrap();
+    assert_eq!(blocks.len(), 2, "{r}");
+    let own: Value = serde_json::from_str(blocks[0]["text"].as_str().unwrap()).unwrap();
+    assert_eq!(own, json!({"issues": [issue("a.rule", &["e1"], "")]}));
+    let report: Value = serde_json::from_str(blocks[1]["text"].as_str().unwrap()).unwrap();
+    assert_eq!(report, json!({"issues": [], "openIssues": 1}));
+}
+
+#[test]
+fn command_batch_reports_issues_raised_across_the_batch() {
+    let (mut s, fake) = modern_server();
+    let a = issue("flowchart.illegalFlow", &["r1"], "a");
+    let b = issue("flowchart.duplicateTag", &["e1", "e2"], "b");
+    let (err, r) = tool(
+        &mut s,
+        1,
+        "command_batch",
+        json!({"commands": [{"id": "element.create", "params": {"addIssue": a}}, {"id": "relationship.create", "params": {"addIssue": b}}]}),
+    );
+    assert!(!err, "{r}");
+    assert_eq!(r["completed"], 2);
+    assert_eq!(r["issues"], json!([a, b]), "in the order validate.list gives them");
+    assert_eq!(r["openIssues"], 2);
+    assert_eq!(take_side(&fake).len(), 2, "one read before the first command and one after the last");
+
+    // A batch that stops at a failure reports what the commands before it raised.
+    let c = issue("flowchart.multiplicity", &["e3"], "c");
+    let (err, r) = tool(
+        &mut s,
+        2,
+        "command_batch",
+        json!({"commands": [{"id": "shape.add", "params": {"addIssue": c}}, {"id": "fail.now", "params": {"addIssue": issue("never", &[], "")}}, {"id": "edit.undo"}]}),
+    );
+    assert!(err, "{r}");
+    assert_eq!(r["failedIndex"], 1);
+    assert_eq!(r["issues"], json!([c]));
+    assert_eq!(r["openIssues"], 3);
+    assert_eq!(take_side(&fake).len(), 2);
+
+    // A batch rejected before running reads nothing.
+    let (err, _) = tool(&mut s, 3, "command_batch", json!({"commands": [{"id": "shape.add"}, {"params": {}}]}));
+    assert!(err);
+    assert!(take_side(&fake).is_empty());
+}
+
+#[test]
+fn an_app_without_validate_list_gets_no_issue_keys() {
+    let (mut s, fake) = server();
+    let (err, r) = tool(&mut s, 1, "command_run", json!({"id": "shape.add", "params": {"addIssue": issue("x", &[], "")}}));
+    assert!(!err, "{r}");
+    assert!(r.get("issues").is_none() && r.get("openIssues").is_none(), "{r}");
+    let r = result(&mut s, 2, "tools/call", json!({"name": "command_run", "arguments": {"id": "edit.undo"}}));
+    assert_eq!(r["content"].as_array().unwrap().len(), 1, "no second block either");
+    let (err, r) = tool(&mut s, 3, "command_batch", json!({"commands": [{"id": "shape.add"}]}));
+    assert!(!err);
+    assert_eq!(r, json!({"completed": 1, "results": [{"id": "shape.add", "result": {"ran": "shape.add", "params": {}}}]}));
+    let (err, r) = tool(&mut s, 4, "command_batch", json!({"commands": [{"id": "fail.x"}]}));
+    assert!(err);
+    assert!(r.get("issues").is_none(), "{r}");
+    // Only the before reading is tried when it fails; nothing is read after.
+    assert_eq!(take_side(&fake).len(), 4);
+}
+
+#[test]
+fn notation_resources_are_listed_and_read() {
+    let (mut s, fake) = modern_server();
+    let init = result(&mut s, 1, "initialize", json!({"protocolVersion": "2025-06-18"}));
+    assert!(init["capabilities"]["resources"].is_object(), "{init}");
+
+    let list = result(&mut s, 2, "resources/list", json!({}));
+    let uris: Vec<&str> = list["resources"].as_array().unwrap().iter().map(|r| r["uri"].as_str().unwrap()).collect();
+    assert_eq!(uris, [COMMANDS_URI, NOTATION_URI, "vizcraft://notation/basic", "vizcraft://notation/flowchart"], "packs with bad ids are skipped");
+    for r in list["resources"].as_array().unwrap() {
+        assert_eq!(r["mimeType"], "application/json", "{r}");
+        assert!(r["name"].is_string() && r["description"].as_str().unwrap().len() > 20, "{r}");
+    }
+
+    let templates = result(&mut s, 3, "resources/templates/list", json!({}));
+    let forms: Vec<&str> = templates["resourceTemplates"].as_array().unwrap().iter().map(|t| t["uriTemplate"].as_str().unwrap()).collect();
+    assert_eq!(forms, ["vizcraft://notation/{pack}", "vizcraft://notation/{pack}/{type}"]);
+    take_side(&fake);
+
+    let read = |s: &mut Server, id: u64, uri: &str| -> Value {
+        let r = result(s, id, "resources/read", json!({"uri": uri}));
+        assert_eq!(r["contents"][0]["uri"], uri);
+        assert_eq!(r["contents"][0]["mimeType"], "application/json");
+        serde_json::from_str(r["contents"][0]["text"].as_str().unwrap()).unwrap()
+    };
+    assert_eq!(read(&mut s, 4, NOTATION_URI)["packs"].as_array().unwrap().len(), 4);
+    assert_eq!(read(&mut s, 5, "vizcraft://notation/flowchart")["id"], "flowchart");
+    assert_eq!(read(&mut s, 6, "vizcraft://notation/flowchart/flowchart.process")["id"], "flowchart.process");
+    assert_eq!(
+        take_side(&fake),
+        [
+            json!({"command": "notation.list", "params": {}}),
+            json!({"command": "notation.describe", "params": {"pack": "flowchart"}}),
+            json!({"command": "notation.describe", "params": {"pack": "flowchart", "type": "flowchart.process"}}),
+        ]
+    );
+
+    // A pack or type the app does not know is a missing resource with the app's reason.
+    let v = rpc(&mut s, 7, "resources/read", json!({"uri": "vizcraft://notation/uml"}));
+    assert_eq!(v["error"]["code"], -32002, "{v}");
+    assert!(v["error"]["message"].as_str().unwrap().contains("unknown pack"), "{v}");
+    assert_eq!(err_code(&mut s, 8, "resources/read", json!({"uri": "vizcraft://notation/flowchart/flowchart.nope"})), -32002);
+}
+
+#[test]
+fn bad_notation_uris_are_not_found_and_send_nothing() {
+    let (mut s, fake) = modern_server();
+    let long_pack = format!("vizcraft://notation/{}", "a".repeat(101));
+    let long_uri = format!("vizcraft://notation/flowchart/{}", "a.".repeat(200));
+    for (i, uri) in [
+        "vizcraft://notation/",
+        "vizcraft://notation//x",
+        "vizcraft://notation/flowchart/",
+        "vizcraft://notation/flowchart/a/b",
+        "vizcraft://notation/flow chart",
+        "vizcraft://notation/flow%20chart",
+        "vizcraft://notation/flowchart?x=1",
+        "vizcraft://notation/../commands",
+        "vizcraft://notation/.flowchart",
+        "vizcraft://notation/flowchart/flowchart.",
+        "vizcraft://notationx",
+        "vizcraft://notation/fl-ow",
+        "vizcraft://notation/\u{e9}t\u{e9}",
+        "VIZCRAFT://notation",
+        "",
+        &long_pack,
+        &long_uri,
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let v = rpc(&mut s, i as u64 + 1, "resources/read", json!({"uri": uri}));
+        assert_eq!(v["error"]["code"], -32002, "{uri}: {v}");
+        assert!(v["error"]["message"].as_str().unwrap().len() < 300, "long URIs are not echoed whole");
+    }
+    assert_eq!(err_code(&mut s, 50, "resources/read", json!({"uri": 7})), -32602);
+    assert!(take_side(&fake).is_empty(), "nothing reached the backend");
+}
+
+#[test]
+fn an_app_without_notation_commands_lists_only_the_catalog() {
+    let (mut s, _) = server();
+    let list = result(&mut s, 1, "resources/list", json!({}));
+    let uris: Vec<&str> = list["resources"].as_array().unwrap().iter().map(|r| r["uri"].as_str().unwrap()).collect();
+    assert_eq!(uris, [COMMANDS_URI, NOTATION_URI]);
+    let v = rpc(&mut s, 2, "resources/read", json!({"uri": NOTATION_URI}));
+    assert_eq!(v["error"]["code"], -32002, "{v}");
+    assert!(v["error"]["message"].as_str().unwrap().contains("unknown command `notation.list`"), "{v}");
+    // The modern revision's cache hints still apply to the list.
+    let list = result(&mut s, 3, "resources/list", json!({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28"}}));
+    assert_eq!(list["ttlMs"], 600_000);
+}
+
+#[test]
+fn get_reference_has_a_model_topic() {
+    let (mut s, _) = server();
+    let (err, body) = tool(&mut s, 1, "get_reference", json!({"topic": "model"}));
+    assert!(!err);
+    let body = body.as_str().unwrap();
+    for needle in
+        ["element.create", "relationship.create", "notation.legal", "validate.run", "validate.list", "openIssues", "vizcraft://notation/{pack}"]
+    {
+        assert!(body.contains(needle), "model topic mentions {needle}");
+    }
+}
+
+#[test]
+fn issue_diff_compares_keys_not_messages() {
+    let raised = |before: Vec<Value>, after: Vec<Value>| crate::issues::raised(&before, &after);
+    let a = issue("r.a", &["e1"], "one");
+    let b = issue("r.b", &["e1", "e2"], "two");
+    // Subjects in another order are another key, as in the engine's `Issue::key`.
+    let b_swapped = issue("r.b", &["e2", "e1"], "two");
+    let junk = json!("not an issue");
+    assert_eq!(raised(vec![a.clone()], vec![b.clone(), issue("r.a", &["e1"], "reworded")]), vec![b.clone()]);
+    assert_eq!(raised(vec![b.clone()], vec![b_swapped.clone()]), [b_swapped]);
+    assert_eq!(raised(vec![], vec![junk.clone(), json!({"rule": 3, "subjects": "x"})]).len(), 2);
+    assert_eq!(raised(vec![junk.clone()], vec![junk]), Vec::<Value>::new());
+    let no_page = json!({"rule": "r.a", "subjects": ["e1"], "items": []});
+    assert_eq!(raised(vec![no_page.clone()], vec![a.clone()]), [a], "the page is part of the key");
 }
