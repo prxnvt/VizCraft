@@ -5,21 +5,22 @@ its author, source and licence. `cargo xtask assets` (part of `cargo xtask ci`) 
 under `assets/` is missing from this table, so the row is added in the same commit as the file.
 Licence text files are listed too, so the table is the complete inventory of `assets/`.
 
-**Policy (mandatory):** VizCraft, and every craft made from it, contains **no Microsoft, Adobe,
-Avid or Autodesk iconography, images, templates, themes, clip art, fonts or other assets**. Every
-asset is original work by the contributors or third-party material under an open licence (OSI
-open source, public domain / CC0, or a Creative Commons licence that allows redistribution).
-Screenshots of other vendors' software are never committed. A craft that needs more fonts adds
-them through [storytold/craft-fonts](https://github.com/storytold/craft-fonts) (an optional
-build input, `CRAFT_FONTS_DIR`), not to this folder.
+**Policy (mandatory):** VizCraft contains **no Microsoft, Adobe, Avid or Autodesk iconography,
+images, templates, themes, clip art, fonts or other assets**. Every asset is original work by the
+contributors or third-party material under an open licence (OSI open source, public domain / CC0,
+or a Creative Commons licence that allows redistribution). Diagram stencils are drawn in code and
+original; vendor product and brand icons (cloud provider icons, logos) are never included, even
+under a licence that seems to allow it. Screenshots of other vendors' software are never
+committed. Extra fonts come through [storytold/craft-fonts](https://github.com/storytold/craft-fonts)
+(an optional build input, `CRAFT_FONTS_DIR`), not into this folder.
 
 Art drawn in code is original and has no file to list: the UI icon set
 (`crates/ui-egui/src/icons.rs`), the sample document (`crates/engine/src/sample.rs`) and the
 theme colours (`crates/ui-egui/src/theme.rs`).
 
-The app icon is a placeholder for the baseline itself. A new craft replaces
-`assets/app-icon/vizcraft.svg` (renamed by `new-craft`) with its own drawing, reruns
-`packaging/icons.sh`, and replaces the icon rows below.
+The app icon is a placeholder that does not depict a diagram. A VizCraft icon is planned for
+Cascade 1: it replaces the drawing in `assets/app-icon/vizcraft.svg`, then `packaging/icons.sh`
+is rerun and the icon rows below get a new description.
 
 | Asset | Author | Source | Licence | Notes |
 |---|---|---|---|---|
@@ -46,5 +47,4 @@ The app icon is a placeholder for the baseline itself. A new craft replaces
 | `packaging/linux/ai.storyteller.vizcraft.desktop` | VizCraft contributors | written for this repository | MIT OR Apache-2.0 | Linux desktop entry (see `packaging/README.md`) |
 
 Rendered icon files: `packaging/icons.sh` writes every `assets/app-icon/` file listed above except
-the SVG. Rerun it after changing the SVG; the rows stay valid because the paths do not change. A
-craft that renames the icon (`new-craft` does) gets the rows renamed with it.
+the SVG. Rerun it after changing the SVG; the rows stay valid because the paths do not change.

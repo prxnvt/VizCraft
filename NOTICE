@@ -3,10 +3,6 @@ Copyright (c) 2026 VizCraft contributors.
 Licensed under the MIT License or the Apache License, Version 2.0, at your option
 (LICENSE-MIT, LICENSE-APACHE).
 
-VizCraft is the baseline that the "-craft" applications start from. An app made from it with
-`cargo xtask new-craft` carries this notice forward under its own name until its maintainers
-replace it.
-
 Third-party material
 
 This product bundles third-party material under its own licences, listed below. The per-file

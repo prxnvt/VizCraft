@@ -1,7 +1,9 @@
 # Contributing to VizCraft
 
-VizCraft is the baseline the "-craft" apps are made from, so a change here reaches every app
-that is created after it. That is the reason for the small number of firm rules below; the
+VizCraft is a desktop diagramming app in Rust and egui with the feature range of Microsoft Visio
+as its target and an MCP server for agents. People keep their work in it, so a few rules below
+are firm: no crashes, no borrowed assets, everything reachable as a command. The plan is in
+[ROADMAP.md](ROADMAP.md) and the feature catalog in [docs/parity.md](docs/parity.md); the
 reasoning behind the design is in [docs/architecture.md](docs/architecture.md), and the working
 rules for agents (which apply to people as well) are in [AGENTS.md](AGENTS.md).
 
@@ -22,10 +24,13 @@ rules for agents (which apply to people as well) are in [AGENTS.md](AGENTS.md).
    the asset-attribution check, the layering check and the wasm build; all of them must pass.
 4. Any new file under `assets/` gets a row in [ATTRIBUTION.md](ATTRIBUTION.md) in the same
    commit, and must be original or openly licensed. Nothing from Microsoft, Adobe, Avid or
-   Autodesk, ever.
+   Autodesk, ever. Stencils are drawn in code and original; no vendor product or brand icons.
 5. Commit messages are plain sentences about what changed and why, without attribution lines or
-   emoji. Prefix with the cascade or task when there is one (`C2: pane manager drag handles`).
-6. Open a pull request. Describe what changed, why, and how you checked it (a screenshot from the
+   emoji. Prefix with the cascade or task when there is one (`C2: layers pane`).
+6. A feature that lands updates its row in [docs/parity.md](docs/parity.md); a new MCP tool is
+   documented in [docs/mcp.md](docs/mcp.md); a new or changed file format in
+   [docs/formats.md](docs/formats.md).
+7. Open a pull request. Describe what changed, why, and how you checked it (a screenshot from the
    control channel is welcome for UI work).
 
 ## Licence
