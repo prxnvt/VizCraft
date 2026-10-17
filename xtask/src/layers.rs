@@ -69,9 +69,10 @@ pub struct Crate {
     pub deps: Vec<Dep>,
 }
 
-/// Name suffixes of the model-layer crates: the diagram model and catalog, the file formats, and
-/// the leaf libraries they build on (Mermaid parser, draw.io codec, auto-layout, connector router).
-const MODEL_SUFFIXES: &[&str] = &["-diagram", "-stencils", "-formats", "-mermaid", "-drawio", "-layout", "-routing"];
+/// Name suffixes of the model-layer crates: the semantic model and notation packs, the diagram
+/// model and catalog, the file formats, and the leaf libraries they build on (Mermaid parser,
+/// draw.io codec, auto-layout, connector router).
+const MODEL_SUFFIXES: &[&str] = &["-model", "-notation", "-diagram", "-stencils", "-formats", "-mermaid", "-drawio", "-layout", "-routing"];
 
 /// Classify a crate by its name suffix, falling back to its directory for apps.
 pub fn classify(c: &Crate) -> Option<Class> {

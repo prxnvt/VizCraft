@@ -3588,6 +3588,7 @@ dependencies = [
  "serde",
  "serde_json",
  "vizcraft-layout",
+ "vizcraft-model",
  "vizcraft-routing",
 ]
 
@@ -3613,6 +3614,8 @@ dependencies = [
  "thiserror 2.0.21",
  "vizcraft-diagram",
  "vizcraft-formats",
+ "vizcraft-model",
+ "vizcraft-notation",
  "vizcraft-stencils",
 ]
 
@@ -3662,6 +3665,27 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.21",
+]
+
+[[package]]
+name = "vizcraft-model"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "vizcraft-notation"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "toml",
+ "vizcraft-diagram",
+ "vizcraft-model",
 ]
 
 [[package]]

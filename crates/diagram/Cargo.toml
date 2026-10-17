@@ -9,6 +9,7 @@ description = "VizCraft diagram model: pages, shapes, connectors, geometry, hit 
 workspace = true
 
 [dependencies]
+vizcraft-model = { workspace = true }
 vizcraft-layout = { workspace = true }
 vizcraft-routing = { workspace = true }
 serde = { workspace = true }

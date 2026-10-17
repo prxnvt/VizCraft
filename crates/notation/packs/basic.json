@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "id": "basic",
+  "version": "1.0.0",
+  "name": "Basic Shapes",
+  "description": "Plain outlines for free drawing. Shapes placed from this pack are not model elements.",
+  "audience": [
+    "general"
+  ],
+  "glyphs": [
+    {
+      "id": "basic.rectangle",
+      "label": "Rectangle",
+      "category": "Shapes",
+      "outline": "rectangle",
+      "w": 120,
+      "h": 70,
+      "fill": "#e9f0f8",
+      "line": "#345b84",
+      "keywords": [
+        "box",
+        "square"
+      ]
+    },
+    {
+      "id": "basic.roundedRectangle",
+      "label": "Rounded Rectangle",
+      "category": "Shapes",
+      "outline": "roundedRectangle",
+      "w": 120,
+      "h": 70,
+      "fill": "#e9f0f8",
+      "line": "#345b84",
+      "keywords": [
+        "box",
+        "rounded"
+      ]
+    },
+    {
+      "id": "basic.ellipse",
+      "label": "Ellipse",
+      "category": "Shapes",
+      "outline": "ellipse",
+      "w": 110,
+      "h": 80,
+      "fill": "#e9f0f8",
+      "line": "#345b84",
+      "keywords": [
+        "circle",
+        "oval"
+      ]
+    },
+    {
+      "id": "basic.diamond",
+      "label": "Diamond",
+      "category": "Shapes",
+      "outline": "diamond",
+      "w": 100,
+      "h": 100,
+      "fill": "#e9f0f8",
+      "line": "#345b84",
+      "keywords": [
+        "rhombus"
+      ]
+    },
+    {
+      "id": "basic.triangle",
+      "label": "Triangle",
+      "category": "Shapes",
+      "outline": "triangle",
+      "w": 100,
+      "h": 90,
+      "fill": "#e9f0f8",
+      "line": "#345b84",
+      "keywords": [
+        "delta"
+      ]
+    },
+    {
+      "id": "basic.parallelogram",
+      "label": "Parallelogram",
+      "category": "Shapes",
+      "outline": "parallelogram",
+      "w": 130,
+      "h": 70,
+      "fill": "#e9f0f8",
+      "line": "#345b84",
+      "keywords": [
+        "slant",
+        "skew"
+      ]
+    },
+    {
+      "id": "basic.hexagon",
+      "label": "Hexagon",
+      "category": "Shapes",
+      "outline": "hexagon",
+      "w": 120,
+      "h": 80,
+      "fill": "#e9f0f8",
+      "line": "#345b84",
+      "keywords": [
+        "six"
+      ]
+    },
+    {
+      "id": "basic.cylinder",
+      "label": "Cylinder",
+      "category": "Shapes",
+      "outline": "cylinder",
+      "w": 80,
+      "h": 100,
+      "fill": "#e9f0f8",
+      "line": "#345b84",
+      "keywords": [
+        "drum",
+        "can",
+        "database"
+      ]
+    },
+    {
+      "id": "basic.document",
+      "label": "Document",
+      "category": "Shapes",
+      "outline": "document",
+      "w": 120,
+      "h": 80,
+      "fill": "#e9f0f8",
+      "line": "#345b84",
+      "keywords": [
+        "page",
+        "paper"
+      ]
+    },
+    {
+      "id": "basic.cloud",
+      "label": "Cloud",
+      "category": "Shapes",
+      "outline": "cloud",
+      "w": 140,
+      "h": 90,
+      "fill": "#e9f0f8",
+      "line": "#345b84",
+      "keywords": [
+        "internet",
+        "network"
+      ]
+    }
+  ],
+  "palette": [
+    {
+      "id": "basic.drawing",
+      "label": "Drawing",
+      "glyphs": [
+        "basic.rectangle",
+        "basic.roundedRectangle",
+        "basic.ellipse",
+        "basic.diamond",
+        "basic.triangle",
+        "basic.parallelogram",
+        "basic.hexagon",
+        "basic.cylinder",
+        "basic.document",
+        "basic.cloud"
+      ]
+    }
+  ]
+}

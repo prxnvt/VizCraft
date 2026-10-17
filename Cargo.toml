@@ -23,12 +23,15 @@ vizcraft-drawio = { path = "crates/drawio" }
 vizcraft-mermaid = { path = "crates/mermaid" }
 vizcraft-layout = { path = "crates/layout" }
 vizcraft-routing = { path = "crates/routing" }
+vizcraft-model = { path = "crates/model" }
+vizcraft-notation = { path = "crates/notation" }
 
 # foundation
 thiserror = "2"
 serde = { version = "1", features = ["derive", "rc"] }
 serde_json = { version = "1", features = ["float_roundtrip"] }
 log = "0.4"
+toml = "1"
 image = { version = "0.25", default-features = false, features = ["png"] }
 
 # testing

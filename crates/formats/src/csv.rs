@@ -58,6 +58,7 @@ pub fn import(text: &str) -> Result<Imported, FormatError> {
             avoid: false,
             jumps: look.jumps,
             ext: look.ext,
+            relationship: None,
         };
         c.sanitize();
         page.connectors.push(c);

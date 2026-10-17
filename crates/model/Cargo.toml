@@ -1,0 +1,14 @@
+[package]
+name = "vizcraft-model"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "VizCraft semantic model: elements, relationships, containment, views, identity registry and structured issues; no geometry, no UI"
+
+[lints]
+workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }

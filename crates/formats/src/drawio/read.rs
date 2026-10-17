@@ -527,6 +527,7 @@ pub(crate) fn page_from_model(model: &GraphModel, id: String, name: String, warn
             avoid: false,
             jumps: look.jumps,
             ext: look.ext,
+            relationship: None,
         };
         wrapper_ext(c, &mut conn.ext);
         conn.sanitize();

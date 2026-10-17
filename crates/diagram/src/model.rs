@@ -12,6 +12,7 @@ use crate::geom::{Path, Point, Rect, Transform, finite};
 use crate::kind::ShapeKind;
 use crate::serde_util::{lenient, lenient_vec, num};
 use crate::{MAX_EXTENT, MAX_TEXT};
+use vizcraft_model::{Model, View};
 
 /// Document metadata: author, timestamps and revision.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -202,6 +203,10 @@ pub struct Shape {
     /// so writing the file back loses nothing.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "BTreeMap::is_empty")]
     pub ext: BTreeMap<String, String>,
+    /// The model element this shape is a view of; `None` for free drawing. Its text shows the
+    /// element's name.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub element: Option<String>,
 }
 
 impl Default for Shape {
@@ -219,6 +224,7 @@ impl Default for Shape {
             style: Style::DEFAULT,
             connection_points: Vec::new(),
             ext: BTreeMap::new(),
+            element: None,
         }
     }
 }
@@ -502,6 +508,10 @@ pub struct Connector {
     /// Data from other formats that VizCraft does not model yet, kept for round trips.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "BTreeMap::is_empty")]
     pub ext: BTreeMap<String, String>,
+    /// The model relationship this connector is a view of; `None` for free drawing. Its label
+    /// shows the relationship's name.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub relationship: Option<String>,
 }
 
 impl Default for Connector {
@@ -519,6 +529,7 @@ impl Default for Connector {
             avoid: false,
             jumps: false,
             ext: BTreeMap::new(),
+            relationship: None,
         }
     }
 }
@@ -575,6 +586,9 @@ pub struct Page {
     /// Data from other formats that VizCraft does not model yet, kept for round trips.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "BTreeMap::is_empty")]
     pub ext: BTreeMap<String, String>,
+    /// The model view this page shows (viewpoint and layout); `None` for a free-drawing page.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub view: Option<View>,
 }
 
 impl Default for Page {
@@ -599,6 +613,7 @@ impl Page {
             shapes: Vec::new(),
             connectors: Vec::new(),
             ext: BTreeMap::new(),
+            view: None,
         }
     }
     /// The page sheet as a rectangle at the origin.
@@ -679,6 +694,10 @@ pub struct Document {
     pub pages: Vec<Page>,
     /// Counter behind [`Document::next_id`]; the last number handed out.
     pub id_seq: u64,
+    /// The semantic model the pages are views of; empty for free drawing. Not part of the
+    /// document's own serde form: the native file writes it as its own versioned section.
+    #[serde(skip)]
+    pub model: Model,
 }
 
 /// The on-disk form; turned into a [`Document`] by fixing up anything a file got wrong.
@@ -697,7 +716,7 @@ struct DocumentRepr {
 
 impl From<DocumentRepr> for Document {
     fn from(r: DocumentRepr) -> Self {
-        let mut doc = Document { title: r.title, core: r.core, pages: r.pages, id_seq: r.id_seq };
+        let mut doc = Document { title: r.title, core: r.core, pages: r.pages, id_seq: r.id_seq, model: Model::new() };
         doc.sanitize();
         doc
     }
@@ -712,15 +731,18 @@ impl Default for Document {
 impl Document {
     /// A document with one blank page.
     pub fn new() -> Self {
-        Document { title: String::new(), core: CoreProps::default(), pages: vec![Page::new("p1", "Page-1")], id_seq: 1 }
+        Document { title: String::new(), core: CoreProps::default(), pages: vec![Page::new("p1", "Page-1")], id_seq: 1, model: Model::new() }
     }
-    /// Make the document safe to work on: at least one page, every number in range.
+    /// Make the document safe to work on: at least one page, every number in range, a sane model,
+    /// and view references that point at model items (see [`crate::views::sanitize_refs`]).
     pub fn sanitize(&mut self) {
         if self.pages.is_empty() {
             let id = self.next_id("p");
             self.pages.push(Page::new(id, "Page-1"));
         }
         self.pages.iter_mut().for_each(Page::sanitize);
+        self.model.sanitize();
+        crate::views::sanitize_refs(self);
     }
     /// A fresh id such as `s7` or `c8`: the counter goes up by one (shared by every prefix, so an
     /// id is never reused after a delete) and skips any number already taken by a loaded file.
@@ -738,9 +760,10 @@ impl Document {
             }
         }
     }
-    /// Whether any page, shape or connector has this id.
+    /// Whether any page, shape, connector, element or relationship has this id: they share one id
+    /// space, so an id names exactly one thing.
     pub fn contains_id(&self, id: &str) -> bool {
-        self.pages.iter().any(|p| p.id == id || p.contains_id(id))
+        self.pages.iter().any(|p| p.id == id || p.contains_id(id)) || self.model.contains_id(id)
     }
     /// The active page. Cascade 1 has one page per document, so this is the first.
     pub fn page(&self) -> Option<&Page> {
@@ -816,11 +839,17 @@ impl Document {
             .pages
             .iter()
             .flat_map(|p| p.shapes.iter().map(|s| s.id.clone()).chain(p.connectors.iter().map(|c| c.id.clone())).chain([p.id.clone()]))
+            .chain(self.model.elements.iter().map(|e| e.id.clone()))
+            .chain(self.model.relationships.iter().map(|r| r.id.clone()))
             .collect();
         for mut shape in src.shapes {
             let id = self.adopted_id(&shape.id, "s", &mut used);
             renamed.entry(std::mem::take(&mut shape.id)).or_insert_with(|| id.clone());
             shape.id = id.clone();
+            // A reference to an element this document does not have would be dangling.
+            if shape.element.as_deref().is_some_and(|e| self.model.element(e).is_none()) {
+                shape.element = None;
+            }
             shape.sanitize();
             ids.push(id);
             if let Some(page) = self.pages.get_mut(index) {
@@ -838,6 +867,9 @@ impl Document {
                         *end = End::free(Point::ZERO);
                     }
                 }
+            }
+            if c.relationship.as_deref().is_some_and(|r| self.model.relationship(r).is_none()) {
+                c.relationship = None;
             }
             c.sanitize();
             ids.push(id);

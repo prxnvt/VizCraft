@@ -120,6 +120,9 @@ pub struct Session {
     pub sel: Selection,
     /// Internal clipboard, used when the host gives `edit.paste` no text.
     pub clipboard: String,
+    /// Live issues: what the live rules of the model's notation packs report for the document as
+    /// it is now. Recomputed after every document change, undo, redo and open.
+    pub issues: Vec<vizcraft_model::Issue>,
     history: Vec<Undo>,
     redo: Vec<Undo>,
     /// Consecutive `Typing` steps are one undo step until another command runs.
@@ -133,7 +136,7 @@ pub struct Session {
 impl Session {
     /// A session on this document, with the full registry.
     pub fn new(doc: Document) -> Self {
-        Session {
+        let mut s = Session {
             doc,
             path: None,
             dirty: false,
@@ -144,11 +147,27 @@ impl Session {
             status: String::new(),
             sel: Selection::default(),
             clipboard: String::new(),
+            issues: Vec::new(),
             history: Vec::new(),
             redo: Vec::new(),
             typing_open: false,
             no_undo: false,
             rev: 1,
+        };
+        s.refresh_issues();
+        s
+    }
+
+    /// Recompute [`Session::issues`] from the live rules. A panic inside a rule must not take the
+    /// app down: it leaves the list empty and says so in the status bar.
+    pub fn refresh_issues(&mut self) {
+        let doc = &self.doc;
+        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| vizcraft_notation::rules::live(doc, vizcraft_notation::catalog()))) {
+            Ok(issues) => self.issues = issues,
+            Err(_) => {
+                self.issues = Vec::new();
+                self.status = "the live checks failed; issues are not shown".into();
+            }
         }
     }
 
@@ -205,6 +224,7 @@ impl Session {
         let cur = Undo { label: u.label.clone(), doc: std::mem::replace(&mut self.doc, u.doc), sel: std::mem::replace(&mut self.sel, u.sel) };
         self.redo.push(cur);
         self.touch();
+        self.refresh_issues();
         true
     }
 
@@ -215,6 +235,7 @@ impl Session {
         let cur = Undo { label: u.label.clone(), doc: std::mem::replace(&mut self.doc, u.doc), sel: std::mem::replace(&mut self.sel, u.sel) };
         self.history.push(cur);
         self.touch();
+        self.refresh_issues();
         true
     }
 
@@ -228,6 +249,7 @@ impl Session {
         self.no_undo = true;
         self.rev = self.rev.wrapping_add(1);
         self.dirty = false;
+        self.refresh_issues();
     }
 
     /// The document on disk now matches: not dirty, and the metadata stamped for the save is not
@@ -253,8 +275,19 @@ impl Session {
         let before_sel = self.sel.clone();
         self.no_undo = false;
         let run = spec.run;
-        // A bug inside one command must not take the app down with the user's work in it.
-        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| run(self, params)));
+        let manages_undo = matches!(id, "edit.undo" | "edit.redo");
+        // A bug inside one command must not take the app down with the user's work in it. The
+        // model sync runs inside the same guard: it changes the document as part of the command.
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let r = run(self, params);
+            // Views and model are brought into step after every change (connectors bound to
+            // relationships, names mirrored), inside the same undo step, before rerouting. Not
+            // after a command that replaced the document (open, new): `before_doc` is another file.
+            if r.is_ok() && !manages_undo && !self.no_undo && self.doc != before_doc {
+                vizcraft_notation::bind::sync(&mut self.doc, &before_doc, vizcraft_notation::catalog());
+            }
+            r
+        }));
         let result = match result {
             Ok(r) => r,
             Err(p) => {
@@ -266,13 +299,15 @@ impl Session {
             Ok(_) => {
                 // Connectors that avoid shapes are rerouted after every change, inside the same
                 // undo step, so a moved shape never leaves a route running through another.
-                if !matches!(id, "edit.undo" | "edit.redo") && self.doc != before_doc {
+                let changed = self.doc != before_doc;
+                if !manages_undo && changed {
                     vizcraft_diagram::autoroute::refresh(&mut self.doc);
                 }
-                let manages_history = matches!(id, "edit.undo" | "edit.redo") || self.no_undo;
-                if !manages_history && self.doc != before_doc {
+                let manages_history = manages_undo || self.no_undo;
+                if !manages_history && changed {
                     self.record(spec.label, before_doc, before_sel);
                     self.touch();
+                    self.refresh_issues();
                 } else if !manages_history {
                     // A view or selection command: typing before and after it is separate steps.
                     self.typing_open = false;

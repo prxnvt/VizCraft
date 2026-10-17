@@ -330,8 +330,8 @@ row.
 
 | Layer | Crate | Job | Depends on |
 |---|---|---|---|
-| model | `crates/model` (`vizcraft-model`) | Semantic model: elements, relationships, containment, views, identity registry, model queries and derived tables | `diagram` |
-| model | `crates/notation` (`vizcraft-notation`) | Notation pack schema and loader, connection table, conditional styles, viewpoints, identifier formats, rules engine | `model`, `diagram` |
+| model | `crates/model` (`vizcraft-model`) | Semantic model: elements, relationships, containment, views, identity registry, structured issues, model queries and derived tables | serde only; `diagram` depends on it, because the diagram `Document` holds the model (`Document.model`) so undo, dirty tracking and the panic restore cover both |
+| model | `crates/notation` (`vizcraft-notation`) | Notation pack schema and loader, built-in Basic and Flowchart packs, connection table, conditional styles, viewpoints, identifier formats, rules engine, model sync pass | `model`, `diagram`; `stencils` builds its masters from the pack glyphs |
 | model | `crates/patterns` (`vizcraft-patterns`) | Pattern generators with typed parameters, provenance and reparameterize, emitting model edits | `model`, `notation`, `layout` |
 | model | `crates/codegen` (`vizcraft-codegen`) | Generator framework under the regeneration contract: specs, manifests, deterministic writers, merge, targets | `model`, `notation` |
 

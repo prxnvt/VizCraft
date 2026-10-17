@@ -1,0 +1,604 @@
+{
+  "schemaVersion": 1,
+  "id": "flowchart",
+  "version": "1.0.0",
+  "name": "Flowchart",
+  "description": "Process flowcharts: steps, decisions, data and references joined by flows. Each shape is a model element and each connector a flow relationship, checked against the connection table.",
+  "audience": [
+    "general",
+    "enterprise"
+  ],
+  "glyphs": [
+    {
+      "id": "flowchart.process",
+      "label": "Process",
+      "category": "Steps",
+      "outline": "rectangle",
+      "w": 140,
+      "h": 60,
+      "fill": "#e4f2ec",
+      "line": "#2d6e58",
+      "keywords": [
+        "step",
+        "action",
+        "task"
+      ],
+      "elementType": "flowchart.Process"
+    },
+    {
+      "id": "flowchart.decision",
+      "label": "Decision",
+      "category": "Steps",
+      "outline": "diamond",
+      "w": 140,
+      "h": 90,
+      "fill": "#fcf0d6",
+      "line": "#956a1a",
+      "keywords": [
+        "choice",
+        "branch",
+        "if",
+        "condition"
+      ],
+      "elementType": "flowchart.Decision"
+    },
+    {
+      "id": "flowchart.terminator",
+      "label": "Terminator",
+      "category": "Steps",
+      "outline": "terminator",
+      "w": 140,
+      "h": 50,
+      "fill": "#ece7f6",
+      "line": "#5a4b8c",
+      "keywords": [
+        "start",
+        "end",
+        "begin",
+        "stop"
+      ],
+      "elementType": "flowchart.Terminator"
+    },
+    {
+      "id": "flowchart.predefinedProcess",
+      "label": "Predefined Process",
+      "category": "Steps",
+      "outline": "predefinedProcess",
+      "w": 140,
+      "h": 60,
+      "fill": "#e4f2ec",
+      "line": "#2d6e58",
+      "keywords": [
+        "subroutine",
+        "call"
+      ],
+      "elementType": "flowchart.PredefinedProcess"
+    },
+    {
+      "id": "flowchart.preparation",
+      "label": "Preparation",
+      "category": "Steps",
+      "outline": "preparation",
+      "w": 140,
+      "h": 60,
+      "fill": "#e4f2ec",
+      "line": "#2d6e58",
+      "keywords": [
+        "setup",
+        "initialize"
+      ],
+      "elementType": "flowchart.Preparation"
+    },
+    {
+      "id": "flowchart.manualOperation",
+      "label": "Manual Operation",
+      "category": "Steps",
+      "outline": "trapezoid",
+      "w": 140,
+      "h": 60,
+      "fill": "#e4f2ec",
+      "line": "#2d6e58",
+      "keywords": [
+        "manual",
+        "by hand"
+      ],
+      "elementType": "flowchart.ManualOperation"
+    },
+    {
+      "id": "flowchart.data",
+      "label": "Data",
+      "category": "Data",
+      "outline": "parallelogram",
+      "w": 140,
+      "h": 60,
+      "fill": "#e6f1fa",
+      "line": "#2f6293",
+      "keywords": [
+        "input",
+        "output",
+        "io"
+      ],
+      "elementType": "flowchart.Data"
+    },
+    {
+      "id": "flowchart.manualInput",
+      "label": "Manual Input",
+      "category": "Data",
+      "outline": "manualInput",
+      "w": 140,
+      "h": 60,
+      "fill": "#e6f1fa",
+      "line": "#2f6293",
+      "keywords": [
+        "keyboard",
+        "entry",
+        "type"
+      ],
+      "elementType": "flowchart.ManualInput"
+    },
+    {
+      "id": "flowchart.document",
+      "label": "Document",
+      "category": "Data",
+      "outline": "document",
+      "w": 140,
+      "h": 70,
+      "fill": "#e6f1fa",
+      "line": "#2f6293",
+      "keywords": [
+        "report",
+        "paper",
+        "print"
+      ],
+      "elementType": "flowchart.Document"
+    },
+    {
+      "id": "flowchart.database",
+      "label": "Database",
+      "category": "Data",
+      "outline": "cylinder",
+      "w": 90,
+      "h": 100,
+      "fill": "#f3e9e4",
+      "line": "#84523c",
+      "keywords": [
+        "store",
+        "storage",
+        "disk",
+        "cylinder"
+      ],
+      "elementType": "flowchart.Database"
+    },
+    {
+      "id": "flowchart.onPageReference",
+      "label": "On-page Reference",
+      "category": "Links",
+      "outline": "ellipse",
+      "w": 50,
+      "h": 50,
+      "fill": "#f1f3f5",
+      "line": "#55606d",
+      "keywords": [
+        "connector",
+        "jump",
+        "circle"
+      ],
+      "elementType": "flowchart.OnPageReference"
+    },
+    {
+      "id": "flowchart.offPageReference",
+      "label": "Off-page Reference",
+      "category": "Links",
+      "outline": "offPageReference",
+      "w": 60,
+      "h": 60,
+      "fill": "#f1f3f5",
+      "line": "#55606d",
+      "keywords": [
+        "jump",
+        "page",
+        "continue"
+      ],
+      "elementType": "flowchart.OffPageReference"
+    }
+  ],
+  "elementTypes": [
+    {
+      "id": "flowchart.Terminator",
+      "label": "Terminator",
+      "description": "Where the flow begins or ends. A terminator has outgoing flows (a start) or incoming flows (an end), never both.",
+      "glyph": "flowchart.terminator"
+    },
+    {
+      "id": "flowchart.Process",
+      "label": "Process",
+      "description": "One step of work. It continues to at most one next step; only a decision branches.",
+      "glyph": "flowchart.process",
+      "properties": [
+        {
+          "key": "automated",
+          "label": "Automated",
+          "kind": "bool",
+          "default": false,
+          "description": "The step runs without a person; drawn with a darker fill and outline."
+        },
+        {
+          "key": "owner",
+          "label": "Owner",
+          "kind": "text",
+          "description": "Role or team responsible for the step."
+        }
+      ]
+    },
+    {
+      "id": "flowchart.Decision",
+      "label": "Decision",
+      "description": "A question whose answers lead to different next steps. It needs at least two outgoing flows, usually labelled with the answers.",
+      "glyph": "flowchart.decision"
+    },
+    {
+      "id": "flowchart.PredefinedProcess",
+      "label": "Predefined Process",
+      "description": "A step defined elsewhere, such as a subroutine or another flowchart.",
+      "glyph": "flowchart.predefinedProcess",
+      "properties": [
+        {
+          "key": "reference",
+          "label": "Reference",
+          "kind": "text",
+          "required": true,
+          "description": "Name of the procedure or flowchart this step calls."
+        }
+      ]
+    },
+    {
+      "id": "flowchart.Preparation",
+      "label": "Preparation",
+      "description": "Setting up for a later step, such as initialising a counter.",
+      "glyph": "flowchart.preparation"
+    },
+    {
+      "id": "flowchart.ManualOperation",
+      "label": "Manual Operation",
+      "description": "A step done by hand.",
+      "glyph": "flowchart.manualOperation"
+    },
+    {
+      "id": "flowchart.Data",
+      "label": "Data",
+      "description": "Data going in or out of the process.",
+      "glyph": "flowchart.data"
+    },
+    {
+      "id": "flowchart.ManualInput",
+      "label": "Manual Input",
+      "description": "Data typed in by a person.",
+      "glyph": "flowchart.manualInput"
+    },
+    {
+      "id": "flowchart.Document",
+      "label": "Document",
+      "description": "A document or report read or produced.",
+      "glyph": "flowchart.document"
+    },
+    {
+      "id": "flowchart.Database",
+      "label": "Database",
+      "description": "Stored data. Data does not move between two stores without a step in between.",
+      "glyph": "flowchart.database"
+    },
+    {
+      "id": "flowchart.OnPageReference",
+      "label": "On-page Reference",
+      "description": "Continues the flow elsewhere on the same page; pairs with the reference that has the same tag.",
+      "glyph": "flowchart.onPageReference"
+    },
+    {
+      "id": "flowchart.OffPageReference",
+      "label": "Off-page Reference",
+      "description": "Continues the flow on another page; pairs with the reference that has the same tag.",
+      "glyph": "flowchart.offPageReference"
+    }
+  ],
+  "relationshipTypes": [
+    {
+      "id": "flowchart.Flow",
+      "label": "Flow",
+      "description": "Control or data passing from one symbol to the next.",
+      "properties": [
+        {
+          "key": "condition",
+          "label": "Condition",
+          "kind": "text",
+          "description": "The answer or condition under which this flow is taken, such as yes or no after a decision."
+        }
+      ],
+      "endArrow": "triangle"
+    }
+  ],
+  "connections": [
+    {
+      "source": [
+        "flowchart.Process",
+        "flowchart.PredefinedProcess",
+        "flowchart.Preparation",
+        "flowchart.ManualOperation"
+      ],
+      "relationship": "flowchart.Flow",
+      "target": [
+        "flowchart.Terminator",
+        "flowchart.Process",
+        "flowchart.Decision",
+        "flowchart.PredefinedProcess",
+        "flowchart.Preparation",
+        "flowchart.ManualOperation",
+        "flowchart.OnPageReference",
+        "flowchart.OffPageReference"
+      ],
+      "outMax": 1
+    },
+    {
+      "source": [
+        "flowchart.Terminator",
+        "flowchart.Decision",
+        "flowchart.OnPageReference",
+        "flowchart.OffPageReference",
+        "flowchart.Data",
+        "flowchart.ManualInput",
+        "flowchart.Document",
+        "flowchart.Database"
+      ],
+      "relationship": "flowchart.Flow",
+      "target": [
+        "flowchart.Terminator",
+        "flowchart.Process",
+        "flowchart.Decision",
+        "flowchart.PredefinedProcess",
+        "flowchart.Preparation",
+        "flowchart.ManualOperation",
+        "flowchart.OnPageReference",
+        "flowchart.OffPageReference"
+      ]
+    },
+    {
+      "source": [
+        "flowchart.Terminator",
+        "flowchart.Process",
+        "flowchart.Decision",
+        "flowchart.PredefinedProcess",
+        "flowchart.Preparation",
+        "flowchart.ManualOperation",
+        "flowchart.OnPageReference",
+        "flowchart.OffPageReference"
+      ],
+      "relationship": "flowchart.Flow",
+      "target": [
+        "flowchart.Data",
+        "flowchart.ManualInput",
+        "flowchart.Document",
+        "flowchart.Database"
+      ]
+    }
+  ],
+  "conditionalStyles": [
+    {
+      "types": [
+        "flowchart.Process"
+      ],
+      "property": "automated",
+      "equals": true,
+      "line": "#1d4f3f",
+      "fill": "#cfe8dd"
+    }
+  ],
+  "palette": [
+    {
+      "id": "flowchart.steps",
+      "label": "Steps",
+      "types": [
+        "flowchart.Terminator",
+        "flowchart.Process",
+        "flowchart.Decision",
+        "flowchart.PredefinedProcess",
+        "flowchart.Preparation",
+        "flowchart.ManualOperation"
+      ]
+    },
+    {
+      "id": "flowchart.data",
+      "label": "Data",
+      "types": [
+        "flowchart.Data",
+        "flowchart.ManualInput",
+        "flowchart.Document",
+        "flowchart.Database"
+      ]
+    },
+    {
+      "id": "flowchart.links",
+      "label": "Links",
+      "types": [
+        "flowchart.OnPageReference",
+        "flowchart.OffPageReference"
+      ]
+    }
+  ],
+  "viewpoints": [
+    {
+      "id": "flowchart.Flowchart",
+      "label": "Flowchart",
+      "description": "A process flowchart: every flowchart type and the flow relationship.",
+      "types": [
+        "*"
+      ],
+      "relationships": [
+        "flowchart.Flow"
+      ]
+    }
+  ],
+  "identifiers": [
+    {
+      "id": "flowchart.step",
+      "types": [
+        "flowchart.Process",
+        "flowchart.PredefinedProcess",
+        "flowchart.Preparation",
+        "flowchart.ManualOperation",
+        "flowchart.Decision"
+      ],
+      "format": "S{n}",
+      "unique": true,
+      "autoNumber": true
+    },
+    {
+      "id": "flowchart.onPage",
+      "types": [
+        "flowchart.OnPageReference"
+      ],
+      "format": "{n}",
+      "unique": false,
+      "paired": true,
+      "autoNumber": false
+    },
+    {
+      "id": "flowchart.offPage",
+      "types": [
+        "flowchart.OffPageReference"
+      ],
+      "format": "{n}",
+      "unique": false,
+      "paired": true,
+      "autoNumber": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "flowchart.illegalFlow",
+      "description": "Flows follow the connection table: data does not flow straight from one data symbol to another.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "illegalRelationship"
+      }
+    },
+    {
+      "id": "flowchart.singleExit",
+      "description": "A step other than a decision continues to only one next step.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "multiplicity"
+      }
+    },
+    {
+      "id": "flowchart.terminatorDirection",
+      "description": "A terminator either starts the flow or ends it, not both.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "exclusiveDirections",
+        "types": [
+          "flowchart.Terminator"
+        ],
+        "relationship": "flowchart.Flow"
+      }
+    },
+    {
+      "id": "flowchart.duplicateStep",
+      "description": "Step tags are unique.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "duplicateIdentifier",
+        "scope": "flowchart.step"
+      }
+    },
+    {
+      "id": "flowchart.missingReference",
+      "description": "A predefined process names the procedure it calls.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "requiredProperty",
+        "types": [
+          "flowchart.PredefinedProcess"
+        ]
+      }
+    },
+    {
+      "id": "flowchart.propertyValue",
+      "description": "Property values fit their type.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "propertyType",
+        "types": []
+      }
+    },
+    {
+      "id": "flowchart.viewpoint",
+      "description": "A flowchart page shows only flowchart symbols.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "viewpointType"
+      }
+    },
+    {
+      "id": "flowchart.danglingDecision",
+      "description": "A decision has at least two outgoing flows.",
+      "severity": "warning",
+      "mode": "batch",
+      "check": {
+        "kind": "minOutgoing",
+        "types": [
+          "flowchart.Decision"
+        ],
+        "relationship": "flowchart.Flow",
+        "min": 2
+      }
+    },
+    {
+      "id": "flowchart.unconnectedConnector",
+      "description": "Every connector is glued at both ends.",
+      "severity": "warning",
+      "mode": "batch",
+      "check": {
+        "kind": "danglingConnector"
+      }
+    },
+    {
+      "id": "flowchart.unmatchedOffPage",
+      "description": "Every off-page reference has a partner with the same tag.",
+      "severity": "warning",
+      "mode": "batch",
+      "check": {
+        "kind": "unmatchedPair",
+        "scope": "flowchart.offPage"
+      }
+    },
+    {
+      "id": "flowchart.unmatchedOnPage",
+      "description": "Every on-page reference has a partner with the same tag.",
+      "severity": "warning",
+      "mode": "batch",
+      "check": {
+        "kind": "unmatchedPair",
+        "scope": "flowchart.onPage"
+      }
+    },
+    {
+      "id": "flowchart.unreachable",
+      "description": "Every symbol can be reached from a start terminator.",
+      "severity": "info",
+      "mode": "batch",
+      "check": {
+        "kind": "unreachable",
+        "from": [
+          "flowchart.Terminator"
+        ],
+        "relationship": "flowchart.Flow"
+      }
+    }
+  ]
+}

@@ -2,12 +2,17 @@
 
 pub mod connector;
 pub mod edit;
+pub mod element;
 pub mod file;
 pub mod help;
 pub mod insert;
 pub mod layout;
+pub mod model;
+pub mod notation;
 pub mod page;
+pub mod relationship;
 pub mod shape;
+pub mod validate;
 pub mod view;
 
 use serde_json::{Value, json};
@@ -25,6 +30,11 @@ pub fn registry() -> Registry {
     v.extend(connector::specs());
     v.extend(page::specs());
     v.extend(layout::specs());
+    v.extend(model::specs());
+    v.extend(element::specs());
+    v.extend(relationship::specs());
+    v.extend(validate::specs());
+    v.extend(notation::specs());
     v.extend(insert::specs());
     v.extend(help::specs());
     Registry::new(v)

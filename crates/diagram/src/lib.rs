@@ -9,6 +9,7 @@
 //! - [`autolayout`]: automatic placement of shapes with `vizcraft-layout`.
 //! - [`autoroute`]: connector routes that avoid shapes, with `vizcraft-routing`.
 //! - [`jumps`]: line jumps, and the page-level connector geometry that draws them.
+//! - [`views`]: shapes and connectors as views of `vizcraft-model` elements and relationships.
 //!
 //! No egui and no engine: the engine, the UI, file formats and the MCP server all build on this.
 //! Nothing here panics on hostile input; sizes are clamped and non-finite numbers replaced.
@@ -23,6 +24,7 @@ pub mod kind;
 pub mod model;
 pub mod route;
 mod serde_util;
+pub mod views;
 
 pub use geom::{Path, PathEl, Point, Polyline, Rect, Transform, Vec2};
 pub use hit::{Hit, connection_point_at, connector_at, connectors_in_rect, hit, shape_at, shapes_in_rect};
@@ -30,6 +32,8 @@ pub use kind::ShapeKind;
 pub use model::{Arrow, Color, Connector, CoreProps, Document, End, Page, Route, Shape, Style};
 pub use model::{MAX_WAYPOINTS, is_plain_id};
 pub use route::{Arrowhead, ConnectorGeometry, EndPoint, Ends, arrowhead, connector_geometry, resolve_ends, route_path, route_polyline};
+pub use views::ViewItems;
+pub use vizcraft_model;
 
 /// Largest width or height a shape or page may have, in world units.
 pub const MAX_EXTENT: f64 = 1.0e6;
