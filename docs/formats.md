@@ -1,15 +1,15 @@
 # File formats
 
 What VizCraft reads and writes, when each format lands, and the public source each one is built
-from. The native `.vizcraft` file and SVG export are built; everything else is planned
-([ROADMAP.md](../ROADMAP.md)).
+from. The native `.vizcraft` file, SVG export, `.drawio` read and write and CSV import are built;
+the rest is planned ([ROADMAP.md](../ROADMAP.md)).
 
 | Format | Direction | Cascade | Public source |
 |---|---|---|---|
 | `.vizcraft` (native JSON) | read, write (built; also reads `.craft.json`) | 1 | Our own; documented below |
-| `.drawio` (mxGraph XML) | read, write | 3 | draw.io documentation; the Apache-2.0 mxGraph and draw.io format documentation |
+| `.drawio` (mxGraph XML) | read, write (built: every page; import into a page) | 3 | draw.io documentation; the Apache-2.0 mxGraph and draw.io format documentation |
 | Mermaid | import | 3 | Mermaid syntax documentation |
-| CSV | import | 3 | draw.io documentation on CSV import |
+| CSV | import (built) | 3 | draw.io documentation on CSV import |
 | SVG | export (built: one page) | 1 | W3C SVG 1.1 |
 | PNG | export | 2 | W3C PNG specification |
 | PDF | export | 2 | ISO 32000 (PDF) |
@@ -60,8 +60,8 @@ files.
   has at least one page.
 
 File names: `io::EXTENSION` is `vizcraft`. The engine reads and writes native files for names
-ending in `.vizcraft`, `.craft.json` or `.json` (so paths from Cascade 0 keep working) and
-refuses other names.
+ending in `.vizcraft`, `.craft.json` or `.json` (so paths from Cascade 0 keep working), draw.io
+files for names ending in `.drawio` or `.drawio.xml`, and refuses other names.
 
 ## .drawio
 
@@ -69,11 +69,60 @@ draw.io's file is an `mxfile` XML element with one `<diagram>` element per page.
 `mxGraphModel` whose cells are shapes and edges with geometry and a semicolon-separated style
 string. A page's content may be stored as plain XML or compressed: raw deflate, then base64.
 
-We read both page encodings and write uncompressed XML by default. Shapes, edges, labels, groups,
-containers, layers and the common style keys map onto the VizCraft model; style keys we do not
-understand are kept on the shape so a round trip does not lose them. Decompressed size and cell
-count are capped. Landing in Cascade 3, alongside the `open_xml`, `get_page` and `set_page` MCP
-tools ([mcp.md](mcp.md)).
+The codec is the leaf crate `crates/drawio`; the mapping onto the model is
+`vizcraft_formats::drawio` (`load`, `save`, `import`, `page_xml`, `master_style`). The engine
+reads and writes names ending in `.drawio` or `.drawio.xml` as draw.io files, every page;
+`file.export {format: "drawio"}` writes one too, and `file.import`, `page.list`, `page.get` and
+`page.set` work with draw.io pages (see [mcp.md](mcp.md) for the tools that call them).
+
+- **Read:** both page encodings, an `mxfile` or a bare `mxGraphModel`. Page id and name come from
+  the `<diagram>` element, the size from `pageWidth`/`pageHeight`. Draw.io ids are only unique per
+  page, so opening a file renames any id that clashes or is not plain (letters, digits, `_`, `-`,
+  `.`) and rewrites glue to match; importing keeps plain free ids, so an agent can address the
+  cells it wrote.
+- **Written:** one uncompressed `<diagram>` per page holding the root cell `0`, one layer `1`, the
+  shapes, then the connectors. Every shape carries `vizcraft=<master id>` (which wins when read
+  back) beside the draw.io keys that draw its kind, the colours and the font. Labels are written
+  with `html=1` and escaped HTML when reading that back gives the same text; text HTML would
+  change (runs of spaces, tabs) is written plain, newlines kept.
+- **Style mapping:** the fixed table below, both ways. Any style key not in it stays on the item
+  in `ext["drawio.style"]`, in source order, and is written back after our own keys.
+
+| draw.io | VizCraft |
+|---|---|
+| Default, `shape=rect` | rectangle (`basic.rectangle`) |
+| `rounded=1` | rounded rectangle |
+| `ellipse` | ellipse |
+| `rhombus` | diamond (`flowchart.decision`) |
+| `triangle` | triangle (written with `direction=north`, since ours points up) |
+| `shape=parallelogram`, `hexagon`, `cylinder3` or `cylinder`, `document`, `cloud`, `process`, `manualInput`, `trapezoid`, `offPageConnector` | parallelogram, hexagon, cylinder, document, cloud, predefined process, manual input, trapezoid, off-page reference |
+| `vizcraft=<id>` | that master's kind and default style; wins over the keys above |
+| `fillColor`, `strokeColor`, `fontColor` (`none` is transparent), `strokeWidth`, `fontSize`, `fontStyle` (1 bold, 2 italic; other bits kept in `ext`), `rotation` | the matching `Style` fields and `angle_deg` |
+| `edgeStyle=orthogonalEdgeStyle` or `elbowEdgeStyle` | orthogonal route; `curved=1` gives curved; anything else straight |
+| `startArrow`, `endArrow`: `block`, `classic` (and unknown names) triangle; `open`; `diamond`; `oval` circle; `none` | the matching `Arrow`; a missing `endArrow` is draw.io's default arrow |
+| `exitX`/`exitY`, `entryX`/`entryY` | point glue at the nearest connection point; without them dynamic glue |
+| `sourcePoint`, `targetPoint` | free ends |
+| `mxGeometry` points | `waypoints` |
+| `jumpStyle` (any value but `none`) | `jumps` (written as `arc`) |
+| Edge label child cells | connector text (joined with newlines) |
+| `UserObject` / `object` wrapper attributes | kept in `ext` (`drawio.wrapper`, `drawio.attr.<name>`) and written back |
+| Other `mxGraphModel` attributes (grid, background) | kept in the page's `ext` (`drawio.model.<name>`) |
+
+- **Defaults:** a draw.io style that leaves a colour out gets draw.io's look (white fill, black
+  line, 12 pt black text); a shape with `vizcraft=<id>` gets that master's style instead.
+- **Flattened, with a warning:** more than one layer (all land on the page); vertices inside
+  other vertices (groups, containers, swimlanes) get absolute positions from their parents'
+  offsets; group cells themselves draw nothing.
+- **Skipped, with a warning:** images (`shape=image`), cells whose parent is missing, vertices
+  without geometry, duplicate ids. An edge ending on a skipped cell keeps a free end at that
+  cell's centre. Custom connection points of a VizCraft shape are not written.
+- **Limits:** the codec's caps (50 MiB file, 64 MiB decoded page, 256 MiB decoded in total,
+  200,000 cells, 1,000 pages, nesting depth 64); the engine reads at most 32 MiB for an import.
+  Truncated and garbage input is an error; a broken page in a multi-page file becomes an empty
+  page with a warning.
+- **Tests:** a fixture typed by hand from the documented two-vertex model
+  (`crates/formats/testdata/drawio-docs-example.drawio`) and a two-page fixture written by our own
+  codec with its second page compressed, each loaded, saved and reloaded with equal pages.
 
 ## Mermaid
 
@@ -84,11 +133,23 @@ with the `open_mermaid` MCP tool.
 
 ## CSV
 
-Import of draw.io-style CSV: a header of comment lines carrying directives (label template,
-style, which columns hold identifiers and links between rows, layout choice), followed by
-ordinary CSV rows, one shape per row. Rows that reference each other become connectors. This is
-how org charts and similar data-driven diagrams are built. Row count and field length are
-capped. Cascade 3, with the `open_csv` MCP tool.
+Import of draw.io-style CSV, in `vizcraft_formats::csv::import`: a header of `#` comment lines
+carrying directives (label template, style, which columns hold identifiers and links between
+rows, sizes, spacing, layout), followed by ordinary CSV rows, one shape per row. The parser is the
+leaf crate `crates/drawio`; it caps rows, columns, fields and edges.
+
+- **Shapes:** each row's resolved style goes through the `.drawio` style mapping above; the label
+  is the shape's text (HTML labels as plain text). The size comes from `width`/`height` when they
+  give a number, otherwise it is estimated from the label (at least 120 by 60).
+- **Connectors:** each `connect` reference becomes a connector glued (dynamic glue) to both rows,
+  with the directive's style and label.
+- **Placement:** with `left`/`top` columns the rows go there. Otherwise the auto-layout places
+  them: `verticaltree` and `orgchart` as a top-down tree, `horizontaltree` as a left-right tree,
+  `verticalflow` and `horizontalflow` layered top-down or left-right, `organic` force-directed,
+  `circle` radial, and `auto`, `none` or no directive layered top-down. `nodespacing` and
+  `levelspacing` set the gaps. Other layouts are reported and laid out layered.
+- **Warned:** container rows (`parent`) stay ordinary shapes and their members are not grouped;
+  images are drawn as rectangles; the parser's own warnings pass through.
 
 ## SVG
 

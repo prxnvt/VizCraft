@@ -17,7 +17,7 @@ fn registry_ids_are_unique_and_prefixed() {
     for c in reg.all() {
         assert!(seen.insert(c.id), "duplicate id {}", c.id);
         let prefix = c.id.split('.').next().unwrap();
-        assert!(["file", "edit", "view", "shape", "connector", "layout", "insert", "help"].contains(&prefix), "{}: unexpected prefix", c.id);
+        assert!(["file", "edit", "view", "shape", "connector", "page", "layout", "insert", "help"].contains(&prefix), "{}: unexpected prefix", c.id);
         assert!(!c.label.is_empty() && !c.location.is_empty(), "{}: label and location are required", c.id);
     }
     assert_eq!(reg.by_shortcut("mod+s").map(|c| c.id), Some("file.save"));
@@ -250,9 +250,8 @@ fn export_and_import_commands() {
     assert_eq!(r["imported"], false);
     assert_eq!(s.ui_requests.pop(), Some(json!({"open": "import"})));
 
-    let r = run(&mut s, "file.import", json!({"path": "/tmp/in.svg"}));
-    assert_eq!(r["imported"], true);
-    assert_eq!(r["path"], "/tmp/in.svg");
+    // The real import reads the file; a missing one is an error (file.rs tests cover imports).
+    assert!(s.run("file.import", &json!({"path": "/nonexistent/in.svg"})).is_err());
 }
 
 #[test]
