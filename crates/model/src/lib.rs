@@ -20,7 +20,10 @@
 
 pub mod identity;
 pub mod issue;
+mod repair;
 mod serde_util;
+#[cfg(test)]
+mod tests;
 mod types;
 
 pub use identity::{Duplicate, IdFormat, IdScope, Registry, Unmatched};

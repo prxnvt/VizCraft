@@ -11,6 +11,8 @@
 //! and `_`), and `{{` or `}}` for a literal brace. So `S{n}` gives `S1`, `S2`; `{letters}-{n:3}`
 //! gives `FIC-101` for an element whose `letters` property is `FIC`.
 
+use std::collections::{BTreeMap, HashSet};
+
 use serde::{Deserialize, Serialize};
 
 use crate::serde_util::{lenient, lenient_vec};
@@ -153,11 +155,34 @@ impl IdFormat {
             .collect()
     }
     /// The auto number inside `tag` when `tag` matches this format for `element` (literal and
-    /// property parts equal, a run of digits where `{n}` is), else `None`.
+    /// property parts equal, a run of digits where `{n}` is), else `None`. A `{n:W}` pad is a
+    /// minimum: a run of at least W digits matches, so `S{n:3}` reads `S1000` as 1000 but not
+    /// `S7`. A format without `{n}` never yields a number. Numbers too large for `u64` saturate.
     pub fn number_in(&self, tag: &str, element: &Element) -> Option<u64> {
-        // Contract stub; the c4a-model piece implements the match.
-        let _ = (tag, element);
-        None
+        let at = self.parts.iter().position(|p| matches!(p, Part::Number(_)))?;
+        let width = match self.parts.get(at) {
+            Some(Part::Number(w)) => *w,
+            _ => return None,
+        };
+        // Only one `{n}` is allowed, so everything around it composes to fixed text and the
+        // match is a prefix, a suffix and digits in between: no backtracking.
+        let fixed = |parts: &[Part]| -> String {
+            parts
+                .iter()
+                .map(|p| match p {
+                    Part::Lit(t) => t.clone(),
+                    Part::Prop(k) => element.prop(k).map(|v| v.display()).unwrap_or_default(),
+                    Part::Number(_) => String::new(),
+                })
+                .collect()
+        };
+        let prefix = fixed(self.parts.get(..at).unwrap_or_default());
+        let suffix = fixed(self.parts.get(at.saturating_add(1)..).unwrap_or_default());
+        let digits = tag.strip_prefix(prefix.as_str())?.strip_suffix(suffix.as_str())?;
+        if digits.is_empty() || digits.len() < width || !digits.bytes().all(|b| b.is_ascii_digit()) {
+            return None;
+        }
+        Some(digits.bytes().fold(0u64, |n, b| n.saturating_mul(10).saturating_add(u64::from(b - b'0'))))
     }
 }
 
@@ -206,28 +231,101 @@ impl<'a> Registry<'a> {
     /// number found in the scope's existing tags ([`IdFormat::number_in`]), composed with the
     /// element's properties, skipping any composed tag already taken. `Ok(None)` when the type
     /// has no auto-numbered scope; an error when the scope's format does not parse.
+    ///
+    /// Each member's tag is read with that member's own properties, so a format such as
+    /// `{letters}-{n:3}` shares one counter across every letter code in the scope. A member with
+    /// the same id as `element` is ignored, so retagging an element does not count its own tag.
+    /// An auto-numbered format without `{n}` is a format error, and a scope whose numbers have
+    /// reached `u64::MAX` reports [`ModelError::TooMany`].
     pub fn next_tag(&self, element: &Element) -> Result<Option<String>, ModelError> {
-        // Contract stub; the c4a-model piece implements numbering.
-        let _ = element;
-        Ok(None)
+        let Some(scope) = self.scope_for(&element.type_id) else { return Ok(None) };
+        if !scope.auto_number {
+            return Ok(None);
+        }
+        let format = IdFormat::parse(&scope.format)?;
+        if !format.has_number() {
+            return Err(ModelError::Format(format!("auto-numbered scope `{}` has no `{{n}}` in `{}`", scope.id, scope.format)));
+        }
+        let others: Vec<&Element> = self.members(scope).into_iter().filter(|m| m.id != element.id || element.id.is_empty()).collect();
+        let highest = others.iter().filter_map(|m| format.number_in(&m.tag, m)).max().unwrap_or(0);
+        let taken: HashSet<&str> = others.iter().map(|m| m.tag.as_str()).filter(|t| !t.is_empty()).collect();
+        // At most `taken.len()` candidates can be taken, so this many tries always finds a free
+        // one unless the numbers run out.
+        let mut n = highest;
+        for _ in 0..=taken.len() {
+            n = n.checked_add(1).ok_or(ModelError::TooMany("tag numbers"))?;
+            let tag = format.compose(element, n);
+            if !taken.contains(tag.as_str()) {
+                return Ok(Some(tag));
+            }
+        }
+        Err(ModelError::TooMany("tag numbers"))
     }
     /// Whether `tag` may be given to an element of `type_id` (`except`: the element being
     /// retagged, ignored when counting): in a unique scope no other member has it, in a paired
     /// scope fewer than two others have it. Always true for a type with no scope or an empty tag.
+    /// A scope that is both paired and unique counts as paired; one that is neither allows any tag.
     pub fn is_free(&self, type_id: &str, tag: &str, except: Option<&str>) -> bool {
-        // Contract stub; the c4a-model piece implements the count.
-        let _ = (type_id, tag, except);
-        true
+        let Some(scope) = self.scope_for(type_id) else { return true };
+        if tag.is_empty() {
+            return true;
+        }
+        let Some(limit) = Self::limit(scope) else { return true };
+        let users = self.members(scope).into_iter().filter(|m| m.tag == tag && Some(m.id.as_str()) != except).count();
+        users < limit
+    }
+    /// How many members of `scope` may share one tag, or `None` when there is no limit.
+    fn limit(scope: &IdScope) -> Option<usize> {
+        if scope.paired {
+            Some(2)
+        } else if scope.unique {
+            Some(1)
+        } else {
+            None
+        }
+    }
+    /// Member element ids of `scope` grouped by non-empty tag, tags sorted, ids in model order.
+    fn by_tag(&self, scope: &IdScope) -> BTreeMap<&'a str, Vec<String>> {
+        let mut map: BTreeMap<&'a str, Vec<String>> = BTreeMap::new();
+        for m in self.members(scope) {
+            if !m.tag.is_empty() {
+                map.entry(m.tag.as_str()).or_default().push(m.id.clone());
+            }
+        }
+        map
+    }
+    /// The scopes sorted by id (stable, so scopes declared twice keep their declared order).
+    fn sorted_scopes(&self) -> Vec<&'a IdScope> {
+        let mut scopes: Vec<&'a IdScope> = self.scopes.iter().collect();
+        scopes.sort_by(|a, b| a.id.cmp(&b.id));
+        scopes
     }
     /// Tags used too often: by more than one member of a unique scope, or more than two of a
     /// paired scope. Empty tags are ignored. Sorted by scope, then tag.
     pub fn duplicates(&self) -> Vec<Duplicate> {
-        // Contract stub; the c4a-model piece implements the scan.
-        Vec::new()
+        let mut out = Vec::new();
+        for scope in self.sorted_scopes() {
+            let Some(limit) = Self::limit(scope) else { continue };
+            for (tag, elements) in self.by_tag(scope) {
+                if elements.len() > limit {
+                    out.push(Duplicate { scope: scope.id.clone(), tag: tag.to_string(), elements });
+                }
+            }
+        }
+        out
     }
     /// Tags of paired scopes used by exactly one member. Sorted by scope, then tag.
     pub fn unmatched(&self) -> Vec<Unmatched> {
-        // Contract stub; the c4a-model piece implements the scan.
-        Vec::new()
+        let mut out = Vec::new();
+        for scope in self.sorted_scopes().into_iter().filter(|s| s.paired) {
+            for (tag, mut elements) in self.by_tag(scope) {
+                if elements.len() == 1
+                    && let Some(element) = elements.pop()
+                {
+                    out.push(Unmatched { scope: scope.id.clone(), tag: tag.to_string(), element });
+                }
+            }
+        }
+        out
     }
 }
