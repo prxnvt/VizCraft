@@ -43,7 +43,7 @@ fn native_round_trip() {
     let bytes = native::save(&doc).unwrap();
     let text = std::str::from_utf8(&bytes).unwrap();
     assert!(text.contains("\"format\": \"vizcraft\""), "{text}");
-    assert!(text.contains("\"version\": 2"));
+    assert!(text.contains(&format!("\"version\": {}", native::VERSION)));
     assert_eq!(native::load(&bytes).unwrap(), doc);
     // Saving the loaded document again gives the same bytes.
     assert_eq!(native::save(&native::load(&bytes).unwrap()).unwrap(), bytes);
@@ -98,9 +98,9 @@ fn foreign_tag_and_future_version_are_refused() {
     assert_eq!(native::load(other.to_string().as_bytes()), Err(FormatError::WrongFormat("drawio".into())));
     let not_string = json!({"format": 7, "document": {}});
     assert!(matches!(native::load(not_string.to_string().as_bytes()), Err(FormatError::WrongFormat(_))));
-    let future = json!({"format": "vizcraft", "version": 3, "document": {}});
+    let future = json!({"format": "vizcraft", "version": native::VERSION + 1, "document": {}});
     let err = native::load(future.to_string().as_bytes()).unwrap_err();
-    assert_eq!(err, FormatError::TooNew { found: 3, supported: 2 });
+    assert_eq!(err, FormatError::TooNew { found: u64::from(native::VERSION) + 1, supported: native::VERSION });
     assert!(err.to_string().contains("newer VizCraft"));
 }
 
