@@ -344,7 +344,13 @@ fn finish(app: &mut CraftApp, drag: Drag, zoom: f32) {
         }
         Drag::Move { ids, from, to } => {
             let d = move_delta(from, to);
-            if d.x != 0.0 || d.y != 0.0 {
+            // Connectors glued at both ends do not move on their own; dragging only those would
+            // record an undo step that changes nothing.
+            let movable = ids.iter().any(|id| {
+                page.shape(id).is_some()
+                    || page.connector(id).is_some_and(|c| matches!(c.start, End::Free { .. }) || matches!(c.end, End::Free { .. }))
+            });
+            if movable && (d.x != 0.0 || d.y != 0.0) {
                 run(app, "shape.move", json!({"ids": ids, "dx": d.x, "dy": d.y}));
             }
         }
@@ -370,6 +376,10 @@ fn finish(app: &mut CraftApp, drag: Drag, zoom: f32) {
         }
         Drag::Reglue { id, start, to } => {
             let end = target_end(page, to, zoom);
+            let current = page.connector(&id).map(|c| if start { &c.start } else { &c.end });
+            if current == Some(&end) {
+                return;
+            }
             let mut p = end_json(&end);
             if let Some(o) = p.as_object_mut() {
                 o.insert("id".into(), json!(id));
