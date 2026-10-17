@@ -53,6 +53,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.clearRecent", "Clear Recent Files", "", "{}"),
     ("ui.shortcuts", "Keyboard Shortcuts", "Mod+/", "{}"),
     ("ui.print", "Print", "Mod+P", "{}"),
+    ("ui.tool", "Tool", "", r#"{"tool": "pointer|connector|text"}"#),
     ("ui.find", "Find", "Mod+F", "{}"),
     ("window.minimize", "Minimize", "", "{}"),
     ("window.zoom", "Zoom Window", "", "{}"),
@@ -60,6 +61,38 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("app.preferences", "Preferences", "Mod+,", "{}"),
     ("app.quit", "Quit VizCraft", "Mod+Q", "{}"),
 ];
+
+/// The canvas tool: what a left drag on an empty part of the page does.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Tool {
+    /// Select, move, resize and rotate (the default).
+    #[default]
+    Pointer,
+    /// Drag from a shape or empty space to draw a connector.
+    Connector,
+    /// Click to add a text block, or edit the text of the shape under the pointer.
+    Text,
+}
+
+impl Tool {
+    /// The id used by `ui.tool` and `ui.inspect`.
+    pub fn name(self) -> &'static str {
+        match self {
+            Tool::Pointer => "pointer",
+            Tool::Connector => "connector",
+            Tool::Text => "text",
+        }
+    }
+    /// The tool for a `ui.tool` name.
+    pub fn parse(s: &str) -> Option<Tool> {
+        match s {
+            "pointer" => Some(Tool::Pointer),
+            "connector" => Some(Tool::Connector),
+            "text" => Some(Tool::Text),
+            _ => None,
+        }
+    }
+}
 
 /// Platform services injected by the host (file dialogs, file I/O). All optional: without a
 /// picker the matching commands simply do nothing.
@@ -138,6 +171,8 @@ pub struct CraftApp {
     pub quit_confirmed: bool,
     /// Time the last frame's layout took.
     pub frame_ms: f64,
+    /// What a left drag on the canvas does; set by `ui.tool` from the ribbon, keys or an agent.
+    pub tool: Tool,
     /// The File page is showing instead of the document.
     backstage: bool,
     control_rx: Option<Receiver<ControlRequest>>,
@@ -170,6 +205,7 @@ impl CraftApp {
             quit_requested: false,
             quit_confirmed: false,
             frame_ms: 0.0,
+            tool: Tool::Pointer,
             backstage: false,
             control_rx: None,
             shot_token: 0,
@@ -292,6 +328,11 @@ impl CraftApp {
         let s = |k: &str| p.get(k).and_then(Value::as_str);
         let b = |k: &str| p.get(k).and_then(Value::as_bool);
         Some(Ok(match id {
+            "ui.tool" => {
+                // Unknown or missing names fall back to the pointer, so junk never strands the canvas.
+                self.tool = s("tool").and_then(Tool::parse).unwrap_or(Tool::Pointer);
+                json!({"tool": self.tool.name()})
+            }
             "ui.tab" => {
                 let tab = s("tab").unwrap_or("Home");
                 if tab == "File" {
