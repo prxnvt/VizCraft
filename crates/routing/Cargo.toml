@@ -1,0 +1,13 @@
+[package]
+name = "vizcraft-routing"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Model-independent connector routing: obstacle-avoiding orthogonal routes, segment nudging and line jumps"
+
+[lints]
+workspace = true
+
+[dependencies]
+serde = { workspace = true }

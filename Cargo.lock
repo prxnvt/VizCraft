@@ -3441,6 +3441,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "vizcraft-routing"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "vizcraft-ui-egui"
 version = "0.1.0"
 dependencies = [
