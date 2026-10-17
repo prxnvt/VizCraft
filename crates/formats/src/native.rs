@@ -1,14 +1,21 @@
 //! The native `.vizcraft` file: pretty-printed JSON
-//! `{"format": "vizcraft", "version": 2, "document": {...}}`.
+//! `{"format": "vizcraft", "version": 3, "model": {...}, "document": {...}}`.
 //!
-//! Version 2 holds the diagram document (pages, shapes, connectors). Version 1 was the placeholder
-//! model of Cascade 0 (title and metadata only, saved as `.craft.json`); it loads as a document
-//! with that title and metadata and one blank page, because the model's loader fills missing
-//! fields with defaults. A bare document without the wrapper loads too.
+//! Version 3 holds the semantic model (`vizcraft_model::Model`: elements, relationships, packs,
+//! with its own `schemaVersion`) and the diagram document (pages, shapes, connectors). Shapes and
+//! connectors name the model items they draw; the model section is left out when the model is
+//! empty, so free-drawing documents stay as small as before.
+//!
+//! Older files load as free drawing with an empty model: version 2 held the diagram document
+//! only; version 1 was the placeholder of Cascade 0 (title and metadata only, saved as
+//! `.craft.json`), which loads as a document with that title and metadata and one blank page,
+//! because the loader fills missing fields with defaults. A bare document without the wrapper
+//! loads too, also with an empty model.
 
-use serde::Serialize;
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
-use vizcraft_diagram::Document;
+use vizcraft_diagram::vizcraft_model::{self, Model};
+use vizcraft_diagram::{CoreProps, Document, Page};
 
 use crate::FormatError;
 
@@ -16,34 +23,43 @@ use crate::FormatError;
 pub const FORMAT_TAG: &str = "vizcraft";
 
 /// The version this build writes, and the newest it reads.
-pub const VERSION: u32 = 2;
+pub const VERSION: u32 = 3;
 
 /// Largest input [`load`] accepts. Far above any real diagram, low enough that a hostile file
 /// cannot make the parser allocate without bound.
 pub const MAX_INPUT: usize = 64 * 1024 * 1024;
 
-/// The wrapper as written; borrows the document so saving does not clone it.
+/// The wrapper as written; borrows the document and model so saving does not clone them. Field
+/// order is the key order on disk.
 #[derive(Serialize)]
 struct FileOut<'a> {
     format: &'static str,
     version: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    model: Option<&'a Model>,
     document: &'a Document,
 }
 
-/// Encode `doc` as a version 2 native file.
+/// Encode `doc` as a version 3 native file. The model section is written only when the model
+/// has packs, elements or relationships.
 pub fn save(doc: &Document) -> Result<Vec<u8>, FormatError> {
-    let file = FileOut { format: FORMAT_TAG, version: VERSION, document: doc };
+    let model = (!doc.model.is_empty()).then_some(&doc.model);
+    let file = FileOut { format: FORMAT_TAG, version: VERSION, model, document: doc };
     let mut bytes = serde_json::to_vec_pretty(&file).map_err(|e| FormatError::Encode(e.to_string()))?;
     bytes.push(b'\n');
     Ok(bytes)
 }
 
-/// Decode a native file: a version 1 or 2 wrapper, or a bare document.
+/// Decode a native file: a version 1, 2 or 3 wrapper, or a bare document.
 ///
 /// A wrapper is any JSON object with a `format` key. Its tag must be `vizcraft`, its `version`
 /// a number no newer than [`VERSION`] (a missing version reads as 1) and its `document` an
-/// object. Everything inside the document is checked by the model's tolerant loader, which
-/// clamps numbers and drops unreadable items.
+/// object. In a version 3 wrapper an object `model` section is read by the model's tolerant
+/// loader, after checking that its `schemaVersion` is no newer than
+/// [`vizcraft_model::SCHEMA_VERSION`]; a `model` that is not an object reads as an empty model.
+/// Everything inside the document is checked by the diagram's tolerant loader, which clamps
+/// numbers and drops unreadable items; view references to model items that do not exist are
+/// cleared, so those shapes and connectors load as free drawing.
 pub fn load(bytes: &[u8]) -> Result<Document, FormatError> {
     if bytes.len() > MAX_INPUT {
         return Err(FormatError::TooLarge { len: bytes.len(), max: MAX_INPUT });
@@ -54,8 +70,8 @@ pub fn load(bytes: &[u8]) -> Result<Document, FormatError> {
     let Value::Object(mut obj) = value else {
         return Err(FormatError::Invalid("expected a JSON object".into()));
     };
-    let doc_value = match obj.get("format") {
-        None => Value::Object(obj),
+    let (doc_value, model) = match obj.get("format") {
+        None => (Value::Object(obj), Model::new()),
         Some(tag) => {
             let tag = tag.as_str().unwrap_or_default();
             if tag != FORMAT_TAG {
@@ -68,15 +84,101 @@ pub fn load(bytes: &[u8]) -> Result<Document, FormatError> {
             if version > u64::from(VERSION) {
                 return Err(FormatError::TooNew { found: version, supported: VERSION });
             }
-            match obj.remove("document") {
+            let doc_value = match obj.remove("document") {
                 Some(d @ Value::Object(_)) => d,
                 Some(_) => return Err(FormatError::Invalid("the document is not an object".into())),
                 None => return Err(FormatError::Invalid("the file has no document".into())),
-            }
+            };
+            // Versions 1 and 2 had no model; a stray `model` key in them is not ours to read.
+            let model = if version >= 3 { read_model(obj.remove("model"))? } else { Model::new() };
+            (doc_value, model)
         }
     };
-    let mut doc: Document = serde_json::from_value(doc_value).map_err(|e| FormatError::Invalid(e.to_string()))?;
-    // Deserialization already sanitizes; this is cheap and keeps the guarantee local.
+    let parts: DocumentIn = serde_json::from_value(doc_value).map_err(|e| FormatError::Invalid(e.to_string()))?;
+    // Built from parts rather than through `Document`'s own deserializer, because that one
+    // sanitizes against an empty model and would clear every view reference before the model
+    // is in place. With the model set first, one sanitize repairs references against it.
+    let mut doc = Document { title: parts.title, core: parts.core, pages: parts.pages, id_seq: parts.id_seq, model };
     doc.sanitize();
     Ok(doc)
 }
+
+/// Read the version 3 `model` section. Missing or not an object: an empty model. A
+/// `schemaVersion` newer than this build reads is refused, so a newer model is never silently
+/// half-read and then overwritten on save.
+fn read_model(section: Option<Value>) -> Result<Model, FormatError> {
+    let Some(section @ Value::Object(_)) = section else {
+        return Ok(Model::new());
+    };
+    if let Some(found) = section.get("schemaVersion").and_then(schema_number)
+        && found > u64::from(vizcraft_model::SCHEMA_VERSION)
+    {
+        return Err(FormatError::TooNew { found, supported: vizcraft_model::SCHEMA_VERSION });
+    }
+    // The model's fields are all lenient, so this only fails on input serde_json cannot map at
+    // all; that reads as an empty model, like the rest of the tolerant loading.
+    let mut model: Model = serde_json::from_value(section).unwrap_or_default();
+    // An older, missing or unreadable schema version is upgraded on load: this build writes
+    // its own version from now on.
+    model.schema_version = vizcraft_model::SCHEMA_VERSION;
+    Ok(model)
+}
+
+/// A schema version as a whole number: integers as they are, and finite positive fractions
+/// rounded up so `1.5` counts as newer than 1. Anything else is not a version.
+fn schema_number(v: &Value) -> Option<u64> {
+    v.as_u64().or_else(|| {
+        let f = v.as_f64().filter(|f| f.is_finite() && *f > 0.0)?;
+        // `as` saturates for huge values, which still reads as too new.
+        Some(f.ceil() as u64)
+    })
+}
+
+/// The document as stored, read field by field with the same tolerance as the diagram crate's
+/// own loader (missing or wrong-typed fields take defaults, unreadable pages are dropped).
+#[derive(Deserialize, Default)]
+#[serde(default, rename_all = "camelCase")]
+struct DocumentIn {
+    #[serde(deserialize_with = "lenient")]
+    title: String,
+    #[serde(deserialize_with = "lenient")]
+    core: CoreProps,
+    #[serde(deserialize_with = "lenient_vec")]
+    pages: Vec<Page>,
+    #[serde(deserialize_with = "lenient")]
+    id_seq: u64,
+}
+
+/// Either the wanted value or anything else (which is ignored).
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum Lenient<T> {
+    Value(T),
+    Other(serde::de::IgnoredAny),
+}
+
+/// Any deserializable value, falling back to `T::default()` when the input has the wrong shape.
+fn lenient<'de, D: Deserializer<'de>, T: Deserialize<'de> + Default>(d: D) -> Result<T, D::Error> {
+    Ok(match Lenient::<T>::deserialize(d)? {
+        Lenient::Value(v) => v,
+        Lenient::Other(_) => T::default(),
+    })
+}
+
+/// A list that keeps the items that parse and drops the rest; a non-list reads as empty.
+fn lenient_vec<'de, D: Deserializer<'de>, T: Deserialize<'de>>(d: D) -> Result<Vec<T>, D::Error> {
+    Ok(match Lenient::<Vec<Lenient<T>>>::deserialize(d)? {
+        Lenient::Value(items) => items
+            .into_iter()
+            .filter_map(|i| match i {
+                Lenient::Value(v) => Some(v),
+                Lenient::Other(_) => None,
+            })
+            .collect(),
+        Lenient::Other(_) => Vec::new(),
+    })
+}
+
+#[cfg(test)]
+#[path = "native_tests.rs"]
+mod tests;
