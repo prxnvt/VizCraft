@@ -10,6 +10,9 @@ use std::path::Path;
 /// Where a workspace crate sits.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Class {
+    /// Leaf libraries (`*-mermaid`, `*-drawio`, `*-layout`, `*-routing`): pure algorithms and
+    /// parsers below the engine, with no workspace dependencies and no UI toolkit.
+    Library,
     /// L4: the model, undo, command registry; knows nothing about any UI toolkit.
     Engine,
     /// L6: the egui front end; uses egui but not a window host.
@@ -65,6 +68,9 @@ pub struct Crate {
     pub deps: Vec<Dep>,
 }
 
+/// Name suffixes of the leaf library crates.
+const LIBRARY_SUFFIXES: &[&str] = &["-mermaid", "-drawio", "-layout", "-routing"];
+
 /// Classify a crate by its name suffix, falling back to its directory for apps.
 pub fn classify(c: &Crate) -> Option<Class> {
     if c.name == "xtask" {
@@ -72,6 +78,9 @@ pub fn classify(c: &Crate) -> Option<Class> {
     }
     if c.name.ends_with("-engine") {
         return Some(Class::Engine);
+    }
+    if LIBRARY_SUFFIXES.iter().any(|s| c.name.ends_with(s)) {
+        return Some(Class::Library);
     }
     if c.name.ends_with("-ui-egui") {
         return Some(Class::UiEgui);
@@ -88,6 +97,7 @@ pub fn classify(c: &Crate) -> Option<Class> {
 
 pub fn describe(class: Option<Class>) -> String {
     match class {
+        Some(Class::Library) => "lib".into(),
         Some(Class::Engine) => "L4".into(),
         Some(Class::UiEgui) => "L6".into(),
         Some(Class::Platform) => "platform".into(),
@@ -117,7 +127,7 @@ impl std::fmt::Display for Violation {
         match self {
             Violation::Unregistered { krate } => write!(
                 f,
-                "{krate}: unknown workspace crate; name it <craft>-engine, <craft>-ui-egui, <craft>-macos-open, put it under apps/, or extend xtask/src/layers.rs"
+                "{krate}: unknown workspace crate; name it <craft>-engine, <craft>-ui-egui, <craft>-macos-open, a library suffix (-mermaid, -drawio, -layout, -routing), put it under apps/, or extend xtask/src/layers.rs"
             ),
             Violation::EngineUsesUi { krate, dep } => {
                 write!(f, "{krate} depends on `{dep}`; the engine and the MCP server must not know about egui/eframe/winit/rfd/muda/arboard")
@@ -134,11 +144,12 @@ impl std::fmt::Display for Violation {
 /// Rank used for the direction check: a crate may only depend on strictly lower ranks.
 fn rank(class: Class) -> u8 {
     match class {
-        Class::Platform | Class::Engine => 0,
+        Class::Library => 0,
+        Class::Platform | Class::Engine => 1,
         // Same rank as ui-egui, so neither can depend on the other.
-        Class::UiEgui | Class::Mcp => 1,
-        Class::App => 2,
-        Class::Tooling => 3,
+        Class::UiEgui | Class::Mcp => 2,
+        Class::App => 3,
+        Class::Tooling => 4,
     }
 }
 
@@ -168,7 +179,7 @@ pub fn check(crates: &[Crate]) -> Vec<Violation> {
                 continue;
             }
             match class {
-                Class::Engine | Class::Mcp if forbidden_in_engine(&d.name) => {
+                Class::Library | Class::Engine | Class::Mcp if forbidden_in_engine(&d.name) => {
                     out.push(Violation::EngineUsesUi { krate: c.name.clone(), dep: d.name.clone() })
                 }
                 Class::UiEgui | Class::Platform | Class::Tooling if APP_ONLY.contains(&d.name.as_str()) => {
@@ -339,6 +350,22 @@ mod tests {
         assert!(matches!(&check(&g)[..], [Violation::Upward { krate, .. }] if krate == "vizcraft-mcp"));
         let v = check(&[c("vizcraft-mcp", "/r/crates/mcp/Cargo.toml", &[("egui", Normal, false)])]);
         assert!(matches!(&v[..], [Violation::EngineUsesUi { .. }]), "{v:?}");
+    }
+
+    #[test]
+    fn libraries_sit_below_the_engine_and_stay_clear_of_ui() {
+        let mut g = baseline("vizcraft");
+        g.push(c("vizcraft-layout", "/r/crates/layout/Cargo.toml", &[("serde", Normal, false)]));
+        g[0].deps.push(Dep { name: "vizcraft-layout".into(), kind: Normal, workspace: true });
+        assert!(check(&g).is_empty(), "{:?}", check(&g));
+        for name in ["vizcraft-mermaid", "vizcraft-drawio", "vizcraft-layout", "vizcraft-routing"] {
+            assert_eq!(classify(&c(name, "/r/crates/x/Cargo.toml", &[])), Some(Class::Library), "{name}");
+        }
+        let v = check(&[c("vizcraft-routing", "/r/crates/routing/Cargo.toml", &[("egui", Normal, false)])]);
+        assert!(matches!(&v[..], [Violation::EngineUsesUi { .. }]), "{v:?}");
+        let mut g = baseline("vizcraft");
+        g.push(c("vizcraft-drawio", "/r/crates/drawio/Cargo.toml", &[("vizcraft-engine", Normal, true)]));
+        assert!(matches!(&check(&g)[..], [Violation::Upward { krate, .. }] if krate == "vizcraft-drawio"));
     }
 
     #[test]
