@@ -278,8 +278,8 @@ fn paint(app: &mut CraftApp, ui: &Ui, vp: &Viewport2D, t: &Tokens) {
         }
     }
     app.canvas.cache.end_frame();
-    for c in &page.connectors {
-        let g = dg::connector_geometry(page, c);
+    // Page-level geometry, so connectors with line jumps hop over the ones drawn before them.
+    for (c, g) in page.connectors.iter().zip(dg::jumps::page_geometry(page)) {
         if draw::connector_bounds(&g).is_some_and(|b| b.intersects(&visible)) {
             draw::connector(&painter, vp, c, &g, editing.as_deref() != Some(c.id.as_str()));
         }

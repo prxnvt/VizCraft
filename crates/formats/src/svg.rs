@@ -10,15 +10,16 @@
 //!   second unfilled path in the same group.
 //! - **Text.** Centred `<text>` with one `<tspan>` per line, rotated with the shape, in Inter
 //!   with a sans-serif fallback; the font is named, not embedded.
-//! - **Connectors.** One `<path>` from [`connector_geometry`] (the line stops where a filled head
-//!   begins), heads as filled or open paths, the label centred on a white box at the label
+//! - **Connectors.** One `<path>` from the page-level geometry ([`page_geometry`]: the line stops
+//!   where a filled head begins, and connectors with line jumps carry their hops as arcs), heads as filled or open paths, the label centred on a white box at the label
 //!   position. The box width is estimated from the character count, since there is no font
 //!   metrics source here.
 //! - **Numbers** have at most three decimals and never print as NaN or infinity.
 
 use std::fmt::Write as _;
 
-use vizcraft_diagram::{Color, Connector, Document, Page, Path, PathEl, Point, Rect, Shape, Style, connector_geometry};
+use vizcraft_diagram::jumps::page_geometry;
+use vizcraft_diagram::{Color, Connector, ConnectorGeometry, Document, Page, Path, PathEl, Point, Rect, Shape, Style, connector_geometry};
 
 use crate::FormatError;
 
@@ -83,8 +84,8 @@ fn page_svg(doc: &Document, page: &Page) -> String {
     for s in &page.shapes {
         shape_svg(&mut out, s);
     }
-    for c in &page.connectors {
-        connector_svg(&mut out, page, c);
+    for (c, g) in page.connectors.iter().zip(page_geometry(page)) {
+        connector_svg(&mut out, c, &g);
     }
     out.push_str("</svg>\n");
     out
@@ -106,8 +107,7 @@ fn shape_svg(out: &mut String, s: &Shape) {
     out.push_str("  </g>\n");
 }
 
-fn connector_svg(out: &mut String, page: &Page, c: &Connector) {
-    let g = connector_geometry(page, c);
+fn connector_svg(out: &mut String, c: &Connector, g: &ConnectorGeometry) {
     let st = &c.style;
     let _ = writeln!(out, "  <g id=\"{}\">", escape(&c.id));
     let _ = writeln!(out, "    <path d=\"{}\" fill=\"none\"{} stroke-linejoin=\"round\"/>", path_data(&g.line), stroke(st));
@@ -238,4 +238,44 @@ pub fn escape(s: &str) -> String {
         }
     }
     out
+}
+
+#[cfg(test)]
+mod jump_tests {
+    use vizcraft_diagram::{End, Route};
+
+    use super::*;
+
+    fn crossing(jumps: bool) -> String {
+        let mut doc = Document::new();
+        if let Some(page) = doc.pages.first_mut() {
+            for (id, a, b) in [("h", Point::new(0.0, 100.0), Point::new(200.0, 100.0)), ("v", Point::new(100.0, 0.0), Point::new(100.0, 200.0))] {
+                let mut c = Connector::new(id, End::free(a), End::free(b));
+                c.route = Route::Straight;
+                c.jumps = jumps;
+                page.connectors.push(c);
+            }
+        }
+        export_page(&doc, 0).map(|b| String::from_utf8_lossy(&b).into_owned()).unwrap_or_default()
+    }
+
+    /// The `d` of the line path in connector group `id`.
+    fn line_of(svg: &str, id: &str) -> String {
+        let group = svg.split(&format!("<g id=\"{id}\">")).nth(1).unwrap_or_default();
+        group.split("d=\"").nth(1).and_then(|d| d.split('"').next()).unwrap_or_default().to_string()
+    }
+
+    #[test]
+    fn the_svg_holds_the_hops_of_connectors_with_jumps() {
+        let svg = crossing(true);
+        assert!(!line_of(&svg, "h").contains('C'), "the first connector does not hop");
+        let v = line_of(&svg, "v");
+        // A semicircle of radius 5 around (100, 100), bulging left: two cubics ending at the top
+        // of the hop and past the crossing.
+        assert_eq!(v.matches('C').count(), 2, "{v}");
+        assert!(v.contains(" 95 100") || v.contains("95 100"), "{v}");
+        assert!(v.ends_with("100 105") || v.contains("100 105"), "{v}");
+        let plain = crossing(false);
+        assert!(!line_of(&plain, "v").contains('C'));
+    }
 }

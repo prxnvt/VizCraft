@@ -1,8 +1,9 @@
 //! Glue and routing: where a connector's ends are and the path between them.
 //!
-//! Everything here is a pure function of the page. A connector stores only how it is glued; its
-//! end points and route are derived from the shapes on every call, so moving, resizing or
-//! rotating a shape moves its connectors with no extra bookkeeping.
+//! Everything here is a pure function of the page. A connector stores how it is glued and,
+//! optionally, its bends (`waypoints`); its end points and route are derived from the shapes on
+//! every call, so moving, resizing or rotating a shape moves its connectors with no extra
+//! bookkeeping. Stored bends come from obstacle-avoiding routing ([`crate::autoroute`]) or a file.
 
 use crate::geom::{Path, PathEl, Point, Vec2, point_along};
 use crate::model::{Arrow, Connector, End, Page, Route};
@@ -71,8 +72,19 @@ pub fn nearest_point(pts: &[Point], p: Point) -> Option<usize> {
 }
 
 /// Resolve both ends of `c` on `page`. Point glue uses that connection point; dynamic glue picks
-/// the shape's connection point nearest the other end.
+/// the shape's connection point nearest the other end, or, when the connector has bends, nearest
+/// its first (or last) bend, so the route does not double back across the shape.
 pub fn resolve_ends(page: &Page, c: &Connector) -> Ends {
+    resolve_through(page, c, &c.waypoints)
+}
+
+/// [`resolve_ends`] as if the connector's bends were `waypoints` (empty: as if it had none).
+pub fn resolve_through(page: &Page, c: &Connector, waypoints: &[Point]) -> Ends {
+    let first = waypoints.iter().copied().find(|p| p.is_finite());
+    let last = waypoints.iter().rev().copied().find(|p| p.is_finite());
+    if let (Some(first), Some(last)) = (first, last) {
+        return Ends { start: resolve(page, &c.start, first), end: resolve(page, &c.end, last) };
+    }
     let start = resolve(page, &c.start, anchor(page, &c.end));
     let end = resolve(page, &c.end, start.pos);
     // A dynamic start was chosen against the other end's rough anchor; now that the end is
@@ -146,27 +158,138 @@ pub fn orthogonal_points(start: &EndPoint, end: &EndPoint) -> Vec<Point> {
     simplify(pts)
 }
 
-/// The routed path of `c` on `page`: one line, axis-aligned lines, or one cubic.
+/// The routed path of `c` on `page`: one line, axis-aligned lines, or one cubic, passing through
+/// the connector's stored bends when it has any.
 pub fn route_path(page: &Page, c: &Connector) -> Path {
     let ends = resolve_ends(page, c);
-    path_for(&ends, c.route)
+    path_through(&ends, c.route, &c.waypoints)
 }
 
-/// The path for already resolved ends.
+/// The path for already resolved ends, with no stored bends.
 pub fn path_for(ends: &Ends, route: Route) -> Path {
+    path_through(ends, route, &[])
+}
+
+/// The path for already resolved ends through `waypoints` (non-finite ones are skipped). Without
+/// waypoints this is the automatic route. With them, a straight route is a polyline through them,
+/// an orthogonal one runs the start stub, the bends and the end stub with elbows added so every
+/// segment is horizontal or vertical, and a curved one is a smooth curve through them.
+pub fn path_through(ends: &Ends, route: Route, waypoints: &[Point]) -> Path {
+    let wps: Vec<Point> = waypoints.iter().copied().filter(|p| p.is_finite()).collect();
     let (p0, p1) = (ends.start.pos, ends.end.pos);
+    if wps.is_empty() {
+        return match route {
+            Route::Straight => Path::polyline(&[p0, p1]),
+            Route::Orthogonal => Path::polyline(&orthogonal_points(&ends.start, &ends.end)),
+            Route::Curved => {
+                let k = (p0.distance(p1) * 0.4).clamp(0.0, 1.0e5);
+                let d0 = ends.start.dir.or_else(|| (p1 - p0).normalized()).unwrap_or(Point::ZERO);
+                let d1 = ends.end.dir.or_else(|| (p0 - p1).normalized()).unwrap_or(Point::ZERO);
+                let mut p = Path::new();
+                p.move_to(p0).cubic_to(p0 + d0 * k, p1 + d1 * k, p1);
+                p
+            }
+        };
+    }
     match route {
-        Route::Straight => Path::polyline(&[p0, p1]),
-        Route::Orthogonal => Path::polyline(&orthogonal_points(&ends.start, &ends.end)),
-        Route::Curved => {
-            let k = (p0.distance(p1) * 0.4).clamp(0.0, 1.0e5);
-            let d0 = ends.start.dir.or_else(|| (p1 - p0).normalized()).unwrap_or(Point::ZERO);
-            let d1 = ends.end.dir.or_else(|| (p0 - p1).normalized()).unwrap_or(Point::ZERO);
-            let mut p = Path::new();
-            p.move_to(p0).cubic_to(p0 + d0 * k, p1 + d1 * k, p1);
-            p
+        Route::Straight => {
+            let mut pts = Vec::with_capacity(wps.len().saturating_add(2));
+            pts.push(p0);
+            pts.extend(wps);
+            pts.push(p1);
+            Path::polyline(&simplify(pts))
+        }
+        Route::Orthogonal => Path::polyline(&orthogonal_through(&ends.start, &ends.end, &wps)),
+        Route::Curved => curve_through(&ends.start, &ends.end, &wps),
+    }
+}
+
+/// Whether `w` lies on the ray from `p` along axis direction `d` (so the stub is already there).
+fn on_ray(p: Point, d: Vec2, w: Point) -> bool {
+    let off = w - p;
+    off.cross(d).abs() < 1e-6 && off.dot(d) > 0.0
+}
+
+/// An orthogonal route through `wps`: the start stub (unless the first bend already lies straight
+/// out of the side), the bends, the end stub, with an elbow between any two points that are not
+/// on a common horizontal or vertical line. Each elbow keeps the previous heading, which adds the
+/// fewest turns.
+fn orthogonal_through(start: &EndPoint, end: &EndPoint, wps: &[Point]) -> Vec<Point> {
+    let (p0, p1) = (start.pos, end.pos);
+    let (Some(&first), Some(&last)) = (wps.first(), wps.last()) else { return orthogonal_points(start, end) };
+    let mut pts: Vec<Point> = Vec::with_capacity(wps.len().saturating_mul(2).saturating_add(6));
+    pts.push(p0);
+    if let Some(d0) = axis(start.dir)
+        && !on_ray(p0, d0, first)
+    {
+        pts.push(p0 + d0 * STUB);
+    }
+    pts.extend(wps.iter().copied());
+    if let Some(d1) = axis(end.dir)
+        && !on_ray(p1, d1, last)
+    {
+        pts.push(p1 + d1 * STUB);
+    }
+    pts.push(p1);
+    // The heading into the first point: out of the start side, else toward the next point.
+    let mut heading = axis(start.dir).unwrap_or_else(|| axis_toward(p0, pts.get(1).copied().unwrap_or(p1)));
+    let mut out: Vec<Point> = Vec::with_capacity(pts.len().saturating_mul(2));
+    for p in pts {
+        if let Some(&u) = out.last() {
+            let d = p - u;
+            if d.x.abs() > 1e-9 && d.y.abs() > 1e-9 {
+                // Keep going the way we were heading, then turn.
+                let elbow = if heading.y == 0.0 { Point::new(p.x, u.y) } else { Point::new(u.x, p.y) };
+                out.push(elbow);
+                heading = axis_toward(elbow, p);
+            } else if d.length() > 1e-9 {
+                heading = axis_toward(u, p);
+            }
+        }
+        out.push(p);
+    }
+    simplify(out)
+}
+
+/// A smooth curve through the bends: one cubic per span, with tangents from the neighbouring
+/// points (Catmull-Rom) and the glued sides' directions at the ends.
+fn curve_through(start: &EndPoint, end: &EndPoint, wps: &[Point]) -> Path {
+    let mut pts: Vec<Point> = Vec::with_capacity(wps.len().saturating_add(2));
+    pts.push(start.pos);
+    pts.extend(wps.iter().copied());
+    pts.push(end.pos);
+    let pts = simplify_repeats(pts);
+    let n = pts.len();
+    let at = |i: usize| pts.get(i).copied().unwrap_or(Point::ZERO);
+    let tangent = |i: usize| -> Vec2 {
+        if i == 0 {
+            let span = at(0).distance(at(1));
+            start.dir.map_or(at(1) - at(0), |d| d * span)
+        } else if i + 1 >= n {
+            let span = at(i).distance(at(i.saturating_sub(1)));
+            end.dir.map_or(at(i) - at(i.saturating_sub(1)), |d| -d * span)
+        } else {
+            (at(i + 1) - at(i - 1)) * 0.5
+        }
+    };
+    let mut path = Path::new();
+    path.move_to(at(0));
+    for i in 0..n.saturating_sub(1) {
+        let (a, b) = (at(i), at(i + 1));
+        path.cubic_to(a + tangent(i) * (1.0 / 3.0), b - tangent(i + 1) * (1.0 / 3.0), b);
+    }
+    path
+}
+
+/// Drop consecutive repeated points.
+fn simplify_repeats(pts: Vec<Point>) -> Vec<Point> {
+    let mut out: Vec<Point> = Vec::with_capacity(pts.len());
+    for p in pts {
+        if out.last().is_none_or(|l| l.distance(p) >= 1e-9) {
+            out.push(p);
         }
     }
+    out
 }
 
 /// The routed polyline of `c` (curves flattened), for hit testing and label placement.
@@ -240,7 +363,7 @@ fn arrival(pts: &[Point]) -> Option<Vec2> {
 /// Resolve, route and decorate `c` on `page`.
 pub fn connector_geometry(page: &Page, c: &Connector) -> ConnectorGeometry {
     let ends = resolve_ends(page, c);
-    let path = path_for(&ends, c.route);
+    let path = path_through(&ends, c.route, &c.waypoints);
     let polyline = path.flatten(0.5).into_iter().next().map(|pl| pl.points).unwrap_or_default();
     let reversed: Vec<Point> = polyline.iter().rev().copied().collect();
     let lw = c.style.line_width;
@@ -262,5 +385,80 @@ fn shorten(path: &mut Path, start: Option<Point>, end: Option<Point>) {
             Some(PathEl::LineTo(p)) | Some(PathEl::CubicTo(_, _, p)) => *p = e,
             _ => {}
         }
+    }
+}
+
+#[cfg(test)]
+mod waypoint_tests {
+    use super::*;
+    use crate::geom::cubic_point;
+    use crate::model::Shape;
+
+    fn page_with(route: Route, waypoints: Vec<Point>) -> (Page, Connector) {
+        let mut page = Page::new("p", "p");
+        page.shapes = vec![
+            Shape { id: "a".into(), x: 0.0, y: 0.0, w: 60.0, h: 40.0, ..Shape::default() },
+            Shape { id: "b".into(), x: 300.0, y: 200.0, w: 60.0, h: 40.0, ..Shape::default() },
+        ];
+        let mut c = Connector::new("c", End::Glued { shape: "a".into(), point: None }, End::Glued { shape: "b".into(), point: None });
+        c.route = route;
+        c.waypoints = waypoints;
+        (page, c)
+    }
+
+    #[test]
+    fn orthogonal_waypoints_draw_axis_aligned_through_every_bend() {
+        let wps = vec![Point::new(120.0, -50.0), Point::new(200.0, 330.0), Point::new(250.0, 290.0)];
+        let (page, c) = page_with(Route::Orthogonal, wps.clone());
+        let pts = route_polyline(&page, &c);
+        for w in pts.windows(2) {
+            assert!((w[0].x - w[1].x).abs() < 1e-9 || (w[0].y - w[1].y).abs() < 1e-9, "{pts:?}");
+        }
+        for wp in &wps {
+            // A bend may sit in the middle of a straight run, so it is on the line, not a vertex.
+            assert!(crate::geom::distance_to_polyline(*wp, &pts) < 1e-9, "{wp:?} missing from {pts:?}");
+        }
+    }
+
+    #[test]
+    fn a_stub_already_on_the_route_is_not_doubled_back() {
+        // The first bend lies straight out of a's right side: no extra stub before it.
+        let (page, c) = page_with(Route::Orthogonal, vec![Point::new(70.0, 20.0), Point::new(70.0, 220.0)]);
+        let pts = route_polyline(&page, &c);
+        assert_eq!(pts.first(), Some(&Point::new(60.0, 20.0)));
+        assert_eq!(pts.get(1), Some(&Point::new(70.0, 20.0)));
+    }
+
+    #[test]
+    fn dynamic_glue_faces_the_nearest_bend() {
+        // A bend above-left of b pulls b's end to its top point instead of facing a.
+        let (page, c) = page_with(Route::Straight, vec![Point::new(330.0, 100.0)]);
+        let ends = resolve_ends(&page, &c);
+        assert_eq!(ends.end.pos, Point::new(330.0, 200.0));
+        let pts = route_polyline(&page, &c);
+        assert_eq!(pts.len(), 3);
+        assert_eq!(pts.get(1), Some(&Point::new(330.0, 100.0)));
+    }
+
+    #[test]
+    fn curves_pass_through_their_bends() {
+        let wp = Point::new(150.0, 250.0);
+        let (page, c) = page_with(Route::Curved, vec![wp]);
+        let path = route_path(&page, &c);
+        let ends: Vec<Point> = path.els.iter().filter_map(|e| if let PathEl::CubicTo(_, _, p) = e { Some(*p) } else { None }).collect();
+        assert_eq!(ends.len(), 2);
+        assert_eq!(ends.first(), Some(&wp));
+        if let (Some(PathEl::MoveTo(p0)), Some(PathEl::CubicTo(a, b, p1))) = (path.els.first(), path.els.get(1)) {
+            assert!(cubic_point(*p0, *a, *b, *p1, 0.5).is_finite());
+        }
+    }
+
+    #[test]
+    fn without_waypoints_nothing_changes_and_junk_bends_are_skipped() {
+        let (page, c) = page_with(Route::Orthogonal, Vec::new());
+        let ends = resolve_ends(&page, &c);
+        assert_eq!(route_path(&page, &c), path_for(&ends, Route::Orthogonal));
+        let (page, c) = page_with(Route::Orthogonal, vec![Point::new(f64::NAN, 1.0)]);
+        assert_eq!(route_path(&page, &c), path_for(&resolve_ends(&page, &c), Route::Orthogonal));
     }
 }
