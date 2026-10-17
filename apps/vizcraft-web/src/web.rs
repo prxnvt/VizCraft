@@ -119,7 +119,7 @@ fn services(inbox: Inbox, ctx: egui::Context) -> Services {
         open_async: Some(Box::new(move |_purpose: &str| {
             let inbox = open_inbox.clone();
             let ctx = ctx.clone();
-            let dialog = rfd::AsyncFileDialog::new().add_filter("VizCraft documents", &["json"]);
+            let dialog = rfd::AsyncFileDialog::new().add_filter("VizCraft documents", &["vizcraft", "json"]);
             wasm_bindgen_futures::spawn_local(async move {
                 let Some(file) = dialog.pick_file().await else {
                     return;

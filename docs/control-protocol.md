@@ -137,7 +137,7 @@ find out what the menus offer and how each entry looks right now:
 ```json
 [{"title": "File", "role": "normal", "items": [
    {"label": "New", "id": "file.new", "params": {}, "shortcut": "Cmd N", "enabled": true, "checked": false, "check": false},
-   {"label": "Open Recent", "items": [{"recent": "/tmp/Plans.craft.json", "id": "file.open", "params": {"path": "..."}}]},
+   {"label": "Open Recent", "items": [{"recent": "/tmp/Plans.vizcraft", "id": "file.open", "params": {"path": "..."}}]},
    {"sep": true},
    {"header": "..."}
  ]}, ...]

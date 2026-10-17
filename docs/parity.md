@@ -156,15 +156,15 @@ When a feature lands, change its State in the same commit as the code. States:
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| `.vizcraft` native format | 1 | planned | Versioned JSON; see [docs/formats.md](formats.md) |
-| SVG export | 1 | planned | Current page |
+| `.vizcraft` native format | 1 | done | Versioned JSON; see [docs/formats.md](formats.md) |
+| SVG export | 1 | done | First page, through `file.export {path, format?}` |
 | PNG export | 2 | planned | Page or all pages |
 | PDF export | 2 | planned | Page or all pages |
 | .drawio read and write | 3 | planned | Multi-page, compressed pages |
 | Mermaid import | 3 | planned | Flowchart, sequence, class, state, ER |
 | CSV import | 3 | planned | draw.io-style CSV |
 | .vsdx import | 4 | planned | From the public MS-VSDX specification |
-| Export and import command slots | 0 | done (chrome) | `file.export` and `file.import` exist and await formats |
+| Export and import command slots | 0 | done (chrome) | `file.export` writes SVG; `file.import` awaits the Cascade 3 formats |
 
 ## Agent integration
 

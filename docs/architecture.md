@@ -18,6 +18,7 @@ the code that depends on it, and say so in the commit message.
 |---|---|---|
 | model | `crates/diagram` (`vizcraft-diagram`) | Geometry (points, rects, transforms, paths), shape outlines and connection points, the document model, hit testing, glue and connector routing. Depends on serde only |
 | model | `crates/stencils` (`vizcraft-stencils`) | Built-in stencil catalog: Basic and Flowchart sets, masters with default size and style, keyword search. Depends on `diagram` only |
+| model | `crates/formats` (`vizcraft-formats`) | File formats, bytes in and bytes out: `.vizcraft` native JSON (`native::save`, `native::load`) and SVG export (`svg::export_page`). Depends on `diagram` only |
 | L4 | `crates/engine` (`vizcraft-engine`) | `Session`, undo, command registry, I/O; `engine::doc` re-exports the diagram `Document` |
 | L6 | `crates/ui-egui` (`vizcraft-ui-egui`) | egui front end: theme, chrome, menus, ribbon, panes, dialogs, keys, control |
 | platform | `crates/macos-open` | Finder Open Documents (odoc) Apple Event, safe API |
@@ -80,14 +81,16 @@ impl Session {
     pub fn can_undo(&self) -> bool; pub fn can_redo(&self) -> bool; pub fn undo_label(&self) -> Option<&str>;
     pub fn rev(&self) -> u64;                     // bumps on every document change
 }
-pub mod io { pub fn save_bytes(name: &str, doc: &Document) -> Result<Vec<u8>, EngineError>; pub fn load_bytes(name: &str, bytes: &[u8]) -> Result<Document, EngineError>; }
+pub mod io { pub fn save_bytes(name: &str, doc: &Document) -> Result<Vec<u8>, EngineError>; pub fn load_bytes(name: &str, bytes: &[u8]) -> Result<Document, EngineError>;
+             pub fn export_bytes(name: &str, format: Option<&str>, doc: &Document) -> Result<Vec<u8>, EngineError>; }
 pub mod sample { pub fn sample_document() -> Document; }
 ```
 
-The placeholder document format is JSON (`.craft.json`, `io::EXTENSION`); Cascade 1 replaces it
-with `.vizcraft` (see [docs/formats.md](formats.md)). `file.new`, `file.open`, `file.save`,
-`file.saveAs`, `file.close`, `file.export` and `file.import` exist and are what the chrome
-exercises; `file.export` and `file.import` are slots that the diagram formats will fill. Engine crate root carries
+Documents are `.vizcraft` files (`io::EXTENSION`), versioned JSON read and written by
+`vizcraft-formats` (a model-class crate beside `diagram`); `io` dispatches by file name and
+still reads `.craft.json` and `.json`. `file.export {path, format?}` writes the first page as
+SVG through `io::export_bytes`; `file.import` is a slot for the Cascade 3 formats. See
+[docs/formats.md](formats.md). Engine crate root carries
 `#![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]`.
 A test `hostile_params_never_panic` runs every command with junk params.
 
@@ -221,13 +224,13 @@ the same commit as the code, and update [docs/parity.md](parity.md).
 |---|---|---|
 | model | `crates/diagram` | Grows layers, groups and containers, themes, shape data, waypoints and auto-layout (Cascades 2 to 4) |
 | model | `crates/stencils` | Grows the domain stencil sets and a full keyword index (Cascades 3 and 4) |
-| I/O | `crates/formats` (`vizcraft-formats`) | `.vizcraft` native JSON, .drawio read and write, Mermaid and CSV import, SVG, PNG and PDF export, .vsdx import |
+| model | `crates/formats` | Grows .drawio read and write, Mermaid and CSV import, PNG and PDF export, .vsdx import (Cascades 2 to 4) |
 | L4 | `crates/engine` | Gains `cmd/` modules for the new command prefixes |
 | L6 | `crates/ui-egui` | Diagram canvas (handles, connector drag, snap, rulers, guides), page tabs, new panes and ribbon tabs |
 
-`diagram` and `stencils` sit below `engine` and depend on neither egui nor the engine. `formats`
-sits beside `engine`: it depends on `diagram` (and `stencils` for import mapping), and the engine
-calls it from `file.*` commands. `xtask/src/layers.rs` gains each crate when it lands.
+`diagram`, `stencils` and `formats` sit below `engine` (layer class `model`) and depend on
+neither egui nor the engine; `formats` may add `stencils` for import mapping, and the engine calls
+it from `file.*` commands. `xtask/src/layers.rs` gains each crate when it lands.
 
 ### Diagram model sketch (later cascades)
 

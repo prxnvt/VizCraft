@@ -48,9 +48,9 @@
   <key>NSHumanReadableCopyright</key>
   <string>Copyright (c) 2026 VizCraft contributors. MIT OR Apache-2.0.</string>
 
-  <!-- Documents the app opens from Finder (double click, Open With, Dock drops). Today the
-       placeholder model saves `.craft.json`; Cascade 1 replaces it with `.vizcraft` (declared
-       under UTExportedTypeDeclarations) and adds `.drawio` as an alternate type. -->
+  <!-- Documents the app opens from Finder (double click, Open With, Dock drops): the native
+       `.vizcraft` file, declared under UTExportedTypeDeclarations. `.drawio` joins as an
+       alternate type when its reader lands (Cascade 3). -->
   <key>CFBundleDocumentTypes</key>
   <array>
     <dict>
@@ -62,7 +62,7 @@
       <string>Owner</string>
       <key>CFBundleTypeExtensions</key>
       <array>
-        <string>craft.json</string>
+        <string>vizcraft</string>
       </array>
       <key>LSItemContentTypes</key>
       <array>
@@ -85,7 +85,7 @@
       <dict>
         <key>public.filename-extension</key>
         <array>
-          <string>craft.json</string>
+          <string>vizcraft</string>
         </array>
       </dict>
     </dict>

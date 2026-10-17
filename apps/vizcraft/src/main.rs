@@ -214,7 +214,7 @@ fn services() -> Services {
     Services {
         pick_open: Some(Box::new(|_purpose: &str| {
             rfd::FileDialog::new()
-                .add_filter("VizCraft documents", &["json"])
+                .add_filter("VizCraft documents", &["vizcraft", "json"])
                 .add_filter("All files", &["*"])
                 .pick_file()
                 .map(|p| p.to_string_lossy().to_string())

@@ -10,7 +10,7 @@ use std::path::Path;
 /// Where a workspace crate sits.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Class {
-    /// Model layer (diagram, stencils): plain data and geometry below the engine; no UI toolkit,
+    /// Model layer (diagram, stencils, formats): plain data and geometry below the engine; no UI toolkit,
     /// no engine, no front end.
     Model,
     /// L4: the model, undo, command registry; knows nothing about any UI toolkit.
@@ -74,7 +74,7 @@ pub fn classify(c: &Crate) -> Option<Class> {
     if c.name == "xtask" {
         return Some(Class::Tooling);
     }
-    if c.name.ends_with("-diagram") || c.name.ends_with("-stencils") {
+    if c.name.ends_with("-diagram") || c.name.ends_with("-stencils") || c.name.ends_with("-formats") {
         return Some(Class::Model);
     }
     if c.name.ends_with("-engine") {
@@ -108,7 +108,7 @@ pub fn describe(class: Option<Class>) -> String {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Violation {
-    /// A crate the rules cannot place: not `*-diagram`, `*-stencils`, `*-engine`, `*-ui-egui`, `*-macos-open`, `xtask` or under `apps/`.
+    /// A crate the rules cannot place: not `*-diagram`, `*-stencils`, `*-formats`, `*-engine`, `*-ui-egui`, `*-macos-open`, `xtask` or under `apps/`.
     Unregistered { krate: String },
     /// The engine pulls in a UI toolkit or desktop service.
     EngineUsesUi { krate: String, dep: String },
@@ -127,7 +127,7 @@ impl std::fmt::Display for Violation {
         match self {
             Violation::Unregistered { krate } => write!(
                 f,
-                "{krate}: unknown workspace crate; name it <craft>-diagram, <craft>-stencils, <craft>-engine, <craft>-ui-egui, <craft>-macos-open, put it under apps/, or extend xtask/src/layers.rs"
+                "{krate}: unknown workspace crate; name it <craft>-diagram, <craft>-stencils, <craft>-formats, <craft>-engine, <craft>-ui-egui, <craft>-macos-open, put it under apps/, or extend xtask/src/layers.rs"
             ),
             Violation::EngineUsesUi { krate, dep } => {
                 write!(f, "{krate} depends on `{dep}`; the engine and the MCP server must not know about egui/eframe/winit/rfd/muda/arboard")

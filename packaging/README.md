@@ -8,7 +8,7 @@ script yet; see [Windows](#windows). The macOS parts are adapted from WordCraft'
 |---|---|
 | `icons.sh` | Renders every icon size from `assets/app-icon/vizcraft.svg`: the 1024 master, the macOS-grid 512, the Linux hicolor set, the `.icns` and the `.ico` (through `cargo xtask ico`). Uses `rsvg-convert` or `resvg` when installed; on a Mac without either it falls back to Quick Look (`qlmanage`, one 1024 render per SVG) and `sips` for the smaller sizes, and `iconutil` writes the `.icns`. Outputs are committed and listed in `ATTRIBUTION.md`, so builds never need these tools. |
 | `env.sh` | Sourced by the package scripts: `ROOT`, `VERSION` (from `[workspace.package]`), `DIST`, `VIZCRAFT_BUILD_SHA`, `CARGO_TARGET_DIR`, and the helpers that copy licences (including the craft-fonts ones) into a package. |
-| `macos/Info.plist.in` | The bundle's `Info.plist` with `@VERSION@`, `@SHORT_VERSION@` and `@BUILD_SHA@` placeholders for `package.sh` to fill. Declares the `.craft.json` document type (`LSHandlerRank` Owner, with its exported UTI). |
+| `macos/Info.plist.in` | The bundle's `Info.plist` with `@VERSION@`, `@SHORT_VERSION@` and `@BUILD_SHA@` placeholders for `package.sh` to fill. Declares the `.vizcraft` document type (`LSHandlerRank` Owner, with its exported UTI). |
 | `macos/package.sh` | Builds the release binaries, assembles `VizCraft.app`, signs it (ad hoc by default), optionally notarises, and writes a DMG plus a zip of the CLI. `--arch universal|aarch64|x86_64`, `--skip-build`, `--no-dmg`. |
 | `macos/entitlements.plist` | Hardened-runtime entitlements; empty on purpose (pure Rust, no JIT, not sandboxed). |
 | `linux/ai.storyteller.vizcraft.desktop` | Freedesktop launcher entry; see [Linux](#linux). |
@@ -103,12 +103,11 @@ The checks in [The macOS bundle](#the-macos-bundle) are what the installer does 
 
 ## Still to do in the bundle
 
-The bundle still describes the placeholder document. When the diagram formats land
+The bundle declares the native `.vizcraft` document. As more formats land
 ([docs/formats.md](../docs/formats.md)):
 
-- Replace the `.craft.json` document type (`CFBundleDocumentTypes` and the matching
-  `UTExportedTypeDeclarations` entry) with `.vizcraft` (`LSHandlerRank` Owner) and the formats
-  VizCraft opens that other apps own, such as `.drawio` (`Alternate`). Consider
+- Add the formats VizCraft opens that other apps own, such as `.drawio` (`Alternate`), to
+  `CFBundleDocumentTypes`. Consider
   `LSApplicationCategoryType` `public.app-category.graphics-design` in place of productivity.
   Mirror the change in the Linux desktop entry's `MimeType=` and in `build.rs`'s
   `FileDescription`.

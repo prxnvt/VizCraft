@@ -3583,6 +3583,18 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.21",
  "vizcraft-diagram",
+ "vizcraft-formats",
+ "vizcraft-stencils",
+]
+
+[[package]]
+name = "vizcraft-formats"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "vizcraft-diagram",
  "vizcraft-stencils",
 ]
 

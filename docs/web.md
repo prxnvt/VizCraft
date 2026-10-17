@@ -10,7 +10,7 @@ default member: `cargo build` and `cargo test` leave it alone, and `cargo xtask 
 | Desktop | Web |
 |---|---|
 | Native file dialogs (`Services::pick_open`, `pick_save`) | `Services::open_async`: rfd clicks a hidden `<input type="file">`; the chosen file's bytes land in `Services::inbox` and the app loads them on the next frame. Dropped files take the same route. |
-| Save writes to a path | `Services::download`: `file.save` and `file.saveAs` become a Blob download of the `.craft.json` (the browser picks the folder) |
+| Save writes to a path | `Services::download`: `file.save` and `file.saveAs` become a Blob download of the `.vizcraft` file (the browser picks the folder) |
 | Several windows in one process | One document per page; New Window replaces the document (`CraftApp::new_window` already falls back when `multi_window` is false) |
 | Native macOS menu bar | The in-window menu bar (`menus::in_window_menus` is true off macOS, and wasm counts as off macOS) |
 | `ui.json` in the user's config folder | `UiState` as JSON under the `localStorage` key `vizcraft.ui`, written by eframe's autosave and read at start; window geometry is left to the browser |

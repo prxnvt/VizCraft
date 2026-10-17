@@ -223,7 +223,11 @@ impl CraftApp {
         }
         // Web: saving becomes a download.
         if self.services.download.is_some() && matches!(id, "file.save" | "file.saveAs") {
-            let name = params.get("path").and_then(Value::as_str).map(str::to_string).unwrap_or_else(|| format!("{}.craft.json", self.title_stem()));
+            let name = params
+                .get("path")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+                .unwrap_or_else(|| format!("{}.{}", self.title_stem(), vizcraft_engine::io::EXTENSION));
             let bytes = vizcraft_engine::io::save_bytes(&name, &self.session.doc).map_err(|e| e.to_string())?;
             if let Some(d) = &self.services.download {
                 d(&name, &bytes);
@@ -412,7 +416,7 @@ impl CraftApp {
         match &self.session.path {
             Some(p) => {
                 let name = p.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
-                let stem = name.strip_suffix(&format!(".{}", vizcraft_engine::io::EXTENSION)).unwrap_or(&name);
+                let stem = vizcraft_engine::io::strip_extension(&name);
                 if stem.is_empty() { "Untitled".into() } else { stem.to_string() }
             }
             None if self.session.doc.title.is_empty() => "Untitled".into(),

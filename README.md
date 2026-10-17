@@ -48,7 +48,7 @@ pointing the wrong way fails CI rather than quietly spreading.
 ```sh
 cargo run --release -p vizcraft                                # an empty document
 cargo run --release -p vizcraft -- --sample                    # the built-in sample document
-cargo run --release -p vizcraft -- project.craft.json          # open a file
+cargo run --release -p vizcraft -- project.vizcraft            # open a file
 cargo run --release -p vizcraft -- --sample --control 7990     # plus the control channel
 cargo run --release -p vizcraft -- --window-pos -2500,100      # place the window (x,y)
 ```

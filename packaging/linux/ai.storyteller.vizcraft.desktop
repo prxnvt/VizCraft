@@ -11,4 +11,4 @@ StartupNotify=true
 StartupWMClass=ai.storyteller.vizcraft
 Categories=Office;Graphics;
 Keywords=diagram;flowchart;vizcraft;
-MimeType=application/json;
+MimeType=application/x-vizcraft+json;application/json;

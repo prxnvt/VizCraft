@@ -1,0 +1,18 @@
+[package]
+name = "vizcraft-formats"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "VizCraft file formats: the native .vizcraft file and SVG export; bytes in, bytes out"
+
+[lints]
+workspace = true
+
+[dependencies]
+vizcraft-diagram = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+vizcraft-stencils = { workspace = true }
