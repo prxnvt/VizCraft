@@ -104,7 +104,7 @@ fn inspect_has_the_documented_shape() {
     let r = rig.call("ui.inspect", json!({}));
     assert_eq!(r["ok"], true);
     let v = &r["result"];
-    for k in ["ui", "view", "selection", "transport", "dialog", "window", "title", "dirty", "rev", "undoLabel", "status", "perf"] {
+    for k in ["ui", "view", "selection", "dialog", "window", "title", "dirty", "rev", "undoLabel", "status", "perf"] {
         assert!(v.get(k).is_some(), "{k} missing in {v}");
     }
     for k in ["tab", "ribbonCollapsed", "dark", "recent", "author", "panes", "window", "inWindowMenus"] {

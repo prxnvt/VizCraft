@@ -67,10 +67,18 @@ impl Viewport2D {
 pub fn handle_pan_and_zoom(ui: &Ui, response: &Response, pan: &mut [f32; 2], zoom: &mut f32) -> bool {
     let mut changed = false;
 
-    // Middle-click drag, or Cmd+left-click drag (Ctrl off macOS). Not Space+drag: Space is
-    // `transport.togglePlay`, so holding it to pan would also start playback.
-    let command_down = ui.input(|i| i.modifiers.command);
-    let is_panning = response.dragged_by(egui::PointerButton::Middle) || (command_down && response.dragged_by(egui::PointerButton::Primary));
+    // Middle-click drag, or left-click drag with Space or Cmd (Ctrl off macOS) held. Space is
+    // free for this because no command is bound to it (see `keys::is_shortcut_key`).
+    let (command_down, space_down) = ui.input(|i| (i.modifiers.command, i.key_down(egui::Key::Space)));
+    let pan_modifier = command_down || space_down;
+    let is_panning = response.dragged_by(egui::PointerButton::Middle) || (pan_modifier && response.dragged_by(egui::PointerButton::Primary));
+
+    // The open hand says a left drag will pan; the closed hand says it is panning.
+    if is_panning {
+        ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+    } else if space_down && response.hovered() {
+        ui.ctx().set_cursor_icon(egui::CursorIcon::Grab);
+    }
 
     if is_panning {
         let delta = response.drag_delta();
@@ -142,8 +150,9 @@ mod tests {
         assert!(vp.is_world_point_visible(center_world));
     }
 
-    /// Drag across a bare canvas with `button` and `modifiers` held; returns the resulting pan.
-    fn drag_pan(button: egui::PointerButton, modifiers: egui::Modifiers) -> [f32; 2] {
+    /// Drag across a bare canvas with `button` and `modifiers` held, and Space too when `space`;
+    /// returns the resulting pan.
+    fn drag_pan(button: egui::PointerButton, modifiers: egui::Modifiers, space: bool) -> [f32; 2] {
         let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(400.0, 300.0)).build_ui_state(
             |ui, pan: &mut [f32; 2]| {
                 let (_, response) = ui.allocate_exact_size(ui.available_size(), egui::Sense::click_and_drag());
@@ -158,6 +167,10 @@ mod tests {
             h.run();
         };
         send(&mut h, egui::Event::ModifiersChanged(modifiers));
+        let space_event = |pressed| egui::Event::Key { key: egui::Key::Space, physical_key: None, pressed, repeat: false, modifiers };
+        if space {
+            send(&mut h, space_event(true));
+        }
         send(&mut h, egui::Event::PointerMoved(start));
         send(&mut h, egui::Event::PointerButton { pos: start, button, pressed: true, modifiers });
         let mut pos = start;
@@ -166,13 +179,16 @@ mod tests {
             send(&mut h, egui::Event::PointerMoved(pos));
         }
         send(&mut h, egui::Event::PointerButton { pos, button, pressed: false, modifiers });
+        if space {
+            send(&mut h, space_event(false));
+        }
         *h.state()
     }
 
     #[test]
     fn command_left_drag_and_middle_drag_pan() {
         for (button, modifiers) in [(egui::PointerButton::Primary, egui::Modifiers::COMMAND), (egui::PointerButton::Middle, egui::Modifiers::NONE)] {
-            let pan = drag_pan(button, modifiers);
+            let pan = drag_pan(button, modifiers, false);
             // Dragging right and down moves the view's world center left and up.
             assert!(pan[0] < -20.0 && pan[1] < -10.0, "{button:?} with {modifiers:?} panned to {pan:?}");
         }
@@ -180,6 +196,12 @@ mod tests {
 
     #[test]
     fn plain_left_drag_does_not_pan() {
-        assert_eq!(drag_pan(egui::PointerButton::Primary, egui::Modifiers::NONE), [0.0, 0.0]);
+        assert_eq!(drag_pan(egui::PointerButton::Primary, egui::Modifiers::NONE, false), [0.0, 0.0]);
+    }
+
+    #[test]
+    fn space_left_drag_pans() {
+        let pan = drag_pan(egui::PointerButton::Primary, egui::Modifiers::NONE, true);
+        assert!(pan[0] < -20.0 && pan[1] < -10.0, "Space+drag panned to {pan:?}");
     }
 }

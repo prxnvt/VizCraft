@@ -71,7 +71,6 @@ pub fn inspect(app: &CraftApp, ctx: &egui::Context) -> Value {
         "ui": app.prefs(),
         "view": &app.session.view,
         "selection": &app.session.sel,
-        "transport": &app.session.transport,
         "dialog": app.dialog.as_ref().and_then(|d| serde_json::to_value(d).ok()),
         "backstage": app.backstage_open(),
         "window": [r.width(), r.height()],
@@ -453,9 +452,7 @@ mod tests {
         let mut app = app();
         let r = call(&mut app, "ui.inspect", json!({}));
         let v = &r["result"];
-        for k in
-            ["ui", "view", "selection", "transport", "dialog", "backstage", "window", "title", "path", "dirty", "rev", "undoLabel", "status", "perf"]
-        {
+        for k in ["ui", "view", "selection", "dialog", "backstage", "window", "title", "path", "dirty", "rev", "undoLabel", "status", "perf"] {
             assert!(v.get(k).is_some(), "{k} missing in {v}");
         }
         assert_eq!(v["dialog"], Value::Null);
