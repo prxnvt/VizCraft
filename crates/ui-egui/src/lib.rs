@@ -43,11 +43,12 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.saveAsDialog", "Save As...", "", "{}"),
     ("ui.inWindowMenus", "Menu Bar in Window", "", r#"{"value"?: bool}"#),
     ("ui.newWindow", "New Window", "", r#"{"template"?: "blank|sample"}"#),
-    ("ui.pane", "Toggle Pane", "", r#"{"name": "navigation|properties|history", "value"?: bool, "side"?: "left|right"}"#),
+    ("ui.pane", "Toggle Pane", "", r#"{"name": "shapes|navigation|properties|history", "value"?: bool, "side"?: "left|right"}"#),
+    ("ui.pane.shapes", "Shapes Pane", "", r#"{"value"?: bool}"#),
     ("ui.pane.navigation", "Navigation Pane", "", r#"{"value"?: bool}"#),
     ("ui.pane.properties", "Properties Pane", "", r#"{"value"?: bool}"#),
     ("ui.pane.history", "History Pane", "", r#"{"value"?: bool}"#),
-    ("ui.paneSide", "Move Pane to Side", "", r#"{"name": "navigation|properties|history", "side": "left|right"}"#),
+    ("ui.paneSide", "Move Pane to Side", "", r#"{"name": "shapes|navigation|properties|history", "side": "left|right"}"#),
     ("ui.collapsePanes", "Collapse Side Panes", "", r#"{"side": "left|right", "value"?: bool}"#),
     ("ui.panesReset", "Reset Panes", "", "{}"),
     ("ui.clearRecent", "Clear Recent Files", "", "{}"),
@@ -173,6 +174,8 @@ pub struct CraftApp {
     pub frame_ms: f64,
     /// What a left drag on the canvas does; set by `ui.tool` from the ribbon, keys or an agent.
     pub tool: Tool,
+    /// Canvas interaction state (drag preview, text editing, hover).
+    pub canvas: canvas::CanvasState,
     /// The File page is showing instead of the document.
     backstage: bool,
     control_rx: Option<Receiver<ControlRequest>>,
@@ -206,6 +209,7 @@ impl CraftApp {
             quit_confirmed: false,
             frame_ms: 0.0,
             tool: Tool::Pointer,
+            canvas: canvas::CanvasState::default(),
             backstage: false,
             control_rx: None,
             shot_token: 0,
@@ -303,6 +307,7 @@ impl CraftApp {
             match what {
                 "openFile" => self.open_dialog(),
                 "saveAs" => self.save_as_dialog(),
+                "export" => self.export_dialog(),
                 other => self.dialog = dialogs::Dialog::open(other, self),
             }
         }
@@ -449,6 +454,23 @@ impl CraftApp {
         let picked = self.services.pick_save.as_ref().and_then(|f| f(&name));
         if let Some(path) = picked {
             let _ = self.run("file.save", json!({"path": path}));
+        }
+    }
+
+    /// Ask for an SVG path and export the page there (`file.export` without a path). On the web
+    /// the SVG becomes a download instead.
+    pub fn export_dialog(&mut self) {
+        let name = format!("{}.svg", self.title_stem());
+        if let Some(d) = &self.services.download {
+            match vizcraft_engine::io::export_bytes(&name, Some("svg"), &self.session.doc) {
+                Ok(bytes) => d(&name, &bytes),
+                Err(e) => self.status(e.to_string()),
+            }
+            return;
+        }
+        let picked = self.services.pick_save.as_ref().and_then(|f| f(&name));
+        if let Some(path) = picked {
+            let _ = self.run("file.export", json!({"path": path}));
         }
     }
 
@@ -779,6 +801,8 @@ mod tests {
     #[test]
     fn title_stem_prefers_the_file_name() {
         let mut a = app();
+        assert_eq!(a.title_stem(), "Sample flowchart");
+        a.session.doc.title.clear();
         assert_eq!(a.title_stem(), "Untitled");
         a.session.doc.title = "My Project".into();
         assert_eq!(a.title_stem(), "My Project");
@@ -787,5 +811,39 @@ mod tests {
         a.session.path = None;
         a.session.doc.title.clear();
         assert_eq!(a.title_stem(), "Untitled");
+    }
+
+    #[test]
+    fn export_without_a_path_asks_for_an_svg_name() {
+        let dir = std::env::temp_dir().join(format!("vizcraft-export-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let out = dir.join("chart.svg");
+        let asked = std::sync::Arc::new(std::sync::Mutex::new(String::new()));
+        let seen = asked.clone();
+        let target = out.to_string_lossy().to_string();
+        let services = Services {
+            pick_save: Some(Box::new(move |name| {
+                *seen.lock().unwrap() = name.to_string();
+                Some(target.clone())
+            })),
+            ..Services::default()
+        };
+        let mut a = CraftApp::new(Session::new(vizcraft_engine::sample::sample_document()), services);
+        a.run("file.export", json!({})).unwrap();
+        assert_eq!(*asked.lock().unwrap(), "Sample flowchart.svg");
+        let svg = std::fs::read_to_string(&out).unwrap();
+        assert!(svg.contains("<svg"), "{svg}");
+        let _ = std::fs::remove_dir_all(&dir);
+
+        // The web build downloads the bytes instead.
+        let got = std::sync::Arc::new(std::sync::Mutex::new((String::new(), 0usize)));
+        let sink = got.clone();
+        let services =
+            Services { download: Some(Box::new(move |name, bytes| *sink.lock().unwrap() = (name.to_string(), bytes.len()))), ..Services::default() };
+        let mut a = CraftApp::new(Session::new(vizcraft_engine::sample::sample_document()), services);
+        a.run("file.export", json!({})).unwrap();
+        let (name, len) = got.lock().unwrap().clone();
+        assert_eq!(name, "Sample flowchart.svg");
+        assert!(len > 100);
     }
 }

@@ -105,8 +105,8 @@ Returns one JSON object with everything a script needs to check its work without
 | Field | Content |
 |---|---|
 | `ui` | the `UiState` as it would be persisted: `tab`, `ribbonCollapsed`, `dark`, `recent`, `author`, `panes`, `window`, `inWindowMenus` |
-| `view` | the engine `ViewState`: `zoom`, `darkMode`, `navPane`, `propsPane` |
-| `selection` | the active selection: `start`, `end` (offsets) |
+| `view` | the engine `ViewState`: `zoom`, `pan` (the world point at the canvas centre), `darkMode`, `navPane`, `propsPane` |
+| `selection` | the active selection: `primary`, `items` (ids), `range` |
 | `dialog` | the open dialog as `{"dialog": "<name>", ...its fields}`, or `null` |
 | `backstage` | whether the File page is showing |
 | `window` | `[width, height]` in points |
@@ -118,9 +118,25 @@ Returns one JSON object with everything a script needs to check its work without
 | `undoLabel`, `redoLabel` | the label of the next undo or redo step, or `null` |
 | `status` | the current status-bar message, or `null` |
 | `perf` | `{"frameMs": ...}`, how long the last layout took |
+| `tool` | the canvas tool: `pointer`, `connector` or `text` (set with `ui.tool`) |
+| `diagram` | a compact summary of the page and the canvas, see below |
 
-As the diagram canvas lands, VizCraft adds its own fields (canvas rectangle, active page,
-selected shapes, hit regions) next to these and documents them here. `ui.set` is the write side of `ui`: it accepts any path into
+`diagram` has these fields:
+
+| Field | Content |
+|---|---|
+| `page` | `{"id", "width", "height"}` of the page shown, or `null` |
+| `shapes`, `connectors` | how many of each are on the page |
+| `selected` | the selected shape and connector ids, in selection order |
+| `hover` | the id of the shape or connector under the pointer, or `null` |
+| `editing` | the id whose text is being edited in place, or `null` |
+| `dragging` | the canvas drag in progress (`marquee`, `move`, `resize`, `rotate`, `connect`, `reglue`), or `null` |
+| `canvas` | the canvas rectangle in window points, `[x, y, width, height]`, or `null` before the first frame |
+
+To click a shape, map its world position to window points: the canvas centre shows world point
+`view.pan` and one world unit is `view.zoom` points, so a world point `(x, y)` is at
+`canvas.x + canvas.width / 2 + (x - pan[0]) * zoom` (and the same for y). The full document is
+in the saved file or `vizcraft-cli`. `ui.set` is the write side of `ui`: it accepts any path into
 `UiState`, dotted (`panes.leftWidth`, snake_case segments are accepted too) or as a JSON pointer
 (`/panes/leftWidth`), and replies with the whole state after the change, so a test can switch to
 dark mode, collapse the ribbon or hide a pane and then screenshot. The whole state is validated:

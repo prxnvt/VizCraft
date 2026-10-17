@@ -104,7 +104,7 @@ fn inspect_has_the_documented_shape() {
     let r = rig.call("ui.inspect", json!({}));
     assert_eq!(r["ok"], true);
     let v = &r["result"];
-    for k in ["ui", "view", "selection", "dialog", "window", "title", "dirty", "rev", "undoLabel", "status", "perf"] {
+    for k in ["ui", "view", "selection", "dialog", "window", "title", "dirty", "rev", "undoLabel", "status", "perf", "tool", "diagram"] {
         assert!(v.get(k).is_some(), "{k} missing in {v}");
     }
     for k in ["tab", "ribbonCollapsed", "dark", "recent", "author", "panes", "window", "inWindowMenus"] {
@@ -114,7 +114,11 @@ fn inspect_has_the_documented_shape() {
         assert!(v["view"].get(k).is_some(), "view.{k} missing in {v}");
     }
     assert_eq!(v["window"], json!([1200.0, 800.0]));
-    assert_eq!(v["title"], "Untitled");
+    assert_eq!(v["title"], "Sample flowchart");
+    for k in ["page", "shapes", "connectors", "selected", "hover", "editing", "dragging", "canvas"] {
+        assert!(v["diagram"].get(k).is_some(), "diagram.{k} missing in {v}");
+    }
+    assert_eq!(v["tool"], "pointer");
     assert_eq!(v["dialog"], Value::Null);
     assert_eq!(v["dirty"], false);
     assert!(v["perf"]["frameMs"].is_number());

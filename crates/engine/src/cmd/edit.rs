@@ -36,11 +36,8 @@ pub fn specs() -> Vec<CommandSpec> {
         })
         .key("Mod+Shift+Z / Mod+Y")
         .when(|s| if s.can_redo() { None } else { Some("nothing to redo") }),
-        // Cut and Copy stay enabled and refuse an empty selection with a params error, because a
-        // disabled state greys them in the menu and ribbon snapshots the canvas piece re-records;
-        // switch both to `.when(has_selection)` then.
-        CommandSpec::new("edit.cut", "Cut", "Home > Clipboard", cut).key("Mod+X"),
-        CommandSpec::new("edit.copy", "Copy", "Home > Clipboard", copy).key("Mod+C"),
+        CommandSpec::new("edit.cut", "Cut", "Home > Clipboard", cut).key("Mod+X").when(has_selection),
+        CommandSpec::new("edit.copy", "Copy", "Home > Clipboard", copy).key("Mod+C").when(has_selection),
         CommandSpec::new("edit.paste", "Paste", "Home > Clipboard", paste)
             .key("Mod+V")
             .params(r#"{"text"?: string} (default: the internal clipboard)"#),
@@ -48,9 +45,9 @@ pub fn specs() -> Vec<CommandSpec> {
             let ids = s.sel.items.clone();
             delete_items(s, &ids)
         })
-        // No shortcut yet: the UI key map only dispatches modifier combinations and F-keys, so a
-        // bare "Delete / Backspace" here would be a shortcut nothing can press. The canvas wires
-        // those keys (outside text fields) and sets the shortcut together with the key map.
+        // Bare keys: the UI key map treats Delete and Backspace as shortcuts only while no text
+        // field has the keyboard, so typing in a field still deletes characters.
+        .key("Delete / Backspace")
         .when(has_selection),
         CommandSpec::new("edit.select", "Select", "Home > Editing", select_ids).params(r#"{"ids": [string], "add"?: bool}"#),
         CommandSpec::new("edit.selectAll", "Select All", "Home > Editing", select_all)

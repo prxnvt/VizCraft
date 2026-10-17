@@ -11,10 +11,8 @@ const COLUMN_X: f64 = 450.0;
 /// The sample flowchart: Start, Gather input, Valid?, Save diagram, End, with a "No" branch to
 /// Fix input that loops back. Connectors use point glue, orthogonal routes and triangle arrows.
 pub fn sample_document() -> Document {
-    // The title stays empty for now: the title bar shows it, and the chrome snapshots and tests
-    // (owned by the UI pieces) expect "Untitled". Set it to "Sample flowchart" when the canvas
-    // piece re-records the snapshots.
     let mut doc = Document::new();
+    doc.title = "Sample flowchart".into();
 
     // (master, text, top y); the main column is centred on COLUMN_X.
     let column = [

@@ -7,7 +7,8 @@
 //!
 //! - `engine.execute {command, params?}`: run any command (engine, `ui.*` or `app.*`)
 //! - `engine.commands`: every command with its enablement, UI commands included
-//! - `ui.inspect`: UI state, view, selection, dialog, window size, title, dirty, rev, perf
+//! - `ui.inspect`: UI state, view, selection, dialog, window size, title, dirty, rev, perf, tool,
+//!   and a diagram summary (page, counts, selection, hover, editing, drag)
 //! - `ui.set {path, value}`: set one field of the UI state by dotted path or JSON pointer
 //! - `ui.menus`: the menu tree with labels, ids, shortcuts, enablement and check marks
 //! - `ui.click`, `ui.move`, `ui.drag`, `ui.key`, `ui.text`: synthetic input, queued for the next frame
@@ -84,6 +85,8 @@ pub fn inspect(app: &CraftApp, ctx: &egui::Context) -> Value {
         "redoLabel": app.session.redo_label(),
         "status": app.status_msg.as_ref().map(|(s, _)| s.as_str()),
         "perf": {"frameMs": app.frame_ms},
+        "tool": app.tool.name(),
+        "diagram": crate::canvas::summary(app),
     })
 }
 
@@ -452,11 +455,32 @@ mod tests {
         let mut app = app();
         let r = call(&mut app, "ui.inspect", json!({}));
         let v = &r["result"];
-        for k in ["ui", "view", "selection", "dialog", "backstage", "window", "title", "path", "dirty", "rev", "undoLabel", "status", "perf"] {
+        for k in [
+            "ui",
+            "view",
+            "selection",
+            "dialog",
+            "backstage",
+            "window",
+            "title",
+            "path",
+            "dirty",
+            "rev",
+            "undoLabel",
+            "status",
+            "perf",
+            "tool",
+            "diagram",
+        ] {
             assert!(v.get(k).is_some(), "{k} missing in {v}");
         }
         assert_eq!(v["dialog"], Value::Null);
         assert_eq!(v["dirty"], false);
+        assert_eq!(v["tool"], "pointer");
+        assert_eq!(v["diagram"]["shapes"], 6);
+        assert_eq!(v["diagram"]["connectors"], 6);
+        assert_eq!(v["diagram"]["page"]["width"], 1100.0);
+        assert_eq!(v["diagram"]["selected"], json!([]));
         app.run("edit.setTitle", json!({"title": "x"})).unwrap();
         app.run("ui.dialog", json!({"name": "zoom"})).unwrap();
         let v = call(&mut app, "ui.inspect", json!({}))["result"].clone();
