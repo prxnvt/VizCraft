@@ -3700,6 +3700,7 @@ name = "vizcraft-stencils"
 version = "0.1.0"
 dependencies = [
  "vizcraft-diagram",
+ "vizcraft-notation",
 ]
 
 [[package]]
