@@ -226,6 +226,17 @@ fn inspect(args: &[String]) -> Result<(), CliError> {
         println!("  created:   {}", doc.core.created);
     }
     println!("  revision:  {}", doc.core.revision);
+    for page in &doc.pages {
+        println!(
+            "  page {:<5} {} ({} x {}): {} shapes, {} connectors",
+            page.id,
+            page.name,
+            page.width,
+            page.height,
+            page.shapes.len(),
+            page.connectors.len()
+        );
+    }
     Ok(())
 }
 
