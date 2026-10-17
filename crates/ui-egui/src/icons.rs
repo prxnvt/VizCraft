@@ -55,6 +55,9 @@ pub const NAMES: &[&str] = &[
     "arrowStart",
     "arrowEnd",
     "shape",
+    "layout",
+    "routeAround",
+    "lineJumps",
     // App
     "settings",
     "info",
@@ -417,6 +420,28 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
         "shape" => {
             pen.rect(3.0, 8.0, 12.0, 17.0, c);
             pen.circle(12.5, 7.5, 4.5, a);
+        }
+        "layout" => {
+            // A small tree: one box over two, joined by an elbowed fork.
+            pen.rect(7.0, 2.5, 13.0, 6.5, c);
+            pen.rect(2.5, 13.5, 8.5, 17.5, c);
+            pen.rect(11.5, 13.5, 17.5, 17.5, c);
+            pen.line_c(&[(10.0, 6.5), (10.0, 10.0)], a);
+            pen.line_c(&[(5.5, 13.5), (5.5, 10.0), (14.5, 10.0), (14.5, 13.5)], a);
+        }
+        "routeAround" => {
+            // A route stepping over a block instead of through it.
+            pen.rect(7.0, 7.5, 13.0, 15.5, c);
+            pen.line_c(&[(2.5, 11.5), (4.5, 11.5), (4.5, 4.0), (15.5, 4.0), (15.5, 11.5), (17.5, 11.5)], a);
+            pen.fcircle(2.5, 11.5, 1.5, a);
+            pen.fcircle(17.5, 11.5, 1.5, a);
+        }
+        "lineJumps" => {
+            // A vertical line hopping over a horizontal one.
+            pen.line(&[(2.5, 12.0), (17.5, 12.0)]);
+            pen.line_c(&[(10.0, 17.5), (10.0, 15.0)], a);
+            pen.arc(10.0, 12.0, 3.0, FRAC_PI_2, PI, a);
+            pen.line_c(&[(10.0, 9.0), (10.0, 2.5)], a);
         }
         // App
         "settings" => {

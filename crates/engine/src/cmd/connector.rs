@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use vizcraft_diagram::geom::MAX_COORD;
 use vizcraft_diagram::{Arrow, Connector, End, Page, Route};
 
-use super::{Kinds, has_connectors, num, opt_str, page_mut, select, short, targets, with_sel};
+use super::{Kinds, has_connectors, ids_param, num, opt_bool, opt_str, page_mut, select, short, targets, with_sel};
 use crate::{CmdResult, CommandSpec, EngineError, Session, p};
 
 /// Return all connector commands.
@@ -26,6 +26,12 @@ pub fn specs() -> Vec<CommandSpec> {
             .when(has_connectors),
         CommandSpec::new("connector.setArrows", "Arrowheads", "Connector > Arrows", set_arrows)
             .params(r#"{"ids"?: [string], "start"?: arrow, "end"?: arrow}; arrow = "none"|"triangle"|"open"|"diamond"|"circle""#)
+            .when(has_connectors),
+        CommandSpec::new("connector.reroute", "Avoid Shapes", "Design > Connectors", reroute)
+            .params(r#"{"ids"?: [string], "avoid"?: bool (default true)} -> {"ids", "avoid"}; true routes orthogonally around shapes and keeps the route clear after every change, false clears the stored bends; default: the selected connectors, else all"#)
+            .when(has_connectors),
+        CommandSpec::new("connector.setJumps", "Line Jumps", "Design > Connectors", set_jumps)
+            .params(r#"{"ids"?: [string], "on": bool} -> {"ids", "on"}; draw a hop where the connector crosses one drawn before it; default: the selected connectors, else all"#)
             .when(has_connectors),
         CommandSpec::new("connector.setText", "Edit Text", "Home > Font", set_text).params(r#"{"id": string, "text": string}"#).when(has_connectors),
     ]
@@ -165,6 +171,61 @@ fn set_text(s: &mut Session, v: &Value) -> CmdResult {
     c.sanitize();
     let id = id.to_string();
     with_sel(s, json!({"id": id}))
+}
+
+/// The connectors a whole-connector command acts on: `ids` when given (each must be a connector),
+/// else the selected connectors, else every connector on the page, so the Design tab's toggles
+/// work with nothing selected.
+pub fn connector_targets(s: &Session, v: &Value) -> Result<Vec<String>, EngineError> {
+    if ids_param(v)?.is_some() {
+        return targets(s, v, Kinds::Connectors);
+    }
+    let page = s.doc.page().ok_or_else(|| EngineError::Failed("the document has no page".into()))?;
+    let mut out: Vec<String> = Vec::new();
+    for id in &s.sel.items {
+        if page.connector(id).is_some() && !out.contains(id) {
+            out.push(id.clone());
+        }
+    }
+    if out.is_empty() {
+        out = page.connectors.iter().map(|c| c.id.clone()).collect();
+    }
+    if out.is_empty() {
+        return Err(EngineError::Params("add a connector first".into()));
+    }
+    Ok(out)
+}
+
+fn reroute(s: &mut Session, v: &Value) -> CmdResult {
+    let avoid = opt_bool(v, "avoid")?.unwrap_or(true);
+    let ids = connector_targets(s, v)?;
+    let page = page_mut(s)?;
+    for id in &ids {
+        if let Some(c) = page.connector_mut(id) {
+            c.avoid = avoid;
+            if avoid {
+                c.route = Route::Orthogonal;
+            } else {
+                c.waypoints.clear();
+            }
+        }
+    }
+    if avoid {
+        vizcraft_diagram::autoroute::reroute(page, Some(&ids));
+    }
+    with_sel(s, json!({"ids": ids, "avoid": avoid}))
+}
+
+fn set_jumps(s: &mut Session, v: &Value) -> CmdResult {
+    let on = opt_bool(v, "on")?.ok_or_else(|| EngineError::Params("`on` (true or false) is required".into()))?;
+    let ids = connector_targets(s, v)?;
+    let page = page_mut(s)?;
+    for id in &ids {
+        if let Some(c) = page.connector_mut(id) {
+            c.jumps = on;
+        }
+    }
+    with_sel(s, json!({"ids": ids, "on": on}))
 }
 
 fn not_a_connector(id: &str) -> EngineError {

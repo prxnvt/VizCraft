@@ -8,6 +8,7 @@
 //! - [`route`]: glue resolution, the three route styles and arrowhead geometry.
 //! - [`autolayout`]: automatic placement of shapes with `vizcraft-layout`.
 //! - [`autoroute`]: connector routes that avoid shapes, with `vizcraft-routing`.
+//! - [`jumps`]: line jumps, and the page-level connector geometry that draws them.
 //!
 //! No egui and no engine: the engine, the UI, file formats and the MCP server all build on this.
 //! Nothing here panics on hostile input; sizes are clamped and non-finite numbers replaced.
@@ -17,6 +18,7 @@ pub mod autolayout;
 pub mod autoroute;
 pub mod geom;
 pub mod hit;
+pub mod jumps;
 pub mod kind;
 pub mod model;
 pub mod route;

@@ -4,7 +4,7 @@
 //! no egui code is needed for the common controls. Every control runs a command by id; its
 //! label, shortcut, location and enablement come from the registry (or `UI_COMMANDS`), so the
 //! ribbon never has behaviour of its own. [`tabs`] returns the tabs: it
-//! declares Home, Insert, View, Help and the contextual Connector tab.
+//! declares Home, Insert, Design, View, Help and the contextual Connector tab.
 //!
 //! Rendering: the tab strip (active underline, hover, double-click collapses, `File` opens the
 //! File page through `ui.tab`), the body with groups separated by rules and labelled underneath,
@@ -299,6 +299,31 @@ pub fn selected_connector(app: &CraftApp) -> Option<&Connector> {
 fn selected_style(app: &CraftApp) -> Option<&Style> {
     let page = app.session.doc.page()?;
     selected_ids(app).find_map(|id| page.shape(id).map(|s| &s.style).or_else(|| page.connector(id).map(|c| &c.style)))
+}
+
+/// The Re-Layout menu: each algorithm in each direction it honours (radial and force have none).
+fn relayout_menu() -> Vec<MenuEntry> {
+    let mut out: Vec<MenuEntry> = Vec::new();
+    for (algorithm, names) in [
+        ("layered", ["Layered, Top to Bottom", "Layered, Left to Right", "Layered, Bottom to Top", "Layered, Right to Left"]),
+        ("tree", ["Tree, Top to Bottom", "Tree, Left to Right", "Tree, Bottom to Top", "Tree, Right to Left"]),
+    ] {
+        for (name, direction) in names.into_iter().zip(["TB", "LR", "BT", "RL"]) {
+            out.push((name, "layout.full", json!({"algorithm": algorithm, "direction": direction})));
+        }
+    }
+    out.push(("Radial", "layout.full", json!({"algorithm": "radial"})));
+    out.push(("Force-Directed", "layout.full", json!({"algorithm": "force"})));
+    out
+}
+
+/// Whether every connector the Design tab's toggles act on has `flag`: the selected connectors,
+/// else all on the page (the same fallback as `connector.reroute` and `connector.setJumps`).
+/// False when there are none.
+fn all_connectors(app: &CraftApp, flag: fn(&Connector) -> bool) -> bool {
+    let Some(page) = app.session.doc.page() else { return false };
+    let selected: Vec<&Connector> = app.session.sel.items.iter().filter_map(|id| page.connector(id)).collect();
+    if selected.is_empty() { !page.connectors.is_empty() && page.connectors.iter().all(flag) } else { selected.into_iter().all(flag) }
 }
 
 fn has_connector_selected(app: &CraftApp) -> bool {
@@ -667,6 +692,39 @@ pub fn tabs(_app: &CraftApp) -> Vec<Tab> {
                         },
                         Button { id: "ui.tool", icon: "text", label: "Text", size: Size::Big, params: |_| json!({"tool": "text"}), checked: None },
                     ],
+                ),
+            ],
+        ),
+        Tab::new(
+            "Design",
+            vec![
+                Group::new(
+                    "Layout",
+                    vec![
+                        Menu { label: "Re-Layout", icon: "layout", big: true, menu: relayout_menu() },
+                        Big { id: "layout.route", icon: "routeAround" },
+                    ],
+                ),
+                Group::new(
+                    "Connectors",
+                    vec![Stack(vec![
+                        Button {
+                            id: "connector.reroute",
+                            icon: "routeAround",
+                            label: "Avoid Shapes",
+                            size: Size::Small,
+                            params: |a| json!({"avoid": !all_connectors(a, |c| c.avoid)}),
+                            checked: Some(|a| all_connectors(a, |c| c.avoid)),
+                        },
+                        Button {
+                            id: "connector.setJumps",
+                            icon: "lineJumps",
+                            label: "Line Jumps",
+                            size: Size::Small,
+                            params: |a| json!({"on": !all_connectors(a, |c| c.jumps)}),
+                            checked: Some(|a| all_connectors(a, |c| c.jumps)),
+                        },
+                    ])],
                 ),
             ],
         ),

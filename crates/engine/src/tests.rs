@@ -17,7 +17,7 @@ fn registry_ids_are_unique_and_prefixed() {
     for c in reg.all() {
         assert!(seen.insert(c.id), "duplicate id {}", c.id);
         let prefix = c.id.split('.').next().unwrap();
-        assert!(["file", "edit", "view", "shape", "connector", "insert", "help"].contains(&prefix), "{}: unexpected prefix", c.id);
+        assert!(["file", "edit", "view", "shape", "connector", "layout", "insert", "help"].contains(&prefix), "{}: unexpected prefix", c.id);
         assert!(!c.label.is_empty() && !c.location.is_empty(), "{}: label and location are required", c.id);
     }
     assert_eq!(reg.by_shortcut("mod+s").map(|c| c.id), Some("file.save"));

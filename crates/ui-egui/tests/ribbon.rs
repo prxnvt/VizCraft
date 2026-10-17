@@ -40,7 +40,7 @@ fn harness() -> Harness {
 fn every_control_id_resolves_to_a_command() {
     let a = app();
     let tabs = ribbon::tabs(&a);
-    for name in ["Home", "Insert", "View", "Help", "Connector"] {
+    for name in ["Home", "Insert", "Design", "View", "Help", "Connector"] {
         assert!(tabs.iter().any(|t| t.name == name), "{name} tab missing");
     }
     for tab in &tabs {
@@ -438,4 +438,47 @@ fn icon_sheet() {
     });
     h.run_steps(2);
     h.render().unwrap().save(path).unwrap();
+}
+
+fn connectors(h: &Harness) -> Vec<vizcraft_diagram::Connector> {
+    h.state().session.doc.page().map(|p| p.connectors.clone()).unwrap_or_default()
+}
+
+#[test]
+fn design_tab_toggles_avoid_shapes_and_line_jumps() {
+    let mut h = harness_at(1200.0, "Design");
+    assert!(!connectors(&h).is_empty());
+    // Nothing selected: the toggles act on every connector.
+    h.get_by_label("Avoid Shapes").click();
+    h.run_steps(3);
+    assert!(connectors(&h).iter().all(|c| c.avoid && c.route == vizcraft_diagram::Route::Orthogonal));
+    assert_eq!(h.state().session.undo_label(), Some("Avoid Shapes"));
+    h.get_by_label("Avoid Shapes").click();
+    h.run_steps(3);
+    assert!(connectors(&h).iter().all(|c| !c.avoid && c.waypoints.is_empty()), "a second click turns it off");
+    // With one connector selected, only that one changes.
+    let id = first_connector(&h);
+    h.state_mut().run("edit.select", json!({"ids": [id.clone()]})).unwrap();
+    h.run_steps(2);
+    h.get_by_label("Line Jumps").click();
+    h.run_steps(3);
+    for c in connectors(&h) {
+        assert_eq!(c.jumps, c.id == id, "{}", c.id);
+    }
+}
+
+#[test]
+fn design_tab_relayout_menu_and_route_button_run_their_commands() {
+    let mut h = harness_at(1200.0, "Design");
+    let shapes = |h: &Harness| h.state().session.doc.page().map(|p| p.shapes.clone()).unwrap_or_default();
+    let before = shapes(&h);
+    h.get_by_label("Re-Layout").click();
+    h.run_steps(3);
+    h.get_by_label_contains("Tree, Left to Right").click();
+    h.run_steps(3);
+    assert_ne!(shapes(&h), before, "the menu entry ran layout.full");
+    assert_eq!(h.state().session.undo_label(), Some("Re-Layout"));
+    h.get_by_label("Route Connectors").click();
+    h.run_steps(3);
+    assert!(connectors(&h).iter().all(|c| c.avoid));
 }
