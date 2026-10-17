@@ -15,6 +15,8 @@ pub mod shape;
 pub mod validate;
 pub mod view;
 
+use std::collections::HashSet;
+
 use serde_json::{Value, json};
 use vizcraft_diagram::Page;
 
@@ -248,41 +250,84 @@ pub fn short(t: &str) -> String {
     out
 }
 
-/// Delete shapes and connectors by id (unknown ids are skipped). Connectors are removed first;
-/// then each connector still glued to a deleted shape is either removed too, when both of its
-/// ends were glued to deleted shapes (it would be left hanging in empty space), or has the glued
-/// end turned into a free end where it was drawn, so a single deleted step leaves its arrows in
-/// place to re-glue. Returns `{"deleted": [ids], "detached": [connector ids]}` and the selection.
-pub fn delete_items(s: &mut Session, ids: &[String]) -> CmdResult {
-    let page = page_mut(s)?;
-    let shapes: Vec<String> = ids.iter().filter(|id| page.shape(id).is_some()).cloned().collect();
-    let mut connectors: Vec<String> = ids.iter().filter(|id| page.connector(id).is_some()).cloned().collect();
-    let gone = |id: Option<&str>| id.is_some_and(|i| shapes.iter().any(|s| s == i));
-    let mut detached = Vec::new();
+/// What [`delete_on_page`] took off one page.
+#[derive(Default)]
+pub struct Deleted {
+    /// Shape and connector ids removed, connectors first.
+    pub items: Vec<String>,
+    /// Connectors left on the page with a glued end turned free.
+    pub detached: Vec<String>,
+    /// Relationships drawn by the removed connectors, each once.
+    pub relationships: Vec<String>,
+}
+
+/// Delete shapes and connectors by id from `page` (unknown ids are skipped). Connectors are
+/// removed first; then each connector still glued to a deleted shape is either removed too, when
+/// both of its ends were glued to deleted shapes (it would be left hanging in empty space), or has
+/// the glued end turned into a free end where it was drawn, so a single deleted step leaves its
+/// arrows in place to re-glue.
+pub fn delete_on_page(page: &mut Page, ids: &[String]) -> Deleted {
+    let wanted: HashSet<&str> = ids.iter().map(String::as_str).collect();
+    let shapes: Vec<String> = page.shapes.iter().filter(|x| wanted.contains(x.id.as_str())).map(|x| x.id.clone()).collect();
+    let gone_shapes: HashSet<&str> = shapes.iter().map(String::as_str).collect();
+    let gone = |id: Option<&str>| id.is_some_and(|i| gone_shapes.contains(i));
+    let mut connectors: Vec<String> = Vec::new();
+    let mut out = Deleted::default();
     for c in &page.connectors {
-        if connectors.contains(&c.id) {
+        if wanted.contains(c.id.as_str()) {
+            connectors.push(c.id.clone());
             continue;
         }
         match (gone(c.start.shape()), gone(c.end.shape())) {
             (true, true) => connectors.push(c.id.clone()),
-            (true, false) | (false, true) => detached.push(c.id.clone()),
+            (true, false) | (false, true) => out.detached.push(c.id.clone()),
             (false, false) => {}
         }
     }
-    let mut deleted = Vec::new();
     for id in &connectors {
-        if page.remove_connector(id).is_some() {
-            deleted.push(id.clone());
+        if let Some(c) = page.remove_connector(id) {
+            if let Some(r) = c.relationship
+                && !out.relationships.contains(&r)
+            {
+                out.relationships.push(r);
+            }
+            out.items.push(id.clone());
         }
     }
     for id in &shapes {
         page.detach_shape(id);
         if page.remove_shape(id).is_some() {
-            deleted.push(id.clone());
+            out.items.push(id.clone());
         }
     }
+    out
+}
+
+/// Remove from the model each of `relationships` that no connector on any page draws any more:
+/// deleting a relationship's last connector view deletes the relationship (it has no other
+/// handle on the canvas). Relationships still drawn somewhere, and ids that are not
+/// relationships, are left alone.
+pub fn drop_undrawn_relationships(doc: &mut vizcraft_diagram::Document, relationships: &[String]) {
+    if relationships.is_empty() {
+        return;
+    }
+    let drawn: HashSet<&str> = doc.pages.iter().flat_map(|p| p.connectors.iter().filter_map(|c| c.relationship.as_deref())).collect();
+    let doomed: Vec<String> = relationships.iter().filter(|r| !drawn.contains(r.as_str()) && doc.model.relationship(r).is_some()).cloned().collect();
+    if !doomed.is_empty() {
+        doc.model.remove(&doomed);
+    }
+}
+
+/// Delete shapes and connectors by id from the active page (see [`delete_on_page`]); a
+/// relationship whose last connector view went is removed from the model, while elements stay in
+/// the model when their shapes go. Returns `{"deleted": [ids], "detached": [connector ids]}` and
+/// the selection.
+pub fn delete_items(s: &mut Session, ids: &[String]) -> CmdResult {
+    let page = page_mut(s)?;
+    let d = delete_on_page(page, ids);
+    drop_undrawn_relationships(&mut s.doc, &d.relationships);
     prune_selection(s);
-    with_sel(s, json!({"deleted": deleted, "detached": detached}))
+    with_sel(s, json!({"deleted": d.items, "detached": d.detached}))
 }
 
 /// ISO-8601 timestamp (UTC, seconds), without a date-time dependency.

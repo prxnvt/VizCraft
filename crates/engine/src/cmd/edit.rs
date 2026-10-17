@@ -1,14 +1,19 @@
 //! Edit menu commands: undo, redo, selection, delete and the clipboard.
 //!
 //! The clipboard holds a JSON fragment, `{"vizcraft": "clip", "shapes": [...], "connectors":
-//! [...]}`, with shapes and connectors in the document's own form. `edit.copy` and `edit.cut`
+//! [...], "elements"?: [...], "relationships"?: [...]}`, with shapes and connectors in the
+//! document's own form and the model items the copied shapes and connectors draw in the model's
+//! form (left out when there are none). `edit.copy` and `edit.cut`
 //! store it in `Session::clipboard` and return it as `{"text"}` for the system clipboard;
 //! `edit.paste` takes `{"text"}` from the host or falls back to the internal copy.
 
 use std::collections::HashMap;
 
 use serde_json::{Value, json};
-use vizcraft_diagram::{Connector, End, Shape, resolve_ends};
+use vizcraft_diagram::{Connector, Document, End, Shape, resolve_ends};
+use vizcraft_model::{Element, MAX_KEY, MAX_TEXT, Relationship};
+
+use super::model::{auto_tag, cat, clean_props, cut as cut_text};
 
 use super::{MAX_IDS, delete_items, has_selection, ids_param, opt_bool, opt_str, page_mut, prune_selection, sel_result, select, short, with_sel};
 use crate::{CmdResult, CommandSpec, EngineError, Session, p};
@@ -117,7 +122,31 @@ fn clip_of_selection(s: &Session) -> (Value, usize, usize) {
         connectors.push(c);
     }
     let (ns, nc) = (shapes.len(), connectors.len());
-    (json!({"vizcraft": "clip", "shapes": shapes, "connectors": connectors}), ns, nc)
+    let mut clip = json!({"vizcraft": "clip", "shapes": shapes, "connectors": connectors});
+    // The model items drawn by the copied items travel with them, so a paste makes copies of the
+    // elements instead of extra views of the originals.
+    let model = &s.doc.model;
+    let mut elements: Vec<&Element> = Vec::new();
+    for e in shapes.iter().filter_map(|x| x.element.as_deref()).filter_map(|e| model.element(e)) {
+        if !elements.iter().any(|x| x.id == e.id) {
+            elements.push(e);
+        }
+    }
+    let mut relationships: Vec<&Relationship> = Vec::new();
+    for r in connectors.iter().filter_map(|c| c.relationship.as_deref()).filter_map(|r| model.relationship(r)) {
+        if !relationships.iter().any(|x| x.id == r.id) {
+            relationships.push(r);
+        }
+    }
+    if let Some(o) = clip.as_object_mut() {
+        if !elements.is_empty() {
+            o.insert("elements".into(), json!(elements));
+        }
+        if !relationships.is_empty() {
+            o.insert("relationships".into(), json!(relationships));
+        }
+    }
+    (clip, ns, nc)
 }
 
 fn copy(s: &mut Session, _: &Value) -> CmdResult {
@@ -163,8 +192,17 @@ fn paste(s: &mut Session, v: &Value) -> CmdResult {
     let list = |k: &str| clip.get(k).and_then(Value::as_array).map(|a| a.iter().take(MAX_IDS).cloned().collect::<Vec<_>>()).unwrap_or_default();
     let shapes: Vec<Shape> = list("shapes").into_iter().filter_map(|x| serde_json::from_value(x).ok()).collect();
     let connectors: Vec<Connector> = list("connectors").into_iter().filter_map(|x| serde_json::from_value(x).ok()).collect();
+    let mut clip_elements: HashMap<String, Element> = HashMap::new();
+    for e in list("elements").into_iter().filter_map(|x| serde_json::from_value::<Element>(x).ok()) {
+        clip_elements.entry(e.id.clone()).or_insert(e);
+    }
+    let mut clip_relationships: HashMap<String, Relationship> = HashMap::new();
+    for r in list("relationships").into_iter().filter_map(|x| serde_json::from_value::<Relationship>(x).ok()) {
+        clip_relationships.entry(r.id.clone()).or_insert(r);
+    }
 
     let mut map: HashMap<String, String> = HashMap::new();
+    let mut elements = ModelCopies::default();
     let mut new_shapes = Vec::new();
     for mut sh in shapes {
         let id = s.doc.next_id("s");
@@ -172,9 +210,16 @@ fn paste(s: &mut Session, v: &Value) -> CmdResult {
         sh.id = id;
         sh.x += PASTE_OFFSET;
         sh.y += PASTE_OFFSET;
+        // A shape of an element the clip carries draws a new copy of it; one whose element the
+        // clip does not carry (a hand-made clip, or a reference into another document) is free.
+        sh.element = sh.element.take().and_then(|e| elements.element(&mut s.doc, &clip_elements, &e));
+        if let Some(e) = sh.element.as_deref().and_then(|e| s.doc.model.element(e)) {
+            sh.text = e.name.clone();
+        }
         sh.sanitize();
         new_shapes.push(sh);
     }
+    elements.finish(&mut s.doc, &clip_elements);
     let page = s.doc.page().ok_or_else(|| EngineError::Failed("the document has no page".into()))?;
     let mut kept = Vec::new();
     'conns: for mut c in connectors {
@@ -202,6 +247,10 @@ fn paste(s: &mut Session, v: &Value) -> CmdResult {
     let mut new_connectors = Vec::new();
     for mut c in kept {
         c.id = s.doc.next_id("c");
+        c.relationship = c.relationship.take().and_then(|r| elements.relationship(&mut s.doc, &clip_relationships, &r));
+        if let Some(r) = c.relationship.as_deref().and_then(|r| s.doc.model.relationship(r)) {
+            c.text = r.name.clone();
+        }
         c.sanitize();
         new_connectors.push(c);
     }
@@ -214,4 +263,86 @@ fn paste(s: &mut Session, v: &Value) -> CmdResult {
     page.connectors.extend(new_connectors);
     select(s, ids.clone());
     with_sel(s, json!({"pasted": ids}))
+}
+
+/// The model copies one paste makes: each element and relationship of the clip is copied at most
+/// once (fresh id, same type, name and properties), however many pasted items draw it.
+#[derive(Default)]
+struct ModelCopies {
+    /// Clip element id to the new element's id.
+    elements: HashMap<String, String>,
+    /// Clip relationship id to the new relationship's id.
+    relationships: HashMap<String, String>,
+    /// Clip element ids in the order their copies were made.
+    order: Vec<String>,
+}
+
+impl ModelCopies {
+    /// The copy of clip element `old`, made on first use; `None` when the clip does not carry it
+    /// or the model cannot take another element (the view is pasted as free drawing).
+    fn element(&mut self, doc: &mut Document, clip: &HashMap<String, Element>, old: &str) -> Option<String> {
+        if let Some(new) = self.elements.get(old) {
+            return Some(new.clone());
+        }
+        let src = clip.get(old)?;
+        if src.type_id.is_empty() || src.type_id.len() > MAX_KEY {
+            return None;
+        }
+        let id = doc.next_id("e");
+        let mut e = Element::new(id.clone(), src.type_id.clone());
+        e.name = cut_text(&src.name, MAX_TEXT);
+        e.properties = clean_props(&src.properties);
+        doc.model.add_element(e).ok()?;
+        if let Some(p) = cat().pack_ref(vizcraft_model::pack_of(&src.type_id)) {
+            doc.model.use_pack(p);
+        }
+        self.elements.insert(old.to_string(), id.clone());
+        self.order.push(old.to_string());
+        Some(id)
+    }
+
+    /// Once every copy exists: owners (a copied owner maps to its copy, an owner still in the
+    /// model is kept, anything else goes to the root) and tags (the next auto number when the
+    /// scope numbers automatically, else none), in the order the copies were made so the numbers
+    /// follow paste order.
+    fn finish(&mut self, doc: &mut Document, clip: &HashMap<String, Element>) {
+        for old in &self.order {
+            let (Some(new), Some(src)) = (self.elements.get(old), clip.get(old)) else { continue };
+            let owner = src.owner.as_ref().and_then(|o| self.elements.get(o).cloned().or_else(|| doc.model.element(o).map(|_| o.clone())));
+            if let Some(o) = owner {
+                // A cycle (only a hand-made clip can hold one) leaves the copy at the root.
+                let _ = doc.model.set_owner(new, Some(&o));
+            }
+            let tag = doc.model.element(new).and_then(|e| auto_tag(doc, e).ok().flatten()).unwrap_or_default();
+            if let Some(e) = doc.model.element_mut(new) {
+                e.tag = tag;
+            }
+        }
+    }
+
+    /// The copy of clip relationship `old`, made on first use when both of its ends were copied;
+    /// `None` otherwise (the connector is pasted as free drawing).
+    fn relationship(&mut self, doc: &mut Document, clip: &HashMap<String, Relationship>, old: &str) -> Option<String> {
+        if let Some(new) = self.relationships.get(old) {
+            return Some(new.clone());
+        }
+        let src = clip.get(old)?;
+        let source = self.elements.get(&src.source)?.clone();
+        let target = self.elements.get(&src.target)?.clone();
+        if src.type_id.is_empty() || src.type_id.len() > MAX_KEY {
+            return None;
+        }
+        let id = doc.next_id("r");
+        let mut r = Relationship::new(id.clone(), src.type_id.clone(), source, target);
+        r.name = cut_text(&src.name, MAX_TEXT);
+        r.properties = clean_props(&src.properties);
+        r.source_port = src.source_port.as_ref().map(|p| cut_text(p, MAX_KEY)).filter(|p| !p.is_empty());
+        r.target_port = src.target_port.as_ref().map(|p| cut_text(p, MAX_KEY)).filter(|p| !p.is_empty());
+        doc.model.add_relationship(r).ok()?;
+        if let Some(p) = cat().pack_ref(vizcraft_model::pack_of(&src.type_id)) {
+            doc.model.use_pack(p);
+        }
+        self.relationships.insert(old.to_string(), id.clone());
+        Some(id)
+    }
 }

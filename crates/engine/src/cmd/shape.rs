@@ -16,14 +16,14 @@ use crate::{CmdResult, CommandSpec, EngineError, Session, p};
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("shape.add", "Add Shape", "Insert > Shapes", add)
-            .params(r#"{"stencil": string, "x": n, "y": n, "w"?: n, "h"?: n, "text"?: string, "id"?: string} -> {"id"}; x, y is the top-left"#),
+            .params(r#"{"stencil": string, "x": n, "y": n, "w"?: n, "h"?: n, "text"?: string, "id"?: string} -> {"id", "element"?}; x, y is the top-left; a master of a notation type (Flowchart) also creates an element named text"#),
         CommandSpec::new("shape.delete", "Delete Shape", "Home > Editing", delete).params(r#"{"ids"?: [string]} (default: selection)"#).when(has_shapes),
         CommandSpec::new("shape.move", "Move", "Home > Arrange", move_shapes)
             .params(r#"{"ids"?: [string], "dx": n, "dy": n} or {"id": string, "x": n, "y": n}"#)
             .when(has_shapes),
         CommandSpec::new("shape.resize", "Resize", "Home > Arrange", resize).params(r#"{"id": string, "x"?: n, "y"?: n, "w": n, "h": n}"#).when(has_shapes),
         CommandSpec::new("shape.rotate", "Rotate", "Home > Arrange", rotate).params(r#"{"ids"?: [string], "angle": degrees}"#).when(has_shapes),
-        CommandSpec::new("shape.setText", "Edit Text", "Home > Font", set_text).params(r#"{"id": string, "text": string}"#).when(has_shapes),
+        CommandSpec::new("shape.setText", "Edit Text", "Home > Font", set_text).params(r#"{"id": string, "text": string}; on a shape of an element, renames the element and every view of it"#).when(has_shapes),
         CommandSpec::new("shape.setStyle", "Shape Style", "Home > Shape Styles", set_style)
             .params(
                 r##"{"ids"?: [string], "fill"?: "#rrggbb", "line"?: "#rrggbb", "lineWidth"?: n, "fontSize"?: n, "fontColor"?: "#rrggbb", "bold"?: bool, "italic"?: bool}"##,
@@ -69,11 +69,13 @@ fn search(_s: &mut Session, v: &Value) -> CmdResult {
     Ok(json!({"masters": masters}))
 }
 
-fn coord(v: f64) -> f64 {
+/// A coordinate clamped to the model's range.
+pub(super) fn coord(v: f64) -> f64 {
     v.clamp(-MAX_COORD, MAX_COORD)
 }
 
-fn size(v: f64) -> f64 {
+/// A width or height clamped to [`MIN_SIZE`, `MAX_EXTENT`].
+pub(super) fn size(v: f64) -> f64 {
     v.clamp(MIN_SIZE, MAX_EXTENT)
 }
 
@@ -94,9 +96,23 @@ fn add(s: &mut Session, v: &Value) -> CmdResult {
         shape.text = t.to_string();
     }
     shape.sanitize();
+    // A master whose glyph names an element type (every Flowchart master) draws a new element of
+    // that type; Basic masters stay free drawing.
+    let element = match super::model::cat().type_for_master(stencil) {
+        Some(type_id) => {
+            let ne = super::model::NewElement { type_id: type_id.to_string(), name: shape.text.clone(), ..Default::default() };
+            let (eid, _) = super::model::create_element(&mut s.doc, ne)?;
+            shape.element = Some(eid.clone());
+            Some(eid)
+        }
+        None => None,
+    };
     page_mut(s)?.shapes.push(shape);
     select(s, vec![id.clone()]);
-    with_sel(s, json!({"id": id}))
+    match element {
+        Some(e) => with_sel(s, json!({"id": id, "element": e})),
+        None => with_sel(s, json!({"id": id})),
+    }
 }
 
 fn delete(s: &mut Session, v: &Value) -> CmdResult {
@@ -183,9 +199,18 @@ fn rotate(s: &mut Session, v: &Value) -> CmdResult {
 fn set_text(s: &mut Session, v: &Value) -> CmdResult {
     let id = p::req_str(v, "id")?;
     let text = p::req_str(v, "text")?;
-    let sh = page_mut(s)?.shape_mut(id).ok_or_else(|| not_a_shape(id))?;
-    sh.text = text.to_string();
-    sh.sanitize();
+    let page = s.doc.page().ok_or_else(|| EngineError::Failed("the document has no page".into()))?;
+    let element = page.shape(id).ok_or_else(|| not_a_shape(id))?.element.clone().filter(|e| s.doc.model.element(e).is_some());
+    // A shape that draws an element shows the element's name: renaming the element updates
+    // this shape and every other view of it.
+    match element {
+        Some(e) => super::model::rename_element(&mut s.doc, &e, text)?,
+        None => {
+            let sh = page_mut(s)?.shape_mut(id).ok_or_else(|| not_a_shape(id))?;
+            sh.text = text.to_string();
+            sh.sanitize();
+        }
+    }
     let id = id.to_string();
     with_sel(s, json!({"id": id}))
 }
