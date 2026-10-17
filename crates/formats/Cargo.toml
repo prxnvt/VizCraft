@@ -13,6 +13,7 @@ vizcraft-diagram = { workspace = true }
 vizcraft-stencils = { workspace = true }
 vizcraft-drawio = { workspace = true }
 vizcraft-mermaid = { workspace = true }
+vizcraft-layout = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
