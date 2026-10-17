@@ -53,10 +53,26 @@ CLI, control channel and MCP server all dispatch by id. Programmatic calls never
 a command that needs one pushes `{"open": "<dialog>"}` to `session.ui_requests` and the UI
 handles it.
 
-Command id prefixes: `file.*`, `edit.*`, `view.*`, `insert.*`, `format.*`, `window.*`, `help.*`,
-`ui.*` (UI layer), `app.*` (app-level: `app.quit`,
+Command id prefixes: `file.*`, `edit.*`, `view.*`, `shape.*` (`crates/engine/src/cmd/shape.rs`),
+`connector.*` (`cmd/connector.rs`), `insert.*`, `format.*`, `window.*`, `help.*`, `ui.*` (UI layer), `app.*` (app-level: `app.quit`,
 `app.preferences`, `app.about`). `insert.*` and `format.*` are reserved; no engine
 command uses them yet.
+
+Diagram commands (Cascade 1). Without `ids` they act on the selection; an explicit `ids` list
+must name existing items or nothing changes. Each document change is one undo step.
+
+| Command | Params |
+|---|---|
+| `shape.add` | `{stencil, x, y, w?, h?, text?}` (x, y = top-left of the frame) -> `{id}` |
+| `shape.delete` | `{ids?}`; connectors glued to a deleted shape keep a free end there, and go when both ends are deleted |
+| `shape.move` | `{ids?, dx, dy}` or `{id, x, y}` |
+| `shape.resize`, `shape.rotate` | `{id, x?, y?, w, h}`; `{ids?, angle}` (absolute degrees) |
+| `shape.setText`, `shape.setStyle` | `{id, text}`; `{ids?, fill?, line?, lineWidth?, fontSize?, fontColor?, bold?, italic?}` |
+| `connector.add` | `{from, to, route?, text?, startArrow?, endArrow?}`, an end is `{shape, point?}` or `{x, y}` -> `{id}` |
+| `connector.glue` | `{id, end: "start" \| "end", shape?, point?, x?, y?}` |
+| `connector.setRoute`, `connector.setArrows`, `connector.setText` | `{ids?, route}`; `{ids?, start?, end?}`; `{id, text}` |
+| `edit.select`, `edit.selectNone`, `edit.selectAll`, `edit.delete` | `{ids, add?}`; `{}` |
+| `edit.cut`, `edit.copy`, `edit.paste` | copy returns `{text}` holding `{"vizcraft": "clip", "shapes", "connectors"}`; paste takes `{text?}` |
 
 ## Engine (`vizcraft-engine`) public API
 
@@ -249,13 +265,11 @@ shapes move) and point glue when it names a connection point. Ids are strings an
 
 ### Planned command prefixes
 
-New prefixes join the existing `file.*`, `edit.*`, `view.*`, `insert.*`, `format.*`, `window.*`,
+New prefixes join the existing `file.*`, `edit.*`, `view.*`, `shape.*`, `connector.*`, `insert.*`, `format.*`, `window.*`,
 `help.*`, `ui.*` and `app.*`:
 
 | Prefix | Covers | Module |
 |---|---|---|
-| `shape.*` | Add, delete, move, resize, rotate, text, style of shapes | `crates/engine/src/cmd/shape.rs` |
-| `connector.*` | Add, glue, unglue, route style, waypoints, arrowheads, label | `crates/engine/src/cmd/connector.rs` |
 | `page.*` | Add, delete, rename, reorder, page setup, background page | `crates/engine/src/cmd/page.rs` |
 | `layer.*` | Add, delete, rename, flags, assign shapes | `crates/engine/src/cmd/layer.rs` |
 | `arrange.*` | Align, distribute, order, group, ungroup, flip, rotate, size and position | `crates/engine/src/cmd/arrange.rs` |

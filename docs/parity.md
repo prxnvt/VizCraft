@@ -32,11 +32,11 @@ When a feature lands, change its State in the same commit as the code. States:
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| Basic shapes | 1 | partial | Rectangle, rounded rectangle, ellipse, diamond, triangle, parallelogram, hexagon, cylinder, document, cloud; outlines in `vizcraft-diagram`, commands pending |
-| Select, move, resize, rotate | 1 | planned | Handles on the canvas and `shape.*` commands |
-| Multi-select and marquee | 1 | planned | Uses the existing `Selection` |
+| Basic shapes | 1 | done | Rectangle, rounded rectangle, ellipse, diamond, triangle, parallelogram, hexagon, cylinder, document, cloud; `shape.add {stencil}` |
+| Select, move, resize, rotate | 1 | partial | `edit.select`, `shape.move`, `shape.resize`, `shape.rotate` work; canvas handles pending |
+| Multi-select and marquee | 1 | partial | `edit.select {ids, add?}` and `edit.selectAll`; marquee pending |
 | Shapes pane | 1 | planned | Stencil browser; click or drag to insert |
-| Basic and Flowchart stencils | 1 | partial | Original shapes defined in code (`vizcraft-stencils`); insertion arrives with the shape commands and Shapes pane |
+| Basic and Flowchart stencils | 1 | done | Original shapes defined in code (`vizcraft-stencils`), inserted with `shape.add` |
 | Connection points | 1 | partial | Per-shape points connectors glue to; in the model, editing arrives with the canvas |
 | Stencil search | 3 | planned | Keyword index over every stencil |
 | Custom stencils | Future | planned | Plugin stencil sets loaded from files |
@@ -45,11 +45,11 @@ When a feature lands, change its State in the same commit as the code. States:
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| Straight, orthogonal and curved connectors | 1 | planned | Route style per connector |
-| Dynamic glue | 1 | planned | Glued to a shape; the end moves to the best point as shapes move |
-| Point glue | 1 | planned | Glued to one connection point |
-| Arrowheads | 1 | planned | Per end, several styles |
-| Connector labels | 1 | planned | Text on the connector |
+| Straight, orthogonal and curved connectors | 1 | done | `connector.add`, `connector.setRoute` |
+| Dynamic glue | 1 | done | `connector.glue` naming only a shape; routing is derived from shape geometry |
+| Point glue | 1 | done | `connector.glue` with a connection point index |
+| Arrowheads | 1 | done | `connector.setArrows`: none, triangle, open, diamond, circle |
+| Connector labels | 1 | done | `connector.setText` |
 | Waypoints | 2 | planned | User-placed bends |
 | Line jumps | 2 | planned | Hops where connectors cross |
 | Obstacle-avoiding rerouting | 2 | planned | Orthogonal routes that go around shapes |
@@ -58,8 +58,8 @@ When a feature lands, change its State in the same commit as the code. States:
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| Text in shapes | 1 | planned | In-place editing on the canvas |
-| Font, size, colour, bold, italic | 1 | planned | Home tab font group |
+| Text in shapes | 1 | partial | `shape.setText`; in-place editing on the canvas pending |
+| Font, size, colour, bold, italic | 1 | partial | `shape.setStyle`; Home tab font group pending |
 | Alignment and wrapping in the shape | 2 | planned | Horizontal and vertical alignment, margins |
 | Text blocks | 2 | planned | Free-standing text shapes |
 
