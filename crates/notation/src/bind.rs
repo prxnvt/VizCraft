@@ -35,8 +35,8 @@ use crate::{Catalog, legal};
 ///    command, which may drop views on pages that do not draw the new end).
 /// 5. Every bound shape's text becomes its element's name, and every bound connector's text its
 ///    relationship's name.
-/// 6. Style fields controlled by conditional styles (see `ConditionalStyle`) are set on bound
-///    shapes.
+/// 6. Style fields named by conditional styles (see `ConditionalStyle`) are set on bound shapes
+///    when the element's match changes, or once on a new element or view.
 /// 7. Packs of every element and relationship type in use are recorded in `doc.model.packs`.
 ///
 /// Details of each step:
@@ -54,11 +54,16 @@ use crate::{Catalog, legal};
 ///   command wins; else a view whose text the command changed gives the name; else a new item
 ///   with no name takes its first non-empty view text; else the name stays. Every view then shows
 ///   the name.
-/// - Step 6: for each style field (fill, line, text colour, line width) that any conditional style
-///   of the element's type names, the first matching style's value applies, else the glyph's value
-///   (fill and line from the type's glyph, text colour and line width from the default style).
-///   A style matches when the element's property (or the property's schema default) equals
-///   `equals`; a style with no `equals` matches when the property has any value.
+/// - Step 6 changes style only when a match changes, so hand styling wins otherwise. Per style
+///   field (fill, line, text colour, line width), the first matching conditional style of the
+///   element's type that names the field is compared between `before` and `doc`. For a shape that
+///   already drew an element that already existed, a field whose match changed takes the new
+///   style's value, or the glyph's value when nothing matches now (fill and line from the type's
+///   glyph, text colour and line width from the default style); unchanged fields are left alone.
+///   A new element or a newly bound shape gets the fields that match now, and keeps its glyph
+///   style where nothing matches. A style matches when the element's property (or the property's
+///   schema default) equals `equals`; a style with no `equals` matches when the property has any
+///   value.
 pub fn sync(doc: &mut Document, before: &Document, cat: &Catalog) {
     vizcraft_diagram::views::sanitize_refs(doc);
     // Nothing can be bound in a model with no items, and nothing drawn in `before` can need
@@ -70,7 +75,7 @@ pub fn sync(doc: &mut Document, before: &Document, cat: &Catalog) {
     connectors(doc, cat);
     drop_unviewed(doc, before);
     names(doc, before);
-    styles(doc, cat);
+    styles(doc, before, cat);
     record_packs(doc, cat);
 }
 
@@ -386,13 +391,31 @@ fn names(doc: &mut Document, before: &Document) {
     }
 }
 
-/// The pack-controlled style fields of one element: `None` where the pack does not control it.
+/// Style field values to set on a shape: `None` leaves the field alone.
 #[derive(Clone, Debug, Default, PartialEq)]
-struct Controlled {
+struct Fields {
     fill: Option<Color>,
     line: Option<Color>,
     font_color: Option<Color>,
     line_width: Option<f64>,
+}
+
+impl Fields {
+    fn is_empty(&self) -> bool {
+        *self == Fields::default()
+    }
+}
+
+/// A conditional style by position: (pack index in the catalog, index in its list).
+type StyleId = (usize, usize);
+
+/// Per style field, the first matching conditional style that names it.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct Matches {
+    fill: Option<StyleId>,
+    line: Option<StyleId>,
+    font_color: Option<StyleId>,
+    line_width: Option<StyleId>,
 }
 
 /// Whether `cs` matches element `e` (the property's schema default stands in for a missing value).
@@ -405,69 +428,112 @@ fn matches(cs: &ConditionalStyle, e: &Element, default: Option<&PropValue>) -> b
     }
 }
 
-/// The controlled style fields for `e`, or `None` when its type has no conditional styles.
-fn controlled(cat: &Catalog, e: &Element) -> Option<Controlled> {
-    let (_, t) = cat.element_type(&e.type_id)?;
-    let styles: Vec<&ConditionalStyle> =
-        cat.packs().iter().flat_map(|p| p.conditional_styles.iter().filter(move |cs| p.lists(&cs.types, &e.type_id))).collect();
-    if styles.is_empty() {
-        return None;
+/// The styles matching `e` now, field by field.
+fn matches_for(cat: &Catalog, e: &Element) -> Matches {
+    let mut m = Matches::default();
+    let Some((_, t)) = cat.element_type(&e.type_id) else { return m };
+    for (pi, pack) in cat.packs().iter().enumerate() {
+        for (ci, cs) in pack.conditional_styles.iter().enumerate() {
+            if !pack.lists(&cs.types, &e.type_id) || !matches(cs, e, t.property(&cs.property).and_then(|p| p.default.as_ref())) {
+                continue;
+            }
+            let id = Some((pi, ci));
+            if m.fill.is_none() && cs.fill.is_some() {
+                m.fill = id;
+            }
+            if m.line.is_none() && cs.line.is_some() {
+                m.line = id;
+            }
+            if m.font_color.is_none() && cs.font_color.is_some() {
+                m.font_color = id;
+            }
+            if m.line_width.is_none() && cs.line_width.is_some() {
+                m.line_width = id;
+            }
+        }
     }
-    let glyph = cat.glyph(&t.glyph).map(|(_, g)| g);
+    m
+}
+
+fn style_at(cat: &Catalog, id: StyleId) -> Option<&ConditionalStyle> {
+    cat.packs().get(id.0).and_then(|p| p.conditional_styles.get(id.1))
+}
+
+/// The values a shape of `e` gets. `changed_only`: only fields whose match differs from `was`,
+/// set to the new match's value or, when nothing matches now, the glyph's value. Otherwise the
+/// fields that match now, with their values. A colour that does not parse leaves its field alone.
+fn fields_for(cat: &Catalog, e: &Element, now: Matches, was: Option<Matches>) -> Fields {
+    let glyph = cat.element_type(&e.type_id).and_then(|(_, t)| cat.glyph(&t.glyph)).map(|(_, g)| g);
     let d = Style::DEFAULT;
     let glyph_fill = glyph.and_then(|g| Color::parse(&g.fill)).unwrap_or(d.fill);
     let glyph_line = glyph.and_then(|g| Color::parse(&g.line)).unwrap_or(d.line);
-    let hit: Vec<&ConditionalStyle> =
-        styles.iter().copied().filter(|cs| matches(cs, e, t.property(&cs.property).and_then(|p| p.default.as_ref()))).collect();
-    // For each field: controlled when any style names it; the first matching style that names it
-    // wins, else the glyph value. A colour that does not parse leaves the field alone.
-    let colour = |pick: fn(&ConditionalStyle) -> Option<&String>, glyph_value: Color| -> Option<Color> {
-        if !styles.iter().any(|cs| pick(cs).is_some()) {
-            return None;
+    let pick = |now: Option<StyleId>, was: Option<Option<StyleId>>| -> Option<Option<StyleId>> {
+        match was {
+            // Changed match: the new style, or none (the glyph value).
+            Some(w) if w != now => Some(now),
+            Some(_) => None,
+            // New element or view: only a current match is applied.
+            None => now.map(Some),
         }
-        match hit.iter().find_map(|cs| pick(cs)) {
-            Some(text) => Color::parse(text),
+    };
+    let colour = |sel: Option<Option<StyleId>>, get: fn(&ConditionalStyle) -> Option<&String>, glyph_value: Color| -> Option<Color> {
+        match sel? {
+            Some(id) => style_at(cat, id).and_then(get).and_then(|t| Color::parse(t)),
             None => Some(glyph_value),
         }
     };
-    let line_width = if styles.iter().any(|cs| cs.line_width.is_some()) {
-        let w = hit.iter().find_map(|cs| cs.line_width).unwrap_or(d.line_width);
-        w.is_finite().then(|| w.clamp(0.0, Style::MAX_LINE_WIDTH))
-    } else {
-        None
+    let width = match pick(now.line_width, was.map(|w| w.line_width)) {
+        None => None,
+        Some(None) => Some(d.line_width),
+        Some(Some(id)) => style_at(cat, id).and_then(|cs| cs.line_width).filter(|w| w.is_finite()).map(|w| w.clamp(0.0, Style::MAX_LINE_WIDTH)),
     };
-    Some(Controlled {
-        fill: colour(|cs| cs.fill.as_ref(), glyph_fill),
-        line: colour(|cs| cs.line.as_ref(), glyph_line),
-        font_color: colour(|cs| cs.font_color.as_ref(), d.font_color),
-        line_width,
-    })
+    Fields {
+        fill: colour(pick(now.fill, was.map(|w| w.fill)), |cs| cs.fill.as_ref(), glyph_fill),
+        line: colour(pick(now.line, was.map(|w| w.line)), |cs| cs.line.as_ref(), glyph_line),
+        font_color: colour(pick(now.font_color, was.map(|w| w.font_color)), |cs| cs.font_color.as_ref(), d.font_color),
+        line_width: width,
+    }
 }
 
-/// Step 6: pack-controlled style fields on bound shapes.
-fn styles(doc: &mut Document, cat: &Catalog) {
-    let mut by_element: HashMap<String, Controlled> = HashMap::new();
+/// Step 6: conditional styles on bound shapes, applied only when an element's match changes (or
+/// on a new element or view), so hand styling made with `shape.setStyle` sticks.
+fn styles(doc: &mut Document, before: &Document, cat: &Catalog) {
+    if cat.packs().iter().all(|p| p.conditional_styles.is_empty()) {
+        return;
+    }
+    let before_el: HashMap<&str, &Element> = before.model.elements.iter().map(|e| (e.id.as_str(), e)).collect();
+    let before_shapes: HashSet<&str> = before.pages.iter().flat_map(|p| p.shapes.iter()).map(|s| s.id.as_str()).collect();
+    // Per element: what a shape that already drew it gets (changes only), and what a new view gets.
+    let mut plans: HashMap<String, (Fields, Fields)> = HashMap::new();
     for e in &doc.model.elements {
-        if let Some(c) = controlled(cat, e) {
-            by_element.entry(e.id.clone()).or_insert(c);
+        let now = matches_for(cat, e);
+        let fresh = fields_for(cat, e, now, None);
+        let changed = match before_el.get(e.id.as_str()) {
+            Some(b) => fields_for(cat, e, now, Some(matches_for(cat, b))),
+            // A new element: every view of it is new.
+            None => fresh.clone(),
+        };
+        if !(changed.is_empty() && fresh.is_empty()) {
+            plans.entry(e.id.clone()).or_insert((changed, fresh));
         }
     }
-    if by_element.is_empty() {
+    if plans.is_empty() {
         return;
     }
     for page in &mut doc.pages {
         for s in &mut page.shapes {
-            let Some(c) = s.element.as_deref().and_then(|e| by_element.get(e)) else { continue };
-            if let Some(v) = c.fill {
+            let Some((changed, fresh)) = s.element.as_deref().and_then(|e| plans.get(e)) else { continue };
+            let f = if before_shapes.contains(s.id.as_str()) { changed } else { fresh };
+            if let Some(v) = f.fill {
                 set_if_changed(&mut s.style.fill, v);
             }
-            if let Some(v) = c.line {
+            if let Some(v) = f.line {
                 set_if_changed(&mut s.style.line, v);
             }
-            if let Some(v) = c.font_color {
+            if let Some(v) = f.font_color {
                 set_if_changed(&mut s.style.font_color, v);
             }
-            if let Some(v) = c.line_width {
+            if let Some(v) = f.line_width {
                 set_if_changed(&mut s.style.line_width, v);
             }
         }

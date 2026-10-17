@@ -325,13 +325,52 @@ fn step6_conditional_style_applies_and_reverts() {
     let st = &out.pages[0].shape("s_p").unwrap().style;
     assert_eq!((st.fill, st.line), (fill, line));
 
-    // Hand-set fill on a pack-controlled field reverts; on a type with no conditional style it stays.
+    // Hand styling sticks: a later command that leaves the match alone does not touch it.
     let mut doc = before.clone();
     doc.pages[0].shape_mut("s_p").unwrap().style.fill = Color::rgb(1, 1, 1);
-    doc.pages[0].shape_mut("s_d").unwrap().style.fill = Color::rgb(2, 2, 2);
+    let styled = synced(doc, &before);
+    assert_eq!(styled.pages[0].shape("s_p").unwrap().style.fill, Color::rgb(1, 1, 1));
+    let mut doc = styled.clone();
+    doc.pages[0].shape_mut("s_p").unwrap().x += 40.0;
+    doc.model.element_mut("p").unwrap().properties.insert("owner".into(), PropValue::Text("Ops".into()));
+    let out = synced(doc, &styled);
+    assert_eq!(out.pages[0].shape("s_p").unwrap().style.fill, Color::rgb(1, 1, 1));
+
+    // A match change still overrides it, and turning it off brings back the glyph value.
+    let mut doc = out.clone();
+    doc.model.element_mut("p").unwrap().properties.insert("automated".into(), PropValue::Bool(true));
+    let on = synced(doc, &out);
+    assert_eq!(on.pages[0].shape("s_p").unwrap().style.fill, Color::parse("#cfe8dd").unwrap());
+    let mut doc = on.clone();
+    doc.model.element_mut("p").unwrap().properties.remove("automated");
+    let off = synced(doc, &on);
+    assert_eq!(off.pages[0].shape("s_p").unwrap().style.fill, fill);
+
+    // A new element that matches gets the style once; a new view of a matching element too.
+    let mut doc = before.clone();
+    let mut e = Element::new("n", "flowchart.Process");
+    e.properties.insert("automated".into(), PropValue::Bool(true));
+    doc.model.add_element(e).unwrap();
+    let mut s = glyph_shape("s_n", "flowchart.Process", 0.0, 300.0);
+    s.element = Some("n".into());
+    doc.pages[0].shapes.push(s);
     let out = synced(doc, &before);
-    assert_eq!(out.pages[0].shape("s_p").unwrap().style.fill, fill);
-    assert_eq!(out.pages[0].shape("s_d").unwrap().style.fill, Color::rgb(2, 2, 2));
+    assert_eq!(out.pages[0].shape("s_n").unwrap().style.line, Color::parse("#1d4f3f").unwrap());
+    let mut doc = on.clone();
+    let mut view = glyph_shape("s_p2", "flowchart.Process", 0.0, 0.0);
+    view.element = Some("p".into());
+    doc.pages.push(Page::new("p2", "Two"));
+    doc.pages[1].shapes.push(view);
+    let out = synced(doc, &on);
+    assert_eq!(out.pages[1].shape("s_p2").unwrap().style.fill, Color::parse("#cfe8dd").unwrap());
+    // A new element that matches nothing keeps its glyph style, even a hand-set one.
+    let mut doc = before.clone();
+    doc.model.add_element(Element::new("m", "flowchart.Process")).unwrap();
+    let mut s = glyph_shape("s_m", "flowchart.Process", 0.0, 500.0);
+    s.element = Some("m".into());
+    s.style.fill = Color::rgb(3, 3, 3);
+    doc.pages[0].shapes.push(s);
+    assert_eq!(synced(doc, &before).pages[0].shape("s_m").unwrap().style.fill, Color::rgb(3, 3, 3));
 }
 
 #[test]
