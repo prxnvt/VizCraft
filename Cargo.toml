@@ -18,6 +18,7 @@ vizcraft-macos-open = { path = "crates/macos-open" }
 vizcraft-mcp = { path = "crates/mcp" }
 vizcraft-diagram = { path = "crates/diagram" }
 vizcraft-stencils = { path = "crates/stencils" }
+vizcraft-formats = { path = "crates/formats" }
 
 # foundation
 thiserror = "2"

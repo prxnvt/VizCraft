@@ -412,7 +412,7 @@ impl CraftApp {
         match &self.session.path {
             Some(p) => {
                 let name = p.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
-                let stem = name.strip_suffix(&format!(".{}", vizcraft_engine::io::EXTENSION)).unwrap_or(&name);
+                let stem = vizcraft_engine::io::strip_extension(&name);
                 if stem.is_empty() { "Untitled".into() } else { stem.to_string() }
             }
             None if self.session.doc.title.is_empty() => "Untitled".into(),
