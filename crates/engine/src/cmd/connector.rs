@@ -21,10 +21,10 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("connector.glue", "Glue Connector", "Canvas", glue)
             .params(r#"{"id": string, "end": "start"|"end", "shape"?: id, "point"?: index, "x"?: n, "y"?: n}"#)
             .when(has_connectors),
-        CommandSpec::new("connector.setRoute", "Connector Route", "Home > Tools", set_route)
+        CommandSpec::new("connector.setRoute", "Connector Route", "Connector > Route", set_route)
             .params(r#"{"ids"?: [string], "route": "straight"|"orthogonal"|"curved"}"#)
             .when(has_connectors),
-        CommandSpec::new("connector.setArrows", "Arrowheads", "Home > Shape Styles", set_arrows)
+        CommandSpec::new("connector.setArrows", "Arrowheads", "Connector > Arrows", set_arrows)
             .params(r#"{"ids"?: [string], "start"?: arrow, "end"?: arrow}; arrow = "none"|"triangle"|"open"|"diamond"|"circle""#)
             .when(has_connectors),
         CommandSpec::new("connector.setText", "Edit Text", "Home > Font", set_text).params(r#"{"id": string, "text": string}"#).when(has_connectors),
