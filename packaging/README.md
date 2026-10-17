@@ -35,7 +35,7 @@ VizCraft.app/
 ```
 
 The executable and the icon carry the display name because `CFBundleExecutable` and
-`CFBundleIconFile` in the template say `VizCraft`; the build artefacts keep their lowercase
+`CFBundleIconFile` in `Info.plist.in` say `VizCraft`; the build artefacts keep their lowercase
 crate names until they are copied in. The bundle id is `ai.storyteller.vizcraft`; the
 preferences folder `~/Library/Application Support/VizCraft/` is derived from the display name
 by the app, not from the bundle.
@@ -53,7 +53,7 @@ rev-parse HEAD`) is the commit written into the plist as `VizCraftBuildCommit`.
 `package.sh` keeps the names in two places only: `CRATE=vizcraft` at the top (the GUI crate; the
 CLI is `$CRATE-cli`) and `CFBundleName` in `Info.plist.in`, which it reads with PlistBuddy for the
 bundle, executable and icon names. It refuses to package when `CFBundleExecutable` or
-`CFBundleIconFile` differ from `CFBundleName`. `cargo xtask new-craft` renames all of them.
+`CFBundleIconFile` differ from `CFBundleName`.
 
 `CARGO_TARGET_DIR` is honoured when set (the bundle then lands under it); unset, it is
 `<repo>/target`. To build and check a bundle by hand:
@@ -68,14 +68,14 @@ target/macos-package/VizCraft.app/Contents/MacOS/VizCraft --sample
 ## What the local installer expects
 
 `~/Workspace/crafts/rebuild.sh` builds every app folder in the crafts workspace and installs it
-into `/Applications`, in place, so Dock pins survive. For a craft to work with it, the repository
-must provide:
+into `/Applications`, in place, so Dock pins survive. VizCraft works with it because the
+repository provides:
 
 | Requirement | Why |
 |---|---|
 | An executable `packaging/macos/package.sh` | `rebuild.sh` only considers folders that have one, and runs it as `DIST=<repo>/target/dist packaging/macos/package.sh --arch aarch64`. The script must accept `--arch` and honour `DIST`. |
 | `packaging/macos/Info.plist.in` with `CFBundleName` | `rebuild.sh` reads the name with PlistBuddy to know what the installed app is called (`VizCraft.app`) and whether it is running (`pgrep -x VizCraft`). |
-| A `<CFBundleName>BuildCommit` key in the installed `Info.plist` | `rebuild.sh` compares it with the checkout's `HEAD` to skip apps that are up to date. The template's `VizCraftBuildCommit` is filled from `@BUILD_SHA@`; keep the key's prefix equal to `CFBundleName` after a rename. |
+| A `<CFBundleName>BuildCommit` key in the installed `Info.plist` | `rebuild.sh` compares it with the checkout's `HEAD` to skip apps that are up to date. `Info.plist.in`'s `VizCraftBuildCommit` is filled from `@BUILD_SHA@`; the key's prefix must stay equal to `CFBundleName`. |
 | The bundle at `target/macos-package/<CFBundleName>.app` | That is where `rebuild.sh` picks the built app up from, so `package.sh` must write its work directory under `CARGO_TARGET_DIR` (which `rebuild.sh` leaves at the default `target/`). |
 | A signature that passes `codesign --verify --strict` | The installer verifies the copy in `/Applications` and rolls back to the previous build if it fails; ad-hoc signing passes. |
 | `CFBundleShortVersionString` | Printed in the installer's success line. |
@@ -85,36 +85,34 @@ must provide:
 
 The installer also sets `CARGO_BUILD_JOBS` to leave cores free, writes the build log to
 `crafts/.build-logs/<folder>.log`, and keeps the previously installed app in
-`crafts/.previous-builds/`. Nothing in the craft needs to know about those.
+`crafts/.previous-builds/`. Nothing in this repository needs to know about those.
 
-### Adding a craft to the installer
+### Installing VizCraft with it
 
 `rebuild.sh` has no fixed app list and no dry run: it builds every folder directly under
 `~/Workspace/crafts/` that has an executable `packaging/macos/package.sh`, and finds the app's
-name in that folder's `packaging/macos/Info.plist.in`. Nothing in `rebuild.sh` changes for a new
-craft. To add one:
+name in that folder's `packaging/macos/Info.plist.in`. To install VizCraft:
 
-1. Check the craft out as `~/Workspace/crafts/<folder>` (a git clone or worktree; the folder name
-   is what `./rebuild.sh <folder>` takes, so use the crate name, e.g. `vizcraft`).
-2. Optionally add a row to the table in `~/Workspace/crafts/README.md` (`| vizcraft | VizCraft |
-   (baseline) |`); it is documentation only.
+1. Check it out as a folder directly under `~/Workspace/crafts/` (a clone or a worktree; the
+   folder name is what `./rebuild.sh <folder>` takes).
+2. Optionally add a row to the table in `~/Workspace/crafts/README.md`; it is documentation only.
 3. Run `./rebuild.sh --list` to see it, then `./rebuild.sh <folder>` to build and install it.
 
-The baseline itself satisfies every row of the table above; the checks in
-[The macOS bundle](#the-macos-bundle) are what the installer does after `package.sh`.
+The checks in [The macOS bundle](#the-macos-bundle) are what the installer does after
+`package.sh`.
 
-## After `new-craft`
+## Still to do in the bundle
 
-The rename changes `VizCraft` to the new display name in the template (and therefore
-`CFBundleName`, `CFBundleExecutable`, `CFBundleIconFile` and the `BuildCommit` key), the bundle
-id to `ai.storyteller.<name>` and the icon file names. What a craft still has to do by hand:
+The bundle still describes the placeholder document. When the diagram formats land
+([docs/formats.md](../docs/formats.md)):
 
-- Draw its own icon SVG and rerun `icons.sh`.
-- Replace the sample `.craft.json` document type (`CFBundleDocumentTypes` and the matching
-  `UTExportedTypeDeclarations` entry) with the types it opens, keeping `LSHandlerRank` on each
-  (`Owner` for its own format, `Alternate` for formats other apps own), and set
-  `LSApplicationCategoryType`. Mirror the change in the Linux desktop entry's `MimeType=` and in
-  `build.rs`'s `FileDescription`.
+- Draw the VizCraft icon (Cascade 1) into `assets/app-icon/vizcraft.svg` and rerun `icons.sh`.
+- Replace the `.craft.json` document type (`CFBundleDocumentTypes` and the matching
+  `UTExportedTypeDeclarations` entry) with `.vizcraft` (`LSHandlerRank` Owner) and the formats
+  VizCraft opens that other apps own, such as `.drawio` (`Alternate`). Consider
+  `LSApplicationCategoryType` `public.app-category.graphics-design` in place of productivity.
+  Mirror the change in the Linux desktop entry's `MimeType=` and in `build.rs`'s
+  `FileDescription`.
 - Check `NSHumanReadableCopyright`.
 
 ## Linux
@@ -131,9 +129,10 @@ place and follow the freedesktop layout, so a package only has to copy them:
 
 The desktop entry's `Icon=` and `StartupWMClass=` are the bundle id, which is also the hicolor
 file name; the app must set its window class to the same id for the taskbar to pick the icon up.
-A real craft replaces `GenericName`, `Comment`, `Categories`, `Keywords` and `MimeType` (and ships
-a `<id>.mime.xml` under `/usr/share/mime/packages/` when the format is its own, plus an AppStream
-`<id>.metainfo.xml` for software centres). After installing, run `update-desktop-database` and
+`GenericName`, `Comment`, `Categories`, `Keywords` and `MimeType` still describe the placeholder
+document and get diagram values with the formats (plus a `<id>.mime.xml` under
+`/usr/share/mime/packages/` for `.vizcraft`, and an AppStream `<id>.metainfo.xml` for software
+centres). After installing, run `update-desktop-database` and
 `gtk-update-icon-cache /usr/share/icons/hicolor`. WordCraft's `packaging/linux/` (nfpm.yaml,
 postinst.sh, flatpak manifests) is the reference when the script is written.
 
@@ -150,4 +149,4 @@ There is no Windows package script yet. What exists:
   release artefact.
 
 An installer (WiX `.wxs` + `signtool`, as in WordCraft's `packaging/windows/`) registers the
-`.craft.json` extension and the Start menu entry; it is not part of the baseline.
+document extensions and the Start menu entry; it is not written yet.

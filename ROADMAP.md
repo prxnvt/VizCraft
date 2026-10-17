@@ -1,85 +1,112 @@
 # VizCraft roadmap
 
-VizCraft is built in cascades: groups of pieces that several agents build in parallel against
-the contract in [docs/architecture.md](docs/architecture.md), then integrate. Each cascade ends
-with `cargo xtask ci` green on `main` and the app runnable. This file says what each cascade
-contains and what has landed; update the state column when a piece merges.
+VizCraft is built in cascades: groups of pieces that several agents build in parallel, each in
+its own branch, against the contract in [docs/architecture.md](docs/architecture.md), then
+integrate. Each cascade ends with `cargo xtask ci` green on `main` and the app runnable. This
+file says what each cascade contains and what has landed; update the State column when a piece
+merges, and the matching rows in [docs/parity.md](docs/parity.md) when a feature lands.
 
 ## Where we are
 
 | Measure | Value |
 |---|---|
-| Cascade | 4 complete; baseline ready for new crafts (DAW, diagram, animation, schema) |
-| App runs | full chrome (ribbon, panes, menus, dialogs, control channel, multi-window, web shell) |
-| Crafts made from the baseline | verified end-to-end with new-craft test |
+| Cascade | 0 done; Cascade 1 (diagram core) is next |
+| App runs | full chrome: ribbon, panes, menus, dialogs, command palette, control channel, multiple windows, web shell |
+| Document model | placeholder (title and metadata only); no diagram features yet |
+| MCP server | planned for Cascade 1 (minimal) and Cascade 3 (draw.io-style tools) |
 
-## Cascade 0: skeleton and contract (done)
-
-| Piece | State |
-|---|---|
-| Workspace layout, crate stubs, lints, rustfmt and clippy configuration | done |
-| `docs/architecture.md`, the contract everything below is built against | done |
-
-## Cascade 1: foundation, docs, xtask (done)
-
-Three agents, three branches, no shared files.
+## Cascade 0: rename and documentation reset (done)
 
 | Piece | Contents | State |
 |---|---|---|
-| Foundation | `vizcraft-engine`: `Session`, undo and redo, `Registry` and `CommandSpec`, the notes sample model, JSON I/O, `file.*`, `edit.*`, `view.*` commands, `hostile_params_never_panic`; `ui-egui` scaffolding: `theme::Tokens`, fonts from `assets/fonts`, `UiState`, `CraftApp` with `logic` and `ui`; the assets (fonts) in place | done |
-| Docs | `README.md`, `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `ROADMAP.md`, licences and `NOTICE`, `ATTRIBUTION.md`, `docs/control-protocol.md`, `docs/new-craft.md`, the placeholder app icon and `packaging/icons.sh`, the macOS `Info.plist.in` and `packaging/README.md` | done |
-| xtask | `cargo xtask ci` (fmt, clippy, tests, assets, layers, wasm), `layers`, `assets`, `wasm`, `new-craft` | done |
+| Rename | Crates, binaries, bundle id `ai.storyteller.vizcraft`, `VIZCRAFT_*` environment variables, preferences folder `VizCraft` and file names renamed with the former template's rename tool; snapshots updated | done |
+| Template machinery removed | The xtask subcommand that copied the template, and the template marker file, deleted | done |
+| Documentation rewritten | README, AGENTS, this roadmap, the architecture contract, the parity catalog and the planned MCP and format specs describe VizCraft the diagramming app | done |
 
-Done when: `cargo xtask ci` passes on the merged branch, `cargo run -p vizcraft -- --sample`
-opens the sample in a window with the theme applied, and `cargo xtask new-craft probe` produces
-a sibling that passes `ci` under its new name.
+## Cascade 1: diagram core
 
-## Cascade 2: the chrome (done)
+The smallest useful diagram editor: draw shapes, type in them, connect them, save, export SVG,
+and drive it all from an agent.
 
-Six pieces built in parallel against the `CraftApp` and `Session` APIs from Cascade 1.
+| Piece | Contents | Lands in | State |
+|---|---|---|---|
+| Diagram model | `vizcraft-diagram`: `Document`, `Page`, `Shape`, `Connector`, ids, geometry (position, size, rotation), text, basic style, connection points, hit testing in world space; geometry helpers ported from VectorCraft's `geom` where they fit | `crates/diagram` (new) | planned |
+| Native file format | `.vizcraft` JSON read and write, versioned, replacing the placeholder `.craft.json` model in the engine | `crates/formats` (new), `crates/engine/src/io.rs` | planned |
+| Basic shapes and stencils | Rectangle, rounded rectangle, ellipse, diamond, triangle, parallelogram, hexagon, cylinder, document, cloud; Basic and Flowchart stencil sets defined in code, with categories | `crates/stencils` (new) | planned |
+| Shape commands | `shape.add`, `shape.delete`, `shape.move`, `shape.resize`, `shape.rotate`, `shape.setText`, `shape.setStyle`, each undoable and covered by `hostile_params_never_panic` | `crates/engine/src/cmd/shape.rs` | planned |
+| Connector commands and routing | `connector.add`, `connector.glue`, `connector.setRoute`, `connector.setArrows`; dynamic glue (to the shape) and point glue (to a connection point); straight, orthogonal and curved routes; arrowheads | `crates/diagram` (routing), `crates/engine/src/cmd/connector.rs` | planned |
+| Diagram canvas | Draw the page through `Viewport2D`; select, multi-select, marquee; move, resize and rotate handles; connector drag from connection points; in-place text editing | `crates/ui-egui/src/canvas.rs` | planned |
+| Shapes pane | Stencil browser pane with the Basic and Flowchart sets; click or drag to insert | `crates/ui-egui/src/panes.rs` | planned |
+| Ribbon tabs | Home (clipboard, font, tools, shape styles) and Insert tabs wired to the new commands, icons drawn in `icons.rs` | `crates/ui-egui/src/ribbon.rs` | planned |
+| SVG export | `file.export` with `{format: "svg"}` writes the current page | `crates/formats` | planned |
+| Remove transport, restore Space pan | Delete `transport.*` and `TransportState` (playback has no use in a diagram app); Space+drag pans the canvas again alongside middle-drag and Cmd+drag | `crates/engine/src/cmd/transport.rs`, `session.rs`, `crates/ui-egui/src/canvas.rs` | planned |
+| App icon | An original VizCraft icon drawn for the app, rendered by `packaging/icons.sh`, with its `ATTRIBUTION.md` row | `packaging/`, `assets/` | planned |
+| Minimal MCP server | Stdio JSON-RPC server with `command_list`, `command_run`, `command_batch`, `doc_inspect`, `screenshot` over the control channel (Remote backend); protocol core ported from VectorCraft's `crates/mcp`; launched by `vizcraft-cli mcp` | `crates/mcp` (new), `apps/vizcraft-cli` | planned |
 
-| Piece | Contents | State |
-|---|---|---|
-| Multi-window and native menu | `apps/vizcraft/src/windows.rs`: root viewport plus immediate viewports, one `CraftApp` each, Cmd+N in-process, root hand-over on close, quit asking each dirty window in turn, Cmd+W; `native_menu.rs` (muda, macOS) built from `menus::menu_tree` with the app and Window menus; `macos-open` with the real `imp` | done |
-| Ribbon | `ribbon.rs`: tab strip, groups from command ids, large and small buttons, toggles, dropdowns, collapse, contextual tabs; `icons.rs` drawn in code | done |
-| Pane manager | `panes/`: `Pane` trait, left and right side panels, drag to resize and reorder, `PaneLayout` persisted in `UiState`, `view.*` toggles | done |
-| In-window menu bar and dialogs | `menus.rs`: `menu_tree`, `entry`, `menu_bar`, `in_window_menus`; `dialogs.rs` with the Save-changes, About and Preferences dialogs driven by `ui_requests`; `keys.rs` shortcut parsing and dispatch; `chrome.rs` title bar (integrated on macOS) and status bar; `backstage.rs` | done |
-| Control channel and CLI | `control.rs` handling every method in `docs/control-protocol.md` with screenshots through the viewport; `apps/vizcraft/src/control_server.rs`; `--control`, `--sample`, file arguments; `apps/vizcraft-cli` running commands headless and printing the registry; preferences at the platform path with `VIZCRAFT_NO_PREFS`; `window_geometry.rs` | done |
+Done when: a person can draw a small flowchart (shapes, text, glued connectors that follow when
+shapes move), save it as `.vizcraft`, reopen it, export SVG, and an agent can build the same
+diagram through the MCP server alone.
 
-Done when: every window strip in the contract's layout order is on screen, both light and dark,
-the menus agree between the native bar and the in-window bar, and a script over the control
-channel can open the sample, change a note, switch tabs, toggle a pane and screenshot the
-result.
+## Cascade 2: editing richness
 
-## Cascade 3: integration, rename, packaging, kittest (done)
+| Piece | Contents | Lands in | State |
+|---|---|---|---|
+| Pages | Multiple pages, page tabs, background pages, page setup (size, orientation, units); `page.*` commands | `crates/diagram`, `crates/engine/src/cmd/page.rs`, `crates/ui-egui/src/canvas.rs` | planned |
+| Layers | Layers with visible, lock and print flags, assign shapes; Layers pane; `layer.*` commands | `crates/diagram`, `crates/engine/src/cmd/layer.rs`, `crates/ui-egui/src/panes.rs` | planned |
+| Groups and containers | Group and ungroup, containers that hold members, swimlanes | `crates/diagram`, `crates/engine/src/cmd/arrange.rs` | planned |
+| Arrange | Align, distribute, bring forward and send backward, flip, rotate, size and position; Arrange ribbon tab | `crates/engine/src/cmd/arrange.rs`, `crates/ui-egui/src/ribbon.rs` | planned |
+| Snap, grid, rulers, guides | Snap to grid, shapes and connection points; grid display; rulers; draggable guides; dynamic alignment guides while dragging | `crates/ui-egui/src/canvas.rs`, `crates/diagram` (snap math) | planned |
+| Themes and styles | Themes, quick styles, format painter, fill, line, shadow, gradient; Design ribbon tab; `design.*` commands | `crates/diagram`, `crates/engine/src/cmd/design.rs`, `crates/ui-egui/src/ribbon.rs` | planned |
+| Better routing | Line jumps where connectors cross; orthogonal rerouting that avoids obstacles | `crates/diagram` | planned |
+| Shape Data pane | Key and value data on shapes, edited in a pane; `data.*` commands | `crates/engine/src/cmd/data.rs`, `crates/ui-egui/src/panes.rs` | planned |
+| Pan and Zoom pane | Overview of the page with the visible area as a draggable frame | `crates/ui-egui/src/panes.rs` | planned |
+| Find and replace | Search shape text and shape data, replace | `crates/engine/src/cmd/edit.rs`, `crates/ui-egui/src/dialogs.rs` | planned |
+| PNG and PDF export | Raster and vector export of a page or all pages | `crates/formats` | planned |
 
-| Piece | Contents | State |
-|---|---|---|
-| Integration | Merge the Cascade 2 branches, resolve the seams between ribbon, panes and menus, one pass over the whole chrome for consistency | done |
-| Rename proof | `cargo xtask new-craft` run end to end; the result builds, passes `ci`, launches with the new name, bundle id and preferences folder; fixes to whatever the rename missed | done |
-| Packaging | `packaging/macos/package.sh`, `env.sh` and `entitlements.plist` adapted from WordCraft; a bundle that `crafts/rebuild.sh` installs; rendered icons committed with their attribution rows; Linux and Windows packaging scaffolds | done |
-| kittest | `egui_kittest` tests in `crates/ui-egui/tests/`: a frame of the sample in light and dark with snapshot comparison, menu and ribbon smoke tests, pane toggles, the Save-changes dialog flow | done |
+Done when: a multi-page cross-functional flowchart with swimlanes, layers, a theme and aligned
+shapes can be built and exported to PNG and PDF, by hand and over the control channel.
 
-Done when: a new craft made from `main` can be installed into `/Applications` by `rebuild.sh`
-with its own name and icon, and the kittest snapshots guard the chrome.
+## Cascade 3: draw.io interop and MCP parity
 
-## Cascade 4: generic baseline extensions (done)
+| Piece | Contents | Lands in | State |
+|---|---|---|---|
+| .drawio read and write | Multi-page files, compressed pages (deflate and base64), styles mapped to VizCraft styles; `quick-xml` and `zip` patterns ported from deckcraft's `pptx` and WordCraft's `docx`, adding `flate2` and `base64` | `crates/formats` | planned |
+| Mermaid import | Flowchart, sequence, class, state and ER diagrams | `crates/formats` | planned |
+| CSV import | draw.io-style CSV with layout and connection hints | `crates/formats` | planned |
+| Auto-layout | Layered, tree, radial and force layouts; re-layout a page or a selection; `layout.*` commands | `crates/diagram`, `crates/engine/src/cmd/layout.rs` | planned |
+| Stencil search | Keyword index over every stencil; search box in the Shapes pane | `crates/stencils`, `crates/ui-egui/src/panes.rs` | planned |
+| MCP draw.io-style tools | `open_xml`, `open_mermaid`, `open_csv`, `search_shapes`, `get_reference`, `list_pages`, `get_page`, `set_page`, with `layout` and `routing` options | `crates/mcp` | planned |
+| MCP resources and Headless backend | Resources for pages, shapes, commands and stencils; a Headless backend that hosts a `Session` in process, so no window is needed | `crates/mcp` | planned |
 
-Generalize VizCraft from a text-focused template into a clean, reusable foundation for diverse desktop crafts (arrangers/DAWs, diagram editors, animation suites, database schema visualizers).
+Done when: a .drawio file round-trips with its pages and connections intact, and an agent can
+create, inspect and edit a diagram from Mermaid or CSV through the MCP tools with or without a
+running window.
 
-| Piece | Contents | State |
-|---|---|---|
-| Selection generalization | `Selection`: primary selection, multi-item IDs, continuous range support, helper methods | done |
-| 2D viewport pan and zoom | `ViewState.pan`, `view.pan`, `view.resetPan`, `Viewport2D` screen/world math in `canvas.rs` | done |
-| Transport controls | `TransportState`, playback controls (`transport.*`) for time/timeline crafts | done |
-| Pluggable side panes | `PaneSpec::new`, `set_panes`, `reset_panes` in `panes.rs` for modular pane registries | done |
-| Export and Import | `file.export` and `file.import` command slots wired to menus and backstage | done |
+## Cascade 4: domain diagrams
 
-## Future work
+| Piece | Contents | Lands in | State |
+|---|---|---|---|
+| UML | Class, sequence, state, activity and use case stencils and templates | `crates/stencils` | planned |
+| BPMN | Events, activities, gateways, pools and lanes | `crates/stencils` | planned |
+| ER | Entities and crow's foot relationships | `crates/stencils` | planned |
+| Network | Generic network device stencils, drawn originally (no vendor brand icons) | `crates/stencils` | planned |
+| Org chart | Org chart stencils and a template built from CSV | `crates/stencils`, `crates/formats` | planned |
+| Timeline and cross-functional | Timeline shapes; cross-functional flowchart template | `crates/stencils` | planned |
+| Data graphics | Callouts, icon sets and colour by value driven by shape data | `crates/diagram`, `crates/engine/src/cmd/data.rs` | planned |
+| Validation | Diagram validation rules (unconnected connectors, flowchart rules) with an issues pane | `crates/diagram`, `crates/ui-egui/src/panes.rs` | planned |
+| Comments and hyperlinks | Comments on shapes and pages; hyperlinks between pages, shapes and URLs | `crates/diagram`, `crates/engine` | planned |
+| .vsdx import | Import from the public MS-VSDX specification (OPC zip and XML) | `crates/formats` | planned |
+
+Done when: each diagram type has a template that opens to a valid example, validation flags a
+broken flowchart, and a sample .vsdx built from the public specification imports.
+
+## Future
 
 Not scheduled, listed so they are not forgotten:
 
-- `apps/vizcraft-web`: the wasm build as a runnable app (the `wasm` gate already compiles it).
-- An MCP server over the control channel, shared by the crafts the way WordCraft's is.
-- A command palette with fuzzy search over `engine.commands`.
-- Autosave and crash recovery in the baseline, so every craft inherits them.
+| Item | Notes |
+|---|---|
+| Web app | `apps/vizcraft-web` as a full diagram editor in the browser (the shell and the `wasm` gate exist) |
+| Collaboration | Shared editing of one document |
+| Plugin stencils | Stencil sets loaded from files at run time |
+| Print | Page tiling and printing |

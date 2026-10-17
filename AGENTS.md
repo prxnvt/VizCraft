@@ -1,10 +1,9 @@
 # VizCraft: instructions for agents
 
-VizCraft is the baseline the "-craft" apps start from (`cargo xtask new-craft <name>`): a
-clean-room, open-source Rust and egui desktop app with the chrome finished and a trivial sample
-document inside. These instructions travel with every craft made from it. Where a craft has its
-own additions (a parity catalog, format specs, an MCP server), its own `AGENTS.md` adds them
-below; the rules here still apply.
+VizCraft is a clean-room, open-source desktop diagramming app in Rust and egui, aiming at the
+feature range of Microsoft Visio, with an MCP server modelled on draw.io's so agents can build and
+edit diagrams. The chrome is finished; the diagram model is being built cascade by cascade
+([ROADMAP.md](ROADMAP.md)). These rules apply to every change, by people and agents alike.
 
 The design contract is [docs/architecture.md](docs/architecture.md). Read it before changing
 anything that crosses a crate boundary; change it only together with the code and say so in the
@@ -12,8 +11,8 @@ commit message.
 
 ## Never crash
 
-People trust a craft with their work; a crash loses it. This outranks feature work: never ship a
-feature through a panic path, and fix a crash before building on top of it.
+People trust VizCraft with their diagrams; a crash loses them. This outranks feature work: never
+ship a feature through a panic path, and fix a crash before building on top of it.
 
 - No panics in non-test code: no `unwrap()`, `expect()`, `panic!`, `unreachable!`, `todo!`,
   `unimplemented!`. No `unsafe` (`unsafe_code = "forbid"` in the workspace; `macos-open` is the
@@ -33,7 +32,7 @@ feature through a panic path, and fix a crash before building on top of it.
 
 ## Assets: no Microsoft, Adobe, Avid or Autodesk iconography or images
 
-This rule is non-negotiable. Breaking it is the worst mistake you can make in a craft.
+This rule is non-negotiable. Breaking it is the worst mistake you can make in this repository.
 
 - Never copy, trace, screenshot-crop or recreate icons, images, templates, themes, clip art,
   fonts, cursors, sounds or any other asset from a Microsoft, Adobe, Avid or Autodesk product.
@@ -48,12 +47,56 @@ This rule is non-negotiable. Breaking it is the worst mistake you can make in a 
 
 ## Clean room
 
-A craft may look at the product it resembles the way a user does: run it, use its interface with
-synthetic documents, take screenshots of its window only (by window id, never the whole desktop),
-and keep those screenshots in a gitignored folder, never committed. Never read, disassemble or
-copy anything inside another vendor's application bundle; never commit files that application
-produced; never copy its wording beyond feature names. File formats come from public
-specifications. Never copy GPL, LGPL or AGPL code.
+VizCraft may look at the products it resembles (see
+[Product and observation](#product-and-observation)) the way a user does: run them, use their
+interfaces with synthetic documents, take screenshots of their windows only (by window id, never
+the whole desktop), and keep those screenshots in a gitignored folder, never committed. Never
+read, disassemble or copy anything inside another vendor's application bundle; never commit files
+that application produced; never copy its wording beyond feature names. File formats come from
+public specifications (see [Formats](#formats)). Never copy GPL, LGPL or AGPL code.
+
+## Product and observation
+
+VizCraft resembles Microsoft Visio for features and draw.io for agent integration. Both may be
+observed only as the [Clean room](#clean-room) section allows: run them, use their interfaces
+with synthetic diagrams, screenshot their windows into a gitignored folder. Feature names (glue,
+containers, swimlanes, Shape Data, themes) may be used; wording, help text, stencil artwork,
+templates, themes and colour schemes may not be copied. For draw.io, that includes its shape
+libraries and the text of its MCP tool descriptions: our tools cover the same workflows in our
+own words.
+
+## Formats
+
+Every file format is implemented from public specifications only: the draw.io (mxGraph) file
+format documentation, the Mermaid syntax documentation, the Microsoft MS-VSDX open specification,
+and the SVG and PDF specifications. Never read another application's parser or writer source to
+learn a format, and never commit files another application produced; test files are written by
+our own code or by hand. Each format, its source and its state are listed in
+[docs/formats.md](docs/formats.md); update it with the code.
+
+## Stencils
+
+Every stencil (shape master) is original and drawn in code, in the planned `crates/stencils`. Never
+Microsoft stencils, never shapes traced from another tool, and never vendor product or brand icons
+(cloud provider icons, company logos, product marks) even if another tool ships them. Domain
+notations (UML, BPMN, ER crow's foot, network) are drawn from the public notation, not from
+another tool's rendering of it. A stencil set that needs image files follows the
+[Assets](#assets-no-microsoft-adobe-avid-or-autodesk-iconography-or-images) rules.
+
+## MCP
+
+The MCP server (planned `crates/mcp`, launched by `vizcraft-cli mcp`) exposes engine commands by
+id. Every new command is reachable through the generic command tool with no extra work, because
+the tool reads the registry. Add a dedicated MCP tool only for a workflow draw.io's MCP server
+covers (opening XML, Mermaid or CSV, shape search, page listing and editing) or one that cannot be
+expressed as a sequence of commands. Programmatic calls never open dialogs. Document every tool,
+its parameters and its result in [docs/mcp.md](docs/mcp.md) in the same commit as the tool.
+
+## Parity catalog
+
+[docs/parity.md](docs/parity.md) lists the Visio-class features VizCraft aims for, grouped by
+area, each with its cascade and state. When a feature lands, update its state in the same commit;
+when you add a feature that is not listed, add a row.
 
 ## Everything is a command
 
