@@ -242,9 +242,14 @@ pub(crate) struct Placed {
     pub warnings: Vec<String>,
 }
 
-/// Put imported pages into `doc`: the first on the target page (cleared with `replace`, else
-/// placed to the right of what is there), any others on new pages; then lay out and route
-/// as `opts` asks. Nothing is changed when there is nothing to import.
+/// Put imported pages into `doc`: the first on the target page (cleared with `replace`), any
+/// others on new pages; then lay out and route as `opts` asks. Nothing is changed when there is
+/// nothing to import.
+///
+/// Adding to a page that already has shapes never moves those shapes. With a `layout`, the new
+/// shapes are placed around them by `layout_incremental`. Without one, the content keeps the
+/// arrangement it came with (the source's, or the Mermaid and CSV importers' own layout) and is
+/// set beside what is there, which is where incremental placement puts unconnected content.
 pub(crate) fn place(doc: &mut Document, imported: Imported, opts: &ImportOpts) -> Result<Placed, EngineError> {
     let Imported { pages, mut warnings } = imported;
     let mut pages = pages.into_iter();
@@ -257,13 +262,14 @@ pub(crate) fn place(doc: &mut Document, imported: Imported, opts: &ImportOpts) -
         },
     };
     let Some(target) = doc.pages.get_mut(index) else { return Err(EngineError::Failed("the document has no page".into())) };
+    let incremental = !opts.replace && opts.layout.is_some() && !target.shapes.is_empty();
     if opts.replace {
         // A draw.io page brings its own size; other sources leave the page as it was.
         if (first.width, first.height) != (Page::DEFAULT_WIDTH, Page::DEFAULT_HEIGHT) {
             target.width = first.width;
             target.height = first.height;
         }
-    } else if let (Some(have), Some(new)) = (shapes_bounds(target), shapes_bounds(&first)) {
+    } else if !incremental && let (Some(have), Some(new)) = (shapes_bounds(target), shapes_bounds(&first)) {
         shift(&mut first, have.x1 + IMPORT_GAP - new.x0, have.y0 - new.y0);
     }
     let mut placed: Vec<(usize, Vec<String>)> = vec![(index, doc.adopt(index, first, opts.replace))];
@@ -276,12 +282,18 @@ pub(crate) fn place(doc: &mut Document, imported: Imported, opts: &ImportOpts) -
         placed.push((i, doc.adopt(i, page, true)));
     }
     let layout = opts.layout.map(|algorithm| Options { algorithm, direction: opts.direction, ..Options::default() });
-    for (i, ids) in &placed {
+    for (n, (i, ids)) in placed.iter().enumerate() {
         let Some(page) = doc.pages.get_mut(*i) else { continue };
         if let Some(layout) = &layout {
             let shapes: Vec<String> = ids.iter().filter(|id| page.shape(id).is_some()).cloned().collect();
             if !shapes.is_empty() {
-                match autolayout::layout_items(page, Some(&shapes), layout) {
+                // Only the first imported page can land beside existing shapes.
+                let laid = if n == 0 && incremental {
+                    autolayout::layout_incremental(page, &shapes, layout)
+                } else {
+                    autolayout::layout_items(page, Some(&shapes), layout)
+                };
+                match laid {
                     Ok(notes) => warnings.extend(notes),
                     Err(e) => warnings.push(format!("the layout was not applied: {e}")),
                 }
@@ -441,6 +453,27 @@ mod tests {
         assert!(s.status.starts_with("Imported 2 shapes and 1 connectors"));
         s.run("edit.undo", &json!({})).unwrap();
         assert_eq!(s.doc, before);
+    }
+
+    #[test]
+    fn import_with_a_layout_beside_existing_shapes_pins_them() {
+        let mut s = Session::new(crate::sample::sample_document());
+        let before: Vec<(String, f64, f64)> = s.doc.page().unwrap().shapes.iter().map(|x| (x.id.clone(), x.x, x.y)).collect();
+        let r = s.run("file.import", &json!({"text": DOCS_EXAMPLE, "layout": "layered"})).unwrap();
+        let ids: Vec<String> = serde_json::from_value(r["ids"].clone()).unwrap();
+        let page = s.doc.page().unwrap();
+        for (id, x, y) in &before {
+            let sh = page.shape(id).unwrap();
+            assert_eq!((sh.x, sh.y), (*x, *y), "{id} moved");
+        }
+        for id in ids.iter().filter(|id| page.shape(id).is_some()) {
+            let a = page.shape(id).unwrap().bounds();
+            for other in page.shapes.iter().filter(|o| &o.id != id) {
+                let b = other.bounds();
+                let overlap = a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+                assert!(!overlap, "{id} overlaps {}", other.id);
+            }
+        }
     }
 
     #[test]

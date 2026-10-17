@@ -33,7 +33,7 @@ pub use control::ControlRequest;
 /// Commands that live in the UI layer: `(id, label, shortcut, params)`. Listed so the palette,
 /// menus and control channel see them next to the engine's.
 pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
-    ("ui.tab", "Switch Ribbon Tab", "", r#"{"tab": "File|Home|Insert|View|Help|Connector"}"#),
+    ("ui.tab", "Switch Ribbon Tab", "", r#"{"tab": "File|Home|Insert|Design|View|Help|Connector"}"#),
     ("ui.collapseRibbon", "Collapse the Ribbon", "Mod+F1", r#"{"value"?: bool}"#),
     ("ui.commands", "Search Commands", "Mod+Shift+P", "{}"),
     ("ui.dialog", "Open Dialog", "", r#"{"name": "commands|zoom|about|preferences|quit|shortcuts|message", "title"?: string, "text"?: string}"#),

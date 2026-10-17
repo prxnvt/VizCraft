@@ -130,8 +130,10 @@ const LAYOUT: &str = "\
 ## Layout
 
 The `layout` option of open_xml, open_mermaid, open_csv and set_page places the imported shapes
-automatically. Without it, XML keeps its own coordinates, while Mermaid and CSV content is always
-laid out (layered by default).
+automatically. Without it, XML keeps its own coordinates, Mermaid content is laid out in its own
+direction with subgraph boxes around their members, and CSV content follows its `layout`
+directive (layered top to bottom by default). Giving `layout` re-lays the imported shapes out
+with that algorithm and `direction`, which suits flat graphs best.
 
 | `layout` | Result |
 |---|---|
@@ -140,10 +142,17 @@ laid out (layered by default).
 | `radial` | The tree on concentric rings around the root |
 | `force` | A spring layout for networks with no natural direction |
 
-`direction` sets the flow for layered and tree layouts: `TB` (top to bottom, the default), `BT`,
-`LR` (left to right) or `RL`. Shapes are kept from overlapping, and unconnected groups of shapes
-are packed side by side. The same algorithms are available afterwards as the `layout.layered`,
-`layout.tree`, `layout.radial` and `layout.force` commands.
+`direction` goes with `layout` and sets the flow for layered and tree layouts: `TB` (top to
+bottom, the default), `BT`, `LR` (left to right) or `RL`. Shapes are kept from overlapping,
+unconnected groups of shapes are packed side by side, and the page grows to fit.
+
+Afterwards, three commands (run with command_run) rearrange a page:
+
+| Command | Effect |
+|---|---|
+| `layout.full {algorithm?, direction?, ids?}` | Rearranges everything: the named shapes, the selection, or the whole page |
+| `layout.incremental {ids, algorithm?, direction?}` | Places only the named (new) shapes next to the shapes they connect to; every other shape stays put |
+| `layout.route {ids?}` | Routes connectors around shapes and never moves a shape |
 ";
 
 const ROUTING: &str = "\
@@ -154,7 +163,8 @@ horizontal and vertical segments that go around the shapes in its way, and paral
 spread apart. Such connectors are rerouted automatically whenever a shape moves.
 
 Without the option, connectors keep the bend points from the source (or none). The
-`connector.reroute` command does the same later, for chosen connectors or all of them, and
+`layout.route` command does the same later, for chosen connectors or all of them,
+`connector.reroute {ids?, avoid: false}` turns avoidance off again, and
 `connector.setJumps` turns line jumps on or off: a connector with jumps draws a small hop where
 it crosses a connector drawn before it. In XML, `jumpStyle=arc` turns jumps on.
 ";
@@ -166,13 +176,13 @@ open_mermaid reads these five kinds, detected from the first line:
 
 | First line | Becomes |
 |---|---|
-| `flowchart` or `graph`, with a direction (`TD`, `TB`, `BT`, `LR`, `RL`) | Shapes by node bracket (rectangle, rounded, decision, stadium as terminator, cylinder, hexagon, subroutine as predefined process, and so on), arrows with their labels, dashed and thick lines; subgraphs become a background box behind their members |
+| `flowchart` or `graph`, with a direction (`TD`, `TB`, `BT`, `LR`, `RL`) | Shapes by node bracket (rectangle, rounded, decision, stadium as terminator, cylinder, hexagon, subroutine as predefined process, and so on), arrows with their labels, thick lines (dashed and dotted lines are recorded but drawn solid for now); subgraphs become a background box behind their members |
 | `sequenceDiagram` | Participants in a row with lifelines, messages as horizontal arrows from top to bottom in order |
 | `classDiagram` | One box per class with its members as text, relations as connectors |
 | `stateDiagram` or `stateDiagram-v2` | States and transitions; composite states become a background box |
 | `erDiagram` | One box per entity with its attributes as text, relationships as labelled connectors |
 
-The flowchart direction is used unless `direction` is given. Node ids are kept, so a node `A`
+The diagram's own direction is used unless `layout` is given. Node ids are kept, so a node `A`
 can be addressed as `A` afterwards. Statements that are understood but not drawn come back as
 warnings rather than errors; a real syntax error names its line and column.
 ";
