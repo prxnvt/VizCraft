@@ -60,7 +60,7 @@ impl Side {
     }
 }
 
-/// Panes a craft registered with [`set_panes`]; `None` means the default set.
+/// Panes registered with [`set_panes`]; `None` means the default set.
 #[cfg(not(test))]
 static CUSTOM_PANES: std::sync::RwLock<Option<Vec<PaneSpec>>> = std::sync::RwLock::new(None);
 
@@ -490,7 +490,7 @@ fn sync_view_flags(app: &mut CraftApp, ctx: &egui::Context) {
 }
 
 /// The toggle command of a pane (`ui.pane.<key>`), as spelled in [`crate::UI_COMMANDS`]; a pane
-/// without a row there has no menu item, so a craft adding a pane adds the row too (the
+/// without a row there has no menu item, so adding a pane means adding the row too (the
 /// `registry_has_the_three_panes_and_commands` test checks).
 pub fn command_id(key: &str) -> Option<&'static str> {
     crate::UI_COMMANDS.iter().map(|(id, ..)| *id).find(|id| id.strip_prefix("ui.pane.") == Some(key))

@@ -1,5 +1,5 @@
 //! Design tokens (light and dark), the UI fonts and the egui style. Widgets never hard-code a
-//! colour: everything comes from [`Tokens`], so a craft re-skins by editing this file.
+//! colour: everything comes from [`Tokens`], so the app re-skins by editing this file.
 
 use std::sync::Arc;
 

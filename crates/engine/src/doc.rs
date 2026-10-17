@@ -1,9 +1,9 @@
-//! The application model. A craft replaces this module (and `io.rs`, `sample.rs`)
-//! with its own domain model (such as a DAW project, diagram, DB schema, or animation scene).
+//! The document model: a placeholder with metadata only. The diagram model (pages, layers,
+//! shapes, connectors) replaces it in Cascade 1, together with `io.rs` and `sample.rs`.
 
 use serde::{Deserialize, Serialize};
 
-/// Document metadata, the part every craft's model carries in some form.
+/// Document metadata: author, timestamps and revision.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct CoreProps {
@@ -18,7 +18,7 @@ pub struct CoreProps {
     pub revision: u32,
 }
 
-/// The application document/model. A real craft replaces this with its own data structures.
+/// The document. A placeholder until the diagram model lands.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Document {

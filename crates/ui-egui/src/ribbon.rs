@@ -1,10 +1,10 @@
 //! The ribbon: a data-driven, Office-style tab strip and ribbon body.
 //!
-//! A craft declares its ribbon as data ([`Tab`], [`Group`], [`Control`]) and [`show`] renders it;
+//! The app declares its ribbon as data ([`Tab`], [`Group`], [`Control`]) and [`show`] renders it;
 //! no egui code is needed for the common controls. Every control runs a command by id; its
 //! label, shortcut, location and enablement come from the registry (or `UI_COMMANDS`), so the
-//! ribbon never has behaviour of its own. [`tabs`] returns the default tabs; a craft replaces
-//! the function body (or filters and extends its result) to declare its own.
+//! ribbon never has behaviour of its own. [`tabs`] returns the default tabs; the diagram tabs
+//! will replace the function body (or filter and extend its result).
 //!
 //! Rendering: the tab strip (active underline, hover, double-click collapses, `File` opens the
 //! File page through `ui.tab`), the body with groups separated by rules and labelled underneath,
@@ -67,7 +67,7 @@ pub enum Control {
     Stack(Vec<Control>),
     /// A little horizontal space.
     Gap,
-    /// Anything else, drawn by the craft.
+    /// Anything else, drawn by the app.
     Custom(fn(&mut CraftApp, &mut Ui)),
 }
 
@@ -307,7 +307,7 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
     show_tabs(app, ui, &tabs);
 }
 
-/// [`show`] with an explicit tab list (a craft with several ribbons, or a test).
+/// [`show`] with an explicit tab list (several ribbons, or a test).
 pub fn show_tabs(app: &mut CraftApp, ui: &mut Ui, tabs: &[Tab]) {
     let t = Tokens::get(ui.ctx());
     let strip = egui::Panel::top("tabs")

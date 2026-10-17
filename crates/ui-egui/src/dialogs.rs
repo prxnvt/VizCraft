@@ -200,12 +200,12 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
             ui.label(egui::RichText::new(format!("Version {}", env!("CARGO_PKG_VERSION"))).color(t.text_dim));
             ui.label(
                 egui::RichText::new(
-                    "The baseline every craft app starts from: window chrome, menus, ribbon, panes,\npreferences and a control channel, over a tiny sample document.",
+                    "A diagramming app for flowcharts, org charts and system designs,\nwith a control channel for scripts and agents.",
                 )
                 .color(t.text),
             );
-            // The link comes from the package metadata, so a craft made from the baseline links
-            // to its own repository (or shows none) instead of VizCraft's.
+            // The link comes from the package metadata, so a fork links to its own repository (or
+            // shows none) instead of VizCraft's.
             let repo = env!("CARGO_PKG_REPOSITORY");
             if !repo.is_empty() {
                 ui.add_space(4.0);

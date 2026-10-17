@@ -48,9 +48,9 @@
   <key>NSHumanReadableCopyright</key>
   <string>Copyright (c) 2026 VizCraft contributors. MIT OR Apache-2.0.</string>
 
-  <!-- Documents the app opens from Finder (double click, Open With, Dock drops). The sample
-       model saves `.craft.json`; a new craft replaces this with its own types and content types
-       (declare its own UTI under UTExportedTypeDeclarations when the format is its own). -->
+  <!-- Documents the app opens from Finder (double click, Open With, Dock drops). Today the
+       placeholder model saves `.craft.json`; Cascade 1 replaces it with `.vizcraft` (declared
+       under UTExportedTypeDeclarations) and adds `.drawio` as an alternate type. -->
   <key>CFBundleDocumentTypes</key>
   <array>
     <dict>

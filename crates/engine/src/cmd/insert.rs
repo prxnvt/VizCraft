@@ -1,4 +1,4 @@
-//! Insert commands. A real craft adds its insertion commands here (such as tracks, shapes, tables).
+//! Insert commands: shapes, connectors, containers and pages land here.
 
 use crate::CommandSpec;
 

@@ -25,10 +25,11 @@ requests are out of scope until the transport gains a reader thread.
 
 | Backend | How it starts | What works |
 |---|---|---|
-| `Remote` | `vizcraft-cli mcp --connect 127.0.0.1:7990`, with the app started as `vizcraft --control 7990` | Everything. Each tool call becomes one or more requests on the app's [control channel](control-protocol.md), so the diagram changes live in the window |
-| `Headless` | `vizcraft-cli mcp --headless` | An in-process engine `Session` that answers the same method names itself, with screenshots rendered offscreen. UI-only methods (`ui.*` input, `ui.inspect`) are unavailable and say so |
+| `Remote` (Cascade 1) | `vizcraft-cli mcp --connect 127.0.0.1:7990`, with the app started as `vizcraft --control 7990` | Everything. Each tool call becomes one or more requests on the app's [control channel](control-protocol.md), so the diagram changes live in the window |
+| `Headless` (Cascade 3) | `vizcraft-cli mcp --headless` | An in-process engine `Session` that answers the same method names itself, with screenshots rendered offscreen. UI-only methods (`ui.*` input, `ui.inspect`) are unavailable and say so |
 
-With neither flag the server tries the default address and falls back to headless. The trait is
+With neither flag the server tries the default address and, once the Headless backend exists,
+falls back to it; until then it reports that no app is listening. The trait is
 small: call one method with JSON params and get a JSON result or an error message, report
 whether a real UI is attached, and describe the backend for logs.
 

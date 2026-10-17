@@ -5,7 +5,8 @@
 //! shortcut, a params description and a `run` function. Menus, ribbon, shortcuts, the command
 //! palette, the CLI and the JSON control channel all call [`Session::run`].
 //!
-//! Nothing here knows about egui: a craft keeps this crate when it swaps the front end.
+//! Nothing here knows about egui, so the engine serves the desktop app, the CLI, the web shell
+//! and (later) the MCP server alike.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
 pub mod cmd;

@@ -1,5 +1,5 @@
-//! The central canvas area. A real craft replaces or extends this module with its own canvas (such as an
-//! arrangement workspace, diagram surface, timeline, or schema grid).
+//! The central canvas area. Today a bare pan-and-zoom surface; the diagram canvas (shapes,
+//! connectors, selection handles, snapping) is built here.
 //!
 //! Provides [`Viewport2D`] for 2D pan/zoom math and pointer interaction handling.
 
