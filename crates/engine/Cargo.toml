@@ -9,6 +9,8 @@ description = "VizCraft engine: Session, undo, the command registry; nothing her
 workspace = true
 
 [dependencies]
+vizcraft-diagram = { workspace = true }
+vizcraft-stencils = { workspace = true }
 thiserror = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
