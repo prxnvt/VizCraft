@@ -51,6 +51,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.paneSide", "Move Pane to Side", "", r#"{"name": "shapes|navigation|properties|history", "side": "left|right"}"#),
     ("ui.collapsePanes", "Collapse Side Panes", "", r#"{"side": "left|right", "value"?: bool}"#),
     ("ui.panesReset", "Reset Panes", "", "{}"),
+    ("ui.shapesSearch", "Search Shapes Pane", "", r#"{"query": string} -> {"query", "results": [master id]}"#),
     ("ui.clearRecent", "Clear Recent Files", "", "{}"),
     ("ui.shortcuts", "Keyboard Shortcuts", "Mod+/", "{}"),
     ("ui.print", "Print", "Mod+P", "{}"),
@@ -176,6 +177,9 @@ pub struct CraftApp {
     pub tool: Tool,
     /// Canvas interaction state (drag preview, text editing, hover).
     pub canvas: canvas::CanvasState,
+    /// Text in the Shapes pane's search field (`ui.shapesSearch`). Transient: not in [`UiState`],
+    /// so it is never saved with the preferences.
+    pub shapes_query: String,
     /// The File page is showing instead of the document.
     backstage: bool,
     control_rx: Option<Receiver<ControlRequest>>,
@@ -210,6 +214,7 @@ impl CraftApp {
             frame_ms: 0.0,
             tool: Tool::Pointer,
             canvas: canvas::CanvasState::default(),
+            shapes_query: String::new(),
             backstage: false,
             control_rx: None,
             shot_token: 0,

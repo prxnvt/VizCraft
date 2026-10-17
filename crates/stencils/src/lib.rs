@@ -8,6 +8,8 @@
 //! hit testing and routing stay in one place.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
+mod search;
+
 use vizcraft_diagram::{Color, Shape, ShapeKind, Style};
 
 /// A shape recipe.
@@ -121,16 +123,11 @@ pub fn master(id: &str) -> Option<&'static Master> {
 }
 
 /// Masters matching every whitespace-separated word of `query` (case-insensitive) in the id,
-/// label or keywords. An empty query matches everything.
+/// label, category, set name or keywords, best match first: the exact label or id, then word
+/// prefixes, then keywords, then substrings; ties keep catalog order. An empty query gives the
+/// whole catalog in order.
 pub fn search(query: &str) -> Vec<&'static Master> {
-    let words: Vec<String> = query.split_whitespace().take(16).map(str::to_lowercase).collect();
-    SETS.iter()
-        .flat_map(|s| s.masters.iter())
-        .filter(|m| {
-            let hay = format!("{} {} {}", m.id, m.label, m.keywords.join(" ")).to_lowercase();
-            words.iter().all(|w| hay.contains(w.as_str()))
-        })
-        .collect()
+    search::search(query)
 }
 
 impl Master {

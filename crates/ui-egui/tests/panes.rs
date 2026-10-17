@@ -2,6 +2,7 @@
 //! `ui.set` values, and a few frames of real layout and pointer input under egui_kittest.
 
 use egui_kittest::Harness;
+use egui_kittest::kittest::Queryable;
 use serde_json::{Value, json};
 use vizcraft_engine::Session;
 use vizcraft_ui_egui::panes::{self, DEFAULT_HEIGHT, MAX_WIDTH, MIN_HEIGHT, MIN_WIDTH, PaneLayout, Side};
@@ -359,4 +360,93 @@ fn strip_click_unfolds_a_side() {
         y += 6.0;
     }
     assert!(done, "clicking the strip unfolds the side");
+}
+
+/// Number of master tiles in the window labelled `label` (other widgets may share a label, so
+/// only buttons count).
+fn tiles(h: &Harness<'_, CraftApp>, label: &str) -> usize {
+    h.query_all_by_role_and_label(egui::accesskit::Role::Button, label).count()
+}
+
+fn search_box<'a>(h: &'a Harness<'_, CraftApp>) -> egui_kittest::Node<'a> {
+    h.get_by(|n| n.placeholder() == Some("Search shapes"))
+}
+
+#[test]
+fn typing_in_the_shapes_search_shows_only_matching_tiles() {
+    let mut h = harness(app());
+    assert_eq!(tiles(&h, "Rectangle"), 1, "every set shows with an empty query");
+    assert!(h.query_by_label("Results").is_none());
+    search_box(&h).focus();
+    h.run_steps(1);
+    search_box(&h).type_text("decis");
+    h.run_steps(3);
+    assert_eq!(h.state().shapes_query, "decis");
+    h.get_by_label("Results");
+    let all: Vec<_> = vizcraft_stencils::sets().iter().flat_map(|s| s.masters.iter()).collect();
+    for m in &all {
+        let want = usize::from(m.id == "flowchart.decision");
+        assert_eq!(tiles(&h, m.label), want, "{} with query decis", m.id);
+    }
+    // A result tile still inserts on click.
+    let n = h.state().session.doc.page().unwrap().shapes.len();
+    h.get_by_role_and_label(egui::accesskit::Role::Button, "Decision").click();
+    h.run_steps(3);
+    let page = h.state().session.doc.page().unwrap();
+    assert_eq!(page.shapes.len(), n + 1);
+    assert_eq!(page.shapes.last().unwrap().stencil, "flowchart.decision");
+    // The clear button brings the sets back.
+    h.get_by_label("Clear search").click();
+    h.run_steps(3);
+    assert!(h.state().shapes_query.is_empty());
+    assert_eq!(tiles(&h, "Rectangle"), 1);
+    assert!(h.query_by_label("Results").is_none());
+}
+
+#[test]
+fn escape_clears_the_shapes_search() {
+    let mut h = harness(app());
+    search_box(&h).focus();
+    h.run_steps(1);
+    search_box(&h).type_text("cloud");
+    h.run_steps(2);
+    assert_eq!(tiles(&h, "Rectangle"), 0);
+    assert_eq!(tiles(&h, "Cloud"), 1);
+    h.key_press(egui::Key::Escape);
+    h.run_steps(3);
+    assert!(h.state().shapes_query.is_empty());
+    assert_eq!(tiles(&h, "Rectangle"), 1);
+}
+
+#[test]
+fn shapes_search_with_no_match_says_so() {
+    let mut h = harness(app());
+    let r = h.state_mut().run("ui.shapesSearch", json!({"query": "zebra crossing"})).unwrap();
+    assert_eq!(r["results"], json!([]));
+    h.run_steps(3);
+    h.get_by_label("No shapes match");
+    assert!(h.query_by_label("Results").is_none());
+    assert_eq!(tiles(&h, "Rectangle") + tiles(&h, "Decision"), 0);
+}
+
+#[test]
+fn ui_shapes_search_sets_the_query_opens_the_pane_and_is_not_saved() {
+    let mut a = app();
+    a.run("ui.pane", json!({"name": "shapes", "value": false})).unwrap();
+    let r = a.run("ui.shapesSearch", json!({"query": "data"})).unwrap();
+    assert_eq!(r["query"], "data");
+    assert_eq!(r["results"][0], "flowchart.data", "{r}");
+    assert!(a.ui.panes.is_open("shapes"), "searching opens the pane");
+    let prefs = serde_json::to_string(&a.prefs()).unwrap();
+    assert!(!prefs.contains("shapesQuery") && !prefs.contains("shapes_query"), "{prefs}");
+    // Junk clears instead of failing; a huge query is capped.
+    for junk in [json!({}), json!({"query": 5}), json!(null)] {
+        let r = a.run("ui.shapesSearch", junk).unwrap();
+        assert_eq!(r["query"], "");
+        assert!(a.shapes_query.is_empty());
+    }
+    a.run("ui.shapesSearch", json!({"query": "x".repeat(100_000)})).unwrap();
+    assert!(a.shapes_query.chars().count() <= 256);
+    // Empty query: no results listed, the pane shows the sets.
+    assert_eq!(a.run("ui.shapesSearch", json!({"query": "  "})).unwrap()["results"], json!([]));
 }
