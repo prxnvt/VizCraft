@@ -33,11 +33,11 @@ When a feature lands, change its State in the same commit as the code. States:
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
 | Basic shapes | 1 | done | Rectangle, rounded rectangle, ellipse, diamond, triangle, parallelogram, hexagon, cylinder, document, cloud; `shape.add {stencil}` |
-| Select, move, resize, rotate | 1 | partial | `edit.select`, `shape.move`, `shape.resize`, `shape.rotate` work; canvas handles pending |
-| Multi-select and marquee | 1 | partial | `edit.select {ids, add?}` and `edit.selectAll`; marquee pending |
-| Shapes pane | 1 | planned | Stencil browser; click or drag to insert |
+| Select, move, resize, rotate | 1 | done | Canvas handles (Shift keeps aspect, snaps rotation to 15 degrees), arrow-key nudge, and `shape.*` commands |
+| Multi-select and marquee | 1 | done | Shift-click, marquee, `edit.select {ids, add?}`, `edit.selectAll` |
+| Shapes pane | 1 | done | Basic and Flowchart sets with drawn previews; click or drag to insert |
 | Basic and Flowchart stencils | 1 | done | Original shapes defined in code (`vizcraft-stencils`), inserted with `shape.add` |
-| Connection points | 1 | partial | Per-shape points connectors glue to; in the model, editing arrives with the canvas |
+| Connection points | 1 | done | Four per built-in shape; shown on hover, connectors drag from and glue to them |
 | Stencil search | 3 | planned | Keyword index over every stencil |
 | Custom stencils | Future | planned | Plugin stencil sets loaded from files |
 
@@ -58,8 +58,8 @@ When a feature lands, change its State in the same commit as the code. States:
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| Text in shapes | 1 | partial | `shape.setText`; in-place editing on the canvas pending |
-| Font, size, colour, bold, italic | 1 | partial | `shape.setStyle`; Home tab font group pending |
+| Text in shapes | 1 | done | Double-click or the Text tool edits in place; `shape.setText`, `connector.setText` |
+| Font, size, colour, bold, italic | 1 | done | Home tab Font group and `shape.setStyle` |
 | Alignment and wrapping in the shape | 2 | planned | Horizontal and vertical alignment, margins |
 | Text blocks | 2 | planned | Free-standing text shapes |
 
@@ -134,7 +134,7 @@ When a feature lands, change its State in the same commit as the code. States:
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| Flowchart | 1 | planned | Flowchart stencil set |
+| Flowchart | 1 | done | Flowchart stencil set in the Shapes pane and Insert tab |
 | Cross-functional flowchart | 4 | planned | Template on swimlanes from Cascade 2 |
 | Org chart | 4 | planned | Stencils and a CSV-driven template |
 | UML | 4 | planned | Class, sequence, state, activity, use case |

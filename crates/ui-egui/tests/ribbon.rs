@@ -2,12 +2,12 @@
 //! the body and shows it as a popup, contextual tabs come and go, icons stay inside their box.
 
 use egui::{Rect, Shape, pos2, vec2};
-use egui_kittest::kittest::Queryable as _;
+use egui_kittest::kittest::{NodeT as _, Queryable as _};
 use serde_json::json;
 use vizcraft_engine::Session;
 use vizcraft_ui_egui::ribbon::{self, Control, Group, Overflow, Tab};
 use vizcraft_ui_egui::theme::Tokens;
-use vizcraft_ui_egui::{CraftApp, Services, UI_COMMANDS, icons, widgets};
+use vizcraft_ui_egui::{CraftApp, Services, Tool, UI_COMMANDS, icons, widgets};
 
 type Harness = egui_kittest::Harness<'static, CraftApp>;
 
@@ -40,7 +40,9 @@ fn harness() -> Harness {
 fn every_control_id_resolves_to_a_command() {
     let a = app();
     let tabs = ribbon::tabs(&a);
-    assert!(tabs.iter().any(|t| t.name == "Home") && tabs.iter().any(|t| t.name == "View"));
+    for name in ["Home", "Insert", "View", "Help", "Connector"] {
+        assert!(tabs.iter().any(|t| t.name == name), "{name} tab missing");
+    }
     for tab in &tabs {
         let ids = tab.ids();
         assert!(!ids.is_empty(), "{} has no controls", tab.name);
@@ -50,22 +52,11 @@ fn every_control_id_resolves_to_a_command() {
         }
     }
     // Icons the default tabs use are drawn ones, not the letter-tile fallback.
-    fn icons_of(c: &Control, out: &mut Vec<&'static str>) {
-        match c {
-            Control::Big { icon, .. }
-            | Control::Small { icon, .. }
-            | Control::Toggle { icon, .. }
-            | Control::Split { icon, .. }
-            | Control::Menu { icon, .. } => out.push(icon),
-            Control::Stack(items) => items.iter().for_each(|c| icons_of(c, out)),
-            Control::Combo { .. } | Control::Gap | Control::Custom(_) => {}
-        }
-    }
     let mut used = Vec::new();
     for tab in &tabs {
         for g in &tab.groups {
             for c in &g.controls {
-                icons_of(c, &mut used);
+                c.icons(&mut used);
             }
         }
     }
@@ -162,19 +153,157 @@ fn collapsing_hides_the_body_and_a_tab_click_shows_it_as_a_popup() {
 #[test]
 fn contextual_tabs_show_only_while_their_condition_holds() {
     let mut h = harness();
-    assert!(h.query_by_label("Selection tab").is_none());
-    h.state_mut().session.sel = vizcraft_engine::Selection::single("elem1");
+    assert!(h.query_by_label("Connector tab").is_none());
+    // A shape selected is not enough: the Connector tab is for connectors.
+    let shape = first_shape(&h);
+    h.state_mut().session.sel = vizcraft_engine::Selection::single(shape);
     h.run_steps(3);
-    assert!(h.query_by_label("Selection tab").is_some());
-    h.get_by_label("Selection tab").click();
+    assert!(h.query_by_label("Connector tab").is_none());
+    let conn = first_connector(&h);
+    h.state_mut().session.sel = vizcraft_engine::Selection::single(conn.clone());
     h.run_steps(3);
-    assert_eq!(h.state().ui.tab, "Selection");
-    assert!(h.query_by_label("Select All").is_some());
+    assert!(h.query_by_label("Connector tab").is_some());
+    h.get_by_label("Connector tab").click();
+    h.run_steps(3);
+    assert_eq!(h.state().ui.tab, "Connector");
+    // The route buttons run connector.setRoute on the selected connector.
+    h.get_by_label("Curved").click();
+    h.run_steps(3);
+    let route = |h: &Harness| h.state().session.doc.page().and_then(|p| p.connector(&conn)).map(|c| c.route);
+    assert_eq!(route(&h), Some(vizcraft_diagram::Route::Curved));
+    h.get_by_label("Straight").click();
+    h.run_steps(3);
+    assert_eq!(route(&h), Some(vizcraft_diagram::Route::Straight));
     // When the condition stops holding the strip falls back to the first tab's body.
     h.state_mut().session.sel = vizcraft_engine::Selection::empty();
     h.run_steps(3);
-    assert!(h.query_by_label("Selection tab").is_none());
+    assert!(h.query_by_label("Connector tab").is_none());
     assert!(h.query_by_label("Undo").is_some(), "Home shows while the chosen tab is hidden");
+}
+
+fn first_shape(h: &Harness) -> String {
+    h.state().session.doc.page().and_then(|p| p.shapes.first()).map(|s| s.id.clone()).unwrap()
+}
+
+fn first_connector(h: &Harness) -> String {
+    h.state().session.doc.page().and_then(|p| p.connectors.first()).map(|c| c.id.clone()).unwrap()
+}
+
+#[test]
+fn bold_and_italic_toggle_the_selected_shapes_style() {
+    let mut h = harness();
+    let id = first_shape(&h);
+    let style = |h: &Harness, id: &str| h.state().session.doc.page().and_then(|p| p.shape(id)).map(|s| s.style.clone()).unwrap();
+    assert!(!style(&h, &id).bold);
+    // Nothing selected: the click is refused with a status message and nothing changes.
+    let rev = h.state().session.rev();
+    h.get_by_label("Bold").click();
+    h.run_steps(3);
+    assert_eq!(h.state().session.rev(), rev);
+    assert!(h.state().status_msg.is_some(), "the status bar says why");
+    h.state_mut().session.sel = vizcraft_engine::Selection::single(id.clone());
+    h.run_steps(3);
+    h.get_by_label("Bold").click();
+    h.run_steps(3);
+    assert!(style(&h, &id).bold, "Bold set the style");
+    assert!(h.get_by_label("Bold").accesskit_node().toggled() == Some(egui::accesskit::Toggled::True), "Bold shows checked");
+    h.get_by_label("Bold").click();
+    h.run_steps(3);
+    assert!(!style(&h, &id).bold, "a second click clears it");
+    h.get_by_label("Italic").click();
+    h.run_steps(3);
+    assert!(style(&h, &id).italic);
+    // Rotate right turns the shape a quarter turn from where it is.
+    h.get_by_label("Rotate Right").click();
+    h.run_steps(3);
+    assert_eq!(style_angle(&h, &id), 90.0);
+    for _ in 0..2 {
+        h.get_by_label("Rotate Left").click();
+        h.run_steps(3);
+    }
+    assert_eq!(style_angle(&h, &id), 270.0);
+}
+
+fn style_angle(h: &Harness, id: &str) -> f64 {
+    h.state().session.doc.page().and_then(|p| p.shape(id)).map(|s| s.angle_deg).unwrap()
+}
+
+#[test]
+fn tool_toggles_set_the_canvas_tool() {
+    let mut h = harness();
+    assert_eq!(h.state().tool, Tool::Pointer);
+    assert!(h.get_by_label("Pointer").accesskit_node().toggled() == Some(egui::accesskit::Toggled::True));
+    h.get_by_label("Connector").click();
+    h.run_steps(3);
+    assert_eq!(h.state().tool, Tool::Connector);
+    assert!(h.get_by_label("Connector").accesskit_node().toggled() == Some(egui::accesskit::Toggled::True));
+    h.get_by_label("Text").click();
+    h.run_steps(3);
+    assert_eq!(h.state().tool, Tool::Text);
+    h.get_by_label("Pointer").click();
+    h.run_steps(3);
+    assert_eq!(h.state().tool, Tool::Pointer);
+}
+
+#[test]
+fn an_insert_gallery_button_adds_that_master_on_the_page() {
+    let mut h = harness_at(1200.0, "Insert");
+    // The Shapes pane has buttons with the same names; close it so the labels find the ribbon's.
+    h.state_mut().run("ui.pane", serde_json::json!({"name": "shapes", "value": false})).unwrap();
+    h.run_steps(2);
+    let count = |h: &Harness| h.state().session.doc.page().map(|p| p.shapes.len()).unwrap();
+    let before = count(&h);
+    h.get_by_label("Decision").click();
+    h.run_steps(3);
+    assert_eq!(count(&h), before + 1);
+    let page = h.state().session.doc.page().unwrap();
+    let added = page.shapes.last().unwrap();
+    assert_eq!(added.stencil, "flowchart.decision");
+    assert!(page.rect().contains_rect(&added.frame()), "the new shape is on the page: {:?}", added.frame());
+    assert!(h.state().session.sel.contains(&added.id), "the new shape is selected");
+    // A second insert of the same master steps aside instead of hiding under the first.
+    let first = (added.x, added.y);
+    h.get_by_label("Decision").click();
+    h.run_steps(3);
+    let page = h.state().session.doc.page().unwrap();
+    let second = page.shapes.last().unwrap();
+    assert_ne!((second.x, second.y), first);
+    // The Insert tab's Connector and Text buttons pick the tool.
+    h.get_by_label("Connector").click();
+    h.run_steps(3);
+    assert_eq!(h.state().tool, Tool::Connector);
+}
+
+#[test]
+fn colour_buttons_set_the_fill_from_the_palette() {
+    let mut h = harness();
+    let id = first_shape(&h);
+    h.state_mut().session.sel = vizcraft_engine::Selection::single(id.clone());
+    h.run_steps(3);
+    h.get_by_label("Fill").click();
+    h.run_steps(3);
+    h.get_by_label("Fill #2f7d6d").click();
+    h.run_steps(3);
+    let fill = h.state().session.doc.page().and_then(|p| p.shape(&id)).map(|s| s.style.fill.to_hex()).unwrap();
+    assert!(fill.starts_with("#2f7d6d"), "{fill}");
+}
+
+#[test]
+fn every_shape_kind_draws_inside_its_box() {
+    for kind in vizcraft_diagram::ShapeKind::ALL {
+        for (w, h) in [(120.0, 70.0), (50.0, 50.0), (90.0, 100.0), (140.0, 50.0)] {
+            let ctx = egui::Context::default();
+            let t = Tokens::light();
+            let r = Rect::from_min_size(pos2(20.0, 20.0), vec2(16.0, 16.0));
+            let mut out = ctx.run_ui(Default::default(), |ui| icons::paint_kind(ui.painter(), r, kind, w, h, t.icon, t.accent));
+            out.textures_delta.clear();
+            assert!(!out.shapes.is_empty(), "{kind:?} draws nothing");
+            for s in out.shapes {
+                let b = s.shape.visual_bounding_rect();
+                assert!(r.expand(icons::stroke_width(16.0)).contains_rect(b), "{kind:?} {w}x{h}: {b:?} spills out of {r:?}");
+            }
+        }
+    }
 }
 
 #[test]

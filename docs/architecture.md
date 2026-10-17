@@ -117,9 +117,16 @@ A test `hostile_params_never_panic` runs every command with junk params.
 ## UI (`vizcraft-ui-egui`) public API
 
 Modules: `theme`, `icons`, `widgets`, `chrome` (title bar + status bar), `menus` (menu tree +
-in-window menu bar), `ribbon`, `panes` (side panes, `PaneSpec`, `set_panes`), `canvas` (`Viewport2D`
-screen/world projections, pan and zoom: middle-drag, Space+left-drag or Cmd+left-drag, Ctrl off macOS), `dialogs`, `keys`, `control`, `window_geometry`,
-`backstage` (optional File page).
+in-window menu bar), `ribbon` (Home, Insert, View, Help, and the contextual Connector tab),
+`panes` (side panes, `PaneSpec`, `set_panes`; Shapes, Navigation, Properties, History),
+`canvas` (the diagram canvas: `Viewport2D` screen/world projections; drawing of the page, shapes,
+text and connectors; selection, marquee, move, resize and rotate handles, connector drag and
+reglue, in-place text editing, arrow-key nudge; pan with middle-drag, Space+left-drag or
+Cmd+left-drag, Ctrl off macOS; `insert_point` and `insert_master` place new shapes), `dialogs`,
+`keys`, `control`, `window_geometry`, `backstage` (optional File page).
+
+A canvas drag previews in UI state and commits one command on release, so every drag is one undo
+step. The canvas tool (`CraftApp.tool`: pointer, connector, text) is set by `ui.tool`.
 
 ```rust
 pub struct Services {        // host-injected platform services; all optional
@@ -141,6 +148,7 @@ pub struct CraftApp {
     pub new_window_request: Option<String>, pub quit_all_request: bool,
     pub quit_requested: bool, pub quit_confirmed: bool,
     pub frame_ms: f64,
+    pub tool: Tool,                      // canvas tool: Pointer | Connector | Text, set by ui.tool
     // private: control_rx, screenshot queues, synthetic events, style flags
 }
 impl CraftApp {
