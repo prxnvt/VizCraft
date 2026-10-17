@@ -116,10 +116,15 @@ fn services(inbox: Inbox, ctx: egui::Context) -> Services {
     let open_inbox = inbox.clone();
     Services {
         // rfd creates a hidden <input type="file">, clicks it and reads the chosen file.
-        open_async: Some(Box::new(move |_purpose: &str| {
+        open_async: Some(Box::new(move |purpose: &str| {
             let inbox = open_inbox.clone();
             let ctx = ctx.clone();
-            let dialog = rfd::AsyncFileDialog::new().add_filter("VizCraft documents", &["vizcraft", "json"]);
+            // The inbox opens documents and imports the rest, so the filter is all that differs.
+            let dialog = if purpose == "import" {
+                rfd::AsyncFileDialog::new().add_filter("Diagrams to import", &["drawio", "xml", "mmd", "mermaid", "csv"])
+            } else {
+                rfd::AsyncFileDialog::new().add_filter("VizCraft documents", &["vizcraft", "json", "drawio"])
+            };
             wasm_bindgen_futures::spawn_local(async move {
                 let Some(file) = dialog.pick_file().await else {
                     return;

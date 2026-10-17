@@ -3,7 +3,9 @@
 VizCraft's [Model Context Protocol](https://modelcontextprotocol.io) server lets agents create,
 edit and look at diagrams. It lands in two steps: a minimal server with the generic command tools
 in Cascade 1 (**built**), and the diagram tools that match draw.io's MCP server feature for
-feature in Cascade 3 (**planned**, [ROADMAP.md](../ROADMAP.md)). Each section below says which.
+feature in Cascade 3 (**built**; the Headless backend, the page and shape resources and
+`screenshot {page?}` are still **planned**, [ROADMAP.md](../ROADMAP.md)). Each section below says
+which.
 
 ## Design
 
@@ -23,7 +25,7 @@ feature in Cascade 3 (**planned**, [ROADMAP.md](../ROADMAP.md)). Each section be
 | `ping` | `{}` |
 | `tools/list`, `tools/call` | The tools below. An unknown tool name or an argument the tool's schema does not list is a JSON-RPC error (`-32602`); a tool that runs and fails returns `isError: true` with the reason as text |
 | `resources/list`, `resources/read` | The resources below; an unknown URI is `-32002` |
-| `resources/templates/list` | An empty list in Cascade 1 |
+| `resources/templates/list` | An empty list; the page and shape templates are planned |
 | `logging/setLevel` | Turns `notifications/message` log records on at an RFC 5424 level (`null` turns them off) |
 | anything else | `-32601` method not found |
 
@@ -82,31 +84,55 @@ engine picks one and returns it. `doc_inspect` already includes a `diagram` summ
 Planned for Cascade 3: `doc_inspect {page?}` to report a chosen page, and
 `screenshot {page?, window?, scale?}` to render one page offscreen instead of the window.
 
-### Diagram tools (Cascade 3, planned)
+### Diagram tools (Cascade 3, built)
 
-These cover the same features as the tools in draw.io's MCP server and reuse its tool names as
-feature names; what they do is described here in our own terms. The page tools act on the
-active document, or on a `.drawio` or `.vizcraft` file when a `path` is given.
+These cover the same workflows as the tools in draw.io's MCP server and reuse its tool names as
+feature names; what they do is described here in our own terms. Each one except `get_reference`
+is exactly one engine command sent through `engine.execute`, so it behaves the same over the
+control channel, in the CLI and in undo. Its result is the command's JSON result as text, the
+same as `command_run`; a command that fails gives `isError: true` and `<command> failed:
+<reason>`.
 
-| Tool | Purpose | Key params | Cascade |
+Arguments are checked against the tool's input schema before anything is sent: a missing
+required argument, an unknown one, a wrong type, a value outside an enum, an empty string where
+text is required, or a number out of range is a JSON-RPC error `-32602` whose message names the
+argument (and, for enums, the allowed values). `null` counts as not given.
+
+| Tool | Params | Command sent | Result |
 |---|---|---|---|
-| `open_xml` | Load a draw.io `mxGraphModel` XML diagram into a page, new or existing | `xml`, `page?`, `layout?`, `routing?` | 3 |
-| `open_mermaid` | Turn Mermaid source (flowchart, sequence, class, state, ER) into shapes and connectors on a page | `source`, `page?`, `layout?`, `routing?` | 3 |
-| `open_csv` | Build a diagram from CSV text with a directive header, as described in [formats.md](formats.md#csv) | `csv`, `page?`, `layout?`, `routing?` | 3 |
-| `search_shapes` | Search VizCraft's own stencil library by keyword and return matching masters with their style strings | `query`, `limit?` | 3 |
-| `get_reference` | Return a reference for agents that generate diagrams: the XML subset we accept, style keys, stencil naming, layout and routing options | `topic?` | 3 |
-| `list_pages` | List the pages of a document with ids, names and sizes | `path?` | 3 |
-| `get_page` | Return one page as draw.io XML (or VizCraft JSON) | `page`, `path?`, `format?` | 3 |
-| `set_page` | Replace one page's content from draw.io XML, creating the page if needed | `page`, `xml`, `path?`, `layout?`, `routing?` | 3 |
+| `open_xml` | `xml` (string), `page?`, `layout?`, `direction?`, `routing?` | `file.import {text: xml, format: "drawio", replace: true, page?, layout?, direction?, routing?}` | `{page, ids, warnings}` |
+| `open_mermaid` | `source` (string), `page?`, `layout?`, `direction?`, `routing?` | `file.import {text: source, format: "mermaid", replace: true, ...}` | `{page, ids, warnings}` |
+| `open_csv` | `csv` (string), `page?`, `layout?`, `direction?`, `routing?` | `file.import {text: csv, format: "csv", replace: true, ...}` | `{page, ids, warnings}` |
+| `list_pages` | `path?` | `page.list {path?}` | `{pages: [{index, id, name, width, height, shapes, connectors}]}` |
+| `get_page` | `page`, `path?`, `format?` (`drawio`, the default, or `vizcraft`) | `page.get {page, path?, format?}` | `{page, format, content}`: draw.io `mxGraphModel` XML or VizCraft JSON as a string |
+| `set_page` | `page`, `xml` (string), `path?`, `layout?`, `direction?`, `routing?` | `page.set {page, xml, path?, layout?, direction?, routing?}` | `{page, ids, warnings}` |
+| `search_shapes` | `query` (string, up to 1000 characters; empty lists every master), `limit?` (1 to 200, default 20) | `shape.search {query, limit?}` | `{masters: [{id, label, category, keywords, w, h, style}]}`; `style` is a draw.io style string, including `vizcraft=<id>`, that opens as that master |
+| `get_reference` | `topic?`: `xml`, `styles`, `shapes`, `layout`, `routing`, `mermaid` or `csv` | none: static text in the server | Plain text (Markdown). Without `topic`, an index of the topics followed by all of them |
 
-Options shared by the tools that create content:
+Shared params:
 
-| Option | Values | Effect |
+| Param | Values | Effect |
 |---|---|---|
-| `layout` | `layered`, `tree`, `radial`, `force` | Run the auto-layout engine over the imported shapes before they are placed |
-| `routing` | `orthogonal` | Reroute every connector as an orthogonal path that avoids shapes |
+| `page` | A page id or name (string, 1 to 256 characters) or a zero-based index (integer, 0 to 100000) | The page to read or fill. The open_* tools default to the first page; a name that matches no page adds a page with that name |
+| `path` | A file path (string, 1 to 4096 characters), `.drawio` or `.vizcraft` | Read or edit that file on disk instead of the open document. `set_page` with `path` loads the file, replaces or adds the page, and saves it; the open document is untouched |
+| `layout` | `layered`, `tree`, `radial`, `force` | Place the imported shapes automatically. XML keeps its own coordinates unless this is given; Mermaid and CSV content is always laid out |
+| `direction` | `TB`, `BT`, `LR`, `RL` | Flow direction for the layered and tree layouts |
+| `routing` | `orthogonal` | Mark every imported connector to route around shapes; it is rerouted whenever shapes move |
 
-Each tool call is one undo step in the document it changed.
+The open_* tools always replace the target page's content (`replace: true`); to add to a page
+instead, run `file.import` through `command_run` without `replace`. Imports keep source ids when
+they are plain and free, and rename the rest with the glue rewritten. Each tool call that changes
+the open document is one undo step. The tool annotations mark `list_pages`, `get_page`,
+`search_shapes` and `get_reference` read-only, and the open_* tools and `set_page` destructive.
+
+`get_reference` holds our own notes on what the importers accept: the draw.io XML subset (root
+and layer cells, vertex and edge cells, geometry with bend points and loose end points, edge
+label cells, and what is flattened), the style mapping table, master ids and the `vizcraft=<id>`
+style key, the layout and routing options, the five Mermaid kinds and the CSV header directives.
+An unknown topic is `-32602` with the list of topics.
+
+The engine command `shape.search` is new with these tools: it reads the stencil library only,
+is always enabled and never changes the document.
 
 ## Resources
 

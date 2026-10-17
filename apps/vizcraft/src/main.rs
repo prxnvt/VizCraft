@@ -212,12 +212,13 @@ fn save_prefs(app: &CraftApp) {
 /// Native file pickers.
 fn services() -> Services {
     Services {
-        pick_open: Some(Box::new(|_purpose: &str| {
-            rfd::FileDialog::new()
-                .add_filter("VizCraft documents", &["vizcraft", "json"])
-                .add_filter("All files", &["*"])
-                .pick_file()
-                .map(|p| p.to_string_lossy().to_string())
+        pick_open: Some(Box::new(|purpose: &str| {
+            let dialog = if purpose == "import" {
+                rfd::FileDialog::new().add_filter("Diagrams to import", &["drawio", "xml", "mmd", "mermaid", "csv"])
+            } else {
+                rfd::FileDialog::new().add_filter("VizCraft documents", &["vizcraft", "json"]).add_filter("draw.io diagrams", &["drawio"])
+            };
+            dialog.add_filter("All files", &["*"]).pick_file().map(|p| p.to_string_lossy().to_string())
         })),
         pick_save: Some(Box::new(|name: &str| rfd::FileDialog::new().set_file_name(name).save_file().map(|p| p.to_string_lossy().to_string()))),
         ..Default::default()

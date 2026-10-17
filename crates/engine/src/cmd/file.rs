@@ -1,14 +1,26 @@
 //! File menu: new, open, save, save as, export, close, user name.
 //!
-//! Without a `path`, `file.open`, `file.saveAs` and `file.export` ask the UI for a picker
-//! through `ui_requests`; with one they work headless (CLI, control channel, tests). Formats are
-//! chosen by `crate::io` from the file name.
+//! Without a `path`, `file.open`, `file.saveAs`, `file.export` and `file.import` ask the UI for
+//! a picker through `ui_requests`; with one they work headless (CLI, control channel, tests).
+//! Formats are chosen by `crate::io` from the file name.
+//!
+//! `file.import` and `page.set` share [`import_opts`], [`place`] and [`import_into_session`]:
+//! the imported pages are adopted into the document (ids kept when plain and free), optionally
+//! laid out and routed, and the result names the target page, the new ids and the warnings.
+
+use std::borrow::Cow;
 
 use serde_json::{Value, json};
+use vizcraft_diagram::autolayout::{self, Algorithm, Direction, Options};
+use vizcraft_diagram::{End, Page, Point, Rect, Route};
+use vizcraft_formats::Imported;
 
-use super::sel_result;
+use super::{opt_bool, opt_str, prune_selection, sel_result, select, short};
 use crate::doc::Document;
 use crate::{CmdResult, CommandSpec, EngineError, Session, p};
+
+/// Params doc shared by `file.import` and the MCP tools that call it.
+const IMPORT_PARAMS: &str = r#"{"path"?: string, "text"?: string, "format"?: "drawio"|"mermaid"|"csv", "page"?: id|name|index, "replace"?: bool, "layout"?: "layered"|"tree"|"radial"|"force", "direction"?: "TB"|"BT"|"LR"|"RL", "routing"?: "orthogonal"} -> {page, ids, warnings} (format from the extension or the text; a page name that matches nothing makes a new page)"#;
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
@@ -21,10 +33,10 @@ pub fn specs() -> Vec<CommandSpec> {
             sel_result(s)
         })
         .key("Mod+W"),
-        CommandSpec::new("file.export", "Export...", "File", export)
-            .key("Mod+Shift+E")
-            .params(r#"{"path"?: string, "format"?: "svg"} (first page; format from the extension when omitted)"#),
-        CommandSpec::new("file.import", "Import...", "File", import).key("Mod+Shift+I").params(r#"{"path"?: string}"#),
+        CommandSpec::new("file.export", "Export...", "File", export).key("Mod+Shift+E").params(
+            r#"{"path"?: string, "format"?: "svg"|"drawio"} (svg: the first page; drawio: every page; format from the extension when omitted)"#,
+        ),
+        CommandSpec::new("file.import", "Import...", "File", import).key("Mod+Shift+I").params(IMPORT_PARAMS),
         CommandSpec::new("file.setAuthor", "User Name", "File > Options", |s, v| {
             s.author = p::req_str(v, "name")?.trim().to_string();
             Ok(json!({"author": s.author}))
@@ -103,12 +115,229 @@ fn export(s: &mut Session, v: &Value) -> CmdResult {
 }
 
 fn import(s: &mut Session, v: &Value) -> CmdResult {
-    let Some(path) = p::str(v, "path") else {
+    let path = opt_str(v, "path")?;
+    let text = opt_str(v, "text")?;
+    if path.is_none() && text.is_none() {
         s.ui_requests.push(json!({"open": "import"}));
         return Ok(json!({"imported": false}));
+    }
+    let opts = import_opts(v)?;
+    let format = opt_str(v, "format")?;
+    // Text wins over a path: it is what the caller has in hand.
+    let (bytes, name): (Cow<'_, [u8]>, Option<&str>) = match text {
+        Some(t) => {
+            if t.len() as u64 > crate::io::MAX_IMPORT_BYTES {
+                return Err(EngineError::Params(format!("`text` is longer than {} MiB", crate::io::MAX_IMPORT_BYTES / (1024 * 1024))));
+            }
+            (Cow::Borrowed(t.as_bytes()), None)
+        }
+        None => {
+            let path = path.unwrap_or_default();
+            (Cow::Owned(crate::io::read_limited(path)?), Some(path))
+        }
     };
-    s.status = format!("Imported {path}");
-    Ok(json!({"imported": true, "path": path}))
+    let format = crate::io::import_format(name, format, &bytes)?;
+    let imported = crate::io::import_bytes(format, &bytes)?;
+    import_into_session(s, imported, &opts, name)
+}
+
+/// How imported content is placed: the `page`, `replace`, `layout`, `direction` and `routing`
+/// params of `file.import` and `page.set`.
+pub(crate) struct ImportOpts {
+    /// The target page: an id, name or index; `None` is the first page.
+    pub page: Option<String>,
+    /// Clear the target page first.
+    pub replace: bool,
+    /// Lay the imported shapes out with this algorithm.
+    pub layout: Option<Algorithm>,
+    /// Flow direction for the layout.
+    pub direction: Direction,
+    /// Route the imported connectors around shapes.
+    pub avoid: bool,
+}
+
+/// Longest page reference accepted (it may become a new page's name).
+const MAX_PAGE_REF: usize = 1024;
+
+/// Gap between existing content and content imported beside it.
+const IMPORT_GAP: f64 = 60.0;
+
+/// Read the placement params; junk is a params error.
+pub(crate) fn import_opts(v: &Value) -> Result<ImportOpts, EngineError> {
+    let page = match v.get("page") {
+        None | Some(Value::Null) => None,
+        Some(Value::String(t)) => Some(t.clone()),
+        // An index may come as a number.
+        Some(Value::Number(n)) => Some(n.to_string()),
+        Some(_) => return Err(EngineError::Params("`page` must be a page id, name or index".into())),
+    };
+    if page.as_ref().is_some_and(|p| p.len() > MAX_PAGE_REF || p.is_empty()) {
+        return Err(EngineError::Params(format!("`page` must be 1 to {MAX_PAGE_REF} bytes")));
+    }
+    let layout = match opt_str(v, "layout")?.map(|t| t.trim().to_ascii_lowercase()) {
+        None => None,
+        Some(t) => Some(match t.as_str() {
+            "layered" | "hierarchical" => Algorithm::Layered,
+            "tree" => Algorithm::Tree,
+            "radial" => Algorithm::Radial,
+            "force" | "organic" => Algorithm::Force,
+            other => return Err(EngineError::Params(format!("`layout` must be layered, tree, radial or force, not `{}`", short(other)))),
+        }),
+    };
+    let direction = match opt_str(v, "direction")? {
+        None => Direction::TopBottom,
+        Some(t) => parse_direction(t)?,
+    };
+    let avoid = match opt_str(v, "routing")?.map(|t| t.trim().to_ascii_lowercase()) {
+        None => false,
+        Some(t) if t == "orthogonal" => true,
+        Some(t) if t == "none" || t.is_empty() => false,
+        Some(t) => return Err(EngineError::Params(format!("`routing` must be \"orthogonal\", not `{}`", short(&t)))),
+    };
+    Ok(ImportOpts { page, replace: opt_bool(v, "replace")?.unwrap_or(false), layout, direction, avoid })
+}
+
+/// `TB` (or `TD`), `BT`, `LR` or `RL`, in any case.
+pub(crate) fn parse_direction(t: &str) -> Result<Direction, EngineError> {
+    match t.trim().to_ascii_uppercase().as_str() {
+        "TB" | "TD" => Ok(Direction::TopBottom),
+        "BT" => Ok(Direction::BottomTop),
+        "LR" => Ok(Direction::LeftRight),
+        "RL" => Ok(Direction::RightLeft),
+        _ => Err(EngineError::Params(format!("`direction` must be TB, BT, LR or RL, not `{}`", short(t)))),
+    }
+}
+
+/// The bounding box of a page's shapes, `None` when it has none.
+fn shapes_bounds(page: &Page) -> Option<Rect> {
+    page.shapes.iter().map(|s| s.bounds()).reduce(|a, b| a.union(&b))
+}
+
+/// Move everything on `page` by `(dx, dy)`: shapes, bends and free connector ends.
+fn shift(page: &mut Page, dx: f64, dy: f64) {
+    for s in &mut page.shapes {
+        s.x += dx;
+        s.y += dy;
+    }
+    for c in &mut page.connectors {
+        for p in &mut c.waypoints {
+            *p = Point::new(p.x + dx, p.y + dy);
+        }
+        for end in [&mut c.start, &mut c.end] {
+            if let End::Free { x, y } = end {
+                *x += dx;
+                *y += dy;
+            }
+        }
+    }
+}
+
+/// What [`place`] did: the target page index, every new id, and the warnings.
+pub(crate) struct Placed {
+    /// Index of the page the first imported page went to.
+    pub index: usize,
+    /// Ids of the new shapes and connectors, on every page, in import order.
+    pub ids: Vec<String>,
+    /// The importer's warnings and the layout's notes.
+    pub warnings: Vec<String>,
+}
+
+/// Put imported pages into `doc`: the first on the target page (cleared with `replace`), any
+/// others on new pages; then lay out and route as `opts` asks. Nothing is changed when there is
+/// nothing to import.
+///
+/// Adding to a page that already has shapes never moves those shapes. With a `layout`, the new
+/// shapes are placed around them by `layout_incremental`. Without one, the content keeps the
+/// arrangement it came with (the source's, or the Mermaid and CSV importers' own layout) and is
+/// set beside what is there, which is where incremental placement puts unconnected content.
+pub(crate) fn place(doc: &mut Document, imported: Imported, opts: &ImportOpts) -> Result<Placed, EngineError> {
+    let Imported { pages, mut warnings } = imported;
+    let mut pages = pages.into_iter();
+    let Some(mut first) = pages.next() else { return Err(EngineError::Failed("the source holds no page to import".into())) };
+    let index = match &opts.page {
+        None => 0,
+        Some(r) => match doc.find_page(r) {
+            Some(i) => i,
+            None => doc.add_page(r),
+        },
+    };
+    let Some(target) = doc.pages.get_mut(index) else { return Err(EngineError::Failed("the document has no page".into())) };
+    let incremental = !opts.replace && opts.layout.is_some() && !target.shapes.is_empty();
+    if opts.replace {
+        // A draw.io page brings its own size; other sources leave the page as it was.
+        if (first.width, first.height) != (Page::DEFAULT_WIDTH, Page::DEFAULT_HEIGHT) {
+            target.width = first.width;
+            target.height = first.height;
+        }
+    } else if !incremental && let (Some(have), Some(new)) = (shapes_bounds(target), shapes_bounds(&first)) {
+        shift(&mut first, have.x1 + IMPORT_GAP - new.x0, have.y0 - new.y0);
+    }
+    let mut placed: Vec<(usize, Vec<String>)> = vec![(index, doc.adopt(index, first, opts.replace))];
+    for page in pages {
+        let i = doc.add_page(&page.name);
+        if let Some(p) = doc.pages.get_mut(i) {
+            p.width = page.width;
+            p.height = page.height;
+        }
+        placed.push((i, doc.adopt(i, page, true)));
+    }
+    let layout = opts.layout.map(|algorithm| Options { algorithm, direction: opts.direction, ..Options::default() });
+    for (n, (i, ids)) in placed.iter().enumerate() {
+        let Some(page) = doc.pages.get_mut(*i) else { continue };
+        if let Some(layout) = &layout {
+            let shapes: Vec<String> = ids.iter().filter(|id| page.shape(id).is_some()).cloned().collect();
+            if !shapes.is_empty() {
+                // Only the first imported page can land beside existing shapes.
+                let laid = if n == 0 && incremental {
+                    autolayout::layout_incremental(page, &shapes, layout)
+                } else {
+                    autolayout::layout_items(page, Some(&shapes), layout)
+                };
+                match laid {
+                    Ok(notes) => warnings.extend(notes),
+                    Err(e) => warnings.push(format!("the layout was not applied: {e}")),
+                }
+            }
+        }
+        if opts.avoid {
+            let connectors: Vec<String> = ids.iter().filter(|id| page.connector(id).is_some()).cloned().collect();
+            for id in &connectors {
+                if let Some(c) = page.connector_mut(id) {
+                    c.route = Route::Orthogonal;
+                    c.avoid = true;
+                }
+            }
+            if !connectors.is_empty() {
+                vizcraft_diagram::autoroute::reroute(page, Some(&connectors));
+            }
+        }
+    }
+    let ids = placed.into_iter().flat_map(|(_, ids)| ids).collect();
+    Ok(Placed { index, ids, warnings })
+}
+
+/// Import into the open document as one undo step: place, select what came in (when it is on
+/// the page the canvas shows), report.
+pub(crate) fn import_into_session(s: &mut Session, imported: Imported, opts: &ImportOpts, source: Option<&str>) -> CmdResult {
+    let placed = place(&mut s.doc, imported, opts)?;
+    let page = s.doc.pages.get(placed.index);
+    let page_id = page.map(|p| p.id.clone()).unwrap_or_default();
+    let (shapes, connectors) = page.map_or((0, 0), |p| {
+        let on = |id: &String| p.contains_id(id);
+        (
+            placed.ids.iter().filter(|id| on(id) && p.shape(id).is_some()).count(),
+            placed.ids.iter().filter(|id| on(id) && p.connector(id).is_some()).count(),
+        )
+    });
+    if placed.index == 0 {
+        let here: Vec<String> = placed.ids.iter().filter(|id| s.doc.page().is_some_and(|p| p.contains_id(id))).cloned().collect();
+        select(s, here);
+    } else {
+        prune_selection(s);
+    }
+    let from = source.map(|p| format!(" from {p}")).unwrap_or_default();
+    s.status = format!("Imported {shapes} shapes and {connectors} connectors{from}");
+    Ok(json!({"page": page_id, "ids": placed.ids, "warnings": placed.warnings}))
 }
 
 #[cfg(test)]
@@ -166,5 +395,198 @@ mod tests {
         assert_eq!(s.run("file.export", &json!({})).unwrap()["exported"], false);
         assert_eq!(s.ui_requests.pop(), Some(json!({"open": "export"})));
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    const DOCS_EXAMPLE: &str = include_str!("../../../formats/testdata/drawio-docs-example.drawio");
+    const MULTIPAGE: &[u8] = include_bytes!("../../../formats/testdata/multipage-compressed.drawio");
+
+    fn page_shapes(s: &Session) -> Vec<String> {
+        s.doc.page().unwrap().shapes.iter().map(|x| x.id.clone()).collect()
+    }
+
+    #[test]
+    fn drawio_files_open_save_and_reopen() {
+        let dir = temp_dir("drawio");
+        let src = dir.join("multi.drawio");
+        std::fs::write(&src, MULTIPAGE).unwrap();
+        let mut s = Session::new(Document::new());
+        s.run("file.open", &json!({"path": src.to_string_lossy()})).unwrap();
+        assert_eq!(s.doc.pages.len(), 2);
+        let list = s.run("page.list", &json!({})).unwrap();
+        let get = s.run("page.get", &json!({"page": "Second"})).unwrap();
+        let out = dir.join("out.drawio");
+        assert_eq!(s.run("file.save", &json!({"path": out.to_string_lossy()})).unwrap()["saved"], true);
+        assert!(std::fs::read_to_string(&out).unwrap().starts_with("<mxfile"));
+
+        let mut t = Session::new(Document::new());
+        t.run("file.open", &json!({"path": out.to_string_lossy()})).unwrap();
+        assert_eq!(t.run("page.list", &json!({})).unwrap(), list);
+        assert_eq!(t.run("page.get", &json!({"page": "Second"})).unwrap(), get);
+        assert_eq!(t.doc.pages, s.doc.pages);
+
+        // Export as draw.io writes every page; the document stays as it was.
+        let exported = dir.join("export.out");
+        let r = s.run("file.export", &json!({"path": exported.to_string_lossy(), "format": "drawio"})).unwrap();
+        assert_eq!(r["format"], "drawio");
+        assert_eq!(std::fs::read_to_string(&exported).unwrap().matches("<diagram").count(), 2);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn import_places_content_beside_what_is_there_in_one_undo_step() {
+        let mut s = Session::new(crate::sample::sample_document());
+        let before = s.doc.clone();
+        let right = s.doc.page().unwrap().shapes.iter().map(|x| x.bounds().x1).fold(f64::MIN, f64::max);
+        let r = s.run("file.import", &json!({"text": DOCS_EXAMPLE})).unwrap();
+        let ids: Vec<String> = serde_json::from_value(r["ids"].clone()).unwrap();
+        assert_eq!(ids.len(), 3);
+        assert_eq!(r["page"], s.doc.page().unwrap().id);
+        assert_eq!(s.sel.items, ids, "the imported items are selected");
+        let page = s.doc.page().unwrap();
+        for id in &ids {
+            if let Some(sh) = page.shape(id) {
+                assert!(sh.x >= right + 59.0, "{id} at {} not right of {right}", sh.x);
+            }
+        }
+        // The draw.io ids 2, 3 and 4 are taken by nothing in the sample, so they are kept.
+        assert!(ids.contains(&"2".to_string()));
+        assert!(s.status.starts_with("Imported 2 shapes and 1 connectors"));
+        s.run("edit.undo", &json!({})).unwrap();
+        assert_eq!(s.doc, before);
+    }
+
+    #[test]
+    fn import_with_a_layout_beside_existing_shapes_pins_them() {
+        let mut s = Session::new(crate::sample::sample_document());
+        let before: Vec<(String, f64, f64)> = s.doc.page().unwrap().shapes.iter().map(|x| (x.id.clone(), x.x, x.y)).collect();
+        let r = s.run("file.import", &json!({"text": DOCS_EXAMPLE, "layout": "layered"})).unwrap();
+        let ids: Vec<String> = serde_json::from_value(r["ids"].clone()).unwrap();
+        let page = s.doc.page().unwrap();
+        for (id, x, y) in &before {
+            let sh = page.shape(id).unwrap();
+            assert_eq!((sh.x, sh.y), (*x, *y), "{id} moved");
+        }
+        for id in ids.iter().filter(|id| page.shape(id).is_some()) {
+            let a = page.shape(id).unwrap().bounds();
+            for other in page.shapes.iter().filter(|o| &o.id != id) {
+                let b = other.bounds();
+                let overlap = a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+                assert!(!overlap, "{id} overlaps {}", other.id);
+            }
+        }
+    }
+
+    #[test]
+    fn import_replace_new_pages_and_multipage_sources() {
+        let mut s = Session::new(crate::sample::sample_document());
+        s.run("file.import", &json!({"text": DOCS_EXAMPLE, "replace": true})).unwrap();
+        assert_eq!(page_shapes(&s), ["2", "3"]);
+        // A page name that matches nothing makes a page; the canvas page keeps its selection.
+        let r = s.run("file.import", &json!({"text": DOCS_EXAMPLE, "page": "Imported"})).unwrap();
+        assert_eq!(s.doc.pages.len(), 2);
+        assert_eq!(r["page"], s.doc.pages[1].id);
+        assert_eq!(s.doc.pages[1].name, "Imported");
+        assert_eq!(s.doc.pages[1].shapes.len(), 2);
+        assert!(s.sel.items.iter().all(|id| s.doc.page().unwrap().contains_id(id)));
+        // A two-page source fills the target and adds one page.
+        let text = String::from_utf8(MULTIPAGE.to_vec()).unwrap();
+        s.run("file.import", &json!({"text": text, "page": 0, "replace": true})).unwrap();
+        assert_eq!(s.doc.pages.len(), 3);
+        assert_eq!(s.doc.page().unwrap().shapes.len(), 16);
+        assert_eq!(s.doc.pages[2].name, "Second");
+        // Ids stay unique across the document.
+        let mut seen = std::collections::HashSet::new();
+        for p in &s.doc.pages {
+            for id in p.shapes.iter().map(|x| &x.id).chain(p.connectors.iter().map(|c| &c.id)) {
+                assert!(seen.insert(id.clone()), "{id} twice");
+            }
+        }
+    }
+
+    #[test]
+    fn import_layout_and_routing_options() {
+        let mut s = Session::new(Document::new());
+        let r = s.run("file.import", &json!({"text": DOCS_EXAMPLE, "layout": "tree", "direction": "LR", "routing": "orthogonal"})).unwrap();
+        let page = s.doc.page().unwrap();
+        let (a, b) = (page.shape("2").unwrap(), page.shape("3").unwrap());
+        assert!(a.x + a.w <= b.x, "left to right");
+        let c = page.connector("4").unwrap();
+        assert!(c.avoid);
+        assert_eq!(c.route, vizcraft_diagram::Route::Orthogonal);
+        assert!(r["warnings"].is_array());
+        for bad in
+            [json!({"layout": "spiral"}), json!({"direction": "up"}), json!({"routing": "fast"}), json!({"page": []}), json!({"format": "pdf"})]
+        {
+            let mut v = bad.clone();
+            v["text"] = json!(DOCS_EXAMPLE);
+            assert!(matches!(s.run("file.import", &v), Err(crate::EngineError::Params(_))), "{bad}");
+        }
+    }
+
+    #[test]
+    fn import_csv_text_and_files_by_extension() {
+        let dir = temp_dir("csv");
+        let csv = "# label: %name%\n# identity: id\n# connect: {\"from\": \"boss\", \"to\": \"id\"}\nid,name,boss\n1,A,\n2,B,1\n";
+        let path = dir.join("people.csv");
+        std::fs::write(&path, csv).unwrap();
+        let mut s = Session::new(Document::new());
+        let r = s.run("file.import", &json!({"path": path.to_string_lossy()})).unwrap();
+        assert_eq!(r["ids"].as_array().unwrap().len(), 3);
+        let r = s.run("file.import", &json!({"text": csv, "replace": true})).unwrap();
+        assert_eq!(r["ids"].as_array().unwrap().len(), 3);
+        assert_eq!(s.doc.page().unwrap().shapes.len(), 2);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn import_without_a_source_asks_for_a_picker() {
+        let mut s = Session::new(Document::new());
+        assert_eq!(s.run("file.import", &json!({})).unwrap()["imported"], false);
+        assert_eq!(s.ui_requests.pop(), Some(json!({"open": "import"})));
+        assert!(s.run("file.import", &json!({"path": "/nonexistent/x.drawio"})).is_err());
+    }
+
+    #[test]
+    fn import_hostile_text_never_panics() {
+        let long = "<".repeat(100_000);
+        let nested = format!("{}{}", "<a>".repeat(10_000), "</a>".repeat(10_000));
+        let texts = [
+            "",
+            "\u{0}\u{ffff}",
+            "<",
+            "<mxfile>",
+            "<mxGraphModel><root><mxCell id=\"0\"/><mxCell id=\"2\" vertex=\"1\" parent=\"0\"><mxGeometry x=\"1e308\" width=\"-1\" as=\"geometry\"/></mxCell></root></mxGraphModel>",
+            "<mxfile><diagram>%%%%</diagram></mxfile>",
+            &long,
+            &nested,
+            "# label: %x%\n",
+            "#\n\"",
+            "flowchart LR\nA-->B",
+            "graph TD; A-->",
+        ];
+        for text in texts {
+            for format in [None, Some("drawio"), Some("mermaid"), Some("csv")] {
+                for extra in [json!({}), json!({"replace": true, "layout": "force", "routing": "orthogonal"}), json!({"page": "x"})] {
+                    let mut s = Session::new(crate::sample::sample_document());
+                    let mut v = extra.clone();
+                    v["text"] = json!(text);
+                    if let Some(f) = format {
+                        v["format"] = json!(f);
+                    }
+                    let _ = s.run("file.import", &v);
+                    for p in &s.doc.pages {
+                        for sh in &p.shapes {
+                            assert!(sh.x.is_finite() && sh.y.is_finite() && sh.w.is_finite() && sh.h.is_finite());
+                        }
+                    }
+                    for id in &s.sel.items {
+                        assert!(s.doc.page().unwrap().contains_id(id), "stale selection {id}");
+                    }
+                }
+            }
+        }
+        let mut s = Session::new(Document::new());
+        let huge = "x".repeat((crate::io::MAX_IMPORT_BYTES + 1) as usize);
+        assert!(s.run("file.import", &json!({"text": huge})).is_err());
     }
 }

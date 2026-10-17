@@ -1,0 +1,74 @@
+<mxfile host="VizCraft">
+  <diagram id="p1" name="Kinds"><mxGraphModel pageWidth="1100" pageHeight="850">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+    <mxCell id="k0" value="Kind 0" style="rounded=0;whiteSpace=wrap;vizcraft=basic.rectangle;fillColor=#ffffff;strokeColor=#3a4a5c;strokeWidth=1.5;fontSize=12;fontColor=#1e2630;html=1;" vertex="1" parent="1">
+      <mxGeometry x="40" y="40" width="120" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="k1" value="Two&lt;br&gt;lines" style="rounded=1;whiteSpace=wrap;vizcraft=basic.roundedRectangle;fillColor=#123456;rotation=30;strokeColor=#3a4a5c;strokeWidth=1.5;fontSize=12;fontColor=#1e2630;fontStyle=1;html=1;dashed=1;shadow=1;" vertex="1" parent="1">
+      <mxGeometry x="200" y="40" width="120" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="k2" value="spaced  out &lt;b&gt;not bold&lt;/b&gt; &amp; more" style="ellipse;whiteSpace=wrap;vizcraft=basic.ellipse;fillColor=#ffffff;strokeColor=none;strokeWidth=1.5;fontSize=12;fontColor=#1e2630;fontStyle=2;" vertex="1" parent="1">
+      <mxGeometry x="360" y="40" width="120" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="k3" value="Kind 3" style="rhombus;whiteSpace=wrap;vizcraft=flowchart.decision;fillColor=#ffffff;strokeColor=#3a4a5c;strokeWidth=1.5;fontSize=12;fontColor=#1e2630;html=1;" vertex="1" parent="1">
+      <mxGeometry x="520" y="40" width="120" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="k4" value="Kind 4" style="triangle;direction=north;whiteSpace=wrap;vizcraft=basic.triangle;fillColor=#ffffff;strokeColor=#3a4a5c;strokeWidth=1.5;fontSize=12;fontColor=#1e2630;html=1;" vertex="1" parent="1">
+      <mxGeometry x="40" y="160" width="120" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="k5" value="Kind 5" style="shape=parallelogram;whiteSpace=wrap;vizcraft=basic.parallelogram;fillColor=#ffffff;strokeColor=#3a4a5c;strokeWidth=1.5;fontSize=12;fontColor=#1e2630;html=1;" vertex="1" parent="1">
+      <mxGeometry x="200" y="160" width="120" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="k6" value="Kind 6" style="shape=hexagon;whiteSpace=wrap;vizcraft=basic.hexagon;fillColor=#ffffff;strokeColor=#3a4a5c;strokeWidth=1.5;fontSize=12;fontColor=#1e2630;html=1;" vertex="1" parent="1">
+      <mxGeometry x="360" y="160" width="120" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="k7" value="Kind 7" style="shape=cylinder3;whiteSpace=wrap;vizcraft=basic.cylinder;fillColor=#ffffff;strokeColor=#3a4a5c;strokeWidth=1.5;fontSize=12;fontColor=#1e2630;html=1;" vertex="1" parent="1">
+      <mxGeometry x="520" y="160" width="120" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="k8" value="Kind 8" style="shape=document;whiteSpace=wrap;vizcraft=basic.document;fillColor=#ffffff;strokeColor=#3a4a5c;strokeWidth=1.5;fontSize=12;fontColor=#1e2630;html=1;" vertex="1" parent="1">
+      <mxGeometry x="40" y="280" width="120" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="k9" value="Kind 9" style="ellipse;shape=cloud;whiteSpace=wrap;vizcraft=basic.cloud;fillColor=#ffffff;strokeColor=#3a4a5c;strokeWidth=1.5;fontSize=12;fontColor=#1e2630;html=1;" vertex="1" parent="1">
+      <mxGeometry x="200" y="280" width="120" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="k10" value="Kind 10" style="rounded=1;arcSize=50;whiteSpace=wrap;vizcraft=flowchart.terminator;fillColor=#ffffff;strokeColor=#3a4a5c;strokeWidth=1.5;fontSize=12;fontColor=#1e2630;html=1;" vertex="1" parent="1">
+      <mxGeometry x="360" y="280" width="120" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="k11" value="Kind 11" style="shape=process;whiteSpace=wrap;vizcraft=flowchart.predefinedProcess;fillColor=#ffffff;strokeColor=#3a4a5c;strokeWidth=1.5;fontSize=12;fontColor=#1e2630;html=1;" vertex="1" parent="1">
+      <mxGeometry x="520" y="280" width="120" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="k12" value="Kind 12" style="shape=manualInput;whiteSpace=wrap;vizcraft=flowchart.manualInput;fillColor=#ffffff;strokeColor=#3a4a5c;strokeWidth=1.5;fontSize=12;fontColor=#1e2630;html=1;" vertex="1" parent="1">
+      <mxGeometry x="40" y="400" width="120" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="k13" value="Kind 13" style="shape=hexagon;whiteSpace=wrap;vizcraft=flowchart.preparation;fillColor=#ffffff;strokeColor=#3a4a5c;strokeWidth=1.5;fontSize=12;fontColor=#1e2630;html=1;" vertex="1" parent="1">
+      <mxGeometry x="200" y="400" width="120" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="k14" value="Kind 14" style="shape=trapezoid;whiteSpace=wrap;vizcraft=flowchart.manualOperation;fillColor=#ffffff;strokeColor=#3a4a5c;strokeWidth=1.5;fontSize=12;fontColor=#1e2630;html=1;" vertex="1" parent="1">
+      <mxGeometry x="360" y="400" width="120" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="k15" value="Kind 15" style="shape=offPageConnector;whiteSpace=wrap;vizcraft=flowchart.offPageReference;fillColor=#ffffff;strokeColor=#3a4a5c;strokeWidth=1.5;fontSize=12;fontColor=#1e2630;html=1;" vertex="1" parent="1">
+      <mxGeometry x="520" y="400" width="120" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;startArrow=none;endArrow=block;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#3a4a5c;strokeWidth=1.5;fontSize=12;fontColor=#1e2630;html=1;" edge="1" parent="1" source="k0" target="k1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e2" value="label" style="edgeStyle=orthogonalEdgeStyle;curved=1;startArrow=diamond;endArrow=open;jumpStyle=arc;strokeColor=#3a4a5c;strokeWidth=1.5;fontSize=12;fontColor=#1e2630;html=1;" edge="1" parent="1" source="k2">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="700" y="600" as="targetPoint" />
+        <Array as="points">
+          <mxPoint x="300" y="500" />
+          <mxPoint x="420" y="520" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e3" value="" style="startArrow=oval;endArrow=none;strokeColor=#3a4a5c;strokeWidth=1.5;fontSize=12;fontColor=#1e2630;html=1;" edge="1" parent="1" target="k3">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="10" y="10" as="sourcePoint" />
+      </mxGeometry>
+    </mxCell>
+  </root>
+</mxGraphModel></diagram>
+  <diagram id="p2" name="Second">3ZVRb4IwEMc/Da8GqC7bozLnXvbkw54rnNBYeuQ4Rf30a6UomsyRZVmWERK4//96pfdrSiCScr8gWRVvmIEO4rCSObyrjItAPAdxHMVhaB/eeAWVF9w6T60h5kE4tba7RUKIfCV1RrlPQLv6KmuH+6pB/DIsP+q+gsDw90rINn8n9RZapRVqPmgv2AGqqm0wawrFsKxk6pzGdshqO3VMSa7d9CtZq3R0SV8rrRPUSKc6Yn26rF4z4QZ6jpBjOUnPTtfqaDRxVdDwUh3dlFHs497YCOIHYZc2K7jULse++jUBMew/7VR0S+q2UwvAEpgONu6qdNwPN3Fz2RyPXip626LTZN3G+bnyPVZW97gGkVx9TZJwazJw+eFQmgQpS5Prf8lz/Jd5ygFAIcth6UMkLjBHI/X8oloCknhKhI1NMWicBibrlJXGdPN7CN333gdol4dbSuHqdLJryIF723wgZgItWe2up/wJaCe9d677vN5PQ8w/AA==</diagram>
+</mxfile>

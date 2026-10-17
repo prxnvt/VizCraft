@@ -8,7 +8,10 @@
 //!   (`vizcraft --control 7990`): one `{"id","method","params"}` line out, one
 //!   `{"id","ok","result"|"error"}` line back (docs/control-protocol.md).
 //!
-//! An in-process headless backend is planned for Cascade 3 (docs/mcp.md).
+//! Tools: the generic command tools (`command_list`, `command_run`, `command_batch`,
+//! `doc_inspect`, `screenshot`) and the diagram tools (`open_xml`, `open_mermaid`, `open_csv`,
+//! `list_pages`, `get_page`, `set_page`, `search_shapes`, `get_reference`), each of which is one
+//! engine command. An in-process headless backend is planned for Cascade 3 (docs/mcp.md).
 //!
 //! Entry points: [`Server::serve`] (the stdio loop) and [`Server::handle_line`] (one message).
 //! Stdout carries protocol messages only; nothing in this crate prints.
@@ -16,8 +19,10 @@
 
 mod backend;
 mod base64;
+mod diagram;
 mod line;
 pub mod logging;
+mod reference;
 mod server;
 mod tools;
 
