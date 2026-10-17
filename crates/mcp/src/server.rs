@@ -5,11 +5,12 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 
 use serde_json::{Value, json};
 
+use crate::MAX_MESSAGE_BYTES;
 use crate::backend::Backend;
 use crate::diagram;
 use crate::line::{Line, read_bounded};
-use crate::tools::{self, call_tool, is_tool, tool_definitions};
-use crate::{COMMANDS_URI, MAX_MESSAGE_BYTES};
+use crate::resources;
+use crate::tools::{call_tool, is_tool, tool_definitions};
 
 /// The MCP revision answered when the client asks for one we do not know.
 pub const PROTOCOL_VERSION: &str = "2025-06-18";
@@ -20,9 +21,8 @@ const SUPPORTED_VERSIONS: &[&str] = &[MODERN_VERSION, "2025-11-25", PROTOCOL_VER
 const PARSE_ERROR: i64 = -32700;
 const INVALID_REQUEST: i64 = -32600;
 const METHOD_NOT_FOUND: i64 = -32601;
-const INVALID_PARAMS: i64 = -32602;
-const INTERNAL_ERROR: i64 = -32603;
-const RESOURCE_NOT_FOUND: i64 = -32002;
+pub(crate) const INVALID_PARAMS: i64 = -32602;
+pub(crate) const INTERNAL_ERROR: i64 = -32603;
 
 /// Most messages answered from one JSON-RPC batch array (older clients only).
 const MAX_RPC_BATCH: usize = 64;
@@ -31,11 +31,14 @@ const INSTRUCTIONS: &str = "VizCraft is a diagram editor. Every action in it is 
 (`shape.add`, `connector.add`, `edit.undo`, `file.saveAs`): find commands and their params with \
 command_list, run one with command_run or several in order with command_batch. Check the result with \
 doc_inspect (JSON) or screenshot (PNG of the window). Coordinates are pixels at 100% zoom with y \
-pointing down. The resource vizcraft://commands holds the same catalog as command_list. For whole \
+pointing down. For whole \
 diagrams, open_xml, open_mermaid and open_csv fill a page from draw.io XML, Mermaid or CSV (with \
 optional automatic layout and shape-avoiding routing); list_pages, get_page and set_page read and \
 replace pages as draw.io XML; search_shapes finds stencil masters and their style strings; \
-get_reference explains the accepted XML, styles, layouts, Mermaid and CSV.";
+get_reference explains the accepted XML, styles, layouts, Mermaid and CSV. Resources (JSON, read-only): \
+vizcraft://commands is the same catalog as command_list, vizcraft://stencils every stencil set and master, \
+vizcraft://page/{id} one page with its shapes and connectors, and vizcraft://shape/{id} one shape with its \
+geometry, text, style, shape data and the connectors glued to it; resources/list names every page.";
 
 /// An MCP server bound to one backend.
 pub struct Server {
@@ -232,23 +235,9 @@ impl Server {
                 diagram::validate(name, &args).map_err(|e| (INVALID_PARAMS, format!("`{name}`: {e}")))?;
                 Ok(call_tool(self.backend.as_mut(), name, &args).to_value())
             }
-            "resources/list" => Ok(json!({"resources": [{
-                "uri": COMMANDS_URI,
-                "name": "commands",
-                "title": "Command catalog",
-                "description": "Every VizCraft command with its label, params and whether it can run now; the same list as command_list.",
-                "mimeType": "application/json",
-            }]})),
-            "resources/templates/list" => Ok(json!({"resourceTemplates": []})),
-            "resources/read" => {
-                let uri = params.get("uri").and_then(Value::as_str).ok_or((INVALID_PARAMS, "missing `uri`".to_string()))?;
-                if uri != COMMANDS_URI {
-                    return Err((RESOURCE_NOT_FOUND, format!("resource not found: {uri}")));
-                }
-                let list = tools::commands(self.backend.as_mut()).map_err(|e| (INTERNAL_ERROR, e))?;
-                let text = serde_json::to_string_pretty(&list).unwrap_or_default();
-                Ok(json!({"contents": [{"uri": uri, "mimeType": "application/json", "text": text}]}))
-            }
+            "resources/list" => Ok(resources::list(self.backend.as_mut())),
+            "resources/templates/list" => Ok(resources::templates()),
+            "resources/read" => resources::read(self.backend.as_mut(), params),
             "logging/setLevel" => {
                 // `level` is required. A null level is our own way of turning logging back off,
                 // which the spec has no method for and a long session needs.

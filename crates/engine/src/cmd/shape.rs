@@ -1,4 +1,4 @@
-//! Shape commands: add, delete, move, resize, rotate, text, style, and a stencil search.
+//! Shape commands: add, delete, move, resize, rotate, text, style, and read-only search, get and catalog.
 //!
 //! Positions are world units (pixels at 100% zoom), y down. A shape's `x, y` is the top-left of
 //! its unrotated frame; rotation turns the frame about its centre. Connectors need no bookkeeping
@@ -32,6 +32,12 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("shape.search", "Search Shapes", "Shapes pane", search).params(
             r#"{"query": string, "limit"?: n (default 20, at most 200)} -> {"masters": [{"id", "label", "category", "keywords", "w", "h", "style"}]}; style is the draw.io style string"#,
         ),
+        CommandSpec::new("shape.get", "Get Shape", "Shape", get).params(
+            r#"{"id": string, "page"?: id|name|index (default: any page)} -> {"page", "shape": {"id", "master", "kind", "x", "y", "w", "h", "rotation", "text", "style", "data", "connectionPoints"}, "connections": [{"connector", "end", "from", "to"}]}"#,
+        ),
+        CommandSpec::new("shape.catalog", "Stencil Catalog", "Shapes pane", catalog).params(
+            r#"{} -> {"sets": [{"id", "name", "categories", "masters": [{"id", "label", "category", "keywords", "w", "h", "style"}]}]}"#,
+        ),
     ]
 }
 
@@ -51,22 +57,21 @@ fn search(_s: &mut Session, v: &Value) -> CmdResult {
         // Clamped as a float first so a huge or negative number cannot overflow the cast.
         Some(n) => n.clamp(1.0, MAX_SEARCH_LIMIT as f64) as usize,
     };
-    let masters: Vec<Value> = vizcraft_stencils::search(&query)
-        .into_iter()
-        .take(limit)
-        .map(|m| {
-            json!({
-                "id": m.id,
-                "label": m.label,
-                "category": m.category,
-                "keywords": m.keywords,
-                "w": m.w,
-                "h": m.h,
-                "style": vizcraft_formats::drawio::master_style(m),
-            })
-        })
-        .collect();
+    let masters: Vec<Value> = vizcraft_stencils::search(&query).into_iter().take(limit).map(master_json).collect();
     Ok(json!({"masters": masters}))
+}
+
+/// A master as the search and catalog commands report it.
+fn master_json(m: &vizcraft_stencils::Master) -> Value {
+    json!({
+        "id": m.id,
+        "label": m.label,
+        "category": m.category,
+        "keywords": m.keywords,
+        "w": m.w,
+        "h": m.h,
+        "style": vizcraft_formats::drawio::master_style(m),
+    })
 }
 
 fn coord(v: f64) -> f64 {
@@ -280,6 +285,64 @@ fn not_a_shape(id: &str) -> EngineError {
     EngineError::Params(format!("`{}` is not a shape on this page", short(id)))
 }
 
+/// One shape with its page and the connectors glued to it. It only reads, so the document never
+/// changes. A missing shape is `no shape `<id>``, the text the MCP resources look for.
+fn get(s: &mut Session, v: &Value) -> CmdResult {
+    let id = p::req_str(v, "id")?;
+    let pages: Vec<&vizcraft_diagram::Page> = match v.get("page") {
+        None | Some(Value::Null) => s.doc.pages.iter().collect(),
+        Some(r) => {
+            let r = match r {
+                Value::String(t) => t.clone(),
+                Value::Number(n) => n.to_string(),
+                _ => return Err(EngineError::Params("`page` must be a page id, name or index".into())),
+            };
+            let index = s.doc.find_page(&r).ok_or_else(|| EngineError::Params(format!("no page `{}`", short(&r))))?;
+            s.doc.pages.get(index).into_iter().collect()
+        }
+    };
+    let (page, sh) =
+        pages.into_iter().find_map(|pg| pg.shape(id).map(|sh| (pg, sh))).ok_or_else(|| EngineError::Params(format!("no shape `{}`", short(id))))?;
+    let connections: Vec<Value> = page
+        .connectors
+        .iter()
+        .filter_map(|c| {
+            let (from, to) = (c.start.shape(), c.end.shape());
+            let end = match (from == Some(id), to == Some(id)) {
+                (true, true) => "both",
+                (true, false) => "start",
+                (false, true) => "end",
+                (false, false) => return None,
+            };
+            Some(json!({"connector": c.id, "end": end, "from": from, "to": to}))
+        })
+        .collect();
+    let shape = json!({
+        "id": sh.id,
+        "master": sh.stencil,
+        "kind": sh.kind,
+        "x": sh.x,
+        "y": sh.y,
+        "w": sh.w,
+        "h": sh.h,
+        "rotation": sh.angle_deg,
+        "text": sh.text,
+        "style": sh.style,
+        "data": sh.ext,
+        "connectionPoints": sh.connection_points(),
+    });
+    Ok(json!({"page": page.id, "shape": shape, "connections": connections}))
+}
+
+/// Every stencil set with its categories and masters. It reads the library only.
+fn catalog(_s: &mut Session, _v: &Value) -> CmdResult {
+    let sets: Vec<Value> = vizcraft_stencils::sets()
+        .iter()
+        .map(|set| json!({"id": set.id, "name": set.name, "categories": set.categories, "masters": set.masters.iter().map(master_json).collect::<Vec<_>>()}))
+        .collect();
+    Ok(json!({"sets": sets}))
+}
+
 #[cfg(test)]
 mod tests {
     use serde_json::{Value, json};
@@ -318,5 +381,66 @@ mod tests {
             assert!(s.run("shape.search", &bad).is_err(), "{bad}");
         }
         assert!(s.run("shape.search", &json!({"query": "a ".repeat(100_000)})).is_ok());
+    }
+
+    #[test]
+    fn get_reports_a_shape_and_its_connections_and_changes_nothing() {
+        let mut s = Session::new(crate::sample::sample_document());
+        let before = s.doc.clone();
+        let page = s.doc.page().unwrap().id.clone();
+        let decision = s.doc.page().unwrap().shapes.iter().find(|sh| sh.stencil == "flowchart.decision").unwrap().id.clone();
+        let r = s.run("shape.get", &json!({"id": decision})).unwrap();
+        assert_eq!(r["page"], page.as_str());
+        let sh = &r["shape"];
+        assert_eq!(sh["id"], decision.as_str());
+        assert_eq!(sh["master"], "flowchart.decision");
+        assert_eq!(sh["text"], "Valid?");
+        assert!(sh["kind"].is_string() && sh["style"]["fill"].is_string() && sh["data"].is_object(), "{sh}");
+        assert_eq!(sh["connectionPoints"].as_array().unwrap().len(), 4);
+        assert_eq!(sh["rotation"], 0.0);
+        // In from the process above it, out to "Save diagram" and "Fix input".
+        let conns = r["connections"].as_array().unwrap();
+        assert_eq!(conns.len(), 3, "{r}");
+        assert_eq!(conns.iter().filter(|c| c["end"] == "start").count(), 2);
+        assert!(conns.iter().any(|c| c["end"] == "end" && c["to"] == decision.as_str()));
+        // The page param narrows the search and accepts an index.
+        assert_eq!(s.run("shape.get", &json!({"id": decision, "page": 0})).unwrap()["page"], page.as_str());
+        assert_eq!(s.doc, before);
+        assert!(!s.can_undo() && !s.dirty);
+    }
+
+    #[test]
+    fn get_rejects_missing_shapes_pages_and_junk() {
+        let mut s = Session::new(crate::sample::sample_document());
+        let id = s.doc.page().unwrap().shapes[0].id.clone();
+        let err = s.run("shape.get", &json!({"id": "nope"})).unwrap_err().to_string();
+        assert!(err.contains("no shape `nope`"), "{err}");
+        let err = s.run("shape.get", &json!({"id": id, "page": "Elsewhere"})).unwrap_err().to_string();
+        assert!(err.contains("no page `Elsewhere`"), "{err}");
+        // A connector id is not a shape.
+        let conn = s.doc.page().unwrap().connectors[0].id.clone();
+        assert!(s.run("shape.get", &json!({"id": conn})).is_err());
+        for bad in [json!({}), json!({"id": 3}), json!({"id": id, "page": true}), json!({"id": "x".repeat(1_000_000)})] {
+            assert!(s.run("shape.get", &bad).is_err(), "{bad}");
+        }
+        let err = s.run("shape.get", &json!({"id": "\u{4e2d}".repeat(1000)})).unwrap_err().to_string();
+        assert!(err.len() < 400, "the error quotes a short id");
+    }
+
+    #[test]
+    fn catalog_lists_every_set_and_master() {
+        let mut s = Session::new(crate::sample::sample_document());
+        let before = s.doc.clone();
+        let r = s.run("shape.catalog", &json!({"ignored": [1, 2]})).unwrap();
+        let sets = r["sets"].as_array().unwrap();
+        assert_eq!(sets.len(), vizcraft_stencils::sets().len());
+        let total: usize = sets.iter().map(|set| set["masters"].as_array().unwrap().len()).sum();
+        assert_eq!(total, vizcraft_stencils::search("").len());
+        let flow = sets.iter().find(|set| set["id"] == "flowchart").unwrap();
+        assert_eq!(flow["categories"], json!(["Steps", "Data", "Links"]));
+        let decision = flow["masters"].as_array().unwrap().iter().find(|m| m["id"] == "flowchart.decision").unwrap();
+        assert!(decision["style"].as_str().unwrap().contains("vizcraft=flowchart.decision"));
+        assert_eq!(s.doc, before);
+        assert!(!s.can_undo());
     }
 }

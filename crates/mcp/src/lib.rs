@@ -23,6 +23,7 @@ mod diagram;
 mod line;
 pub mod logging;
 mod reference;
+mod resources;
 mod server;
 mod tools;
 
