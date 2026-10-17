@@ -15,6 +15,7 @@ repository = "https://github.com/storytold/vizcraft"
 vizcraft-engine = { path = "crates/engine" }
 vizcraft-ui-egui = { path = "crates/ui-egui" }
 vizcraft-macos-open = { path = "crates/macos-open" }
+vizcraft-mcp = { path = "crates/mcp" }
 
 # foundation
 thiserror = "2"
