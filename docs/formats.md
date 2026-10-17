@@ -6,7 +6,7 @@ import are built; the rest is planned ([ROADMAP.md](../ROADMAP.md)).
 
 | Format | Direction | Cascade | Public source |
 |---|---|---|---|
-| `.vizcraft` (native JSON) | read, write (built; also reads `.craft.json`) | 1 | Our own; documented below |
+| `.vizcraft` (native JSON) | read, write (built; version 3 adds the model section in 4A; also reads `.craft.json`) | 1, 4A | Our own; documented below |
 | `.drawio` (mxGraph XML) | read, write (built: every page; import into a page) | 3 | draw.io documentation; the Apache-2.0 mxGraph and draw.io format documentation |
 | Mermaid | import (built: flowchart, sequence, class, state, ER) | 3 | Mermaid syntax documentation |
 | CSV | import (built) | 3 | draw.io documentation on CSV import |
@@ -36,31 +36,41 @@ import are built; the rest is planned ([ROADMAP.md](../ROADMAP.md)).
 ## .vizcraft
 
 The native format, in `vizcraft_formats::native`: pretty-printed JSON with a wrapper object
-carrying a `format` tag, a `version` number and the `document`, so later versions can read older
-files.
+carrying a `format` tag, a `version` number, the semantic `model` and the `document`, so later
+versions can read older files.
 
 ```json
 {
   "format": "vizcraft",
-  "version": 2,
-  "document": {"title": "", "core": {...}, "pages": [{"id": "p1", "shapes": [...], "connectors": [...]}], "idSeq": 13}
+  "version": 3,
+  "model": {"schemaVersion": 1, "packs": [{"id": "flowchart", "version": "1.0.0"}], "elements": [...], "relationships": [...]},
+  "document": {"title": "", "core": {...}, "pages": [{"id": "p1", "view": {...}, "shapes": [...], "connectors": [...]}], "idSeq": 13}
 }
 ```
 
-- **Written:** always version 2, the diagram model as serialized by `vizcraft-diagram`
-  (camelCase fields, colours as `#rrggbb`, glue ends as `{"shape", "point"?}` or `{"x", "y"}`).
-  Cascade 3 added optional fields that are left out when empty, so the version stays 2:
-  connector `waypoints` (stored bends), `avoid` (route around shapes) and `jumps` (line jumps),
-  and an `ext` map on shapes, connectors and pages holding data from other formats.
-- **Read:** version 2; version 1 (the Cascade 0 placeholder: title and metadata only, which
-  loads with that title and metadata and one blank page); a wrapper without a `version` (read
-  as 1); and a bare document without the wrapper.
+- **Written:** always version 3, keys in the order `format`, `version`, `model`, `document`. The
+  `model` section is `vizcraft_model::Model` (camelCase, its own `schemaVersion`; elements with
+  `id`, `type`, `name`, `tag`, `owner`, `properties`; relationships with `id`, `type`, `source`,
+  `target`, ports, `name`, `properties`; property values are plain JSON booleans, numbers or
+  strings). It is left out when the model is empty, so free-drawing files carry no model. The
+  `document` is the diagram as serialized by `vizcraft-diagram` (camelCase fields, colours as
+  `#rrggbb`, glue ends as `{"shape", "point"?}` or `{"x", "y"}`), with optional fields left out
+  when empty: connector `waypoints`, `avoid` and `jumps`, an `ext` map on shapes, connectors and
+  pages, and since version 3 `element` on shapes, `relationship` on connectors and `view`
+  (`{"viewpoint", "layout"}`) on pages.
+- **Read:** version 3; version 2 and version 1 (the Cascade 0 placeholder: title and metadata
+  only, which loads with that title and metadata and one blank page) load as free drawing with an
+  empty model, ignoring any `model` key; a wrapper without a `version` (read as 1); and a bare
+  document without the wrapper (empty model).
 - **Refused with an error:** input over 64 MiB, anything that is not a JSON object, a wrapper
-  whose `format` is not `vizcraft`, a `version` newer than 2 ("saved by a newer VizCraft"), a
-  wrapper with no `document` object. Nesting depth is bounded by the JSON parser.
-- **Inside the document** the model's loader is tolerant: missing or wrong-typed fields take
-  defaults, unreadable list items are dropped, numbers and text are clamped, and every document
-  has at least one page.
+  whose `format` is not `vizcraft`, a `version` newer than 3 ("saved by a newer VizCraft"), a
+  model `schemaVersion` newer than this build reads (same error), a wrapper with no `document`
+  object. Nesting depth is bounded by the JSON parser.
+- **Tolerated:** a `model` that is not an object loads as an empty model; inside the model and
+  the document the loaders are tolerant: missing or wrong-typed fields take defaults, unreadable
+  list items are dropped, numbers and text are clamped, and every document has at least one page.
+  A shape `element` or connector `relationship` that names no model item is cleared, so that item
+  loads as free drawing.
 
 File names: `io::EXTENSION` is `vizcraft`. The engine reads and writes native files for names
 ending in `.vizcraft`, `.craft.json` or `.json` (so paths from Cascade 0 keep working), draw.io
