@@ -308,6 +308,7 @@ impl CraftApp {
                 "openFile" => self.open_dialog(),
                 "saveAs" => self.save_as_dialog(),
                 "export" => self.export_dialog(),
+                "import" => self.import_dialog(),
                 other => self.dialog = dialogs::Dialog::open(other, self),
             }
         }
@@ -444,6 +445,21 @@ impl CraftApp {
         let picked = self.services.pick_open.as_ref().and_then(|f| f("document"));
         if let Some(path) = picked {
             let _ = self.run("file.open", json!({"path": path}));
+            self.backstage = false;
+        }
+    }
+
+    /// Ask for a draw.io, Mermaid or CSV file and import it onto the page (`file.import` without
+    /// a path). On the web the picked file arrives through the inbox, which imports anything
+    /// that is not a document.
+    pub fn import_dialog(&mut self) {
+        if let Some(f) = &self.services.open_async {
+            f("import");
+            return;
+        }
+        let picked = self.services.pick_open.as_ref().and_then(|f| f("import"));
+        if let Some(path) = picked {
+            let _ = self.run("file.import", json!({"path": path}));
             self.backstage = false;
         }
     }
@@ -607,6 +623,15 @@ impl CraftApp {
         let Some(inbox) = self.services.inbox.clone() else { return };
         let files = std::mem::take(&mut *inbox.lock().unwrap_or_else(|e| e.into_inner()));
         for (name, bytes) in files {
+            // Mermaid, CSV and bare XML files are imported onto the page; documents open.
+            if !vizcraft_engine::io::is_document(&name)
+                && let Some(format) = vizcraft_engine::io::import_format_for_name(&name)
+            {
+                let text = String::from_utf8_lossy(&bytes).into_owned();
+                let _ = self.run("file.import", json!({"text": text, "format": format}));
+                self.backstage = false;
+                continue;
+            }
             match vizcraft_engine::io::load_bytes(&name, &bytes) {
                 Ok(doc) => {
                     self.session.set_document(doc);
