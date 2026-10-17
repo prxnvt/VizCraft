@@ -34,7 +34,7 @@ pub fn specs() -> Vec<CommandSpec> {
         })
         .key("Mod+W"),
         CommandSpec::new("file.export", "Export...", "File", export).key("Mod+Shift+E").params(
-            r#"{"path"?: string, "format"?: "svg"|"drawio"} (svg: the first page; drawio: every page; format from the extension when omitted)"#,
+            r#"{"path"?: string, "format"?: "svg"|"png"|"drawio", "page"?: id|name|index, "scale"?: number} -> {exported, path, format, page} (svg and png: one page, the first unless `page` names another; png: `scale` pixels per unit, 0.25 to 4, default 1; drawio: every page; format from the extension when omitted)"#,
         ),
         CommandSpec::new("file.import", "Import...", "File", import).key("Mod+Shift+I").params(IMPORT_PARAMS),
         CommandSpec::new("file.setAuthor", "User Name", "File > Options", |s, v| {
@@ -108,10 +108,26 @@ fn export(s: &mut Session, v: &Value) -> CmdResult {
         return Ok(json!({"exported": false}));
     };
     let format = crate::io::export_format(path, p::str(v, "format"))?;
-    let bytes = crate::io::export_bytes(path, Some(format), &s.doc)?;
+    // Read every param before writing anything, so a bad page or scale leaves no file behind.
+    let page = match v.get("page") {
+        None | Some(Value::Null) => 0,
+        Some(Value::String(r)) => s.doc.find_page(r).ok_or_else(|| EngineError::Params(format!("no page `{}`", short(r))))?,
+        Some(Value::Number(n)) => n
+            .as_u64()
+            .and_then(|i| usize::try_from(i).ok())
+            .filter(|&i| i < s.doc.pages.len())
+            .ok_or_else(|| EngineError::Params(format!("no page {n}")))?,
+        Some(_) => return Err(EngineError::Params("`page` must be a page id, name or index".into())),
+    };
+    let scale = super::num(v, "scale")?.unwrap_or(1.0);
+    if scale <= 0.0 {
+        return Err(EngineError::Params("`scale` must be greater than 0".into()));
+    }
+    let bytes = crate::io::export_page_bytes(path, Some(format), &s.doc, page, scale)?;
     std::fs::write(path, bytes).map_err(|e| EngineError::Failed(format!("{path}: {e}")))?;
     s.status = format!("Exported {path}");
-    Ok(json!({"exported": true, "path": path, "format": format}))
+    let page_id = s.doc.pages.get(page).map(|p| p.id.clone());
+    Ok(json!({"exported": true, "path": path, "format": format, "page": page_id}))
 }
 
 fn import(s: &mut Session, v: &Value) -> CmdResult {
@@ -387,13 +403,63 @@ mod tests {
         let other = dir.join("page.out");
         s.run("file.export", &json!({"path": other.to_string_lossy(), "format": "svg"})).unwrap();
         assert!(std::fs::read(&other).unwrap().starts_with(b"<?xml"));
-        let bad = dir.join("page.png");
+        let bad = dir.join("page.jpg");
         assert!(s.run("file.export", &json!({"path": bad.to_string_lossy()})).is_err());
         assert!(!bad.exists());
 
         // Without a path the UI is asked for a picker.
         assert_eq!(s.run("file.export", &json!({})).unwrap()["exported"], false);
         assert_eq!(s.ui_requests.pop(), Some(json!({"open": "export"})));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn export_writes_png_and_picks_pages() {
+        let dir = temp_dir("export-png");
+        let mut s = Session::new(crate::sample::sample_document());
+        let second = s.doc.add_page("Second");
+        let second_id = s.doc.pages[second].id.clone();
+        let path = dir.join("page.png");
+        let shown = path.to_string_lossy().to_string();
+        let r = s.run("file.export", &json!({"path": shown})).unwrap();
+        assert_eq!((r["format"].as_str(), r["page"].as_str()), (Some("png"), Some(s.doc.pages[0].id.as_str())));
+        let one = std::fs::read(&path).unwrap();
+        assert!(one.starts_with(b"\x89PNG\r\n\x1a\n"));
+        let width = |png: &[u8]| u32::from_be_bytes(png[16..20].try_into().unwrap());
+        s.run("file.export", &json!({"path": shown, "scale": 2})).unwrap();
+        let two = std::fs::read(&path).unwrap();
+        assert!(width(&two).abs_diff(width(&one) * 2) <= 2, "{} against {}", width(&two), width(&one));
+
+        // The page by id, name or index, for png and svg alike.
+        for page in [json!(second_id), json!("Second"), json!(second), json!(second.to_string())] {
+            let r = s.run("file.export", &json!({"path": shown, "page": page})).unwrap();
+            assert_eq!(r["page"], json!(second_id), "{page}");
+        }
+        let svg = dir.join("second.svg");
+        let r = s.run("file.export", &json!({"path": svg.to_string_lossy(), "page": "Second"})).unwrap();
+        assert_eq!((r["format"].as_str(), r["page"].as_str()), (Some("svg"), Some(second_id.as_str())));
+
+        // Bad pages and scales are params errors and write nothing.
+        let none = dir.join("none.png");
+        let none_shown = none.to_string_lossy().to_string();
+        for bad in [
+            json!({"page": "nope"}),
+            json!({"page": 99}),
+            json!({"page": -1}),
+            json!({"page": 1.5}),
+            json!({"page": true}),
+            json!({"scale": 0}),
+            json!({"scale": -2}),
+            json!({"scale": "big"}),
+        ] {
+            let mut params = bad.clone();
+            params["path"] = json!(none_shown);
+            assert!(matches!(s.run("file.export", &params), Err(crate::EngineError::Params(_))), "{bad}");
+            assert!(!none.exists(), "{bad}");
+        }
+        // Huge scales are clamped by the renderer rather than refused.
+        assert!(s.run("file.export", &json!({"path": none_shown, "scale": 1e9})).is_ok());
+        assert!(!s.dirty, "exporting does not change the document");
         let _ = std::fs::remove_dir_all(&dir);
     }
 

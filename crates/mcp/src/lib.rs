@@ -7,11 +7,14 @@
 //! - [`Remote`] talks to a running app through its loopback control channel
 //!   (`vizcraft --control 7990`): one `{"id","method","params"}` line out, one
 //!   `{"id","ok","result"|"error"}` line back (docs/control-protocol.md).
+//! - [`Headless`] owns an engine session in this process, with no window: it answers
+//!   `engine.execute`, `engine.commands` and the document part of `ui.inspect`, and refuses the
+//!   methods that need a window. `screenshot` renders pages through the engine's PNG export.
 //!
 //! Tools: the generic command tools (`command_list`, `command_run`, `command_batch`,
 //! `doc_inspect`, `screenshot`) and the diagram tools (`open_xml`, `open_mermaid`, `open_csv`,
 //! `list_pages`, `get_page`, `set_page`, `search_shapes`, `get_reference`), each of which is one
-//! engine command. An in-process headless backend is planned for Cascade 3 (docs/mcp.md).
+//! engine command.
 //!
 //! Resources: the command catalog and the notation pack schemas (`vizcraft://notation`,
 //! `vizcraft://notation/{pack}`, `vizcraft://notation/{pack}/{type}`). `command_run` and
@@ -25,6 +28,7 @@
 mod backend;
 mod base64;
 mod diagram;
+mod headless;
 mod issues;
 mod line;
 pub mod logging;
@@ -35,6 +39,7 @@ mod tools;
 
 pub use backend::{Backend, Remote};
 pub use base64::encode as base64_encode;
+pub use headless::Headless;
 pub use server::{PROTOCOL_VERSION, Server};
 pub use tools::{ToolResult, call_tool, tool_definitions};
 

@@ -4,11 +4,12 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish = false
-description = "VizCraft MCP server: JSON-RPC 2.0 over stdio, driving the running app through its control channel"
+description = "VizCraft MCP server: JSON-RPC 2.0 over stdio, driving the running app through its control channel or an engine session in process"
 
 [lints]
 workspace = true
 
 [dependencies]
+vizcraft-engine = { workspace = true }
 serde_json = { workspace = true }
 log = { workspace = true }
