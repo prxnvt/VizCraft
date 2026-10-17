@@ -30,7 +30,7 @@ const MAX_RPC_BATCH: usize = 64;
 const INSTRUCTIONS: &str = "VizCraft is a diagram editor. Every action in it is a command with an id \
 (`shape.add`, `connector.add`, `edit.undo`, `file.saveAs`): find commands and their params with \
 command_list, run one with command_run or several in order with command_batch. Check the result with \
-doc_inspect (JSON) or screenshot (PNG of the window). Coordinates are pixels at 100% zoom with y \
+doc_inspect (JSON) or screenshot (PNG of the window, or of a page rendered with no window). Coordinates are pixels at 100% zoom with y \
 pointing down. For whole \
 diagrams, open_xml, open_mermaid and open_csv fill a page from draw.io XML, Mermaid or CSV (with \
 optional automatic layout and shape-avoiding routing); list_pages, get_page and set_page read and \

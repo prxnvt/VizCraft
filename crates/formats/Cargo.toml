@@ -17,7 +17,5 @@ vizcraft-layout = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
-# PNG export rasterises the SVG export on the CPU. Text only, no system fonts or raster images:
-# the bundled Inter faces are the only fonts it reads. A direct version for now; it moves to
-# [workspace.dependencies] in the root Cargo.toml later.
-resvg = { version = "0.47", default-features = false, features = ["text"] }
+# PNG export rasterises the SVG export on the CPU; the bundled Inter faces are the only fonts it reads.
+resvg = { workspace = true }

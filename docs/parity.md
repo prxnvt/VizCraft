@@ -41,7 +41,7 @@ When a feature lands, change its State in the same commit as the code. States:
 | Shapes pane | 1 | done | Basic and Flowchart sets with drawn previews; click or drag to insert |
 | Basic and Flowchart stencils | 1 | done | Original shapes defined in code (`vizcraft-stencils`), inserted with `shape.add` |
 | Connection points | 1 | done | Four per built-in shape; shown on hover, connectors drag from and glue to them |
-| Stencil search | 3 | planned | Keyword index over every stencil |
+| Stencil search | 3 | done | Search field in the Shapes pane ranks masters by exact name, word prefix, keyword and substring; `ui.shapesSearch` sets it by id |
 | Custom stencils | Future | planned | Plugin stencil sets loaded from files |
 
 ## Connectors and glue
@@ -347,7 +347,7 @@ When a feature lands, change its State in the same commit as the code. States:
 |---|---|---|---|
 | `.vizcraft` native format | 1 | done | Versioned JSON; see [docs/formats.md](formats.md) |
 | SVG export | 1 | done | First page, through `file.export {path, format?}` |
-| PNG export | 2 | planned | Page or all pages |
+| PNG export | 2 | done (one page, built in Cascade 3) | `file.export {format: "png", page?, scale?}`; all pages at once is planned |
 | PDF export | 2 | planned | Page or all pages |
 | .drawio read and write | 3 | done | Multi-page, compressed pages; groups, containers and layers flattened for now |
 | Mermaid import | 3 | done | Flowchart, sequence, class, state, ER |
@@ -362,8 +362,8 @@ When a feature lands, change its State in the same commit as the code. States:
 | `command_list` | 1 | done | Every command id, label and params doc |
 | `command_run` | 1 | done | Run one command by id |
 | `command_batch` | 1 | done | Run several commands in order |
-| `doc_inspect` | 1 | done | Document and UI state as JSON |
-| `screenshot` | 1 | done | PNG of the window |
+| `doc_inspect` | 1 | done | Document and UI state as JSON; `page?` adds one page's summary (Cascade 3) |
+| `screenshot` | 1 | done | PNG of the window, or of one page rendered offscreen with `page?`, `window?`, `scale?` (Cascade 3) |
 | `open_xml` | 3 | done | Load a diagram from .drawio XML |
 | `open_mermaid` | 3 | done | Load a diagram from Mermaid text |
 | `open_csv` | 3 | done | Load a diagram from CSV |
@@ -374,8 +374,8 @@ When a feature lands, change its State in the same commit as the code. States:
 | `set_page` | 3 | done | Replace or update one page |
 | `layout` and `routing` options | 3 | done | Auto-layout and connector routing applied on open |
 | Commands resource | 1 | done | `vizcraft://commands` |
-| Resources for pages, shapes, stencils | 3 | planned | Read-only MCP resources |
+| Resources for pages, shapes, stencils | 3 | done | `vizcraft://page/{id}`, `vizcraft://shape/{id}`, `vizcraft://stencils`, with templates |
 | Remote backend | 1 | done | Drives a running app over the control channel |
-| Headless backend | 3 | planned | Hosts a `Session` in process, no window |
+| Headless backend | 3 | done | Hosts a `Session` in process, no window; `vizcraft-cli mcp --headless`, and the fallback when no app listens |
 
 Tool shapes, resources and launch details are in [docs/mcp.md](mcp.md).

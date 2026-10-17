@@ -287,4 +287,39 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn resources_list_and_read_through_headless() {
+        let mut s = headless();
+        result(&mut s, 1, "initialize", json!({"protocolVersion": "2025-06-18"}));
+        let r = call(&mut s, 2, "open_mermaid", json!({"source": FLOW}));
+        assert_eq!(r["isError"], false, "{r}");
+        let page_id = text_json(&r)["page"].as_str().map(str::to_string).unwrap_or_default();
+
+        let list = result(&mut s, 3, "resources/list", json!({}));
+        let uris: Vec<&str> = list["resources"].as_array().unwrap().iter().map(|r| r["uri"].as_str().unwrap()).collect();
+        assert!(uris.contains(&"vizcraft://commands") && uris.contains(&"vizcraft://stencils"), "{uris:?}");
+        let page_uri = uris.iter().find(|u| u.starts_with("vizcraft://page/")).copied().unwrap().to_string();
+        if !page_id.is_empty() {
+            assert!(page_uri.ends_with(&page_id), "{page_uri} vs {page_id}");
+        }
+        let templates = result(&mut s, 4, "resources/templates/list", json!({}));
+        let forms: Vec<&str> = templates["resourceTemplates"].as_array().unwrap().iter().map(|t| t["uriTemplate"].as_str().unwrap()).collect();
+        assert!(forms.contains(&"vizcraft://page/{id}") && forms.contains(&"vizcraft://shape/{id}"), "{forms:?}");
+
+        let read = |s: &mut Server, id: u64, uri: &str| -> Value {
+            let r = result(s, id, "resources/read", json!({"uri": uri}));
+            assert_eq!(r["contents"][0]["mimeType"], "application/json", "{r}");
+            serde_json::from_str(r["contents"][0]["text"].as_str().unwrap()).unwrap()
+        };
+        let page = read(&mut s, 5, &page_uri).to_string();
+        assert!(page.contains("Start") && page.contains("Ship"), "{page}");
+        let shape = read(&mut s, 6, "vizcraft://shape/A");
+        assert_eq!(shape["shape"]["id"], "A", "{shape}");
+        assert!(shape["connections"].as_array().is_some_and(|c| !c.is_empty()), "{shape}");
+        let stencils = read(&mut s, 7, "vizcraft://stencils");
+        assert!(stencils["sets"].as_array().is_some_and(|s| !s.is_empty()), "{stencils}");
+        let commands = read(&mut s, 8, "vizcraft://commands");
+        assert!(commands.as_array().is_some_and(|c| c.iter().any(|c| c["id"] == "shape.get")), "commands");
+    }
 }

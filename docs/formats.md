@@ -1,7 +1,7 @@
 # File formats
 
 What VizCraft reads and writes, when each format lands, and the public source each one is built
-from. The native `.vizcraft` file, SVG export, `.drawio` read and write, Mermaid import and CSV
+from. The native `.vizcraft` file, SVG and PNG export, `.drawio` read and write, Mermaid import and CSV
 import are built; the rest is planned ([ROADMAP.md](../ROADMAP.md)).
 
 | Format | Direction | Cascade | Public source |
@@ -11,7 +11,7 @@ import are built; the rest is planned ([ROADMAP.md](../ROADMAP.md)).
 | Mermaid | import (built: flowchart, sequence, class, state, ER) | 3 | Mermaid syntax documentation |
 | CSV | import (built) | 3 | draw.io documentation on CSV import |
 | SVG | export (built: one page) | 1 | W3C SVG 1.1 |
-| PNG | export | 2 | W3C PNG specification |
+| PNG | export (built: one page) | 2, built in 3 | W3C PNG specification (written by `resvg`) |
 | PDF | export | 2 | ISO 32000 (PDF) |
 | `.vsdx` | import | 4 | Microsoft Open Specifications [MS-VSDX]; ECMA-376 Open Packaging Conventions |
 
@@ -178,8 +178,8 @@ leaf crate `crates/drawio`; it caps rows, columns, fields and edges.
 ## SVG
 
 Export of one page as a standalone SVG 1.1 document, in `vizcraft_formats::svg::export_page`;
-`file.export {path, format?}` writes the first page (format `svg`, or taken from a `.svg`
-extension; anything else is an error). Export only; SVG import is not planned. Choices:
+`file.export {path, format?, page?}` writes one page, the first unless `page` (an id, name or
+index) says otherwise (format `svg`, or taken from a `.svg` extension). Export only; SVG import is not planned. Choices:
 
 - **Size:** the canvas is the page (`viewBox="0 0 width height"`, width and height in pixels).
   When content reaches past the page edge the canvas grows to the content bounds plus a 20 px
@@ -197,11 +197,26 @@ extension; anything else is an error). Export only; SVG import is not planned. C
   dropped. Numbers have at most three decimals and never print as NaN or infinity.
 - **Not yet:** the selection only, all pages, embedded fonts, layers as groups.
 
-## PNG and PDF
+## PNG
 
-Raster export of a page at a chosen scale and background, and vector PDF export of one or all
-pages at the page size. Cascade 2. PDF output follows ISO 32000; fonts are embedded from
-`assets/fonts`.
+Raster export of one page, in `vizcraft_formats::png::render_page` (built in Cascade 3 for the
+headless MCP screenshot). `file.export {path, format?: "png", page?, scale?}` writes it (format
+from a `.png` extension too); the MCP `screenshot` tool uses the same command. Choices:
+
+- **Rendering:** the page's SVG export (above) rasterised on the CPU by `resvg`, so a PNG looks
+  like the SVG, needs no window or GPU, and builds for wasm.
+- **Fonts:** the bundled Inter faces from `assets/fonts` only; no system fonts are read, so the
+  output is the same on every machine.
+- **Background:** white.
+- **Scale:** pixels per page unit, default 1, clamped to 0.25 to 4; zero, negative or non-numeric
+  scale is a params error. A side past 8192 pixels lowers the scale so the whole page fits, and
+  the file is at most 48 MB.
+- **Not yet:** a transparent background, the selection only, a crop to the content.
+
+## PDF
+
+Vector PDF export of one or all pages at the page size. Cascade 2. PDF output follows ISO 32000;
+fonts are embedded from `assets/fonts`.
 
 ## .vsdx
 

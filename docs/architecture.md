@@ -17,8 +17,8 @@ the code that depends on it, and say so in the commit message.
 | Layer | Crate | Job |
 |---|---|---|
 | model | `crates/diagram` (`vizcraft-diagram`) | Geometry (points, rects, transforms, paths), shape outlines and connection points, the document model, hit testing, glue and connector routing, auto-layout (`autolayout`), obstacle-avoiding routes (`autoroute`) and line jumps (`jumps`). Depends on serde, `layout` and `routing` |
-| model | `crates/stencils` (`vizcraft-stencils`) | Built-in stencil catalog: Basic and Flowchart sets, masters with default size and style, keyword search. Depends on `diagram` only |
-| model | `crates/formats` (`vizcraft-formats`) | File formats, bytes in and bytes out: `.vizcraft` native JSON (`native::save`, `native::load`), SVG export (`svg::export_page`), `.drawio` (`drawio::{load, save, import, page_xml, master_style}`), Mermaid (`mermaid::import`) and CSV (`csv::import`) import into `Imported { pages, warnings }`. Depends on `diagram`, `stencils`, `drawio`, `mermaid` and `layout` |
+| model | `crates/stencils` (`vizcraft-stencils`) | Built-in stencil catalog: Basic and Flowchart sets, masters with default size and style, ranked keyword search over an index built once (`search`). Depends on `diagram` only |
+| model | `crates/formats` (`vizcraft-formats`) | File formats, bytes in and bytes out: `.vizcraft` native JSON (`native::save`, `native::load`), SVG export (`svg::export_page`), PNG export (`png::render_page`: the SVG export rasterised on the CPU by `resvg` with the bundled Inter faces, no system fonts, builds for wasm), `.drawio` (`drawio::{load, save, import, page_xml, master_style}`), Mermaid (`mermaid::import`) and CSV (`csv::import`) import into `Imported { pages, warnings }`. Depends on `diagram`, `stencils`, `drawio`, `mermaid` and `layout` |
 | model | `crates/mermaid` (`vizcraft-mermaid`) | Mermaid parser: flowchart, sequence, class, state and ER text to a typed IR with a common node, edge and group view (`Diagram::to_graph`); warnings for unsupported statements. No workspace dependencies |
 | model | `crates/drawio` (`vizcraft-drawio`) | draw.io codec: `.drawio` files (inline or compressed pages), the mxGraphModel cell IR, style strings, HTML labels, page list/get/set, and draw.io-style CSV import. No workspace dependencies |
 | model | `crates/layout` (`vizcraft-layout`) | Automatic layout over an index-based graph: layered (Sugiyama), tidy tree, radial and force-directed, all four directions, deterministic. No workspace dependencies |
@@ -26,7 +26,7 @@ the code that depends on it, and say so in the commit message.
 | L4 | `crates/engine` (`vizcraft-engine`) | `Session`, undo, command registry, I/O; `engine::doc` re-exports the diagram `Document` |
 | L6 | `crates/ui-egui` (`vizcraft-ui-egui`) | egui front end: theme, chrome, menus, ribbon, panes, dialogs, keys, control |
 | platform | `crates/macos-open` | Finder Open Documents (odoc) Apple Event, safe API |
-| mcp | `crates/mcp` (`vizcraft-mcp`) | Stdio JSON-RPC MCP server, launched by `vizcraft-cli mcp`; same rank as `ui-egui`, so neither depends on the other, and no UI toolkit (see [docs/mcp.md](mcp.md)) |
+| mcp | `crates/mcp` (`vizcraft-mcp`) | Stdio JSON-RPC MCP server, launched by `vizcraft-cli mcp`; same rank as `ui-egui`, so neither depends on the other, and no UI toolkit. Depends on `engine` for the `Headless` backend, which hosts a `Session` in process (see [docs/mcp.md](mcp.md)) |
 | apps | `apps/vizcraft`, `apps/vizcraft-cli`, `apps/vizcraft-web` | desktop app, headless CLI, wasm shell (see [docs/web.md](web.md)) |
 | tooling | `xtask` | `cargo xtask ci`, `layers`, `assets`, `wasm`, `ico`, `version` |
 
@@ -273,8 +273,8 @@ the same commit as the code, and update [docs/parity.md](parity.md).
 | Layer | Crate | Job |
 |---|---|---|
 | model | `crates/diagram` | Grows layers, groups and containers, themes, shape data, waypoints and auto-layout (Cascades 2 to 4) |
-| model | `crates/stencils` | Grows the domain stencil sets and a full keyword index (Cascades 3 and 4) |
-| model | `crates/formats` | Grows .drawio read and write, Mermaid and CSV import, PNG and PDF export, .vsdx import (Cascades 2 to 4) |
+| model | `crates/stencils` | Grows the domain stencil sets (Cascade 4) |
+| model | `crates/formats` | Grows .drawio read and write, Mermaid and CSV import, PDF export, .vsdx import (Cascades 2 to 4) |
 | L4 | `crates/engine` | Gains `cmd/` modules for the new command prefixes |
 | L6 | `crates/ui-egui` | Diagram canvas (handles, connector drag, snap, rulers, guides), page tabs, new panes and ribbon tabs |
 
@@ -449,5 +449,9 @@ reachable the day it lands; `doc_inspect` and `screenshot` map to `ui.inspect` a
 draw.io-style tools (`open_xml`, `open_mermaid`, `open_csv`, `search_shapes`, `get_reference`,
 `list_pages`, `get_page`, `set_page`) each send one engine command (`file.import`, `page.*`,
 `shape.search`; `get_reference` is static text), so undo and the control channel see them.
-Planned: a `Headless` backend hosting a `Session` in process, and MCP resources. Tool list, resources and
+Also built in Cascade 3: the `Headless` backend, which hosts a `Session` in the server process
+and answers `engine.execute`, `engine.commands` and the document part of `ui.inspect` itself;
+page screenshots through `file.export {format: "png"}`, so they need no window on either
+backend; and the page, shape and stencil resources, read through `page.get`, `shape.get` and
+`shape.catalog`. Tool list, resources and
 launch: [docs/mcp.md](mcp.md). File formats and their public sources: [docs/formats.md](formats.md).

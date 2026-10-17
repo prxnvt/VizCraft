@@ -22,11 +22,11 @@ notation, and the audience packs follow in Cascade 6.
 
 | Measure | Value |
 |---|---|
-| Cascade | 0 and 1 done; Cascade 3 interop, layout, routing and MCP tools done (stencil search, MCP resources and the Headless backend remain); Cascade 2 (trimmed) in progress; Cascade 4A (model core) next |
+| Cascade | 0 and 1 done; Cascade 3 done (interop, layout, routing, MCP tools, resources, Headless backend, stencil search); Cascade 2 (trimmed) in progress; Cascade 4A (model core) next |
 | Direction | Model-backed engineering workbench: semantic model, notation packs, rules, patterns and code-scaffold generators, then industrial, embedded and enterprise packs |
-| App runs | a small diagram editor: canvas with shapes, text and glued connectors (obstacle-avoiding routes, line jumps), Shapes pane, Home, Insert, Design and Connector ribbon tabs, auto-layout, .drawio open and save, Mermaid and CSV import, inside the full chrome (menus, dialogs, command palette, control channel, multiple windows, web shell) |
-| Document model | `vizcraft-diagram` (multi-page documents reachable through `page.*` and draw.io files; the canvas shows the first page until page tabs land), `vizcraft-stencils` (Basic and Flowchart), saved as `.vizcraft` or `.drawio`, exported as SVG |
-| MCP server | generic tools plus the draw.io-style diagram tools (Remote backend); resources and the Headless backend are next |
+| App runs | a small diagram editor: canvas with shapes, text and glued connectors (obstacle-avoiding routes, line jumps), Shapes pane with search, Home, Insert, Design and Connector ribbon tabs, auto-layout, .drawio open and save, Mermaid and CSV import, inside the full chrome (menus, dialogs, command palette, control channel, multiple windows, web shell) |
+| Document model | `vizcraft-diagram` (multi-page documents reachable through `page.*` and draw.io files; the canvas shows the first page until page tabs land), `vizcraft-stencils` (Basic and Flowchart), saved as `.vizcraft` or `.drawio`, exported as SVG or PNG |
+| MCP server | generic tools plus the draw.io-style diagram tools; resources for commands, stencils, pages, shapes and notation packs; Remote backend (a running app) and Headless backend (in process, no window) |
 
 ## Cascade 0: rename and documentation reset (done)
 
@@ -78,7 +78,7 @@ patterns; the Shape Data pane is the first form of the typed Inspector.
 | Shape Data pane (first Inspector) | Typed key and value data on shapes, edited in a right-dock pane; each key may carry schema hooks (type, unit, enum, required, default) that notation packs fill in later; Cascade 4B grows the pane into the Inspector; `data.*` commands | `crates/engine/src/cmd/data.rs`, `crates/ui-egui/src/panes.rs` | planned |
 | Pan and Zoom pane | Overview of the page with the visible area as a draggable frame | `crates/ui-egui/src/panes.rs` | planned |
 | Find and replace | Search shape text and shape data, replace | `crates/engine/src/cmd/edit.rs`, `crates/ui-egui/src/dialogs.rs` | planned |
-| PNG and PDF export | Raster and vector export of a page or all pages | `crates/formats` | planned |
+| PNG and PDF export | Raster and vector export of a page or all pages | `crates/formats` | planned (PNG of one page built in Cascade 3) |
 
 Done when: a multi-page cross-functional flowchart with swimlanes, layers, a theme, typed shape
 data and aligned shapes can be built and exported to PNG and PDF, by hand and over the control
@@ -95,9 +95,9 @@ Cascade 4A specification work.
 | Mermaid import | Flowchart, sequence, class, state and ER diagrams, laid out, subgraphs as background boxes | `crates/mermaid` (parser), `crates/formats` (mapping) | done |
 | CSV import | draw.io-style CSV with layout and connection hints | `crates/drawio` (parser), `crates/formats` (mapping) | done |
 | Auto-layout | Layered, tree, radial and force layouts: `layout.full` (page or selection), `layout.incremental` (existing shapes pinned), `layout.route` (connectors only); Design ribbon tab | `crates/layout` (algorithms), `crates/diagram` (`autolayout`), `crates/engine/src/cmd/layout.rs`, `crates/ui-egui/src/ribbon.rs` | done |
-| Stencil search | Keyword index over every stencil; search box in the Shapes pane | `crates/stencils`, `crates/ui-egui/src/panes.rs` | planned |
+| Stencil search | Keyword index over every stencil; search box in the Shapes pane | `crates/stencils`, `crates/ui-egui/src/panes.rs` | done (ranked index in `stencils::search`, `ui.shapesSearch`) |
 | MCP draw.io-style tools | `open_xml`, `open_mermaid`, `open_csv`, `search_shapes`, `get_reference`, `list_pages`, `get_page`, `set_page`, with `layout` and `routing` options; each tool is one engine command (`file.import`, `page.*`, `shape.search`) | `crates/mcp`, `crates/engine` | done |
-| MCP resources and Headless backend | Resources for pages, shapes, commands and stencils; a Headless backend that hosts a `Session` in process, so no window is needed | `crates/mcp` | planned |
+| MCP resources and Headless backend | Resources for pages, shapes, commands and stencils; a Headless backend that hosts a `Session` in process, so no window is needed | `crates/mcp`, `crates/formats` (PNG), `apps/vizcraft-cli` | done (`vizcraft-cli mcp --headless` and the no-app fallback; page screenshots through `file.export` PNG on both backends; `shape.get`, `shape.catalog`) |
 
 Done when: a .drawio file round-trips with its pages and connections intact, and an agent can
 create, inspect and edit a diagram from Mermaid or CSV through the MCP tools with or without a
