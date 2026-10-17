@@ -33,7 +33,7 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("connector.setJumps", "Line Jumps", "Design > Connectors", set_jumps)
             .params(r#"{"ids"?: [string], "on": bool} -> {"ids", "on"}; draw a hop where the connector crosses one drawn before it; default: the selected connectors, else all"#)
             .when(has_connectors),
-        CommandSpec::new("connector.setText", "Edit Text", "Home > Font", set_text).params(r#"{"id": string, "text": string}"#).when(has_connectors),
+        CommandSpec::new("connector.setText", "Edit Text", "Home > Font", set_text).params(r#"{"id": string, "text": string}; on a connector of a relationship, renames the relationship and every view of it"#).when(has_connectors),
     ]
 }
 
@@ -166,9 +166,18 @@ fn set_arrows(s: &mut Session, v: &Value) -> CmdResult {
 fn set_text(s: &mut Session, v: &Value) -> CmdResult {
     let id = p::req_str(v, "id")?;
     let text = p::req_str(v, "text")?;
-    let c = page_mut(s)?.connector_mut(id).ok_or_else(|| not_a_connector(id))?;
-    c.text = text.to_string();
-    c.sanitize();
+    let page = s.doc.page().ok_or_else(|| EngineError::Failed("the document has no page".into()))?;
+    let rel = page.connector(id).ok_or_else(|| not_a_connector(id))?.relationship.clone().filter(|r| s.doc.model.relationship(r).is_some());
+    // A connector that draws a relationship shows its name: renaming the relationship updates
+    // this connector and every other view of it.
+    match rel {
+        Some(r) => super::model::rename_relationship(&mut s.doc, &r, text)?,
+        None => {
+            let c = page_mut(s)?.connector_mut(id).ok_or_else(|| not_a_connector(id))?;
+            c.text = text.to_string();
+            c.sanitize();
+        }
+    }
     let id = id.to_string();
     with_sel(s, json!({"id": id}))
 }
