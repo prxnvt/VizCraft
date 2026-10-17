@@ -10,7 +10,7 @@ use std::path::Path;
 /// Where a workspace crate sits.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Class {
-    /// Model layer (diagram, stencils, formats): plain data and geometry below the engine; no UI toolkit,
+    /// Model layer (diagram, stencils, formats and the leaf libraries in `MODEL_SUFFIXES`): plain data and geometry below the engine; no UI toolkit,
     /// no engine, no front end.
     Model,
     /// L4: the model, undo, command registry; knows nothing about any UI toolkit.
@@ -69,12 +69,16 @@ pub struct Crate {
     pub deps: Vec<Dep>,
 }
 
+/// Name suffixes of the model-layer crates: the diagram model and catalog, the file formats, and
+/// the leaf libraries they build on (Mermaid parser, draw.io codec, auto-layout, connector router).
+const MODEL_SUFFIXES: &[&str] = &["-diagram", "-stencils", "-formats", "-mermaid", "-drawio", "-layout", "-routing"];
+
 /// Classify a crate by its name suffix, falling back to its directory for apps.
 pub fn classify(c: &Crate) -> Option<Class> {
     if c.name == "xtask" {
         return Some(Class::Tooling);
     }
-    if c.name.ends_with("-diagram") || c.name.ends_with("-stencils") || c.name.ends_with("-formats") {
+    if MODEL_SUFFIXES.iter().any(|s| c.name.ends_with(s)) {
         return Some(Class::Model);
     }
     if c.name.ends_with("-engine") {
@@ -108,7 +112,7 @@ pub fn describe(class: Option<Class>) -> String {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Violation {
-    /// A crate the rules cannot place: not `*-diagram`, `*-stencils`, `*-formats`, `*-engine`, `*-ui-egui`, `*-macos-open`, `xtask` or under `apps/`.
+    /// A crate the rules cannot place: not a model suffix (`*-diagram`, `*-formats`, `*-drawio`, ...), `*-engine`, `*-ui-egui`, `*-macos-open`, `xtask` or under `apps/`.
     Unregistered { krate: String },
     /// The engine pulls in a UI toolkit or desktop service.
     EngineUsesUi { krate: String, dep: String },
@@ -127,7 +131,7 @@ impl std::fmt::Display for Violation {
         match self {
             Violation::Unregistered { krate } => write!(
                 f,
-                "{krate}: unknown workspace crate; name it <craft>-diagram, <craft>-stencils, <craft>-formats, <craft>-engine, <craft>-ui-egui, <craft>-macos-open, put it under apps/, or extend xtask/src/layers.rs"
+                "{krate}: unknown workspace crate; name it with a model suffix (-diagram, -stencils, -formats, -mermaid, -drawio, -layout, -routing), <craft>-engine, <craft>-ui-egui, <craft>-macos-open, put it under apps/, or extend xtask/src/layers.rs"
             ),
             Violation::EngineUsesUi { krate, dep } => {
                 write!(f, "{krate} depends on `{dep}`; the engine and the MCP server must not know about egui/eframe/winit/rfd/muda/arboard")
@@ -312,7 +316,16 @@ mod tests {
 
     #[test]
     fn model_must_not_use_ui_crates_or_point_up() {
-        for name in ["vizcraft-diagram", "vizcraft-stencils"] {
+        for name in [
+            "vizcraft-diagram",
+            "vizcraft-stencils",
+            "vizcraft-formats",
+            "vizcraft-mermaid",
+            "vizcraft-drawio",
+            "vizcraft-layout",
+            "vizcraft-routing",
+        ] {
+            assert_eq!(classify(&c(name, "/r/crates/x/Cargo.toml", &[])), Some(Class::Model), "{name}");
             let manifest = format!("/r/crates/{}/Cargo.toml", name.trim_start_matches("vizcraft-"));
             for dep in ["egui", "egui_kittest", "eframe", "winit", "rfd", "muda", "arboard"] {
                 let v = check(&[c(name, &manifest, &[(dep, Normal, false)])]);
