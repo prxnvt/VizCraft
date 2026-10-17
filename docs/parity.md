@@ -152,27 +152,27 @@ When a feature lands, change its State in the same commit as the code. States:
 |---|---|---|---|
 | Comments | 8 | planned | On shapes and pages |
 | Hyperlinks | 8 | planned | To pages, shapes and URLs |
-| Validation | 4A | planned | Rule sets with an issues pane |
+| Validation | 4A | partly done (4A) | Rule sets declared by notation packs, live and batch, with structured issues (`validate.*`); the issues pane is Cascade 4B |
 | Find and replace | 2 | planned | Shape text and shape data |
 
 ## Semantic model and notation packs
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| Semantic model | 4A | planned | `vizcraft-model`: elements, relationships and a containment tree, with stable ids and pack-qualified types |
-| Views over the model | 4A | planned | One element shown in many views; geometry lives in the view, keyed by element id |
-| Shape-to-element references | 4A | planned | Optional `Shape.element` and `Connector.relationship`; shapes without one stay free drawing |
-| Delete from view or from model | 4A | planned | Removing a shape from a view keeps the element unless asked |
-| Model section in `.vizcraft` | 4A | planned | Versioned; older files load as free drawing |
-| Notation pack format | 4A | planned | `vizcraft-notation`: versioned JSON or TOML packs with element types, property schemas, ports, glyphs, palette groups, viewpoints, identifier formats and rules |
-| Connection table | 4A | planned | Legal source type, relationship type and target type, with multiplicity |
-| Conditional styles | 4A | planned | Styles keyed on property values, declared in the pack |
-| Viewpoints | 4A | planned | Named filters of allowed types per view |
-| Basic and Flowchart packs | 4A | planned | The existing sets re-expressed as the first two packs |
-| Rules engine, live | 4A | planned | Cheap rules after every command |
-| Rules engine, batch | 4A | planned | Expensive rules on selection, page or project |
-| Structured issues | 4A | planned | Rule id, severity, element ids, message; returned with every MCP command batch |
-| Notation schema discovery over MCP | 4A | planned | Agents list packs, types, properties and legal relationships |
+| Semantic model | 4A | done | `vizcraft-model`: elements, relationships and a containment tree, with stable ids and pack-qualified types |
+| Views over the model | 4A | done | One element shown in many views; geometry lives in the view, keyed by element id |
+| Shape-to-element references | 4A | done | Optional `Shape.element` and `Connector.relationship`; shapes without one stay free drawing |
+| Delete from view or from model | 4A | done | Removing a shape from a view keeps the element unless asked |
+| Model section in `.vizcraft` | 4A | done | Versioned; older files load as free drawing |
+| Notation pack format | 4A | done | `vizcraft-notation`: versioned JSON or TOML packs with element types, property schemas, ports, glyphs, palette groups, viewpoints, identifier formats and rules |
+| Connection table | 4A | done | Legal source type, relationship type and target type, with multiplicity |
+| Conditional styles | 4A | done | Styles keyed on property values, declared in the pack; applied when the property changes, hand styling otherwise stays |
+| Viewpoints | 4A | done | Named filters of allowed types per view |
+| Basic and Flowchart packs | 4A | done | The existing sets re-expressed as the first two packs |
+| Rules engine, live | 4A | done | Cheap rules after every command |
+| Rules engine, batch | 4A | done | Expensive rules on selection, page or project |
+| Structured issues | 4A | done | Rule id, severity, element ids, message; returned with every MCP command batch |
+| Notation schema discovery over MCP | 4A | done | Agents list packs, types, properties and legal relationships |
 | Implied relationships | 6 | planned | Parent-level links derived from child links (C4 first) |
 | Impact analysis, relationship matrix, baselines and model diff | 7 | planned | Analysis over the model |
 | Runtime-loaded packs | 8 | planned | Third-party packs loaded from files at run time |
@@ -204,16 +204,16 @@ When a feature lands, change its State in the same commit as the code. States:
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| Identity registry | 4A | planned | Project-wide tags and reference designations |
-| Auto-numbering | 4A | planned | Loop numbers, line numbers and designations handed out by the registry |
-| Uniqueness checks | 4A | planned | Duplicate tags raise a live issue; the Inspector shows the check as you type |
-| Composed identifiers | 4A | planned | Identifier formats declared by the pack (for example letters, loop number and suffix) |
+| Identity registry | 4A | done | Project-wide tags and reference designations |
+| Auto-numbering | 4A | done | Loop numbers, line numbers and designations handed out by the registry |
+| Uniqueness checks | 4A | partly done (4A) | Duplicate tags raise a live issue (built); the Inspector check as you type is Cascade 4B |
+| Composed identifiers | 4A | done | Identifier formats declared by the pack (for example `{letters}-{n:3}`), composed and auto-numbered by the registry |
 | ISA-5.1 tags and composed line numbers | 6 | planned | Configurable formats in the P&ID pack, not hardcoded letter tables |
 | IEC 81346 reference designations | 7 | planned | Electrical pack |
-| Off-page connector pairing | 4A | planned | Paired objects, matched by identifier |
-| Unmatched off-page detection | 4A | planned | An off-page connector with no continuation raises an issue |
+| Off-page connector pairing | 4A | done | Paired objects, matched by identifier |
+| Unmatched off-page detection | 4A | done | An off-page connector with no continuation raises an issue |
 | Cross-reference display | 7 | planned | Live cross-references between paired items in the electrical pack |
-| Flowchart rules | 4A | planned | Unconnected connectors and dangling decisions, declared in the Flowchart pack |
+| Flowchart rules | 4A | done | Unconnected connectors and dangling decisions, declared in the Flowchart pack |
 | Statechart checks | 6 | planned | Unreachable states, dead ends, unknown events |
 | Memory map checks | 6 | planned | Overlap, alignment, overflow |
 | Cross-sheet continuity | 6 | planned | P&ID batch rule |

@@ -16,9 +16,11 @@ the code that depends on it, and say so in the commit message.
 
 | Layer | Crate | Job |
 |---|---|---|
-| model | `crates/diagram` (`vizcraft-diagram`) | Geometry (points, rects, transforms, paths), shape outlines and connection points, the document model, hit testing, glue and connector routing, auto-layout (`autolayout`), obstacle-avoiding routes (`autoroute`) and line jumps (`jumps`). Depends on serde, `layout` and `routing` |
-| model | `crates/stencils` (`vizcraft-stencils`) | Built-in stencil catalog: Basic and Flowchart sets, masters with default size and style, ranked keyword search over an index built once (`search`). Depends on `diagram` only |
-| model | `crates/formats` (`vizcraft-formats`) | File formats, bytes in and bytes out: `.vizcraft` native JSON (`native::save`, `native::load`), SVG export (`svg::export_page`), PNG export (`png::render_page`: the SVG export rasterised on the CPU by `resvg` with the bundled Inter faces, no system fonts, builds for wasm), `.drawio` (`drawio::{load, save, import, page_xml, master_style}`), Mermaid (`mermaid::import`) and CSV (`csv::import`) import into `Imported { pages, warnings }`. Depends on `diagram`, `stencils`, `drawio`, `mermaid` and `layout` |
+| model | `crates/model` (`vizcraft-model`) | Semantic model: elements, relationships, containment, views (`View` on a page), the identity registry (`identity`: identifier formats, auto-numbering, uniqueness, pairs) and structured issues (`Issue`, `Severity`). Depends on serde only |
+| model | `crates/notation` (`vizcraft-notation`) | Notation packs: the pack schema (`schema`), JSON and TOML loader with consistency checks, the built-in Basic and Flowchart packs (`catalog()`), connection-table queries (`legal`), the rules engine (`rules::{live, batch}`) and the model sync pass (`bind::sync`). Depends on `model` and `diagram` |
+| model | `crates/diagram` (`vizcraft-diagram`) | Geometry (points, rects, transforms, paths), shape outlines and connection points, the document model, hit testing, glue and connector routing, auto-layout (`autolayout`), obstacle-avoiding routes (`autoroute`) line jumps (`jumps`), and diagram items as views of model items (`views`). The `Document` holds the semantic model. Depends on serde, `model`, `layout` and `routing` |
+| model | `crates/stencils` (`vizcraft-stencils`) | Built-in stencil catalog: Basic and Flowchart sets, masters with default size and style, ranked keyword search over an index built once (`search`); its sets and masters are built once from the glyphs of the notation packs. Depends on `diagram` and `notation` |
+| model | `crates/formats` (`vizcraft-formats`) | File formats, bytes in and bytes out: `.vizcraft` native JSON (`native::save`, `native::load`; version 3 carries the model section), SVG export (`svg::export_page`), PNG export (`png::render_page`: the SVG export rasterised on the CPU by `resvg` with the bundled Inter faces, no system fonts, builds for wasm), `.drawio` (`drawio::{load, save, import, page_xml, master_style}`), Mermaid (`mermaid::import`) and CSV (`csv::import`) import into `Imported { pages, warnings }`. Depends on `diagram`, `stencils`, `drawio`, `mermaid` and `layout` |
 | model | `crates/mermaid` (`vizcraft-mermaid`) | Mermaid parser: flowchart, sequence, class, state and ER text to a typed IR with a common node, edge and group view (`Diagram::to_graph`); warnings for unsupported statements. No workspace dependencies |
 | model | `crates/drawio` (`vizcraft-drawio`) | draw.io codec: `.drawio` files (inline or compressed pages), the mxGraphModel cell IR, style strings, HTML labels, page list/get/set, and draw.io-style CSV import. No workspace dependencies |
 | model | `crates/layout` (`vizcraft-layout`) | Automatic layout over an index-based graph: layered (Sugiyama), tidy tree, radial and force-directed, all four directions, deterministic. No workspace dependencies |
@@ -58,7 +60,8 @@ a command that needs one pushes `{"open": "<dialog>"}` to `session.ui_requests` 
 handles it.
 
 Command id prefixes: `file.*`, `edit.*`, `view.*`, `shape.*` (`crates/engine/src/cmd/shape.rs`),
-`connector.*` (`cmd/connector.rs`), `page.*` (`cmd/page.rs`), `layout.*` (`cmd/layout.rs`), `insert.*`, `format.*`, `window.*`, `help.*`, `ui.*` (UI layer), `app.*` (app-level: `app.quit`,
+`connector.*` (`cmd/connector.rs`), `page.*` (`cmd/page.rs`), `layout.*` (`cmd/layout.rs`), `model.*`, `element.*`,
+`relationship.*`, `validate.*`, `notation.*` (`cmd/{model,element,relationship,validate,notation}.rs`), `insert.*`, `format.*`, `window.*`, `help.*`, `ui.*` (UI layer), `app.*` (app-level: `app.quit`,
 `app.preferences`, `app.about`). `insert.*` and `format.*` are reserved; no engine
 command uses them yet.
 
@@ -92,6 +95,40 @@ zero-based index (`Document::find_page`).
 | `layout.incremental` | `{ids, algorithm?, direction?, nodeSpacing?, layerSpacing?}`: places only `ids`, every other shape stays |
 | `layout.route` | `{ids?}`: routes connectors around shapes, never moves a shape |
 
+Model commands (Cascade 4A). Element ids in params may also be the id of a shape that draws the
+element, and relationship ids the id of a connector that draws it. Each document change is one
+undo step; the read-only ones never change the document.
+
+| Command | Params -> result |
+|---|---|
+| `model.get` | `{ids?}` -> `{schemaVersion, packs, elements, relationships}`; with ids only those (each must exist) |
+| `model.tree` | `{root?}` -> node `{id, type, name, tag, children, truncated?}` for root, else `{children: [root elements]}`; 32 levels at most |
+| `model.move` | `{id, owner: element id or null}` -> `{id, owner}`; the owner's type must be a container; cycles refused |
+| `model.views` | `{id}` (element or relationship) -> `{views: [{page, pageName, items}]}` (show in all views) |
+| `model.delete` | `{ids}` -> `{elements, relationships, items}`: delete from the model; owned elements, touching relationships and every view on every page go too |
+| `model.setViewpoint` | `{page?, viewpoint: id or null}` -> `{page, viewpoint}`; the viewpoint must be in the catalog |
+| `element.create` | `{type, name?, tag?, owner?, properties?, id?, x?, y?, w?, h?, page?}` -> `{id, tag, shape?}`; no tag: next auto number; schema defaults filled; x and y draw a view |
+| `element.get` | `{id}` -> `{element, views, outgoing, incoming}` |
+| `element.rename`, `element.setProperty` | `{id, name}` (every view shows the name); `{id, key, value}` (null removes) |
+| `element.retag` | `{id, tag?}` -> `{id, tag}`; no tag: next auto number (refused when the scope does not number) |
+| `element.show` | `{id, page?, x, y, w?, h?}` -> `{id, shape}`: another view; refused when that page already draws it |
+| `element.deleteFromView` | `{ids?}` (bound shapes, default the selection) -> `{deleted, detached}`; elements stay in the model |
+| `relationship.create` | `{from, to, type?, name?, properties?, id?, strict?}` -> `{id, type, legal, connector?}`; type defaults from the connection table; `strict` refuses an illegal one; a connector is drawn when both ends share a page |
+| `relationship.retype`, `relationship.reconnect`, `relationship.setProperty` | `{id, type}` -> `{id, type, legal}`; `{id, from?, to?}` -> `{id, source, target, legal, removed}` (views reglued on their page or removed); `{id, key, value}` |
+| `validate.run` | `{scope?: "all" \| "page" \| "selection", page?, ids?}` -> `{issues, live, batch}`: live issues for the scope plus the batch rules, sorted by severity, rule and first subject |
+| `validate.list` | `{severity?: "error" \| "warning" \| "info", rule?}` -> `{issues}` from `Session.issues` |
+| `notation.list` | `{}` -> `{packs: [{id, version, name, audience, description, types, glyphs}]}` (`types` and `glyphs` are counts) |
+| `notation.describe` | `{pack, type?}` -> the pack schema as JSON; with `type` (qualified or local): `{type, pack, legal}` for an element type, `{relationship, pack}` for a relationship type |
+| `notation.legal` | `{from, to?}` (element, shape or type ids) -> `{from, relationships: [{relationship, targets}]}`; with `to`, only relationships reaching its type, plus `to` and `legal` |
+
+Shapes and connectors from the existing commands join the model as well: `shape.add` with a
+master whose glyph names an element type (every Flowchart master) also creates that element and
+returns `{id, element}`; `shape.setText` and `connector.setText` on bound items rename the model
+item and every view; `edit.copy` carries the bound items' elements and relationships and
+`edit.paste` makes new ones, so a paste is never an extra view of the original; deleting a shape
+or connector removes it from the view, keeps elements in the model, and removes a relationship
+whose last connector view went.
+
 ## Engine (`vizcraft-engine`) public API
 
 ```rust
@@ -106,6 +143,7 @@ pub struct Session {
     pub ui_requests: Vec<Value>,       // requests to the UI, drained by the UI after each command
     pub status: String,                // one-shot status message, taken by the UI
     pub clipboard: String,             // in-process clipboard for edit.cut / edit.copy / edit.paste
+    pub issues: Vec<Issue>,            // live issues (vizcraft_model::Issue), recomputed after every change, undo, redo and open
     // private: undo/redo stacks
 }
 impl Session {
@@ -114,6 +152,7 @@ impl Session {
     pub fn commands(&self) -> Vec<CommandInfo>;   // id, label, shortcut, location, enabled: bool, reason
     pub fn can_undo(&self) -> bool; pub fn can_redo(&self) -> bool; pub fn undo_label(&self) -> Option<&str>;
     pub fn rev(&self) -> u64;                     // bumps on every document change
+    pub fn refresh_issues(&mut self);             // rerun the live rules (panic-guarded)
 }
 pub mod io { pub fn save_bytes(name: &str, doc: &Document) -> Result<Vec<u8>, EngineError>; pub fn load_bytes(name: &str, bytes: &[u8]) -> Result<Document, EngineError>;
              pub fn export_bytes(name: &str, format: Option<&str>, doc: &Document) -> Result<Vec<u8>, EngineError>; }
@@ -125,8 +164,11 @@ Documents are `.vizcraft` files (`io::EXTENSION`), versioned JSON read and writt
 still reads `.craft.json` and `.json`; `.drawio` and `.drawio.xml` names open and save as draw.io.
 `file.export {path, format?}` writes the first page as SVG, or the document as draw.io, through
 `io::export_bytes`; `file.import` brings in draw.io, Mermaid and CSV. After every command that
-changes the document, `Session::run` calls `vizcraft_diagram::autoroute::refresh`, inside the same
-undo step, so connectors that avoid shapes are rerouted when anything moves. See
+changes the document, `Session::run` calls `vizcraft_notation::bind::sync` (inside the command's
+panic guard; not after a command that replaced the document) and then
+`vizcraft_diagram::autoroute::refresh`, inside the same undo step, so the model and its views stay
+in step and connectors that avoid shapes are rerouted when anything moves; then it recomputes
+`Session.issues` with `vizcraft_notation::rules::live`. See
 [docs/formats.md](formats.md). Engine crate root carries
 `#![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]`.
 A test `hostile_params_never_panic` runs every command with junk params.
@@ -234,10 +276,10 @@ shape's frame centre.
 
 | Type | Holds |
 |---|---|
-| `Document` | `title`, `core: CoreProps` (author, timestamps, revision), `pages: Vec<Page>` (always at least one), `id_seq`; `next_id(prefix)` hands out `s1`, `c2` and so on, never reused |
-| `Page` | Id, name, width and height (1100 x 850 by default), `shapes` and `connectors` in z order, `ext` |
-| `Shape` | Id, `stencil` master id (`basic.rectangle`), `kind: ShapeKind` (16 outlines), frame `x, y, w, h`, `angle_deg`, text, `Style`, optional custom connection points (normalized; kinds default to top, right, bottom, left), `ext` (data from other formats kept for round trips) |
-| `Connector` | Id, `start` and `end` as `End::Glued { shape, point: Option<usize> }` (no point = dynamic glue) or `End::Free { x, y }`, `route` (`straight`, `orthogonal`, `curved`), arrowheads per end (`none`, `triangle`, `open`, `diamond`, `circle`), label text, `Style`, `waypoints` (stored bends), `avoid` (route around shapes), `jumps` (line jumps), `ext` |
+| `Document` | `title`, `core: CoreProps` (author, timestamps, revision), `pages: Vec<Page>` (always at least one), `id_seq`, `model: vizcraft_model::Model` (not in the document's serde form; the native file writes it as its own section); `next_id(prefix)` hands out `s1`, `c2`, `e3`, `r4` and so on, never reused; pages, shapes, connectors, elements and relationships share one id space (`contains_id`) |
+| `Page` | Id, name, width and height (1100 x 850 by default), `shapes` and `connectors` in z order, `ext`, `view: Option<View>` (the viewpoint the page shows; `None` for free drawing) |
+| `Shape` | Id, `stencil` master id (`basic.rectangle`), `kind: ShapeKind` (16 outlines), frame `x, y, w, h`, `angle_deg`, text, `Style`, optional custom connection points (normalized; kinds default to top, right, bottom, left), `ext` (data from other formats kept for round trips), `element: Option<String>` (the model element it draws; `None` is free drawing) |
+| `Connector` | Id, `start` and `end` as `End::Glued { shape, point: Option<usize> }` (no point = dynamic glue) or `End::Free { x, y }`, `route` (`straight`, `orthogonal`, `curved`), arrowheads per end (`none`, `triangle`, `open`, `diamond`, `circle`), label text, `Style`, `waypoints` (stored bends), `avoid` (route around shapes), `jumps` (line jumps), `ext`, `relationship: Option<String>` (the model relationship it draws) |
 | `Style` | Fill, line colour and width, font size and colour, bold, italic; colours serialize as `#rrggbb` |
 
 Routing and glue are pure functions of shape geometry and the connector's stored `waypoints`
@@ -250,7 +292,49 @@ serve the importers and page commands. Hit
 testing (`shape_at`, `connector_at`, `shapes_in_rect`, `connection_point_at`) uses the real
 outline and rotation. Loading is tolerant: missing or wrong-typed fields take defaults, and
 `sanitize` clamps sizes, coordinates and text length. `vizcraft-stencils` provides `sets()`,
-`master(id)`, `search(query)` and `new_shape(master_id, id, x, y, w?, h?)`.
+`master(id)`, `search(query)` and `new_shape(master_id, id, x, y, w?, h?)`. `views::{sanitize_refs,
+views_of, items_referencing, elements_on_page}` relate diagram items to model items; loading clears
+references to model items that do not exist, so those items load as free drawing.
+
+## Semantic model and notation packs (`vizcraft-model`, `vizcraft-notation`)
+
+Built in Cascade 4A. Shapes are views of typed elements; notations are data packs. Reasoning:
+[docs/research/professional-features.md](research/professional-features.md).
+
+| Type | Holds |
+|---|---|
+| `Model` | `schema_version`, `packs: Vec<PackRef>` (id, version), `elements`, `relationships`; `add_element`, `add_relationship`, `set_owner` (cycles refused), `descendants`, `ancestors`, `remove` (cascades to owned elements and touching relationships), `outgoing`, `incoming`, `children`, `sanitize` (caps, repairs references, breaks cycles) |
+| `Element` | Id, pack-qualified `type` (`flowchart.Decision`), `name` (shown as the text of every view), `tag` (from the identity registry), `owner` (containment; `None` is the project root), typed `properties` (`PropValue`: bool, number, text) |
+| `Relationship` | Id, pack-qualified `type`, `source` and `target` element ids, optional `source_port` and `target_port`, `name` (shown on every connector view), `properties` |
+| `View` | `viewpoint` (pack-qualified) and `layout`, carried by a page as `Page.view` |
+| `Issue` | `rule` (pack-qualified), `severity` (error, warning, info), `message`, `subjects` (element and relationship ids), `items` (shapes and connectors drawing them), `page?`; `key()` identifies the same problem across runs |
+| `identity::{IdScope, IdFormat, Registry}` | Identifier scopes from packs (types, format such as `S{n}` or `{letters}-{n:3}`, unique, paired, auto-number); `next_tag`, `is_free`, `duplicates`, `unmatched` |
+
+A notation pack (`vizcraft_notation::Pack`, schema version 1, JSON or TOML) declares, all with
+pack-qualified ids: glyphs (built-in outline, size, our own colours, keywords and the element type
+a placed glyph becomes; glyphs are the stencil masters), element types (label, glyph, property
+schema with kind, unit, enum values, required and default, ports, container flag), relationship
+types, the connection table (source types, relationship, target types, `outMax`, `inMax`),
+conditional styles, palette groups, viewpoints, identifier scopes, rules, and the templates,
+patterns and exporters it supports. `loader::{load, load_json, load_toml}` cap the size and run
+`validate::check`, so a bad pack is an error, never a panic. `catalog()` holds the built-in Basic
+(glyphs only: free drawing) and Flowchart packs.
+
+Rules are data: each declares an id, severity, mode (live after every change, or batch on request)
+and one check from a fixed vocabulary: `illegalRelationship`, `multiplicity`, `requiredProperty`,
+`propertyType`, `duplicateIdentifier`, `unmatchedPair`, `viewpointType`, `danglingConnector`,
+`minOutgoing`, `minIncoming`, `exclusiveDirections`, `unreachable`. `rules::live` and
+`rules::batch` (with a `Scope` of all, a page or items) run the rules of every pack the model uses
+and return issues sorted by severity, rule and first subject.
+
+`bind::sync(doc, before, catalog)` runs after every document change: references to missing model
+items are cleared; a second view of one element on a page becomes a new element; a connector glued
+at both ends to bound shapes gets a relationship of the connection table's type for that pair
+(an illegal pair still binds, so its rule reports it) and its relationship follows its glue (ports
+from connection-point indexes); a relationship whose last connector view went is removed unless it
+was reconnected in that command; names are mirrored to view texts; conditional style fields are
+applied when an element's match changes (hand styling otherwise stays); used packs are recorded.
+Free drawing is never touched, so Cascade 1 to 3 documents pass through unchanged.
 
 ## Conventions
 
@@ -323,68 +407,20 @@ order are in [ROADMAP.md](../ROADMAP.md).
 
 #### New crates
 
-All four sit in the model layer: below `engine`, no egui, no engine dependency, wasm safe, with the
-standard crate-root `deny` list. When each lands, `MODEL_SUFFIXES` in `xtask/src/layers.rs` gains
-its suffix (`-model`, `-notation`, `-patterns`, `-codegen`) and the contract table above gains its
-row.
+`vizcraft-model` and `vizcraft-notation` are built (Cascade 4A; see the contract above). The two
+still planned sit in the model layer too: below `engine`, no egui, no engine dependency, wasm safe,
+with the standard crate-root `deny` list. When each lands, `MODEL_SUFFIXES` in
+`xtask/src/layers.rs` gains its suffix (`-patterns`, `-codegen`) and the contract table above gains
+its row.
 
 | Layer | Crate | Job | Depends on |
 |---|---|---|---|
-| model | `crates/model` (`vizcraft-model`) | Semantic model: elements, relationships, containment, views, identity registry, structured issues, model queries and derived tables | serde only; `diagram` depends on it, because the diagram `Document` holds the model (`Document.model`) so undo, dirty tracking and the panic restore cover both |
-| model | `crates/notation` (`vizcraft-notation`) | Notation pack schema and loader, built-in Basic and Flowchart packs, connection table, conditional styles, viewpoints, identifier formats, rules engine, model sync pass | `model`, `diagram`; `stencils` builds its masters from the pack glyphs |
 | model | `crates/patterns` (`vizcraft-patterns`) | Pattern generators with typed parameters, provenance and reparameterize, emitting model edits | `model`, `notation`, `layout` |
 | model | `crates/codegen` (`vizcraft-codegen`) | Generator framework under the regeneration contract: specs, manifests, deterministic writers, merge, targets | `model`, `notation` |
 
-`formats` gains the model section of `.vizcraft` and pack-specific importers and exporters
-(SCXML, SVD, DDL, BPMN XML and so on); `engine` gains the command modules for the new prefixes and
-runs live rules after each command; `mcp` gains notation schema discovery and returns issues with
-each batch; `ui-egui` gains the model tree, scoped palette, Inspector, bottom dock and canvas
+`formats` gains pack-specific importers and exporters (SCXML, SVD, DDL, BPMN XML and so on), and
+`ui-egui` gains the model tree, scoped palette, Inspector, bottom dock and canvas
 insertion.
-
-#### Semantic model sketch
-
-| Type | Holds |
-|---|---|
-| `Element` | Stable id (caller-chosen or registry-issued), pack-qualified type (`pid.CentrifugalPump`, `c4.Container`), typed properties checked against the type's schema, tags, owner (its parent in the containment tree) |
-| `Relationship` | Id, pack-qualified type, source and target element ids with optional ports, properties |
-| Containment | Tree of elements under the project root (packages, plant areas, composite states); an element has one owner |
-| `View` | Id, viewpoint (the named filter of allowed types), layout; geometry keyed by element id, never stored in the model |
-| `Shape.element`, `Connector.relationship` | Optional references from today's diagram items; an item without one stays free drawing, so Cascade 1 to 3 documents keep working |
-
-Deleting a shape removes it from its view; deleting from the model removes the element, its
-relationships and every view item that references it. One element may appear in many views.
-
-#### Notation pack schema outline
-
-A pack is a versioned JSON or TOML file, loaded by `vizcraft-notation`, and is the single source
-for the palette, hover suggestions, the magic connector, the validator, the Inspector and MCP
-schema discovery. Basic and Flowchart are the first two packs.
-
-| Section | Declares |
-|---|---|
-| Header | Pack id (the type prefix), version, audience, schema version |
-| Element types | Name, property schema (type, unit, enum, required, default), ports, default size |
-| Glyphs | Original outlines drawn from public specification descriptions |
-| Connection table | Source type, relationship type, target type, multiplicity |
-| Conditional styles | Style changes keyed on property values |
-| Palette groups and viewpoints | Grouping for the palette; named filters of allowed types per view |
-| Identifier formats | Composed identifiers (for example letters plus loop number plus suffix) used by the identity registry |
-| Rules | Rule id, severity (Error, Warning, Info), live or batch, the check |
-| Templates, patterns, exporters | What the pack supports, by id |
-
-#### Rules engine
-
-Cheap rules run live after every document-changing command (illegal relationship, missing required
-property, duplicate tag); expensive rules run in batch on a selection, page or project
-(reachability, cross-sheet continuity). An issue is a structured record of rule id, severity,
-element ids and message. Issues feed the Problems tab, and the MCP server returns the issues a
-command batch raised in that batch's result, so an agent can repair its own mistakes.
-
-#### Identity registry
-
-A project-wide registry in `vizcraft-model` hands out and checks tags and reference designations:
-auto-numbering, uniqueness, and identifiers composed from a pack's identifier format. Off-page
-connectors are paired objects matched by identifier; an end with no partner raises an issue.
 
 #### Derived table views
 
@@ -427,15 +463,11 @@ parameter schema of every pattern is discoverable through `pattern.list` and MCP
 
 #### Planned workbench command prefixes
 
-These join the prefixes above:
+These join the prefixes above (the Cascade 4A prefixes `model.*`, `element.*`, `relationship.*`,
+`validate.*` and `notation.*` are built):
 
 | Prefix | Covers | Cascade |
 |---|---|---|
-| `model.*` | Project-level model operations: containment moves, show in all views, delete from model | 4A |
-| `element.*` | Create, set property, retag, delete from view | 4A |
-| `relationship.*` | Create, retype, reconnect, set property | 4A |
-| `validate.*` | Run batch rules, list and filter issues | 4A |
-| `notation.*` | List packs, describe a type, legal relationships from an element | 4A |
 | `pattern.*` | `pattern.list`, `pattern.insert`, `pattern.reparameterize` | 5A |
 | `generate.*` | `generate.preview`, `generate.run`, `generate.check` | 5B |
 | `layout.full`, `layout.incremental`, `layout.route` | Rearrange everything; pin existing nodes and place new ones; reroute connectors without moving nodes | 3 (built) |
@@ -453,5 +485,8 @@ Also built in Cascade 3: the `Headless` backend, which hosts a `Session` in the 
 and answers `engine.execute`, `engine.commands` and the document part of `ui.inspect` itself;
 page screenshots through `file.export {format: "png"}`, so they need no window on either
 backend; and the page, shape and stencil resources, read through `page.get`, `shape.get` and
-`shape.catalog`. Tool list, resources and
+`shape.catalog`. Built in Cascade 4A: notation resources (`vizcraft://notation`,
+`vizcraft://notation/{pack}`, `vizcraft://notation/{pack}/{type}`, read through `notation.list` and
+`notation.describe`), and `command_run` and `command_batch` results carry `issues` (the live
+issues the call raised, from `validate.list` before and after) and `openIssues`. Tool list, resources and
 launch: [docs/mcp.md](mcp.md). File formats and their public sources: [docs/formats.md](formats.md).

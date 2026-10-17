@@ -665,3 +665,76 @@ fn chosen_ids_let_one_batch_add_and_connect() {
     let r = run(&mut s, "shape.add", json!({"stencil": "basic.rectangle", "x": 0, "y": 0}));
     assert!(!["start", "next", "link"].contains(&r["id"].as_str().unwrap()));
 }
+
+/// The Cascade 4A done-when list, end to end through commands: a flowchart from the Flowchart pack
+/// is a model, an illegal connection and a duplicate tag raise issues live, model and views
+/// survive save and reload, and a Cascade 1 document still opens as free drawing.
+#[test]
+fn flowchart_from_the_pack_is_a_checked_model_that_survives_save() {
+    let mut s = Session::new(crate::Document::new());
+    // From the Shapes pane path: masters become elements, connectors become flows.
+    let start = run(&mut s, "shape.add", json!({"stencil": "flowchart.terminator", "x": 100, "y": 40, "text": "Start", "id": "start"}));
+    let check = run(&mut s, "shape.add", json!({"stencil": "flowchart.decision", "x": 100, "y": 160, "text": "Valid?", "id": "check"}));
+    let save = run(&mut s, "shape.add", json!({"stencil": "flowchart.process", "x": 100, "y": 320, "text": "Save", "id": "save"}));
+    assert!(start["element"].is_string() && check["element"].is_string() && save["element"].is_string());
+    run(&mut s, "connector.add", json!({"from": {"shape": "start"}, "to": {"shape": "check"}, "id": "c1"}));
+    run(&mut s, "connector.add", json!({"from": {"shape": "check"}, "to": {"shape": "save"}, "id": "c2", "text": "yes"}));
+    // From the agent path: elements and relationships by type.
+    let db = run(&mut s, "element.create", json!({"type": "flowchart.Database", "name": "Orders", "x": 400, "y": 320}));
+    let db2 = run(&mut s, "element.create", json!({"type": "flowchart.Database", "name": "Archive", "x": 400, "y": 480}));
+    run(&mut s, "relationship.create", json!({"from": save["element"], "to": db["id"]}));
+
+    let model = run(&mut s, "model.get", json!({}));
+    assert_eq!(model["elements"].as_array().map(Vec::len), Some(5));
+    assert_eq!(model["relationships"].as_array().map(Vec::len), Some(3), "{model}");
+    assert!(model["relationships"].as_array().unwrap().iter().all(|r| r["type"] == "flowchart.Flow"));
+    assert!(s.issues.iter().all(|i| i.severity != vizcraft_model::Severity::Error), "{:?}", s.issues);
+
+    // Illegal connection, live: data does not flow from one store straight to another.
+    let r = run(&mut s, "relationship.create", json!({"from": db["id"], "to": db2["id"]}));
+    assert_eq!(r["legal"], json!(false));
+    let illegal: Vec<_> = s.issues.iter().filter(|i| i.rule == "flowchart.illegalFlow").collect();
+    assert_eq!(illegal.len(), 1, "{:?}", s.issues);
+    assert!(illegal[0].subjects.iter().any(|x| Some(x.as_str()) == db["id"].as_str()));
+    run(&mut s, "edit.undo", json!({}));
+    assert!(s.issues.iter().all(|i| i.rule != "flowchart.illegalFlow"));
+
+    // Duplicate tag, live: steps are numbered, and a retag onto a used tag is an error.
+    let save_el = save["element"].as_str().unwrap().to_string();
+    let tag = s.doc.model.element(&save_el).map(|e| e.tag.clone()).unwrap();
+    assert!(tag.starts_with('S'), "{tag}");
+    let check_el = check["element"].as_str().unwrap().to_string();
+    run(&mut s, "element.retag", json!({"id": check_el, "tag": tag}));
+    assert!(s.issues.iter().any(|i| i.rule == "flowchart.duplicateStep" && i.severity == vizcraft_model::Severity::Error), "{:?}", s.issues);
+
+    // Batch rules: the decision has one outgoing flow.
+    let batch = run(&mut s, "validate.run", json!({}));
+    assert!(batch["issues"].as_array().unwrap().iter().any(|i| i["rule"] == "flowchart.danglingDecision"), "{batch}");
+
+    // Save and reload: the model and its views come back equal.
+    let bytes = crate::io::save_bytes("chart.vizcraft", &s.doc).unwrap();
+    let back = crate::io::load_bytes("chart.vizcraft", &bytes).unwrap();
+    assert_eq!(back.model, s.doc.model);
+    assert_eq!(back.pages, s.doc.pages);
+    assert_eq!(back.shape("save").and_then(|x| x.element.clone()), Some(save_el));
+    let reopened = Session::new(back);
+    assert_eq!(reopened.issues, s.issues);
+}
+
+/// A version 2 file from Cascade 1 opens as free drawing: empty model, references untouched, no
+/// issues, and editing it does not bind its flowchart shapes.
+#[test]
+fn cascade_1_document_opens_as_free_drawing() {
+    let v2 = r##"{"format": "vizcraft", "version": 2, "document": {"title": "Old", "pages": [{"id": "p1", "name": "Page-1",
+        "shapes": [{"id": "s1", "stencil": "flowchart.database", "kind": "cylinder", "x": 0, "y": 0, "w": 90, "h": 100, "text": "A"},
+                   {"id": "s2", "stencil": "flowchart.database", "kind": "cylinder", "x": 200, "y": 0, "w": 90, "h": 100, "text": "B"}],
+        "connectors": [{"id": "c1", "start": {"shape": "s1"}, "end": {"shape": "s2"}}]}], "idSeq": 3}}"##;
+    let doc = crate::io::load_bytes("old.vizcraft", v2.as_bytes()).unwrap();
+    assert!(doc.model.is_empty());
+    let mut s = Session::new(doc);
+    assert!(s.issues.is_empty());
+    run(&mut s, "shape.move", json!({"ids": ["s1"], "dx": 10, "dy": 0}));
+    assert!(s.doc.model.is_empty(), "free shapes are never rebound");
+    assert!(s.doc.connector("c1").is_some_and(|c| c.relationship.is_none()));
+    assert!(s.issues.is_empty());
+}

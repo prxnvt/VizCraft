@@ -22,10 +22,10 @@ notation, and the audience packs follow in Cascade 6.
 
 | Measure | Value |
 |---|---|
-| Cascade | 0 and 1 done; Cascade 3 done (interop, layout, routing, MCP tools, resources, Headless backend, stencil search); Cascade 2 (trimmed) in progress; Cascade 4A (model core) next |
+| Cascade | 0 and 1 done; Cascade 3 done (interop, layout, routing, MCP tools, resources, Headless backend, stencil search); Cascade 4A (model core) done; Cascade 2 (trimmed) in progress; Cascade 4B (workspace redesign) next |
 | Direction | Model-backed engineering workbench: semantic model, notation packs, rules, patterns and code-scaffold generators, then industrial, embedded and enterprise packs |
 | App runs | a small diagram editor: canvas with shapes, text and glued connectors (obstacle-avoiding routes, line jumps), Shapes pane with search, Home, Insert, Design and Connector ribbon tabs, auto-layout, .drawio open and save, Mermaid and CSV import, inside the full chrome (menus, dialogs, command palette, control channel, multiple windows, web shell) |
-| Document model | `vizcraft-diagram` (multi-page documents reachable through `page.*` and draw.io files; the canvas shows the first page until page tabs land), `vizcraft-stencils` (Basic and Flowchart), saved as `.vizcraft` or `.drawio`, exported as SVG or PNG |
+| Document model | `vizcraft-model` (elements, relationships, containment, identity registry, issues) held by the diagram document, `vizcraft-notation` (Basic and Flowchart packs, rules engine), `vizcraft-diagram` (multi-page documents reachable through `page.*` and draw.io files; the canvas shows the first page until page tabs land), `vizcraft-stencils` (masters built from the pack glyphs), saved as `.vizcraft` or `.drawio`, exported as SVG or PNG |
 | MCP server | generic tools plus the draw.io-style diagram tools; resources for commands, stencils, pages, shapes and notation packs; Remote backend (a running app) and Headless backend (in process, no window) |
 
 ## Cascade 0: rename and documentation reset (done)
@@ -114,24 +114,24 @@ keep view geometry for existing ids. As built, importers produce pages that `Doc
 merges, keeping plain free source ids and renaming only clashes, and `file.import` with a
 `layout` on a non-empty page places new shapes with `layout.incremental`'s placement.
 
-## Cascade 4A: model core
+## Cascade 4A: model core (done)
 
 The semantic model and notation packs, built before any domain notation so no domain stencil has
-to be reworked later. The design is sketched in
-[docs/architecture.md](docs/architecture.md#model-backed-workbench-cascades-4a-to-8).
+to be reworked later. The contract is in
+[docs/architecture.md](docs/architecture.md#semantic-model-and-notation-packs-vizcraft-model-vizcraft-notation).
 
 | Piece | Contents | Lands in | State |
 |---|---|---|---|
-| Semantic model types | `vizcraft-model`: `Element` (stable id, pack-qualified type, typed properties, tags, owner), `Relationship` (id, type, source and target elements with optional ports, properties), containment tree, `View` (viewpoint and layout, geometry keyed by element id); model queries | `crates/model` (new) | planned |
-| Shape and connector references | Optional `Shape.element` and `Connector.relationship` references; shapes without one stay free drawing, so Cascade 1 to 3 documents keep working; view geometry stays in the diagram | `crates/diagram`, `crates/model` | planned |
-| Native format model section | Versioned `.vizcraft` with a model section; older files load as free drawing; tolerant loading and sanitizing as today | `crates/formats` | planned |
-| Notation pack schema and loader | `vizcraft-notation`: versioned pack schema read from JSON or TOML: element types with property schemas and ports, original glyph definitions, connection table with multiplicity, conditional styles, palette groups, viewpoints, identifier formats, rule declarations, supported templates, patterns and exporters; loader returns errors, never panics | `crates/notation` (new) | planned |
-| Basic and Flowchart packs | The existing Basic and Flowchart sets re-expressed as the first two packs, glyphs migrated from `vizcraft-stencils`, flowchart rules (unconnected connectors, dangling decisions) declared as data | `crates/notation`, `crates/stencils` | planned |
-| Rules engine | Live rules after every command (illegal relationship, missing required property, duplicate tag) and batch rules on selection, page or project; structured issues (rule id, severity, element ids, message) | `crates/notation`, `crates/engine` | planned |
-| Identity registry | Project-wide registry for tags and reference designations: auto-numbering, uniqueness, composed identifiers from pack identifier formats, paired off-page references with unmatched-end detection | `crates/model`, `crates/notation` | planned |
-| Model commands | `model.*`, `element.*`, `relationship.*`: create, set property, retag, move in containment, show in all views, delete from view versus delete from model; undoable and covered by `hostile_params_never_panic` | `crates/engine/src/cmd/` (new `model.rs`, `element.rs`, `relationship.rs`) | planned |
-| Validation and notation commands | `validate.*` (run batch rules, list issues) and `notation.*` (list packs, describe a type, legal relationships from an element) | `crates/engine/src/cmd/` (new `validate.rs`, `notation.rs`) | planned |
-| MCP model integration | Notation schema discovery (resources and the generic tools); every command batch result carries the structured issues it raised | `crates/mcp` | planned |
+| Semantic model types | `vizcraft-model`: `Element` (stable id, pack-qualified type, typed properties, tags, owner), `Relationship` (id, type, source and target elements with optional ports, properties), containment tree, `View` (viewpoint and layout, geometry keyed by element id); model queries | `crates/model` (new) | done |
+| Shape and connector references | Optional `Shape.element` and `Connector.relationship` references; shapes without one stay free drawing, so Cascade 1 to 3 documents keep working; view geometry stays in the diagram | `crates/diagram`, `crates/model` | done |
+| Native format model section | Versioned `.vizcraft` with a model section; older files load as free drawing; tolerant loading and sanitizing as today | `crates/formats` | done |
+| Notation pack schema and loader | `vizcraft-notation`: versioned pack schema read from JSON or TOML: element types with property schemas and ports, original glyph definitions, connection table with multiplicity, conditional styles, palette groups, viewpoints, identifier formats, rule declarations, supported templates, patterns and exporters; loader returns errors, never panics | `crates/notation` (new) | done |
+| Basic and Flowchart packs | The existing Basic and Flowchart sets re-expressed as the first two packs, glyphs migrated from `vizcraft-stencils`, flowchart rules (unconnected connectors, dangling decisions) declared as data | `crates/notation`, `crates/stencils` | done |
+| Rules engine | Live rules after every command (illegal relationship, missing required property, duplicate tag) and batch rules on selection, page or project; structured issues (rule id, severity, element ids, message) | `crates/notation`, `crates/engine` | done |
+| Identity registry | Project-wide registry for tags and reference designations: auto-numbering, uniqueness, composed identifiers from pack identifier formats, paired off-page references with unmatched-end detection | `crates/model`, `crates/notation` | done |
+| Model commands | `model.*`, `element.*`, `relationship.*`: create, set property, retag, move in containment, show in all views, delete from view versus delete from model; undoable and covered by `hostile_params_never_panic` | `crates/engine/src/cmd/` (new `model.rs`, `element.rs`, `relationship.rs`) | done |
+| Validation and notation commands | `validate.*` (run batch rules, list issues) and `notation.*` (list packs, describe a type, legal relationships from an element) | `crates/engine/src/cmd/` (new `validate.rs`, `notation.rs`) | done |
+| MCP model integration | Notation schema discovery (resources and the generic tools); every command batch result carries the structured issues it raised | `crates/mcp` | done |
 
 Done when: a flowchart built from the Flowchart pack is a model of elements and relationships, an
 illegal connection or a duplicate tag raises a structured issue live, the model and its views
@@ -141,6 +141,17 @@ the pack schema and read the issues returned with each batch.
 In parallel: the type and schema specification starts during Cascade 2; once the model types and
 pack schema are frozen, the rules, identity, command and MCP pieces run in parallel, and Cascade
 4B starts.
+
+As built: the diagram `Document` holds the model, so `vizcraft-diagram` depends on
+`vizcraft-model` (undo, dirty tracking and the panic guard cover both); `.vizcraft` version 3
+carries the model as its own section; Flowchart masters placed with `shape.add` (and so from the
+Shapes pane) become elements, and connectors between them become `flowchart.Flow` relationships
+through the sync pass that runs after every command; the Flowchart pack declares its connection
+table (data does not flow straight between data symbols), single-exit, terminator-direction,
+duplicate step tag, missing reference, property type and viewpoint rules live, and dangling
+decision, unconnected connector, unmatched reference and unreachable rules in batch; steps are
+numbered `S1`, `S2` by the identity registry; MCP `command_run` and `command_batch` return the
+issues each call raised, and the packs are MCP resources.
 
 ## Cascade 4B: workspace redesign
 
