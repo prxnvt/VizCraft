@@ -113,7 +113,8 @@ fn is_shortcut_key(key: Key, m: Modifiers) -> bool {
             | Key::F19
             | Key::F20
     );
-    m.command || m.ctrl || m.alt || fkey || (key == Key::Space && !m.shift)
+    // Bare Space is not a shortcut: it is held to pan the canvas and types a space in fields.
+    m.command || m.ctrl || m.alt || fkey
 }
 
 /// Run the commands bound to this frame's key presses and consume those keys, so a text field
@@ -140,7 +141,7 @@ pub fn shortcuts(app: &mut CraftApp, ctx: &egui::Context) {
         let Some(name) = key_name(key) else { continue };
         let Some(id) = command_for(app, &combo(m, name)) else { continue };
         // Rule 3: the field keeps its editing keys and normal typing.
-        if text_focused && (text_field_owns(id) || key == Key::Space) {
+        if text_focused && text_field_owns(id) {
             continue;
         }
         ctx.input_mut(|i| i.consume_key(m, key));
@@ -188,7 +189,7 @@ mod tests {
         assert_eq!(key_name(Key::Num0), Some("0"));
         assert_eq!(key_name(Key::Space), Some("Space"));
         assert!(is_shortcut_key(Key::F5, Modifiers::NONE));
-        assert!(is_shortcut_key(Key::Space, Modifiers::NONE));
+        assert!(!is_shortcut_key(Key::Space, Modifiers::NONE), "bare Space pans the canvas");
         assert!(is_shortcut_key(Key::P, Modifiers::COMMAND | Modifiers::SHIFT));
         assert!(!is_shortcut_key(Key::A, Modifiers::SHIFT), "Shift+letter is typing");
     }

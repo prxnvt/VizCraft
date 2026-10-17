@@ -4,7 +4,6 @@ pub mod edit;
 pub mod file;
 pub mod help;
 pub mod insert;
-pub mod transport;
 pub mod view;
 
 use serde_json::json;
@@ -17,7 +16,6 @@ pub fn registry() -> Registry {
     v.extend(file::specs());
     v.extend(edit::specs());
     v.extend(view::specs());
-    v.extend(transport::specs());
     v.extend(insert::specs());
     v.extend(help::specs());
     Registry::new(v)

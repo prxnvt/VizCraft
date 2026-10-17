@@ -17,7 +17,7 @@ fn registry_ids_are_unique_and_prefixed() {
     for c in reg.all() {
         assert!(seen.insert(c.id), "duplicate id {}", c.id);
         let prefix = c.id.split('.').next().unwrap();
-        assert!(["file", "edit", "view", "insert", "transport", "help"].contains(&prefix), "{}: unexpected prefix", c.id);
+        assert!(["file", "edit", "view", "insert", "help"].contains(&prefix), "{}: unexpected prefix", c.id);
         assert!(!c.label.is_empty() && !c.location.is_empty(), "{}: label and location are required", c.id);
     }
     assert_eq!(reg.by_shortcut("mod+s").map(|c| c.id), Some("file.save"));
@@ -195,24 +195,6 @@ fn commands_report_enablement() {
     let save = infos.iter().find(|c| c.id == "file.save").unwrap();
     assert!(save.enabled);
     assert_eq!(save.shortcut, "Mod+S");
-}
-
-#[test]
-fn transport_commands_control_playback() {
-    let mut s = s();
-    assert!(!s.transport.playing);
-    assert_eq!(s.transport.time_ms, 0);
-    run(&mut s, "transport.togglePlay", json!({}));
-    assert!(s.transport.playing);
-    run(&mut s, "transport.seek", json!({"timeMs": 1500}));
-    assert_eq!(s.transport.time_ms, 1500);
-    run(&mut s, "transport.setTempo", json!({"tempo": 140.0}));
-    assert_eq!(s.transport.tempo, 140.0);
-    run(&mut s, "transport.toggleLoop", json!({}));
-    assert!(s.transport.looping);
-    run(&mut s, "transport.stop", json!({}));
-    assert!(!s.transport.playing);
-    assert_eq!(s.transport.time_ms, 0);
 }
 
 #[test]

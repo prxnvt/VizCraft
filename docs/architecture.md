@@ -49,8 +49,8 @@ a command that needs one pushes `{"open": "<dialog>"}` to `session.ui_requests` 
 handles it.
 
 Command id prefixes: `file.*`, `edit.*`, `view.*`, `insert.*`, `format.*`, `window.*`, `help.*`,
-`transport.*` (playback, to be removed in Cascade 1), `ui.*` (UI layer), `app.*` (app-level:
-`app.quit`, `app.preferences`, `app.about`). `insert.*` and `format.*` are reserved; no engine
+`ui.*` (UI layer), `app.*` (app-level: `app.quit`,
+`app.preferences`, `app.about`). `insert.*` and `format.*` are reserved; no engine
 command uses them yet.
 
 ## Engine (`vizcraft-engine`) public API
@@ -62,7 +62,6 @@ pub struct Session {
     pub dirty: bool,
     pub author: String,
     pub sel: Selection,                // generalized selection (primary, items: Vec<String>, range: Option<(u64, u64)>)
-    pub transport: TransportState,     // playback state (playing, time_ms, tempo, looping); removed in Cascade 1
     pub view: ViewState,               // zoom (f32), pan ([f32; 2]), dark_mode, pane visibility flags
     pub registry: Registry,            // Registry::get(id) -> Option<&CommandSpec>, Registry::all() -> &[CommandSpec]
     pub ui_requests: Vec<Value>,       // requests to the UI, drained by the UI after each command
@@ -92,7 +91,7 @@ A test `hostile_params_never_panic` runs every command with junk params.
 
 Modules: `theme`, `icons`, `widgets`, `chrome` (title bar + status bar), `menus` (menu tree +
 in-window menu bar), `ribbon`, `panes` (side panes, `PaneSpec`, `set_panes`), `canvas` (`Viewport2D`
-screen/world projections, pan and zoom: middle-drag or Cmd+left-drag, Ctrl off macOS), `dialogs`, `keys`, `control`, `window_geometry`,
+screen/world projections, pan and zoom: middle-drag, Space+left-drag or Cmd+left-drag, Ctrl off macOS), `dialogs`, `keys`, `control`, `window_geometry`,
 `backstage` (optional File page).
 
 ```rust

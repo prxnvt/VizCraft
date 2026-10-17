@@ -21,7 +21,7 @@ When a feature lands, change its State in the same commit as the code. States:
 |---|---|---|---|
 | Undo and redo | 0 | done (chrome) | Engine undo stacks; diagram commands plug into them |
 | Zoom | 0 | done (chrome) | `view.zoom`, `view.zoomIn`, `view.zoomOut` |
-| Pan | 0 | done (chrome) | `view.pan`, `view.resetPan`; middle-drag or Cmd+drag. Space+drag returns in Cascade 1 |
+| Pan | 0 | done (chrome) | `view.pan`, `view.resetPan`; middle-drag, Cmd+drag (Ctrl off macOS) or Space+drag |
 | Multiple windows | 0 | done (chrome) | One process, one window per document |
 | Side panes | 0 | done (chrome) | Left and right panes, resizable and reorderable; diagram panes are added per cascade |
 | Ribbon | 0 | done (chrome) | Tabs, groups, contextual tabs; diagram tabs are added per cascade |

@@ -89,26 +89,6 @@ impl Default for ViewState {
     }
 }
 
-/// Playback / transport state for time-based crafts (DAW, animation suite).
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(default, rename_all = "camelCase")]
-pub struct TransportState {
-    /// Whether playback is running.
-    pub playing: bool,
-    /// Current playhead position in milliseconds.
-    pub time_ms: u64,
-    /// Playback tempo in beats per minute, or frames per second.
-    pub tempo: f32,
-    /// Whether looping is enabled.
-    pub looping: bool,
-}
-
-impl Default for TransportState {
-    fn default() -> Self {
-        TransportState { playing: false, time_ms: 0, tempo: 120.0, looping: false }
-    }
-}
-
 /// One undo step: the document and selection as they were before a command, and that
 /// command's label for "Undo Paste".
 struct Undo {
@@ -130,7 +110,6 @@ pub struct Session {
     /// User name, stamped into the metadata on save.
     pub author: String,
     pub view: ViewState,
-    pub transport: TransportState,
     pub registry: Registry,
     /// Requests from commands to the UI (`{"open": "about"}`, `{"close": true}`), drained by the
     /// UI after each command. Programmatic callers never see a dialog.
@@ -160,7 +139,6 @@ impl Session {
             dirty: false,
             author: "VizCraft User".into(),
             view: ViewState::default(),
-            transport: TransportState::default(),
             registry: crate::cmd::registry(),
             ui_requests: Vec::new(),
             status: String::new(),

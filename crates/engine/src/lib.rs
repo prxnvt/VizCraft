@@ -21,7 +21,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 pub use doc::{CoreProps, Document};
-pub use session::{Selection, Session, TransportState, ViewState};
+pub use session::{Selection, Session, ViewState};
 
 /// Why a command did not run (or did not finish).
 #[derive(Debug, thiserror::Error, Clone, PartialEq, Eq)]
