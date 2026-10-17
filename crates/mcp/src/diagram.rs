@@ -189,7 +189,8 @@ pub(crate) fn definitions() -> Vec<Value> {
             "get_reference",
             "Diagram reference",
             "Notes for writing diagrams VizCraft opens well: the draw.io XML it accepts, how style keys \
-             map, master ids, the layout and routing options, and the Mermaid and CSV forms. Give a \
+             map, master ids, the layout and routing options, the Mermaid and CSV forms, and how \
+             model-backed diagrams, notation packs and issues work. Give a \
              `topic` for one section; without it every section comes back after an index. Needs no \
              open document.",
             object(json!({"topic": {"type": "string", "enum": reference::topic_names(), "description": "One section of the reference"}}), &[]),

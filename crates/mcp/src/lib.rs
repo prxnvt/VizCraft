@@ -13,6 +13,11 @@
 //! `list_pages`, `get_page`, `set_page`, `search_shapes`, `get_reference`), each of which is one
 //! engine command. An in-process headless backend is planned for Cascade 3 (docs/mcp.md).
 //!
+//! Resources: the command catalog and the notation pack schemas (`vizcraft://notation`,
+//! `vizcraft://notation/{pack}`, `vizcraft://notation/{pack}/{type}`). `command_run` and
+//! `command_batch` results carry the structured issues the call raised when the app checks a
+//! notation model.
+//!
 //! Entry points: [`Server::serve`] (the stdio loop) and [`Server::handle_line`] (one message).
 //! Stdout carries protocol messages only; nothing in this crate prints.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
@@ -20,8 +25,10 @@
 mod backend;
 mod base64;
 mod diagram;
+mod issues;
 mod line;
 pub mod logging;
+mod notation;
 mod reference;
 mod server;
 mod tools;
@@ -34,8 +41,12 @@ pub use tools::{ToolResult, call_tool, tool_definitions};
 /// Default control-channel address of the desktop app.
 pub const DEFAULT_ADDR: &str = "127.0.0.1:7990";
 
-/// The one resource Cascade 1 serves: the command catalog.
+/// The command catalog resource (Cascade 1).
 pub const COMMANDS_URI: &str = "vizcraft://commands";
+
+/// The notation catalog resource; `{NOTATION_URI}/{pack}` and `{NOTATION_URI}/{pack}/{type}`
+/// describe one pack and one type (Cascade 4A).
+pub const NOTATION_URI: &str = "vizcraft://notation";
 
 /// Longest JSON-RPC line the server accepts from its client, in bytes. Longer lines are answered
 /// with an error and skipped, so a runaway client cannot grow the server's memory without bound.

@@ -8,6 +8,7 @@ use serde_json::{Value, json};
 use crate::backend::Backend;
 use crate::diagram;
 use crate::line::{Line, read_bounded};
+use crate::notation;
 use crate::tools::{self, call_tool, is_tool, tool_definitions};
 use crate::{COMMANDS_URI, MAX_MESSAGE_BYTES};
 
@@ -35,7 +36,10 @@ pointing down. The resource vizcraft://commands holds the same catalog as comman
 diagrams, open_xml, open_mermaid and open_csv fill a page from draw.io XML, Mermaid or CSV (with \
 optional automatic layout and shape-avoiding routing); list_pages, get_page and set_page read and \
 replace pages as draw.io XML; search_shapes finds stencil masters and their style strings; \
-get_reference explains the accepted XML, styles, layouts, Mermaid and CSV.";
+get_reference explains the accepted XML, styles, layouts, Mermaid and CSV. Model-backed diagrams \
+(element.create, relationship.create) follow notation packs: read vizcraft://notation and \
+vizcraft://notation/{pack} for their schemas, and look at `issues` in command_run and command_batch \
+results for the rule problems a call raised (get_reference topic `model`).";
 
 /// An MCP server bound to one backend.
 pub struct Server {
@@ -232,16 +236,23 @@ impl Server {
                 diagram::validate(name, &args).map_err(|e| (INVALID_PARAMS, format!("`{name}`: {e}")))?;
                 Ok(call_tool(self.backend.as_mut(), name, &args).to_value())
             }
-            "resources/list" => Ok(json!({"resources": [{
-                "uri": COMMANDS_URI,
-                "name": "commands",
-                "title": "Command catalog",
-                "description": "Every VizCraft command with its label, params and whether it can run now; the same list as command_list.",
-                "mimeType": "application/json",
-            }]})),
-            "resources/templates/list" => Ok(json!({"resourceTemplates": []})),
+            "resources/list" => {
+                let mut resources = vec![json!({
+                    "uri": COMMANDS_URI,
+                    "name": "commands",
+                    "title": "Command catalog",
+                    "description": "Every VizCraft command with its label, params and whether it can run now; the same list as command_list.",
+                    "mimeType": "application/json",
+                })];
+                resources.extend(notation::resources(self.backend.as_mut()));
+                Ok(json!({"resources": resources}))
+            }
+            "resources/templates/list" => Ok(json!({"resourceTemplates": notation::templates()})),
             "resources/read" => {
                 let uri = params.get("uri").and_then(Value::as_str).ok_or((INVALID_PARAMS, "missing `uri`".to_string()))?;
+                if let Some(read) = notation::read_uri(self.backend.as_mut(), uri) {
+                    return read.map_err(|e| (RESOURCE_NOT_FOUND, e));
+                }
                 if uri != COMMANDS_URI {
                     return Err((RESOURCE_NOT_FOUND, format!("resource not found: {uri}")));
                 }
