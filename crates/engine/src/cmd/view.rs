@@ -2,11 +2,17 @@
 
 use serde_json::{Value, json};
 
+use vizcraft_diagram::{self as dg, jumps};
+
 use crate::{CmdResult, CommandSpec, EngineError, Session, ViewState, p};
 
 /// Zoom limits, as a percentage.
 pub const MIN_ZOOM: f32 = 25.0;
 pub const MAX_ZOOM: f32 = 400.0;
+
+/// Room left around a fitted page or drawing, in screen points, so its edge does not touch the
+/// canvas edge. The same margin the canvas uses when it first centres a page.
+pub const FIT_MARGIN: f32 = 24.0;
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
@@ -22,6 +28,10 @@ pub fn specs() -> Vec<CommandSpec> {
         .key("Mod+-"),
         CommandSpec::new("view.zoom", "Zoom", "View > Zoom", zoom).params(r#"{"value"?: percent}"#),
         CommandSpec::new("view.zoom100", "100%", "View > Zoom", |s, _| zoom(s, &json!({"value": 100}))).key("Mod+0"),
+        CommandSpec::new("view.zoomFit", "Fit to Window", "View > Zoom", zoom_fit)
+            .key("Mod+Shift+H")
+            .params(r#"{"page"?: bool}"#)
+            .when(|s| if s.view.canvas.is_some() { None } else { Some("No canvas is shown") }),
         CommandSpec::new("view.dark", "Dark Mode", "View > Appearance", |s, v| toggle(s, v, |x| &mut x.dark_mode)).params(r#"{"value"?: bool}"#),
         CommandSpec::new("view.navigationPane", "Navigation Pane", "View > Show", |s, v| toggle(s, v, |x| &mut x.nav_pane))
             .params(r#"{"value"?: bool}"#),
@@ -65,4 +75,30 @@ fn zoom(s: &mut Session, v: &Value) -> CmdResult {
         None => s.ui_requests.push(json!({"open": "zoom"})),
     }
     Ok(json!({"zoom": s.view.zoom}))
+}
+
+/// Fit the page (`page`, the default) or the drawing on it into the canvas: the largest whole
+/// percentage that shows it with [`FIT_MARGIN`] to spare, clamped to the zoom limits, centred.
+fn zoom_fit(s: &mut Session, v: &Value) -> CmdResult {
+    let Some([w, h]) = s.view.canvas else { return Err(EngineError::Disabled("No canvas is shown".into())) };
+    let Some(page) = s.doc.page() else { return Err(EngineError::Failed("the document has no page".into())) };
+    let target = if p::bool(v, "page").unwrap_or(true) { page.rect() } else { content_bounds(page).unwrap_or_else(|| page.rect()) };
+    let (tw, th) = (target.width() as f32, target.height() as f32);
+    let (aw, ah) = (w - 2.0 * FIT_MARGIN, h - 2.0 * FIT_MARGIN);
+    // A canvas squeezed below the margins or a degenerate target has no meaningful fit; the
+    // smallest zoom shows the most, which is what the person asked for.
+    let pct = if aw > 0.0 && ah > 0.0 && tw > 0.0 && th > 0.0 { (aw / tw).min(ah / th) * 100.0 } else { MIN_ZOOM };
+    // Rounded down to a whole percentage so the status bar reads cleanly and the edge still fits.
+    let pct = if pct.is_finite() { pct.floor() } else { MIN_ZOOM };
+    s.view.zoom = pct.clamp(MIN_ZOOM, MAX_ZOOM) / 100.0;
+    let c = target.center();
+    s.view.pan = [c.x as f32, c.y as f32];
+    Ok(json!({"zoom": s.view.zoom, "pan": s.view.pan}))
+}
+
+/// The box around every shape and connector route on `page`, `None` on an empty page.
+fn content_bounds(page: &dg::Page) -> Option<dg::Rect> {
+    let shapes = page.shapes.iter().map(|s| s.bounds());
+    let routes = jumps::page_geometry(page).into_iter().filter_map(|g| dg::Rect::bounding(g.polyline.iter().copied()));
+    shapes.chain(routes).filter(|r| [r.x0, r.y0, r.x1, r.y1].iter().all(|v| v.is_finite())).reduce(|a, b| a.union(&b))
 }

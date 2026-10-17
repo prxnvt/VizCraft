@@ -275,12 +275,31 @@ impl CraftApp {
             self.session.mark_saved();
             return Ok(json!({"downloaded": name, "bytes": bytes.len()}));
         }
+        let rev = self.session.rev();
         let r = self.session.run(id, &params).map_err(|e| e.to_string());
         self.after_command();
         if let Err(e) = &r {
             self.status(e.clone());
         }
+        if r.is_ok() && self.session.rev() != rev && fits_after(id, &params) {
+            self.fit_if_cut_off();
+        }
         r
+    }
+
+    /// Fit the page into the canvas when the canvas cuts it off at the current zoom, so a diagram
+    /// that was just opened or imported is seen whole; a page that already fits keeps its zoom.
+    /// Before the canvas has been laid out (a file opened at launch) the check waits for it.
+    fn fit_if_cut_off(&mut self) {
+        let Some([w, h]) = self.session.view.canvas else {
+            self.canvas.fit_pending = true;
+            return;
+        };
+        let Some(page) = self.session.doc.page() else { return };
+        let cut = |extent: f64, view: f32| extent as f32 * self.session.view.zoom > view - 2.0 * vizcraft_engine::cmd::view::FIT_MARGIN;
+        if cut(page.width, w) || cut(page.height, h) {
+            let _ = self.run("view.zoomFit", json!({}));
+        }
     }
 
     /// Bookkeeping after an engine command: UI requests, recent files, status.
@@ -735,6 +754,18 @@ impl CraftApp {
             false
         });
     }
+}
+
+/// Whether a successful `id` brings in a new diagram that should be fitted to the canvas: opening
+/// a file, or an import that replaces a page. An import that adds to a page leaves the view where
+/// the person put it. A caller that sets the view itself passes `"fit": false`.
+fn fits_after(id: &str, params: &Value) -> bool {
+    let replaces = match id {
+        "file.open" => true,
+        "file.import" => params.get("replace").and_then(Value::as_bool) == Some(true),
+        _ => false,
+    };
+    replaces && params.get("fit").and_then(Value::as_bool) != Some(false)
 }
 
 /// Wall-clock milliseconds, for status fades and screenshot timing (on the web through

@@ -121,7 +121,9 @@ Shared params:
 
 The open_* tools always replace the target page's content (`replace: true`); to add to a page
 instead, run `file.import` through `command_run` without `replace`. Imports keep source ids when
-they are plain and free, and rename the rest with the glue rewritten. Each tool call that changes
+they are plain and free, and rename the rest with the glue rewritten. When the app cuts the
+imported page off, it zooms to fit it (`view.zoomFit`), so a `screenshot` that follows shows the
+whole diagram. Each tool call that changes
 the open document is one undo step. The tool annotations mark `list_pages`, `get_page`,
 `search_shapes` and `get_reference` read-only, and the open_* tools and `set_page` destructive.
 

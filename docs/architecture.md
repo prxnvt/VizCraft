@@ -101,7 +101,7 @@ pub struct Session {
     pub dirty: bool,
     pub author: String,
     pub sel: Selection,                // generalized selection (primary, items: Vec<String>, range: Option<(u64, u64)>)
-    pub view: ViewState,               // zoom (f32), pan ([f32; 2]), dark_mode, pane visibility flags
+    pub view: ViewState,               // zoom (f32), pan ([f32; 2]), dark_mode, pane visibility flags, canvas: Option<[f32; 2]>
     pub registry: Registry,            // Registry::get(id) -> Option<&CommandSpec>, Registry::all() -> &[CommandSpec]
     pub ui_requests: Vec<Value>,       // requests to the UI, drained by the UI after each command
     pub status: String,                // one-shot status message, taken by the UI
@@ -124,7 +124,12 @@ Documents are `.vizcraft` files (`io::EXTENSION`), versioned JSON read and writt
 `vizcraft-formats` (a model-class crate beside `diagram`); `io` dispatches by file name and
 still reads `.craft.json` and `.json`; `.drawio` and `.drawio.xml` names open and save as draw.io.
 `file.export {path, format?}` writes the first page as SVG, or the document as draw.io, through
-`io::export_bytes`; `file.import` brings in draw.io, Mermaid and CSV. After every command that
+`io::export_bytes`; `file.import` brings in draw.io, Mermaid and CSV.
+`ViewState::canvas` is the canvas size in points as the UI last laid it out (`None` headless,
+never serialized); the UI writes it every frame so `view.zoomFit {page?}` computes zoom and pan in
+the engine with the other view commands and replies with them synchronously. The UI runs
+`view.zoomFit` after `file.open` or a replacing `file.import` when the page is cut off, unless the
+params carry `"fit": false`. After every command that
 changes the document, `Session::run` calls `vizcraft_diagram::autoroute::refresh`, inside the same
 undo step, so connectors that avoid shapes are rerouted when anything moves. See
 [docs/formats.md](formats.md). Engine crate root carries

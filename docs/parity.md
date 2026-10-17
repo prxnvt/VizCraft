@@ -24,6 +24,7 @@ When a feature lands, change its State in the same commit as the code. States:
 |---|---|---|---|
 | Undo and redo | 0 | done (chrome) | Engine undo stacks; diagram commands plug into them |
 | Zoom | 0 | done (chrome) | `view.zoom`, `view.zoomIn`, `view.zoomOut` |
+| Fit to Window | 2 | done | `view.zoomFit {page?}` (Mod+Shift+H) fits the page or the drawing into the canvas; the app fits on its own after opening a file or a replacing import that the canvas cuts off |
 | Pan | 0 | done (chrome) | `view.pan`, `view.resetPan`; middle-drag, Cmd+drag (Ctrl off macOS) or Space+drag |
 | Multiple windows | 0 | done (chrome) | One process, one window per document |
 | Side panes | 0 | done (chrome) | Left and right panes, resizable and reorderable; diagram panes are added per cascade |

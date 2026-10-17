@@ -81,11 +81,17 @@ pub struct ViewState {
     pub dark_mode: bool,
     pub nav_pane: bool,
     pub props_pane: bool,
+    /// Size of the canvas in screen points as the UI last laid it out, `None` with no window.
+    /// The UI writes it every frame so `view.zoomFit` can do its arithmetic here, beside zoom and
+    /// pan, and answer with the new zoom in the same call. It is a measurement, not a setting,
+    /// so it is never serialized.
+    #[serde(skip)]
+    pub canvas: Option<[f32; 2]>,
 }
 
 impl Default for ViewState {
     fn default() -> Self {
-        ViewState { zoom: 1.0, pan: [0.0, 0.0], dark_mode: false, nav_pane: true, props_pane: true }
+        ViewState { zoom: 1.0, pan: [0.0, 0.0], dark_mode: false, nav_pane: true, props_pane: true, canvas: None }
     }
 }
 
