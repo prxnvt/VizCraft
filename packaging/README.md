@@ -106,7 +106,6 @@ The checks in [The macOS bundle](#the-macos-bundle) are what the installer does 
 The bundle still describes the placeholder document. When the diagram formats land
 ([docs/formats.md](../docs/formats.md)):
 
-- Draw the VizCraft icon (Cascade 1) into `assets/app-icon/vizcraft.svg` and rerun `icons.sh`.
 - Replace the `.craft.json` document type (`CFBundleDocumentTypes` and the matching
   `UTExportedTypeDeclarations` entry) with `.vizcraft` (`LSHandlerRank` Owner) and the formats
   VizCraft opens that other apps own, such as `.drawio` (`Alternate`). Consider

@@ -40,7 +40,7 @@ and drive it all from an agent.
 | Ribbon tabs | Home (clipboard, font, tools, shape styles) and Insert tabs wired to the new commands, icons drawn in `icons.rs` | `crates/ui-egui/src/ribbon.rs` | planned |
 | SVG export | `file.export` with `{format: "svg"}` writes the current page | `crates/formats` | planned |
 | Remove transport, restore Space pan | Delete `transport.*` and `TransportState` (playback has no use in a diagram app); Space+drag pans the canvas again alongside middle-drag and Cmd+drag | `crates/engine/src/cmd/transport.rs`, `session.rs`, `crates/ui-egui/src/canvas.rs` | planned |
-| App icon | An original VizCraft icon drawn for the app, rendered by `packaging/icons.sh`, with its `ATTRIBUTION.md` row | `packaging/`, `assets/` | planned |
+| App icon | An original VizCraft icon drawn for the app, rendered by `packaging/icons.sh`, with its `ATTRIBUTION.md` row | `packaging/`, `assets/` | done |
 | Minimal MCP server | Stdio JSON-RPC server with `command_list`, `command_run`, `command_batch`, `doc_inspect`, `screenshot` over the control channel (Remote backend); protocol core ported from VectorCraft's `crates/mcp`; launched by `vizcraft-cli mcp` | `crates/mcp` (new), `apps/vizcraft-cli` | planned |
 
 Done when: a person can draw a small flowchart (shapes, text, glued connectors that follow when

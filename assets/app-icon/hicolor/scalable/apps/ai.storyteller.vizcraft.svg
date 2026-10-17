@@ -1,12 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- VizCraft placeholder app icon. Original work by VizCraft contributors, MIT OR Apache-2.0.
-       A rounded tile with a plinth of three widening bars (the base) and a block resting on it.
-       A VizCraft icon of its own is planned for Cascade 1. -->
-  <rect width="512" height="512" rx="112" fill="#2F5D62"/>
-  <g fill="#F2EFE6">
-    <rect x="96" y="352" width="320" height="52" rx="14"/>
-    <rect x="136" y="284" width="240" height="52" rx="14"/>
-    <rect x="176" y="216" width="160" height="52" rx="14"/>
+  <!-- VizCraft app icon. Original work by VizCraft contributors, MIT OR Apache-2.0.
+       A deep violet rounded tile holding a tiny flowchart: a rounded box joined by an elbow
+       connector to a diamond, which leads on to a circle; both connectors end in arrowheads.
+       Shapes and strokes stay bold and few so the drawing still reads at 16 px. -->
+  <rect width="512" height="512" rx="112" fill="#33294F"/>
+  <g fill="none" stroke="#F4EFE4" stroke-width="28" stroke-linejoin="round">
+    <path d="M232 128 H368 V140"/>
+    <path d="M368 336 V392 H268"/>
   </g>
-  <rect x="206" y="108" width="100" height="92" rx="18" fill="#E8B04B"/>
+  <g fill="#F4EFE4">
+    <path d="M330 132 H406 L368 178 Z"/>
+    <path d="M272 354 V430 L226 392 Z"/>
+    <rect x="64" y="72" width="176" height="112" rx="26"/>
+  </g>
+  <path d="M368 180 L456 268 L368 356 L280 268 Z" fill="#F2B544" stroke-linejoin="round"/>
+  <circle cx="156" cy="392" r="68" fill="#EF7F6A"/>
 </svg>

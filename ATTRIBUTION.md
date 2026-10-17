@@ -18,10 +18,6 @@ Art drawn in code is original and has no file to list: the UI icon set
 (`crates/ui-egui/src/icons.rs`), the sample document (`crates/engine/src/sample.rs`) and the
 theme colours (`crates/ui-egui/src/theme.rs`).
 
-The app icon is a placeholder that does not depict a diagram. A VizCraft icon is planned for
-Cascade 1: it replaces the drawing in `assets/app-icon/vizcraft.svg`, then `packaging/icons.sh`
-is rerun and the icon rows below get a new description.
-
 | Asset | Author | Source | Licence | Notes |
 |---|---|---|---|---|
 | `assets/fonts/Inter-Regular.ttf` | Rasmus Andersson / The Inter Project Authors | https://github.com/rsms/inter | OFL-1.1 (`assets/fonts/OFL-Inter.txt`) | Open-source typeface; UI font (copied from WordCraft, which carried it over from DesignCraft) |
@@ -30,20 +26,20 @@ is rerun and the icon rows below get a new description.
 | `assets/fonts/JetBrainsMono-Regular.ttf` | The JetBrains Mono Project Authors | https://github.com/JetBrains/JetBrainsMono | OFL-1.1 (`assets/fonts/OFL-JetBrainsMono.txt`) | Open-source typeface; monospace UI font (copied from WordCraft, which carried it over from DesignCraft) |
 | `assets/fonts/OFL-Inter.txt` | (licence text) | upstream project | n/a | SIL Open Font License 1.1 text for Inter |
 | `assets/fonts/OFL-JetBrainsMono.txt` | (licence text) | upstream project | n/a | SIL Open Font License 1.1 text for JetBrains Mono |
-| `assets/app-icon/vizcraft.svg` | VizCraft contributors | original artwork drawn by hand in SVG for this repository | MIT OR Apache-2.0 | Placeholder app icon: a rounded tile with a plinth of three bars and a block on top. Source of every rendered icon below |
-| `assets/app-icon/vizcraft-1024.png` | VizCraft contributors | rendered from `assets/app-icon/vizcraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | 1024 px master of the full-bleed tile |
-| `assets/app-icon/vizcraft-macos-512.png` | VizCraft contributors | rendered from `assets/app-icon/vizcraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | 512 px on the Apple icon grid (transparent margin); runtime window icon on macOS |
-| `assets/app-icon/vizcraft.icns` | VizCraft contributors | rendered from `assets/app-icon/vizcraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | macOS bundle icon (16 to 512 px, 1x and 2x, Apple grid); copied into the .app by `packaging/macos/package.sh` |
-| `assets/app-icon/vizcraft.ico` | VizCraft contributors | rendered from `assets/app-icon/vizcraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Windows icon (16, 20, 24, 32, 40, 48, 64, 128, 256 px), packed by `cargo xtask ico`; embedded by `apps/vizcraft/build.rs` |
-| `assets/app-icon/hicolor/16x16/apps/ai.storyteller.vizcraft.png` | VizCraft contributors | rendered from `assets/app-icon/vizcraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor icon, 16 px |
-| `assets/app-icon/hicolor/24x24/apps/ai.storyteller.vizcraft.png` | VizCraft contributors | rendered from `assets/app-icon/vizcraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor icon, 24 px |
-| `assets/app-icon/hicolor/32x32/apps/ai.storyteller.vizcraft.png` | VizCraft contributors | rendered from `assets/app-icon/vizcraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor icon, 32 px |
-| `assets/app-icon/hicolor/48x48/apps/ai.storyteller.vizcraft.png` | VizCraft contributors | rendered from `assets/app-icon/vizcraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor icon, 48 px |
-| `assets/app-icon/hicolor/64x64/apps/ai.storyteller.vizcraft.png` | VizCraft contributors | rendered from `assets/app-icon/vizcraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor icon, 64 px |
-| `assets/app-icon/hicolor/128x128/apps/ai.storyteller.vizcraft.png` | VizCraft contributors | rendered from `assets/app-icon/vizcraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor icon, 128 px |
-| `assets/app-icon/hicolor/256x256/apps/ai.storyteller.vizcraft.png` | VizCraft contributors | rendered from `assets/app-icon/vizcraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor icon, 256 px |
-| `assets/app-icon/hicolor/512x512/apps/ai.storyteller.vizcraft.png` | VizCraft contributors | rendered from `assets/app-icon/vizcraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor icon, 512 px |
-| `assets/app-icon/hicolor/scalable/apps/ai.storyteller.vizcraft.svg` | VizCraft contributors | copy of `assets/app-icon/vizcraft.svg` made by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor scalable icon |
+| `assets/app-icon/vizcraft.svg` | VizCraft contributors | original artwork drawn by hand in SVG for this repository | MIT OR Apache-2.0 | VizCraft app icon: a deep violet rounded tile holding a tiny flowchart (a cream rounded box, an amber diamond and a coral circle joined by two elbow connectors with arrowheads). Source of every rendered icon below |
+| `assets/app-icon/vizcraft-1024.png` | VizCraft contributors | rendered from `assets/app-icon/vizcraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | 1024 px master of the full-bleed tile with the VizCraft flowchart icon |
+| `assets/app-icon/vizcraft-macos-512.png` | VizCraft contributors | rendered from `assets/app-icon/vizcraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | 512 px the VizCraft flowchart icon on the Apple icon grid (transparent margin); runtime window icon on macOS |
+| `assets/app-icon/vizcraft.icns` | VizCraft contributors | rendered from `assets/app-icon/vizcraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | macOS bundle icon with the VizCraft flowchart icon (16 to 512 px, 1x and 2x, Apple grid); copied into the .app by `packaging/macos/package.sh` |
+| `assets/app-icon/vizcraft.ico` | VizCraft contributors | rendered from `assets/app-icon/vizcraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Windows icon with the VizCraft flowchart icon (16, 20, 24, 32, 40, 48, 64, 128, 256 px), packed by `cargo xtask ico`; embedded by `apps/vizcraft/build.rs` |
+| `assets/app-icon/hicolor/16x16/apps/ai.storyteller.vizcraft.png` | VizCraft contributors | rendered from `assets/app-icon/vizcraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor icon, 16 px: the VizCraft flowchart icon |
+| `assets/app-icon/hicolor/24x24/apps/ai.storyteller.vizcraft.png` | VizCraft contributors | rendered from `assets/app-icon/vizcraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor icon, 24 px: the VizCraft flowchart icon |
+| `assets/app-icon/hicolor/32x32/apps/ai.storyteller.vizcraft.png` | VizCraft contributors | rendered from `assets/app-icon/vizcraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor icon, 32 px: the VizCraft flowchart icon |
+| `assets/app-icon/hicolor/48x48/apps/ai.storyteller.vizcraft.png` | VizCraft contributors | rendered from `assets/app-icon/vizcraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor icon, 48 px: the VizCraft flowchart icon |
+| `assets/app-icon/hicolor/64x64/apps/ai.storyteller.vizcraft.png` | VizCraft contributors | rendered from `assets/app-icon/vizcraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor icon, 64 px: the VizCraft flowchart icon |
+| `assets/app-icon/hicolor/128x128/apps/ai.storyteller.vizcraft.png` | VizCraft contributors | rendered from `assets/app-icon/vizcraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor icon, 128 px: the VizCraft flowchart icon |
+| `assets/app-icon/hicolor/256x256/apps/ai.storyteller.vizcraft.png` | VizCraft contributors | rendered from `assets/app-icon/vizcraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor icon, 256 px: the VizCraft flowchart icon |
+| `assets/app-icon/hicolor/512x512/apps/ai.storyteller.vizcraft.png` | VizCraft contributors | rendered from `assets/app-icon/vizcraft.svg` by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor icon, 512 px: the VizCraft flowchart icon |
+| `assets/app-icon/hicolor/scalable/apps/ai.storyteller.vizcraft.svg` | VizCraft contributors | copy of `assets/app-icon/vizcraft.svg` made by `packaging/icons.sh` | MIT OR Apache-2.0 | Linux hicolor scalable icon: the VizCraft flowchart icon |
 | `packaging/linux/ai.storyteller.vizcraft.desktop` | VizCraft contributors | written for this repository | MIT OR Apache-2.0 | Linux desktop entry (see `packaging/README.md`) |
 
 Rendered icon files: `packaging/icons.sh` writes every `assets/app-icon/` file listed above except
