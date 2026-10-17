@@ -3626,6 +3626,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "vizcraft-layout"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "vizcraft-macos-open"
 version = "0.1.0"
 dependencies = [

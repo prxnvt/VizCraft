@@ -1,0 +1,17 @@
+[package]
+name = "vizcraft-layout"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "VizCraft automatic diagram layout: layered, tree, radial and force-directed, independent of the diagram model"
+
+[lints]
+workspace = true
+
+[dependencies]
+serde = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
