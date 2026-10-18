@@ -36,6 +36,14 @@ pub const NAMES: &[&str] = &[
     "dark",
     "menuBar",
     "ribbon",
+    // View > Show and Visual Aids
+    "ruler",
+    "grid",
+    "guides",
+    "pageBreaks",
+    "connectionPoints",
+    "autoConnect",
+    "snap",
     // Text
     "bold",
     "italic",
@@ -323,6 +331,58 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
             pen.line(&[(3.0, 10.0), (17.0, 10.0)]);
             pen.frect(5.0, 7.5, 7.5, 9.0, a);
             pen.frect(9.0, 7.5, 11.5, 9.0, a);
+        }
+        // View > Show and Visual Aids
+        "ruler" => {
+            // A rule along the top and left, with ticks.
+            pen.closed(&[(2.5, 2.5), (17.5, 2.5), (17.5, 6.5), (6.5, 6.5), (6.5, 17.5), (2.5, 17.5)], c);
+            for x in [9.0, 12.0, 15.0] {
+                pen.line_c(&[(x, 2.5), (x, 4.5)], a);
+            }
+            for y in [9.0, 12.0, 15.0] {
+                pen.line_c(&[(2.5, y), (4.5, y)], a);
+            }
+        }
+        "grid" => {
+            pen.rect(3.0, 3.0, 17.0, 17.0, c);
+            for v in [7.67, 12.33] {
+                pen.line_c(&[(v, 3.0), (v, 17.0)], a);
+                pen.line_c(&[(3.0, v), (17.0, v)], a);
+            }
+        }
+        "guides" => {
+            pen.page(4.0, 2.5, 16.0, 17.5);
+            pen.line_c(&[(1.5, 8.0), (18.5, 8.0)], a);
+            pen.line_c(&[(11.0, 1.0), (11.0, 19.0)], a);
+        }
+        "pageBreaks" => {
+            pen.rect(2.5, 3.0, 17.5, 17.0, c);
+            // Dashes where the sheet splits.
+            for (y0, y1) in [(3.0, 5.5), (7.5, 10.0), (12.0, 14.5)] {
+                pen.line_c(&[(10.0, y0), (10.0, y1)], a);
+            }
+            pen.line_c(&[(10.0, 16.0), (10.0, 17.0)], a);
+        }
+        "connectionPoints" => {
+            pen.rect(5.0, 5.0, 15.0, 15.0, c);
+            for (x, y) in [(10.0, 5.0), (15.0, 10.0), (10.0, 15.0), (5.0, 10.0)] {
+                pen.line_c(&[(x - 1.8, y - 1.8), (x + 1.8, y + 1.8)], a);
+                pen.line_c(&[(x - 1.8, y + 1.8), (x + 1.8, y - 1.8)], a);
+            }
+        }
+        "autoConnect" => {
+            pen.rect(2.5, 6.5, 9.0, 13.5, c);
+            // An arrow out of the shape's side.
+            pen.line_c(&[(9.0, 10.0), (17.5, 10.0)], a);
+            pen.line_c(&[(14.5, 7.0), (17.5, 10.0), (14.5, 13.0)], a);
+        }
+        "snap" => {
+            // A magnet.
+            pen.line(&[(5.0, 3.0), (5.0, 11.0)]);
+            pen.line(&[(15.0, 3.0), (15.0, 11.0)]);
+            pen.arc(10.0, 11.0, 5.0, 0.0, PI, c);
+            pen.line_c(&[(3.5, 4.5), (6.5, 4.5)], a);
+            pen.line_c(&[(13.5, 4.5), (16.5, 4.5)], a);
         }
         // Text
         "bold" => {

@@ -14,6 +14,7 @@
 
 pub mod draw;
 pub mod interact;
+pub mod rulers;
 pub mod tess;
 
 use egui::{Pos2, Rect, Response, Ui, Vec2};
@@ -238,11 +239,13 @@ pub fn insert_point(app: &CraftApp) -> dg::Point {
 /// Draw the central canvas area and handle its input.
 pub fn show(app: &mut CraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
-    // The page tab strip takes the bottom edge; the canvas gets the rest.
+    // The page tab strip takes the bottom edge; rulers and the canvas share the rest.
     let full = ui.available_rect_before_wrap();
     let strip_h = crate::page_tabs::STRIP_H.min(full.height());
     crate::page_tabs::show(app, ui, Rect::from_min_max(Pos2::new(full.min.x, full.max.y - strip_h), full.max));
-    let (rect, response) = ui.allocate_exact_size(Vec2::new(full.width(), full.height() - strip_h), egui::Sense::click_and_drag());
+    let (above, _) = ui.allocate_exact_size(Vec2::new(full.width(), full.height() - strip_h), egui::Sense::hover());
+    let rect = rulers::canvas_rect(app, above);
+    let response = ui.interact(rect, ui.id().with("canvas"), egui::Sense::click_and_drag());
     app.canvas.rect = Some(rect);
     if rect.width() > 1.0 && rect.height() > 1.0 {
         // Only a real size: a fit into a collapsed canvas would drop to the smallest zoom.
@@ -264,6 +267,7 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
 
     interact::keys(app, ui.ctx());
     interact::pointer(app, ui, &response, &vp);
+    interact::drag::snap_move(app, vp.zoom, ui.input(|i| i.modifiers.alt));
     if let Some(payload) = response.dnd_release_payload::<crate::panes::MasterDrag>()
         && let Some(p) = ui.ctx().pointer_interact_pos().or(response.hover_pos())
     {
@@ -277,6 +281,7 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
     }
 
     paint(app, ui, &vp, &t);
+    rulers::show(app, ui, above, &vp, &t);
     interact::edit_text::text_overlay(app, ui, &vp, &t);
 }
 
@@ -286,6 +291,7 @@ fn paint(app: &mut CraftApp, ui: &Ui, vp: &Viewport2D, t: &Tokens) {
     let preview = app.canvas.drag.as_ref().and_then(|d| interact::preview_page(real, d, vp.zoom));
     let page = preview.as_ref().unwrap_or(real);
     draw::sheet(&painter, vp, page, t);
+    draw::overlays::underlay(app, &painter, vp, page, t);
     let visible = vp.visible_world_rect().inflate(4.0);
     let editing = app.canvas.editing.as_ref().map(|e| e.id().to_string());
     // Background pages under the active one, deepest first. Drawn only: hit testing and every

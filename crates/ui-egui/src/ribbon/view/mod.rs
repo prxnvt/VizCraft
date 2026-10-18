@@ -1,10 +1,11 @@
-//! The View tab: zoom, panes and appearance.
+//! The View tab: zoom, what the canvas shows, visual aids and appearance.
 
 use super::Tab;
 
 groups! {
     zoom,
     show,
+    visual_aids,
     appearance,
 }
 

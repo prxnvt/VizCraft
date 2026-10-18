@@ -20,6 +20,7 @@ pub mod page_setup;
 pub mod page_tabs;
 pub mod panes;
 pub mod ribbon;
+pub mod snap_dialog;
 pub mod theme;
 pub mod widgets;
 pub mod window_geometry;
@@ -140,6 +141,8 @@ pub struct UiState {
     pub window: Option<window_geometry::WindowGeometry>,
     /// Draw the menu bar inside the window even where the platform has a native one.
     pub in_window_menus: bool,
+    /// Grid, rulers, guides, page breaks, connection points, AutoConnect and snap settings.
+    pub aids: vizcraft_engine::cmd::view::Aids,
 }
 
 impl Default for UiState {
@@ -153,6 +156,7 @@ impl Default for UiState {
             panes: panes::PaneLayout::default(),
             window: None,
             in_window_menus: false,
+            aids: Default::default(),
         }
     }
 }
@@ -252,6 +256,7 @@ impl CraftApp {
         let mut ui = self.ui.clone();
         ui.author = self.session.author.clone();
         ui.dark = self.session.view.dark_mode;
+        ui.aids = self.session.view.aids;
         ui
     }
 
@@ -265,6 +270,7 @@ impl CraftApp {
             self.session.author = author;
         }
         self.session.view.dark_mode = self.ui.dark;
+        self.session.view.aids = self.ui.aids;
         self.ui.panes.sanitize();
     }
 

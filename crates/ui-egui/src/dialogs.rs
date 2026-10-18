@@ -42,6 +42,8 @@ pub enum Dialog {
     },
     /// Page Setup for the active page (`crate::page_setup`).
     PageSetup(crate::page_setup::PageSetup),
+    /// Snap and Glue: what dragged items snap to, and how strongly.
+    SnapSettings(crate::snap_dialog::State),
 }
 
 impl Dialog {
@@ -56,6 +58,7 @@ impl Dialog {
             Dialog::Shortcuts { .. } => "shortcuts",
             Dialog::Message { .. } => "message",
             Dialog::PageSetup(_) => "pageSetup",
+            Dialog::SnapSettings(_) => "snapSettings",
         }
     }
 
@@ -70,6 +73,7 @@ impl Dialog {
             "commands" => Dialog::Commands { query: String::new(), selected: 0 },
             "shortcuts" => Dialog::Shortcuts { filter: String::new() },
             "pageSetup" => Dialog::PageSetup(crate::page_setup::PageSetup::new(app)),
+            "snapSettings" => Dialog::SnapSettings(crate::snap_dialog::open(app)),
             _ => return None,
         })
     }
@@ -84,6 +88,7 @@ impl Dialog {
             Dialog::Shortcuts { .. } => "Keyboard Shortcuts".into(),
             Dialog::Message { title, .. } => title.clone(),
             Dialog::PageSetup(_) => "Page Setup".into(),
+            Dialog::SnapSettings(_) => "Snap and Glue".into(),
         }
     }
 
@@ -273,6 +278,11 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
             ok || cancel
         }
         Dialog::Commands { query, selected } => palette(app, ui, query, selected, keys),
+        Dialog::SnapSettings(s) => {
+            crate::snap_dialog::body(ui, s);
+            let (ok, cancel) = buttons(ui, "OK", Some("Cancel"), keys);
+            crate::snap_dialog::finish(app, s, ok, cancel)
+        }
         Dialog::Shortcuts { filter } => {
             let r = ui.add(egui::TextEdit::singleline(filter).hint_text("Filter").desired_width(f32::INFINITY));
             if filter.is_empty() {

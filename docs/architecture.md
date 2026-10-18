@@ -18,7 +18,7 @@ the code that depends on it, and say so in the commit message.
 |---|---|---|
 | model | `crates/model` (`vizcraft-model`) | Semantic model: elements, relationships, containment, views (`View` on a page), the identity registry (`identity`: identifier formats, auto-numbering, uniqueness, pairs) and structured issues (`Issue`, `Severity`). Depends on serde only |
 | model | `crates/notation` (`vizcraft-notation`) | Notation packs: the pack schema (`schema`), JSON and TOML loader with consistency checks, the built-in Basic and Flowchart packs (`catalog()`), connection-table queries (`legal`), the rules engine (`rules::{live, batch}`) and the model sync pass (`bind::sync`). Depends on `model` and `diagram` |
-| model | `crates/diagram` (`vizcraft-diagram`) | Geometry (points, rects, transforms, paths), shape outlines and connection points, the document model, hit testing, glue and connector routing, auto-layout (`autolayout`), obstacle-avoiding routes (`autoroute`) line jumps (`jumps`), and diagram items as views of model items (`views`). The `Document` holds the semantic model. Depends on serde, `model`, `layout` and `routing` |
+| model | `crates/diagram` (`vizcraft-diagram`) | Geometry (points, rects, transforms, paths), shape outlines and connection points, the document model, hit testing, glue and connector routing, auto-layout (`autolayout`), obstacle-avoiding routes (`autoroute`) line jumps (`jumps`), diagram items as views of model items (`views`), and snapping to the grid, guides, shapes and connection points (`snap`). The `Document` holds the semantic model. Depends on serde, `model`, `layout` and `routing` |
 | model | `crates/stencils` (`vizcraft-stencils`) | Built-in stencil catalog: Basic and Flowchart sets, masters with default size and style, ranked keyword search over an index built once (`search`); its sets and masters are built once from the glyphs of the notation packs. Depends on `diagram` and `notation` |
 | model | `crates/formats` (`vizcraft-formats`) | File formats, bytes in and bytes out: `.vizcraft` native JSON (`native::save`, `native::load`; version 3 carries the model section, version 4 the richer style, shape, page and document fields), SVG export (`svg::export_page`), PNG export (`png::render_page`: the SVG export rasterised on the CPU by `resvg` with the bundled Inter faces, no system fonts, builds for wasm), `.drawio` (`drawio::{load, save, import, page_xml, master_style}`), Mermaid (`mermaid::import`) and CSV (`csv::import`) import into `Imported { pages, warnings }`. Depends on `diagram`, `stencils`, `drawio`, `mermaid` and `layout` |
 | model | `crates/mermaid` (`vizcraft-mermaid`) | Mermaid parser: flowchart, sequence, class, state and ER text to a typed IR with a common node, edge and group view (`Diagram::to_graph`); warnings for unsupported statements. No workspace dependencies |
@@ -61,7 +61,7 @@ handles it.
 
 Command id prefixes: `file.*`, `edit.*`, `view.*`, `shape.*` (`crates/engine/src/cmd/shape.rs`),
 `connector.*` (`cmd/connector.rs`), `page.*` (`cmd/page.rs`), `layout.*` (`cmd/layout.rs`), `model.*`, `element.*`,
-`relationship.*`, `validate.*`, `notation.*` (`cmd/{model,element,relationship,validate,notation}.rs`), `script.*` (`cmd/script.rs`), `insert.*`, `format.*`, `window.*`, `help.*`, `ui.*` (UI layer), `app.*` (app-level: `app.quit`,
+`relationship.*`, `validate.*`, `notation.*` (`cmd/{model,element,relationship,validate,notation}.rs`), `script.*` (`cmd/script.rs`), `guide.*` (`cmd/view.rs`), `insert.*`, `format.*`, `window.*`, `help.*`, `ui.*` (UI layer), `app.*` (app-level: `app.quit`,
 `app.preferences`, `app.about`). `insert.*` and `format.*` are reserved; no engine
 command uses them yet.
 
@@ -182,7 +182,7 @@ pub struct Session {
     pub dirty: bool,
     pub author: String,
     pub sel: Selection,                // generalized selection (primary, items: Vec<String>, range: Option<(u64, u64)>)
-    pub view: ViewState,               // zoom (f32), pan ([f32; 2]), dark_mode, pane visibility flags, canvas: Option<[f32; 2]>
+    pub view: ViewState,               // zoom (f32), pan ([f32; 2]), dark_mode, pane visibility flags, canvas: Option<[f32; 2]>, aids: cmd::view::Aids
     pub registry: Registry,            // Registry::get(id) -> Option<&CommandSpec>, Registry::all() -> &[CommandSpec]
     pub ui_requests: Vec<Value>,       // requests to the UI, drained by the UI after each command
     pub status: String,                // one-shot status message, taken by the UI
@@ -218,7 +218,19 @@ still reads `.craft.json` and `.json`; `.drawio` and `.drawio.xml` names open an
 never serialized); the UI writes it every frame so `view.zoomFit {page?}` computes zoom and pan in
 the engine with the other view commands and replies with them synchronously. The UI runs
 `view.zoomFit` after `file.open` or a replacing `file.import` when the page is cut off, unless the
-params carry `"fit": false`. After every command that
+params carry `"fit": false`.
+`ViewState::aids` (`cmd::view::Aids`) holds the visual aids: grid, rulers, guides, page breaks,
+connection points, AutoConnect, and snapping (on or off, the grid, guide, shape and connection
+point targets, and a strength in screen points). They are view settings, never document data or
+undo steps, set by `view.grid`, `view.rulers`, `view.guides`, `view.pageBreaks`,
+`view.connectionPoints`, `view.autoConnect` (each `{value?}`, flipping without one) and
+`view.snap {value?, grid?, guides?, shapes?, points?, strength?}`; `view.snapSettings` asks the UI
+for the Snap and Glue dialog. The UI saves them in `UiState::aids`. Guides are page data
+(`Page::guides`): `guide.add {orientation, position, page?}`, `guide.move {index, position,
+page?}` and `guide.delete {index, page?}` change the document and undo like any edit. The canvas
+snaps a move drag with `vizcraft_diagram::snap` (guides first, then shape edges, centres and
+connection points, then the grid; Alt turns it off for the drag) and draws the alignment lines it
+returns. After every command that
 changes the document, `Session::run` calls `vizcraft_notation::bind::sync` (inside the command's
 panic guard; not after a command that replaced the document) and then
 `vizcraft_diagram::autoroute::refresh`, inside the same undo step, so the model and its views stay
@@ -270,7 +282,7 @@ pub struct Services {        // host-injected platform services; all optional
 pub struct UiState {         // persisted between runs as ui.json; agents read/set it via ui.inspect
     pub tab: String, pub ribbon_collapsed: bool, pub dark: bool, pub recent: Vec<String>,
     pub author: String, pub panes: panes::PaneLayout, pub window: Option<window_geometry::WindowGeometry>,
-    pub in_window_menus: bool,
+    pub in_window_menus: bool, pub aids: vizcraft_engine::cmd::view::Aids,
 }
 pub struct CraftApp {
     pub session: Session, pub ui: UiState, pub services: Services,

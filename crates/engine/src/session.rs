@@ -90,11 +90,13 @@ pub struct ViewState {
     /// so it is never serialized.
     #[serde(skip)]
     pub canvas: Option<[f32; 2]>,
+    /// Grid, rulers, guides, page breaks, connection points, AutoConnect and snapping.
+    pub aids: crate::cmd::view::Aids,
 }
 
 impl Default for ViewState {
     fn default() -> Self {
-        ViewState { zoom: 1.0, pan: [0.0, 0.0], dark_mode: false, nav_pane: true, props_pane: true, canvas: None }
+        ViewState { zoom: 1.0, pan: [0.0, 0.0], dark_mode: false, nav_pane: true, props_pane: true, canvas: None, aids: Default::default() }
     }
 }
 
