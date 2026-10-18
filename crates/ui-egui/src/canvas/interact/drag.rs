@@ -205,14 +205,11 @@ pub fn snap_targets(page: &Page, moving: &[String], aids: &vizcraft_engine::cmd:
         t.guides = page.guides.clone();
     }
     if aids.snap_shapes || aids.snap_points {
-        let layer_snaps = |s: &Shape| s.layers.is_empty() || s.layers.iter().any(|l| page.layer(l).is_none_or(|l| l.snap));
-        let others = page.shapes.iter().filter(|s| {
-            !moving.contains(&s.id)
-                && !s.parent.as_ref().is_some_and(|p| moving.contains(p))
-                && !s.behavior.no_snap
-                && page.shape_visible(s)
-                && layer_snaps(s)
-        });
+        // One rule with the layer pane: a shape on any layer that turns snapping off is no target.
+        let others = page
+            .shapes
+            .iter()
+            .filter(|s| !moving.contains(&s.id) && !s.parent.as_ref().is_some_and(|p| moving.contains(p)) && dg::layer::snappable(page, s));
         for s in others {
             if aids.snap_shapes {
                 t.rects.push(s.bounds());
@@ -264,6 +261,23 @@ pub fn snap_move(app: &mut CraftApp, zoom: f32, alt: bool) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn snap_skips_shapes_on_a_layer_that_turns_snapping_off() {
+        let mut page = Page::new("p1", "Page 1");
+        page.layers = vec![
+            dg::Layer { id: "on".into(), snap: true, ..dg::Layer::default() },
+            dg::Layer { id: "off".into(), snap: false, ..dg::Layer::default() },
+        ];
+        for (id, layers) in [("a", vec!["on"]), ("b", vec!["on", "off"]), ("c", vec![])] {
+            let mut s = Shape::new(id, dg::ShapeKind::Rectangle, 0.0, 0.0, 10.0, 10.0);
+            s.layers = layers.into_iter().map(String::from).collect();
+            page.shapes.push(s);
+        }
+        let aids = vizcraft_engine::cmd::view::Aids { snap_shapes: true, ..Default::default() };
+        let t = snap_targets(&page, &["c".to_string()], &aids, 1.0);
+        assert_eq!(t.rects.len(), 1, "only `a` is a target: `b` has a no-snap layer, `c` is moving");
+    }
 
     fn rect_shape(angle: f64) -> Shape {
         let mut s = Shape::new("s1", dg::ShapeKind::Rectangle, 100.0, 100.0, 80.0, 40.0);

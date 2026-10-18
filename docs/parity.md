@@ -80,27 +80,27 @@ When a feature lands, change its State in the same commit as the code. States:
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| Layers with visible, lock and print flags | 2 | planned | `layer.*` commands |
-| Layers pane | 2 | planned | Add, rename, toggle flags, assign shapes |
-| Layer colour | 2 | planned | Tint shapes by layer |
+| Layers with visible, lock and print flags | 2 | done (B2) | `layer.add`, `layer.delete`, `layer.set` (visible, locked, print, snap, glue, colour), `layer.assign`, `layer.unassign`; hidden shapes are not drawn or hit, locked ones refuse edits; print skips are recorded for the print command |
+| Layers pane | 2 | done (B2) | Add, rename, toggle flags, assign the selection; Home > Editing > Layers menu |
+| Layer colour | 2 | done (B2) | Line and text take the layer colour, fill moves halfway to it |
 
 ## Arrange and layout
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| Align | 2 | planned | Left, centre, right, top, middle, bottom |
-| Distribute | 2 | planned | Even horizontal and vertical spacing |
-| Order | 2 | planned | Bring forward, send backward, to front, to back |
-| Group and ungroup | 2 | planned | `arrange.*` commands |
-| Rotate and flip | 2 | planned | Rotate by angle, flip horizontal and vertical |
-| Size and position | 2 | planned | Numeric x, y, width, height, angle |
+| Align | 2 | done (B2) | `arrange.align {edge, to?}` to the first shape or the page |
+| Distribute | 2 | done (B2) | `arrange.distribute {axis}`; `arrange.autoSpace {gap?}` |
+| Order | 2 | done (B2) | `arrange.order {how}` |
+| Group and ungroup | 2 | done (B2) | `arrange.group`, `arrange.ungroup`; nested groups |
+| Rotate and flip | 2 | partly done (B2) | `arrange.rotate`, `arrange.flip`; flip mirrors positions and angles but not uneven outlines (no flip field yet) |
+| Size and position | 2 | done (B2) | `arrange.setBounds {id, x?, y?, w?, h?, angle?}`; a group scales its members |
 | Auto-layout | 3 | done | Layered, tree, radial, force; `layout.full` (page or selection), `layout.incremental` (existing shapes pinned), `layout.route` |
 
 ## Containers, swimlanes and groups
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| Groups | 2 | planned | Move and resize as one |
+| Groups | 2 | done (B2) | Click selects the outermost group, next click one level down; move, resize, rotate, delete and copy carry members |
 | Containers | 2 | planned | Members move with the container; container fits its members |
 | Swimlanes | 2 | planned | Lanes in a cross-functional flowchart |
 | Pools and lanes | 6 | planned | BPMN variant of swimlanes |
@@ -109,21 +109,24 @@ When a feature lands, change its State in the same commit as the code. States:
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| Themes | 2 | planned | Our own colour and font sets |
-| Quick styles | 2 | planned | Preset shape styles within a theme |
-| Fill, line, shadow, gradient | 2 | planned | Per shape and connector |
+| Themes | 2 | done (B2) | Six of our own with four variants each; `design.setTheme`, `design.setVariant`; hand styling stays |
+| Quick styles | 2 | done (B2) | Twelve presets from the theme; `design.applyQuickStyle` |
+| Fill, line, shadow, gradient | 2 | partly done (B2) | Dash, caps, rounding, gradients, transparency, shadow, soft edges, glow on shapes via `shape.setStyle`; connectors store them but the canvas does not draw connector dash or transparency yet |
 | Format painter | 2 | planned | Copy style from one shape to others |
+| Backgrounds and borders and titles | 2 | done (B2) | `design.setBackground`, `design.setBorderTitle` on a generated background page |
+| Page-wide connector style | 2 | done (B2) | `design.setConnectorStyle {style}` |
+| Page breaks, connection points and AutoConnect toggles | 2 | partly done (B2) | `view.pageBreaks` (Letter paper assumed), `view.connectionPoints`, `view.autoConnect` (stored only, no canvas behaviour yet) |
 | Light and dark app theme | 0 | done (chrome) | Window chrome only; diagram colours follow the document theme |
 
 ## Snap, grid, rulers and guides
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| Grid | 2 | planned | Shown and hidden from the View tab |
-| Snap to grid, shapes and points | 2 | planned | Toggles per snap target |
-| Rulers | 2 | planned | In page units |
-| Guides | 2 | planned | Dragged from the rulers |
-| Dynamic alignment guides | 2 | planned | Shown while dragging near other shapes |
+| Grid | 2 | done (B2) | `view.grid` |
+| Snap to grid, shapes and points | 2 | partly done (B2) | `view.snap`, Snap and Glue dialog; move drags only (not resize or connector ends); Alt turns it off |
+| Rulers | 2 | done (B2) | `view.rulers`; shows the selection extent |
+| Guides | 2 | done (B2) | Dragged from the rulers; `guide.add`, `guide.move`, `guide.delete` |
+| Dynamic alignment guides | 2 | done (B2) | Alignment lines while dragging |
 | Pan and Zoom pane | 2 | planned | Page overview with the visible area as a frame |
 
 ## Data
