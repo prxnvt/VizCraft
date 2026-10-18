@@ -33,8 +33,9 @@ serde_json = { version = "1", features = ["float_roundtrip"] }
 log = "0.4"
 toml = "1"
 image = { version = "0.25", default-features = false, features = ["png"] }
-# Text only, no system fonts or raster images, so it reads nothing from the machine and builds for wasm.
-resvg = { version = "0.47", default-features = false, features = ["text"] }
+# Text and raster images (pictures embedded as data URIs), no system fonts, so it reads nothing
+# from the machine and builds for wasm.
+resvg = { version = "0.47", default-features = false, features = ["text", "raster-images"] }
 # Boolean operations and offsets on polygons (freeform shapes); pure Rust, MIT or Apache, builds for wasm.
 i_overlay = { version = "9", default-features = false }
 

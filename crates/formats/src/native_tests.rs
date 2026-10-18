@@ -327,7 +327,7 @@ fn rich() -> Document {
     s.screen_tip = "Mixes the batch".into();
     s.locks = Locks { width: true, height: true, aspect: true, position: true, rotation: true, delete: true, select: true, text: true };
     s.behavior = Behavior { container: true, non_printing: true, hidden: false, no_glue: true, no_snap: true };
-    s.image = Some(ImageRef { asset: "img1".into(), crop: CropRect { x: 0.1, y: 0.2, w: 0.5, h: 0.25 } });
+    s.image = Some(ImageRef { asset: "img1".into(), crop: CropRect { x: 0.1, y: 0.2, w: 0.5, h: 0.25 }, ..Default::default() });
     let st = &mut s.style;
     st.font_family = "JetBrains Mono".into();
     st.underline = true;
@@ -970,4 +970,29 @@ fn document_protection_round_trips_and_defaults_off() {
     let mut junk = parse(&free);
     junk["document"]["protection"] = json!({"shapes": "yes", "backgrounds": 3});
     assert_eq!(load(&serde_json::to_vec(&junk).unwrap()).unwrap().protection, vizcraft_diagram::Protection::default());
+}
+
+#[test]
+fn picture_adjustments_round_trip_and_junk_is_clamped() {
+    use vizcraft_diagram::shape_fields::{Adjust, Recolor};
+    use vizcraft_diagram::{Color, ImageAsset, ImageRef};
+    let mut doc = Document::new();
+    doc.images.push(ImageAsset { id: "img1".into(), media_type: "image/png".into(), bytes: vec![1, 2, 3] });
+    let mut s = Shape::new("s", ShapeKind::Rectangle, 0.0, 0.0, 10.0, 10.0);
+    let adjust = Adjust { brightness: -0.2, contrast: 0.4, transparency: 0.3, recolor: Recolor::Tint(Color::rgb(0, 128, 255)) };
+    s.image = Some(ImageRef { asset: "img1".into(), adjust, ..Default::default() });
+    let mut plain = s.clone();
+    plain.id = "t".into();
+    plain.image = Some(ImageRef { asset: "img1".into(), ..Default::default() });
+    doc.page_mut().unwrap().shapes.extend([s, plain]);
+    let bytes = save(&doc).unwrap();
+    let v = parse(&bytes);
+    assert_eq!(v["document"]["pages"][0]["shapes"][0]["image"]["adjust"]["recolor"], "#0080ff");
+    assert!(v["document"]["pages"][0]["shapes"][1]["image"].get("adjust").is_none(), "neutral adjustments are not written");
+    assert_eq!(load(&bytes).unwrap().pages, doc.pages);
+    let mut junk = v.clone();
+    junk["document"]["pages"][0]["shapes"][0]["image"]["adjust"] = json!({"brightness": 9, "contrast": "x", "transparency": -3, "recolor": "plaid"});
+    let back = load(&serde_json::to_vec(&junk).unwrap()).unwrap();
+    let a = back.page().unwrap().shapes[0].image.as_ref().unwrap().adjust;
+    assert_eq!(a, Adjust { brightness: 1.0, contrast: 0.0, transparency: 0.0, recolor: Recolor::None });
 }

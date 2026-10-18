@@ -111,7 +111,12 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.pane.comments", "Show Comments", "", r#"{"value"?: bool}"#),
     ("ui.pane.panZoom", "Pan and Zoom Pane", "", r#"{"value"?: bool}"#),
     ("ui.pane.documentStencil", "Document Stencil", "", r#"{"value"?: bool}"#),
-    ("ui.paneSide", "Move Pane to Side", "", r#"{"name": "shapes|navigation|properties|history|layers|shapeData|comments|panZoom|documentStencil", "side": "left|right"}"#),
+    (
+        "ui.paneSide",
+        "Move Pane to Side",
+        "",
+        r#"{"name": "shapes|navigation|properties|history|layers|shapeData|comments|panZoom|documentStencil", "side": "left|right"}"#,
+    ),
     ("ui.collapsePanes", "Collapse Side Panes", "", r#"{"side": "left|right", "value"?: bool}"#),
     ("ui.panesReset", "Reset Panes", "", "{}"),
     ("ui.tree", "Model Tree", "", r#"{"mode"?: "model|context", "branch"?: "model|diagrams", "expand"?: [id], "collapse"?: [id], "reveal"?: id}"#),
@@ -129,9 +134,12 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "ui.tool",
         "Tool",
         "",
-        r#"{"tool": "pointer|area|lasso|connector|text|textBlock|formatPainter", "from"?: id, "keep"?: bool, "kind"?: connector kind id}; kind makes the connector tool draw that kind (any other tool or no kind clears it); area is the pointer's marquee; formatPainter copies from "from" (default: the primary selection), once unless "keep""#,
+        r#"{"tool": "pointer|area|lasso|connector|text|textBlock|formatPainter|crop|pen|highlighter|eraser", "from"?: id, "keep"?: bool, "kind"?: connector kind id}; kind makes the connector tool draw that kind (any other tool or no kind clears it); area is the pointer's marquee; formatPainter copies from "from" (default: the primary selection), once unless "keep""#,
     ),
     ("ui.find", "Find", "Mod+F", "{}"),
+    ("ui.insertPicture", "Picture", "", r#"{} (pick a PNG, JPEG or SVG file, then picture.insert it)"#),
+    ("ui.changePicture", "Change Picture", "", r#"{} (pick a file, then picture.change the selected picture)"#),
+    ("ui.inkPen", "Pen Settings", "", r##"{"color"?: "#rrggbb", "width"?: n} -> {"color", "width"} (the Pen tool's colour and thickness)"##),
     (
         "ui.dock",
         "Bottom Dock",
@@ -202,6 +210,14 @@ pub enum Tool {
     },
     /// Move, resize and turn the selected shape's text block; double-click resets it.
     TextBlock,
+    /// Drag the selected picture's crop handles; the release commits `picture.crop`.
+    Crop,
+    /// Draw ink: a drag commits one `ink.add`.
+    Pen,
+    /// Draw wide, half-transparent ink behind the shapes.
+    Highlighter,
+    /// Delete the ink strokes under a click or a drag.
+    Eraser,
 }
 
 impl Tool {
@@ -214,6 +230,10 @@ impl Tool {
             Tool::Lasso => "lasso",
             Tool::FormatPainter { .. } => "formatPainter",
             Tool::TextBlock => "textBlock",
+            Tool::Crop => "crop",
+            Tool::Pen => "pen",
+            Tool::Highlighter => "highlighter",
+            Tool::Eraser => "eraser",
         }
     }
     /// The tool for a `ui.tool` name.
@@ -226,6 +246,10 @@ impl Tool {
             "connector" => Some(Tool::Connector),
             "text" => Some(Tool::Text),
             "textBlock" => Some(Tool::TextBlock),
+            "crop" => Some(Tool::Crop),
+            "pen" => Some(Tool::Pen),
+            "highlighter" => Some(Tool::Highlighter),
+            "eraser" => Some(Tool::Eraser),
             _ => None,
         }
     }
@@ -581,6 +605,12 @@ impl CraftApp {
             return Some(r);
         }
         if let Some(r) = insert_picker::ui_command(self, id, p) {
+            return Some(r);
+        }
+        if let Some(r) = canvas::draw::pictures::ui_command(self, id, p) {
+            return Some(r);
+        }
+        if let Some(r) = canvas::interact::ink::ui_command(self, id, p) {
             return Some(r);
         }
         let s = |k: &str| p.get(k).and_then(Value::as_str);

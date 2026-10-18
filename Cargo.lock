@@ -1765,6 +1765,8 @@ dependencies = [
  "num-traits",
  "png",
  "tiff",
+ "zune-core",
+ "zune-jpeg",
 ]
 
 [[package]]
@@ -4050,6 +4052,7 @@ dependencies = [
 name = "vizcraft-engine"
 version = "0.1.0"
 dependencies = [
+ "image",
  "log",
  "serde",
  "serde_json",
@@ -4065,6 +4068,7 @@ dependencies = [
 name = "vizcraft-formats"
 version = "0.1.0"
 dependencies = [
+ "image",
  "krilla",
  "krilla-svg",
  "resvg",

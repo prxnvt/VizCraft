@@ -11,6 +11,7 @@ pub mod containers;
 pub mod insertion;
 pub mod links;
 pub mod overlays;
+pub mod pictures;
 pub mod shapes;
 pub mod text;
 

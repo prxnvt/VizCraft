@@ -53,7 +53,9 @@ fn registry_ids_are_unique_and_prefixed() {
                 "guide",
                 "text",
                 "shapeop",
-                "master"
+                "master",
+                "picture",
+                "ink"
             ]
             .contains(&prefix),
             "{}: unexpected prefix",
@@ -110,6 +112,7 @@ fn hostile_params_never_panic() {
         json!({"commands": "x", "script": "[{\"command\": \"edit.batch\", \"params\": {\"commands\": [{\"command\": \"script.run\", \"params\": {\"script\": []}}]}}]"}),
         json!({"script": [{"command": "edit.selectAll"}, {"command": "edit.copy"}, {"command": "edit.paste"}, {"id": "edit.delete"}], "label": ""}),
         json!({"script": "not json", "commands": []}),
+        json!({"bytes": "!!not base64!!", "id": "s2", "crop": {"x": "a", "w": -1e308}, "points": [[1e308, "x"], {}], "mediaType": "image/gif", "maxDimension": -5, "quality": 1e300, "recolor": 7}),
         nested_batches(40),
     ];
     for spec in reg.all() {

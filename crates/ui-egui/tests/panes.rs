@@ -118,7 +118,10 @@ fn window_menu_items_track_the_layout() {
     let items = panes::window_menu_items(&a);
     assert_eq!(items.len(), 8);
     let closed = |t: &str| matches!(t, "Layers" | "Comments" | "Pan and Zoom" | "Document Stencil");
-    assert!(items.iter().all(|(title, _, on)| *on == !closed(title)), "every pane but Layers, Comments, Pan and Zoom and Document Stencil start open");
+    assert!(
+        items.iter().all(|(title, _, on)| *on == !closed(title)),
+        "every pane but Layers, Comments, Pan and Zoom and Document Stencil start open"
+    );
     assert_eq!(items[0], ("Palette", "ui.pane.shapes", true));
     assert_eq!(items[1], ("Model Tree", "ui.pane.navigation", true));
     for (_, id, _) in &items {

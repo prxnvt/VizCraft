@@ -4,6 +4,7 @@ use super::Tab;
 
 groups! {
     comments,
+    ink,
 }
 
 /// The Review tab.

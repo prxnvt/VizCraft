@@ -18,3 +18,7 @@ thiserror = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 log = { workspace = true }
+
+[dev-dependencies]
+# Tests encode small PNG and JPEG pictures to insert.
+image = { workspace = true, features = ["jpeg"] }

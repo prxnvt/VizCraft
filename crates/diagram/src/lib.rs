@@ -38,6 +38,7 @@ pub mod decor;
 pub mod doc_fields;
 pub mod geom;
 pub mod hit;
+pub mod ink;
 pub mod jumps;
 pub mod kind;
 pub mod layer;
@@ -70,6 +71,7 @@ pub use model::{MAX_WAYPOINTS, is_plain_id};
 pub use page_fields::{DrawingScale, Guide, GuideOrientation, HeaderFooter, Layer, Orientation, Units};
 pub use route::{Arrowhead, ConnectorGeometry, EndPoint, Ends, arrowhead, connector_geometry, resolve_ends, route_path, route_polyline};
 pub use routing_policy::{Avoid, RoutingPolicy, StraightFallback};
+pub use serde_util::base64;
 pub use shape_fields::{Behavior, CropRect, Freeform, Hyperlink, ImageRef, LinkKind, Locks, TextBlock};
 pub use style_fields::{
     Bullets, Dash, Glow, Gradient, GradientKind, GradientStop, HAlign, LineCap, Margins, Shadow, TextCase, TextDirection, VAlign,

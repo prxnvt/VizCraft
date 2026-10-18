@@ -18,6 +18,7 @@ pub mod element;
 pub mod file;
 pub mod find;
 pub mod help;
+pub mod ink;
 pub mod insert;
 pub mod inspector;
 pub mod lane;
@@ -29,6 +30,7 @@ pub mod master;
 pub mod model;
 pub mod notation;
 pub mod page;
+pub mod picture;
 pub mod print;
 pub mod process;
 pub mod protect;
@@ -36,8 +38,8 @@ pub mod relationship;
 pub mod routing;
 pub mod script;
 pub mod shape;
-pub mod suggest;
 pub mod shapeop;
+pub mod suggest;
 pub mod text;
 pub mod validate;
 pub mod view;
@@ -91,6 +93,8 @@ pub fn registry() -> Registry {
     v.extend(process::specs());
     v.extend(addon::specs());
     v.extend(r#macro::specs());
+    v.extend(picture::specs());
+    v.extend(ink::specs());
     v.extend(help::specs());
     Registry::new(v)
 }

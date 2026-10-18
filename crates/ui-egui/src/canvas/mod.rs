@@ -352,6 +352,7 @@ fn paint(app: &mut CraftApp, ui: &Ui, vp: &Viewport2D, t: &Tokens) {
             let s = dg::text_fields::expand_shape(&tinted, &fields);
             // A callout's leader just under the callout, over whatever it points across.
             draw::containers::leader(&painter, vp, page, &s);
+            draw::pictures::picture(&painter, vp, &app.session.doc, &s);
             draw::shape(&painter, vp, &s, &mut app.canvas.cache, editing.as_deref() != Some(s.id.as_str()));
         }
     }

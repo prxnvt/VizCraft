@@ -5,6 +5,7 @@ use super::Tab;
 groups! {
     pages,
     links,
+    illustrations,
     basic_shapes,
     flowchart,
     diagram_parts,
