@@ -1,12 +1,12 @@
 //! The parts of a [`Shape`](crate::Shape) beyond frame, kind, text and style: the text block, links,
-//! protection locks, behaviour flags and a picture. All plain data; no command reads them yet.
+//! protection locks, behaviour flags, a picture and the freeform outline. All plain data.
 
 use serde::{Deserialize, Serialize};
 
 use crate::MAX_EXTENT;
-use crate::geom::finite;
+use crate::geom::{Path, PathEl, Point, Transform, finite};
 use crate::model::{MAX_ID, truncate};
-use crate::serde_util::{lenient, num};
+use crate::serde_util::{lenient, lenient_vec, num};
 
 /// Where a shape's text sits, relative to the shape. `None` on a shape means the text block is the
 /// shape's own frame.
@@ -205,5 +205,110 @@ impl ImageRef {
     pub fn sanitize(&mut self) {
         truncate(&mut self.asset, MAX_ID);
         self.crop.sanitize();
+    }
+}
+
+/// The outline of a [`ShapeKind::Freeform`](crate::ShapeKind::Freeform) shape: path commands in
+/// the shape's local frame, from `(0, 0)` to `(w, h)`. A boolean operation, join or trim writes it
+/// with the frame fitted to its bounds; a later resize stretches it with the frame (see
+/// [`Freeform::outline`]).
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct Freeform {
+    /// The commands, at most [`Freeform::MAX_ELS`]. Every subpath of a closed outline ends with a
+    /// `Close`; an open one has none.
+    #[serde(deserialize_with = "lenient_vec")]
+    pub els: Vec<PathEl>,
+    /// Whether the outline is closed (filled). An open path draws its line only.
+    #[serde(deserialize_with = "lenient")]
+    pub closed: bool,
+}
+
+impl Freeform {
+    /// Most path commands one freeform keeps.
+    pub const MAX_ELS: usize = 4096;
+
+    /// A freeform from `path` (already in local coordinates), sanitised.
+    pub fn new(path: &Path, closed: bool) -> Freeform {
+        let mut f = Freeform { els: path.els.clone(), closed };
+        f.sanitize();
+        f
+    }
+
+    /// Cap the command count, keep every point finite and in range, start every subpath with a
+    /// `MoveTo`, and make the `Close` commands agree with `closed`: a closed outline closes every
+    /// subpath, an open one closes none.
+    pub fn sanitize(&mut self) {
+        self.els.truncate(Self::MAX_ELS);
+        let fix = |p: Point| Point::new(finite(p.x, 0.0).clamp(-MAX_EXTENT, MAX_EXTENT), finite(p.y, 0.0).clamp(-MAX_EXTENT, MAX_EXTENT));
+        let mut out: Vec<PathEl> = Vec::with_capacity(self.els.len());
+        // Whether a subpath is open (has a pen position) and has drawn anything.
+        let mut open = false;
+        let mut drawn = false;
+        for el in &self.els {
+            match *el {
+                PathEl::MoveTo(p) => {
+                    if self.closed && open && drawn {
+                        out.push(PathEl::Close);
+                    }
+                    // A MoveTo right after another replaces it: an empty subpath draws nothing.
+                    if open && !drawn {
+                        out.pop();
+                    }
+                    out.push(PathEl::MoveTo(fix(p)));
+                    open = true;
+                    drawn = false;
+                }
+                PathEl::LineTo(p) if open => {
+                    out.push(PathEl::LineTo(fix(p)));
+                    drawn = true;
+                }
+                PathEl::CubicTo(a, b, p) if open => {
+                    out.push(PathEl::CubicTo(fix(a), fix(b), fix(p)));
+                    drawn = true;
+                }
+                PathEl::Close => {
+                    if self.closed && open && drawn {
+                        out.push(PathEl::Close);
+                    }
+                    if open && !drawn {
+                        out.pop();
+                    }
+                    open = false;
+                    drawn = false;
+                }
+                // A line or curve with no MoveTo before it has no start: dropped.
+                PathEl::LineTo(_) | PathEl::CubicTo(..) => {}
+            }
+        }
+        if open && !drawn {
+            out.pop();
+        } else if self.closed && open && drawn {
+            out.push(PathEl::Close);
+        }
+        out.truncate(Self::MAX_ELS);
+        // Cutting at the cap may leave a dangling MoveTo or an unclosed subpath; neither breaks
+        // drawing, which treats a trailing MoveTo as nothing.
+        self.els = out;
+    }
+
+    /// The stored path.
+    pub fn path(&self) -> Path {
+        Path { els: self.els.clone() }
+    }
+
+    /// The outline for a `w` by `h` frame: the stored path with its bounds stretched onto the
+    /// frame, so it follows a resize. A side of the path with no extent (a straight line) is moved,
+    /// not stretched. An empty path is the frame's rectangle.
+    pub fn outline(&self, w: f64, h: f64) -> Path {
+        let (w, h) = (finite(w, 0.0).clamp(0.0, MAX_EXTENT), finite(h, 0.0).clamp(0.0, MAX_EXTENT));
+        let path = self.path();
+        let Some(b) = path.bounds() else {
+            return Path::polygon(&[Point::new(0.0, 0.0), Point::new(w, 0.0), Point::new(w, h), Point::new(0.0, h)]);
+        };
+        let sx = if b.width() > 1e-9 { w / b.width() } else { 1.0 };
+        let sy = if b.height() > 1e-9 { h / b.height() } else { 1.0 };
+        let fit = Transform::translate(-b.x0, -b.y0).then(&Transform::scale(sx, sy));
+        path.transformed(&fit)
     }
 }

@@ -53,7 +53,7 @@ const SHAPES: &[(&str, ShapeKind)] = &[
 /// The stencil master a shape of `kind` is filed under when the file names none.
 pub(crate) fn master_for_kind(kind: ShapeKind) -> &'static str {
     match kind {
-        ShapeKind::Rectangle => "basic.rectangle",
+        ShapeKind::Rectangle | ShapeKind::Freeform => "basic.rectangle",
         ShapeKind::RoundedRectangle => "basic.roundedRectangle",
         ShapeKind::Ellipse => "basic.ellipse",
         ShapeKind::Diamond => "flowchart.decision",
@@ -198,7 +198,7 @@ pub(crate) fn vertex_look(style: Option<&DStyle>, warnings: &mut Warnings) -> Ve
                 }
             };
             match m.kind {
-                ShapeKind::Rectangle | ShapeKind::RoundedRectangle => {
+                ShapeKind::Rectangle | ShapeKind::RoundedRectangle | ShapeKind::Freeform => {
                     s.remove("rounded");
                 }
                 ShapeKind::Ellipse => {
@@ -386,6 +386,16 @@ fn take_compartments(shape: &mut Shape) {
     }
 }
 
+/// Move the freeform outline a VizCraft export carried in the wrapper attribute
+/// `vizcraftPath` out of `ext` into `Shape::path`, the same way as [`take_compartments`].
+fn take_path(shape: &mut Shape) {
+    let Some(json) = shape.ext.remove(&format!("{EXT_ATTR}{}", vizcraft_diagram::shapeop::PATH_ATTR)) else { return };
+    vizcraft_diagram::shapeop::set_path_json(shape, &json);
+    if shape.ext.get(EXT_WRAPPER).is_some_and(|w| w == "object") && !shape.ext.keys().any(|k| k.starts_with(EXT_ATTR)) {
+        shape.ext.remove(EXT_WRAPPER);
+    }
+}
+
 /// draw.io flattens nesting on export, so a slot's members come back without their parent: give
 /// it back to the members a slot lists that have none.
 fn restore_slot_parents(page: &mut Page) {
@@ -526,6 +536,7 @@ pub(crate) fn page_from_model(model: &GraphModel, id: String, name: String, warn
         shape.ext = look.ext;
         wrapper_ext(c, &mut shape.ext);
         take_compartments(&mut shape);
+        take_path(&mut shape);
         shape.sanitize();
         page.shapes.push(shape);
     }

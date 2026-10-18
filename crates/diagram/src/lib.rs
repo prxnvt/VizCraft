@@ -16,6 +16,8 @@
 //! - [`container`]: containers, swimlanes (lane sets of lanes, with phases) and callouts.
 //! - [`decor`]: page backgrounds and borders with title blocks, on generated background pages.
 //! - [`theme`]: the built-in document themes, their variants and quick styles.
+//! - [`shapeop`]: boolean operations, offset, join and trim, making freeform shapes.
+//! - [`master`]: the document's own masters and the stencil file they export to.
 //! - [`style_fields`], [`shape_fields`], [`page_fields`], [`doc_fields`]: the richer style, shape,
 //!   page and document data (text layout, effects, links, locks, layers, comments, images).
 //!
@@ -39,6 +41,7 @@ pub mod hit;
 pub mod jumps;
 pub mod kind;
 pub mod layer;
+pub mod master;
 pub mod model;
 pub mod page_fields;
 pub mod print_fields;
@@ -46,6 +49,7 @@ pub mod route;
 pub mod routing_policy;
 mod serde_util;
 pub mod shape_fields;
+pub mod shapeop;
 pub mod snap;
 pub mod style_fields;
 pub mod text_fields;
@@ -56,16 +60,17 @@ pub use arrows::{ArrowGeometry, outline};
 pub use board::Board;
 pub use compartment::{Band, Compartment, CompartmentKind, Height};
 pub use conformance::{Conformance, RuleOverride, Suppression};
-pub use doc_fields::{Comment, CommentAnchor, DocProperties, ImageAsset, Reply};
+pub use doc_fields::{Comment, CommentAnchor, DocProperties, ImageAsset, Protection, Reply};
 pub use geom::{Path, PathEl, Point, Polyline, Rect, Transform, Vec2};
 pub use hit::{BandHit, Hit, band_at, connection_point_at, connector_at, connectors_in_rect, glue_shape_at, hit, shape_at, shapes_in_rect};
 pub use kind::ShapeKind;
+pub use master::CustomMaster;
 pub use model::{Arrow, Color, Connector, CoreProps, Document, End, Page, Route, Shape, Style};
 pub use model::{MAX_WAYPOINTS, is_plain_id};
 pub use page_fields::{DrawingScale, Guide, GuideOrientation, HeaderFooter, Layer, Orientation, Units};
 pub use route::{Arrowhead, ConnectorGeometry, EndPoint, Ends, arrowhead, connector_geometry, resolve_ends, route_path, route_polyline};
 pub use routing_policy::{Avoid, RoutingPolicy, StraightFallback};
-pub use shape_fields::{Behavior, CropRect, Hyperlink, ImageRef, LinkKind, Locks, TextBlock};
+pub use shape_fields::{Behavior, CropRect, Freeform, Hyperlink, ImageRef, LinkKind, Locks, TextBlock};
 pub use style_fields::{
     Bullets, Dash, Glow, Gradient, GradientKind, GradientStop, HAlign, LineCap, Margins, Shadow, TextCase, TextDirection, VAlign,
 };

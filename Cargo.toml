@@ -35,6 +35,8 @@ toml = "1"
 image = { version = "0.25", default-features = false, features = ["png"] }
 # Text only, no system fonts or raster images, so it reads nothing from the machine and builds for wasm.
 resvg = { version = "0.47", default-features = false, features = ["text"] }
+# Boolean operations and offsets on polygons (freeform shapes); pure Rust, MIT or Apache, builds for wasm.
+i_overlay = { version = "9", default-features = false }
 
 # testing
 proptest = "1"

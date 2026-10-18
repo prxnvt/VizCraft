@@ -45,6 +45,9 @@ pub enum ShapeKind {
     Trapezoid,
     /// Pentagon pointing down (flowchart off-page reference).
     OffPageReference,
+    /// An outline of its own, stored on the shape ([`Shape::path`](crate::Shape::path)): what a
+    /// boolean operation, join or trim makes. Without a stored path it is the frame's rectangle.
+    Freeform,
 }
 
 crate::serde_util::named_enum!(ShapeKind, ShapeKind::Rectangle, {
@@ -64,10 +67,12 @@ crate::serde_util::named_enum!(ShapeKind, ShapeKind::Rectangle, {
     ShapeKind::Preparation => "preparation",
     ShapeKind::Trapezoid => "trapezoid",
     ShapeKind::OffPageReference => "offPageReference",
+    ShapeKind::Freeform => "freeform",
 });
 
 impl ShapeKind {
-    /// Every kind, in catalog order.
+    /// Every built-in outline, in catalog order. [`ShapeKind::Freeform`] is left out: its outline
+    /// comes from the shape, not the kind, so no master or gallery offers it.
     pub const ALL: [ShapeKind; 16] = [
         ShapeKind::Rectangle,
         ShapeKind::RoundedRectangle,
@@ -88,12 +93,13 @@ impl ShapeKind {
     ];
 
     /// The outline for a `w` by `h` frame, in local coordinates. Sizes are clamped to be
-    /// non-negative and finite first.
+    /// non-negative and finite first. A freeform kind gives the frame's rectangle here; the shape's
+    /// own path is applied by [`Shape::local_outline`](crate::Shape::local_outline).
     pub fn outline(self, w: f64, h: f64) -> Path {
         let (w, h) = (size(w), size(h));
         let p = Point::new;
         match self {
-            ShapeKind::Rectangle | ShapeKind::PredefinedProcess => Path::polygon(&[p(0.0, 0.0), p(w, 0.0), p(w, h), p(0.0, h)]),
+            ShapeKind::Rectangle | ShapeKind::PredefinedProcess | ShapeKind::Freeform => Path::polygon(&[p(0.0, 0.0), p(w, 0.0), p(w, h), p(0.0, h)]),
             ShapeKind::RoundedRectangle => rounded_rect(w, h, 0.15 * w.min(h)),
             ShapeKind::Terminator => rounded_rect(w, h, 0.5 * w.min(h)),
             ShapeKind::Ellipse => ellipse(Rect::from_xywh(0.0, 0.0, w, h)),

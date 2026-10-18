@@ -382,6 +382,13 @@ pub struct Shape {
     /// Sections stacked below the main text (see [`crate::compartment`]).
     #[serde(deserialize_with = "lenient_vec", skip_serializing_if = "Vec::is_empty")]
     pub compartments: Vec<crate::compartment::Compartment>,
+    /// The outline of a [`ShapeKind::Freeform`] shape; ignored (and cleared) for other kinds.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub path: Option<crate::shape_fields::Freeform>,
+    /// The shape's name, as `shape.rename` sets it and the Developer tab shows it, at most
+    /// [`Shape::MAX_NAME`] bytes; empty is unnamed (the id stands in).
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "String::is_empty")]
+    pub name: String,
 }
 
 impl Default for Shape {
@@ -411,6 +418,8 @@ impl Default for Shape {
             data: ShapeData::default(),
             container: None,
             compartments: Vec::new(),
+            path: None,
+            name: String::new(),
         }
     }
 }
@@ -454,9 +463,19 @@ impl Shape {
             c.sanitize();
         }
         crate::compartment::sanitize_all(&mut self.compartments);
+        if self.kind == ShapeKind::Freeform {
+            if let Some(f) = &mut self.path {
+                f.sanitize();
+            }
+        } else {
+            self.path = None;
+        }
+        truncate(&mut self.name, Self::MAX_NAME);
     }
     /// Longest screen tip kept, in bytes.
     pub const MAX_SCREEN_TIP: usize = 4096;
+    /// Longest shape name kept, in bytes.
+    pub const MAX_NAME: usize = 256;
     /// The text block in the shape's unrotated local frame (`(0, 0)` to `(w, h)`) with its own
     /// rotation relative to the shape: the stored [`TextBlock`], the main band above the
     /// compartments, or the whole frame.
@@ -482,9 +501,17 @@ impl Shape {
     pub fn transform(&self) -> Transform {
         Transform::rotate_about(Point::new(self.w / 2.0, self.h / 2.0), self.angle_deg).then(&Transform::translate(self.x, self.y))
     }
+    /// The outline in local frame coordinates: the stored path of a freeform shape, else the
+    /// kind's outline.
+    pub fn local_outline(&self) -> Path {
+        match (self.kind, &self.path) {
+            (ShapeKind::Freeform, Some(f)) => f.outline(self.w, self.h),
+            _ => self.kind.outline(self.w, self.h),
+        }
+    }
     /// The outline in world coordinates.
     pub fn outline_world(&self) -> Path {
-        self.kind.outline(self.w, self.h).transformed(&self.transform())
+        self.local_outline().transformed(&self.transform())
     }
     /// Interior detail lines in world coordinates, if the kind has any.
     pub fn detail_world(&self) -> Option<Path> {
@@ -1054,6 +1081,13 @@ pub struct Document {
     /// for free drawing.
     #[serde(skip_serializing_if = "is_default")]
     pub conformance: crate::conformance::Conformance,
+    /// The document's own masters (the Document Stencil), at most
+    /// [`crate::master::CustomMaster::MAX_MASTERS`].
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub masters: Vec<crate::master::CustomMaster>,
+    /// Document protection (see [`crate::doc_fields::Protection`]).
+    #[serde(skip_serializing_if = "is_default")]
+    pub protection: crate::doc_fields::Protection,
 }
 
 /// The on-disk form; turned into a [`Document`] by fixing up anything a file got wrong.
@@ -1079,6 +1113,10 @@ struct DocumentRepr {
     theme: DocTheme,
     #[serde(deserialize_with = "lenient")]
     conformance: crate::conformance::Conformance,
+    #[serde(deserialize_with = "lenient_vec")]
+    masters: Vec<crate::master::CustomMaster>,
+    #[serde(deserialize_with = "lenient")]
+    protection: crate::doc_fields::Protection,
 }
 
 impl From<DocumentRepr> for Document {
@@ -1095,6 +1133,8 @@ impl From<DocumentRepr> for Document {
             active_page: r.active_page,
             theme: r.theme,
             conformance: r.conformance,
+            masters: r.masters,
+            protection: r.protection,
         };
         // Pages only: the model is a separate section the caller sets afterwards, so checking view
         // references here would clear every one of them. The caller runs `sanitize` once the
@@ -1125,6 +1165,8 @@ impl Document {
             active_page: String::new(),
             theme: DocTheme::default(),
             conformance: crate::conformance::Conformance::default(),
+            masters: Vec::new(),
+            protection: crate::doc_fields::Protection::default(),
         }
     }
     /// Make the document safe to work on: at least one page, every number in range, a sane model,
@@ -1150,6 +1192,7 @@ impl Document {
             self.active_page.clear();
         }
         self.theme.sanitize();
+        crate::master::sanitize_masters(&mut self.masters);
         self.sanitize_doc_refs();
     }
     /// Clear references that name nothing: a background that is not another background page, a

@@ -1,5 +1,5 @@
-//! Document-wide data beyond pages: file properties, review comments and the image store. All
-//! plain data; no command reads them yet.
+//! Document-wide data beyond pages: file properties, review comments, the image store and
+//! document protection. All plain data.
 
 use std::collections::HashSet;
 
@@ -187,4 +187,17 @@ pub(crate) fn sanitize_images(images: &mut Vec<ImageAsset>) {
 pub(crate) fn sanitize_comments(comments: &mut Vec<Comment>) {
     comments.truncate(Comment::MAX_COMMENTS);
     comments.iter_mut().for_each(Comment::sanitize);
+}
+
+/// Document protection, as `doc.protect` sets it. All off by default.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct Protection {
+    /// Every shape refuses to move, resize, rotate, be deleted or have its text changed, as if
+    /// all its locks were set.
+    #[serde(deserialize_with = "lenient")]
+    pub shapes: bool,
+    /// Background pages refuse changes to their shapes, and no page's background can be changed.
+    #[serde(deserialize_with = "lenient")]
+    pub backgrounds: bool,
 }
