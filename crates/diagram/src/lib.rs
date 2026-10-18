@@ -5,6 +5,7 @@
 //! - [`kind`]: the built-in outlines ([`ShapeKind`]) and their default connection points.
 //! - [`model`]: [`Document`], [`Page`], [`Shape`], [`Connector`] and their styles, all serde.
 //! - [`hit`]: hit testing in world space.
+//! - [`layer`]: what a shape's layers allow (drawing, selecting, printing, snapping, glue).
 //! - [`route`]: glue resolution, the three route styles and arrowhead geometry.
 //! - [`autolayout`]: automatic placement of shapes with `vizcraft-layout`.
 //! - [`autoroute`]: connector routes that avoid shapes, with `vizcraft-routing`.
@@ -24,6 +25,7 @@ pub mod geom;
 pub mod hit;
 pub mod jumps;
 pub mod kind;
+pub mod layer;
 pub mod model;
 pub mod page_fields;
 pub mod route;
@@ -35,7 +37,7 @@ pub mod views;
 
 pub use doc_fields::{Comment, CommentAnchor, DocProperties, ImageAsset, Reply};
 pub use geom::{Path, PathEl, Point, Polyline, Rect, Transform, Vec2};
-pub use hit::{Hit, connection_point_at, connector_at, connectors_in_rect, hit, shape_at, shapes_in_rect};
+pub use hit::{Hit, connection_point_at, connector_at, connectors_in_rect, glue_shape_at, hit, shape_at, shapes_in_rect};
 pub use kind::ShapeKind;
 pub use model::{Arrow, Color, Connector, CoreProps, Document, End, Page, Route, Shape, Style};
 pub use model::{MAX_WAYPOINTS, is_plain_id};

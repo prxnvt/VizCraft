@@ -7,10 +7,11 @@ use vizcraft_diagram::{self as dg, End, Page, Point};
 use super::GRAB;
 
 /// Where a connector end dropped at `p` attaches: a connection point near `p` (point glue), else
-/// the shape under `p` (dynamic glue), else nowhere (a free end).
+/// the shape under `p` (dynamic glue), else nowhere (a free end). Shapes that take no glue
+/// (hidden, or on a layer with glue off) are passed over.
 pub fn target_end(page: &Page, p: Point, zoom: f32) -> End {
     let tol = f64::from(GRAB) / f64::from(zoom.max(0.01));
-    match dg::shape_at(page, p, tol) {
+    match dg::glue_shape_at(page, p, tol) {
         Some(s) => match dg::connection_point_at(s, p, tol * 1.5) {
             Some(i) => End::point(s.id.clone(), i),
             None => End::dynamic(s.id.clone()),

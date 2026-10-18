@@ -18,7 +18,7 @@ the code that depends on it, and say so in the commit message.
 |---|---|---|
 | model | `crates/model` (`vizcraft-model`) | Semantic model: elements, relationships, containment, views (`View` on a page), the identity registry (`identity`: identifier formats, auto-numbering, uniqueness, pairs) and structured issues (`Issue`, `Severity`). Depends on serde only |
 | model | `crates/notation` (`vizcraft-notation`) | Notation packs: the pack schema (`schema`), JSON and TOML loader with consistency checks, the built-in Basic and Flowchart packs (`catalog()`), connection-table queries (`legal`), the rules engine (`rules::{live, batch}`) and the model sync pass (`bind::sync`). Depends on `model` and `diagram` |
-| model | `crates/diagram` (`vizcraft-diagram`) | Geometry (points, rects, transforms, paths), shape outlines and connection points, the document model, hit testing, glue and connector routing, auto-layout (`autolayout`), obstacle-avoiding routes (`autoroute`) line jumps (`jumps`), diagram items as views of model items (`views`), and snapping to the grid, guides, shapes and connection points (`snap`). The `Document` holds the semantic model. Depends on serde, `model`, `layout` and `routing` |
+| model | `crates/diagram` (`vizcraft-diagram`) | Geometry (points, rects, transforms, paths), shape outlines and connection points, the document model, hit testing, layer rules (`layer`), glue and connector routing, auto-layout (`autolayout`), obstacle-avoiding routes (`autoroute`) line jumps (`jumps`), diagram items as views of model items (`views`), and snapping to the grid, guides, shapes and connection points (`snap`). The `Document` holds the semantic model. Depends on serde, `model`, `layout` and `routing` |
 | model | `crates/stencils` (`vizcraft-stencils`) | Built-in stencil catalog: Basic and Flowchart sets, masters with default size and style, ranked keyword search over an index built once (`search`); its sets and masters are built once from the glyphs of the notation packs. Depends on `diagram` and `notation` |
 | model | `crates/formats` (`vizcraft-formats`) | File formats, bytes in and bytes out: `.vizcraft` native JSON (`native::save`, `native::load`; version 3 carries the model section, version 4 the richer style, shape, page and document fields), SVG export (`svg::export_page`), PNG export (`png::render_page`: the SVG export rasterised on the CPU by `resvg` with the bundled Inter faces, no system fonts, builds for wasm), `.drawio` (`drawio::{load, save, import, page_xml, master_style}`), Mermaid (`mermaid::import`) and CSV (`csv::import`) import into `Imported { pages, warnings }`. Depends on `diagram`, `stencils`, `drawio`, `mermaid` and `layout` |
 | model | `crates/mermaid` (`vizcraft-mermaid`) | Mermaid parser: flowchart, sequence, class, state and ER text to a typed IR with a common node, edge and group view (`Diagram::to_graph`); warnings for unsupported statements. No workspace dependencies |
@@ -60,7 +60,7 @@ a command that needs one pushes `{"open": "<dialog>"}` to `session.ui_requests` 
 handles it.
 
 Command id prefixes: `file.*`, `edit.*`, `view.*`, `shape.*` (`crates/engine/src/cmd/shape.rs`),
-`connector.*` (`cmd/connector.rs`), `page.*` (`cmd/page.rs`), `layout.*` (`cmd/layout.rs`), `model.*`, `element.*`,
+`connector.*` (`cmd/connector.rs`), `page.*` (`cmd/page.rs`), `layer.*` (`cmd/layer.rs`), `layout.*` (`cmd/layout.rs`), `model.*`, `element.*`,
 `relationship.*`, `validate.*`, `notation.*` (`cmd/{model,element,relationship,validate,notation}.rs`), `script.*` (`cmd/script.rs`), `guide.*` (`cmd/view.rs`), `insert.*`, `format.*`, `window.*`, `help.*`, `ui.*` (UI layer), `app.*` (app-level: `app.quit`,
 `app.preferences`, `app.about`). `insert.*` and `format.*` are reserved; no engine
 command uses them yet.
@@ -135,6 +135,26 @@ item and every view; `edit.copy` carries the bound items' elements and relations
 `edit.paste` makes new ones, so a paste is never an extra view of the original; deleting a shape
 or connector removes it from the view, keeps elements in the model, and removes a relationship
 whose last connector view went.
+
+Layer commands (Block 2). A page is named by id, name or index and defaults to the active page; a
+layer by id or name. Each change is one undo step. The rules live in `vizcraft_diagram::layer`: a
+shape on no layer is visible, selectable, printable, snappable and gluable; on several layers it
+is visible when any is visible and prints when any visible one prints, but it is locked when any
+is locked and takes no snap or glue when any refuses it (its own `behavior` flags count too).
+Hidden shapes are not drawn or hit; locked shapes are not hit or marquee-selected, and
+`edit.select`, `shape.move`, `shape.resize`, `shape.rotate`, `shape.setText`, `shape.setStyle`,
+`shape.delete`, `edit.delete` and `edit.cut` refuse them (`cmd::layer::ensure_unlocked` and
+`ensure_selectable`); `connector.add` and `connector.glue` refuse glue to a hidden or no-glue
+shape (`ensure_gluable`), and the canvas finds glue targets with `hit::glue_shape_at`. A layer
+colour tints its shapes on the canvas (line and text take it, the fill moves halfway to it).
+`layer::unprinted` lists what printing will skip; there is no print command yet.
+
+| Command | Params -> result |
+|---|---|
+| `layer.add` | `{name, page?}` -> `{page, layer}`; names are unique per page, ignoring case |
+| `layer.delete` | `{layer, page?, deleteShapes?}` -> `{page, layer, deleted}`; by default its shapes stay and leave the layer; `deleteShapes` deletes them, refused while any is locked |
+| `layer.set` | `{layer, page?, name?, visible?, locked?, print?, snap?, glue?, color?}` -> `{page, layer}`; `color` null or `""` clears; hiding or locking drops those shapes from the selection |
+| `layer.assign`, `layer.unassign` | `{ids?, layer, page?}` -> `{page, layer, changed}`; `ids` default to the selected shapes |
 
 ### Transactions and scripts
 
@@ -481,7 +501,7 @@ New prefixes join the existing `file.*`, `edit.*`, `view.*`, `shape.*`, `connect
 | Prefix | Covers | Module |
 |---|---|---|
 | `page.*` | Built: list, get, set, add, delete, duplicate, rename, move, setActive, setup, setBackground, fitToDrawing | `crates/engine/src/cmd/page.rs` |
-| `layer.*` | Add, delete, rename, flags, assign shapes | `crates/engine/src/cmd/layer.rs` |
+| `layer.*` | Built: add, delete, rename, flags, assign shapes (see Layer commands above) | `crates/engine/src/cmd/layer.rs` |
 | `arrange.*` | Align, distribute, order, group, ungroup, flip, rotate, size and position | `crates/engine/src/cmd/arrange.rs` |
 | `design.*` | Themes, quick styles, page background, format painter | `crates/engine/src/cmd/design.rs` |
 | `data.*` | Shape data, data graphics, data import | `crates/engine/src/cmd/data.rs` |

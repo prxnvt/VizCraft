@@ -306,9 +306,11 @@ fn paint(app: &mut CraftApp, ui: &Ui, vp: &Viewport2D, t: &Tokens) {
             }
         }
     }
-    for s in &page.shapes {
+    // Hidden shapes are not drawn; a layer colour tints the shapes on it.
+    for s in page.shapes.iter().filter(|s| dg::layer::visible(page, s)) {
         if s.bounds().intersects(&visible) {
-            draw::shape(&painter, vp, s, &mut app.canvas.cache, editing.as_deref() != Some(s.id.as_str()));
+            let s = dg::layer::tinted(page, s);
+            draw::shape(&painter, vp, &s, &mut app.canvas.cache, editing.as_deref() != Some(s.id.as_str()));
         }
     }
     app.canvas.cache.end_frame();

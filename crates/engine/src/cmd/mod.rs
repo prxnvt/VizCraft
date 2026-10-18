@@ -7,6 +7,7 @@ pub mod element;
 pub mod file;
 pub mod help;
 pub mod insert;
+pub mod layer;
 pub mod layout;
 pub mod model;
 pub mod notation;
@@ -34,6 +35,7 @@ pub fn registry() -> Registry {
     v.extend(shape::specs());
     v.extend(connector::specs());
     v.extend(page::specs());
+    v.extend(layer::specs());
     v.extend(layout::specs());
     v.extend(model::specs());
     v.extend(element::specs());
@@ -327,6 +329,7 @@ pub fn drop_undrawn_relationships(doc: &mut vizcraft_diagram::Document, relation
 /// the model when their shapes go. Returns `{"deleted": [ids], "detached": [connector ids]}` and
 /// the selection.
 pub fn delete_items(s: &mut Session, ids: &[String]) -> CmdResult {
+    layer::ensure_unlocked(s, ids)?;
     let page = page_mut(s)?;
     let d = delete_on_page(page, ids);
     drop_undrawn_relationships(&mut s.doc, &d.relationships);

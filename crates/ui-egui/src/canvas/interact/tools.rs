@@ -45,7 +45,7 @@ pub(super) fn decide(app: &CraftApp, page: &Page, vp: &Viewport2D, at: Pos2, m: 
                     }
                 }
             }
-            if let Some(s) = dg::shape_at(page, w, tol)
+            if let Some(s) = dg::glue_shape_at(page, w, tol)
                 && let Some(i) = dg::connection_point_at(s, w, tol)
             {
                 return Some(Start::Drag(Drag::Connect { from: End::point(s.id.clone(), i), to: w }));

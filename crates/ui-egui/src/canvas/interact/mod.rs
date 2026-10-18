@@ -178,14 +178,14 @@ fn cursor(app: &CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D) {
                     } else {
                         egui::CursorIcon::ResizeNeSw
                     }
-                } else if dg::shape_at(page, w, tol).is_some_and(|s| dg::connection_point_at(s, w, tol).is_some()) {
+                } else if dg::glue_shape_at(page, w, tol).is_some_and(|s| dg::connection_point_at(s, w, tol).is_some()) {
                     egui::CursorIcon::Crosshair
                 } else if app.canvas.hover.is_some() {
                     egui::CursorIcon::Move
                 } else {
                     return;
                 }
-            } else if dg::shape_at(page, w, tol).is_some_and(|s| dg::connection_point_at(s, w, tol).is_some()) {
+            } else if dg::glue_shape_at(page, w, tol).is_some_and(|s| dg::connection_point_at(s, w, tol).is_some()) {
                 egui::CursorIcon::Crosshair
             } else if app.canvas.hover.is_some() {
                 egui::CursorIcon::Move

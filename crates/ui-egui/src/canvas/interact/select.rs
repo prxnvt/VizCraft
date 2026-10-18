@@ -51,9 +51,9 @@ pub(super) fn segment_hits_rect(a: Point, b: Point, r: &dg::Rect) -> bool {
 }
 
 /// Ids a marquee over `r` selects: shapes whose outline bounds touch it and connectors whose
-/// route crosses it, shapes first.
+/// route crosses it, shapes first. Hidden shapes and shapes on a locked layer are skipped.
 pub fn marquee_ids(page: &Page, r: &dg::Rect) -> Vec<String> {
-    let shapes = page.shapes.iter().filter(|s| s.bounds().intersects(r)).map(|s| s.id.clone());
+    let shapes = page.shapes.iter().filter(|s| dg::layer::selectable(page, s) && s.bounds().intersects(r)).map(|s| s.id.clone());
     let connectors = page
         .connectors
         .iter()
@@ -116,5 +116,21 @@ mod tests {
         let all = marquee_ids(page, &page.rect());
         assert_eq!(all.len(), page.shapes.len() + page.connectors.len());
         assert!(marquee_ids(page, &dg::Rect::from_xywh(5.0, 5.0, 10.0, 10.0)).is_empty());
+    }
+
+    #[test]
+    fn marquee_skips_hidden_and_locked_shapes() {
+        let mut doc = vizcraft_engine::sample::sample_document();
+        let page = doc.page_mut().unwrap();
+        page.layers = vec![
+            dg::Layer { id: "h".into(), visible: false, ..dg::Layer::default() },
+            dg::Layer { id: "k".into(), locked: true, ..dg::Layer::default() },
+        ];
+        page.shapes[0].layers = vec!["h".into()];
+        page.shapes[1].layers = vec!["k".into()];
+        let (hidden, locked) = (page.shapes[0].id.clone(), page.shapes[1].id.clone());
+        let ids = marquee_ids(page, &page.rect());
+        assert!(!ids.contains(&hidden) && !ids.contains(&locked));
+        assert_eq!(ids.len(), page.shapes.len() + page.connectors.len() - 2);
     }
 }
