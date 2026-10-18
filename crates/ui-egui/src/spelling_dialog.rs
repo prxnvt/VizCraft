@@ -71,7 +71,11 @@ fn item_of(v: &Value) -> Option<Item> {
         word: f("word")?,
         start: n("start")?,
         end: n("end")?,
-        suggestions: v.get("suggestions").and_then(Value::as_array).map(|a| a.iter().filter_map(|x| x.as_str().map(str::to_string)).collect()).unwrap_or_default(),
+        suggestions: v
+            .get("suggestions")
+            .and_then(Value::as_array)
+            .map(|a| a.iter().filter_map(|x| x.as_str().map(str::to_string)).collect())
+            .unwrap_or_default(),
     })
 }
 

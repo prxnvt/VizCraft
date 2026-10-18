@@ -56,7 +56,7 @@ fn reports_menu(app: &mut CraftApp, ui: &mut Ui) {
         let run = primary_button(ui, "Run Report").clicked();
         ui.data_mut(|d| d.insert_temp(choice_id(), c.clone()));
         if run {
-            run_report(app, &c.report, c.document, c.format);
+            run_report(app, c.report, c.document, c.format);
             ui.close();
         }
     });

@@ -282,7 +282,7 @@ pub fn misspellings(dict: &Dictionary, text: &str, ignored: &[String]) -> Vec<Mi
         let word: String = chars.get(s..e).unwrap_or_default().iter().collect();
         if checkable(&word) && !dict.knows(&word) {
             let lower = normalize(&word);
-            if !ignored.iter().any(|w| *w == lower) {
+            if !ignored.contains(&lower) {
                 out.push(Miss { start: s, end: e, word });
             }
         }

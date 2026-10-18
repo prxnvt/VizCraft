@@ -81,9 +81,10 @@ fn inspect(s: &mut Session, _: &Value) -> CmdResult {
 fn remove(s: &mut Session, v: &Value) -> CmdResult {
     let what: Vec<String> = match v.get("what") {
         Some(Value::String(t)) if t == "all" => HIDDEN_KINDS.iter().map(|k| k.to_string()).collect(),
-        Some(Value::Array(a)) if !a.is_empty() && a.len() <= 64 => {
-            a.iter().map(|x| x.as_str().map(str::to_string).ok_or_else(|| EngineError::Params("`what` must hold strings".into()))).collect::<Result<_, _>>()?
-        }
+        Some(Value::Array(a)) if !a.is_empty() && a.len() <= 64 => a
+            .iter()
+            .map(|x| x.as_str().map(str::to_string).ok_or_else(|| EngineError::Params("`what` must hold strings".into())))
+            .collect::<Result<_, _>>()?,
         _ => return Err(EngineError::Params("`what` must be \"all\" or a non-empty list of kinds".into())),
     };
     if let Some(bad) = what.iter().find(|k| !HIDDEN_KINDS.contains(&k.as_str())) {
@@ -107,7 +108,12 @@ fn remove(s: &mut Session, v: &Value) -> CmdResult {
             if hidden.is_empty() {
                 continue;
             }
-            let only_hidden: Vec<String> = page.shapes.iter().filter(|sh| !sh.layers.is_empty() && sh.layers.iter().all(|l| hidden.contains(l))).map(|sh| sh.id.clone()).collect();
+            let only_hidden: Vec<String> = page
+                .shapes
+                .iter()
+                .filter(|sh| !sh.layers.is_empty() && sh.layers.iter().all(|l| hidden.contains(l)))
+                .map(|sh| sh.id.clone())
+                .collect();
             relationships.extend(delete_on_page(page, &only_hidden).relationships);
             page.layers.retain(|l| l.visible);
             for sh in &mut page.shapes {
@@ -210,7 +216,11 @@ mod tests {
     fn remove_takes_the_chosen_kinds_in_one_undo_step() {
         let mut s = loaded();
         let before = s.doc.clone();
-        let r = run(&mut s, "doc.removeHidden", json!({"what": ["comments", "hiddenShapes", "hiddenLayers", "screenTips", "dataRows", "images", "properties"]}));
+        let r = run(
+            &mut s,
+            "doc.removeHidden",
+            json!({"what": ["comments", "hiddenShapes", "hiddenLayers", "screenTips", "dataRows", "images", "properties"]}),
+        );
         assert_eq!(r["removed"]["hiddenShapes"], 1);
         let ids: Vec<&str> = s.doc.pages[0].shapes.iter().map(|x| x.id.as_str()).collect();
         assert_eq!(ids, ["a", "both"], "the hidden shape and the shape only on a hidden layer are gone");

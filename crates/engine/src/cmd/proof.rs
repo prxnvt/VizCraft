@@ -112,7 +112,12 @@ fn check(s: &mut Session, v: &Value) -> CmdResult {
             .iter()
             .filter(|sh| wanted(&sh.id))
             .map(|sh| (proof::effective_language(&doc.language, &sh.language).to_string(), shape_fields(sh)))
-            .chain(page.connectors.iter().filter(|c| wanted(&c.id)).map(|c| (proof::effective_language(&doc.language, "").to_string(), connector_fields(c))));
+            .chain(
+                page.connectors
+                    .iter()
+                    .filter(|c| wanted(&c.id))
+                    .map(|c| (proof::effective_language(&doc.language, "").to_string(), connector_fields(c))),
+            );
         for (language, fields) in items {
             if fields.is_empty() {
                 continue;
@@ -178,7 +183,8 @@ fn set_language(s: &mut Session, v: &Value) -> CmdResult {
     let tag = if raw.trim().is_empty() || raw.trim().eq_ignore_ascii_case("default") {
         String::new()
     } else {
-        normalize_language(raw).ok_or_else(|| EngineError::Params(format!("`language` must be a BCP 47 tag such as en-US, none or default, not `{}`", short(raw))))?
+        normalize_language(raw)
+            .ok_or_else(|| EngineError::Params(format!("`language` must be a BCP 47 tag such as en-US, none or default, not `{}`", short(raw))))?
     };
     let ids = match ids_param(v)? {
         Some(ids) => ids,

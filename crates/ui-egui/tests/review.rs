@@ -166,7 +166,8 @@ fn review_snapshots() {
 
     // The Info page on its own, as the File page shows it, with an inspection run.
     let mut app = sample_app();
-    app.run("doc.setProperties", json!({"title": "Plant overview", "author": "Pat Example", "subject": "Process flow", "keywords": "plant; flow"})).unwrap();
+    app.run("doc.setProperties", json!({"title": "Plant overview", "author": "Pat Example", "subject": "Process flow", "keywords": "plant; flow"}))
+        .unwrap();
     let id = app.session.doc.pages[0].shapes[0].id.clone();
     app.run("shape.setText", json!({"id": id, "text": "Start"})).unwrap();
     // Some hidden data to report: a screen tip, a hidden shape and a comment.
