@@ -132,6 +132,7 @@ fn move_shapes(s: &mut Session, v: &Value) -> CmdResult {
         let id = p::req_str(v, "id")?;
         let x = coord(req_num(v, "x")?);
         let y = coord(req_num(v, "y")?);
+        super::layer::ensure_unlocked(s, [id])?;
         let sh = page_mut(s)?.shape_mut(id).ok_or_else(|| not_a_shape(id))?;
         sh.x = x;
         sh.y = y;
@@ -147,6 +148,7 @@ fn move_shapes(s: &mut Session, v: &Value) -> CmdResult {
     let dx = dx.unwrap_or(0.0).clamp(-MAX_DELTA, MAX_DELTA);
     let dy = dy.unwrap_or(0.0).clamp(-MAX_DELTA, MAX_DELTA);
     let ids = targets(s, v, Kinds::Both)?;
+    super::layer::ensure_unlocked(s, &ids)?;
     let page = page_mut(s)?;
     for id in &ids {
         if let Some(sh) = page.shape_mut(id) {
@@ -172,6 +174,7 @@ fn resize(s: &mut Session, v: &Value) -> CmdResult {
     let h = size(req_num(v, "h")?);
     let x = num(v, "x")?.map(coord);
     let y = num(v, "y")?.map(coord);
+    super::layer::ensure_unlocked(s, [id])?;
     let sh = page_mut(s)?.shape_mut(id).ok_or_else(|| not_a_shape(id))?;
     sh.w = w;
     sh.h = h;
@@ -189,6 +192,7 @@ fn resize(s: &mut Session, v: &Value) -> CmdResult {
 fn rotate(s: &mut Session, v: &Value) -> CmdResult {
     let angle = req_num(v, "angle")?;
     let ids = targets(s, v, Kinds::Shapes)?;
+    super::layer::ensure_unlocked(s, &ids)?;
     let page = page_mut(s)?;
     let mut out = 0.0;
     for id in &ids {
@@ -204,6 +208,7 @@ fn rotate(s: &mut Session, v: &Value) -> CmdResult {
 fn set_text(s: &mut Session, v: &Value) -> CmdResult {
     let id = p::req_str(v, "id")?;
     let text = p::req_str(v, "text")?;
+    super::layer::ensure_unlocked(s, [id])?;
     let page = s.doc.page().ok_or_else(|| EngineError::Failed("the document has no page".into()))?;
     let element = page.shape(id).ok_or_else(|| not_a_shape(id))?.element.clone().filter(|e| s.doc.model.element(e).is_some());
     // A shape that draws an element shows the element's name: renaming the element updates
@@ -293,6 +298,7 @@ impl StylePatch {
 fn set_style(s: &mut Session, v: &Value) -> CmdResult {
     let patch = StylePatch::parse(v)?;
     let ids = targets(s, v, Kinds::Both)?;
+    super::layer::ensure_unlocked(s, &ids)?;
     let page = page_mut(s)?;
     for id in &ids {
         if let Some(sh) = page.shape_mut(id) {

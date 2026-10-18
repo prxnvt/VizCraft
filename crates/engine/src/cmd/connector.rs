@@ -47,6 +47,7 @@ fn parse_end(page: &Page, v: &Value, what: &str) -> Result<End, EngineError> {
         let Some(sh) = page.shape(shape) else {
             return Err(EngineError::Params(format!("{what}: `{}` is not a shape on this page", short(shape))));
         };
+        super::layer::ensure_gluable(page, sh, what)?;
         let point = match v.get("point") {
             None | Some(Value::Null) => None,
             Some(x) => {

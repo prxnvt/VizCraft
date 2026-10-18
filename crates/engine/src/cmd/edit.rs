@@ -72,6 +72,7 @@ fn select_ids(s: &mut Session, v: &Value) -> CmdResult {
     if let Some(bad) = ids.iter().find(|id| !page.contains_id(id)) {
         return Err(EngineError::Params(format!("`{}` is not a shape or connector on this page", short(bad))));
     }
+    super::layer::ensure_selectable(s, &ids)?;
     let mut out = if add { s.sel.items.clone() } else { Vec::new() };
     for id in ids {
         if !out.contains(&id) {
@@ -90,6 +91,7 @@ fn select_ids(s: &mut Session, v: &Value) -> CmdResult {
 fn select_all(s: &mut Session, _: &Value) -> CmdResult {
     let ids: Vec<String> =
         s.doc.page().map(|p| p.shapes.iter().map(|x| x.id.clone()).chain(p.connectors.iter().map(|c| c.id.clone())).collect()).unwrap_or_default();
+    let ids = super::layer::selectable_only(s, ids);
     select(s, ids);
     sel_result(s)
 }
