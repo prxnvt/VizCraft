@@ -124,9 +124,11 @@ fn generic_definitions() -> Vec<Value> {
         tool(
             "command_batch",
             "Run several commands",
-            "Run a list of commands in order, each its own undo step. Stops at the first one that \
-             fails and reports its index, id and error together with the results of the ones that \
-             ran before it; the earlier commands stay applied. At most 256 commands per call. When the \
+            "Run a list of commands in order as one undo step (edit.batch): when one fails, the whole \
+             batch is rolled back, nothing changes, and the result reports its index, id and error. A \
+             batch with edit.undo, edit.redo, ui.* or app.* commands, or an app without edit.batch, \
+             runs each command as its own step instead and stops at the first failure with the earlier \
+             commands applied. At most 256 commands per call. When the \
              app checks a notation model, the result also carries `issues` (the rule problems the \
              commands that ran raised) and `openIssues` (how many are open in all).",
             object(json!({"commands": {"type": "array", "items": command_item, "minItems": 1, "maxItems": MAX_BATCH}}), &["commands"]),
@@ -307,6 +309,11 @@ fn command_batch(backend: &mut dyn Backend, args: &Map<String, Value>) -> ToolRe
         }
     }
     let before = issues::live(backend);
+    if steps.iter().all(|s| atomic(&s.id))
+        && let Some(r) = command_batch_atomic(backend, &steps, before.as_deref())
+    {
+        return r;
+    }
     let mut results = Vec::with_capacity(steps.len());
     for (i, s) in steps.iter().enumerate() {
         match execute(backend, s) {
@@ -329,6 +336,55 @@ fn command_batch(backend: &mut dyn Backend, args: &Map<String, Value>) -> ToolRe
     add_issues(&mut body, issues::report(backend, before.as_deref()));
     ToolResult::json(&body)
 }
+
+/// Whether a batch entry can run inside the app's `edit.batch` transaction: engine commands other
+/// than undo and redo. A batch with a `ui.*` or `app.*` entry, or with undo or redo, runs entry by
+/// entry instead.
+fn atomic(id: &str) -> bool {
+    !(id.starts_with("ui.") || id.starts_with("app.") || matches!(id, "edit.undo" | "edit.redo"))
+}
+
+/// Run the whole batch as one `edit.batch` call, so it is one undo step and a failure leaves the
+/// document unchanged. `None` when the app predates `edit.batch`; the caller then runs the entries
+/// one by one.
+fn command_batch_atomic(backend: &mut dyn Backend, steps: &[Step], before: Option<&[Value]>) -> Option<ToolResult> {
+    let commands: Vec<Value> = steps.iter().map(|s| json!({"command": s.id, "params": s.params})).collect();
+    match backend.call("engine.execute", json!({"command": BATCH_COMMAND, "params": {"label": BATCH_LABEL, "commands": commands}})) {
+        Ok(reply) => {
+            let listed = reply.get("results").and_then(Value::as_array).cloned().unwrap_or_default();
+            let results: Vec<Value> = steps
+                .iter()
+                .zip(listed.into_iter().map(|r| r.get("result").cloned().unwrap_or(Value::Null)).chain(std::iter::repeat(Value::Null)))
+                .map(|(s, r)| json!({"id": s.id, "result": r}))
+                .collect();
+            let mut body = json!({"completed": results.len(), "results": results});
+            add_issues(&mut body, issues::report(backend, before));
+            Some(ToolResult::json(&body))
+        }
+        Err(e) if e.contains(&format!("unknown command `{BATCH_COMMAND}`")) => None,
+        Err(e) => {
+            // `edit.batch` names the failing entry as `commands[i] (id) failed: ...`.
+            let index =
+                e.strip_prefix("commands[").and_then(|t| t.split(']').next()).and_then(|n| n.parse::<usize>().ok()).filter(|i| *i < steps.len());
+            let mut body = json!({
+                "completed": 0,
+                "failedIndex": index,
+                "failedId": index.and_then(|i| steps.get(i)).map(|s| s.id.clone()),
+                "error": e,
+                "results": [],
+                "rolledBack": true,
+            });
+            add_issues(&mut body, issues::report(backend, before));
+            Some(ToolResult::error_json(&body))
+        }
+    }
+}
+
+/// The engine command that runs a list of commands as one transaction.
+const BATCH_COMMAND: &str = "edit.batch";
+
+/// The undo label of an agent's batch.
+const BATCH_LABEL: &str = "Agent Batch";
 
 /// Put the `issues` and `openIssues` keys, when there are any, into a batch result object.
 fn add_issues(body: &mut Value, report: Option<Map<String, Value>>) {

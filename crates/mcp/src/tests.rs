@@ -36,6 +36,9 @@ struct Fake {
     notation: bool,
     /// The `validate.list` and `notation.*` requests as sent: `{command, params}`.
     side: Arc<Mutex<Vec<Value>>>,
+    /// Whether `edit.batch` exists. When it does, a batch runs all or nothing: a failing entry
+    /// logs nothing and the error names it as the engine does.
+    batch: bool,
 }
 
 impl Fake {
@@ -89,6 +92,21 @@ impl Backend for Fake {
                 let id = params.get("command").and_then(Value::as_str).unwrap_or_default().to_string();
                 if let Some(answer) = self.side_command(&id, &params) {
                     return answer;
+                }
+                if id == "edit.batch" {
+                    if !self.batch {
+                        return Err("unknown command `edit.batch`".into());
+                    }
+                    let list = params["params"]["commands"].as_array().cloned().unwrap_or_default();
+                    if let Some(i) = list.iter().position(|c| c["command"].as_str().unwrap_or_default().starts_with("fail.")) {
+                        return Err(format!("commands[{i}] ({}) failed: refused; nothing was changed", list[i]["command"].as_str().unwrap()));
+                    }
+                    let mut results = Vec::new();
+                    for c in list {
+                        let r = self.call("engine.execute", c.clone())?;
+                        results.push(json!({"command": c["command"], "result": r}));
+                    }
+                    return Ok(json!({"label": params["params"]["label"], "completed": results.len(), "results": results}));
                 }
                 if let Ok(mut calls) = self.calls.lock() {
                     calls.push(params.clone());
@@ -263,6 +281,30 @@ fn command_batch_stops_at_the_first_failure() {
     let (err, r) = tool(&mut s, 2, "command_batch", json!({"commands": [{"id": "edit.undo"}, {"id": "edit.undo"}]}));
     assert!(!err, "{r}");
     assert_eq!(r["completed"], 2);
+}
+
+#[test]
+fn command_batch_is_one_transaction_when_the_app_has_edit_batch() {
+    let fake = Fake { batch: true, ..Fake::default() };
+    let mut s = Server::new(Box::new(fake.clone()));
+    let (err, r) = tool(&mut s, 1, "command_batch", json!({"commands": [{"id": "shape.add", "params": {"x": 1}}, {"id": "shape.delete"}]}));
+    assert!(!err, "{r}");
+    assert_eq!(r["completed"], 2);
+    assert_eq!(r["results"][0], json!({"id": "shape.add", "result": {"ran": "shape.add", "params": {"x": 1}}}));
+    assert_eq!(fake.calls.lock().unwrap().first().unwrap()["command"], "shape.add", "sent inside one edit.batch");
+    assert_eq!(*fake.executed.lock().unwrap(), ["shape.add", "shape.delete"]);
+
+    // A failure rolls the whole batch back and names the entry.
+    let (err, r) = tool(&mut s, 2, "command_batch", json!({"commands": [{"id": "shape.add"}, {"id": "fail.now"}]}));
+    assert!(err, "{r}");
+    assert_eq!((r["completed"].as_u64(), r["failedIndex"].as_u64(), r["failedId"].as_str()), (Some(0), Some(1), Some("fail.now")));
+    assert_eq!(r["rolledBack"], true);
+    assert_eq!(fake.executed.lock().unwrap().len(), 2, "nothing of the failed batch ran");
+
+    // Undo, redo and window commands cannot join a transaction: those batches run entry by entry.
+    let (err, r) = tool(&mut s, 3, "command_batch", json!({"commands": [{"id": "shape.add"}, {"id": "edit.undo"}]}));
+    assert!(!err, "{r}");
+    assert_eq!(fake.executed.lock().unwrap().len(), 4);
 }
 
 #[test]

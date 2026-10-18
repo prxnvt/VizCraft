@@ -11,9 +11,10 @@
 
 pub mod cmd;
 pub mod doc;
+pub mod fragment;
 pub mod io;
 pub mod sample;
-mod session;
+pub mod session;
 
 use std::collections::HashMap;
 
@@ -21,7 +22,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 pub use doc::{CoreProps, Document};
-pub use session::{Selection, Session, ViewState};
+pub use fragment::Fragment;
+pub use session::{Origin, Selection, Session, TxnRecord, ViewState};
 
 /// Why a command did not run (or did not finish).
 #[derive(Debug, thiserror::Error, Clone, PartialEq, Eq)]

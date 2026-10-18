@@ -81,6 +81,15 @@ A method name that is a command id (engine or `ui.*`) runs that command with `pa
 params, so `{"method": "edit.undo"}` is the short form of `engine.execute`. Any other name is
 `unknown method`, never a silent no-op.
 
+Pipelined requests are separate undo steps, and a failure in the middle leaves the earlier ones
+applied. To make several commands one undo step, all or nothing, send them as one `edit.batch`:
+`{"method": "edit.batch", "params": {"label": "Add pair", "commands": [{"command": "shape.add",
+"params": {...}}, ...]}}`. It runs the commands in order inside one engine transaction; when one
+fails it rolls the whole batch back and replies `ok: false` with `commands[i] (id) failed: ...`.
+`edit.undo`, `edit.redo`, `ui.*` and `app.*` commands cannot run inside it. `script.run
+{script}` replays a recorded script the same way. See
+[architecture.md](architecture.md#transactions-and-scripts).
+
 Commands run through the app's `CraftApp::run`, so they behave as they do from a menu: after a
 successful `file.open`, or a `file.import` with `replace: true`, the app runs `view.zoomFit` when
 the canvas cuts the page off at the current zoom (the MCP `open_*` tools get this too). A caller
@@ -215,6 +224,15 @@ printf '%s\n' \
   '{"id":2,"method":"ui.inspect"}' \
   '{"id":3,"method":"ui.screenshot","params":{"path":"/tmp/zoomed.png"}}' \
   | nc 127.0.0.1 7990
+```
+
+Add two shapes and connect them as one undo step (all or nothing):
+
+```sh
+vizcraft-cli control 7990 edit.batch '{"label":"Add pair","commands":[
+  {"command":"shape.add","params":{"stencil":"basic.rectangle","x":0,"y":0,"id":"a"}},
+  {"command":"shape.add","params":{"stencil":"basic.rectangle","x":0,"y":200,"id":"b"}},
+  {"command":"connector.add","params":{"from":{"shape":"a"},"to":{"shape":"b"}}}]}'
 ```
 
 List the commands and keep the enabled ones:

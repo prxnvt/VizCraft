@@ -1,5 +1,6 @@
 //! Command implementations, one module per menu: each exposes `specs()`.
 
+pub mod batch;
 pub mod connector;
 pub mod edit;
 pub mod element;
@@ -11,6 +12,7 @@ pub mod model;
 pub mod notation;
 pub mod page;
 pub mod relationship;
+pub mod script;
 pub mod shape;
 pub mod validate;
 pub mod view;
@@ -27,6 +29,7 @@ pub fn registry() -> Registry {
     let mut v = Vec::new();
     v.extend(file::specs());
     v.extend(edit::specs());
+    v.extend(batch::specs());
     v.extend(view::specs());
     v.extend(shape::specs());
     v.extend(connector::specs());
@@ -38,6 +41,7 @@ pub fn registry() -> Registry {
     v.extend(validate::specs());
     v.extend(notation::specs());
     v.extend(insert::specs());
+    v.extend(script::specs());
     v.extend(help::specs());
     Registry::new(v)
 }

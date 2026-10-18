@@ -61,7 +61,7 @@ handles it.
 
 Command id prefixes: `file.*`, `edit.*`, `view.*`, `shape.*` (`crates/engine/src/cmd/shape.rs`),
 `connector.*` (`cmd/connector.rs`), `page.*` (`cmd/page.rs`), `layout.*` (`cmd/layout.rs`), `model.*`, `element.*`,
-`relationship.*`, `validate.*`, `notation.*` (`cmd/{model,element,relationship,validate,notation}.rs`), `insert.*`, `format.*`, `window.*`, `help.*`, `ui.*` (UI layer), `app.*` (app-level: `app.quit`,
+`relationship.*`, `validate.*`, `notation.*` (`cmd/{model,element,relationship,validate,notation}.rs`), `script.*` (`cmd/script.rs`), `insert.*`, `format.*`, `window.*`, `help.*`, `ui.*` (UI layer), `app.*` (app-level: `app.quit`,
 `app.preferences`, `app.about`). `insert.*` and `format.*` are reserved; no engine
 command uses them yet.
 
@@ -79,7 +79,7 @@ must name existing items or nothing changes. Each document change is one undo st
 | `connector.glue` | `{id, end: "start" \| "end", shape?, point?, x?, y?}` |
 | `connector.setRoute`, `connector.setArrows`, `connector.setText` | `{ids?, route}`; `{ids?, start?, end?}`; `{id, text}` |
 | `edit.select`, `edit.selectNone`, `edit.selectAll`, `edit.delete` | `{ids, add?}`; `{}` |
-| `edit.cut`, `edit.copy`, `edit.paste` | copy returns `{text}` holding `{"vizcraft": "clip", "shapes", "connectors"}`; paste takes `{text?}` |
+| `edit.cut`, `edit.copy`, `edit.paste` | copy returns `{text}` holding a selection fragment `{"vizcraft": "clip", "shapes", "connectors"}`; paste takes `{text?}` and inserts it with fresh ids and the internal glue kept |
 | `connector.reroute`, `connector.setJumps` | `{ids?, avoid?}` (true: route around shapes and keep clear; false: clear bends); `{ids?, on}` |
 | `shape.search` | `{query, limit?}` -> `{masters: [{id, label, category, keywords, w, h, style}]}` (`style` is the draw.io style string) |
 
@@ -129,6 +129,43 @@ item and every view; `edit.copy` carries the bound items' elements and relations
 or connector removes it from the view, keeps elements in the model, and removes a relationship
 whose last connector view went.
 
+### Transactions and scripts
+
+Engine infrastructure that later features build on (`crates/engine/src/session.rs`,
+`crates/engine/src/fragment.rs`, `cmd/batch.rs`, `cmd/script.rs`):
+
+| Command | Params -> result |
+|---|---|
+| `edit.batch` | `{label?, commands: [{command, params?}]}` -> `{label, completed, results: [{command, result}]}`; one undo step named `label` (default `Batch`); a failing command rolls the whole batch back and the error reads `commands[i] (id) failed: ...` |
+| `script.recordStart` | `{}` -> `{recording: true}`; starts over when a recording is running |
+| `script.recordStop` | `{}` -> `{count, script: [{command, params}]}`; disabled while nothing is recorded |
+| `script.run` | `{script: [{command, params?}] or that list as a JSON string, label?}` -> as `edit.batch`; one undo step named `label` (default `Run Script`), logged with origin `script` |
+
+- **Transactions.** `Session::transaction(label, steps)` runs `(id, params)` steps through
+  `Session::run` with undo recording held: the outer transaction sets the undo and redo stacks
+  aside, commits one undo step when the document changed, and on a failure restores document,
+  selection, path, dirty flag and both stacks (so a `file.new` inside a failed batch is taken back
+  too). Transactions nest up to `MAX_TXN_DEPTH` (8) and run at most `MAX_TXN_COMMANDS`; undo and
+  redo are refused inside one. `edit.batch` and `script.run` are thin commands over it, and the
+  MCP `command_batch` tool sends its list as one `edit.batch`.
+- **Transaction log.** Every committed undo step appends a `TxnRecord {label, origin, commands}`
+  to `Session::transactions()` (oldest first, at most `MAX_LOG` = 200, at most 256 ids each;
+  coalesced typing extends the last record). `Origin` is `ui`, `control`, `mcp` or `script`;
+  `Session::run_as(origin, id, params)` sets it for one call and the commands it runs. The
+  headless MCP backend runs as `mcp`; the app's control channel still runs as `ui` until it calls
+  `run_as`.
+- **Fragments.** `Fragment::extract(doc, wanted)` (or `Fragment::of_selection`) takes shapes and
+  connectors from the current page with the model elements and relationships they draw; glue to
+  shapes outside the fragment becomes a free end. `Fragment::insert(doc, dx, dy)` adds a copy with
+  fresh ids, glue between fragment items remapped and model items copied once each, and returns the
+  new ids. `to_json` and `from_json` are the clipboard form. Copy, cut and paste use it; duplicate,
+  paste special, format painter and change shape are meant to.
+- **Scripts.** While recording, each command run directly (not inside a transaction) that
+  succeeds is appended as `{command, params}`, except `view.*`, `ui.*`, `app.*`, `help.*`,
+  `file.*` and `script.*` (`session::recordable`). Undo drops the recorded commands of the step
+  it undid, with any recorded after it, and Redo puts them back, so a replay on the document as
+  it was when recording started gives the same document.
+
 ## Engine (`vizcraft-engine`) public API
 
 ```rust
@@ -151,12 +188,18 @@ impl Session {
     pub fn run(&mut self, id: &str, params: &Value) -> Result<Value, EngineError>; // panic-guarded; unknown id is an error
     pub fn commands(&self) -> Vec<CommandInfo>;   // id, label, shortcut, location, enabled: bool, reason
     pub fn can_undo(&self) -> bool; pub fn can_redo(&self) -> bool; pub fn undo_label(&self) -> Option<&str>;
+    pub fn run_as(&mut self, origin: Origin, id: &str, params: &Value) -> Result<Value, EngineError>;
+    pub fn transaction(&mut self, label: &str, steps: &[(String, Value)]) -> Result<Vec<Value>, EngineError>; // one undo step, all or nothing
+    pub fn transactions(&self) -> &VecDeque<TxnRecord>; // committed steps: label, origin, command ids
+    pub fn record_start(&mut self); pub fn record_stop(&mut self) -> Option<Vec<Value>>; pub fn is_recording(&self) -> bool;
     pub fn rev(&self) -> u64;                     // bumps on every document change
     pub fn refresh_issues(&mut self);             // rerun the live rules (panic-guarded)
 }
 pub mod io { pub fn save_bytes(name: &str, doc: &Document) -> Result<Vec<u8>, EngineError>; pub fn load_bytes(name: &str, bytes: &[u8]) -> Result<Document, EngineError>;
              pub fn export_bytes(name: &str, format: Option<&str>, doc: &Document) -> Result<Vec<u8>, EngineError>; }
 pub mod sample { pub fn sample_document() -> Document; }
+pub mod fragment { pub struct Fragment { shapes, connectors, elements, relationships } // extract, of_selection, insert, to_json, from_json
+}
 ```
 
 Documents are `.vizcraft` files (`io::EXTENSION`), versioned JSON read and written by
