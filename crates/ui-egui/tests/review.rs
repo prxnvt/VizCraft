@@ -72,7 +72,7 @@ fn review_tab_has_proofing_language_and_reporting_groups_that_fit_1280() {
     let tabs = ribbon::tabs(&app);
     let review = tabs.iter().find(|t| t.name == "Review").expect("the Review tab shows now that it has groups");
     let labels: Vec<&str> = review.groups.iter().map(|g| g.label).collect();
-    assert_eq!(labels, ["Proofing", "Language", "Reporting"]);
+    assert_eq!(labels, ["Comments", "Proofing", "Language", "Reporting"]);
     for id in review.ids() {
         assert!(widgets::exists(&app, id), "{id}");
     }
@@ -94,7 +94,7 @@ fn the_language_menu_checks_the_language_in_force() {
     let mut app = sample_app();
     let tabs = ribbon::tabs(&app);
     let review = tabs.iter().find(|t| t.name == "Review").unwrap();
-    let ribbon::Control::Menu { menu, .. } = &review.groups[1].controls[0] else { panic!("the Language group holds a menu") };
+    let ribbon::Control::Menu { menu, .. } = &review.groups[2].controls[0] else { panic!("the Language group holds a menu") };
     let on = |app: &CraftApp| -> Vec<&'static str> { menu.iter().filter(|e| e.checked.is_some_and(|f| f(app))).map(|e| e.label).collect() };
     assert_eq!(on(&app), ["English (United States)"]);
     let id = app.session.doc.pages[0].shapes[0].id.clone();
