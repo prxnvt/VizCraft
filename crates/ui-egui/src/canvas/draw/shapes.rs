@@ -234,7 +234,7 @@ fn paint_fill(painter: &Painter, vp: &Viewport2D, s: &Shape, fill: &Fill, fill_c
 
 /// The outline with the style's dash pattern (dash and gap lengths scale with the line width, at
 /// least one unit) and line cap.
-fn outline(painter: &Painter, vp: &Viewport2D, st: &Style, lines: &[(Vec<Pos2>, bool)], c: Color32) {
+pub(super) fn outline(painter: &Painter, vp: &Viewport2D, st: &Style, lines: &[(Vec<Pos2>, bool)], c: Color32) {
     let width = line_px(st.line_width, vp.zoom);
     if width <= 0.0 || c.a() == 0 {
         return;

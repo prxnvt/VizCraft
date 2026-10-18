@@ -101,6 +101,8 @@ pub struct CanvasState {
     pub hover: Option<Hit>,
     /// The shape whose connection points show (under or near the pointer).
     pub hover_shape: Option<String>,
+    /// The shape or connector the armed format painter copies from (`Tool::FormatPainter`).
+    pub painter_from: Option<String>,
     /// The view has been centred on the page once.
     centered: bool,
     /// A diagram was opened before the canvas was laid out; fit it once the size is known.
@@ -197,6 +199,7 @@ pub fn summary(app: &CraftApp) -> Value {
         "editing": app.canvas.editing.as_ref().map(|e| e.id().to_string()),
         "dragging": app.canvas.drag.as_ref().map(|d| match d {
             Drag::Marquee { .. } => "marquee",
+            Drag::Lasso { .. } => "lasso",
             Drag::Move { .. } => "move",
             Drag::Resize { .. } => "resize",
             Drag::Rotate { .. } => "rotate",

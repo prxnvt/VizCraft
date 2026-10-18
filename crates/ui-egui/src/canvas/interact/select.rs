@@ -1,5 +1,5 @@
-//! Selection: the single selected shape or connector, clicks (Shift adds or removes) and the
-//! marquee.
+//! Selection: the single selected shape or connector, clicks (Shift adds or removes), the
+//! marquee and the freehand lasso.
 //!
 //! Groups: a click on a member selects its outermost group; a second click selects the next
 //! group down, then the member itself. Once a member is selected, a click on another member of
@@ -124,11 +124,62 @@ pub fn marquee_ids(page: &Page, r: &dg::Rect) -> Vec<String> {
     shapes.chain(connectors).collect()
 }
 
+/// Most points one lasso keeps; past this the path stops growing, so a long drag cannot make the
+/// containment test slow.
+const MAX_LASSO_POINTS: usize = 4096;
+
+/// Add pointer position `w` to a lasso path, skipping points closer than two screen points to the
+/// last one (so a slow drag does not pile up points).
+pub(super) fn extend_lasso(points: &mut Vec<Point>, w: Point, zoom: f32) {
+    let min = f64::from(2.0 / zoom.max(0.01));
+    if points.len() < MAX_LASSO_POINTS && points.last().is_none_or(|p| (*p - w).length() >= min) {
+        points.push(w);
+    }
+}
+
+/// Whether `p` is inside the closed polygon `poly` (even-odd rule).
+fn inside(poly: &[Point], p: Point) -> bool {
+    let mut odd = false;
+    let n = poly.len();
+    for i in 0..n {
+        let (Some(a), Some(b)) = (poly.get(i), poly.get((i + n - 1) % n)) else { continue };
+        if (a.y > p.y) != (b.y > p.y) && p.x < (b.x - a.x) * (p.y - a.y) / (b.y - a.y) + a.x {
+            odd = !odd;
+        }
+    }
+    odd
+}
+
+/// Ids a lasso through `poly` selects: shapes whose whole outline is inside it (a member stands
+/// for its outermost group) and connectors whose whole route is, shapes first. Hidden and locked
+/// shapes are skipped, as for the marquee.
+pub fn lasso_ids(page: &Page, poly: &[Point]) -> Vec<String> {
+    if poly.len() < 3 {
+        return Vec::new();
+    }
+    let enclosed = |pts: &[Point]| !pts.is_empty() && pts.iter().all(|p| inside(poly, *p));
+    let mut seen = std::collections::HashSet::new();
+    let mut out: Vec<String> = page
+        .shapes
+        .iter()
+        .filter(|s| dg::layer::selectable(page, s) && !dg::arrange::is_group(s))
+        .filter(|s| enclosed(&s.outline_world().flatten(1.0).into_iter().flat_map(|pl| pl.points).collect::<Vec<_>>()))
+        .map(|s| chain(page, &s.id).into_iter().next().unwrap_or_else(|| s.id.clone()))
+        .filter(|id| seen.insert(id.clone()))
+        .collect();
+    out.extend(page.connectors.iter().filter(|c| enclosed(&dg::route_polyline(page, c))).map(|c| c.id.clone()));
+    out
+}
+
 /// Click (press and release without dragging) at `at`.
 pub(super) fn click(app: &mut CraftApp, vp: &Viewport2D, at: Pos2, m: Modifiers) {
     let Some(page) = app.session.doc.page() else { return };
     let w = point(vp.screen_to_world(at));
     let hit = dg::hit(page, w, f64::from(HIT / vp.zoom));
+    if let Tool::FormatPainter { keep } = app.tool {
+        super::painter::apply(app, hit, keep);
+        return;
+    }
     if app.tool == Tool::Text {
         if let Some(h) = hit {
             start_editing(app, h);
@@ -243,6 +294,26 @@ mod tests {
         assert_eq!(press_target(&p, "a", &v(&["g1"])), "g1");
         assert_eq!(press_target(&p, "b", &v(&["a"])), "b");
         assert_eq!(press_target(&p, "a", &v(&["a"])), "a");
+    }
+
+    #[test]
+    fn lasso_selects_enclosed_items_only() {
+        let p = nested();
+        let around = |x0: f64, y0: f64, x1: f64, y1: f64| vec![Point::new(x0, y0), Point::new(x1, y0), Point::new(x1, y1), Point::new(x0, y1)];
+        // Around `c` only: c is a direct member of g2, so the group is selected.
+        assert_eq!(lasso_ids(&p, &around(290.0, -10.0, 360.0, 60.0)), v(&["g2"]));
+        // Cutting through `a` selects nothing.
+        assert!(lasso_ids(&p, &around(10.0, -10.0, 40.0, 60.0)).is_empty());
+        // A triangle around a lone shape.
+        let mut q = Page::new("p", "P");
+        q.shapes.push(Shape::new("t", dg::ShapeKind::Rectangle, 40.0, 40.0, 20.0, 20.0));
+        assert_eq!(lasso_ids(&q, &[Point::new(0.0, 0.0), Point::new(200.0, 0.0), Point::new(0.0, 200.0)]), v(&["t"]));
+        assert!(lasso_ids(&q, &[Point::new(0.0, 0.0), Point::new(200.0, 0.0)]).is_empty(), "two points enclose nothing");
+        let mut pts = vec![Point::ZERO];
+        extend_lasso(&mut pts, Point::new(0.5, 0.0), 1.0);
+        assert_eq!(pts.len(), 1, "points closer than two screen points are skipped");
+        extend_lasso(&mut pts, Point::new(5.0, 0.0), 1.0);
+        assert_eq!(pts.len(), 2);
     }
 
     #[test]

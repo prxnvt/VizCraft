@@ -5,7 +5,7 @@ use serde_json::json;
 
 use crate::CraftApp;
 use crate::ribbon::Control;
-use crate::widgets::{big_label, menu_button, menu_item};
+use crate::widgets::{menu_button, menu_item};
 
 /// The Layers menu button for the Editing group.
 pub(in crate::ribbon) fn control() -> Control {
@@ -14,7 +14,7 @@ pub(in crate::ribbon) fn control() -> Control {
 
 /// The menu is drawn by hand because its entries are the page's layers, which change.
 fn layers_menu(app: &mut CraftApp, ui: &mut egui::Ui) {
-    menu_button(ui, app, "shape", &big_label("Layers"), "Layers", true, |ui, app| {
+    menu_button(ui, app, "shape", "Layers", "Layers", false, |ui, app| {
         let Some(page) = app.session.doc.page() else { return };
         let selected: Vec<&vizcraft_diagram::Shape> = app.session.sel.items.iter().filter_map(|id| page.shape(id)).collect();
         // Each layer with whether every selected shape is already on it.

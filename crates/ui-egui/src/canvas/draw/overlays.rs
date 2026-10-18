@@ -199,7 +199,7 @@ pub fn overlay(app: &CraftApp, painter: &egui::Painter, vp: &Viewport2D, page: &
     let target = drag.and_then(|d| interact::drag_target(real, d, vp.zoom));
     let show_points = match (drag, app.tool) {
         (Some(Drag::Connect { .. } | Drag::Reglue { .. }), _) => target.as_ref().and_then(End::shape).map(str::to_string),
-        (None, crate::Tool::Pointer | crate::Tool::Connector) => app.canvas.hover_shape.clone(),
+        (None, crate::Tool::Pointer | crate::Tool::Lasso | crate::Tool::Connector) => app.canvas.hover_shape.clone(),
         _ => None,
     };
     if let Some(s) = show_points.as_deref().and_then(|id| page.shape(id)) {
@@ -240,6 +240,12 @@ pub fn overlay(app: &CraftApp, painter: &egui::Painter, vp: &Viewport2D, page: &
                 painter.rect(r, 1.0, t.page, Stroke::new(1.0, accent), egui::StrokeKind::Middle);
             }
         }
+    }
+    if let Some(Drag::Lasso { points, .. }) = drag
+        && points.len() > 1
+    {
+        let pts: Vec<Pos2> = points.iter().map(|p| vp.world_to_screen(pos(*p))).collect();
+        painter.add(egui::Shape::closed_line(pts, Stroke::new(1.0, accent)));
     }
     if let Some(r) = drag.and_then(interact::marquee_rect) {
         let r = Rect::from_two_pos(vp.world_to_screen(pos(dg::Point::new(r.x0, r.y0))), vp.world_to_screen(pos(dg::Point::new(r.x1, r.y1))));

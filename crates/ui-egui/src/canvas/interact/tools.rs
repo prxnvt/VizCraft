@@ -26,9 +26,9 @@ pub(super) fn decide(app: &CraftApp, page: &Page, vp: &Viewport2D, at: Pos2, m: 
     let zoom = vp.zoom;
     let tol = f64::from(GRAB / zoom);
     match app.tool {
-        Tool::Text => None,
+        Tool::Text | Tool::FormatPainter { .. } => None,
         Tool::Connector => Some(Start::Drag(Drag::Connect { from: target_end(page, w, zoom), to: w })),
-        Tool::Pointer => {
+        Tool::Pointer | Tool::Lasso => {
             if let Some(s) = single_shape(app, page) {
                 if near(vp, rotate_handle_world(s, zoom), at) {
                     return Some(Start::Drag(Drag::Rotate { id: s.id.clone(), to: w, snap: m.shift }));
@@ -53,6 +53,7 @@ pub(super) fn decide(app: &CraftApp, page: &Page, vp: &Viewport2D, at: Pos2, m: 
             match dg::hit(page, w, f64::from(HIT / zoom)) {
                 Some(Hit::Shape(id)) => Some(Start::SelectAndMove(super::select::press_target(page, &id, &app.session.sel.items), m.shift)),
                 Some(Hit::Connector(id)) => Some(Start::SelectAndMove(id, m.shift)),
+                None if app.tool == Tool::Lasso => Some(Start::Drag(Drag::Lasso { points: vec![w], add: m.shift })),
                 None => Some(Start::Drag(Drag::Marquee { from: w, to: w, add: m.shift })),
             }
         }

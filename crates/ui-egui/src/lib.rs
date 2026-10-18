@@ -14,6 +14,7 @@ pub mod chrome;
 pub mod control;
 pub mod data_dialog;
 pub mod dialogs;
+pub mod find_dialog;
 pub mod icons;
 pub mod keys;
 pub mod menus;
@@ -21,6 +22,7 @@ pub mod page_setup;
 pub mod page_tabs;
 pub mod panes;
 pub mod print_preview;
+pub mod paste_special;
 pub mod ribbon;
 pub mod snap_dialog;
 pub mod theme;
@@ -45,7 +47,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "ui.dialog",
         "Open Dialog",
         "",
-        r#"{"name": "commands|zoom|about|preferences|quit|shortcuts|message|pageSetup", "title"?: string, "text"?: string}"#,
+        r#"{"name": "commands|zoom|about|preferences|quit|shortcuts|message|pageSetup|snapSettings|find|pasteSpecial", "title"?: string, "text"?: string}"#,
     ),
     ("ui.closeDialog", "Close Dialog", "", "{}"),
     ("ui.backstage", "File Page", "", r#"{"value"?: bool}"#),
@@ -67,7 +69,12 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.clearRecent", "Clear Recent Files", "", "{}"),
     ("ui.shortcuts", "Keyboard Shortcuts", "Mod+/", "{}"),
     ("ui.print", "Print", "Mod+P", "{}"),
-    ("ui.tool", "Tool", "", r#"{"tool": "pointer|connector|text"}"#),
+    (
+        "ui.tool",
+        "Tool",
+        "",
+        r#"{"tool": "pointer|area|lasso|connector|text|formatPainter", "from"?: id, "keep"?: bool}; area is the pointer's marquee; formatPainter copies from "from" (default: the primary selection), once unless "keep""#,
+    ),
     ("ui.find", "Find", "Mod+F", "{}"),
     ("window.minimize", "Minimize", "", "{}"),
     ("window.zoom", "Zoom Window", "", "{}"),
@@ -86,6 +93,14 @@ pub enum Tool {
     Connector,
     /// Click to add a text block, or edit the text of the shape under the pointer.
     Text,
+    /// The pointer, but a drag on empty space draws a freehand lasso instead of a rectangle.
+    Lasso,
+    /// Format painter: a click on a shape or connector copies the source's fill, line and effects
+    /// to it (`CanvasState::painter_from`); `keep` stays armed until Escape, else one click.
+    FormatPainter {
+        /// Stay armed after a click (a double-click on the button arms it this way).
+        keep: bool,
+    },
 }
 
 impl Tool {
@@ -95,12 +110,17 @@ impl Tool {
             Tool::Pointer => "pointer",
             Tool::Connector => "connector",
             Tool::Text => "text",
+            Tool::Lasso => "lasso",
+            Tool::FormatPainter { .. } => "formatPainter",
         }
     }
     /// The tool for a `ui.tool` name.
     pub fn parse(s: &str) -> Option<Tool> {
         match s {
-            "pointer" => Some(Tool::Pointer),
+            // Area select is how the pointer selects: a rectangle dragged on empty space.
+            "pointer" | "area" => Some(Tool::Pointer),
+            "lasso" => Some(Tool::Lasso),
+            "formatPainter" => Some(Tool::FormatPainter { keep: false }),
             "connector" => Some(Tool::Connector),
             "text" => Some(Tool::Text),
             _ => None,
@@ -401,6 +421,17 @@ impl CraftApp {
             "ui.tool" => {
                 // Unknown or missing names fall back to the pointer, so junk never strands the canvas.
                 self.tool = s("tool").and_then(Tool::parse).unwrap_or(Tool::Pointer);
+                if let Tool::FormatPainter { .. } = self.tool {
+                    match canvas::interact::painter::arm(self, s("from"), b("keep").unwrap_or(false)) {
+                        Ok(t) => self.tool = t,
+                        Err(e) => {
+                            self.tool = Tool::Pointer;
+                            return Some(Err(e));
+                        }
+                    }
+                } else {
+                    self.canvas.painter_from = None;
+                }
                 json!({"tool": self.tool.name()})
             }
             "ui.tab" => {
@@ -463,13 +494,17 @@ impl CraftApp {
                 self.dialog = dialogs::Dialog::open("shortcuts", self);
                 json!({"dialog": "shortcuts"})
             }
+            "ui.find" => {
+                self.dialog = dialogs::Dialog::open("find", self);
+                json!({"dialog": "find"})
+            }
             // Placeholders (`menus::PLACEHOLDERS`): listed so every front sees them, shown
             // disabled in menus; running one by id only reports that it is not there yet.
             "ui.print" => {
                 self.dialog = dialogs::Dialog::open("printPreview", self);
                 json!({"dialog": "printPreview"})
             }
-            "ui.find" | "window.minimize" | "window.zoom" => {
+            "window.minimize" | "window.zoom" => {
                 self.status(format!("{} is not available in this craft yet", widgets::label_of(self, id)));
                 json!({"placeholder": true})
             }
