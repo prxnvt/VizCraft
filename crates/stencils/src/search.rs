@@ -45,7 +45,7 @@ struct Entry {
 
 /// Split text into lowercase words at anything that is not a letter or digit, and at camelCase
 /// humps, so `onPageReference` and `On-page Reference` both give `on`, `page`, `reference`.
-fn words(text: &str) -> Vec<String> {
+pub(crate) fn words(text: &str) -> Vec<String> {
     let mut out = Vec::new();
     let mut cur = String::new();
     let mut prev_lower = false;

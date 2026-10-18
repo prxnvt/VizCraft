@@ -118,13 +118,23 @@ fn shape_style_with(shape: &Shape, html: bool) -> DStyle {
     s
 }
 
-fn arrow(a: Arrow) -> &'static str {
+/// The draw.io arrow name for `a`, and whether it is drawn hollow (written as `startFill` or
+/// `endFill` set to `0`). The ER names are draw.io's entity-relation line ends.
+fn arrow(a: Arrow) -> (&'static str, bool) {
     match a {
-        Arrow::None => "none",
-        Arrow::Triangle => "block",
-        Arrow::Open => "open",
-        Arrow::Diamond => "diamond",
-        Arrow::Circle => "oval",
+        Arrow::None => ("none", false),
+        Arrow::Triangle => ("block", false),
+        Arrow::Open => ("open", false),
+        Arrow::Diamond => ("diamond", false),
+        Arrow::Circle => ("oval", false),
+        Arrow::HollowTriangle => ("block", true),
+        Arrow::HollowDiamond => ("diamond", true),
+        Arrow::OpenCircle => ("oval", true),
+        Arrow::Bar => ("ERone", false),
+        Arrow::CrowsFoot => ("ERmany", false),
+        Arrow::CrowsFootBar => ("ERoneToMany", false),
+        Arrow::CrowsFootCircle => ("ERzeroToMany", false),
+        Arrow::BarCircle => ("ERzeroToOne", false),
     }
 }
 
@@ -147,8 +157,16 @@ fn edge_style(page: &Page, c: &Connector, html: bool) -> DStyle {
             pair(&mut s, "curved", "1");
         }
     }
-    pair(&mut s, "startArrow", arrow(c.start_arrow));
-    pair(&mut s, "endArrow", arrow(c.end_arrow));
+    for (key, fill_key, a) in [("startArrow", "startFill", c.start_arrow), ("endArrow", "endFill", c.end_arrow)] {
+        let (name, hollow) = arrow(a);
+        pair(&mut s, key, name);
+        if hollow {
+            pair(&mut s, fill_key, "0");
+        }
+    }
+    if !c.kind.is_empty() {
+        pair(&mut s, super::read::KIND_KEY, c.kind.clone());
+    }
     if c.jumps {
         pair(&mut s, "jumpStyle", "arc");
     }

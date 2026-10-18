@@ -202,6 +202,25 @@
       "elementType": "flowchart.OffPageReference"
     }
   ],
+  "connectorTypes": [
+    {
+      "id": "flowchart.flow",
+      "label": "Flow",
+      "category": "Flow",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "triangle",
+      "dash": "solid",
+      "lineWidth": 1.5,
+      "line": "#3a4a5c",
+      "keywords": [
+        "arrow",
+        "sequence",
+        "next"
+      ],
+      "relationshipType": "flowchart.Flow"
+    }
+  ],
   "elementTypes": [
     {
       "id": "flowchart.Terminator",

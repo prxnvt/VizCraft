@@ -34,6 +34,8 @@ pub struct Pack {
     pub audience: Vec<String>,
     /// Original glyphs; each is also a stencil master.
     pub glyphs: Vec<Glyph>,
+    /// Connector types: named routes, line ends and line styles (`basic.arrow`).
+    pub connector_types: Vec<ConnectorType>,
     /// Element types.
     pub element_types: Vec<ElementType>,
     /// Relationship types.
@@ -71,6 +73,10 @@ impl Pack {
     pub fn glyph(&self, id: &str) -> Option<&Glyph> {
         self.glyphs.iter().find(|g| g.id == id)
     }
+    /// The connector type with this qualified id.
+    pub fn connector_type(&self, id: &str) -> Option<&ConnectorType> {
+        self.connector_types.iter().find(|t| t.id == id)
+    }
     /// The viewpoint with this qualified id.
     pub fn viewpoint(&self, id: &str) -> Option<&Viewpoint> {
         self.viewpoints.iter().find(|v| v.id == id)
@@ -106,6 +112,58 @@ pub struct Glyph {
     pub keywords: Vec<String>,
     /// Element type a shape placed from this glyph becomes; empty for free drawing.
     pub element_type: String,
+}
+
+/// A connector type: a named route, pair of line ends and line style, applied to a connector as
+/// its `kind`. Like a glyph it is a recipe: applying it copies the values onto the connector, and
+/// later hand styling wins. Ids are `<pack>.<name>` (`basic.arrow`).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct ConnectorType {
+    /// Qualified id (`basic.dependency`); stored on connectors as their `kind`.
+    pub id: String,
+    /// Name shown in the Kind gallery.
+    pub label: String,
+    /// Category in the gallery; categories show in order of first appearance.
+    pub category: String,
+    /// Route: a `Route` name from `vizcraft-diagram` (`straight`, `orthogonal`, `curved`).
+    pub route: String,
+    /// Line end at the start: an `Arrow` name from `vizcraft-diagram`.
+    pub start_arrow: String,
+    /// Line end at the end: an `Arrow` name from `vizcraft-diagram`.
+    pub end_arrow: String,
+    /// Dash pattern: a `Dash` name from `vizcraft-diagram` (`solid`, `dashed`).
+    pub dash: String,
+    /// Line width.
+    pub line_width: f64,
+    /// Line colour, `#rrggbb`.
+    pub line: String,
+    /// Draw a hop wherever the connector crosses one drawn before it.
+    pub jumps: bool,
+    /// Extra search words (the label and id are searched too).
+    pub keywords: Vec<String>,
+    /// Relationship type a connector of this kind becomes when it joins two bound shapes; `None`
+    /// lets the pack's connection table choose.
+    pub relationship_type: Option<String>,
+}
+
+impl Default for ConnectorType {
+    fn default() -> Self {
+        ConnectorType {
+            id: String::new(),
+            label: String::new(),
+            category: String::new(),
+            route: "orthogonal".into(),
+            start_arrow: "none".into(),
+            end_arrow: "none".into(),
+            dash: "solid".into(),
+            line_width: 1.5,
+            line: "#3a4a5c".into(),
+            jumps: false,
+            keywords: Vec::new(),
+            relationship_type: None,
+        }
+    }
 }
 
 /// The value type of a property.

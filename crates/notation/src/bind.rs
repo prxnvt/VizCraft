@@ -23,7 +23,8 @@ use crate::{Catalog, legal};
 ///    from `Document::next_id("e")`, same type and properties, name kept, tag re-issued by the
 ///    identity registry when the scope numbers automatically, else cleared).
 /// 3. A connector glued at both ends to bound shapes gets a relationship when it has none: type
-///    from [`crate::legal::relationship_for`] (an illegal pair still binds, so the rules engine
+///    from the relationship its connector `kind` names, if it names one, else from
+///    [`crate::legal::relationship_for`] (an illegal pair still binds, so the rules engine
 ///    can report it), id from `next_id("r")`, the connector's text as its name. A bound
 ///    connector's relationship follows its glue (source and target from the glued shapes'
 ///    elements, ports from glued connection-point indexes when the type declares ports); a bound
@@ -239,8 +240,10 @@ fn connectors(doc: &mut Document, cat: &Catalog) {
             Bind::New(pi, ci, g) => {
                 let type_of = |id: &str| index.get(id).and_then(|&i| doc.model.elements.get(i)).map(|e| e.type_id.clone());
                 let (Some(st), Some(tt)) = (type_of(&g.source), type_of(&g.target)) else { continue };
-                let Some((type_id, _legal)) = legal::relationship_for(cat, &st, &tt) else { continue };
-                let name = doc.pages.get(pi).and_then(|p| p.connectors.get(ci)).map(|c| c.text.clone()).unwrap_or_default();
+                let connector = doc.pages.get(pi).and_then(|p| p.connectors.get(ci));
+                let kind_type = connector.and_then(|c| kind_relationship(cat, &c.kind));
+                let Some(type_id) = kind_type.or_else(|| legal::relationship_for(cat, &st, &tt).map(|(t, _)| t)) else { continue };
+                let name = connector.map(|c| c.text.clone()).unwrap_or_default();
                 let rel = Relationship {
                     type_id,
                     source_port: port(doc, &index, cat, &g.source, g.source_point),
@@ -254,6 +257,17 @@ fn connectors(doc: &mut Document, cat: &Catalog) {
             }
         }
     }
+}
+
+/// The relationship type the connector kind `kind` names, when the kind exists, names one, and the
+/// catalog knows it. It wins over the connection table; the pair it joins may still be illegal,
+/// and then the rules engine reports it.
+fn kind_relationship(cat: &Catalog, kind: &str) -> Option<String> {
+    if kind.is_empty() {
+        return None;
+    }
+    let rel = cat.packs().iter().find_map(|p| p.connector_type(kind))?.relationship_type.as_ref()?;
+    cat.relationship_type(rel).map(|_| rel.clone())
 }
 
 /// Add `rel` under a fresh id and bind connector `ci` of page `pi` to it; when the model refuses

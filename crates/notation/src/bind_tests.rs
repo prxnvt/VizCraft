@@ -223,6 +223,88 @@ fn step3_ports_come_from_connection_points() {
     assert_eq!(doc.model.packs.iter().map(|p| p.id.as_str()).collect::<Vec<_>>(), ["t"]);
 }
 
+/// Two Flowchart Process shapes (a legal Flow pair) and a connector of `kind` between them.
+fn kind_doc(kind: &str) -> (Document, Document) {
+    let mut b = Doc::new();
+    b.el("a", "Process", "A").el("b", "Process", "B");
+    let before = b.build();
+    let mut doc = before.clone();
+    let mut c = glued("k", "s_a", "s_b");
+    c.kind = kind.into();
+    doc.pages[0].connectors.push(c);
+    (doc, before)
+}
+
+fn relationship_type_of(doc: &Document) -> String {
+    let rid = doc.pages[0].connector("k").unwrap().relationship.clone().unwrap();
+    doc.model.relationship(&rid).unwrap().type_id.clone()
+}
+
+#[test]
+fn step3_the_flow_kind_between_flowchart_shapes_creates_a_flow() {
+    let (doc, before) = kind_doc("flowchart.flow");
+    let out = synced(doc, &before);
+    assert_eq!(relationship_type_of(&out), "flowchart.Flow");
+    // A kind without a relationship type, and an unknown kind, leave the choice to the table.
+    for kind in ["basic.arrow", "vendor.nothing", ""] {
+        let (doc, before) = kind_doc(kind);
+        assert_eq!(relationship_type_of(&synced(doc, &before)), "flowchart.Flow", "{kind}");
+    }
+}
+
+#[test]
+fn step3_a_kinds_relationship_type_beats_the_connection_table() {
+    let pack: crate::Pack = serde_json::from_value(serde_json::json!({
+        "id": "t", "version": "1.0.0",
+        "elementTypes": [{"id": "t.Node"}],
+        "relationshipTypes": [{"id": "t.Wire"}, {"id": "t.Pipe"}],
+        "connections": [{"source": ["*"], "relationship": "t.Wire", "target": ["*"]}],
+        "connectorTypes": [
+            {"id": "t.pipe", "relationshipType": "t.Pipe"},
+            {"id": "t.ghost", "relationshipType": "t.Ghost"},
+            {"id": "t.plain"}
+        ]
+    }))
+    .unwrap();
+    let cat = Catalog::new(vec![pack]);
+    let relationship = |kind: &str| {
+        let mut doc = Document::new();
+        for id in ["a", "b"] {
+            doc.model.add_element(Element::new(id, "t.Node")).unwrap();
+            let mut s = free_shape(&format!("s_{id}"), 0.0);
+            s.element = Some(id.into());
+            doc.pages[0].shapes.push(s);
+        }
+        doc.id_seq = 100;
+        let before = doc.clone();
+        let mut c = glued("k", "s_a", "s_b");
+        c.kind = kind.into();
+        doc.pages[0].connectors.push(c);
+        sync(&mut doc, &before, &cat);
+        let rid = doc.pages[0].connector("k").unwrap().relationship.clone().unwrap();
+        doc.model.relationship(&rid).unwrap().type_id.clone()
+    };
+    assert_eq!(relationship("t.pipe"), "t.Pipe");
+    // A kind naming a relationship type the catalog lacks, or none, falls back to the table.
+    assert_eq!(relationship("t.ghost"), "t.Wire");
+    assert_eq!(relationship("t.plain"), "t.Wire");
+    assert_eq!(relationship(""), "t.Wire");
+}
+
+#[test]
+fn step3_a_kind_names_an_illegal_pair_and_the_rule_reports_it() {
+    let mut b = Doc::new();
+    b.el("a", "Database", "A").el("b", "Database", "B");
+    let before = b.build();
+    let mut doc = before.clone();
+    let mut c = glued("k", "s_a", "s_b");
+    c.kind = "flowchart.flow".into();
+    doc.pages[0].connectors.push(c);
+    let out = synced(doc, &before);
+    assert_eq!(relationship_type_of(&out), "flowchart.Flow");
+    assert_eq!(crate::rules::live(&out, catalog())[0].rule, "flowchart.illegalFlow");
+}
+
 #[test]
 fn step4_deleting_the_last_connector_deletes_the_relationship() {
     let mut b = Doc::new();

@@ -90,6 +90,8 @@ pub(crate) struct EdgeLook {
     pub route: Route,
     /// Arrowheads at the start and end.
     pub arrows: (Arrow, Arrow),
+    /// The connector kind (`vizcraftKind`), empty for none.
+    pub kind: String,
     /// Line and text.
     pub style: Style,
     /// Line jumps.
@@ -273,15 +275,44 @@ pub(crate) fn vertex_look(style: Option<&DStyle>, warnings: &mut Warnings) -> Ve
     VertexLook { kind, stencil: master.map_or_else(|| master_for_kind(kind).to_string(), |m| m.id.to_string()), style, angle, ext, skip: None }
 }
 
-fn arrow(v: Option<String>, absent: Arrow) -> Arrow {
+/// The style key naming a connector's kind (`flowchart.flow`), the edge twin of the vertex `vizcraft`
+/// master key.
+pub(crate) const KIND_KEY: &str = "vizcraftKind";
+
+/// The arrow a `startArrow` or `endArrow` value stands for. `hollow` is whether the matching
+/// `startFill` or `endFill` is `0`, which turns the block, diamond and oval into their hollow
+/// forms; the ER arrows are the notation ends.
+fn arrow(v: Option<String>, absent: Arrow, hollow: bool) -> Arrow {
     match v.as_deref().map(str::trim) {
         None => absent,
         Some("none" | "") => Arrow::None,
         Some("open" | "openThin" | "openAsync") => Arrow::Open,
+        Some("diamond" | "diamondThin") if hollow => Arrow::HollowDiamond,
         Some("diamond" | "diamondThin") => Arrow::Diamond,
+        Some("oval" | "dot" | "circle" | "circlePlus") if hollow => Arrow::OpenCircle,
         Some("oval" | "dot" | "circle" | "circlePlus") => Arrow::Circle,
-        // block, classic, their thin forms and anything unknown: a filled head is the closest.
+        Some("ERone" | "ERmandOne") => Arrow::Bar,
+        Some("ERmany") => Arrow::CrowsFoot,
+        Some("ERoneToMany") => Arrow::CrowsFootBar,
+        Some("ERzeroToMany") => Arrow::CrowsFootCircle,
+        Some("ERzeroToOne") => Arrow::BarCircle,
+        // block, classic, their thin forms and anything unknown: a triangle is the closest.
+        Some(_) if hollow => Arrow::HollowTriangle,
         Some(_) => Arrow::Triangle,
+    }
+}
+
+/// Read `fill_key` (`startFill` or `endFill`) when it is `0` and the arrow value `arrow_key` is
+/// one that has a hollow form; the fill key is then used up. Other values stay in the style.
+fn take_hollow(s: &mut DStyle, arrow_key: &str, fill_key: &str) -> bool {
+    let hollow_form =
+        s.get(arrow_key).map(str::trim).is_some_and(|v| !matches!(v, "none" | "" | "open" | "openThin" | "openAsync") && !v.starts_with("ER"));
+    let zero = s.get(fill_key).is_some_and(|v| v.trim() == "0");
+    if hollow_form && zero {
+        s.remove(fill_key);
+        true
+    } else {
+        false
     }
 }
 
@@ -305,7 +336,9 @@ pub(crate) fn edge_look(style: Option<&DStyle>) -> EdgeLook {
         Route::Straight
     };
     // draw.io draws a classic arrow at the end and nothing at the start when a style says nothing.
-    let arrows = (arrow(s.remove("startArrow"), Arrow::None), arrow(s.remove("endArrow"), Arrow::Triangle));
+    let (start_hollow, end_hollow) = (take_hollow(&mut s, "startArrow", "startFill"), take_hollow(&mut s, "endArrow", "endFill"));
+    let arrows = (arrow(s.remove("startArrow"), Arrow::None, start_hollow), arrow(s.remove("endArrow"), Arrow::Triangle, end_hollow));
+    let kind = s.remove(KIND_KEY).unwrap_or_default();
     let jumps = s.remove("jumpStyle").is_some_and(|v| !matches!(v.trim(), "" | "none"));
     let pair = |s: &mut DStyle, kx: &str, ky: &str| {
         let (x, y) = (number(s.remove(kx)), number(s.remove(ky)));
@@ -317,7 +350,7 @@ pub(crate) fn edge_look(style: Option<&DStyle>) -> EdgeLook {
     common(&mut s, &mut st, &mut ext);
     st.fill = Color::TRANSPARENT;
     leftover(&s, &mut ext);
-    EdgeLook { route, arrows, style: st, jumps, exit, entry, ext }
+    EdgeLook { route, arrows, kind, style: st, jumps, exit, entry, ext }
 }
 
 /// Keep a wrapper's kind and attributes (other than the label) in `ext`.
@@ -521,6 +554,7 @@ pub(crate) fn page_from_model(model: &GraphModel, id: String, name: String, warn
             start_arrow: look.arrows.0,
             end_arrow: look.arrows.1,
             text,
+            kind: look.kind,
             style: look.style,
             waypoints,
             avoid: false,

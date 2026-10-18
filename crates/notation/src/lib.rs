@@ -28,6 +28,6 @@ pub mod validate;
 pub use catalog::{Catalog, catalog};
 pub use loader::NotationError;
 pub use schema::{
-    Check, ConditionalStyle, Connection, ElementType, Glyph, Pack, PaletteGroup, Port, PropKind, PropertySchema, RelationshipType, RuleDecl,
-    RuleMode, Viewpoint,
+    Check, ConditionalStyle, Connection, ConnectorType, ElementType, Glyph, Pack, PaletteGroup, Port, PropKind, PropertySchema, RelationshipType,
+    RuleDecl, RuleMode, Viewpoint,
 };
