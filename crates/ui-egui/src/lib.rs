@@ -217,6 +217,9 @@ pub struct CraftApp {
     pub quit_confirmed: bool,
     /// Time the last frame's layout took.
     pub frame_ms: f64,
+    /// The window title last sent to the platform; sending it again every frame would make egui
+    /// schedule another frame each time, so the app never went idle.
+    sent_title: String,
     /// What a left drag on the canvas does; set by `ui.tool` from the ribbon, keys or an agent.
     pub tool: Tool,
     /// Canvas interaction state (drag preview, text editing, hover).
@@ -256,6 +259,7 @@ impl CraftApp {
             quit_requested: false,
             quit_confirmed: false,
             frame_ms: 0.0,
+            sent_title: String::new(),
             tool: Tool::Pointer,
             canvas: canvas::CanvasState::default(),
             shapes_query: String::new(),
@@ -766,7 +770,10 @@ impl CraftApp {
             dialogs::show(self, &ctx);
         }
         let title = format!("{}{} - VizCraft", self.title_stem(), if self.session.dirty { " (edited)" } else { "" });
-        ctx.send_viewport_cmd(egui::ViewportCommand::Title(title));
+        if title != self.sent_title {
+            ctx.send_viewport_cmd(egui::ViewportCommand::Title(title.clone()));
+            self.sent_title = title;
+        }
         self.frame_ms = now_ms() - t0;
     }
 

@@ -126,7 +126,7 @@ impl CanvasState {
 }
 
 /// Handle mouse drag and scroll interactions for 2D pan and zoom: middle drag, Space or Cmd with
-/// a left drag, plain scroll pans; Cmd (Ctrl) with scroll zooms about the pointer.
+/// a left drag, plain scroll pans; pinch, or Cmd (Ctrl) with scroll, zooms about the pointer.
 pub fn handle_pan_and_zoom(ui: &Ui, response: &Response, pan: &mut [f32; 2], zoom: &mut f32) -> bool {
     let mut changed = false;
 
@@ -153,13 +153,13 @@ pub fn handle_pan_and_zoom(ui: &Ui, response: &Response, pan: &mut [f32; 2], zoo
         }
     }
 
-    let scroll_delta = ui.input(|i| i.smooth_scroll_delta);
-    let modifiers = ui.input(|i| i.modifiers);
-    if response.hovered() && modifiers.command && scroll_delta.y.abs() > 0.0 {
-        // Ctrl+scroll or Cmd+scroll zooms anchored at the pointer.
-        let factor = if scroll_delta.y > 0.0 { 1.1 } else { 0.9 };
-        let new_zoom = (*zoom * factor).clamp(0.1, 10.0);
-        if (new_zoom - *zoom).abs() > 1e-4 {
+    // Pinch, and Cmd (Ctrl) with scroll, arrive as egui's zoom factor: egui turns a scroll with the
+    // zoom modifier into `zoom_delta` and reports no scroll for it. Zoom by that factor, so the
+    // gesture's size sets the step, anchored at the pointer.
+    let (scroll_delta, zoom_delta) = ui.input(|i| (i.smooth_scroll_delta, i.zoom_delta()));
+    if response.hovered() && zoom_delta.is_finite() && (zoom_delta - 1.0).abs() > 1e-4 {
+        let new_zoom = (*zoom * zoom_delta).clamp(0.1, 10.0);
+        if (new_zoom - *zoom).abs() > 1e-6 {
             if let Some(hover_pos) = response.hover_pos() {
                 let rect = response.rect;
                 let vp = Viewport2D::new(rect, *pan, *zoom);
@@ -171,7 +171,7 @@ pub fn handle_pan_and_zoom(ui: &Ui, response: &Response, pan: &mut [f32; 2], zoo
             *zoom = new_zoom;
             changed = true;
         }
-    } else if response.hovered() && !modifiers.command && scroll_delta != Vec2::ZERO {
+    } else if response.hovered() && scroll_delta != Vec2::ZERO {
         // Plain scroll (and Shift+scroll, which egui turns sideways) moves the page with the wheel.
         let world_delta = scroll_delta / (*zoom).max(0.01);
         pan[0] -= world_delta.x;
@@ -433,6 +433,56 @@ mod tests {
             // Dragging right and down moves the view's world center left and up.
             assert!(pan[0] < -20.0 && pan[1] < -10.0, "{button:?} with {modifiers:?} panned to {pan:?}");
         }
+    }
+
+    /// Run `events` over a bare 400 by 300 canvas at zoom 1 and pan 0; returns (pan, zoom).
+    fn gesture(events: Vec<egui::Event>) -> ([f32; 2], f32) {
+        let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(400.0, 300.0)).build_ui_state(
+            |ui, (pan, zoom): &mut ([f32; 2], f32)| {
+                let (_, response) = ui.allocate_exact_size(ui.available_size(), egui::Sense::click_and_drag());
+                handle_pan_and_zoom(ui, &response, pan, zoom);
+            },
+            ([0.0, 0.0], 1.0),
+        );
+        for e in events {
+            h.input_mut().events.push(e);
+            h.run();
+        }
+        *h.state()
+    }
+
+    #[test]
+    fn pinch_and_command_scroll_zoom_about_the_pointer() {
+        let at = Pos2::new(300.0, 100.0);
+        // A pinch: egui's zoom event, as macOS trackpads send it.
+        let (pan, zoom) = gesture(vec![egui::Event::PointerMoved(at), egui::Event::Zoom(1.25)]);
+        assert!((zoom - 1.25).abs() < 1e-3, "pinch zoomed to {zoom}");
+        // The page point under the pointer stays under it.
+        let rect = Rect::from_min_size(Pos2::ZERO, Vec2::new(400.0, 300.0));
+        let before = Viewport2D::new(rect, [0.0, 0.0], 1.0).screen_to_world(at);
+        let after = Viewport2D::new(rect, pan, zoom).screen_to_world(at);
+        assert!((before - after).length() < 0.5, "{before:?} drifted to {after:?}");
+        // Cmd (Ctrl) with the wheel: egui reports it as zoom, not scroll.
+        let wheel = |y| egui::Event::MouseWheel {
+            unit: egui::MouseWheelUnit::Line,
+            delta: Vec2::new(0.0, y),
+            modifiers: egui::Modifiers::COMMAND,
+            phase: egui::TouchPhase::Move,
+        };
+        let cmd = egui::Event::ModifiersChanged(egui::Modifiers::COMMAND);
+        let (_, zoom_in) = gesture(vec![egui::Event::PointerMoved(at), cmd.clone(), wheel(1.0)]);
+        let (_, zoom_out) = gesture(vec![egui::Event::PointerMoved(at), cmd, wheel(-1.0)]);
+        assert!(zoom_in > 1.0 && zoom_out < 1.0, "Cmd+wheel zoomed to {zoom_in} and {zoom_out}");
+        // A plain wheel pans and leaves the zoom alone.
+        let plain = egui::Event::MouseWheel {
+            unit: egui::MouseWheelUnit::Point,
+            delta: Vec2::new(0.0, -4.0),
+            modifiers: egui::Modifiers::NONE,
+            phase: egui::TouchPhase::Move,
+        };
+        let (pan, zoom) = gesture(vec![egui::Event::PointerMoved(at), plain]);
+        assert_eq!(zoom, 1.0);
+        assert!(pan[1] > 0.0, "scrolling down moves the view down the page: {pan:?}");
     }
 
     #[test]
