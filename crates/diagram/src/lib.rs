@@ -6,7 +6,8 @@
 //! - [`model`]: [`Document`], [`Page`], [`Shape`], [`Connector`] and their styles, all serde.
 //! - [`hit`]: hit testing in world space.
 //! - [`layer`]: what a shape's layers allow (drawing, selecting, printing, snapping, glue).
-//! - [`route`]: glue resolution, the three route styles and arrowhead geometry.
+//! - [`arrows`]: the line ends ([`Arrow`]) and the one geometry table every renderer draws from.
+//! - [`route`]: glue resolution and the three route styles.
 //! - [`autolayout`]: automatic placement of shapes with `vizcraft-layout`.
 //! - [`autoroute`]: connector routes that avoid shapes, with `vizcraft-routing`.
 //! - [`jumps`]: line jumps, and the page-level connector geometry that draws them.
@@ -23,6 +24,7 @@
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
 pub mod arrange;
+pub mod arrows;
 pub mod autolayout;
 pub mod autoroute;
 pub mod container;
@@ -46,6 +48,7 @@ pub mod text_fields;
 pub mod theme;
 pub mod views;
 
+pub use arrows::{ArrowGeometry, outline};
 pub use doc_fields::{Comment, CommentAnchor, DocProperties, ImageAsset, Reply};
 pub use geom::{Path, PathEl, Point, Polyline, Rect, Transform, Vec2};
 pub use hit::{Hit, connection_point_at, connector_at, connectors_in_rect, glue_shape_at, hit, shape_at, shapes_in_rect};

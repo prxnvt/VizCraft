@@ -147,6 +147,102 @@
       ]
     }
   ],
+  "connectorTypes": [
+    {
+      "id": "basic.line",
+      "label": "Line",
+      "category": "Lines",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "solid",
+      "lineWidth": 1.5,
+      "line": "#3a4a5c",
+      "keywords": [
+        "plain",
+        "link",
+        "wire"
+      ]
+    },
+    {
+      "id": "basic.arrow",
+      "label": "Arrow",
+      "category": "Lines",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "triangle",
+      "dash": "solid",
+      "lineWidth": 1.5,
+      "line": "#3a4a5c",
+      "keywords": [
+        "directed",
+        "pointer"
+      ]
+    },
+    {
+      "id": "basic.twoWay",
+      "label": "Two-Way",
+      "category": "Lines",
+      "route": "orthogonal",
+      "startArrow": "triangle",
+      "endArrow": "triangle",
+      "dash": "solid",
+      "lineWidth": 1.5,
+      "line": "#3a4a5c",
+      "keywords": [
+        "bidirectional",
+        "both",
+        "double"
+      ]
+    },
+    {
+      "id": "basic.dependency",
+      "label": "Dependency",
+      "category": "Lines",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "open",
+      "dash": "dashed",
+      "lineWidth": 1.5,
+      "line": "#3a4a5c",
+      "keywords": [
+        "uses",
+        "depends"
+      ]
+    },
+    {
+      "id": "basic.bus",
+      "label": "Bus",
+      "category": "Lines",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "solid",
+      "lineWidth": 3,
+      "line": "#3a4a5c",
+      "keywords": [
+        "thick",
+        "trunk",
+        "wire"
+      ]
+    },
+    {
+      "id": "basic.signal",
+      "label": "Signal",
+      "category": "Lines",
+      "route": "orthogonal",
+      "startArrow": "circle",
+      "endArrow": "open",
+      "dash": "solid",
+      "lineWidth": 1,
+      "line": "#3a4a5c",
+      "keywords": [
+        "thin",
+        "net",
+        "wire"
+      ]
+    }
+  ],
   "palette": [
     {
       "id": "basic.drawing",

@@ -53,6 +53,7 @@ pub fn import(text: &str) -> Result<Imported, FormatError> {
             start_arrow: look.arrows.0,
             end_arrow: look.arrows.1,
             text,
+            kind: String::new(),
             style: look.style,
             waypoints: Vec::new(),
             avoid: false,

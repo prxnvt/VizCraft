@@ -670,3 +670,98 @@ fn hostile_shape_data_is_sanitised() {
     assert!(doc.pages[0].shapes[1].data.rows.is_empty());
     assert!(vizcraft_diagram::data::page_keys(&doc.pages[0]).is_empty(), "unreadable page keys are none");
 }
+
+/// A page of two shapes joined by one connector per line end, each carrying a kind name.
+fn kinds_doc() -> Document {
+    use vizcraft_diagram::Arrow;
+    let mut doc = Document::new();
+    let page = doc.page_mut().unwrap();
+    page.shapes.push(Shape::new("s1", ShapeKind::Rectangle, 0.0, 0.0, 100.0, 60.0));
+    page.shapes.push(Shape::new("s2", ShapeKind::Rectangle, 400.0, 0.0, 100.0, 60.0));
+    for (i, a) in Arrow::ALL.into_iter().enumerate() {
+        let mut c = Connector::new(format!("c{i}"), End::dynamic("s1"), End::dynamic("s2"));
+        c.start_arrow = a;
+        c.end_arrow = Arrow::ALL[(i + 5) % Arrow::ALL.len()];
+        c.kind = if i % 2 == 0 { "basic.arrow".into() } else { "flowchart.flow".into() };
+        c.text = format!("link {i}");
+        page.connectors.push(c);
+    }
+    doc
+}
+
+#[test]
+fn connector_kinds_and_every_line_end_round_trip_natively() {
+    let doc = kinds_doc();
+    let back = load(&save(&doc).unwrap()).unwrap();
+    assert_eq!(back.pages[0].connectors, doc.pages[0].connectors);
+    let bytes = String::from_utf8(save(&doc).unwrap()).unwrap();
+    assert!(bytes.contains("\"kind\": \"flowchart.flow\"") || bytes.contains("\"kind\":\"flowchart.flow\""));
+    assert!(bytes.contains("hollowTriangle") && bytes.contains("crowsFootCircle") && bytes.contains("barCircle"));
+}
+
+#[test]
+fn a_connector_without_a_kind_writes_no_kind_and_junk_kinds_and_ends_load_tolerantly() {
+    let mut doc = Document::new();
+    let page = doc.page_mut().unwrap();
+    page.connectors.push(Connector::new("c1", End::free(vizcraft_diagram::Point::ZERO), End::free(vizcraft_diagram::Point::new(9.0, 9.0))));
+    let text = String::from_utf8(save(&doc).unwrap()).unwrap();
+    assert!(!text.contains("\"kind\""), "{text}");
+    let file = json!({
+        "format": "vizcraft", "version": 4,
+        "document": {"pages": [{"id": "p1", "connectors": [
+            {"id": "c1", "kind": 7, "startArrow": "harpoon", "endArrow": "hollowDiamond"},
+            {"id": "c2", "kind": "x".repeat(10_000), "endArrow": ["triangle"]},
+            {"id": "c3", "kind": "basic.bus"}
+        ]}]}
+    });
+    let doc = load(&serde_json::to_vec(&file).unwrap()).unwrap();
+    let cs = &doc.pages[0].connectors;
+    assert_eq!(
+        (cs[0].kind.as_str(), cs[0].start_arrow, cs[0].end_arrow),
+        ("", vizcraft_diagram::Arrow::None, vizcraft_diagram::Arrow::HollowDiamond)
+    );
+    assert!(cs[1].kind.len() <= 128, "a hostile kind is cut");
+    assert_eq!(cs[2].kind, "basic.bus");
+}
+
+#[test]
+fn connector_kinds_and_line_ends_round_trip_through_drawio() {
+    let doc = kinds_doc();
+    let bytes = crate::drawio::save(&doc).unwrap();
+    let text = String::from_utf8(bytes.clone()).unwrap();
+    assert!(text.contains("vizcraftKind=flowchart.flow"), "the kind is written as the vizcraftKind style key");
+    let imported = crate::drawio::import(&bytes).unwrap();
+    let back = &imported.pages[0].connectors;
+    let want = &doc.pages[0].connectors;
+    assert_eq!(back.len(), want.len());
+    for (b, w) in back.iter().zip(want) {
+        assert_eq!((b.kind.as_str(), b.start_arrow, b.end_arrow), (w.kind.as_str(), w.start_arrow, w.end_arrow), "{}", w.id);
+    }
+}
+
+#[test]
+fn drawio_hollow_and_er_ends_map_onto_the_notation_ends() {
+    use vizcraft_diagram::Arrow;
+    let xml = |style: &str| {
+        format!(
+            r#"<mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+            <mxCell id="a" value="" style="rounded=0;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="80" height="40" as="geometry"/></mxCell>
+            <mxCell id="b" value="" style="rounded=0;" vertex="1" parent="1"><mxGeometry x="300" y="0" width="80" height="40" as="geometry"/></mxCell>
+            <mxCell id="e" value="" style="{style}" edge="1" parent="1" source="a" target="b"><mxGeometry relative="1" as="geometry"/></mxCell>
+            </root></mxGraphModel>"#
+        )
+    };
+    let ends = |style: &str| {
+        let page = crate::drawio::import(xml(style).as_bytes()).unwrap().pages.remove(0);
+        let c = &page.connectors[0];
+        (c.start_arrow, c.end_arrow)
+    };
+    assert_eq!(ends("endArrow=block;endFill=0;"), (Arrow::None, Arrow::HollowTriangle));
+    assert_eq!(ends("startArrow=diamond;startFill=0;endArrow=none;"), (Arrow::HollowDiamond, Arrow::None));
+    assert_eq!(ends("endArrow=oval;endFill=0;"), (Arrow::None, Arrow::OpenCircle));
+    assert_eq!(ends("endArrow=block;endFill=1;"), (Arrow::None, Arrow::Triangle));
+    assert_eq!(ends("startArrow=ERmandOne;endArrow=ERzeroToMany;"), (Arrow::Bar, Arrow::CrowsFootCircle));
+    assert_eq!(ends("startArrow=ERmany;endArrow=ERoneToMany;"), (Arrow::CrowsFoot, Arrow::CrowsFootBar));
+    assert_eq!(ends("endArrow=ERzeroToOne;"), (Arrow::None, Arrow::BarCircle));
+    assert_eq!(ends("endArrow=ERone;endFill=0;"), (Arrow::None, Arrow::Bar), "an ER end has no hollow form");
+}

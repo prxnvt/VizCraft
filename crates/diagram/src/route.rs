@@ -6,7 +6,7 @@
 //! bookkeeping. Stored bends come from obstacle-avoiding routing ([`crate::autoroute`]) or a file.
 
 use crate::geom::{Path, PathEl, Point, Vec2, point_along};
-use crate::model::{Arrow, Connector, End, Page, Route};
+use crate::model::{Connector, End, Page, Route};
 
 /// How far an orthogonal route runs straight out of a glued side before its first turn.
 pub const STUB: f64 = 20.0;
@@ -297,43 +297,7 @@ pub fn route_polyline(page: &Page, c: &Connector) -> Vec<Point> {
     route_path(page, c).flatten(0.5).into_iter().next().map(|pl| pl.points).unwrap_or_default()
 }
 
-/// The geometry of one arrowhead.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Arrowhead {
-    /// The head's outline (closed for triangle, diamond and circle; an open chevron for `Open`).
-    pub path: Path,
-    /// Whether to fill the outline with the line colour.
-    pub filled: bool,
-    /// Where the connector line should stop so it does not poke through a filled head.
-    pub line_end: Point,
-}
-
-/// The arrowhead for an end at `tip`, with the line arriving along unit direction `dir` (pointing
-/// into the tip). Size grows with the line width. `None` for [`Arrow::None`] or a bad direction.
-pub fn arrowhead(arrow: Arrow, tip: Point, dir: Vec2, line_width: f64) -> Option<Arrowhead> {
-    let dir = dir.normalized()?;
-    let lw = if line_width.is_finite() { line_width.clamp(0.0, 100.0) } else { 1.0 };
-    let len = 8.0 + 2.5 * lw;
-    let half = len * 0.4;
-    let back = tip - dir * len;
-    let side = dir.perp() * half;
-    match arrow {
-        Arrow::None => None,
-        Arrow::Triangle => Some(Arrowhead { path: Path::polygon(&[tip, back + side, back - side]), filled: true, line_end: back }),
-        Arrow::Open => Some(Arrowhead { path: Path::polyline(&[back + side, tip, back - side]), filled: false, line_end: tip }),
-        Arrow::Diamond => {
-            let mid = tip - dir * (len * 0.6);
-            let tail = tip - dir * (len * 1.2);
-            Some(Arrowhead { path: Path::polygon(&[tip, mid + side, tail, mid - side]), filled: true, line_end: tail })
-        }
-        Arrow::Circle => {
-            let r = half;
-            let c = tip - dir * r;
-            let path = crate::kind::ellipse(crate::geom::Rect::new(c.x - r, c.y - r, c.x + r, c.y + r));
-            Some(Arrowhead { path, filled: true, line_end: tip - dir * (2.0 * r) })
-        }
-    }
-}
+pub use crate::arrows::{Arrowhead, arrowhead};
 
 /// Everything needed to draw a connector.
 #[derive(Clone, Debug, PartialEq)]

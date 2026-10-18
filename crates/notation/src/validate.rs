@@ -7,7 +7,7 @@
 
 use std::collections::HashSet;
 
-use vizcraft_diagram::{Arrow, Color, ShapeKind};
+use vizcraft_diagram::{Arrow, Color, Dash, Route, ShapeKind};
 use vizcraft_model::{IdFormat, PropValue};
 
 use crate::schema::{Check, Pack, PropKind, PropertySchema};
@@ -209,6 +209,7 @@ impl<'a> Checker<'a> {
             self.problem(format!("pack version `{}` is not `major.minor.patch`", short(&pack.version)));
         }
         self.glyphs();
+        self.connector_types();
         self.element_types();
         self.relationship_types();
         self.connections();
@@ -235,6 +236,33 @@ impl<'a> Checker<'a> {
             self.colour(&ctx, "line", &g.line);
             if !g.element_type.is_empty() {
                 self.reference(&ctx, Kind::ElementType, &g.element_type);
+            }
+        }
+    }
+
+    fn connector_types(&mut self) {
+        let pack = self.pack;
+        let mut seen = HashSet::new();
+        for t in self.list("connector types", &pack.connector_types) {
+            self.declared("connector type", &t.id, &mut seen);
+            let ctx = format!("connector type `{}`", short(&t.id));
+            if Route::from_name(&t.route).is_none() {
+                self.problem(format!("{ctx}: unknown route `{}`", short(&t.route)));
+            }
+            for (what, name) in [("start arrow", &t.start_arrow), ("end arrow", &t.end_arrow)] {
+                if Arrow::from_name(name).is_none() {
+                    self.problem(format!("{ctx}: unknown {what} `{}`", short(name)));
+                }
+            }
+            if Dash::from_name(&t.dash).is_none() {
+                self.problem(format!("{ctx}: unknown dash `{}`", short(&t.dash)));
+            }
+            if !t.line_width.is_finite() || t.line_width < 0.0 {
+                self.problem(format!("{ctx}: line width must be a number, zero or more"));
+            }
+            self.colour(&ctx, "line", &t.line);
+            if let Some(r) = &t.relationship_type {
+                self.reference(&ctx, Kind::Relationship, r);
             }
         }
     }
@@ -533,6 +561,43 @@ mod tests {
         ] {
             assert!(has(&probs, needle), "{needle}: {probs:?}");
         }
+    }
+
+    #[test]
+    fn connector_types_are_checked_like_glyphs() {
+        let mut p = flowchart();
+        let good = p.connector_types[0].clone();
+        assert_eq!(good.id, "flowchart.flow");
+        let mut dup = good.clone();
+        dup.route = "zigzag".into();
+        dup.start_arrow = "harpoon".into();
+        dup.end_arrow = "".into();
+        dup.dash = "wavy".into();
+        dup.line = "green".into();
+        dup.line_width = f64::NAN;
+        dup.relationship_type = Some("flowchart.Jump".into());
+        p.connector_types.push(dup);
+        p.connector_types.push(vizcraft_connector("other.flow"));
+        p.connector_types.push(vizcraft_connector("flow"));
+        let probs = check(&p);
+        for needle in [
+            "connector type id `flowchart.flow` is declared twice",
+            "unknown route `zigzag`",
+            "unknown start arrow `harpoon`",
+            "unknown end arrow ``",
+            "unknown dash `wavy`",
+            "`green` is not a colour",
+            "line width must be a number",
+            "unknown relationship type `flowchart.Jump`",
+            "connector type id `other.flow` does not start with `flowchart.`",
+            "connector type id `flow` is not `<pack>.<name>`",
+        ] {
+            assert!(has(&probs, needle), "{needle}: {probs:?}");
+        }
+    }
+
+    fn vizcraft_connector(id: &str) -> crate::schema::ConnectorType {
+        crate::schema::ConnectorType { id: id.into(), ..crate::schema::ConnectorType::default() }
     }
 
     #[test]

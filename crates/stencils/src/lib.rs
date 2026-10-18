@@ -12,12 +12,15 @@
 //! hit testing and routing stay in one place.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
+mod connectors;
 mod search;
 
 use std::sync::OnceLock;
 
 use vizcraft_diagram::{Color, Shape, ShapeKind, Style};
 use vizcraft_notation::{Catalog, Glyph, Pack};
+
+pub use connectors::{ConnectorKind, connector_kind, connector_kinds, search_connector_kinds};
 
 /// A shape recipe.
 #[derive(Clone, Debug, PartialEq)]

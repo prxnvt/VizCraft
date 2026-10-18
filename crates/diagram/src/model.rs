@@ -578,34 +578,12 @@ pub enum Route {
     Curved,
 }
 
-/// An arrowhead style at one end of a connector.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-pub enum Arrow {
-    /// No arrowhead. Unknown arrow names in a file load as this.
-    #[default]
-    None,
-    /// Filled triangle.
-    Triangle,
-    /// Two open strokes (a chevron).
-    Open,
-    /// Filled diamond.
-    Diamond,
-    /// Filled circle.
-    Circle,
-}
+pub use crate::arrows::Arrow;
 
 crate::serde_util::named_enum!(Route, Route::Orthogonal, {
     Route::Straight => "straight",
     Route::Orthogonal => "orthogonal",
     Route::Curved => "curved",
-});
-
-crate::serde_util::named_enum!(Arrow, Arrow::None, {
-    Arrow::None => "none",
-    Arrow::Triangle => "triangle",
-    Arrow::Open => "open",
-    Arrow::Diamond => "diamond",
-    Arrow::Circle => "circle",
 });
 
 /// One end of a connector: glued to a shape or free on the page.
@@ -707,6 +685,10 @@ pub struct Connector {
     /// Label text, drawn at the middle of the route.
     #[serde(deserialize_with = "lenient")]
     pub text: String,
+    /// The connector type this was drawn as (`basic.arrow`, `flowchart.flow`), empty for none. The
+    /// route, ends and line style are copied from the type when it is applied; this only names it.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "String::is_empty")]
+    pub kind: String,
     /// Line and text style (the fill is unused).
     #[serde(deserialize_with = "lenient")]
     pub style: Style,
@@ -739,6 +721,7 @@ impl Default for Connector {
             start_arrow: Arrow::None,
             end_arrow: Arrow::Triangle,
             text: String::new(),
+            kind: String::new(),
             style: Style { fill: Color::TRANSPARENT, ..Style::DEFAULT },
             waypoints: Vec::new(),
             avoid: false,
@@ -763,6 +746,7 @@ impl Connector {
             }
         }
         truncate(&mut self.text, MAX_TEXT);
+        truncate(&mut self.kind, 128);
         self.style.sanitize();
         self.waypoints.truncate(MAX_WAYPOINTS);
         for p in &mut self.waypoints {

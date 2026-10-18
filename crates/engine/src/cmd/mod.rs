@@ -4,6 +4,7 @@ pub mod arrange;
 pub mod batch;
 pub mod callout;
 pub mod connector;
+pub mod connector_kind;
 pub mod container;
 pub mod data;
 pub mod design;
@@ -50,6 +51,7 @@ pub fn registry() -> Registry {
     v.extend(lane::specs());
     v.extend(callout::specs());
     v.extend(connector::specs());
+    v.extend(connector_kind::specs());
     v.extend(page::specs());
     v.extend(print::specs());
     v.extend(layer::specs());
