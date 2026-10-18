@@ -43,7 +43,8 @@ impl Default for PaneLayout {
             heights: BTreeMap::new(),
             last_side: BTreeMap::new(),
         };
-        for p in panes() {
+        // Layers starts closed: most pages have none, and Layer Properties opens it.
+        for p in panes().into_iter().filter(|p| p.key != "layers") {
             l.side_mut(p.default_side).push(p.key.to_string());
         }
         // Navigation has nothing to list until pages arrive; it starts folded to its header so

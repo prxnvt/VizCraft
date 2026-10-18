@@ -2,6 +2,8 @@
 
 use super::Tab;
 
+mod layers;
+
 groups! {
     clipboard,
     font,

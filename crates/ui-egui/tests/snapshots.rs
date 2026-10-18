@@ -134,4 +134,18 @@ fn window_snapshots() {
     let mut h = window(true);
     run(&mut h, "ui.commands", json!({}));
     snap(&mut results, &mut h, "palette");
+
+    // The Layers pane: one layer hidden, one locked and tinted, shapes on both.
+    let mut h = window(false);
+    let ids: Vec<String> = h.state().session.doc.page().map(|p| p.shapes.iter().map(|s| s.id.clone()).collect()).unwrap_or_default();
+    run(&mut h, "layer.add", json!({"name": "Notes"}));
+    run(&mut h, "layer.add", json!({"name": "Process"}));
+    run(&mut h, "layer.assign", json!({"ids": ids.get(..1), "layer": "Notes"}));
+    run(&mut h, "layer.assign", json!({"ids": ids.get(1..3), "layer": "Process"}));
+    run(&mut h, "layer.set", json!({"layer": "Notes", "visible": false}));
+    run(&mut h, "layer.set", json!({"layer": "Process", "locked": true, "color": "#c4452f"}));
+    run(&mut h, "ui.pane", json!({"name": "history", "value": false}));
+    run(&mut h, "ui.pane", json!({"name": "properties", "value": false}));
+    run(&mut h, "ui.pane", json!({"name": "layers", "value": true}));
+    snap(&mut results, &mut h, "pane-layers");
 }
