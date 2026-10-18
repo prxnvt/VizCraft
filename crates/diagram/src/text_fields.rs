@@ -273,8 +273,8 @@ fn value(f: &Field, shape: &Shape, ctx: &FieldCtx<'_>) -> String {
     }
 }
 
-/// A shape's data value for `key`: the property of the model element it draws, else its own
-/// `ext["vizcraft.data.<key>"]`. `None` when neither has the key.
+/// A shape's data value for `key`: the property of the model element it draws, else its Shape Data
+/// row, else its own `ext["vizcraft.data.<key>"]`. `None` when none has the key.
 pub fn data_value(doc: &Document, shape: &Shape, key: &str) -> Option<String> {
     use vizcraft_model::PropValue;
     let from_element = shape.element.as_deref().and_then(|e| doc.model.element(e)).and_then(|e| e.properties.get(key)).map(|v| match v {
@@ -282,7 +282,10 @@ pub fn data_value(doc: &Document, shape: &Shape, key: &str) -> Option<String> {
         PropValue::Number(n) => number(*n),
         PropValue::Text(t) => t.clone(),
     });
-    from_element.or_else(|| shape.ext.get(&format!("{DATA_EXT_PREFIX}{key}")).cloned())
+    // Then the shape's typed data rows (Shape Data), then data kept from other formats.
+    from_element
+        .or_else(|| shape.data.rows.iter().find(|r| r.key == key && !r.value.is_empty()).map(|r| r.value.clone()))
+        .or_else(|| shape.ext.get(&format!("{DATA_EXT_PREFIX}{key}")).cloned())
 }
 
 /// A number with at most two decimals and no trailing zeros.

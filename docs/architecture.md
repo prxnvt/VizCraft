@@ -124,7 +124,7 @@ PNG export) and kept raw while it is edited, so they never go stale (`diagram::t
 document's modified stamp), `{{pageName}}`, `{{pageNumber}}` and `{{pageCount}}` (foreground
 pages only), `{{title}}` (the title property, else the document title), `{{width}}` and
 `{{height}}` (the shape's size in the page units, drawing scale applied) and `{{data:key}}` (the
-property `key` of the element the shape draws, else the shape's `ext["vizcraft.data.<key>"]`;
+property `key` of the element the shape draws, else the shape's Shape Data row `key`, else its `ext["vizcraft.data.<key>"]`;
 empty when neither has it). Names are case sensitive; anything else in braces stays as typed. On
 a background page, page fields name the foreground page drawn over it. Case conversion skips
 placeholders.

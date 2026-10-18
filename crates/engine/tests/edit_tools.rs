@@ -338,3 +338,15 @@ fn pasted_callouts_aim_at_the_pasted_target() {
     let alone = ids(&s.run("edit.duplicate", &json!({})).unwrap(), "duplicated");
     assert_eq!(target_of(&s, &alone[0]).as_deref(), Some(t.as_str()));
 }
+
+#[test]
+fn data_fields_in_text_show_shape_data_rows() {
+    let mut s = blank();
+    let a = add(&mut s, "basic.rectangle", 0.0, "");
+    s.run("data.set", &json!({"ids": [a], "key": "tag", "value": "P-101"})).unwrap();
+    s.run("text.insertField", &json!({"ids": [a], "field": "data", "key": "tag"})).unwrap();
+    let doc = &s.doc;
+    let page = doc.page().unwrap();
+    let shape = page.shape(&a).unwrap();
+    assert_eq!(vizcraft_diagram::text_fields::data_value(doc, shape, "tag").as_deref(), Some("P-101"));
+}

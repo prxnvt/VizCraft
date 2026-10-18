@@ -8,7 +8,7 @@ use egui::{Align2, Painter, Pos2, Stroke};
 use vizcraft_diagram::container::{self as ct, Decor};
 use vizcraft_diagram::{Page, Shape};
 
-use super::text::{font_for, layout};
+use super::text::font_for;
 use super::{color, line_px, pos};
 use crate::canvas::Viewport2D;
 use crate::canvas::tess;
@@ -67,4 +67,15 @@ fn item(painter: &Painter, vp: &Viewport2D, d: &Decor) {
             painter.add(if a.abs() > 1e-4 { shape.with_angle_and_anchor(a, Align2::CENTER_CENTER) } else { shape });
         }
     }
+}
+
+/// A centred, wrapped single-style galley for headings and callout text.
+fn layout(painter: &Painter, text: &str, font: egui::FontId, colour: egui::Color32, italic: bool, wrap: f32) -> std::sync::Arc<egui::Galley> {
+    let mut job = egui::text::LayoutJob::single_section(
+        text.to_string(),
+        egui::TextFormat { font_id: font, color: colour, italics: italic, ..Default::default() },
+    );
+    job.wrap.max_width = wrap.max(1.0);
+    job.halign = egui::Align::Center;
+    painter.layout_job(job)
 }

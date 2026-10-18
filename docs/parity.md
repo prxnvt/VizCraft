@@ -63,9 +63,10 @@ When a feature lands, change its State in the same commit as the code. States:
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
 | Text in shapes | 1 | done | Double-click or the Text tool edits in place; `shape.setText`, `connector.setText` |
-| Font, size, colour, bold, italic | 1 | done | Home tab Font group and `shape.setStyle` |
-| Alignment and wrapping in the shape | 2 | planned | Horizontal and vertical alignment, margins |
-| Text blocks | 2 | planned | Free-standing text shapes |
+| Font, size, colour, bold, italic | 1 | done (B2 extends) | Home > Font with family, size steps, underline, strikethrough, case, highlight; `text.setFormat`, `text.grow`, `text.setCase`; families other than monospace draw in Inter on the canvas |
+| Alignment and wrapping in the shape | 2 | done (B2) | Home > Paragraph: alignment, justify, bullets, indent, direction, margins; `text.setParagraph`; vertical text not drawn in export yet |
+| Text blocks | 2 | done (B2) | Text Block tool and `text.setBlock`; text boxes on empty page (`shape.addTextBox`); the editor rotates with the shape |
+| Fields and symbols | 2 | done (B2) | `{{date}}`, `{{pageName}}`, `{{data:key}}` and others in shape text (`text.insertField`); Insert Symbol dialog (`text.insertSymbol`); header and footer use `{page}`-style fields (two syntaxes for now) |
 
 ## Pages
 
