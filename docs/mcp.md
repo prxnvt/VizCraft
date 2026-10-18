@@ -43,7 +43,7 @@ requests are out of scope until the transport gains a reader thread.
 
 | Backend | How it starts | What works |
 |---|---|---|
-| `Remote` (Cascade 1, built) | `vizcraft-cli mcp --connect 127.0.0.1:7990`, with the app started as `vizcraft --control 7990` | Everything. Each tool call becomes one or more requests on the app's [control channel](control-protocol.md), so the diagram changes live in the window |
+| `Remote` (Cascade 1, built) | `vizcraft-cli mcp --connect 127.0.0.1:7990`, with the app started as `vizcraft --control 7990` | Everything. Each tool call becomes one or more requests on the app's [control channel](control-protocol.md), so the diagram changes live in the window; every `engine.execute` it sends carries `origin: "mcp"`, so the app logs the transaction as an MCP call |
 | `Headless` (Cascade 3, built) | `vizcraft-cli mcp --headless`, or `vizcraft-cli mcp` with no flags when no app listens | An engine `Session` in the server's own process, starting with a blank document and no window. It answers `engine.execute`, `engine.commands` and the document part of `ui.inspect` (title, path, dirty, rev, selection, undo and redo, view, status, pages, a `diagram` page summary, and `headless: true`). Commands that would open a dialog return their request in the result's `warnings`. Window methods (`ui.click`, `ui.screenshot` and the other `ui.*` input, `app.quit`) and `ui.*` command ids are errors that say there is no window. `screenshot` renders a page offscreen instead (below) |
 
 `ADDR` is `HOST:PORT` or just `PORT`; only loopback addresses are accepted. `--headless` and

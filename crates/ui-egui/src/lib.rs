@@ -21,8 +21,8 @@ pub mod dialogs;
 pub mod dock;
 pub mod find_dialog;
 pub mod icons;
-pub mod insert_picker;
 pub mod info_page;
+pub mod insert_picker;
 pub mod keys;
 pub mod link_dialog;
 pub mod menus;
@@ -115,7 +115,12 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.pane.comments", "Show Comments", "", r#"{"value"?: bool}"#),
     ("ui.pane.panZoom", "Pan and Zoom Pane", "", r#"{"value"?: bool}"#),
     ("ui.pane.documentStencil", "Document Stencil", "", r#"{"value"?: bool}"#),
-    ("ui.paneSide", "Move Pane to Side", "", r#"{"name": "shapes|navigation|properties|history|layers|shapeData|comments|panZoom|documentStencil", "side": "left|right"}"#),
+    (
+        "ui.paneSide",
+        "Move Pane to Side",
+        "",
+        r#"{"name": "shapes|navigation|properties|history|layers|shapeData|comments|panZoom|documentStencil", "side": "left|right"}"#,
+    ),
     ("ui.collapsePanes", "Collapse Side Panes", "", r#"{"side": "left|right", "value"?: bool}"#),
     ("ui.panesReset", "Reset Panes", "", "{}"),
     ("ui.tree", "Model Tree", "", r#"{"mode"?: "model|context", "branch"?: "model|diagrams", "expand"?: [id], "collapse"?: [id], "reveal"?: id}"#),
