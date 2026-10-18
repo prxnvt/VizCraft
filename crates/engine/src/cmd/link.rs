@@ -17,7 +17,7 @@ const LOCATION: &str = "Insert > Links";
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("link.add", "Link", LOCATION, add)
-            .key("Mod+K")
+            .key("Mod+Shift+K")
             .params(r#"{"id"?: shape (default: the primary selection), "kind"?: "url"|"file"|"page"|"shape"|"element", "target"?: string, "label"?: string} -> {id, index, link}; a page target is a page id, name or index (stored as the id); without `target` the Link dialog opens in the app"#)
             .when(super::has_shapes),
         CommandSpec::new("link.set", "Edit Link", LOCATION, set)
