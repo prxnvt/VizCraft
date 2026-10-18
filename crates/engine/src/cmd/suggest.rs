@@ -30,7 +30,7 @@ pub fn specs() -> Vec<CommandSpec> {
             r#"{"query": string, "kinds"?: ["command"|"type"|"element"], "limit"?: n (default 50, at most 200)} -> {"hits": [{"kind", "id", "label", "detail", "rank", "page"?, "shape"?}]}; commands of the engine registry, element types of the packs in use, elements by name or tag"#,
         ),
         CommandSpec::new("insert.next", "Insert Next Step", "Insert > Quick Insert", insert_next)
-            .params(r#"{"id": shape id, "direction": "right|left|up|down", "type"?: element type or stencil, "relationship"?: relationship type, "text"?: string} -> {"shape", "element"?, "relationship"?, "connector", "legal"}; one step: a new shape one step away clear of overlaps, glued to the source by the pack's connector kind, rerouted and selected; no type: the first suggestion of suggest.next"#)
+            .params(r#"{"id": shape id, "direction": "right|left|up|down", "type"?: element type or stencil, "relationship"?: relationship type, "text"?: string, "x"?: n, "y"?: n} -> {"shape", "element"?, "relationship"?, "connector", "legal"}; one step: a new shape one step away clear of overlaps, glued to the source by the pack's connector kind, rerouted and selected; x and y centre it at that point instead; no type: the first suggestion of suggest.next"#)
             .when(has_shapes),
         CommandSpec::new("insert.connect", "Connect Shapes", "Insert > Quick Insert", insert_connect)
             .params(r#"{"from": shape id, "to": shape id, "relationship"?: relationship type} -> {"connector", "relationship"?, "legal"}; glued both ends; no relationship: the first choice of suggest.connect (an illegal pair still connects and the rule reports it)"#)
@@ -203,7 +203,13 @@ fn insert_next(s: &mut Session, v: &Value) -> CmdResult {
     let (w, h) = suggest::size_of(&choice.type_id)
         .ok_or_else(|| EngineError::Params(format!("`{}` has no master to draw it with", short(&choice.type_id))))?;
     let page = s.doc.page().ok_or_else(|| EngineError::Failed("the document has no page".into()))?;
-    let (x, y) = suggest::place(page, &source, w, h, dir).ok_or_else(|| EngineError::Params("the source shape is not on this page".into()))?;
+    // A drop point centres the shape there (the magic connector dropped on empty canvas);
+    // otherwise it goes one step away in `direction`.
+    let (x, y) = match (num(v, "x")?, num(v, "y")?) {
+        (Some(cx), Some(cy)) => (super::shape::coord((cx - w / 2.0).round()), super::shape::coord((cy - h / 2.0).round())),
+        (None, None) => suggest::place(page, &source, w, h, dir).ok_or_else(|| EngineError::Params("the source shape is not on this page".into()))?,
+        _ => return Err(EngineError::Params("give both `x` and `y` to drop the step at a point, or neither".into())),
+    };
     let source_element = page.shape(&source).and_then(|sh| sh.element.clone()).filter(|e| s.doc.model.element(e).is_some());
     let bound = source_element.is_some() && cat().element_type(&choice.type_id).is_some();
 
