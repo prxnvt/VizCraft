@@ -133,7 +133,7 @@ containers keep their members.
 | `container.fit`, `container.disband`, `container.selectContents` | `{container?}`; members stay on disband; a lane set selects its lanes' members |
 | `container.set` | `{container?, margins?, heading?, headingPosition?, headingStyle?, autoFit?, locked?, style?}` |
 | `container.drop` | `{ids?, dx?, dy?}` -> `{changes: [{id, container}]}`; membership as if the shapes moved by dx, dy |
-| `lane.addSet`, `lane.add`, `lane.remove`, `lane.move` | `{x, y, lanes?, orientation?, title?, id?}` -> `{id, lanes}`; `{set?, index?, title?, id?}`; `{lane?}`; `{lane?, index}` |
+| `lane.addSet`, `lane.add`, `lane.remove`, `lane.move` | `{x?, y?, lanes?, orientation?, title?, id?}` -> `{id, lanes}` (default: centred on the page); `{set?, index?, title?, id?}`; `{lane?}`; `{lane?, index}` |
 | `lane.addPhase`, `lane.flip` | `{set?, at, title?}`; `{set?}` -> `{set, orientation}` |
 | `callout.add`, `callout.set` | `{target?, text?, x?, y?, style?, id?}` -> `{id}`; `{callout?, target?, leader?, style?, side?}`; styles `box`, `plain`, `rounded`, `note`, `bubble` |
 

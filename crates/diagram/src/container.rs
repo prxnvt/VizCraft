@@ -749,7 +749,8 @@ pub fn leader_decor(page: &Page, s: &Shape) -> Vec<Decor> {
     vec![Decor::Line { points: vec![a, b], color, width: 1.25, dashed: false }, Decor::Fill { points: dot.collect(), color }]
 }
 
-/// Every callout leader on `page`, for drawing under the shapes.
+/// Every callout leader on `page` (drawers draw each one just before its callout, with
+/// [`leader_decor`]).
 pub fn page_leaders(page: &Page) -> Vec<Decor> {
     page.shapes.iter().filter(|s| is_callout(s) && page.shape_visible(s)).flat_map(|s| leader_decor(page, s)).collect()
 }

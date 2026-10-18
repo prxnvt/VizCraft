@@ -150,7 +150,7 @@ pub(super) fn finish(app: &mut CraftApp, drag: Drag, zoom: f32) {
                     || page.connector(id).is_some_and(|c| matches!(c.start, End::Free { .. }) || matches!(c.end, End::Free { .. }))
             });
             if movable && (d.x != 0.0 || d.y != 0.0) {
-                run(app, "shape.move", json!({"ids": ids, "dx": d.x, "dy": d.y}));
+                super::membership::commit_move(app, &ids, d);
             }
         }
         Drag::Resize { id, handle, to, keep_aspect } => {

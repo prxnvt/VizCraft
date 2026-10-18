@@ -221,7 +221,7 @@ pub fn insert_master(app: &mut CraftApp, stencil: &str, at: dg::Point) {
             y += 20.0;
         }
     }
-    let _ = app.run("shape.add", json!({"stencil": stencil, "x": x, "y": y}));
+    interact::membership::insert(app, stencil, x, y, m.w, m.h);
 }
 
 /// Where a click in the Shapes pane inserts: the centre of the visible part of the page, or the
@@ -301,6 +301,8 @@ fn paint(app: &mut CraftApp, ui: &Ui, vp: &Viewport2D, t: &Tokens) {
     for s in page.shapes.iter().filter(|s| dg::layer::visible(page, s)) {
         if s.bounds().intersects(&visible) {
             let s = dg::layer::tinted(page, s);
+            // A callout's leader just under the callout, over whatever it points across.
+            draw::containers::leader(&painter, vp, page, &s);
             draw::shape(&painter, vp, &s, &mut app.canvas.cache, editing.as_deref() != Some(s.id.as_str()));
         }
     }

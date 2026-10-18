@@ -243,3 +243,21 @@ fn containers_lanes_and_callouts_survive_save_and_load() {
     let back = crate::io::load_bytes("t.vizcraft", &bytes).unwrap();
     assert_eq!(back.page().unwrap().shapes, s.doc.page().unwrap().shapes);
 }
+
+#[test]
+fn svg_and_png_export_draw_bands_phases_and_leaders() {
+    let mut s = session();
+    s.run("container.add", &json!({"ids": ["a"], "id": "k", "style": "amber"})).unwrap();
+    s.run("lane.addSet", &json!({"x": 0, "y": 400, "lanes": 2, "id": "set"})).unwrap();
+    s.run("lane.addPhase", &json!({"set": "set", "at": 300, "title": "Second phase"})).unwrap();
+    s.run("callout.add", &json!({"target": "c", "id": "co"})).unwrap();
+    let svg = String::from_utf8(crate::io::export_page_bytes("t.svg", None, &s.doc, 0, 1.0).unwrap()).unwrap();
+    // The amber band, the dashed phase separator and its title, and the callout's leader.
+    assert!(svg.contains("<polygon") && svg.contains("fill=\"#f3dfb5\""), "band");
+    assert!(svg.contains("stroke-dasharray=\"5 4\""), "phase separator");
+    assert!(svg.contains(">Second phase</tspan>"), "phase title");
+    let co = svg.find("<g id=\"co\">").unwrap();
+    assert!(svg[..co].rfind("<polyline").is_some_and(|i| i > svg.find("<g id=\"c\">").unwrap()), "the leader is drawn just before the callout");
+    let png = crate::io::export_page_bytes("t.png", None, &s.doc, 0, 1.0).unwrap();
+    assert!(png.starts_with(b"\x89PNG"));
+}

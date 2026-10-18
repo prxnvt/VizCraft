@@ -29,6 +29,9 @@
 //!   where a filled head begins, and connectors with line jumps carry their hops as arcs), heads as filled or open paths, the label centred on a white box at the label
 //!   position. The box width is estimated from the character count, since there is no font
 //!   metrics source here.
+//! - **Containers and callouts.** A container's heading band or separator and a lane set's phase
+//!   band, separators and titles are drawn between the outline and the text, and a callout's leader
+//!   just before the callout, from the same `container::Decor` items the canvas draws.
 //! - **Numbers** have at most three decimals and never print as NaN or infinity.
 
 use std::fmt::Write as _;
@@ -192,6 +195,9 @@ impl Ctx {
 /// The visible shapes, then the connectors, of one page.
 fn page_items_svg(out: &mut String, cx: &mut Ctx, page: &Page) {
     for s in page.shapes.iter().filter(|s| page.shape_visible(s)) {
+        if vizcraft_diagram::container::is_callout(s) {
+            decor_svg(out, &vizcraft_diagram::container::leader_decor(page, s));
+        }
         shape_svg(out, cx, s);
     }
     for (c, g) in page.connectors.iter().zip(page_geometry(page)) {
@@ -240,10 +246,45 @@ fn shape_svg(out: &mut String, cx: &mut Ctx, s: &Shape) {
     if let Some(detail) = s.detail_world() {
         let _ = writeln!(out, "    <path d=\"{}\" fill=\"none\"{}/>", path_data(&detail), stroke(st));
     }
+    if s.container.is_some() {
+        decor_svg(out, &vizcraft_diagram::container::decor(s));
+    }
     if !s.text.trim().is_empty() {
         shape_text_svg(out, s);
     }
     out.push_str("  </g>\n");
+}
+
+/// Container and callout decorations (`container::Decor`): bands, separators, phase titles and
+/// leaders.
+fn decor_svg(out: &mut String, items: &[vizcraft_diagram::container::Decor]) {
+    use vizcraft_diagram::container::Decor;
+    for d in items {
+        match d {
+            Decor::Fill { points, color } if color.a > 0 && points.len() >= 3 => {
+                let pts: Vec<String> = points.iter().map(|p| format!("{},{}", num(p.x), num(p.y))).collect();
+                let _ = writeln!(out, "    <polygon points=\"{}\"{}/>", pts.join(" "), paint("fill", *color));
+            }
+            Decor::Line { points, color, width, dashed } if color.a > 0 && points.len() >= 2 => {
+                let pts: Vec<String> = points.iter().map(|p| format!("{},{}", num(p.x), num(p.y))).collect();
+                let dash = if *dashed { " stroke-dasharray=\"5 4\"" } else { "" };
+                let _ = writeln!(
+                    out,
+                    "    <polyline points=\"{}\" fill=\"none\"{} stroke-width=\"{}\"{dash}/>",
+                    pts.join(" "),
+                    paint("stroke", *color),
+                    num(*width)
+                );
+            }
+            Decor::Text { center, angle, text, size, color, bold, .. } if !text.trim().is_empty() => {
+                let st = Style { font_size: *size, font_color: *color, bold: *bold, ..Style::DEFAULT };
+                let transform =
+                    if *angle != 0.0 { format!(" transform=\"rotate({} {} {})\"", num(*angle), num(center.x), num(center.y)) } else { String::new() };
+                text_svg(out, std::slice::from_ref(text), center.x, center.y + size * 0.35, Anchor::Middle, &st, &transform);
+            }
+            _ => {}
+        }
+    }
 }
 
 fn connector_svg(out: &mut String, c: &Connector, g: &ConnectorGeometry) {

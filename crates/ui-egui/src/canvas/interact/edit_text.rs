@@ -65,7 +65,11 @@ pub(in crate::canvas) fn text_overlay(app: &mut CraftApp, ui: &mut Ui, vp: &View
     let Some(ed) = app.canvas.editing.as_ref() else { return };
     let (centre, width, style) = match &ed.target {
         Hit::Shape(id) => match page.shape(id) {
-            Some(s) => (s.center(), s.w as f32 * vp.zoom, s.style.clone()),
+            // Over the text block (a container's heading band), or the frame.
+            Some(s) => {
+                let (block, _) = s.text_rect();
+                (s.transform().apply(block.center()), block.width() as f32 * vp.zoom, s.style.clone())
+            }
             None => return,
         },
         Hit::Connector(id) => match page.connector(id) {

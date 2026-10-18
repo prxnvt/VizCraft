@@ -16,7 +16,7 @@ use crate::{CmdResult, CommandSpec, EngineError, Session, p};
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("lane.addSet", "Swimlanes", "Insert > Diagram Parts", add_set)
-            .params(r#"{"x": n, "y": n, "lanes"?: n (default 3, 1 to 64), "orientation"?: "horizontal"|"vertical", "title"?: string, "id"?: string} -> {"id", "lanes"}; x, y is the top-left; horizontal lanes are bands stacked top to bottom"#),
+            .params(r#"{"x"?: n, "y"?: n, "lanes"?: n (default 3, 1 to 64), "orientation"?: "horizontal"|"vertical", "title"?: string, "id"?: string} -> {"id", "lanes"}; x, y is the top-left (default: centred on the page); horizontal lanes are bands stacked top to bottom"#),
         CommandSpec::new("lane.add", "Add Lane", "Container > Swimlanes", add)
             .params(r#"{"set"?: string, "index"?: n, "title"?: string, "id"?: string} -> {"id", "index"}; at the end by default; the set grows"#)
             .when(has_sets),
@@ -72,8 +72,6 @@ fn ensure_open(s: &Session, set: &str) -> Result<(), EngineError> {
 }
 
 fn add_set(s: &mut Session, v: &Value) -> CmdResult {
-    let x = req_num(v, "x")?.clamp(-MAX_COORD, MAX_COORD);
-    let y = req_num(v, "y")?.clamp(-MAX_COORD, MAX_COORD);
     let n = num(v, "lanes")?.unwrap_or(3.0);
     if !(1.0..=ct::MAX_LANES as f64).contains(&n) || n.fract() != 0.0 {
         return Err(EngineError::Params(format!("`lanes` must be a whole number from 1 to {}", ct::MAX_LANES)));
@@ -84,6 +82,12 @@ fn add_set(s: &mut Session, v: &Value) -> CmdResult {
         Some(t) => return Err(EngineError::Params(format!("`orientation` must be horizontal or vertical, not `{}`", short(t)))),
     };
     let title = opt_str(v, "title")?.unwrap_or("Process").to_string();
+    // Without a place, centred on the page.
+    let (x, y) = (num(v, "x")?, num(v, "y")?);
+    let centre = s.doc.page().map(|p| p.rect().center()).unwrap_or(vizcraft_diagram::Point::ZERO);
+    let (w, h) = if vertical { (n * ct::LANE_THICKNESS, ct::LANE_LENGTH) } else { (ct::LANE_LENGTH, ct::SET_TITLE + n * ct::LANE_THICKNESS) };
+    let x = x.unwrap_or((centre.x - w / 2.0).round()).clamp(-MAX_COORD, MAX_COORD);
+    let y = y.unwrap_or((centre.y - h / 2.0).round()).clamp(-MAX_COORD, MAX_COORD);
     let id = super::new_id(s, v, "lanes")?;
     let set = ct::new_lane_set(id.clone(), x, y, vertical, &title);
     page_mut(s)?.shapes.push(set);

@@ -38,15 +38,17 @@ pub(super) fn layout(painter: &Painter, text: &str, font: egui::FontId, colour: 
     painter.layout_job(job)
 }
 
-/// Shape text: centred in the frame, wrapped to its width, rotated with the shape.
+/// Shape text: centred in its text block (the frame unless the shape has one), wrapped to the
+/// block's width, rotated with the shape and the block.
 pub(super) fn shape_text(painter: &Painter, vp: &Viewport2D, s: &Shape) {
     let st = &s.style;
     let Some(font) = font_for(st.font_size, st.bold, vp.zoom) else { return };
-    let wrap = ((s.w - 2.0 * TEXT_PAD).max(1.0) as f32) * vp.zoom;
+    let (block, block_angle) = s.text_rect();
+    let wrap = ((block.width() - 2.0 * TEXT_PAD).max(1.0) as f32) * vp.zoom;
     let galley = layout(painter, &s.text, font, color(st.font_color), st.italic, wrap);
-    let centre = vp.world_to_screen(pos(s.center()));
+    let centre = vp.world_to_screen(pos(s.transform().apply(block.center())));
     let at = centre - galley.rect.center().to_vec2();
-    let angle = (s.angle_deg as f32).to_radians();
+    let angle = ((s.angle_deg + block_angle) as f32).to_radians();
     let text = TextShape::new(at, galley, color(st.font_color));
     painter.add(if angle.abs() > 1e-4 { text.with_angle_and_anchor(angle, Align2::CENTER_CENTER) } else { text });
 }

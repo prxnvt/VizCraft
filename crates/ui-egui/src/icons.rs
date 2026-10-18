@@ -81,6 +81,21 @@ pub const NAMES: &[&str] = &[
     "noteNew",
     "noteDelete",
     "commands",
+    // Containers, swimlanes and callouts
+    "container",
+    "callout",
+    "swimlanes",
+    "headingPosition",
+    "headingStyle",
+    "fitContents",
+    "margins",
+    "autoFit",
+    "lock",
+    "disband",
+    "laneAdd",
+    "phase",
+    "flipLanes",
+    "leader",
     // Glyphs
     "plus",
     "minus",
@@ -598,6 +613,88 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
             pen.rect(3.0, 4.0, 17.0, 16.0, c);
             pen.line_c(&[(6.0, 8.0), (8.5, 10.0), (6.0, 12.0)], a);
             pen.line(&[(10.0, 12.0), (14.0, 12.0)]);
+        }
+        // Containers, swimlanes and callouts
+        "container" => {
+            pen.rect(2.5, 3.5, 17.5, 16.5, c);
+            pen.frect(3.0, 4.0, 17.0, 7.5, a);
+            pen.rect(5.5, 10.0, 9.5, 14.0, c);
+            pen.rect(11.5, 10.0, 15.5, 14.0, c);
+        }
+        "callout" => {
+            pen.rect(7.0, 3.0, 18.0, 11.0, c);
+            pen.lines(9.0, 16.0, &[6.0, 8.5]);
+            pen.line_c(&[(8.5, 11.0), (3.5, 16.5)], a);
+            pen.fcircle(3.5, 16.5, 1.4, a);
+        }
+        "swimlanes" => {
+            pen.rect(2.5, 3.5, 17.5, 16.5, c);
+            pen.line(&[(2.5, 7.8), (17.5, 7.8)]);
+            pen.line(&[(2.5, 12.2), (17.5, 12.2)]);
+            pen.frect(3.0, 4.0, 6.0, 16.0, a);
+        }
+        "headingPosition" => {
+            pen.rect(3.0, 3.5, 17.0, 16.5, c);
+            pen.frect(3.5, 4.0, 7.0, 16.0, a);
+            pen.line_c(&[(10.0, 10.0), (14.5, 10.0)], c);
+        }
+        "headingStyle" => {
+            pen.rect(3.0, 3.5, 17.0, 16.5, c);
+            pen.frect(3.5, 4.0, 16.5, 7.5, a);
+            pen.lines(5.5, 14.5, &[11.0, 13.5]);
+        }
+        "fitContents" => {
+            pen.rect(5.5, 5.5, 14.5, 14.5, c);
+            pen.line_c(&[(2.5, 5.0), (2.5, 2.5), (5.0, 2.5)], a);
+            pen.line_c(&[(15.0, 2.5), (17.5, 2.5), (17.5, 5.0)], a);
+            pen.line_c(&[(17.5, 15.0), (17.5, 17.5), (15.0, 17.5)], a);
+            pen.line_c(&[(5.0, 17.5), (2.5, 17.5), (2.5, 15.0)], a);
+        }
+        "margins" => {
+            pen.rect(3.0, 3.0, 17.0, 17.0, c);
+            pen.rect(7.0, 7.0, 13.0, 13.0, a);
+        }
+        "autoFit" => {
+            pen.rect(3.0, 3.0, 17.0, 17.0, c);
+            pen.line_c(&[(7.0, 10.0), (13.0, 10.0)], a);
+            pen.fill(&[(13.5, 7.5), (16.0, 10.0), (13.5, 12.5)], a);
+            pen.fill(&[(6.5, 7.5), (4.0, 10.0), (6.5, 12.5)], a);
+        }
+        "lock" => {
+            pen.rect(4.5, 9.0, 15.5, 17.0, c);
+            pen.arc(10.0, 9.0, 3.5, PI, PI, c);
+            pen.fcircle(10.0, 13.0, 1.3, a);
+        }
+        "disband" => {
+            pen.rect(5.0, 5.0, 15.0, 15.0, c);
+            pen.line_c(&[(2.5, 2.5), (6.0, 6.0)], a);
+            pen.line_c(&[(17.5, 2.5), (14.0, 6.0)], a);
+            pen.line_c(&[(17.5, 17.5), (14.0, 14.0)], a);
+            pen.line_c(&[(2.5, 17.5), (6.0, 14.0)], a);
+        }
+        "laneAdd" => {
+            pen.rect(2.5, 3.5, 17.5, 12.5, c);
+            pen.line(&[(2.5, 8.0), (17.5, 8.0)]);
+            pen.line_c(&[(10.0, 13.5), (10.0, 18.5)], a);
+            pen.line_c(&[(7.5, 16.0), (12.5, 16.0)], a);
+        }
+        "phase" => {
+            pen.rect(2.5, 3.5, 17.5, 16.5, c);
+            pen.line_c(&[(10.0, 3.5), (10.0, 6.0)], a);
+            pen.line_c(&[(10.0, 8.5), (10.0, 11.0)], a);
+            pen.line_c(&[(10.0, 13.5), (10.0, 16.5)], a);
+        }
+        "flipLanes" => {
+            pen.rect(2.5, 2.5, 9.0, 9.0, c);
+            pen.line(&[(2.5, 5.75), (9.0, 5.75)]);
+            pen.rect(11.0, 11.0, 17.5, 17.5, c);
+            pen.line(&[(14.25, 11.0), (14.25, 17.5)]);
+            pen.arc(10.0, 10.0, 6.0, -FRAC_PI_2 * 0.2, FRAC_PI_2 * 1.4, a);
+        }
+        "leader" => {
+            pen.rect(9.0, 3.0, 18.0, 9.0, c);
+            pen.line_c(&[(10.0, 9.0), (4.0, 16.0)], a);
+            pen.fcircle(4.0, 16.0, 1.6, a);
         }
         // Glyphs
         "plus" => {

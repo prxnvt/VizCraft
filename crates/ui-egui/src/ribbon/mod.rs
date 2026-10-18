@@ -4,7 +4,8 @@
 //! no egui code is needed for the common controls. Every control runs a command by id; its
 //! label, shortcut, location and enablement come from the registry (or `UI_COMMANDS`), so the
 //! ribbon never has behaviour of its own. [`tabs`] returns the tabs in Visio's order: Home,
-//! Insert, Design, Data, Process, Review, View, Developer, Help, then the contextual Connector tab.
+//! Insert, Design, Data, Process, Review, View, Developer, Help, then the contextual Connector,
+//! Container and Callout tabs.
 //!
 //! Rendering: the tab strip (active underline, hover, double-click collapses, `File` opens the
 //! File page through `ui.tab`), the body with groups separated by rules and labelled underneath,
@@ -34,7 +35,9 @@ macro_rules! groups {
 }
 
 // One directory per tab; their order in the strip is set by `tabs`.
+mod callout;
 mod connector;
+mod container;
 mod data;
 mod design;
 mod developer;
@@ -357,7 +360,8 @@ pub const LINE_WEIGHTS: &[f32] = &[0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0];
 pub const ARROWS: &[&str] = &["none", "triangle", "open", "diamond", "circle"];
 
 /// The tabs, in Visio's order: Home, Insert, Design, Data, Process, Review, View, Developer,
-/// Help, then the contextual Connector tab (shown while a connector is selected). Tabs with no
+/// Help, then the contextual Connector, Container and Callout tabs (shown while a connector, a
+/// container or lane, or a callout is selected). Tabs with no
 /// groups yet are left out, so they stay hidden until a group lands.
 pub fn tabs(_app: &CraftApp) -> Vec<Tab> {
     [
@@ -371,6 +375,8 @@ pub fn tabs(_app: &CraftApp) -> Vec<Tab> {
         developer::tab(),
         help::tab(),
         connector::tab(),
+        container::tab(),
+        callout::tab(),
     ]
     .into_iter()
     .filter(|t| !t.groups.is_empty())
