@@ -133,13 +133,14 @@ Returns one JSON object with everything a script needs to check its work without
 | `status` | the current status-bar message, or `null` |
 | `perf` | `{"frameMs": ...}`, how long the last layout took |
 | `tool` | the canvas tool: `pointer`, `connector` or `text` (set with `ui.tool`) |
+| `menu` | the open ribbon dropdown as `{"title", "rows": [{"label", "id", "enabled", "checked"}]}`, or `null` |
 | `diagram` | a compact summary of the page and the canvas, see below |
 
 `diagram` has these fields:
 
 | Field | Content |
 |---|---|
-| `page` | `{"id", "width", "height"}` of the page shown, or `null` |
+| `page` | `{"id", "width", "height", "board"}` of the page shown, or `null`; `board` is `infinite` or `fixed`, and on an infinite board `width` and `height` are the frame's (the drawing bounds plus a margin) |
 | `shapes`, `connectors` | how many of each are on the page |
 | `selected` | the selected shape and connector ids, in selection order |
 | `hover` | the id of the shape or connector under the pointer, or `null` |

@@ -66,7 +66,12 @@ versions can read older files.
   `isBackground`, `header`, `footer`, `guides`, `layers`); and the document (`properties`,
   `comments`, `images` with base64 `bytes`, capped at 16 MiB each, 48 MiB in all and 1024
   assets), plus `activePage` (the page id shown on open; a missing or unknown id opens the first
-  page).
+  page). Block 2C adds, still at version 4: page `board` (`"infinite"` or `"fixed"`; a page
+  without the key loads fixed, so older files keep their sheet, while new pages are infinite),
+  connector `kind` (a connector kind id such as `basic.dependency`, left out when empty, cut at
+  128 bytes), and eight more arrowhead names beside the first five (`hollowTriangle`,
+  `hollowDiamond`, `bar`, `openCircle`, `crowsFoot`, `crowsFootBar`, `crowsFootCircle`,
+  `barCircle`; unknown names still load as `none`).
 - **Read:** version 4; version 3 loads unchanged; version 2 and version 1 (the Cascade 0 placeholder: title and metadata
   only, which loads with that title and metadata and one blank page) load as free drawing with an
   empty model, ignoring any `model` key; a wrapper without a `version` (read as 1); and a bare
@@ -122,6 +127,9 @@ reads and writes names ending in `.drawio` or `.drawio.xml` as draw.io files, ev
 | `fillColor`, `strokeColor`, `fontColor` (`none` is transparent), `strokeWidth`, `fontSize`, `fontStyle` (1 bold, 2 italic; other bits kept in `ext`), `rotation` | the matching `Style` fields and `angle_deg` |
 | `edgeStyle=orthogonalEdgeStyle` or `elbowEdgeStyle` | orthogonal route; `curved=1` gives curved; anything else straight |
 | `startArrow`, `endArrow`: `block`, `classic` (and unknown names) triangle; `open`; `diamond`; `oval` circle; `none` | the matching `Arrow`; a missing `endArrow` is draw.io's default arrow |
+| `startArrow`, `endArrow` with `startFill=0` or `endFill=0`: `block`, `diamond`, `oval` | hollow triangle, hollow diamond, open circle |
+| `startArrow`, `endArrow`: `ERone`, `ERmany`, `ERoneToMany`, `ERzeroToMany`, `ERzeroToOne` | bar, crow's foot, crow's foot with bar, crow's foot with circle, bar with circle |
+| `vizcraftKind=<id>` on an edge | the connector's `kind` (the edge twin of `vizcraft=<id>`) |
 | `exitX`/`exitY`, `entryX`/`entryY` | point glue at the nearest connection point; without them dynamic glue |
 | `sourcePoint`, `targetPoint` | free ends |
 | `mxGeometry` points | `waypoints` |
@@ -131,7 +139,9 @@ reads and writes names ending in `.drawio` or `.drawio.xml` as draw.io files, ev
 | Other `mxGraphModel` attributes (grid, background) | kept in the page's `ext` (`drawio.model.<name>`) |
 
 - **Defaults:** a draw.io style that leaves a colour out gets draw.io's look (white fill, black
-  line, 12 pt black text); a shape with `vizcraft=<id>` gets that master's style instead.
+  line, 12 pt black text); a shape with `vizcraft=<id>` gets that master's style instead. An
+  imported page is a fixed board at the draw.io page size, so saving and reopening keeps it;
+  an infinite board is written at its frame size.
 - **Flattened, with a warning:** more than one layer (all land on the page); vertices inside
   other vertices (groups, containers, swimlanes) get absolute positions from their parents'
   offsets; group cells themselves draw nothing.

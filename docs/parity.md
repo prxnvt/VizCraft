@@ -29,6 +29,7 @@ When a feature lands, change its State in the same commit as the code. States:
 | Multiple windows | 0 | done (chrome) | One process, one window per document |
 | Side panes | 0 | done (chrome) | Left and right panes, resizable and reorderable; diagram panes are added per cascade |
 | Ribbon | 0 | done (chrome) | Tabs, groups, contextual tabs; diagram tabs are added per cascade |
+| Dropdowns show their current choice | 2C | done | Every ribbon menu, combo list and gallery with a current value marks it with a right-aligned check mark; `ui.inspect` lists the open menu's rows with `checked` |
 | Command palette | 0 | done (chrome) | Search over every command id and label |
 | Control channel | 0 | done (chrome) | JSON lines over localhost; see [docs/control-protocol.md](control-protocol.md) |
 
@@ -52,7 +53,8 @@ When a feature lands, change its State in the same commit as the code. States:
 | Straight, orthogonal and curved connectors | 1 | done | `connector.add`, `connector.setRoute` |
 | Dynamic glue | 1 | done | `connector.glue` naming only a shape; routing is derived from shape geometry |
 | Point glue | 1 | done | `connector.glue` with a connection point index |
-| Arrowheads | 1 | done | `connector.setArrows`: none, triangle, open, diamond, circle |
+| Arrowheads | 1 | done (13 ends in 2C) | `connector.setArrows`: none, triangle, open, diamond, circle, hollow triangle, hollow diamond, bar, open circle, crow's foot, crow's foot with bar, crow's foot with circle, bar with circle; one geometry table (`diagram::arrows`) draws them on the canvas, in SVG and in PDF |
+| Connector kinds | 2C | done | Named kinds declared by notation packs (`connectorTypes`: route, ends, dash, width, colour, jumps, optional relationship type); `connector.add {kind}`, `connector.setKind`, `connector.kinds`; a kind that names a relationship type wins over the connection table when binding; ribbon gallery in wave 2 |
 | Connector labels | 1 | done | `connector.setText` |
 | Waypoints | 2 | partly done (3) | Stored bends on connectors, set by routing and read from .drawio; dragging bends by hand is planned |
 | Line jumps | 2 | done (3) | Hops where connectors cross; `connector.setJumps`, Design tab |
@@ -74,7 +76,8 @@ When a feature lands, change its State in the same commit as the code. States:
 |---|---|---|---|
 | Multiple pages and page tabs | 2 | done (B2) | Active page edited on the canvas; page tab strip; `page.add`, `page.delete`, `page.duplicate`, `page.rename`, `page.move`, `page.setActive`, with `page.list`, `page.get`, `page.set` |
 | Background pages | 2 | done (B2) | `page.add {background}`, `page.setBackground`; drawn beneath the page on the canvas and in export, not selectable |
-| Page setup | 2 | done (B2) | `page.setup` (size, orientation, units, drawing scale, auto-size); Page Setup dialog; Design > Page Setup group |
+| Page setup | 2 | done (B2) | `page.setup` (size, orientation, units, drawing scale, auto-size, board); Page Setup dialog with a Board row; Design > Page Setup group |
+| Infinite board | 2C | done | `Page.board` is infinite for new pages and fixed for older files; `Page::frame()` (the drawing bounds plus a margin, or the sheet) is what the canvas, zoom to fit, rulers, exports, print and draw.io write use; no sheet, shadow or page breaks on an infinite board; `page.setup {board}`; ribbon Board menu in wave 2 |
 | Auto-size page to content | 2 | done (B2) | Page grows right and down after any change past the edge; `page.fitToDrawing {margin?}` |
 
 ## Layers
@@ -373,7 +376,8 @@ When a feature lands, change its State in the same commit as the code. States:
 | `command_list` | 1 | done | Every command id, label and params doc |
 | `command_run` | 1 | done | Run one command by id |
 | `command_batch` | 1 | done | Run several commands in order |
-| `doc_inspect` | 1 | done | Document and UI state as JSON; `page?` adds one page's summary (Cascade 3) |
+| `doc_inspect` | 1 | done | Document and UI state as JSON; `page?` adds one page's summary (Cascade 3); `detail?` replaces `pages` with the described pages (2C) |
+| `describe` and detail levels | 2C | done | `doc.describe`, `page.describe`, `shape.describe` with `detail` (`structure`, `layout`, `full`) and `format` (`json`, `text`); the `describe` tool, `command_list {brief}`, and page and shape resources that default to structure with `?detail=`; the sample document's structure is about 1 KB of JSON or 400 bytes of text |
 | `screenshot` | 1 | done | PNG of the window, or of one page rendered offscreen with `page?`, `window?`, `scale?` (Cascade 3) |
 | `open_xml` | 3 | done | Load a diagram from .drawio XML |
 | `open_mermaid` | 3 | done | Load a diagram from Mermaid text |
