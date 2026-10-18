@@ -15,6 +15,7 @@ use crate::page_fields::{DrawingScale, Guide, HeaderFooter, Layer, MAX_LAYERS, O
 use crate::serde_util::{is_default, lenient, lenient_vec, num};
 use crate::shape_fields::{Behavior, Hyperlink, ImageRef, Locks, TextBlock};
 use crate::style_fields::{Bullets, Dash, Glow, Gradient, HAlign, LineCap, Margins, Shadow, TextCase, TextDirection, VAlign};
+use crate::theme::DocTheme;
 use crate::{MAX_EXTENT, MAX_TEXT};
 use vizcraft_model::{Model, View};
 
@@ -1012,6 +1013,9 @@ pub struct Document {
     /// The image store shapes draw pictures from (see [`ImageAsset`] for the caps).
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub images: Vec<ImageAsset>,
+    /// The document theme and variant (see [`crate::theme`]); the default is no theme.
+    #[serde(skip_serializing_if = "is_default")]
+    pub theme: DocTheme,
 }
 
 /// The on-disk form; turned into a [`Document`] by fixing up anything a file got wrong.
@@ -1032,6 +1036,8 @@ struct DocumentRepr {
     comments: Vec<Comment>,
     #[serde(deserialize_with = "lenient_vec")]
     images: Vec<ImageAsset>,
+    #[serde(deserialize_with = "lenient")]
+    theme: DocTheme,
 }
 
 impl From<DocumentRepr> for Document {
@@ -1045,6 +1051,7 @@ impl From<DocumentRepr> for Document {
             properties: r.properties,
             comments: r.comments,
             images: r.images,
+            theme: r.theme,
         };
         // Pages only: the model is a separate section the caller sets afterwards, so checking view
         // references here would clear every one of them. The caller runs `sanitize` once the
@@ -1072,6 +1079,7 @@ impl Document {
             properties: DocProperties::default(),
             comments: Vec::new(),
             images: Vec::new(),
+            theme: DocTheme::default(),
         }
     }
     /// Make the document safe to work on: at least one page, every number in range, a sane model,
@@ -1093,6 +1101,7 @@ impl Document {
         self.properties.sanitize();
         sanitize_comments(&mut self.comments);
         sanitize_images(&mut self.images);
+        self.theme.sanitize();
         self.sanitize_doc_refs();
     }
     /// Clear references that name nothing: a background that is not another background page, a

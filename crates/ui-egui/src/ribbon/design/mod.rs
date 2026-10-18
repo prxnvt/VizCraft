@@ -1,8 +1,12 @@
-//! The Design tab: page layout and connector routing.
+//! The Design tab: themes and variants, page backgrounds and borders, page layout and connector
+//! routing.
 
 use super::Tab;
 
 groups! {
+    themes,
+    variants,
+    backgrounds,
     layout,
     connectors,
 }

@@ -281,6 +281,7 @@ fn paint(app: &mut CraftApp, ui: &Ui, vp: &Viewport2D, t: &Tokens) {
     let preview = app.canvas.drag.as_ref().and_then(|d| interact::preview_page(real, d, vp.zoom));
     let page = preview.as_ref().unwrap_or(real);
     draw::sheet(&painter, vp, page, t);
+    draw::shapes::background_pages(&painter, vp, &app.session.doc, 0, &mut app.canvas.cache);
     let visible = vp.visible_world_rect().inflate(4.0);
     let editing = app.canvas.editing.as_ref().map(|e| e.id().to_string());
     for s in &page.shapes {

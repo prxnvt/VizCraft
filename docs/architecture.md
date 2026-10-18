@@ -60,7 +60,7 @@ a command that needs one pushes `{"open": "<dialog>"}` to `session.ui_requests` 
 handles it.
 
 Command id prefixes: `file.*`, `edit.*`, `view.*`, `shape.*` (`crates/engine/src/cmd/shape.rs`),
-`connector.*` (`cmd/connector.rs`), `page.*` (`cmd/page.rs`), `layout.*` (`cmd/layout.rs`), `model.*`, `element.*`,
+`connector.*` (`cmd/connector.rs`), `page.*` (`cmd/page.rs`), `design.*` (`cmd/design.rs`), `layout.*` (`cmd/layout.rs`), `model.*`, `element.*`,
 `relationship.*`, `validate.*`, `notation.*` (`cmd/{model,element,relationship,validate,notation}.rs`), `script.*` (`cmd/script.rs`), `insert.*`, `format.*`, `window.*`, `help.*`, `ui.*` (UI layer), `app.*` (app-level: `app.quit`,
 `app.preferences`, `app.about`). `insert.*` and `format.*` are reserved; no engine
 command uses them yet.
@@ -74,7 +74,7 @@ must name existing items or nothing changes. Each document change is one undo st
 | `shape.delete` | `{ids?}`; connectors glued to a deleted shape keep a free end there, and go when both ends are deleted |
 | `shape.move` | `{ids?, dx, dy}` or `{id, x, y}` |
 | `shape.resize`, `shape.rotate` | `{id, x?, y?, w, h}`; `{ids?, angle}` (absolute degrees) |
-| `shape.setText`, `shape.setStyle` | `{id, text}`; `{ids?, fill?, line?, lineWidth?, fontSize?, fontColor?, bold?, italic?}` |
+| `shape.setText`, `shape.setStyle` | `{id, text}`; `{ids?, fill?, line?, lineWidth?, fontSize?, fontColor?, bold?, italic?, dash?, lineCap?, cornerRadius?, gradient?, fillTransparency?, lineTransparency?, shadow?, softEdges?, glow?}`; the effect keys are parsed in `cmd/effects.rs`, numbers clamped to the model's ranges, `gradient` `false`, `true`, `"linear"`, `"radial"` (built from each shape's fill) or `{kind?, angle?, stops}`, `shadow` and `glow` `false`, `true` or an object (`glow` also a radius); connectors take dash, line cap, rounding and line transparency only |
 | `connector.add` | `{from, to, route?, text?, startArrow?, endArrow?, id?}`, an end is `{shape, point?}` or `{x, y}` -> `{id}` |
 | `connector.glue` | `{id, end: "start" \| "end", shape?, point?, x?, y?}` |
 | `connector.setRoute`, `connector.setArrows`, `connector.setText` | `{ids?, route}`; `{ids?, start?, end?}`; `{id, text}` |
@@ -82,6 +82,40 @@ must name existing items or nothing changes. Each document change is one undo st
 | `edit.cut`, `edit.copy`, `edit.paste` | copy returns `{text}` holding a selection fragment `{"vizcraft": "clip", "shapes", "connectors"}`; paste takes `{text?}` and inserts it with fresh ids and the internal glue kept |
 | `connector.reroute`, `connector.setJumps` | `{ids?, avoid?}` (true: route around shapes and keep clear; false: clear bends); `{ids?, on}` |
 | `shape.search` | `{query, limit?}` -> `{masters: [{id, label, category, keywords, w, h, style}]}` (`style` is the draw.io style string) |
+
+Design commands (Block 2, `cmd/design.rs`). Each document change is one undo step; a page is
+named by id, name or zero-based index and defaults to the active page.
+
+| Command | Params |
+|---|---|
+| `design.themes` | `{}` -> `{current: {theme, variant}, themes: [{id, name, font, variants}], quickStyles}` (read only) |
+| `design.setTheme`, `design.setVariant` | `{theme: id \| "none", variant?}`; `{variant: 0..3}` -> `{theme, variant, restyled}` |
+| `design.applyQuickStyle` | `{style: 0..11, ids?}`: row `style / 4` is subtle, moderate or intense, column `style % 4` the accent |
+| `design.setBackground`, `design.setBorderTitle` | `{kind: "none" \| "solid" \| "gradient" \| "pattern", color?, page?}`; `{kind: "none" \| "frame" \| "banner" \| "margin", page?}` |
+| `design.setConnectorStyle` | `{style: "rightAngle" \| "straight" \| "curved", page?}`: every connector on the page takes the route, loses its stored bends, and only right-angle connectors keep `avoid` (re-routed) |
+
+Themes (`vizcraft_diagram::theme`): six built-in themes of our own, four variants each (fill,
+line, connector and text colours, a page background colour, four accents), a font and effect
+defaults (line width, corner radius, shadow, gradient). `Document::theme: DocTheme { id, variant }`
+names the active one (empty id: no theme). A theme never records what it set: changing theme
+moves each themed field (fill, line, text colour, line width, font, corner radius, shadow,
+gradient) that still equals the old theme's value for that item to the new theme's value
+(`theme::restyle`), so hand styling stays, as with conditional styles. "No theme" is the item's
+base style (a shape's master style), so a document made before themes restyles fully and choosing
+no theme again restores it. New shapes and connectors take the theme in
+`design::after_change`, which `Session::run` calls after `bind::sync` inside the command's undo
+step. Quick styles (`theme::quick_style`) are twelve presets from the active theme's accents; they
+are hand styling once applied.
+
+Backgrounds and borders (`vizcraft_diagram::decor`) live on a generated background page per
+decorated page: `is_background`, `ext["vizcraft.design.for"]` naming the page it decorates, and
+the chosen kinds and colour in `ext["vizcraft.design.background" | ".color" | ".border"]`. The
+page's previous background page, if any, moves under the generated one; removing both
+decorations removes the page and restores it. `decor::refresh` rebuilds the generated shapes from
+those settings, the page size, the theme and the titles (the title property, else the document
+title; the page name) and runs from `design::after_change` after every change, so title blocks
+follow renames and frames follow page size. Export and the canvas need nothing special: both draw
+the background chain.
 
 Interop and layout commands (Cascade 3). Each is one undo step; a page is named by id, name or
 zero-based index (`Document::find_page`).
@@ -244,7 +278,8 @@ Files are cut so that parallel work touches separate files:
 | `panes/layout.rs`, `panes/manager.rs` | `PaneLayout`; drawing of the sides, headers and splitters | |
 | `panes/<pane>.rs` | One file per pane with its `SPEC` | Pane: a file plus one line in `default_panes!` and a `ui.pane.<key>` row in `UI_COMMANDS` |
 | `canvas/mod.rs` | Viewport, `CanvasState`, pan and zoom, insertion, per-frame `show` | |
-| `canvas/draw/` | `mod.rs` conversions and sheet; `shapes.rs`, `text.rs`, `connectors.rs`, `overlays.rs` (selection chrome) | |
+| `canvas/draw/` | `mod.rs` conversions and sheet; `shapes.rs` (background pages, then per shape glow, shadow, solid or gradient fill with soft edges, dashed and capped outline, as SVG export draws them; gradients turn with a rotated shape), `text.rs`, `connectors.rs`, `overlays.rs` (selection chrome) | |
+| `canvas/tess.rs` | Ear-clipping triangulation, gradient meshes (linear cut into exact bands, radial subdivided), dash patterns, ring offsets and fading strips for blur, glow and soft edges | |
 | `canvas/interact/` | `mod.rs` `Drag` and pointer dispatch; `select.rs`, `drag.rs`, `connect.rs`, `tools.rs`, `edit_text.rs`, `keys.rs` | |
 
 A canvas drag previews in UI state and commits one command on release, so every drag is one undo
@@ -339,15 +374,15 @@ shape's frame centre.
 
 | Type | Holds |
 |---|---|
-| `Document` | `title`, `core: CoreProps` (author, timestamps, revision), `pages: Vec<Page>` (always at least one), `id_seq`, `model: vizcraft_model::Model` (not in the document's serde form; the native file writes it as its own section); `next_id(prefix)` hands out `s1`, `c2`, `e3`, `r4` and so on, never reused; pages, shapes, connectors, elements and relationships share one id space (`contains_id`); `properties: DocProperties` (title, author, subject, keywords, description), `comments: Vec<Comment>` (id, `anchor: CommentAnchor { page, shape? }`, author, time, text, `replies: Vec<Reply>`), `images: Vec<ImageAsset>` (id, `media_type` `image/...`, `bytes` as base64 on disk; 16 MiB each, 48 MiB in all, 1024 assets); `background_chain(index)` lists the background pages under a page, deepest first |
+| `Document` | `theme: DocTheme { id, variant }` (see Design commands), `title`, `core: CoreProps` (author, timestamps, revision), `pages: Vec<Page>` (always at least one), `id_seq`, `model: vizcraft_model::Model` (not in the document's serde form; the native file writes it as its own section); `next_id(prefix)` hands out `s1`, `c2`, `e3`, `r4` and so on, never reused; pages, shapes, connectors, elements and relationships share one id space (`contains_id`); `properties: DocProperties` (title, author, subject, keywords, description), `comments: Vec<Comment>` (id, `anchor: CommentAnchor { page, shape? }`, author, time, text, `replies: Vec<Reply>`), `images: Vec<ImageAsset>` (id, `media_type` `image/...`, `bytes` as base64 on disk; 16 MiB each, 48 MiB in all, 1024 assets); `background_chain(index)` lists the background pages under a page, deepest first |
 | `Page` | Id, name, width and height (the size; 1100 x 850 by default), `shapes` and `connectors` in z order, `ext`, `view: Option<View>` (the viewpoint the page shows; `None` for free drawing), `orientation`, `units`, `drawing_scale: DrawingScale { page, drawing, units }`, `auto_size`, `background: Option<String>` (another page with `is_background`), `is_background`, `header` and `footer: HeaderFooter { left, center, right }`, `guides: Vec<Guide { orientation, position }>`, `layers: Vec<Layer { id, name, visible, locked, print, snap, glue, color? }>`; `shape_visible` (not hidden, and on no layer or on a visible one) |
 | `Shape` | Id, `stencil` master id (`basic.rectangle`), `kind: ShapeKind` (16 outlines), frame `x, y, w, h`, `angle_deg`, text, `Style`, optional custom connection points (normalized; kinds default to top, right, bottom, left), `ext` (data from other formats kept for round trips), `element: Option<String>` (the model element it draws; `None` is free drawing), `layers` (page layer ids), `parent: Option<String>` (group or container on the same page; cycles are broken on load), `text_block: Option<TextBlock { dx, dy, w, h, angle_deg }>` (`None` is the frame; `text_rect()`), `links: Vec<Hyperlink { kind: url, file, page, shape or element, target, label }>`, `screen_tip`, `locks: Locks` (width, height, aspect, position, rotation, delete, select, text), `behavior: Behavior` (container, non-printing, hidden, no glue, no snap), `image: Option<ImageRef { asset, crop: CropRect }>` |
 | `Connector` | Id, `start` and `end` as `End::Glued { shape, point: Option<usize> }` (no point = dynamic glue) or `End::Free { x, y }`, `route` (`straight`, `orthogonal`, `curved`), arrowheads per end (`none`, `triangle`, `open`, `diamond`, `circle`), label text, `Style`, `waypoints` (stored bends), `avoid` (route around shapes), `jumps` (line jumps), `ext`, `relationship: Option<String>` (the model relationship it draws) |
 | `Style` | Fill, line colour and width, font size and colour, bold, italic; colours serialize as `#rrggbb`. Text: `font_family`, `underline`, `strikethrough`, `text_case`, `highlight`, `h_align`, `v_align`, `bullets`, `indent`, `text_direction`, `text_margins: Margins`. Line: `dash`, `line_cap`, `corner_radius` (`Path::rounded_corners`). Effects: `gradient: Option<Gradient { kind, angle_deg, stops }>`, `fill_transparency` and `line_transparency` (0 to 1; `effective_fill`, `effective_line`), `shadow: Option<Shadow { dx, dy, blur, color }>`, `soft_edges`, `glow: Option<Glow { radius, color }>`. A `const fn Style::basic` builds a style in constants |
 
-The richer fields live in `style_fields`, `shape_fields`, `page_fields` and `doc_fields`. They are
-data only: no command sets them yet, and the SVG and PNG exports draw the ones that make sense in
-a static image. Every one has a serde default and is left out of files when it has its default
+The richer fields live in `style_fields`, `shape_fields`, `page_fields` and `doc_fields`. The line
+and effect style fields are set by `shape.setStyle` and drawn on the canvas; the rest are data
+only so far. The SVG and PNG exports draw the ones that make sense in a static image. Every one has a serde default and is left out of files when it has its default
 value, so older files load unchanged; `sanitize` clamps their numbers, caps string and list
 lengths, and clears references that name nothing (unknown layers, parents, backgrounds, image
 assets and comment anchors).
@@ -461,7 +496,7 @@ New prefixes join the existing `file.*`, `edit.*`, `view.*`, `shape.*`, `connect
 | `page.*` | Add, delete, rename, reorder, page setup, background page (`page.list`, `page.get`, `page.set` are built) | `crates/engine/src/cmd/page.rs` |
 | `layer.*` | Add, delete, rename, flags, assign shapes | `crates/engine/src/cmd/layer.rs` |
 | `arrange.*` | Align, distribute, order, group, ungroup, flip, rotate, size and position | `crates/engine/src/cmd/arrange.rs` |
-| `design.*` | Themes, quick styles, page background, format painter | `crates/engine/src/cmd/design.rs` |
+| `design.*` | Format painter (themes, quick styles, backgrounds, borders and the connector style are built) | `crates/engine/src/cmd/design.rs` |
 | `data.*` | Shape data, data graphics, data import | `crates/engine/src/cmd/data.rs` |
 
 Every new command follows [Everything is a command](#everything-is-a-command): undoable when it

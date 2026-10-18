@@ -10,6 +10,8 @@
 //! - [`autoroute`]: connector routes that avoid shapes, with `vizcraft-routing`.
 //! - [`jumps`]: line jumps, and the page-level connector geometry that draws them.
 //! - [`views`]: shapes and connectors as views of `vizcraft-model` elements and relationships.
+//! - [`decor`]: page backgrounds and borders with title blocks, on generated background pages.
+//! - [`theme`]: the built-in document themes, their variants and quick styles.
 //! - [`style_fields`], [`shape_fields`], [`page_fields`], [`doc_fields`]: the richer style, shape,
 //!   page and document data (text layout, effects, links, locks, layers, comments, images).
 //!
@@ -19,6 +21,7 @@
 
 pub mod autolayout;
 pub mod autoroute;
+pub mod decor;
 pub mod doc_fields;
 pub mod geom;
 pub mod hit;
@@ -30,6 +33,7 @@ pub mod route;
 mod serde_util;
 pub mod shape_fields;
 pub mod style_fields;
+pub mod theme;
 pub mod views;
 
 pub use doc_fields::{Comment, CommentAnchor, DocProperties, ImageAsset, Reply};
