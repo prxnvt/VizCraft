@@ -118,7 +118,7 @@ Returns one JSON object with everything a script needs to check its work without
 
 | Field | Content |
 |---|---|
-| `ui` | the `UiState` as it would be persisted: `tab`, `ribbonCollapsed`, `dark`, `recent`, `author`, `panes`, `window`, `inWindowMenus` |
+| `ui` | the `UiState` as it would be persisted: `tab`, `ribbonCollapsed`, `dark`, `recent`, `author`, `panes`, `window`, `inWindowMenus`, `inspector`, `dock` |
 | `view` | the engine `ViewState`: `zoom`, `pan` (the world point at the canvas centre), `darkMode`, `navPane`, `propsPane` |
 | `selection` | the active selection: `primary`, `items` (ids), `range` |
 | `dialog` | the open dialog as `{"dialog": "<name>", ...its fields}`, or `null` |
@@ -132,7 +132,11 @@ Returns one JSON object with everything a script needs to check its work without
 | `undoLabel`, `redoLabel` | the label of the next undo or redo step, or `null` |
 | `status` | the current status-bar message, or `null` |
 | `perf` | `{"frameMs": ...}`, how long the last layout took |
-| `tool` | the canvas tool: `pointer`, `connector` or `text` (set with `ui.tool`) |
+| `tool` | the canvas tool: `pointer`, `connector` or `text` (set with `ui.tool`; `ui.tool {tool: "connector", kind}` also picks the connector kind) |
+| `tree` | the Model Tree pane: `mode` (`model` or `context`), `branch`, `expanded`, `collapsed`, `selected` (set with `ui.tree`) |
+| `palette` | the Palette pane: its query, groups and the rows shown (set with `ui.palette`) |
+| `inspector` | the Inspector pane: `open`, `mode` (`standard` or `expert`), `tab` (`properties` or `format`) (set with `ui.inspector`) |
+| `dock` | the bottom dock: `open`, `height`, `tab` (`problems`, `search`, `activity`, `tables`, `generate`) and the `rows` the tab shows (set with `ui.dock`; `ui.search` fills the Search tab) |
 | `menu` | the open ribbon dropdown as `{"title", "rows": [{"label", "id", "enabled", "checked"}]}`, or `null` |
 | `diagram` | a compact summary of the page and the canvas, see below |
 

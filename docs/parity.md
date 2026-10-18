@@ -42,10 +42,10 @@ When a feature lands, change its State in the same commit as the code. States:
 | Select, move, resize, rotate | 1 | done | Canvas handles (Shift keeps aspect, snaps rotation to 15 degrees), arrow-key nudge, and `shape.*` commands |
 | Compartments (sections inside a shape) | 2C | done | Paragraph, list and slot bands stacked under the main text; a slot owns child shapes that move with it and stay inside; each band adds left and right connection points that glue ends name as ports (`{shape, port: "attrs.left"}`); per-band in-place editing; SVG, PNG, PDF and draw.io; `compartment.add`, `compartment.set`, `compartment.remove`, `compartment.move`, and `text.*` with `compartment`; a pack's `ElementType.compartments` fills list rows from properties; Insert > Compartment in wave 2 |
 | Multi-select and marquee | 1 | done | Shift-click, marquee, `edit.select {ids, add?}`, `edit.selectAll` |
-| Shapes pane | 1 | done | Basic and Flowchart sets with drawn previews; click or drag to insert |
+| Palette pane | 4B | done (B3) | The Shapes pane rebuilt as the scoped palette: compact rows (a tile grid only for Drawing), the active pack's palette groups filtered by the page's viewpoint, a Connectors group of the pack's kinds plus the Basic ones, and a Drawing group of primitives; click or drag to insert; `ui.palette {query?, group?, viewpointFilter?}`; `vizcraft_stencils::sets()` rebuilds when a pack is loaded at run time |
 | Basic and Flowchart stencils | 1 | done | Original shapes defined in code (`vizcraft-stencils`), inserted with `shape.add` |
 | Connection points | 1 | done | Four per built-in shape; shown on hover, connectors drag from and glue to them |
-| Stencil search | 3 | done | Search field in the Shapes pane ranks masters by exact name, word prefix, keyword and substring; `ui.shapesSearch` sets it by id |
+| Stencil search | 3 | done | Search field in the Palette ranks types, connector kinds and Drawing masters by exact name, word prefix, keyword and substring; `ui.shapesSearch` sets it by id |
 | Custom stencils | Future | planned | Plugin stencil sets loaded from files |
 
 ## Connectors and glue
@@ -144,7 +144,7 @@ When a feature lands, change its State in the same commit as the code. States:
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| Shape data | 2 | done (B2) | Typed rows on shapes (string, number, bool, date, enum, url; unit, required, default); page data keys shapes opt in to (stored in page `ext` for now); element properties shown read-only; `data.*`; Shape Data pane, Define Shape Data dialog, Data tab Show/Hide |
+| Shape data | 2 | done (B2) | Typed rows on shapes (string, number, bool, date, enum, url; unit, required, default); page data keys shapes opt in to (stored in page `ext` for now); element properties shown read-only; `data.*`; Inspector pane (B3, was Shape Data), Define Shape Data dialog, Data tab Show/Hide |
 | Data graphics | 8 | planned | Callouts, icon sets, colour by value |
 | Import from CSV | 3 | done | draw.io-style CSV; org charts from CSV in Cascade 4 |
 
@@ -196,24 +196,24 @@ When a feature lands, change its State in the same commit as the code. States:
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| Model tree pane | 4B | planned | Default left tab; containment tree with views per element and a Diagrams branch |
-| Model tree Context mode | 4B | planned | Follows the canvas selection |
-| Scoped Palette pane | 4B | planned | Replaces the full-height tile grid; filtered by the active notation and viewpoint |
+| Model tree pane | 4B | done (B3) | Default left tab (pane key `navigation`): Model branch (containment tree from `model.tree`, roots grouped by type, each row with name, tag and pages) and Diagrams branch (every page with its shapes and connectors, the Drawing Explorer); click selects and switches page, double-click renames, drag re-owns through `model.move`, row menu for Show in All Views, Delete from View and Delete from Model; rows virtualised; `ui.tree {mode?, branch?, expand?, collapse?, reveal?}` |
+| Model tree Context mode | 4B | done (B3) | Expands to and highlights the selection's elements and filters the Model branch to owners and neighbours; relationships are not rows yet |
+| Scoped Palette pane | 4B | done (B3) | See Palette pane above; with no view every pack's groups appear collapsed under the pack name |
 | Patterns tab | 5A | planned | Pattern library filtered by audience and notation, with parameter forms |
-| Typed Inspector | 4B | planned | Grows the Shape Data pane; Standard and Expert modes; relationships list; appears in N views; Format tab |
-| Problems tab | 4B | planned | Validation issues; click to navigate |
+| Typed Inspector | 4B | done (B3) | The Shape Data pane grown into the Inspector (pane key `shapeData`): Identity (name, tag with a live `element.checkTag`), Properties typed by the element schema, shape data rows and page keys, Relationships, Views, Shape and Document properties sections; Standard and Expert modes (`ui.inspector {mode?, tab?}`); Format tab over `shape.setStyle` and `text.setFormat`; `inspector.get {id}` assembles the same report for agents; the Properties pane became the Document section |
+| Problems tab | 4B | done (B3) | Bottom dock tab: live issues merged with the last `validate.run` by key, severity and text filters, click selects on the page, Explain, Suppress and one button per `Issue.fixes` entry, toolbar with Check, Rules, Live Checking, Next and Previous; Check from the ribbon opens it; `ui.dock {open?, tab?, height?}` |
 | Tables tab | 5B | planned | Model-derived lists and matrices, edited in place |
-| Search results tab | 4B | planned | Bottom dock |
+| Search results tab | 4B | done (B3) | Dock tab over `edit.find` with Page or Document scope; click selects; `ui.search {query, scope?}` |
 | Generate tab | 5B | planned | Scaffold preview diff and run log |
-| Agent activity view | 4B | planned | Each agent batch as one undoable transaction |
+| Agent activity view | 4B | done (B3) | Activity dock tab lists `Session::transactions()` newest first with origin badge and command ids, and "Undo to before this" |
 | Hover suggest-and-connect | 4B | planned | Clone and connect, suggesting only legal next element types |
 | Double-click insert picker | 4B | planned | Type to insert on empty canvas |
 | Keyboard chaining | 4B | planned | Alt+Shift+Arrow adds a connected element |
 | Magic connector | 4B | planned | Offers only legal relationship types |
 | Command palette over the model | 4B | planned | Cmd/Ctrl+K over commands, element types, patterns and elements by name or tag |
-| Notation ribbon tabs | 4B | planned | Contextual tab per active notation, plus Model, Validate and Generate tabs |
-| New from notation | 4B | planned | Backstage grouped by audience |
-| Drill-down breadcrumbs | 4B | planned | Navigation between parent and child views |
+| Notation ribbon tabs | 4B | partly done (B3) | One contextual tab per active pack (Insert menus per palette group, Viewpoint menu, Check) and a Model tab; Validate and Generate tabs wait for Cascade 5B |
+| New from notation | 4B | done (B3) | Backstage New page lists packs by audience; choosing one runs `file.new` then `model.setViewpoint` |
+| Drill-down breadcrumbs | 4B | done (B3) | Path bar above the canvas (document, page, owner element for `<element id>/<viewpoint>` views); click switches pages |
 
 ## Validation and identity
 
@@ -221,7 +221,7 @@ When a feature lands, change its State in the same commit as the code. States:
 |---|---|---|---|
 | Identity registry | 4A | done | Project-wide tags and reference designations |
 | Auto-numbering | 4A | done | Loop numbers, line numbers and designations handed out by the registry |
-| Uniqueness checks | 4A | partly done (4A) | Duplicate tags raise a live issue (built); the Inspector check as you type is Cascade 4B |
+| Uniqueness checks | 4A | partly done (4A) | Duplicate tags raise a live issue; the Inspector checks a tag as you type through `element.checkTag {id, tag}` (B3) |
 | Composed identifiers | 4A | done | Identifier formats declared by the pack (for example `{letters}-{n:3}`), composed and auto-numbered by the registry |
 | ISA-5.1 tags and composed line numbers | 6 | planned | Configurable formats in the P&ID pack, not hardcoded letter tables |
 | IEC 81346 reference designations | 7 | planned | Electrical pack |
@@ -234,7 +234,7 @@ When a feature lands, change its State in the same commit as the code. States:
 | Drawing rules | 2C | done | The `drawing` pack, no glyphs: connector crosses shape (batch), unglued end, overlapping shapes, off the board, text overflow, each with a fix where one exists |
 | Reasoner | 2C | done | A fact index per run: type hierarchy (`extends`), transitive containment, inverse relationships (`inverseOf`), reachability; type lists in checks match subtypes |
 | Rule vocabulary | 2C | done | Added `forbiddenCycle`, `requiredPath`, `connected`, `containment`, `portDirection`, `portFanIn`, `uniqueProperty`, `propertyCompare`, `nameFormat` and the drawing checks to the twelve of 4A |
-| Fixes on issues | 2C | done | `Issue.fixes: [{label, command, params}]` (at most four); the Problems tab (Block 3) and agents run them |
+| Fixes on issues | 2C | done | `Issue.fixes: [{label, command, params}]` (at most four); the Problems tab and agents run them |
 | Packs from disk | 2C | done | `notation.load {path}`, the `packs` folder beside the preferences file (scanned at app start), `VIZCRAFT_PACKS_DIR` for headless runs; pack test cases under `tests/<pack>/` run by `vizcraft-cli validate` and the notation tests |
 | Issue navigation | 2C | done | `validate.next`, `validate.previous` select the issue's items on their page; ribbon buttons in wave 2 |
 | Statechart checks | 6 | planned | Unreachable states, dead ends, unknown events |
