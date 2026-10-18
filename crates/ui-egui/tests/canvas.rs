@@ -404,3 +404,41 @@ fn hostile_view_state_never_panics() {
         click(&mut h, p, Modifiers::NONE);
     }
 }
+
+/// Whether the whole current page is inside the canvas in the last frame.
+fn page_in_view(h: &Harness<'_, CraftApp>) -> bool {
+    let page = h.state().session.doc.page().unwrap().rect();
+    let canvas = h.state().canvas.rect.unwrap();
+    canvas.contains(screen(h, Point::new(page.x0, page.y0))) && canvas.contains(screen(h, Point::new(page.x1, page.y1)))
+}
+
+#[test]
+fn a_replacing_import_is_fitted_to_the_canvas() {
+    let mut h = harness();
+    // A long left-to-right chain lays out far wider than the canvas shows at 100%.
+    let chain: Vec<String> = (1..=14).map(|i| format!("N{i}")).collect();
+    let text = format!("flowchart LR\n{}\n", chain.join(" --> "));
+    let import = json!({"text": text, "format": "mermaid", "replace": true});
+    h.state_mut().run("file.import", import.clone()).unwrap();
+    h.run_steps(2);
+    let canvas = h.state().canvas.rect.unwrap();
+    assert!(h.state().session.doc.page().unwrap().width as f32 > canvas.width(), "the import is wider than the canvas");
+    assert!(page_in_view(&h), "fitted after the import, zoom {}", h.state().session.view.zoom);
+
+    // A caller that sets the view itself opts out; Fit to Window brings the page back by key.
+    h.state_mut().run("view.zoom100", json!({})).unwrap();
+    let mut no_fit = import.clone();
+    no_fit["fit"] = json!(false);
+    h.state_mut().run("file.import", no_fit).unwrap();
+    h.run_steps(2);
+    assert_eq!(h.state().session.view.zoom, 1.0);
+    assert!(!page_in_view(&h));
+    key(&mut h, Key::H, Modifiers::COMMAND | Modifiers::SHIFT);
+    assert!(page_in_view(&h), "Fit to Window by key, zoom {}", h.state().session.view.zoom);
+
+    // An import that adds to the page leaves the zoom alone.
+    h.state_mut().run("view.zoom100", json!({})).unwrap();
+    h.state_mut().run("file.import", json!({"text": "flowchart LR\nX --> Y\n", "format": "mermaid"})).unwrap();
+    h.run_steps(2);
+    assert_eq!(h.state().session.view.zoom, 1.0);
+}

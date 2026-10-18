@@ -30,6 +30,7 @@ pub const NAMES: &[&str] = &[
     "zoomIn",
     "zoomOut",
     "zoomFit",
+    "zoomActual",
     "panelLeft",
     "panelRight",
     "dark",
@@ -279,6 +280,14 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
             pen.line_c(&[(5.5, 8.5), (5.5, 5.5), (8.5, 5.5)], a);
             pen.line_c(&[(11.5, 11.5), (14.5, 14.5)], a);
             pen.line_c(&[(14.5, 11.5), (14.5, 14.5), (11.5, 14.5)], a);
+        }
+        "zoomActual" => {
+            // A magnifier reading one to one: two bars with a colon between them.
+            pen.magnifier(a);
+            pen.line(&[(6.5, 6.5), (6.5, 10.5)]);
+            pen.line(&[(10.5, 6.5), (10.5, 10.5)]);
+            pen.line_c(&[(8.5, 7.3), (8.5, 7.7)], a);
+            pen.line_c(&[(8.5, 9.3), (8.5, 9.7)], a);
         }
         "panelLeft" => {
             pen.rect(3.0, 3.5, 17.0, 16.5, c);

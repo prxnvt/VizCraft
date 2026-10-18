@@ -81,6 +81,11 @@ A method name that is a command id (engine or `ui.*`) runs that command with `pa
 params, so `{"method": "edit.undo"}` is the short form of `engine.execute`. Any other name is
 `unknown method`, never a silent no-op.
 
+Commands run through the app's `CraftApp::run`, so they behave as they do from a menu: after a
+successful `file.open`, or a `file.import` with `replace: true`, the app runs `view.zoomFit` when
+the canvas cuts the page off at the current zoom (the MCP `open_*` tools get this too). A caller
+that sets the view itself passes `"fit": false` in the command's params to skip it.
+
 Every param reader tolerates junk: a wrong type is treated as missing (and reported when the
 param is required), numbers are clamped, nothing panics. The UI tests feed every method hostile
 params to keep it that way.

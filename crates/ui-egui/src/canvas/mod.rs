@@ -99,6 +99,8 @@ pub struct CanvasState {
     pub hover_shape: Option<String>,
     /// The view has been centred on the page once.
     centered: bool,
+    /// A diagram was opened before the canvas was laid out; fit it once the size is known.
+    pub(crate) fit_pending: bool,
     cache: draw::FillCache,
 }
 
@@ -235,12 +237,19 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let (rect, response) = ui.allocate_exact_size(ui.available_size(), egui::Sense::click_and_drag());
     app.canvas.rect = Some(rect);
+    if rect.width() > 1.0 && rect.height() > 1.0 {
+        // Only a real size: a fit into a collapsed canvas would drop to the smallest zoom.
+        app.session.view.canvas = Some([rect.width(), rect.height()]);
+    }
     if !app.canvas.centered && rect.width() > 1.0 && rect.height() > 1.0 {
         app.canvas.centered = true;
         if app.session.view.pan == [0.0, 0.0]
             && let Some(page) = app.session.doc.page()
         {
             app.session.view.pan = initial_pan(page, rect.size(), app.session.view.zoom);
+        }
+        if std::mem::take(&mut app.canvas.fit_pending) {
+            app.fit_if_cut_off();
         }
     }
     handle_pan_and_zoom(ui, &response, &mut app.session.view.pan, &mut app.session.view.zoom);

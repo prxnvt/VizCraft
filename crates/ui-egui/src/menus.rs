@@ -107,6 +107,7 @@ pub fn menu_tree(app: &CraftApp) -> Vec<Menu> {
         Item::Cmd("Zoom In", "view.zoomIn", json!({})),
         Item::Cmd("Zoom Out", "view.zoomOut", json!({})),
         Item::Cmd("Actual Size", "view.zoom100", json!({})),
+        Item::Cmd("Fit to Window", "view.zoomFit", json!({})),
         Item::Cmd("Zoom...", "view.zoom", json!({})),
         Item::Cmd("Reset Pan", "view.resetPan", json!({})),
         Item::Sep,

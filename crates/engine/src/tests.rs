@@ -94,10 +94,13 @@ fn hostile_params_never_panic() {
             // fall back to the selection run their bodies too.
             for select_all in [false, true] {
                 let mut s = s();
+                // A canvas size, as the UI reports one, so commands that need it run their bodies.
+                s.view.canvas = Some([800.0, 600.0]);
                 if select_all {
                     run(&mut s, "edit.selectAll", json!({}));
                 }
                 let _ = s.run(spec.id, j);
+                assert!(s.view.zoom.is_finite() && s.view.pan.iter().all(|v| v.is_finite()), "{}: {j}", spec.id);
                 let page = s.doc.page().unwrap();
                 for sh in &page.shapes {
                     assert!(sh.x.is_finite() && sh.y.is_finite() && sh.w.is_finite() && sh.h.is_finite(), "{}: {j}", spec.id);
@@ -171,6 +174,45 @@ fn view_commands_are_not_undo_steps() {
     assert!(s.run("view.zoom", &json!({"value": "big"})).is_err());
     run(&mut s, "view.zoom", json!({}));
     assert_eq!(s.ui_requests.pop(), Some(json!({"open": "zoom"})));
+}
+
+#[test]
+fn zoom_fit_shows_the_whole_page_or_drawing() {
+    let mut s = s();
+    // Without a canvas there is nothing to fit into: disabled, and the view is untouched.
+    assert!(matches!(s.run("view.zoomFit", &json!({})), Err(EngineError::Disabled(_))));
+    assert_eq!(s.view.zoom, 1.0);
+    // A page as wide as a laid-out Mermaid import, in a canvas that cuts it off at 100%.
+    s.doc.page_mut().unwrap().width = 1470.0;
+    s.view.canvas = Some([1000.0, 700.0]);
+    let r = run(&mut s, "view.zoomFit", json!({}));
+    let page = s.doc.page().unwrap().rect();
+    let m = cmd::view::FIT_MARGIN;
+    let (zoom, pan) = (s.view.zoom, s.view.pan);
+    assert_eq!(r["zoom"], json!(zoom));
+    assert!(page.width() as f32 * zoom <= 1000.0 - 2.0 * m && page.height() as f32 * zoom <= 700.0 - 2.0 * m, "{zoom}");
+    assert!(page.width() as f32 * (zoom + 0.02) > 1000.0 - 2.0 * m, "fits snugly: {zoom}");
+    assert_eq!(pan, [page.center().x as f32, page.center().y as f32]);
+    assert!(!s.can_undo() && !s.dirty);
+    // The drawing only: centred on the shapes, closer in than the whole page.
+    run(&mut s, "view.zoomFit", json!({"page": false}));
+    assert!(s.view.zoom > zoom);
+    assert_ne!(s.view.pan, pan);
+    // Limits: a huge page stops at the smallest zoom, a tiny drawing at the largest, and a
+    // canvas squeezed to nothing, or not a number, still leaves a finite view.
+    s.doc.page_mut().unwrap().width = 1e9;
+    run(&mut s, "view.zoomFit", json!({}));
+    assert_eq!(s.view.zoom, cmd::view::MIN_ZOOM / 100.0);
+    s.doc.page_mut().unwrap().shapes.truncate(1);
+    s.doc.page_mut().unwrap().connectors.clear();
+    s.view.canvas = Some([1e6, 1e6]);
+    run(&mut s, "view.zoomFit", json!({"page": false}));
+    assert_eq!(s.view.zoom, cmd::view::MAX_ZOOM / 100.0);
+    for canvas in [[0.0, 0.0], [f32::NAN, 10.0], [f32::INFINITY, f32::INFINITY], [-5.0, 1e9]] {
+        s.view.canvas = Some(canvas);
+        run(&mut s, "view.zoomFit", json!({}));
+        assert!(s.view.zoom.is_finite() && s.view.pan.iter().all(|v| v.is_finite()), "{canvas:?}");
+    }
 }
 
 #[test]
