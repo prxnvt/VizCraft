@@ -44,6 +44,8 @@ pub enum Dialog {
     PageSetup(crate::page_setup::PageSetup),
     /// Snap and Glue: what dragged items snap to, and how strongly.
     SnapSettings(crate::snap_dialog::State),
+    /// Insert Symbol (`crate::symbol_dialog`).
+    Symbol(crate::symbol_dialog::State),
 }
 
 impl Dialog {
@@ -59,6 +61,7 @@ impl Dialog {
             Dialog::Message { .. } => "message",
             Dialog::PageSetup(_) => "pageSetup",
             Dialog::SnapSettings(_) => "snapSettings",
+            Dialog::Symbol(_) => "symbol",
         }
     }
 
@@ -74,6 +77,7 @@ impl Dialog {
             "shortcuts" => Dialog::Shortcuts { filter: String::new() },
             "pageSetup" => Dialog::PageSetup(crate::page_setup::PageSetup::new(app)),
             "snapSettings" => Dialog::SnapSettings(crate::snap_dialog::open(app)),
+            "symbol" => Dialog::Symbol(crate::symbol_dialog::State::default()),
             _ => return None,
         })
     }
@@ -89,6 +93,7 @@ impl Dialog {
             Dialog::Message { title, .. } => title.clone(),
             Dialog::PageSetup(_) => "Page Setup".into(),
             Dialog::SnapSettings(_) => "Snap and Glue".into(),
+            Dialog::Symbol(_) => "Symbol".into(),
         }
     }
 
@@ -97,6 +102,7 @@ impl Dialog {
             Dialog::Commands { .. } => 520.0,
             Dialog::Shortcuts { .. } => 460.0,
             Dialog::About => 400.0,
+            Dialog::Symbol(_) => 400.0,
             _ => 360.0,
         }
     }
@@ -278,6 +284,7 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
             ok || cancel
         }
         Dialog::Commands { query, selected } => palette(app, ui, query, selected, keys),
+        Dialog::Symbol(s) => crate::symbol_dialog::body(app, ui, s),
         Dialog::SnapSettings(s) => {
             crate::snap_dialog::body(ui, s);
             let (ok, cancel) = buttons(ui, "OK", Some("Cancel"), keys);

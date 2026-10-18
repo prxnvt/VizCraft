@@ -32,8 +32,11 @@ fn harness_at(width: f32, tab: &str) -> Harness {
     h
 }
 
+/// The app's default window width, at which the Home tab fits without scrolling.
+const DEFAULT_W: f32 = 1440.0;
+
 fn harness() -> Harness {
-    harness_at(1200.0, "Home")
+    harness_at(DEFAULT_W, "Home")
 }
 
 #[test]
@@ -346,7 +349,7 @@ fn a_narrow_window_scrolls_the_groups_with_arrows() {
     h.run_steps(3);
     assert!(Overflow::get(&h.ctx).offset < 0.5);
     // A wide window shows no arrows.
-    let h = harness_at(1200.0, "Home");
+    let h = harness_at(DEFAULT_W, "Home");
     assert!(!Overflow::get(&h.ctx).overflows());
     assert!(h.query_by_label("Scroll ribbon right").is_none());
 }

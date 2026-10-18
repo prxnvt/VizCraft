@@ -4,7 +4,7 @@ use egui::epaint::TextShape;
 use egui::{Color32, Painter, Stroke};
 use vizcraft_diagram::{Arrowhead, Connector, ConnectorGeometry};
 
-use super::text::{font_for, layout};
+use super::text::{label_layout, style_font};
 use super::{PAGE_FILL, color, fill_rings, flatten, line_px, pos, stroke_lines, tolerance};
 use crate::canvas::Viewport2D;
 use crate::canvas::tess::triangulate;
@@ -35,8 +35,8 @@ pub fn connector(painter: &Painter, vp: &Viewport2D, c: &Connector, g: &Connecto
     }
     if show_text && !c.text.trim().is_empty() {
         let st = &c.style;
-        let Some(font) = font_for(st.font_size, st.bold, vp.zoom) else { return };
-        let galley = layout(painter, &c.text, font, color(st.font_color), st.italic, 200.0 * vp.zoom);
+        let Some(font) = style_font(st, vp.zoom) else { return };
+        let galley = label_layout(painter, &c.text, st, font, 200.0 * vp.zoom);
         let centre = vp.world_to_screen(pos(g.label_pos));
         let at = centre - galley.rect.center().to_vec2();
         let bg = galley.rect.translate(at.to_vec2()).expand(2.0 * vp.zoom);

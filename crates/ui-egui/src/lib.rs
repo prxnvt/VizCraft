@@ -21,6 +21,7 @@ pub mod page_tabs;
 pub mod panes;
 pub mod ribbon;
 pub mod snap_dialog;
+pub mod symbol_dialog;
 pub mod theme;
 pub mod widgets;
 pub mod window_geometry;
@@ -64,7 +65,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.clearRecent", "Clear Recent Files", "", "{}"),
     ("ui.shortcuts", "Keyboard Shortcuts", "Mod+/", "{}"),
     ("ui.print", "Print", "Mod+P", "{}"),
-    ("ui.tool", "Tool", "", r#"{"tool": "pointer|connector|text"}"#),
+    ("ui.tool", "Tool", "", r#"{"tool": "pointer|connector|text|textBlock"}"#),
     ("ui.find", "Find", "Mod+F", "{}"),
     ("window.minimize", "Minimize", "", "{}"),
     ("window.zoom", "Zoom Window", "", "{}"),
@@ -81,8 +82,10 @@ pub enum Tool {
     Pointer,
     /// Drag from a shape or empty space to draw a connector.
     Connector,
-    /// Click to add a text block, or edit the text of the shape under the pointer.
+    /// Click or drag on empty page to add a text box, or click a shape to edit its text.
     Text,
+    /// Move, resize and turn the selected shape's text block; double-click resets it.
+    TextBlock,
 }
 
 impl Tool {
@@ -92,6 +95,7 @@ impl Tool {
             Tool::Pointer => "pointer",
             Tool::Connector => "connector",
             Tool::Text => "text",
+            Tool::TextBlock => "textBlock",
         }
     }
     /// The tool for a `ui.tool` name.
@@ -100,6 +104,7 @@ impl Tool {
             "pointer" => Some(Tool::Pointer),
             "connector" => Some(Tool::Connector),
             "text" => Some(Tool::Text),
+            "textBlock" => Some(Tool::TextBlock),
             _ => None,
         }
     }

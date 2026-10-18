@@ -33,7 +33,7 @@ pub fn single_connector<'a>(app: &CraftApp, page: &'a Page) -> Option<&'a Connec
 /// The marquee rectangle of a drag, if it is one.
 pub fn marquee_rect(drag: &Drag) -> Option<dg::Rect> {
     match drag {
-        Drag::Marquee { from, to, .. } => Some(dg::Rect::from_points(*from, *to)),
+        Drag::Marquee { from, to, .. } | Drag::TextBox { from, to } => Some(dg::Rect::from_points(*from, *to)),
         _ => None,
     }
 }
@@ -130,10 +130,11 @@ pub(super) fn click(app: &mut CraftApp, vp: &Viewport2D, at: Pos2, m: Modifiers)
     let w = point(vp.screen_to_world(at));
     let hit = dg::hit(page, w, f64::from(HIT / vp.zoom));
     if app.tool == Tool::Text {
-        if let Some(h) = hit {
-            start_editing(app, h);
+        match hit {
+            Some(h) => start_editing(app, h),
+            // On empty page: a new text box centred on the click, edited straight away.
+            None => super::tools::add_text_box(app, w, None),
         }
-        // There is no text-only master in the catalog yet, so a click on empty space adds nothing.
         return;
     }
     let sel = app.session.sel.items.clone();

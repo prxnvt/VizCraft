@@ -16,6 +16,7 @@ pub mod drag;
 pub mod edit_text;
 pub mod keys;
 pub mod select;
+pub mod text_block;
 pub mod tools;
 
 use egui::{Key, Response, Ui};
@@ -29,7 +30,7 @@ pub use connect::target_end;
 use connect::{connect_ok, end_json};
 use drag::finish;
 pub use drag::{drag_target, handle_world, preview_page, resize_frame, rotate_angle, rotate_handle_world};
-pub use edit_text::{TextEditing, commit_editing, start_editing};
+pub use edit_text::{TextEditing, commit_editing, insert_at_caret, start_editing, start_editing_new};
 pub use keys::keys;
 use select::click;
 pub use select::{marquee_ids, marquee_rect, single_connector, single_shape};
@@ -66,6 +67,10 @@ pub enum Drag {
     Connect { from: End, to: Point },
     /// Dragging one end of a connector to reglue it.
     Reglue { id: String, start: bool, to: Point },
+    /// Drawing a text box with the Text tool on empty page.
+    TextBox { from: Point, to: Point },
+    /// Moving, resizing or turning a shape's text block with the Text Block tool.
+    TextBlock { id: String, grab: text_block::BlockGrab, to: Point, shift: bool },
 }
 
 fn round(v: f64) -> f64 {
@@ -99,6 +104,7 @@ pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D
         commit_editing(app);
         let origin = ui.input(|i| i.pointer.press_origin()).or(response.interact_pointer_pos());
         let start = match (origin, app.session.doc.page()) {
+            (Some(o), Some(_)) if app.tool == Tool::TextBlock => text_block::decide(app, vp, o, m.shift).map(Start::Drag),
             (Some(o), Some(page)) => decide(app, page, vp, o, m),
             _ => None,
         };
@@ -119,7 +125,13 @@ pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D
     {
         let w = point(vp.screen_to_world(p));
         match &mut app.canvas.drag {
-            Some(Drag::Marquee { to, .. } | Drag::Move { to, .. } | Drag::Connect { to, .. } | Drag::Reglue { to, .. }) => *to = w,
+            Some(
+                Drag::Marquee { to, .. } | Drag::Move { to, .. } | Drag::Connect { to, .. } | Drag::Reglue { to, .. } | Drag::TextBox { to, .. },
+            ) => *to = w,
+            Some(Drag::TextBlock { to, shift, .. }) => {
+                *to = w;
+                *shift = m.shift;
+            }
             Some(Drag::Resize { to, keep_aspect, .. }) => {
                 *to = w;
                 *keep_aspect = m.shift;
@@ -136,7 +148,11 @@ pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D
     {
         finish(app, d, zoom);
     }
-    if response.double_clicked_by(egui::PointerButton::Primary) && app.tool == Tool::Pointer {
+    if response.double_clicked_by(egui::PointerButton::Primary) && app.tool == Tool::TextBlock {
+        if let Some(p) = response.interact_pointer_pos() {
+            text_block::double_click(app, vp, p);
+        }
+    } else if response.double_clicked_by(egui::PointerButton::Primary) && app.tool == Tool::Pointer {
         if let (Some(p), Some(page)) = (response.interact_pointer_pos(), app.session.doc.page())
             && let Some(h) = dg::hit(page, point(vp.screen_to_world(p)), f64::from(HIT / zoom))
         {
@@ -161,6 +177,7 @@ fn cursor(app: &CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D) {
         (Some(_), _) => return,
         (None, Tool::Connector) => egui::CursorIcon::Crosshair,
         (None, Tool::Text) => egui::CursorIcon::Text,
+        (None, Tool::TextBlock) => egui::CursorIcon::Move,
         (None, Tool::Pointer) => {
             let (Some(hp), Some(page)) = (response.hover_pos(), app.session.doc.page()) else { return };
             let w = point(vp.screen_to_world(hp));

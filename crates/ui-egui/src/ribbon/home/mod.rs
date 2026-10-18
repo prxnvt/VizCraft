@@ -1,4 +1,4 @@
-//! The Home tab: clipboard, font, tools, shape styles, arrange, editing and undo.
+//! The Home tab: clipboard, font, paragraph, tools, shape styles, arrange, editing and undo.
 
 use super::Tab;
 
@@ -7,6 +7,7 @@ mod layers;
 groups! {
     clipboard,
     font,
+    paragraph,
     tools,
     shape_styles,
     arrange,

@@ -48,6 +48,27 @@ pub const NAMES: &[&str] = &[
     "bold",
     "italic",
     "fontColor",
+    "underline",
+    "strikethrough",
+    "textCase",
+    "highlight",
+    "fontGrow",
+    "fontShrink",
+    "alignLeft",
+    "alignCenter",
+    "alignRight",
+    "justify",
+    "alignTop",
+    "alignMiddle",
+    "alignBottom",
+    "bullets",
+    "indentMore",
+    "indentLess",
+    "textDirection",
+    "textBlock",
+    "textBox",
+    "symbol",
+    "field",
     // Diagram
     "pointer",
     "connector",
@@ -408,6 +429,105 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
             pen.line(&[(5.0, 13.5), (10.0, 2.5), (15.0, 13.5)]);
             pen.line(&[(7.0, 9.5), (13.0, 9.5)]);
             pen.frect(3.0, 15.5, 17.0, 18.5, a);
+        }
+        "underline" => {
+            pen.line(&[(6.0, 3.0), (6.0, 10.0)]);
+            pen.arc(10.0, 10.0, 4.0, 0.0, PI, c);
+            pen.line(&[(14.0, 10.0), (14.0, 3.0)]);
+            pen.frect(4.0, 16.0, 16.0, 18.0, a);
+        }
+        "strikethrough" => {
+            pen.line(&[(5.0, 16.5), (10.0, 3.5), (15.0, 16.5)]);
+            pen.line(&[(7.0, 12.5), (13.0, 12.5)]);
+            pen.line_c(&[(3.0, 9.5), (17.0, 9.5)], a);
+        }
+        "textCase" => {
+            pen.line(&[(2.5, 16.0), (7.0, 4.0), (11.5, 16.0)]);
+            pen.line(&[(4.2, 11.5), (9.8, 11.5)]);
+            pen.circle(14.75, 13.25, 2.5, a);
+            pen.line_c(&[(17.25, 10.25), (17.25, 16.0)], a);
+        }
+        "highlight" => {
+            pen.closed(&[(11.0, 2.5), (16.0, 7.5), (10.0, 13.5), (5.0, 8.5)], c);
+            pen.line(&[(5.0, 8.5), (4.0, 12.5), (6.0, 14.5), (10.0, 13.5)]);
+            pen.frect(3.0, 16.0, 17.0, 18.5, a);
+        }
+        "fontGrow" | "fontShrink" => {
+            pen.line(&[(2.5, 17.0), (8.0, 4.0), (13.5, 17.0)]);
+            pen.line(&[(4.8, 12.5), (11.2, 12.5)]);
+            if name == "fontGrow" {
+                pen.line_c(&[(14.0, 8.0), (16.25, 5.0), (18.5, 8.0)], a);
+            } else {
+                pen.line_c(&[(14.0, 5.0), (16.25, 8.0), (18.5, 5.0)], a);
+            }
+        }
+        "alignLeft" | "alignCenter" | "alignRight" | "justify" => {
+            // Four lines, the second and fourth shorter and set by the alignment.
+            let (long, short) = match name {
+                "alignLeft" => ((3.0, 17.0), [(3.0, 12.0), (3.0, 10.0)]),
+                "alignCenter" => ((3.0, 17.0), [(5.5, 14.5), (6.5, 13.5)]),
+                "alignRight" => ((3.0, 17.0), [(8.0, 17.0), (10.0, 17.0)]),
+                _ => ((3.0, 17.0), [(3.0, 17.0), (3.0, 17.0)]),
+            };
+            pen.line(&[(long.0, 4.0), (long.1, 4.0)]);
+            pen.line_c(&[(short[0].0, 8.0), (short[0].1, 8.0)], a);
+            pen.line(&[(long.0, 12.0), (long.1, 12.0)]);
+            pen.line_c(&[(short[1].0, 16.0), (short[1].1, 16.0)], a);
+        }
+        "alignTop" | "alignMiddle" | "alignBottom" => {
+            pen.rect(3.0, 3.0, 17.0, 17.0, c);
+            let y = match name {
+                "alignTop" => 6.5,
+                "alignMiddle" => 8.5,
+                _ => 10.5,
+            };
+            pen.line_c(&[(6.0, y), (14.0, y)], a);
+            pen.line_c(&[(6.0, y + 3.0), (12.0, y + 3.0)], a);
+        }
+        "bullets" => {
+            for y in [4.5, 10.0, 15.5] {
+                pen.fcircle(4.5, y, 1.4, a);
+                pen.line(&[(8.0, y), (17.0, y)]);
+            }
+        }
+        "indentMore" | "indentLess" => {
+            pen.lines(9.0, 17.0, &[4.0, 8.0, 12.0]);
+            pen.line(&[(3.0, 16.0), (17.0, 16.0)]);
+            if name == "indentMore" {
+                pen.line_c(&[(3.0, 5.5), (6.0, 8.0), (3.0, 10.5)], a);
+            } else {
+                pen.line_c(&[(6.0, 5.5), (3.0, 8.0), (6.0, 10.5)], a);
+            }
+        }
+        "textDirection" => {
+            pen.line(&[(5.0, 4.0), (5.0, 15.0)]);
+            pen.line(&[(9.5, 4.0), (9.5, 12.0)]);
+            pen.line_c(&[(15.0, 3.0), (15.0, 16.5)], a);
+            pen.line_c(&[(12.5, 14.0), (15.0, 16.5), (17.5, 14.0)], a);
+        }
+        "textBlock" => {
+            // Corner brackets around a T.
+            for (x, y, dx, dy) in [(3.0, 3.0, 1.0, 1.0), (17.0, 3.0, -1.0, 1.0), (17.0, 17.0, -1.0, -1.0), (3.0, 17.0, 1.0, -1.0)] {
+                pen.line(&[(x + 3.5 * dx, y), (x, y), (x, y + 3.5 * dy)]);
+            }
+            pen.line_c(&[(6.5, 7.0), (13.5, 7.0)], a);
+            pen.line_c(&[(10.0, 7.0), (10.0, 14.0)], a);
+        }
+        "textBox" => {
+            pen.rect(2.5, 3.5, 17.5, 16.5, c);
+            pen.line_c(&[(6.0, 7.0), (14.0, 7.0)], a);
+            pen.line_c(&[(10.0, 7.0), (10.0, 13.5)], a);
+        }
+        "symbol" => {
+            // An omega: an open ring on two feet.
+            pen.arc(10.0, 8.5, 5.0, 0.75 * PI, 1.5 * PI, c);
+            pen.line_c(&[(6.46, 12.04), (7.0, 16.0), (3.5, 16.0)], a);
+            pen.line_c(&[(13.54, 12.04), (13.0, 16.0), (16.5, 16.0)], a);
+        }
+        "field" => {
+            pen.line(&[(7.0, 3.0), (5.5, 4.0), (5.5, 8.5), (4.0, 10.0), (5.5, 11.5), (5.5, 16.0), (7.0, 17.0)]);
+            pen.line(&[(13.0, 3.0), (14.5, 4.0), (14.5, 8.5), (16.0, 10.0), (14.5, 11.5), (14.5, 16.0), (13.0, 17.0)]);
+            pen.fcircle(10.0, 10.0, 1.6, a);
         }
         // Diagram
         "pointer" => {

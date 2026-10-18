@@ -19,7 +19,7 @@ use super::Viewport2D;
 use crate::theme::Tokens;
 pub use connectors::{connector, connector_bounds};
 pub use shapes::{FillCache, shape};
-pub use text::{TEXT_PAD, font_for};
+pub use text::{TEXT_PAD, font_for, style_font};
 
 /// The page sheet. The page colour is not in the model yet; SVG export draws the same white, so
 /// the canvas matches what an export looks like in both themes.

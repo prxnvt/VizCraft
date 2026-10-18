@@ -61,7 +61,7 @@ handles it.
 
 Command id prefixes: `file.*`, `edit.*`, `view.*`, `shape.*` (`crates/engine/src/cmd/shape.rs`), `arrange.*` (`cmd/arrange.rs`),
 `connector.*` (`cmd/connector.rs`), `page.*` (`cmd/page.rs`), `layer.*` (`cmd/layer.rs`), `design.*` (`cmd/design.rs`), `layout.*` (`cmd/layout.rs`), `model.*`, `element.*`,
-`relationship.*`, `validate.*`, `notation.*` (`cmd/{model,element,relationship,validate,notation}.rs`), `script.*` (`cmd/script.rs`), `guide.*` (`cmd/view.rs`), `insert.*`, `format.*`, `window.*`, `help.*`, `ui.*` (UI layer), `app.*` (app-level: `app.quit`,
+`relationship.*`, `validate.*`, `notation.*` (`cmd/{model,element,relationship,validate,notation}.rs`), `script.*` (`cmd/script.rs`), `guide.*` (`cmd/view.rs`), `text.*` (`cmd/text.rs`, which also holds `shape.addTextBox`), `insert.*`, `format.*`, `window.*`, `help.*`, `ui.*` (UI layer), `app.*` (app-level: `app.quit`,
 `app.preferences`, `app.about`). `insert.*` and `format.*` are reserved; no engine
 command uses them yet.
 
@@ -96,6 +96,31 @@ the group. Each is one undo step.
 | `arrange.flip`, `arrange.rotate` | `{ids?, axis}` (mirrors centres and negates angles across the shapes' centre line); `{ids?, deg}` (relative; several shapes turn as one piece) |
 | `arrange.setBounds` | `{id, x?, y?, w?, h?, angle?}` -> the frame; a group scales and turns its members |
 | `arrange.group`, `arrange.ungroup` | `{ids?, id?}` -> `{id, members}` (the group is selected); `{ids?}` -> `{ungrouped, members}` (members selected) |
+
+Text commands (Block 2, `cmd/text.rs`). Without `ids` they act on the selected shapes and
+connectors (`text.setBlock` takes one shape). Format and paragraph keys are style fields and
+apply to the whole text; each command is one undo step.
+
+| Command | Params -> result |
+|---|---|
+| `text.setFormat` | `{ids?, fontFamily?, size?, bold?, italic?, underline?, strikethrough?, color?, highlight?}`; `highlight` `false` or `"none"` clears it |
+| `text.grow` | `{ids?, step: 1 \| -1}` -> `{sizes}`; to the next size in `SIZE_STEPS` |
+| `text.setCase` | `{ids?, case: "sentence" \| "lower" \| "upper" \| "toggle" \| "title"}`; rewrites the stored text (field placeholders kept) and resets the drawn `text_case` |
+| `text.setParagraph` | `{ids?, hAlign?, vAlign?, bullets?, indent?, direction?: "ltr" \| "rtl" \| "vertical", margins?: n \| {left?, top?, right?, bottom?}}` |
+| `text.setBlock` | `{id, dx?, dy?, w?, h?, angle?, reset?}` -> `{id, textBlock}`; absolute values, starting from the frame when the shape has no block |
+| `text.insertSymbol`, `text.insertField` | `{ids?, symbol?, at?}` (no symbol opens the Symbol dialog); `{ids?, field, key?, at?}` -> `{ids, placeholder}`; appended, or at character `at` |
+| `shape.addTextBox` | `{x, y, w?, h?, text?, id?}` -> `{id}`; a rectangle with stencil `vizcraft.text`, no fill and no line |
+
+Fields are placeholders in stored text, `{{name}}`, expanded when text is drawn (canvas, SVG and
+PNG export) and kept raw while it is edited, so they never go stale (`diagram::text_fields`):
+`{{date}}` and `{{time}}` (UTC, `YYYY-MM-DD` and `HH:MM`; without a clock, as on the web, the
+document's modified stamp), `{{pageName}}`, `{{pageNumber}}` and `{{pageCount}}` (foreground
+pages only), `{{title}}` (the title property, else the document title), `{{width}}` and
+`{{height}}` (the shape's size in the page units, drawing scale applied) and `{{data:key}}` (the
+property `key` of the element the shape draws, else the shape's `ext["vizcraft.data.<key>"]`;
+empty when neither has it). Names are case sensitive; anything else in braces stays as typed. On
+a background page, page fields name the foreground page drawn over it. Case conversion skips
+placeholders.
 
 Groups: a group is a `Shape` with `stencil` `vizcraft.group` (`arrange::GROUP_STENCIL`),
 transparent fill and line and no text, so it draws nothing but its selection frame. Its members
@@ -329,7 +354,7 @@ Connector tab; Data, Review and Developer exist but stay hidden while they have 
 over its background pages, which are drawn only and never hit; shapes, text and connectors; selection, marquee, move, resize and rotate handles, connector drag and
 reglue, in-place text editing, arrow-key nudge; pan with middle-drag, Space+left-drag or
 Cmd+left-drag, Ctrl off macOS; `insert_point` and `insert_master` place new shapes), `dialogs`,
-`keys`, `control`, `window_geometry`, `backstage` (optional File page), `page_tabs` (the page tab
+`keys`, `control`, `window_geometry`, `symbol_dialog`, `backstage` (optional File page), `page_tabs` (the page tab
 strip under the canvas: click switches, double-click renames, plus adds, right-click inserts,
 duplicates, renames, deletes and assigns a background) and `page_setup` (the Page Setup dialog
 and the paper size presets the Design tab's Size menu shares).
@@ -345,12 +370,17 @@ Files are cut so that parallel work touches separate files:
 | `panes/layout.rs`, `panes/manager.rs` | `PaneLayout`; drawing of the sides, headers and splitters | |
 | `panes/<pane>.rs` | One file per pane with its `SPEC` | Pane: a file plus one line in `default_panes!` and a `ui.pane.<key>` row in `UI_COMMANDS` |
 | `canvas/mod.rs` | Viewport, `CanvasState`, pan and zoom, insertion, per-frame `show` | |
-| `canvas/draw/` | `mod.rs` conversions and sheet; `shapes.rs` (background pages, then per shape glow, shadow, solid or gradient fill with soft edges, dashed and capped outline, as SVG export draws them; gradients turn with a rotated shape), `text.rs`, `connectors.rs`, `overlays.rs` (selection chrome) | |
+| `canvas/draw/` | `mod.rs` conversions and sheet; `shapes.rs` (background pages, then per shape glow, shadow, solid or gradient fill with soft edges, dashed and capped outline, as SVG export draws them; gradients turn with a rotated shape), `text.rs` (shape text in its text block with format, alignment, justify, bullets, indent, margins, direction and case; fields expanded by the caller; monospace families draw in JetBrains Mono, others in Inter), `connectors.rs`, `overlays.rs` (selection chrome) | |
 | `canvas/tess.rs` | Ear-clipping triangulation, gradient meshes (linear cut into exact bands, radial subdivided), dash patterns, ring offsets and fading strips for blur, glow and soft edges | |
-| `canvas/interact/` | `mod.rs` `Drag` and pointer dispatch; `select.rs`, `drag.rs`, `connect.rs`, `tools.rs`, `edit_text.rs`, `keys.rs` | |
+| `canvas/interact/` | `mod.rs` `Drag` and pointer dispatch; `select.rs`, `drag.rs`, `connect.rs`, `tools.rs` (also text boxes), `edit_text.rs` (the editor sits in the text block in the shape's format and turns with a rotated shape), `text_block.rs` (the Text Block tool), `keys.rs` | |
 
 A canvas drag previews in UI state and commits one command on release, so every drag is one undo
-step. The canvas tool (`CraftApp.tool`: pointer, connector, text) is set by `ui.tool`.
+step. The canvas tool (`CraftApp.tool`: pointer, connector, text, textBlock) is set by `ui.tool`.
+The Text tool edits the shape it clicks, and on empty page a click or drag adds a text box
+(`shape.addTextBox`) and edits it; a new box left empty is deleted. The Text Block tool drags the
+selected shape's text block (move, resize, rotate, as `text.setBlock`); a double-click resets it.
+The Insert Symbol dialog (`symbol_dialog.rs`) inserts at the editor's caret, else runs
+`text.insertSymbol` on the selection.
 
 ```rust
 pub struct Services {        // host-injected platform services; all optional
@@ -372,7 +402,7 @@ pub struct CraftApp {
     pub new_window_request: Option<String>, pub quit_all_request: bool,
     pub quit_requested: bool, pub quit_confirmed: bool,
     pub frame_ms: f64,
-    pub tool: Tool,                      // canvas tool: Pointer | Connector | Text, set by ui.tool
+    pub tool: Tool,                      // canvas tool: Pointer | Connector | Text | TextBlock, set by ui.tool
     // private: control_rx, screenshot queues, synthetic events, style flags
 }
 impl CraftApp {
