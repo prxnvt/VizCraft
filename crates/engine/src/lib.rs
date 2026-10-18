@@ -13,6 +13,7 @@ pub mod cmd;
 pub mod doc;
 pub mod fragment;
 pub mod io;
+pub mod proof;
 pub mod sample;
 pub mod session;
 pub mod trace;

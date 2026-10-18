@@ -882,3 +882,49 @@ fn page_routing_policy_round_trips_and_old_files_route_every_connector() {
     let junk = load(&serde_json::to_vec(&file).unwrap()).unwrap();
     assert_eq!(junk.pages[0].routing, RoutingPolicy::default());
 }
+
+#[test]
+fn document_language_and_ignored_words_round_trip_and_are_sanitised() {
+    let mut doc = Document::new();
+    doc.language = "fr-FR".into();
+    doc.ignored_words = vec!["vizcraft".into(), "teh".into()];
+    let bytes = save(&doc).unwrap();
+    let v = parse(&bytes);
+    assert_eq!(v["document"]["language"], "fr-FR");
+    assert_eq!(v["document"]["ignoredWords"], json!(["vizcraft", "teh"]));
+    let back = load(&bytes).unwrap();
+    assert_eq!((back.language.as_str(), back.ignored_words.clone()), ("fr-FR", doc.ignored_words.clone()));
+    // Defaults are left out of the file.
+    let plain = parse(&save(&Document::new()).unwrap());
+    assert!(plain["document"].get("language").is_none() && plain["document"].get("ignoredWords").is_none());
+    // Junk loads as the default, a tag takes its usual case, words are lowered and deduplicated.
+    let mut junk = parse(&save(&Document::new()).unwrap());
+    junk["document"]["language"] = json!("not a tag!");
+    junk["document"]["ignoredWords"] = json!(["Teh", "teh", 7, "x".repeat(500)]);
+    let loaded = load(&serde_json::to_vec(&junk).unwrap()).unwrap();
+    assert_eq!(loaded.language, "");
+    assert_eq!(loaded.ignored_words.len(), 2);
+    assert_eq!(loaded.ignored_words[0], "teh");
+    junk["document"]["language"] = json!("en-gb");
+    assert_eq!(load(&serde_json::to_vec(&junk).unwrap()).unwrap().language, "en-GB");
+}
+
+#[test]
+fn shape_language_round_trips_and_is_sanitised() {
+    let mut doc = Document::new();
+    let mut a = Shape::new("a", ShapeKind::Rectangle, 0.0, 0.0, 100.0, 60.0);
+    a.language = "de-DE".into();
+    let b = Shape::new("b", ShapeKind::Rectangle, 200.0, 0.0, 100.0, 60.0);
+    doc.page_mut().unwrap().shapes.extend([a, b]);
+    let bytes = save(&doc).unwrap();
+    let v = parse(&bytes);
+    assert_eq!(v["document"]["pages"][0]["shapes"][0]["language"], "de-DE");
+    assert!(v["document"]["pages"][0]["shapes"][1].get("language").is_none(), "the default is left out");
+    assert_eq!(load(&bytes).unwrap().pages[0].shapes[0].language, "de-DE");
+    let mut junk = v.clone();
+    junk["document"]["pages"][0]["shapes"][0]["language"] = json!("en_us");
+    junk["document"]["pages"][0]["shapes"][1]["language"] = json!(["x"]);
+    let loaded = load(&serde_json::to_vec(&junk).unwrap()).unwrap();
+    assert_eq!(loaded.pages[0].shapes[0].language, "en-US");
+    assert_eq!(loaded.pages[0].shapes[1].language, "");
+}
