@@ -9,13 +9,19 @@
 //! turn clockwise, so lines run top to bottom and follow each other right to left. Fonts: a family
 //! that names a monospace face draws in JetBrains Mono, anything else in Inter (the only faces the
 //! app ships); exports name the family itself.
+//!
+//! Compartments (see `vizcraft_diagram::compartment`) draw in the bands its layout gives, like
+//! the SVG export: the title bold and centred, a paragraph from the top of its band, a list one
+//! row per row rectangle, each in the shape's style with the compartment's overrides; the shape's
+//! main text sits in the band above them.
 
 use std::sync::Arc;
 
 use egui::epaint::TextShape;
 use egui::text::{LayoutJob, TextFormat};
 use egui::{Align, Color32, Painter, Pos2, Stroke, Vec2, pos2, vec2};
-use vizcraft_diagram::{HAlign, Shape, Style, TextDirection, VAlign};
+use vizcraft_diagram::compartment::{self as cp, CompartmentKind};
+use vizcraft_diagram::{HAlign, Rect as DRect, Shape, Style, TextDirection, VAlign};
 
 use super::{color, pos};
 use crate::canvas::Viewport2D;
@@ -192,6 +198,58 @@ pub(super) fn shape_text(painter: &Painter, vp: &Viewport2D, s: &Shape) {
     paint_in_block(painter, &b, galley, color(st.font_color));
 }
 
+/// The block a band area (`local`, in the shape's unrotated frame) lays text out in on screen:
+/// the area inset by the band padding left and right, turned with the shape.
+pub fn band_block(vp: &Viewport2D, s: &Shape, local: DRect, h_align: HAlign, v_align: VAlign) -> Block {
+    let centre = vp.world_to_screen(pos(s.transform().apply(local.center())));
+    let z = vp.zoom;
+    let (hw, hh) = ((local.width() / 2.0) as f32 * z, (local.height() / 2.0) as f32 * z);
+    let pad = (cp::PAD_X as f32 * z).min(hw);
+    let inner = egui::Rect::from_min_max(pos2(-hw + pad, -hh), pos2(hw - pad, hh));
+    Block { centre, angle: (s.angle_deg as f32).to_radians(), inner, h_align, v_align }
+}
+
+/// One line or paragraph of compartment text in block `b`.
+fn band_text(painter: &Painter, vp: &Viewport2D, text: &str, st: &Style, b: &Block) {
+    if text.trim().is_empty() {
+        return;
+    }
+    let Some(font) = style_font(st, vp.zoom) else { return };
+    let galley = painter.layout_job(block_job(text.to_string(), st, font, b));
+    paint_in_block(painter, b, galley, color(st.font_color));
+}
+
+/// The text of every compartment of `s`: titles, paragraphs and rows (see the module doc).
+/// `skip` names a compartment whose text the in-place editor is showing instead.
+pub(super) fn compartment_text(painter: &Painter, vp: &Viewport2D, s: &Shape, skip: Option<&str>) {
+    for band in cp::layout(s) {
+        let Some(c) = band.compartment.and_then(|i| s.compartments.get(i)) else { continue };
+        let st = c.text_style(&s.style);
+        if let (Some(title), Some(r)) = (c.title.as_deref(), band.title) {
+            let bold = Style { bold: true, ..st.clone() };
+            band_text(painter, vp, title, &bold, &band_block(vp, s, r, HAlign::Center, VAlign::Middle));
+        }
+        if skip == Some(c.id.as_str()) {
+            continue;
+        }
+        match c.kind {
+            CompartmentKind::Paragraph => {
+                // Only the lines that fit the band, as in the SVG export.
+                let lh = st.font_size * cp::LINE_HEIGHT;
+                let fit = ((band.body.height() + 0.5) / lh).floor().max(1.0) as usize;
+                let text: Vec<&str> = c.text.lines().take(fit).collect();
+                band_text(painter, vp, &text.join("\n"), &st, &band_block(vp, s, band.body, c.align, VAlign::Top));
+            }
+            CompartmentKind::List => {
+                for (row, r) in c.rows.iter().zip(&band.rows) {
+                    band_text(painter, vp, row, &st, &band_block(vp, s, *r, c.align, VAlign::Middle));
+                }
+            }
+            CompartmentKind::Slot => {}
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use vizcraft_diagram::{Margins, ShapeKind, TextBlock};
@@ -235,6 +293,19 @@ mod tests {
         s.text_block = Some(TextBlock { dx: 20.0, dy: 0.0, w: 40.0, h: 20.0, angle_deg: 0.0 });
         let b = block(&vp(), &s);
         assert!((b.centre - pos2(60.0, 70.0)).length() < 1e-3, "{:?}", b.centre);
+    }
+
+    #[test]
+    fn a_band_block_sits_in_its_band_and_turns_with_the_shape() {
+        let mut s = Shape::new("s", ShapeKind::Rectangle, 10.0, 20.0, 100.0, 60.0);
+        let band = vizcraft_diagram::Rect::new(0.0, 40.0, 100.0, 60.0);
+        let b = band_block(&vp(), &s, band, HAlign::Left, VAlign::Top);
+        assert_eq!(b.centre, pos2(60.0, 70.0));
+        assert_eq!(b.inner, egui::Rect::from_min_max(pos2(-44.0, -10.0), pos2(44.0, 10.0)));
+        s.angle_deg = 90.0;
+        let b = band_block(&vp(), &s, band, HAlign::Left, VAlign::Top);
+        assert!((b.centre - pos2(40.0, 50.0)).length() < 1e-3, "{:?}", b.centre);
+        assert!((b.angle - std::f32::consts::FRAC_PI_2).abs() < 1e-6);
     }
 
     #[test]

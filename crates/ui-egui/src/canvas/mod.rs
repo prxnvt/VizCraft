@@ -325,7 +325,7 @@ fn paint(app: &mut CraftApp, ui: &Ui, vp: &Viewport2D, t: &Tokens) {
         draw::overlays::underlay(app, &painter, vp, page, t);
     }
     let visible = vp.visible_world_rect().inflate(4.0);
-    let editing = app.canvas.editing.as_ref().map(|e| e.id().to_string());
+    let editing = app.canvas.editing.as_ref().filter(|e| e.compartment.is_none()).map(|e| e.id().to_string());
     // Fields in shape text expand against the active page, also on its background pages.
     let fields = dg::text_fields::FieldCtx::new(&app.session.doc, app.session.doc.active_index(), Some((crate::now_ms() / 1000.0) as u64));
     // Background pages under the active one, deepest first. Drawn only: hit testing and every

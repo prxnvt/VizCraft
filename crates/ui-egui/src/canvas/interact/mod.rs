@@ -162,7 +162,7 @@ pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D
         if let (Some(p), Some(page)) = (response.interact_pointer_pos(), app.session.doc.page())
             && let Some(h) = dg::hit(page, point(vp.screen_to_world(p)), f64::from(HIT / zoom))
         {
-            start_editing(app, h);
+            edit_text::start_editing_at(app, h, point(vp.screen_to_world(p)));
         }
     } else if response.clicked_by(egui::PointerButton::Primary)
         && let Some(p) = response.interact_pointer_pos()
