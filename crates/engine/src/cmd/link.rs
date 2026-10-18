@@ -62,10 +62,7 @@ fn the_shape(s: &Session, v: &Value) -> Result<String, EngineError> {
 fn link_index(s: &Session, id: &str, v: &Value, default: Option<usize>) -> Result<usize, EngineError> {
     let i = match v.get("index") {
         None | Some(Value::Null) => default.ok_or_else(|| EngineError::Params("`index` (number) is required".into()))?,
-        Some(x) => x
-            .as_u64()
-            .and_then(|n| usize::try_from(n).ok())
-            .ok_or_else(|| EngineError::Params("`index` must be a whole number".into()))?,
+        Some(x) => x.as_u64().and_then(|n| usize::try_from(n).ok()).ok_or_else(|| EngineError::Params("`index` must be a whole number".into()))?,
     };
     let len = s.doc.shape(id).map_or(0, |sh| sh.links.len());
     if i >= len {
@@ -241,13 +238,15 @@ pub fn follow_link(s: &mut Session, link: &Hyperlink) -> CmdResult {
             Ok(json!({"kind": kind, "target": link.target, "request": "openExternal", "from": from}))
         }
         LinkKind::Page => {
-            let i = s.doc.find_page(&link.target).ok_or_else(|| EngineError::Params(format!("the page `{}` no longer exists", short(&link.target))))?;
+            let i =
+                s.doc.find_page(&link.target).ok_or_else(|| EngineError::Params(format!("the page `{}` no longer exists", short(&link.target))))?;
             show_page(s, i);
             select(s, Vec::new());
             Ok(json!({"kind": kind, "target": link.target, "page": s.doc.page().map(|p| p.id.clone()), "from": from}))
         }
         LinkKind::Shape => {
-            let i = page_of_shape(s, &link.target).ok_or_else(|| EngineError::Params(format!("the shape `{}` no longer exists", short(&link.target))))?;
+            let i =
+                page_of_shape(s, &link.target).ok_or_else(|| EngineError::Params(format!("the shape `{}` no longer exists", short(&link.target))))?;
             show_page(s, i);
             select(s, vec![link.target.clone()]);
             Ok(with_selected(s, kind, &link.target, from))

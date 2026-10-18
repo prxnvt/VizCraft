@@ -83,11 +83,9 @@ fn position(s: &Session, v: &Value) -> Result<usize, EngineError> {
 fn reply_index(v: &Value) -> Result<Option<usize>, EngineError> {
     match v.get("reply") {
         None | Some(Value::Null) => Ok(None),
-        Some(x) => x
-            .as_u64()
-            .and_then(|n| usize::try_from(n).ok())
-            .map(Some)
-            .ok_or_else(|| EngineError::Params("`reply` must be a whole number".into())),
+        Some(x) => {
+            x.as_u64().and_then(|n| usize::try_from(n).ok()).map(Some).ok_or_else(|| EngineError::Params("`reply` must be a whole number".into()))
+        }
     }
 }
 
@@ -191,14 +189,16 @@ fn list(s: &mut Session, v: &Value) -> CmdResult {
         }
         None => None,
     };
-    let comments: Vec<Value> = s.doc.comments.iter().filter(|c| only.as_ref().is_none_or(|p| *p == c.anchor.page)).map(|c| comment_json(s, c)).collect();
+    let comments: Vec<Value> =
+        s.doc.comments.iter().filter(|c| only.as_ref().is_none_or(|p| *p == c.anchor.page)).map(|c| comment_json(s, c)).collect();
     Ok(json!({"comments": comments}))
 }
 
 /// Go to comment `i`: show its page and select its shape (nothing for a page comment).
 fn go_to(s: &mut Session, i: usize) -> CmdResult {
     let c = s.doc.comments.get(i).cloned().ok_or_else(|| EngineError::Failed("the comment vanished".into()))?;
-    let pi = s.doc.pages.iter().position(|p| p.id == c.anchor.page).ok_or_else(|| EngineError::Params("the comment's page no longer exists".into()))?;
+    let pi =
+        s.doc.pages.iter().position(|p| p.id == c.anchor.page).ok_or_else(|| EngineError::Params("the comment's page no longer exists".into()))?;
     show_page(s, pi);
     let shape = c.anchor.shape.filter(|sh| s.doc.page().is_some_and(|p| p.shape(sh).is_some()));
     select(s, shape.iter().cloned().collect());

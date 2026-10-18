@@ -21,17 +21,13 @@ fn harness(opened: Rc<RefCell<Vec<String>>>) -> Harness<'static, CraftApp> {
         ..Services::default()
     };
     let app = CraftApp::new(Session::new(vizcraft_engine::sample::sample_document()), services);
-    let mut h = Harness::builder()
-        .with_size(vec2(1600.0, 1000.0))
-        .with_max_steps(64)
-        .with_step_dt(1.0 / 60.0)
-        .build_ui_state(
-            |ui, app: &mut CraftApp| {
-                app.logic(ui.ctx());
-                app.ui(ui);
-            },
-            app,
-        );
+    let mut h = Harness::builder().with_size(vec2(1600.0, 1000.0)).with_max_steps(64).with_step_dt(1.0 / 60.0).build_ui_state(
+        |ui, app: &mut CraftApp| {
+            app.logic(ui.ctx());
+            app.ui(ui);
+        },
+        app,
+    );
     h.run_steps(4);
     h
 }

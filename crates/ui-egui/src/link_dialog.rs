@@ -79,7 +79,8 @@ fn target_field(ui: &mut Ui, app: &CraftApp, i: usize, row: &mut Row) {
             });
         }
         LinkKind::Shape => {
-            let name = |id: &str| doc.shape(id).map(|s| if s.text.is_empty() { id.to_string() } else { format!("{} ({id})", s.text.replace('\n', " ")) });
+            let name =
+                |id: &str| doc.shape(id).map(|s| if s.text.is_empty() { id.to_string() } else { format!("{} ({id})", s.text.replace('\n', " ")) });
             let shown = name(&row.target).unwrap_or_else(|| "Choose a shape".into());
             egui::ComboBox::from_id_salt(("link_shape", i)).selected_text(shown).width(200.0).show_ui(ui, |ui| {
                 for s in doc.pages.iter().flat_map(|p| p.shapes.iter()).take(MAX_PICKS) {

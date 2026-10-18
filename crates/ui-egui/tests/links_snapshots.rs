@@ -73,7 +73,8 @@ fn link_and_review_snapshots() {
     let mut h = window();
     let id = h.state().session.doc.page().unwrap().shapes[1].id.clone();
     run(&mut h, "edit.select", json!({"ids": [id]}));
-    let c = h.state_mut().run("comment.add", json!({"text": "Should this step ask for a name as well?"})).unwrap()["id"].as_str().unwrap().to_string();
+    let c =
+        h.state_mut().run("comment.add", json!({"text": "Should this step ask for a name as well?"})).unwrap()["id"].as_str().unwrap().to_string();
     run(&mut h, "comment.reply", json!({"id": c, "text": "Yes, the form needs both."}));
     run(&mut h, "comment.add", json!({"text": "Move the No branch below the decision.", "shape": null}));
     for c in &mut h.state_mut().session.doc.comments {

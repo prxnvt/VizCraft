@@ -117,13 +117,19 @@ fn window_menu_items_track_the_layout() {
     let mut a = app();
     let items = panes::window_menu_items(&a);
     assert_eq!(items.len(), 7);
-    assert!(items.iter().all(|(title, _, on)| *on == !matches!(*title, "Layers" | "Shape Data" | "Comments")), "every pane but Layers, Shape Data and Comments starts open");
+    assert!(
+        items.iter().all(|(title, _, on)| *on == !matches!(*title, "Layers" | "Shape Data" | "Comments")),
+        "every pane but Layers, Shape Data and Comments starts open"
+    );
     assert_eq!(items[0], ("Shapes", "ui.pane.shapes", true));
     assert_eq!(items[1], ("Navigation", "ui.pane.navigation", true));
     for (_, id, _) in &items {
         a.run(id, json!({})).unwrap();
     }
-    assert!(panes::window_menu_items(&a).iter().all(|(title, _, on)| *on == matches!(*title, "Layers" | "Shape Data" | "Comments")), "each toggle flipped");
+    assert!(
+        panes::window_menu_items(&a).iter().all(|(title, _, on)| *on == matches!(*title, "Layers" | "Shape Data" | "Comments")),
+        "each toggle flipped"
+    );
 }
 
 #[test]

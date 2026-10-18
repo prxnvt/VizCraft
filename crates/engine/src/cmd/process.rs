@@ -5,7 +5,7 @@
 use std::collections::HashSet;
 
 use serde_json::{Value, json};
-use vizcraft_diagram::{Hyperlink, LinkKind, Page, Rect, Shape, ShapeKind, arrange};
+use vizcraft_diagram::{Hyperlink, LinkKind, Rect, Shape, ShapeKind, arrange};
 
 use super::page::MAX_PAGES;
 use super::{ids_param, opt_str, select, short};
@@ -41,10 +41,7 @@ fn page_name(s: &Session, v: &Value) -> Result<String, EngineError> {
     if !taken(&base) {
         return Ok(base);
     }
-    (2..)
-        .map(|i| format!("{base} {i}"))
-        .find(|n| !taken(n))
-        .ok_or_else(|| EngineError::Failed("no free page name".into()))
+    (2..).map(|i| format!("{base} {i}")).find(|n| !taken(n)).ok_or_else(|| EngineError::Failed("no free page name".into()))
 }
 
 fn create(s: &mut Session, v: &Value) -> CmdResult {
@@ -81,16 +78,14 @@ fn create(s: &mut Session, v: &Value) -> CmdResult {
     // Take the shapes and the connectors between them off the active page, keeping their ids.
     let (moved_shapes, moved_connectors, centre, mut page) = {
         let from = s.doc.page_mut().ok_or_else(|| EngineError::Failed("the document has no page".into()))?;
-        let mut page = Page::new(new_page.clone(), name.clone());
-        page.width = from.width;
-        page.height = from.height;
-        page.orientation = from.orientation;
-        page.units = from.units;
-        page.drawing_scale = from.drawing_scale;
-        page.auto_size = from.auto_size;
-        page.board = from.board.clone();
-        page.background = from.background.clone();
-        page.layers = from.layers.clone();
+        // The new page takes the sheet, units, scale, board, background and layers of this one.
+        let mut page = from.clone();
+        page.id = new_page.clone();
+        page.name = name.clone();
+        page.shapes = Vec::new();
+        page.connectors = Vec::new();
+        page.view = None;
+        page.is_background = false;
 
         let mut bounds: Option<Rect> = None;
         let mut shapes: Vec<Shape> = Vec::new();
@@ -157,7 +152,8 @@ fn link(s: &mut Session, v: &Value) -> CmdResult {
         _ => return Err(EngineError::Params("`page` (id, name or index) is required".into())),
     };
     let pi = s.doc.find_page(&r).ok_or_else(|| EngineError::Params(format!("no page `{}`", short(&r))))?;
-    let (page_id, page_name) = s.doc.pages.get(pi).map(|p| (p.id.clone(), p.name.clone())).ok_or_else(|| EngineError::Failed("no such page".into()))?;
+    let (page_id, page_name) =
+        s.doc.pages.get(pi).map(|p| (p.id.clone(), p.name.clone())).ok_or_else(|| EngineError::Failed("no such page".into()))?;
     let active = s.doc.page().ok_or_else(|| EngineError::Failed("the document has no page".into()))?;
     let id = match opt_str(v, "id")? {
         Some(i) => i.to_string(),
@@ -222,7 +218,11 @@ mod tests {
         let sub = s.doc.pages.iter().find(|p| p.id == page).unwrap();
         assert!(sub.shape(&valid).is_some() && sub.shape(&save).is_some());
         assert_eq!(sub.connectors.len(), 1);
-        assert!(main.connectors.iter().all(|c| c.start.shape().is_none_or(|x| main.shape(x).is_some()) && c.end.shape().is_none_or(|x| main.shape(x).is_some())));
+        assert!(
+            main.connectors
+                .iter()
+                .all(|c| c.start.shape().is_none_or(|x| main.shape(x).is_some()) && c.end.shape().is_none_or(|x| main.shape(x).is_some()))
+        );
         // Follow goes in; the link on the stand-in is an ordinary page link.
         s.run("link.follow", &json!({"id": stand})).unwrap();
         assert_eq!(s.doc.page().unwrap().id, page);
