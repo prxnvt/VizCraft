@@ -5,9 +5,10 @@
 //! optionally, a list function that names the concrete URIs that exist right now. Adding a kind
 //! of resource is one entry in one table; `server.rs` only delegates the three methods here.
 //!
-//! Every read goes through the backend as engine commands (`page.get`, `shape.get`,
+//! Every read goes through the backend as engine commands (`page.describe`, `shape.describe`,
 //! `shape.catalog`) or `engine.commands`, so the content is the same over the control channel
-//! and in a headless session.
+//! and in a headless session. Page and shape URIs take a `?detail=structure|layout|full` suffix;
+//! the default is `structure`, which carries no colours or coordinates.
 
 use serde_json::{Value, json};
 
@@ -40,6 +41,9 @@ const MAX_QUOTED_CHARS: usize = 80;
 
 const JSON: &str = "application/json";
 
+/// The detail levels of `doc.describe`, `page.describe` and `shape.describe`, cheapest first.
+pub(crate) const DETAILS: [&str; 3] = ["structure", "layout", "full"];
+
 /// An error for the JSON-RPC reply: code and message.
 pub(crate) type RpcError = (i64, String);
 
@@ -58,7 +62,8 @@ struct Template {
     name: &'static str,
     title: &'static str,
     description: &'static str,
-    read: fn(&mut dyn Backend, &str) -> Result<String, RpcError>,
+    /// Reads the resource for a decoded id and a detail level (one of [`DETAILS`]).
+    read: fn(&mut dyn Backend, &str, &str) -> Result<String, RpcError>,
     /// The concrete resources of this kind that exist now, for `resources/list`. An `Err` (no
     /// app running, say) leaves them out and the static entries are listed alone.
     list: Option<fn(&mut dyn Backend) -> Result<Vec<Value>, String>>,
@@ -86,7 +91,7 @@ const TEMPLATES: &[Template] = &[
         prefix: PAGE_URI_PREFIX,
         name: "page",
         title: "Page",
-        description: "One page of the open document as VizCraft JSON: size, shapes and connectors. {id} is the page id from list_pages.",
+        description: "One page as JSON: shapes (stencil, text, parent, data rows) and connectors (glue with connection points, text). {id} is a page id from list_pages. Add `?detail=layout` for positions and sizes, `?detail=full` for style and everything else; the default is `structure`.",
         read: read_page,
         list: Some(list_pages),
     },
@@ -94,7 +99,7 @@ const TEMPLATES: &[Template] = &[
         prefix: SHAPE_URI_PREFIX,
         name: "shape",
         title: "Shape",
-        description: "One shape as JSON: its page, master, outline kind, geometry, rotation, text, style, shape data, connection points and the connectors glued to it.",
+        description: "One shape as JSON, with the connectors glued to it: stencil, text, parent, data rows. Add `?detail=layout` for geometry, `?detail=full` for style, connection points and everything else; the default is `structure`.",
         read: read_shape,
         list: None,
     },
@@ -146,12 +151,43 @@ pub(crate) fn read(backend: &mut dyn Backend, params: &Value) -> Result<Value, R
     let text = if let Some(r) = STATIC.iter().find(|r| r.uri == uri) {
         (r.read)(backend)?
     } else if let Some((t, rest)) = TEMPLATES.iter().find_map(|t| uri.strip_prefix(t.prefix).map(|rest| (t, rest))) {
-        let id = decode_id(rest).ok_or_else(|| not_found(uri))?;
-        (t.read)(backend, &id).map_err(|(code, m)| if code == RESOURCE_NOT_FOUND { not_found(uri) } else { (code, m) })?
+        let (raw_id, detail) = split_detail(rest)?;
+        let id = decode_id(raw_id).ok_or_else(|| not_found(uri))?;
+        (t.read)(backend, &id, detail).map_err(|(code, m)| if code == RESOURCE_NOT_FOUND { not_found(uri) } else { (code, m) })?
     } else {
         return Err(not_found(uri));
     };
     Ok(json!({"contents": [{"uri": uri, "mimeType": JSON, "text": text}]}))
+}
+
+/// Split `<id>[?detail=<level>]`. Only `detail` is understood after the `?` (an id never holds a
+/// raw `?`, because listed URIs encode it); any other query, or a level that is not one of
+/// [`DETAILS`], is invalid params.
+fn split_detail(rest: &str) -> Result<(&str, &str), RpcError> {
+    let Some((id, query)) = rest.split_once('?') else { return Ok((rest, DETAILS[0])) };
+    let mut detail = DETAILS[0];
+    for pair in query.split('&').filter(|p| !p.is_empty()) {
+        match pair.split_once('=') {
+            Some(("detail", level)) => {
+                detail = DETAILS
+                    .iter()
+                    .copied()
+                    .find(|d| *d == level)
+                    .ok_or_else(|| (INVALID_PARAMS, format!("`detail` must be one of {}, not `{}`", DETAILS.join(", "), clip(level))))?;
+            }
+            _ => return Err((INVALID_PARAMS, format!("unsupported query `{}`; only `?detail={}` is understood", clip(pair), DETAILS.join("|")))),
+        }
+    }
+    Ok((id, detail))
+}
+
+/// `t` cut to a length that can be quoted in an error.
+fn clip(t: &str) -> String {
+    let mut shown: String = t.chars().take(MAX_QUOTED_CHARS).collect();
+    if shown.len() < t.len() {
+        shown.push_str("...");
+    }
+    shown
 }
 
 fn not_found(uri: &str) -> RpcError {
@@ -223,16 +259,21 @@ fn read_stencils(backend: &mut dyn Backend) -> Result<String, RpcError> {
     Ok(pretty(&execute(backend, "shape.catalog", json!({}))?))
 }
 
-fn read_page(backend: &mut dyn Backend, id: &str) -> Result<String, RpcError> {
-    let r = execute(backend, "page.get", json!({"page": id, "format": "vizcraft"}))?;
-    match r.get("content").and_then(Value::as_str) {
-        Some(content) => Ok(content.to_string()),
-        None => Err((INTERNAL_ERROR, "page.get returned no `content`".into())),
+fn read_page(backend: &mut dyn Backend, id: &str, detail: &str) -> Result<String, RpcError> {
+    let r = execute(backend, "page.describe", json!({"page": id, "detail": detail}))?;
+    match r.get("page") {
+        Some(page) => Ok(pretty(page)),
+        None => Err((INTERNAL_ERROR, "page.describe returned no `page`".into())),
     }
 }
 
-fn read_shape(backend: &mut dyn Backend, id: &str) -> Result<String, RpcError> {
-    Ok(pretty(&execute(backend, "shape.get", json!({"id": id}))?))
+fn read_shape(backend: &mut dyn Backend, id: &str, detail: &str) -> Result<String, RpcError> {
+    let mut r = execute(backend, "shape.describe", json!({"id": id, "detail": detail}))?;
+    // The format is always JSON here; the level is worth keeping so the reader knows what is missing.
+    if let Some(o) = r.as_object_mut() {
+        o.remove("format");
+    }
+    Ok(pretty(&r))
 }
 
 /// One resource per page, from `page.list`.
@@ -250,7 +291,7 @@ fn list_pages(backend: &mut dyn Backend) -> Result<Vec<Value>, String> {
                 "uri": format!("{PAGE_URI_PREFIX}{}", encode_id(id)),
                 "name": format!("page {id}"),
                 "title": name,
-                "description": format!("Page `{name}`: {} shapes, {} connectors, as VizCraft JSON.", count("shapes"), count("connectors")),
+                "description": format!("Page `{name}`: {} shapes, {} connectors, as JSON (`?detail=layout|full` for more).", count("shapes"), count("connectors")),
                 "mimeType": JSON,
             }))
         })
@@ -279,19 +320,19 @@ mod tests {
                 "page.list" => Ok(json!({"pages": PAGES.iter().enumerate().map(|(i, (id, name, shapes))| json!({
                     "index": i, "id": id, "name": name, "width": 1100, "height": 850, "shapes": shapes.len(), "connectors": 1,
                 })).collect::<Vec<_>>()})),
-                "page.get" => {
-                    assert_eq!(params["format"], "vizcraft");
+                "page.describe" => {
                     let r = params["page"].as_str().unwrap_or_default();
                     let (id, name, shapes) = PAGES.iter().find(|p| p.0 == r).ok_or(format!("bad parameters: no page `{r}`"))?;
-                    let content = json!({"id": id, "name": name, "shapes": shapes.iter().map(|s| json!({"id": s})).collect::<Vec<_>>()});
-                    Ok(json!({"page": id, "format": "vizcraft", "content": serde_json::to_string_pretty(&content).unwrap()}))
+                    let page = json!({"id": id, "name": name, "detail": params["detail"], "shapes": shapes.iter().map(|s| json!({"id": s})).collect::<Vec<_>>()});
+                    Ok(json!({"detail": params["detail"], "format": "json", "page": page}))
                 }
-                "shape.get" => {
+                "shape.describe" => {
                     let id = params["id"].as_str().unwrap_or_default();
                     let page = PAGES.iter().find(|p| p.2.contains(&id)).ok_or(format!("bad parameters: no shape `{id}`"))?;
-                    Ok(
-                        json!({"page": page.0, "shape": {"id": id, "master": "basic.rectangle"}, "connections": [{"connector": "c1", "end": "start", "from": id, "to": "s2"}]}),
-                    )
+                    Ok(json!({
+                        "detail": params["detail"], "format": "json", "page": page.0, "shape": {"id": id, "stencil": "basic.rectangle"},
+                        "connections": [{"id": "c1", "end": "start", "from": {"shape": id}, "to": {"shape": "s2"}}],
+                    }))
                 }
                 "shape.catalog" => {
                     Ok(json!({"sets": [{"id": "basic", "name": "Basic Shapes", "categories": ["Shapes"], "masters": [{"id": "basic.rectangle"}]}]}))
@@ -398,7 +439,46 @@ mod tests {
         assert!(text.contains('\n'), "the page JSON is passed through as the engine wrote it");
         let (_, shape) = read(&mut s, "vizcraft://shape/s2").unwrap();
         assert_eq!((shape["page"].as_str(), shape["shape"]["id"].as_str()), (Some("p1"), Some("s2")));
-        assert_eq!(shape["connections"][0]["connector"], "c1");
+        assert_eq!(shape["connections"][0]["id"], "c1");
+        assert_eq!((page["detail"].as_str(), shape["detail"].as_str()), (Some("structure"), Some("structure")), "structure is the default");
+        assert!(shape.get("format").is_none());
+    }
+
+    #[test]
+    fn detail_suffix_picks_the_level_before_the_id_is_looked_up() {
+        let mut s = up();
+        for level in ["structure", "layout", "full"] {
+            assert_eq!(read(&mut s, &format!("vizcraft://page/p1?detail={level}")).unwrap().1["detail"], level);
+            assert_eq!(read(&mut s, &format!("vizcraft://shape/s2?detail={level}")).unwrap().1["detail"], level);
+        }
+        // The id is decoded without the suffix, so an encoded id with a suffix still resolves.
+        assert_eq!(read(&mut s, "vizcraft://page/p%202%2F%C3%A9?detail=full").unwrap().1["detail"], "full");
+        assert_eq!(read(&mut s, "vizcraft://shape/s%E4%B8%AD?detail=layout").unwrap().1["page"], "p 2/\u{e9}");
+        assert_eq!(read(&mut s, "vizcraft://page/p1?").unwrap().1["detail"], "structure");
+        assert_eq!(read(&mut s, "vizcraft://page/p1?detail=layout&detail=full").unwrap().1["detail"], "full", "the last one wins");
+        // An unknown level or query is invalid params; an unknown id with a good suffix is not found.
+        for uri in [
+            "vizcraft://page/p1?detail=colourful",
+            "vizcraft://page/p1?detail=",
+            "vizcraft://page/p1?detail=FULL",
+            "vizcraft://shape/s1?detail=Full",
+            "vizcraft://page/p1?format=text",
+            "vizcraft://page/p1?detail",
+            "vizcraft://shape/s1?detail=full&x=1",
+        ] {
+            assert_eq!(read(&mut s, uri).unwrap_err().0, -32602, "{uri}");
+        }
+        assert_eq!(read(&mut s, "vizcraft://page/p9?detail=full").unwrap_err().0, -32002);
+        assert_eq!(read(&mut s, "vizcraft://page/?detail=full").unwrap_err().0, -32002);
+        let (_, message) = read(&mut s, &format!("vizcraft://page/p1?detail={}", "x".repeat(600))).unwrap_err();
+        assert!(message.len() < 400, "{message}");
+        // The descriptions say so.
+        let t = rpc(&mut s, "resources/templates/list", json!({}))["result"]["resourceTemplates"].as_array().unwrap().clone();
+        for t in t.iter().filter(|t| {
+            t["uriTemplate"].as_str().unwrap().starts_with("vizcraft://page") || t["uriTemplate"].as_str().unwrap().starts_with("vizcraft://shape")
+        }) {
+            assert!(t["description"].as_str().unwrap().contains("?detail=full"), "{t}");
+        }
     }
 
     #[test]
@@ -422,6 +502,7 @@ mod tests {
             "vizcraft://page/p9",
             "vizcraft://shape/s9",
             "vizcraft://page/p1/extra",
+            "vizcraft://page/p1/extra?detail=full",
             "vizcraft://commands/",
             "VIZCRAFT://COMMANDS",
             "file:///etc/passwd",

@@ -6,6 +6,7 @@ pub mod callout;
 pub mod connector;
 pub mod container;
 pub mod data;
+pub mod describe;
 pub mod design;
 pub mod edit;
 pub mod effects;
@@ -54,6 +55,7 @@ pub fn registry() -> Registry {
     v.extend(print::specs());
     v.extend(layer::specs());
     v.extend(data::specs());
+    v.extend(describe::specs());
     v.extend(design::specs());
     v.extend(layout::specs());
     v.extend(model::specs());

@@ -1,5 +1,6 @@
 //! The Cascade 3 diagram tools: open draw.io XML, Mermaid or CSV, list, read and replace pages,
-//! search the stencil library, and a reference for agents that write diagrams.
+//! search the stencil library, and a reference for agents that write diagrams; plus `describe`,
+//! the cheap structure read (`doc.describe`).
 //!
 //! Each tool except `get_reference` is one engine command sent through `engine.execute`, so undo,
 //! the control channel and the CLI see exactly what an agent did. The tools only check and
@@ -19,11 +20,14 @@ const MAX_PAGE_CHARS: usize = 256;
 const MAX_QUERY_CHARS: usize = 1000;
 /// Most search results one call may ask for.
 const MAX_SEARCH_LIMIT: u64 = 200;
+/// Most pages one `describe` may name.
+const MAX_DESCRIBE_PAGES: u64 = 1000;
 /// Highest zero-based page index accepted; documents have far fewer pages.
 const MAX_PAGE_INDEX: u64 = 100_000;
 
 /// The names of the diagram tools, in `tools/list` order.
-pub(crate) const NAMES: &[&str] = &["open_xml", "open_mermaid", "open_csv", "list_pages", "get_page", "set_page", "search_shapes", "get_reference"];
+pub(crate) const NAMES: &[&str] =
+    &["open_xml", "open_mermaid", "open_csv", "list_pages", "get_page", "set_page", "search_shapes", "get_reference", "describe"];
 
 fn path_prop(what: &str) -> Value {
     json!({"type": "string", "minLength": 1, "maxLength": MAX_PATH_CHARS, "description": what})
@@ -78,8 +82,7 @@ fn import_props(text_key: &str, text_what: &str) -> Map<String, Value> {
     p
 }
 
-const IMPORT_RESULT: &str = "Returns JSON `{page, ids, warnings}`: the page filled, the ids of the new shapes and \
-connectors, and anything that was simplified or skipped.";
+const IMPORT_RESULT: &str = "Returns `{page, ids, warnings}`.";
 
 /// Tool definitions for `tools/list`.
 pub(crate) fn definitions() -> Vec<Value> {
@@ -88,10 +91,7 @@ pub(crate) fn definitions() -> Vec<Value> {
             "open_xml",
             "Open draw.io XML",
             &format!(
-                "Replace a page's content with a diagram written as draw.io XML (an `mxfile` or a bare \
-                 `mxGraphModel`): shapes, connectors, labels, bend points and styles become VizCraft \
-                 items. Coordinates in the XML are kept unless `layout` is given. One undo step. \
-                 Call get_reference with topic `xml` or `styles` for what is understood. {IMPORT_RESULT}"
+                "Replace a page's content with a draw.io XML diagram (`mxfile` or `mxGraphModel`); coordinates are kept unless `layout` is given. One undo step; see get_reference `xml`. {IMPORT_RESULT}"
             ),
             object(Value::Object(import_props("xml", "The diagram as draw.io XML")), &["xml"]),
             false,
@@ -100,10 +100,7 @@ pub(crate) fn definitions() -> Vec<Value> {
             "open_mermaid",
             "Open Mermaid",
             &format!(
-                "Replace a page's content with a diagram written in Mermaid: flowchart, sequence, \
-                 class, state or entity-relationship. Shapes are laid out automatically (the \
-                 Mermaid direction is used unless `direction` is given) and node ids are kept. One \
-                 undo step. {IMPORT_RESULT}"
+                "Replace a page's content with a Mermaid flowchart, sequence, class, state or ER diagram, laid out automatically. One undo step. {IMPORT_RESULT}"
             ),
             object(
                 Value::Object(import_props("source", "The Mermaid text, starting with its diagram kind (`flowchart LR`, `sequenceDiagram`, ...)")),
@@ -115,10 +112,7 @@ pub(crate) fn definitions() -> Vec<Value> {
             "open_csv",
             "Open CSV",
             &format!(
-                "Replace a page's content with a diagram built from a table: `#` header lines set \
-                 the label and style templates, which columns identify and link rows, and the \
-                 layout; each data row becomes a shape and each link a connector. One undo step. \
-                 Call get_reference with topic `csv` for the header. {IMPORT_RESULT}"
+                "Replace a page's content with a diagram built from a CSV table with `#` header lines; see get_reference `csv`. One undo step. {IMPORT_RESULT}"
             ),
             object(Value::Object(import_props("csv", "The header lines followed by the CSV table")), &["csv"]),
             false,
@@ -126,17 +120,14 @@ pub(crate) fn definitions() -> Vec<Value> {
         tool(
             "list_pages",
             "List pages",
-            "List the pages of the open document, or of a .drawio or .vizcraft file when `path` is \
-             given. Returns JSON `{pages: [{index, id, name, width, height, shapes, connectors}]}`.",
+            "List pages as `{index, id, name, width, height, shapes, connectors}`, of the open document or of the .drawio or .vizcraft file at `path`.",
             object(json!({"path": path_prop("A .drawio or .vizcraft file to read instead of the open document")}), &[]),
             true,
         ),
         tool(
             "get_page",
             "Get a page",
-            "Return one page as draw.io XML (the default) or as VizCraft JSON, from the open document \
-             or from a file. Edit the XML and hand it to set_page to change the page. Returns JSON \
-             `{page, format, content}`.",
+            "Return one page as draw.io XML (default) or VizCraft JSON, with every style: `{page, format, content}`. To learn what connects to what, use describe or page.describe, which cost a fraction.",
             object(
                 json!({
                     "page": page_prop("The page, by id, name or zero-based index"),
@@ -151,10 +142,7 @@ pub(crate) fn definitions() -> Vec<Value> {
             "set_page",
             "Set a page",
             &format!(
-                "Replace one page with draw.io XML, adding the page when no page has that name. On \
-                 the open document this is one undo step. With `path` it edits that .drawio or \
-                 .vizcraft file on disk instead (reading it, replacing or adding the page, and \
-                 saving it) and leaves the open document alone. {IMPORT_RESULT}"
+                "Replace one page with draw.io XML (a new name adds a page); with `path` it edits that file on disk and leaves the open document alone. {IMPORT_RESULT}"
             ),
             object(
                 json!({
@@ -172,10 +160,7 @@ pub(crate) fn definitions() -> Vec<Value> {
         tool(
             "search_shapes",
             "Search shapes",
-            "Find stencil masters in VizCraft's shape library whose id, name or keywords contain every \
-             word of `query` (an empty query lists them all). Returns JSON `{masters: [{id, label, \
-             category, keywords, w, h, style}]}`, where `style` is a draw.io style string that opens \
-             as that master when put on an XML cell.",
+            "Find stencil masters whose id, name or keywords contain every word of `query` (empty lists all): `{masters: [{id, label, category, keywords, w, h, style}]}`.",
             object(
                 json!({
                     "query": {"type": "string", "maxLength": MAX_QUERY_CHARS, "description": "Words to look for, such as `decision` or `database`"},
@@ -188,12 +173,27 @@ pub(crate) fn definitions() -> Vec<Value> {
         tool(
             "get_reference",
             "Diagram reference",
-            "Notes for writing diagrams VizCraft opens well: the draw.io XML it accepts, how style keys \
-             map, master ids, the layout and routing options, the Mermaid and CSV forms, and how \
-             model-backed diagrams, notation packs and issues work. Give a \
-             `topic` for one section; without it every section comes back after an index. Needs no \
-             open document.",
+            "Notes on the draw.io XML, styles, masters, layouts, Mermaid, CSV and notation models VizCraft accepts; give a `topic` or get every section. Needs no open document.",
             object(json!({"topic": {"type": "string", "enum": reference::topic_names(), "description": "One section of the reference"}}), &[]),
+            true,
+        ),
+        tool(
+            "describe",
+            "Describe the document",
+            "Read what is in the document as ids, stencils, texts, connections and containment, with no colours or coordinates; start here. `detail: layout` adds positions, `full` adds style. `format: text` is a compact outline (far fewer tokens) returned as plain text.",
+            object(
+                json!({
+                    "detail": crate::tools::detail_prop(),
+                    "format": {"type": "string", "enum": ["json", "text"], "description": "`json` (default) or `text`, an indented outline: one line per shape and connector"},
+                    "pages": {
+                        "type": "array",
+                        "items": page_prop("A page, by id, name or zero-based index"),
+                        "maxItems": MAX_DESCRIBE_PAGES,
+                        "description": "Only these pages (default: all)",
+                    },
+                }),
+                &[],
+            ),
             true,
         ),
     ];
@@ -273,6 +273,18 @@ fn check_value(key: &str, value: &Value, prop: &Value) -> Result<(), String> {
         let wanted: Vec<String> = types.iter().map(|t| format!("a {t}")).collect();
         return Err(format!("`{key}` must be {}", wanted.join(" or ")));
     }
+    if let Some(items) = value.as_array() {
+        if let Some(max) = prop.get("maxItems").and_then(Value::as_u64)
+            && items.len() as u64 > max
+        {
+            return Err(format!("`{key}` has more than {max} entries"));
+        }
+        if let Some(item_schema) = prop.get("items") {
+            for (i, item) in items.iter().enumerate() {
+                check_value(&format!("{key}[{i}]"), item, item_schema)?;
+            }
+        }
+    }
     if let Some(allowed) = prop.get("enum").and_then(Value::as_array)
         && !allowed.contains(value)
     {
@@ -330,6 +342,7 @@ pub(crate) fn call(backend: &mut dyn Backend, name: &str, args: &Value) -> ToolR
         "set_page" => ("page.set", pick(args, &["page", "xml", "path", "layout", "direction", "routing"])),
         "search_shapes" => ("shape.search", pick(args, &["query", "limit"])),
         "get_reference" => return reference_text(args),
+        "describe" => return describe(backend, args),
         other => return ToolResult::error(format!("unknown tool `{other}`")),
     };
     match backend.call("engine.execute", json!({"command": command, "params": params})) {
@@ -362,6 +375,19 @@ fn import_params(args: &Map<String, Value>, text_key: &str, format: &str) -> Val
         params.extend(rest);
     }
     Value::Object(params)
+}
+
+/// `describe` is `doc.describe` with the same params. A `format: "text"` outline comes back as
+/// plain text, because JSON would escape every quote and line break in it.
+fn describe(backend: &mut dyn Backend, args: &Map<String, Value>) -> ToolResult {
+    let params = pick(args, &["detail", "format", "pages"]);
+    match backend.call("engine.execute", json!({"command": "doc.describe", "params": params})) {
+        Ok(result) => match result.get("text").and_then(Value::as_str) {
+            Some(text) => ToolResult::text(text),
+            None => ToolResult::json(&result),
+        },
+        Err(e) => ToolResult::error(format!("doc.describe failed: {e}")),
+    }
 }
 
 fn reference_text(args: &Map<String, Value>) -> ToolResult {
