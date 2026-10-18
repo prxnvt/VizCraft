@@ -14,6 +14,7 @@ pub mod chrome;
 pub mod control;
 pub mod data_dialog;
 pub mod dialogs;
+pub mod dock;
 pub mod find_dialog;
 pub mod icons;
 pub mod keys;
@@ -107,6 +108,18 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         r#"{"tool": "pointer|area|lasso|connector|text|textBlock|formatPainter", "from"?: id, "keep"?: bool}; area is the pointer's marquee; formatPainter copies from "from" (default: the primary selection), once unless "keep""#,
     ),
     ("ui.find", "Find", "Mod+F", "{}"),
+    (
+        "ui.dock",
+        "Bottom Dock",
+        "",
+        r#"{"open"?: bool, "tab"?: "problems|search|activity|tables|generate", "height"?: number} -> {"open", "height", "tab", "rows"}; naming a tab opens the dock on it, naming nothing toggles it"#,
+    ),
+    (
+        "ui.search",
+        "Search the Dock",
+        "",
+        r#"{"query": string, "scope"?: "page|document"} -> {"query", "scope", "hits": [{"page", "id", "field", "value"}]}"#,
+    ),
     ("window.minimize", "Minimize", "", "{}"),
     ("window.zoom", "Zoom Window", "", "{}"),
     ("app.about", "About VizCraft", "", "{}"),
@@ -205,6 +218,8 @@ pub struct UiState {
     pub in_window_menus: bool,
     /// Grid, rulers, guides, page breaks, connection points, AutoConnect and snap settings.
     pub aids: vizcraft_engine::cmd::view::Aids,
+    /// The bottom dock: whether it shows, how tall and which tab.
+    pub dock: dock::DockLayout,
 }
 
 impl Default for UiState {
@@ -219,6 +234,7 @@ impl Default for UiState {
             window: None,
             in_window_menus: false,
             aids: Default::default(),
+            dock: Default::default(),
         }
     }
 }
@@ -460,6 +476,9 @@ impl CraftApp {
     /// Commands that live in the UI layer. `None` when `id` is not one of them.
     fn ui_command(&mut self, id: &str, p: &Value) -> Option<Result<Value, String>> {
         if let Some(r) = panes::ui_command(self, id, p) {
+            return Some(r);
+        }
+        if let Some(r) = dock::ui_command(self, id, p) {
             return Some(r);
         }
         let s = |k: &str| p.get(k).and_then(Value::as_str);
@@ -805,6 +824,10 @@ impl CraftApp {
             {
                 let _t = span("ui.panes");
                 panes::show(self, ui);
+            }
+            {
+                let _t = span("ui.dock");
+                dock::show(self, ui);
             }
             let _t = span("ui.canvas");
             egui::CentralPanel::default().frame(egui::Frame::NONE.fill(t.canvas)).show(ui, |ui| {
