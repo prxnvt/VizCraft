@@ -1,8 +1,14 @@
 //! Drags: handle geometry (resize and rotate), the preview page a drag draws from, and the one
 //! command a finished drag commits.
+//!
+//! Shape locks (Developer > Protection) shape every drag here: a position-locked shape does not
+//! move, a locked side is not resized (a corner handle then changes the free side only), the
+//! aspect lock keeps the ratio, and a rotation-locked shape does not turn. Document protection
+//! stops them all ([`protected`]). The engine refuses the same edits; the canvas never even
+//! previews them.
 
 use serde_json::json;
-use vizcraft_diagram::{self as dg, Connector, End, Page, Point, Shape, snap};
+use vizcraft_diagram::{self as dg, Connector, Document, End, Page, Point, Shape, snap};
 
 use super::{Drag, HANDLES, MIN_SIZE, PREVIEW_ID, ROTATE_GAP, SNAP_DEG, connect_ok, end_json, marquee_ids, round, run, target_end};
 use crate::CraftApp;
@@ -19,11 +25,49 @@ pub fn rotate_handle_world(s: &Shape, zoom: f32) -> Point {
     s.transform().apply(Point::new(s.w / 2.0, -gap))
 }
 
-/// The frame `(x, y, w, h)` a resize handle drag to `to` gives, keeping the opposite handle in
-/// place (rotation included). With `keep_aspect` a corner scales both sides by the larger
-/// factor and an edge scales the other side to match.
-pub fn resize_frame(s: &Shape, handle: usize, to: Point, keep_aspect: bool) -> Option<(f64, f64, f64, f64)> {
+/// Whether document protection stops every edit of the shapes on `page`: Protect Document with
+/// shapes on, or with backgrounds on and `page` a background page.
+pub fn protected(doc: &Document, page: &Page) -> bool {
+    doc.protection.shapes || (doc.protection.backgrounds && page.is_background)
+}
+
+/// What resize handle `handle` of `s` does under the shape's locks, in normalized frame
+/// coordinates: a locked side acts as if the handle sat at its middle, so a corner changes only
+/// the free side. `None` when the handle can change nothing (an edge of a locked side, both sides
+/// locked, or a side locked together with the aspect).
+fn effective_handle(s: &Shape, handle: usize) -> Option<(f64, f64)> {
     let (hx, hy) = HANDLES.get(handle).copied()?;
+    let l = &s.locks;
+    if (l.width || l.height) && l.aspect {
+        return None;
+    }
+    let hx = if l.width { 0.5 } else { hx };
+    let hy = if l.height { 0.5 } else { hy };
+    (hx != 0.5 || hy != 0.5).then_some((hx, hy))
+}
+
+/// Whether resize handle `handle` of `s` can change the shape (the overlay hides it otherwise).
+pub fn handle_allowed(s: &Shape, handle: usize) -> bool {
+    effective_handle(s, handle).is_some()
+}
+
+/// Whether `s` may be turned with the rotate handle.
+pub fn rotate_allowed(s: &Shape) -> bool {
+    !s.locks.rotation
+}
+
+/// Whether a move drag may carry `ids` on `page`: none of them is a position-locked shape.
+pub fn move_allowed(page: &Page, ids: &[String]) -> bool {
+    !ids.iter().any(|id| page.shape(id).is_some_and(|s| s.locks.position))
+}
+
+/// The frame `(x, y, w, h)` a resize handle drag to `to` gives, keeping the opposite handle in
+/// place (rotation included). With `keep_aspect` (or the shape's aspect lock) a corner scales
+/// both sides by the larger factor and an edge scales the other side to match. A locked side
+/// keeps its size; `None` when the locks leave the handle nothing to change.
+pub fn resize_frame(s: &Shape, handle: usize, to: Point, keep_aspect: bool) -> Option<(f64, f64, f64, f64)> {
+    let (hx, hy) = effective_handle(s, handle)?;
+    let keep_aspect = keep_aspect || s.locks.aspect;
     let (ax, ay) = (1.0 - hx, 1.0 - hy);
     let t = s.transform();
     let local = t.inverse()?.apply(to);
@@ -89,6 +133,7 @@ pub fn preview_page(page: &Page, drag: &Drag, zoom: f32) -> Option<Page> {
             super::text_block::preview(&mut p, id, grab, *to, *shift);
             Vec::new()
         }
+        Drag::Move { ids, .. } if !move_allowed(page, ids) => Vec::new(),
         Drag::Move { ids, from, to } => {
             let d = move_delta(*from, *to);
             dg::arrange::translate(&mut p, ids, d.x, d.y);
@@ -106,7 +151,7 @@ pub fn preview_page(page: &Page, drag: &Drag, zoom: f32) -> Option<Page> {
             vec![id.clone()]
         }
         Drag::Rotate { id, to, snap } => {
-            if let Some(a) = page.shape(id).map(|s| rotate_angle(s, *to, *snap)) {
+            if let Some(a) = page.shape(id).filter(|s| rotate_allowed(s)).map(|s| rotate_angle(s, *to, *snap)) {
                 dg::arrange::set_angle(&mut p, id, a);
             }
             vec![id.clone()]
@@ -145,7 +190,16 @@ pub fn drag_target(page: &Page, drag: &Drag, zoom: f32) -> Option<End> {
 /// Commit a finished drag as one command.
 pub(super) fn finish(app: &mut CraftApp, drag: Drag, zoom: f32) {
     let Some(page) = app.session.doc.page() else { return };
+    // Protection refuses every shape edit a drag commits (selection drags still run).
+    let edits = matches!(drag, Drag::Move { .. } | Drag::Resize { .. } | Drag::Rotate { .. });
+    if edits && protected(&app.session.doc, page) {
+        app.status("The shapes are protected (Developer > Protect Document)");
+        return;
+    }
     match drag {
+        Drag::Move { ids, .. } if !move_allowed(page, &ids) => {
+            app.status("A selected shape is locked against moving (Developer > Protection)");
+        }
         Drag::Marquee { from, to, add } => {
             let ids = marquee_ids(page, &dg::Rect::from_points(from, to));
             if ids.is_empty() {
@@ -185,7 +239,7 @@ pub(super) fn finish(app: &mut CraftApp, drag: Drag, zoom: f32) {
             }
         }
         Drag::Rotate { id, to, snap } => {
-            if let Some(s) = page.shape(&id) {
+            if let Some(s) = page.shape(&id).filter(|s| rotate_allowed(s)) {
                 let a = rotate_angle(s, to, snap);
                 if (a - s.angle_deg).abs() > 1e-6 {
                     run(app, "shape.rotate", json!({"ids": [id], "angle": a}));

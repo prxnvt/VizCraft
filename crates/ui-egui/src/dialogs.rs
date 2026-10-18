@@ -54,6 +54,8 @@ pub enum Dialog {
     PasteSpecial(crate::paste_special::State),
     /// Insert Symbol (`crate::symbol_dialog`).
     Symbol(crate::symbol_dialog::State),
+    /// Shape Name (`crate::shape_name_dialog`).
+    ShapeName(crate::shape_name_dialog::State),
 }
 
 impl Dialog {
@@ -74,6 +76,7 @@ impl Dialog {
             Dialog::Find(_) => "find",
             Dialog::PasteSpecial(_) => "pasteSpecial",
             Dialog::Symbol(_) => "symbol",
+            Dialog::ShapeName(_) => "shapeName",
         }
     }
 
@@ -94,6 +97,7 @@ impl Dialog {
             "find" => Dialog::Find(crate::find_dialog::open(app)),
             "pasteSpecial" => Dialog::PasteSpecial(crate::paste_special::open(app)),
             "symbol" => Dialog::Symbol(crate::symbol_dialog::State::default()),
+            "shapeName" => Dialog::ShapeName(crate::shape_name_dialog::open(app)),
             _ => return None,
         })
     }
@@ -114,6 +118,7 @@ impl Dialog {
             Dialog::Find(_) => "Find and Replace".into(),
             Dialog::PasteSpecial(_) => "Paste Special".into(),
             Dialog::Symbol(_) => "Symbol".into(),
+            Dialog::ShapeName(_) => "Shape Name".into(),
         }
     }
 
@@ -312,6 +317,11 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
             crate::print_preview::finish(app, s, print, cancel)
         }
         Dialog::Symbol(s) => crate::symbol_dialog::body(app, ui, s),
+        Dialog::ShapeName(s) => {
+            crate::shape_name_dialog::body(ui, s);
+            let (ok, cancel) = buttons(ui, "OK", Some("Cancel"), keys);
+            crate::shape_name_dialog::finish(app, s, ok, cancel)
+        }
         Dialog::SnapSettings(s) => {
             crate::snap_dialog::body(ui, s);
             let (ok, cancel) = buttons(ui, "OK", Some("Cancel"), keys);

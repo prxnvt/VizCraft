@@ -24,6 +24,7 @@ pub mod panes;
 pub mod paste_special;
 pub mod print_preview;
 pub mod ribbon;
+pub mod shape_name_dialog;
 pub mod snap_dialog;
 pub mod symbol_dialog;
 pub mod theme;
@@ -93,6 +94,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.pane.history", "History Pane", "", r#"{"value"?: bool}"#),
     ("ui.pane.layers", "Layers Pane", "", r#"{"value"?: bool}"#),
     ("ui.pane.shapeData", "Shape Data Pane", "", r#"{"value"?: bool}"#),
+    ("ui.pane.documentStencil", "Document Stencil", "", r#"{"value"?: bool}"#),
     ("ui.paneSide", "Move Pane to Side", "", r#"{"name": "shapes|navigation|properties|history|layers|shapeData", "side": "left|right"}"#),
     ("ui.collapsePanes", "Collapse Side Panes", "", r#"{"side": "left|right", "value"?: bool}"#),
     ("ui.panesReset", "Reset Panes", "", "{}"),

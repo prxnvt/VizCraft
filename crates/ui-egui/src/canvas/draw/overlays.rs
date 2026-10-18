@@ -234,11 +234,15 @@ pub fn overlay(app: &CraftApp, painter: &egui::Painter, vp: &Viewport2D, page: &
         && !matches!(drag, Some(Drag::Move { .. }))
         && app.tool != crate::Tool::TextBlock
     {
-        let top = vp.world_to_screen(pos(s.transform().apply(dg::Point::new(s.w / 2.0, 0.0))));
-        let rot = vp.world_to_screen(pos(interact::rotate_handle_world(s, vp.zoom)));
-        painter.line_segment([top, rot], Stroke::new(1.0, accent));
-        painter.circle(rot, 4.5, accent, Stroke::new(1.5, t.page));
-        for i in 0..interact::HANDLES.len() {
+        // Locks hide the handles they stop; document protection hides them all.
+        let protected = interact::drag::protected(&app.session.doc, page);
+        if !protected && interact::drag::rotate_allowed(s) {
+            let top = vp.world_to_screen(pos(s.transform().apply(dg::Point::new(s.w / 2.0, 0.0))));
+            let rot = vp.world_to_screen(pos(interact::rotate_handle_world(s, vp.zoom)));
+            painter.line_segment([top, rot], Stroke::new(1.0, accent));
+            painter.circle(rot, 4.5, accent, Stroke::new(1.5, t.page));
+        }
+        for i in (0..interact::HANDLES.len()).filter(|i| !protected && interact::drag::handle_allowed(s, *i)) {
             if let Some(h) = interact::handle_world(s, i) {
                 let c = vp.world_to_screen(pos(h));
                 let r = Rect::from_center_size(c, vec2(7.0, 7.0));
