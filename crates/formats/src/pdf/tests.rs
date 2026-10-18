@@ -19,6 +19,7 @@ fn two_pages() -> Document {
     second.shapes.push(Shape::new("b", ShapeKind::Ellipse, 100.0, 100.0, 200.0, 100.0));
     doc.pages.push(second);
     for p in &mut doc.pages {
+        p.board = vizcraft_diagram::Board::Fixed;
         p.header = HeaderFooter { left: "{title}".into(), right: "{date}".into(), ..HeaderFooter::default() };
         p.footer = HeaderFooter { center: "Page {page} of {pages}: {pageName}".into(), margin: Some(40.0), ..HeaderFooter::default() };
     }
@@ -90,6 +91,7 @@ fn printing_leaves_out_non_printing_shapes_and_layers() {
 fn a_large_drawing_tiles_unless_fit() {
     let mut doc = Document::new();
     if let Some(p) = doc.pages.first_mut() {
+        p.board = vizcraft_diagram::Board::Fixed;
         // Reaches to x 2500 on an 1100 wide page: three sheets across, one down.
         p.shapes.push(Shape::new("wide", ShapeKind::Rectangle, 0.0, 100.0, 2500.0, 100.0));
     }

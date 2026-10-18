@@ -1,5 +1,6 @@
-//! The Page Setup dialog: paper size (a preset or custom), orientation, units, drawing scale and
-//! auto size for the active page. `page.setup` with no params asks the UI to open it; OK runs
+//! The Page Setup dialog: board (infinite or fixed), paper size (a preset or custom), orientation, units, drawing scale and
+//! auto size for the active page. The size, orientation and auto size fields wait, greyed, while
+//! the board is infinite. `page.setup` with no params asks the UI to open it; OK runs
 //! `page.setup` again with the settings, so agents reach the same result without the dialog.
 //!
 //! Sizes are shown in the page's units; the page itself stores world units (100 per inch).
@@ -7,7 +8,7 @@
 use egui::{Ui, vec2};
 use serde::Serialize;
 use serde_json::{Value, json};
-use vizcraft_diagram::{Orientation, Units};
+use vizcraft_diagram::{Board, Orientation, Units};
 use vizcraft_engine::cmd::page::{UNITS, parse_units, units_name};
 
 use crate::CraftApp;
@@ -55,6 +56,8 @@ pub fn preset_of(w: f64, h: f64) -> Option<&'static str> {
 pub struct PageSetup {
     /// The page being set up.
     pub page: String,
+    /// Infinite canvas or fixed sheet.
+    pub board: Board,
     /// Width in world units.
     pub width: f64,
     /// Height in world units.
@@ -79,6 +82,7 @@ impl PageSetup {
         let Some(p) = app.session.doc.page() else {
             return PageSetup {
                 page: String::new(),
+                board: Board::Infinite,
                 width: 1100.0,
                 height: 850.0,
                 portrait: false,
@@ -91,6 +95,7 @@ impl PageSetup {
         };
         PageSetup {
             page: p.id.clone(),
+            board: p.board,
             width: p.width,
             height: p.height,
             portrait: p.height > p.width || (p.height == p.width && p.orientation == Orientation::Portrait),
@@ -106,6 +111,7 @@ impl PageSetup {
     pub fn params(&self) -> Value {
         json!({
             "page": self.page,
+            "board": self.board,
             "width": self.width,
             "height": self.height,
             "orientation": if self.portrait { "portrait" } else { "landscape" },
@@ -138,40 +144,54 @@ pub fn fields(ui: &mut Ui, d: &mut PageSetup) {
     let dim = |s: &str| egui::RichText::new(s).color(t.text_dim);
     let units = parse_units(&d.units).unwrap_or_default();
     let k = units_scale(units);
+    // The sheet fields mean nothing on an infinite board; they keep their values for a switch back.
+    let sheet = d.board == Board::Fixed;
     egui::Grid::new("page_setup").num_columns(2).spacing(vec2(12.0, 10.0)).show(ui, |ui| {
+        ui.label(dim("Board"));
+        ui.horizontal(|ui| {
+            ui.radio_value(&mut d.board, Board::Infinite, "Infinite");
+            ui.radio_value(&mut d.board, Board::Fixed, "Fixed");
+        });
+        ui.end_row();
         ui.label(dim("Size"));
         let current = preset_of(d.width, d.height).unwrap_or("Custom");
-        egui::ComboBox::from_id_salt("page_setup_size").selected_text(current).width(160.0).show_ui(ui, |ui| {
-            for (name, w, h) in PRESETS {
-                if ui.selectable_label(current == *name, *name).clicked() {
-                    let (w, h) = if d.portrait { (*w, *h) } else { (*h, *w) };
-                    d.width = w;
-                    d.height = h;
+        ui.add_enabled_ui(sheet, |ui| {
+            egui::ComboBox::from_id_salt("page_setup_size").selected_text(current).width(160.0).show_ui(ui, |ui| {
+                for (name, w, h) in PRESETS {
+                    if ui.selectable_label(current == *name, *name).clicked() {
+                        let (w, h) = if d.portrait { (*w, *h) } else { (*h, *w) };
+                        d.width = w;
+                        d.height = h;
+                    }
                 }
-            }
-            let _ = ui.selectable_label(current == "Custom", "Custom");
+                let _ = ui.selectable_label(current == "Custom", "Custom");
+            });
         });
         ui.end_row();
         ui.label(dim("Width"));
         let mut w = d.width / k;
-        if ui.add(egui::DragValue::new(&mut w).speed(0.1).range(0.01..=1.0e6).max_decimals(2).suffix(format!(" {}", d.units))).changed() {
+        let drag = egui::DragValue::new(&mut w).speed(0.1).range(0.01..=1.0e6).max_decimals(2).suffix(format!(" {}", d.units));
+        if ui.add_enabled(sheet, drag).changed() {
             d.width = (w * k).clamp(1.0, vizcraft_diagram::MAX_EXTENT);
             d.portrait = d.height > d.width;
         }
         ui.end_row();
         ui.label(dim("Height"));
         let mut h = d.height / k;
-        if ui.add(egui::DragValue::new(&mut h).speed(0.1).range(0.01..=1.0e6).max_decimals(2).suffix(format!(" {}", d.units))).changed() {
+        let drag = egui::DragValue::new(&mut h).speed(0.1).range(0.01..=1.0e6).max_decimals(2).suffix(format!(" {}", d.units));
+        if ui.add_enabled(sheet, drag).changed() {
             d.height = (h * k).clamp(1.0, vizcraft_diagram::MAX_EXTENT);
             d.portrait = d.height > d.width;
         }
         ui.end_row();
         ui.label(dim("Orientation"));
-        ui.horizontal(|ui| {
-            let mut portrait = d.portrait;
-            ui.radio_value(&mut portrait, true, "Portrait");
-            ui.radio_value(&mut portrait, false, "Landscape");
-            d.set_portrait(portrait);
+        ui.add_enabled_ui(sheet, |ui| {
+            ui.horizontal(|ui| {
+                let mut portrait = d.portrait;
+                ui.radio_value(&mut portrait, true, "Portrait");
+                ui.radio_value(&mut portrait, false, "Landscape");
+                d.set_portrait(portrait);
+            });
         });
         ui.end_row();
         ui.label(dim("Units"));
@@ -186,7 +206,7 @@ pub fn fields(ui: &mut Ui, d: &mut PageSetup) {
         });
         ui.end_row();
         ui.label(dim("Auto size"));
-        ui.checkbox(&mut d.auto_size, "Grow the page to fit the drawing");
+        ui.add_enabled(sheet, egui::Checkbox::new(&mut d.auto_size, "Grow the page to fit the drawing"));
         ui.end_row();
     });
 }
@@ -216,13 +236,16 @@ mod tests {
     fn ok_runs_page_setup_with_the_settings() {
         let mut app = CraftApp::new(vizcraft_engine::Session::new(vizcraft_engine::Document::new()), crate::Services::default());
         let mut d = PageSetup::new(&app);
+        assert_eq!(d.board, Board::Infinite, "a new document is on an infinite board");
         assert!(!d.portrait);
+        d.board = Board::Fixed;
         d.set_portrait(true);
         d.units = "mm".into();
         d.auto_size = true;
         apply(&mut app, &d);
         let p = app.session.doc.page().unwrap();
         assert_eq!((p.width, p.height, p.orientation, p.units, p.auto_size), (850.0, 1100.0, Orientation::Portrait, Units::Millimeters, true));
+        assert_eq!(p.board, Board::Fixed);
         assert!(app.dialog.is_none(), "applying never reopens the dialog");
     }
 }

@@ -182,24 +182,28 @@ pub fn handle_pan_and_zoom(ui: &Ui, response: &Response, pan: &mut [f32; 2], zoo
     changed
 }
 
-/// The pan that shows `page` in a canvas of `size` points at `zoom`: centred on each axis where
-/// it fits, otherwise its top or left edge a small margin in.
+/// The pan that shows the frame of `page` in a canvas of `size` points at `zoom`: centred on each
+/// axis where it fits, otherwise its top or left edge a small margin in.
 pub fn initial_pan(page: &Page, size: Vec2, zoom: f32) -> [f32; 2] {
     let zoom = zoom.max(0.01);
     let margin = 24.0 / zoom;
-    let axis = |extent: f64, view: f32| {
-        let extent = extent as f32;
+    let frame = page.frame();
+    let axis = |lo: f64, extent: f64, view: f32| {
+        let (lo, extent) = (lo as f32, extent as f32);
         let view = view / zoom;
-        if extent + 2.0 * margin <= view { extent / 2.0 } else { view / 2.0 - margin }
+        if extent + 2.0 * margin <= view { lo + extent / 2.0 } else { lo + view / 2.0 - margin }
     };
-    [axis(page.width, size.x), axis(page.height, size.y)]
+    [axis(frame.x0, frame.width(), size.x), axis(frame.y0, frame.height(), size.y)]
 }
 
 /// A compact summary of the document and canvas for `ui.inspect`.
 pub fn summary(app: &CraftApp) -> Value {
     let page = app.session.doc.page();
     json!({
-        "page": page.map(|p| json!({"id": p.id, "width": p.width, "height": p.height})),
+        "page": page.map(|p| {
+            let f = p.frame();
+            json!({"id": p.id, "board": p.board, "width": f.width(), "height": f.height()})
+        }),
         "shapes": page.map_or(0, |p| p.shapes.len()),
         "connectors": page.map_or(0, |p| p.connectors.len()),
         "selected": &app.session.sel.items,
@@ -237,12 +241,18 @@ pub fn insert_master(app: &mut CraftApp, stencil: &str, at: dg::Point) {
     interact::membership::insert(app, stencil, x, y, m.w, m.h);
 }
 
-/// Where a click in the Shapes pane inserts: the centre of the visible part of the page, or the
-/// page centre when the page is out of view or the canvas has not been laid out.
+/// Where a click in the Shapes pane inserts: the centre of the visible part of the page frame, or
+/// the frame centre when it is out of view or the canvas has not been laid out. On an infinite
+/// board it is the centre of what is visible.
 pub fn insert_point(app: &CraftApp) -> dg::Point {
     let Some(page) = app.session.doc.page() else { return dg::Point::ZERO };
-    let pr = page.rect();
+    let pr = page.frame();
     let visible = app.canvas.viewport(&app.session.view).map(|vp| vp.visible_world_rect());
+    if page.board.is_infinite()
+        && let Some(v) = visible
+    {
+        return v.center();
+    }
     match visible {
         Some(v) if v.intersects(&pr) => dg::Rect::new(v.x0.max(pr.x0), v.y0.max(pr.y0), v.x1.min(pr.x1), v.y1.min(pr.y1)).center(),
         _ => pr.center(),
@@ -367,6 +377,18 @@ fn paint(app: &mut CraftApp, ui: &Ui, vp: &Viewport2D, t: &Tokens) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_first_view_centres_the_frame_of_either_board() {
+        let mut page = Page::new("p1", "A");
+        page.shapes.push(dg::Shape::new("a", dg::ShapeKind::Rectangle, 1000.0, 2000.0, 100.0, 60.0));
+        let size = Vec2::new(1400.0, 1000.0);
+        let infinite = initial_pan(&page, size, 1.0);
+        let c = page.frame().center();
+        assert_eq!(infinite, [c.x as f32, c.y as f32], "a drawing far from the origin is centred, not the sheet");
+        page.board = dg::Board::Fixed;
+        assert_eq!(initial_pan(&page, size, 1.0), [550.0, 425.0], "the sheet at the origin");
+    }
 
     #[test]
     fn viewport_projections_round_trip() {

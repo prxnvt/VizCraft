@@ -53,9 +53,15 @@ fn tolerance(zoom: f32) -> f64 {
     2f64.powf(t.log2().floor())
 }
 
-/// The page sheet: shadow, white fill and a subtle border.
+/// The page sheet: shadow, white fill and a subtle border. An infinite board has no sheet: the
+/// whole canvas is the white board, with no shadow and no border.
 pub fn sheet(painter: &Painter, vp: &Viewport2D, page: &Page, t: &Tokens) {
-    let r = Rect::from_min_max(vp.world_to_screen(pos2(0.0, 0.0)), vp.world_to_screen(pos2(page.width as f32, page.height as f32)));
+    if page.board.is_infinite() {
+        painter.rect_filled(vp.screen_rect, 0.0, PAGE_FILL);
+        return;
+    }
+    let f = page.frame();
+    let r = Rect::from_min_max(vp.world_to_screen(pos2(f.x0 as f32, f.y0 as f32)), vp.world_to_screen(pos2(f.x1 as f32, f.y1 as f32)));
     let shadow = egui::Shadow { offset: [0, 2], blur: 10, spread: 0, color: t.shadow };
     painter.add(shadow.as_shape(r, 0));
     painter.rect(r, 0.0, PAGE_FILL, Stroke::new(1.0, t.border_strong), egui::StrokeKind::Outside);

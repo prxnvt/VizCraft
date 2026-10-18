@@ -85,14 +85,15 @@ pub fn export_page_with(doc: &Document, page_index: usize, opts: &SvgOptions) ->
     Ok(page_svg(doc, page_index, page, opts).into_bytes())
 }
 
-/// The canvas: the page rectangle, grown to the content bounds plus a margin when needed.
+/// The canvas: the page frame (see `Page::frame`), grown to the content bounds plus a margin when
+/// needed.
 pub fn canvas_rect(page: &Page) -> Rect {
     canvas_rect_with(page, false)
 }
 
 /// [`canvas_rect`], counting only printable shapes when `print` is set.
 pub fn canvas_rect_with(page: &Page, print: bool) -> Rect {
-    let page_rect = page.rect();
+    let page_rect = page.frame();
     match content_bounds(page, print) {
         Some(c) if !page_rect.contains_rect(&c) => page_rect.union(&c.inflate(MARGIN)),
         _ => page_rect,
@@ -477,20 +478,21 @@ fn text_svg(out: &mut String, lines: &[String], x: f64, first_baseline: f64, anc
     out.push_str("</text>\n");
 }
 
-/// Header and footer text, each its margin in from the page edges, in the default text style at
+/// Header and footer text, each its margin in from the frame edges, in the default text style at
 /// a small size, with fields expanded from `values`.
 fn header_footer_svg(out: &mut String, page: &Page, values: &FieldValues) {
     let st = Style { font_size: 10.0, ..Style::DEFAULT };
+    let frame = page.frame();
     for (hf, top) in [(&page.header, true), (&page.footer, false)] {
         if hf.is_empty() {
             continue;
         }
         let inset = hf.margin();
         // The header's cap height sits at the margin; the footer's baseline sits at the margin.
-        let baseline = if top { inset + 7.0 } else { page.height - inset };
-        for (text, x, anchor) in
-            [(&hf.left, inset, Anchor::Start), (&hf.center, page.width / 2.0, Anchor::Middle), (&hf.right, page.width - inset, Anchor::End)]
-        {
+        let baseline = if top { frame.y0 + inset + 7.0 } else { frame.y1 - inset };
+        let slots =
+            [(&hf.left, frame.x0 + inset, Anchor::Start), (&hf.center, frame.center().x, Anchor::Middle), (&hf.right, frame.x1 - inset, Anchor::End)];
+        for (text, x, anchor) in slots {
             if !text.trim().is_empty() {
                 // One line only: a header slot is a single line of text.
                 let line = expand(text.lines().next().unwrap_or_default(), values);
@@ -633,6 +635,7 @@ mod style_tests {
         let mut s = Shape::new("s1", ShapeKind::Rectangle, 10.0, 20.0, 100.0, 60.0);
         edit(&mut s);
         if let Some(p) = doc.page_mut() {
+            p.board = vizcraft_diagram::Board::Fixed;
             p.width = 200.0;
             p.height = 120.0;
             p.shapes.push(s);
@@ -785,6 +788,7 @@ mod style_tests {
         bg.shapes.push(Shape::new("logo", ShapeKind::Ellipse, 0.0, 0.0, 50.0, 20.0));
         doc.pages.push(bg);
         if let Some(p) = doc.page_mut() {
+            p.board = vizcraft_diagram::Board::Fixed;
             p.background = Some("bg".into());
             p.header = HeaderFooter { left: "Plant".into(), center: String::new(), right: "Rev A\nignored".into(), margin: None };
             p.footer = HeaderFooter { left: String::new(), center: "Page 1".into(), right: String::new(), margin: None };
@@ -848,5 +852,56 @@ mod style_tests {
         });
         // Shape right edge 250 plus a 30 unit shadow plus the margin.
         assert!(svg.contains("width=\"300\""), "{}", &svg[..200]);
+    }
+    /// The same drawing and header on a fixed sheet and on an infinite board.
+    fn on_board(board: vizcraft_diagram::Board) -> String {
+        let mut doc = Document::new();
+        if let Some(p) = doc.page_mut() {
+            p.board = board;
+            p.width = 200.0;
+            p.height = 120.0;
+            p.header = HeaderFooter { left: "Top".into(), center: String::new(), right: String::new(), margin: Some(10.0) };
+            p.footer = HeaderFooter { right: "Bottom".into(), margin: Some(10.0), ..HeaderFooter::default() };
+            p.shapes.push(Shape::new("s1", ShapeKind::Rectangle, 10.0, 20.0, 100.0, 60.0));
+        }
+        export_page(&doc, 0).map(|b| String::from_utf8_lossy(&b).into_owned()).unwrap_or_default()
+    }
+
+    #[test]
+    fn golden_fixed_board_is_the_sheet() {
+        let svg = on_board(vizcraft_diagram::Board::Fixed);
+        let head: Vec<&str> = svg.lines().take(4).collect();
+        let want = [
+            r#"<?xml version="1.0" encoding="UTF-8"?>"#,
+            r#"<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="200" height="120" viewBox="0 0 200 120">"#,
+            "  <title>Page-1</title>",
+            r##"  <rect x="0" y="0" width="200" height="120" fill="#ffffff"/>"##,
+        ];
+        assert_eq!(head, want);
+        assert!(svg.contains(r#"<tspan x="10" y="17">Top</tspan>"#), "{svg}");
+        assert!(svg.contains(r#"<tspan x="190" y="110">Bottom</tspan>"#), "{svg}");
+    }
+
+    #[test]
+    fn golden_infinite_board_is_the_drawing_plus_the_fit_margin() {
+        let svg = on_board(vizcraft_diagram::Board::Infinite);
+        let head: Vec<&str> = svg.lines().take(4).collect();
+        // The shape spans 10,20 to 110,80; the frame adds 25 on every side.
+        let want = [
+            r#"<?xml version="1.0" encoding="UTF-8"?>"#,
+            r#"<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="150" height="110" viewBox="-15 -5 150 110">"#,
+            "  <title>Page-1</title>",
+            r##"  <rect x="-15" y="-5" width="150" height="110" fill="#ffffff"/>"##,
+        ];
+        assert_eq!(head, want);
+        // Header and footer sit their margin inside the frame edges, not the stored sheet's.
+        assert!(svg.contains(r#"<tspan x="-5" y="12">Top</tspan>"#), "{svg}");
+        assert!(svg.contains(r#"<tspan x="125" y="95">Bottom</tspan>"#), "{svg}");
+    }
+
+    #[test]
+    fn an_empty_infinite_page_exports_a_letter_frame() {
+        let svg = String::from_utf8_lossy(&export_page(&Document::new(), 0).unwrap_or_default()).into_owned();
+        assert!(svg.contains(r#"width="1100" height="850" viewBox="0 0 1100 850""#), "{svg}");
     }
 }

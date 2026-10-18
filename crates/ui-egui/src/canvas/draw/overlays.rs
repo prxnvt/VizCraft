@@ -1,4 +1,5 @@
-//! Chrome over and under the page. Under the shapes ([`underlay`]): the grid and page breaks.
+//! Chrome over and under the page. Under the shapes ([`underlay`]): the grid and, on a fixed
+//! board, page breaks.
 //! Over them ([`overlay`]): guides, alignment lines while a move snaps, the hover outline,
 //! connection points, connector targets, selected items, resize and rotate handles, and the
 //! marquee. Colours come from `theme::Tokens`.
@@ -81,8 +82,10 @@ fn grid_lines(
 /// The grid and page breaks, drawn on the sheet under the shapes.
 pub fn underlay(app: &CraftApp, painter: &egui::Painter, vp: &Viewport2D, page: &Page, t: &Tokens) {
     let aids = &app.session.view.aids;
-    let pr = page.rect();
     let v = vp.visible_world_rect();
+    let infinite = page.board.is_infinite();
+    // The grid covers the whole viewport on an infinite board and the sheet on a fixed one.
+    let pr = if infinite { v } else { page.frame() };
     let (x0, y0, x1, y1) = (v.x0.max(pr.x0), v.y0.max(pr.y0), v.x1.min(pr.x1), v.y1.min(pr.y1));
     if x0 >= x1 || y0 >= y1 {
         return;
@@ -96,7 +99,7 @@ pub fn underlay(app: &CraftApp, painter: &egui::Painter, vp: &Viewport2D, page: 
         grid_lines(painter, vp, true, x0, x1, step, major, (a.y, b.y), minor_c, major_c);
         grid_lines(painter, vp, false, y0, y1, step, major, (a.x, b.x), minor_c, major_c);
     }
-    if aids.page_breaks {
+    if aids.page_breaks && !infinite {
         let (pw, ph) = paper(page);
         let c = t.accent.gamma_multiply(0.7);
         let dashed = |p0: Pos2, p1: Pos2| painter.extend(egui::Shape::dashed_line(&[p0, p1], Stroke::new(1.0, c), 6.0, 4.0));

@@ -90,8 +90,9 @@ pub fn plan(doc: &Document, page_index: usize, layout: &PrintLayout, print: bool
     let page = doc.pages.get(page_index).ok_or(FormatError::NoPage(page_index))?;
     let r = canvas_rect_with(page, print);
     let (w, h) = (side(r.width(), 1.0), side(r.height(), 1.0));
-    let (pw, ph) = layout.paper.unwrap_or((page.width, page.height));
-    let (pw, ph) = (side(pw, side(page.width, 1100.0)), side(ph, side(page.height, 850.0)));
+    let frame = page.frame();
+    let (pw, ph) = layout.paper.unwrap_or((frame.width(), frame.height()));
+    let (pw, ph) = (side(pw, side(frame.width(), 1100.0)), side(ph, side(frame.height(), 850.0)));
     let fit_into = |cols: u32, rows: u32| (f64::from(cols) * pw / w).min(f64::from(rows) * ph / h);
     let (cols, rows, scale) = if layout.fit {
         (1, 1, fit_into(1, 1))

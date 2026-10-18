@@ -8,6 +8,7 @@ use std::fmt;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+use crate::board::Board;
 use crate::data::ShapeData;
 use crate::doc_fields::{Comment, DocProperties, ImageAsset, sanitize_comments, sanitize_images};
 use crate::geom::{Path, Point, Rect, Transform, finite};
@@ -776,6 +777,10 @@ pub struct Page {
     /// Page height in world units.
     #[serde(deserialize_with = "num")]
     pub height: f64,
+    /// Infinite canvas or fixed sheet. A file without the key loads as Fixed (see
+    /// [`Board::fixed`]); a new page is Infinite.
+    #[serde(default = "Board::fixed")]
+    pub board: Board,
     /// Shapes, back to front.
     #[serde(deserialize_with = "lenient_vec")]
     pub shapes: Vec<Shape>,
@@ -839,6 +844,7 @@ impl Page {
             name: name.into(),
             width: Self::DEFAULT_WIDTH,
             height: Self::DEFAULT_HEIGHT,
+            board: Board::Infinite,
             shapes: Vec::new(),
             connectors: Vec::new(),
             ext: BTreeMap::new(),

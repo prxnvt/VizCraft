@@ -316,6 +316,7 @@ pub(crate) fn place(doc: &mut Document, imported: Imported, opts: &ImportOpts) -
         if (first.width, first.height) != (Page::DEFAULT_WIDTH, Page::DEFAULT_HEIGHT) {
             target.width = first.width;
             target.height = first.height;
+            target.board = first.board;
         }
     } else if !incremental && let (Some(have), Some(new)) = (shapes_bounds(target), shapes_bounds(&first)) {
         shift(&mut first, have.x1 + IMPORT_GAP - new.x0, have.y0 - new.y0);
@@ -326,6 +327,7 @@ pub(crate) fn place(doc: &mut Document, imported: Imported, opts: &ImportOpts) -
         if let Some(p) = doc.pages.get_mut(i) {
             p.width = page.width;
             p.height = page.height;
+            p.board = page.board;
         }
         placed.push((i, doc.adopt(i, page, true)));
     }

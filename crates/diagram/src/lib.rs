@@ -27,6 +27,7 @@ pub mod arrange;
 pub mod arrows;
 pub mod autolayout;
 pub mod autoroute;
+pub mod board;
 pub mod container;
 pub mod data;
 pub mod decor;
@@ -49,6 +50,7 @@ pub mod theme;
 pub mod views;
 
 pub use arrows::{ArrowGeometry, outline};
+pub use board::Board;
 pub use doc_fields::{Comment, CommentAnchor, DocProperties, ImageAsset, Reply};
 pub use geom::{Path, PathEl, Point, Polyline, Rect, Transform, Vec2};
 pub use hit::{Hit, connection_point_at, connector_at, connectors_in_rect, glue_shape_at, hit, shape_at, shapes_in_rect};

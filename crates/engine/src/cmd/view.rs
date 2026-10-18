@@ -79,12 +79,12 @@ fn zoom(s: &mut Session, v: &Value) -> CmdResult {
     Ok(json!({"zoom": s.view.zoom}))
 }
 
-/// Fit the page (`page`, the default) or the drawing on it into the canvas: the largest whole
+/// Fit the page frame (`page`, the default; on an infinite board that is the drawing plus its margin) or the drawing on it into the canvas: the largest whole
 /// percentage that shows it with [`FIT_MARGIN`] to spare, clamped to the zoom limits, centred.
 fn zoom_fit(s: &mut Session, v: &Value) -> CmdResult {
     let Some([w, h]) = s.view.canvas else { return Err(EngineError::Disabled("No canvas is shown".into())) };
     let Some(page) = s.doc.page() else { return Err(EngineError::Failed("the document has no page".into())) };
-    let target = if p::bool(v, "page").unwrap_or(true) { page.rect() } else { content_bounds(page).unwrap_or_else(|| page.rect()) };
+    let target = if p::bool(v, "page").unwrap_or(true) { page.frame() } else { content_bounds(page).unwrap_or_else(|| page.frame()) };
     let (tw, th) = (target.width() as f32, target.height() as f32);
     let (aw, ah) = (w - 2.0 * FIT_MARGIN, h - 2.0 * FIT_MARGIN);
     // A canvas squeezed below the margins or a degenerate target has no meaningful fit; the

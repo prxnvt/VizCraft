@@ -231,8 +231,9 @@ pub(crate) fn model_from_page(page: &Page) -> GraphModel {
             model.attributes.push(attr, v.as_str());
         }
     }
-    model.attributes.set("pageWidth", format_f64(page.width));
-    model.attributes.set("pageHeight", format_f64(page.height));
+    let frame = page.frame();
+    model.attributes.set("pageWidth", format_f64(frame.width()));
+    model.attributes.set("pageHeight", format_f64(frame.height()));
     for shape in &page.shapes {
         let (value, html) = label(&shape.text);
         let mut cell = labelled(cell_id(&shape.id), value, &shape.ext);
