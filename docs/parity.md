@@ -39,6 +39,7 @@ When a feature lands, change its State in the same commit as the code. States:
 |---|---|---|---|
 | Basic shapes | 1 | done | Rectangle, rounded rectangle, ellipse, diamond, triangle, parallelogram, hexagon, cylinder, document, cloud; `shape.add {stencil}` |
 | Select, move, resize, rotate | 1 | done | Canvas handles (Shift keeps aspect, snaps rotation to 15 degrees), arrow-key nudge, and `shape.*` commands |
+| Compartments (sections inside a shape) | 2C | done | Paragraph, list and slot bands stacked under the main text; a slot owns child shapes that move with it and stay inside; each band adds left and right connection points that glue ends name as ports (`{shape, port: "attrs.left"}`); per-band in-place editing; SVG, PNG, PDF and draw.io; `compartment.add`, `compartment.set`, `compartment.remove`, `compartment.move`, and `text.*` with `compartment`; a pack's `ElementType.compartments` fills list rows from properties; Insert > Compartment in wave 2 |
 | Multi-select and marquee | 1 | done | Shift-click, marquee, `edit.select {ids, add?}`, `edit.selectAll` |
 | Shapes pane | 1 | done | Basic and Flowchart sets with drawn previews; click or drag to insert |
 | Basic and Flowchart stencils | 1 | done | Original shapes defined in code (`vizcraft-stencils`), inserted with `shape.add` |
@@ -58,7 +59,8 @@ When a feature lands, change its State in the same commit as the code. States:
 | Connector labels | 1 | done | `connector.setText` |
 | Waypoints | 2 | partly done (3) | Stored bends on connectors, set by routing and read from .drawio; dragging bends by hand is planned |
 | Line jumps | 2 | done (3) | Hops where connectors cross; `connector.setJumps`, Design tab |
-| Obstacle-avoiding rerouting | 2 | done (3) | Orthogonal routes around shapes, kept clear after every change; `layout.route`, `connector.reroute` |
+| Obstacle-avoiding rerouting | 2 | done (2C) | Page policy, on by default for every route style: a dynamically glued end offers every connection point and one search picks the side with the cheapest clear route; containers and lanes enclosing an end are not obstacles; straight lines detour (or keep and report, per `page.setRouting {straightFallback}`); curves round the clear polyline; rerouting is incremental and the drag preview reroutes live; a connector with no clear route keeps its fallback and `autoroute::crossings` reports it, which the `drawing.connectorCrossesShape` rule shows; `page.setRouting`, `layout.route`, `connector.reroute` |
+| Connectors never cross shapes | 2C | done | `crates/engine/tests/routing_invariant.rs`: five hundred random fields, the sample, the imports, containers and lanes, and every layout algorithm end with no crossing |
 
 ## Text
 

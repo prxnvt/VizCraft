@@ -843,6 +843,10 @@ pub struct Page {
     /// Layers, at most [`MAX_LAYERS`], with unique ids.
     #[serde(deserialize_with = "lenient_vec", skip_serializing_if = "Vec::is_empty")]
     pub layers: Vec<Layer>,
+    /// How connectors on this page are routed (see [`crate::routing_policy`]); files without it
+    /// load with every connector avoiding shapes.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
+    pub routing: crate::routing_policy::RoutingPolicy,
 }
 
 impl Default for Page {
@@ -879,6 +883,7 @@ impl Page {
             footer: HeaderFooter::default(),
             guides: Vec::new(),
             layers: Vec::new(),
+            routing: crate::routing_policy::RoutingPolicy::default(),
         }
     }
     /// The page sheet as a rectangle at the origin.
@@ -901,6 +906,7 @@ impl Page {
         self.footer.sanitize();
         sanitize_guides(&mut self.guides);
         sanitize_layers(&mut self.layers);
+        self.routing.sanitize();
         self.sanitize_shape_refs();
     }
     /// Drop shape layer ids that name no layer on this page (and repeats), and parents that are

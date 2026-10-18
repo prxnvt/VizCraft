@@ -159,11 +159,14 @@ Afterwards, three commands (run with command_run) rearrange a page:
 const ROUTING: &str = "\
 ## Routing
 
-`routing: \"orthogonal\"` marks every imported connector to avoid shapes: it is drawn as
-horizontal and vertical segments that go around the shapes in its way, and parallel segments are
-spread apart. Such connectors are rerouted automatically whenever a shape moves.
+Every page routes its connectors around shapes by default (`page.setRouting {avoid}` turns that
+off for a page): a straight, orthogonal or curved connector leaves its shape on the side that
+gives a clear route, goes around what is in its way, and is rerouted whenever a shape moves.
+`routing: \"orthogonal\"` on an import additionally drops the source's bend points so every
+imported connector is routed afresh as horizontal and vertical segments with parallel runs spread
+apart.
 
-Without the option, connectors keep the bend points from the source (or none). The
+Without the option, connectors keep the bend points from the source where those are clear. The
 `layout.route` command does the same later, for chosen connectors or all of them,
 `connector.reroute {ids?, avoid: false}` turns avoidance off again, and
 `connector.setJumps` turns line jumps on or off: a connector with jumps draws a small hop where

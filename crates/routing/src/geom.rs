@@ -1,6 +1,6 @@
 //! Shared geometry helpers and input sanitising.
 
-use crate::{Obstacle, Options, Point, Rect};
+use crate::{Hit, OWN_TOLERANCE, Obstacle, Options, Point, Rect};
 
 /// Coordinates beyond this magnitude are treated as junk. Diagrams never get near it, and keeping
 /// well inside f64 range means sums and midpoints cannot overflow to infinity.
@@ -115,6 +115,71 @@ pub(crate) fn segment_hits_interior(a: Point, b: Point, r: &Rect) -> bool {
         }
     }
     t0 <= t1
+}
+
+/// Whether `p` lies strictly inside `r`.
+fn strictly_inside(p: Point, r: &Rect) -> bool {
+    p.x > r.min.x && p.x < r.max.x && p.y > r.min.y && p.y < r.max.y
+}
+
+/// How many leading points of `points` lie strictly inside `r`.
+fn inside_run<'a>(points: impl Iterator<Item = &'a Point>, r: &Rect) -> usize {
+    points.take_while(|p| strictly_inside(**p, r)).count()
+}
+
+/// See [`crate::crossings`].
+pub(crate) fn crossings(
+    points: &[Point],
+    obstacles: &[Obstacle],
+    ignore: &[usize],
+    start_own: Option<usize>,
+    end_own: Option<usize>,
+    clearance: f64,
+) -> Vec<Hit> {
+    let clearance = if clearance.is_finite() { clearance.clamp(-MAX_DISTANCE, MAX_DISTANCE) } else { 0.0 };
+    let segments: Vec<(usize, Point, Point)> = match points {
+        [] => return Vec::new(),
+        [p] => vec![(0, *p, *p)],
+        pts => pts.windows(2).enumerate().filter_map(|(i, w)| if let [a, b] = w { Some((i, *a, *b)) } else { None }).collect(),
+    };
+    let segments: Vec<(usize, Point, Point)> = segments.into_iter().filter(|(_, a, b)| point_ok(*a) && point_ok(*b)).collect();
+    let Some(bounds) = segments.iter().map(|(_, a, b)| Rect::new(a.x, a.y, b.x, b.y)).reduce(|u, r| Rect {
+        min: Point::new(u.min.x.min(r.min.x), u.min.y.min(r.min.y)),
+        max: Point::new(u.max.x.max(r.max.x), u.max.y.max(r.max.y)),
+    }) else {
+        return Vec::new();
+    };
+    let n = points.len();
+    let mut out = Vec::new();
+    for (k, o) in obstacles.iter().enumerate() {
+        if ignore.contains(&k) || !o.rect.is_finite() {
+            continue;
+        }
+        let own = Some(k) == start_own || Some(k) == end_own;
+        let grow = if own { -OWN_TOLERANCE } else { clearance };
+        let r = o.rect.normalized().expanded(grow);
+        if r.min.x > bounds.max.x || r.max.x < bounds.min.x || r.min.y > bounds.max.y || r.max.y < bounds.min.y {
+            continue;
+        }
+        // The stub inside an own obstacle: segments whose points so far all lie inside it.
+        let lead = if Some(k) == start_own { inside_run(points.iter(), &r) } else { 0 };
+        let trail = if Some(k) == end_own { inside_run(points.iter().rev(), &r) } else { 0 };
+        for &(i, a, b) in &segments {
+            // Segment i joins points i and i + 1: it is in the leading stub when point i is, and in
+            // the trailing stub when point i + 1 is.
+            let in_lead = i < lead;
+            let in_trail = n >= 2 && i + 1 >= n.saturating_sub(trail) && trail > 0;
+            if in_lead || in_trail {
+                continue;
+            }
+            if segment_hits_interior(a, b, &r) {
+                out.push(Hit { obstacle: k, segment: i });
+            }
+        }
+    }
+    out.sort_by(|x, y| x.segment.cmp(&y.segment).then(x.obstacle.cmp(&y.obstacle)));
+    out.dedup();
+    out
 }
 
 /// Removes repeated points and collinear interior points from an orthogonal polyline.

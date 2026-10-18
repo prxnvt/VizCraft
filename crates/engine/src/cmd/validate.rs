@@ -474,6 +474,9 @@ mod tests {
     /// second, and a connector with a loose end below the third.
     fn free_drawing() -> Session {
         let mut s = Session::new(Document::new());
+        // Routing avoids shapes by default, which would detour the crossing this sketch plants;
+        // the drawing rule is for pages that route by hand.
+        s.run("page.setRouting", &json!({"avoid": "never"})).unwrap();
         for (id, x) in [("a", 100), ("b", 300), ("c", 500)] {
             s.run("shape.add", &json!({"stencil": "basic.rectangle", "x": x, "y": 100, "text": id.to_uppercase(), "id": id})).unwrap();
         }

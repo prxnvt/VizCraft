@@ -5,6 +5,7 @@
 //! every call, so moving, resizing or rotating a shape moves its connectors with no extra
 //! bookkeeping. Stored bends come from obstacle-avoiding routing ([`crate::autoroute`]) or a file.
 
+use crate::autoroute::LazyField;
 use crate::geom::{Path, PathEl, Point, Vec2, point_along};
 use crate::model::{Connector, End, Page, Route};
 
@@ -46,8 +47,10 @@ fn anchor(page: &Page, e: &End) -> Point {
     }
 }
 
-/// Resolve one end given a point near the other end.
-fn resolve(page: &Page, e: &End, toward: Point) -> EndPoint {
+/// Resolve one end given a point near the other end. With `slide`, a dynamic end whose `toward`
+/// (a routed connector's stored end point) lies on its side a little way from the connection
+/// point is drawn there: the nudge pass slid it along the side to fan connectors out.
+fn resolve(page: &Page, e: &End, toward: Point, slide: bool) -> EndPoint {
     match e {
         End::Free { x, y } => EndPoint { pos: Point::new(*x, *y).sanitized(), dir: None, shape: None, point: None },
         End::Glued { shape, .. } => {
@@ -59,7 +62,18 @@ fn resolve(page: &Page, e: &End, toward: Point) -> EndPoint {
             let fixed = e.resolve_port(s).filter(|i| s.connection_point_world(*i).is_some());
             let chosen = fixed.or_else(|| nearest_point(&s.connection_points_world(), toward));
             match chosen.and_then(|i| Some((i, s.connection_point_world(i)?))) {
-                Some((i, pos)) => EndPoint { pos, dir: s.connection_direction(i), shape: Some(s.id.clone()), point: Some(i) },
+                Some((i, pos)) => {
+                    let dir = s.connection_direction(i);
+                    let slid = (slide && fixed.is_none())
+                        .then(|| axis(dir))
+                        .flatten()
+                        .filter(|d| {
+                            let off = toward - pos;
+                            off.is_finite() && off.length() <= crate::autoroute::FAN_MAX + 1e-6 && off.dot(*d).abs() <= 1e-6
+                        })
+                        .map(|_| toward);
+                    EndPoint { pos: slid.unwrap_or(pos), dir, shape: Some(s.id.clone()), point: Some(i) }
+                }
                 None => EndPoint { pos: s.center(), dir: None, shape: Some(s.id.clone()), point: None },
             }
         }
@@ -74,22 +88,71 @@ pub fn nearest_point(pts: &[Point], p: Point) -> Option<usize> {
 /// Resolve both ends of `c` on `page`. Point glue uses that connection point; dynamic glue picks
 /// the shape's connection point nearest the other end, or, when the connector has bends, nearest
 /// its first (or last) bend, so the route does not double back across the shape.
+///
+/// A connector the page routes around shapes stores its whole route, end points included (see
+/// [`crate::autoroute`]), so its dynamic ends land exactly on the stored end points: the
+/// connection points the router chose, or a point slid a little along that side.
 pub fn resolve_ends(page: &Page, c: &Connector) -> Ends {
-    resolve_through(page, c, &c.waypoints)
+    resolve_with(page, c, &c.waypoints, stored_route(page, c))
+}
+
+/// Whether `w` is where the router leaves end `e` of a routed connector: the free point, the glued
+/// connection point, or for dynamic glue a connection point or a point slid along its side.
+fn router_end(page: &Page, e: &End, w: Point) -> bool {
+    match e {
+        End::Free { x, y } => Point::new(*x, *y).sanitized().distance(w) < 1e-6,
+        End::Glued { shape, point, .. } => {
+            let Some(s) = page.shape(shape) else { return false };
+            // A port resolves to one connection point, so it is as fixed as point glue.
+            let fixed = e.resolve_port(s).or(*point);
+            let point = &fixed;
+            let indices: Vec<usize> = match point {
+                Some(i) => vec![*i],
+                None => (0..s.connection_points().len()).collect(),
+            };
+            indices.into_iter().any(|i| {
+                let Some(p) = s.connection_point_world(i) else { return false };
+                let off = w - p;
+                off.length() < 1e-6
+                    || (point.is_none()
+                        && off.length() <= crate::autoroute::FAN_MAX + 1e-6
+                        && axis(s.connection_direction(i)).is_some_and(|d| off.dot(d).abs() <= 1e-6))
+            })
+        }
+    }
+}
+
+/// Whether the stored `waypoints` of `c` are a route the page's router made (it stores the whole
+/// polyline, its first and last points on the ends), as opposed to bends a person or a file put
+/// there, which are drawn the classic way and kept while they stay clear.
+pub(crate) fn stored_route(page: &Page, c: &Connector) -> bool {
+    if !crate::routing_policy::routes(page, c) {
+        return false;
+    }
+    let first = c.waypoints.iter().copied().find(|p| p.is_finite());
+    let last = c.waypoints.iter().rev().copied().find(|p| p.is_finite());
+    match (first, last) {
+        (Some(a), Some(b)) => router_end(page, &c.start, a) && router_end(page, &c.end, b),
+        _ => false,
+    }
 }
 
 /// [`resolve_ends`] as if the connector's bends were `waypoints` (empty: as if it had none).
 pub fn resolve_through(page: &Page, c: &Connector, waypoints: &[Point]) -> Ends {
+    resolve_with(page, c, waypoints, false)
+}
+
+fn resolve_with(page: &Page, c: &Connector, waypoints: &[Point], slide: bool) -> Ends {
     let first = waypoints.iter().copied().find(|p| p.is_finite());
     let last = waypoints.iter().rev().copied().find(|p| p.is_finite());
     if let (Some(first), Some(last)) = (first, last) {
-        return Ends { start: resolve(page, &c.start, first), end: resolve(page, &c.end, last) };
+        return Ends { start: resolve(page, &c.start, first, slide), end: resolve(page, &c.end, last, slide) };
     }
-    let start = resolve(page, &c.start, anchor(page, &c.end));
-    let end = resolve(page, &c.end, start.pos);
+    let start = resolve(page, &c.start, anchor(page, &c.end), false);
+    let end = resolve(page, &c.end, start.pos, false);
     // A dynamic start was chosen against the other end's rough anchor; now that the end is
     // known exactly, choose again so both dynamic ends face each other.
-    let start = if matches!(c.start, End::Glued { point: None, .. }) { resolve(page, &c.start, end.pos) } else { start };
+    let start = if matches!(c.start, End::Glued { point: None, .. }) { resolve(page, &c.start, end.pos, false) } else { start };
     Ends { start, end }
 }
 
@@ -159,10 +222,62 @@ pub fn orthogonal_points(start: &EndPoint, end: &EndPoint) -> Vec<Point> {
 }
 
 /// The routed path of `c` on `page`: one line, axis-aligned lines, or one cubic, passing through
-/// the connector's stored bends when it has any.
+/// the connector's stored bends when it has any. A route the page's router stored is drawn in the
+/// connector's style: straight segments, right angles, or right angles with the bends rounded as
+/// far as stays clear of the shapes.
 pub fn route_path(page: &Page, c: &Connector) -> Path {
     let ends = resolve_ends(page, c);
-    path_through(&ends, c.route, &c.waypoints)
+    path_in(page, c, &ends, &LazyField::new(page))
+}
+
+/// [`route_path`] for resolved ends, with the page's obstacles built at most once per caller.
+pub(crate) fn path_in(page: &Page, c: &Connector, ends: &Ends, field: &LazyField) -> Path {
+    if c.route == Route::Curved && stored_route(page, c) {
+        let inner = inner_bends(ends, &c.waypoints);
+        let mut pts = Vec::with_capacity(inner.len().saturating_add(2));
+        pts.push(ends.start.pos);
+        pts.extend(inner);
+        pts.push(ends.end.pos);
+        return rounded(c, &simplify(pts), field);
+    }
+    path_through(ends, c.route, &c.waypoints)
+}
+
+/// The finite bends of `waypoints` without the leading and trailing ones that sit on the ends: a
+/// routed connector stores its end points with its bends.
+fn inner_bends(ends: &Ends, waypoints: &[Point]) -> Vec<Point> {
+    let wps: Vec<Point> = waypoints.iter().copied().filter(|p| p.is_finite()).collect();
+    let (p0, p1) = (ends.start.pos, ends.end.pos);
+    let lead = wps.iter().take_while(|p| p.distance(p0) < 1e-6).count();
+    let inner = wps.get(lead..).unwrap_or_default();
+    let trail = inner.iter().rev().take_while(|p| p.distance(p1) < 1e-6).count();
+    inner.get(..inner.len().saturating_sub(trail)).unwrap_or_default().to_vec()
+}
+
+/// The polyline `pts` with each bend rounded by the largest arc that stays clear of the shapes
+/// the connector must avoid.
+fn rounded(c: &Connector, pts: &[Point], lazy: &LazyField) -> Path {
+    let field = lazy.get();
+    let ctx = field.context(c);
+    let ignore = field.rounding_ignore(&ctx, pts);
+    let rpts: Vec<vizcraft_routing::Point> = pts.iter().map(|p| vizcraft_routing::Point::new(p.x, p.y)).collect();
+    let bends = vizcraft_routing::round_bends(&rpts, &field.obstacles, &ignore, crate::autoroute::ARC_CLEARANCE);
+    let q = |p: vizcraft_routing::Point| Point::new(p.x, p.y);
+    let mut path = Path::new();
+    let Some(&first) = pts.first() else { return path };
+    path.move_to(first);
+    for (i, &p) in pts.iter().enumerate().skip(1) {
+        match bends.get(i - 1).copied().flatten() {
+            Some(b) if i + 1 < pts.len() => {
+                path.line_to(q(b.from));
+                path.cubic_to(q(b.c1), q(b.c2), q(b.to));
+            }
+            _ => {
+                path.line_to(p);
+            }
+        }
+    }
+    path
 }
 
 /// The path for already resolved ends, with no stored bends.
@@ -170,13 +285,15 @@ pub fn path_for(ends: &Ends, route: Route) -> Path {
     path_through(ends, route, &[])
 }
 
-/// The path for already resolved ends through `waypoints` (non-finite ones are skipped). Without
-/// waypoints this is the automatic route. With them, a straight route is a polyline through them,
+/// The path for already resolved ends through `waypoints` (non-finite ones, and ones on top of the
+/// ends, are skipped). Without waypoints this is the automatic route. With them, a straight route
+/// is a polyline through them,
 /// an orthogonal one runs the start stub, the bends and the end stub with elbows added so every
 /// segment is horizontal or vertical, and a curved one is a smooth curve through them.
 pub fn path_through(ends: &Ends, route: Route, waypoints: &[Point]) -> Path {
-    let wps: Vec<Point> = waypoints.iter().copied().filter(|p| p.is_finite()).collect();
     let (p0, p1) = (ends.start.pos, ends.end.pos);
+    // Bends on top of the ends add nothing (and would turn an orthogonal stub back on itself).
+    let wps = inner_bends(ends, waypoints);
     if wps.is_empty() {
         return match route {
             Route::Straight => Path::polyline(&[p0, p1]),
@@ -294,7 +411,12 @@ fn simplify_repeats(pts: Vec<Point>) -> Vec<Point> {
 
 /// The routed polyline of `c` (curves flattened), for hit testing and label placement.
 pub fn route_polyline(page: &Page, c: &Connector) -> Vec<Point> {
-    route_path(page, c).flatten(0.5).into_iter().next().map(|pl| pl.points).unwrap_or_default()
+    polyline_in(page, c, &LazyField::new(page))
+}
+
+/// [`route_polyline`] sharing the page's obstacles with other calls.
+pub(crate) fn polyline_in(page: &Page, c: &Connector, field: &LazyField) -> Vec<Point> {
+    path_in(page, c, &resolve_ends(page, c), field).flatten(0.5).into_iter().next().map(|pl| pl.points).unwrap_or_default()
 }
 
 pub use crate::arrows::{Arrowhead, arrowhead};
@@ -326,8 +448,13 @@ fn arrival(pts: &[Point]) -> Option<Vec2> {
 
 /// Resolve, route and decorate `c` on `page`.
 pub fn connector_geometry(page: &Page, c: &Connector) -> ConnectorGeometry {
+    geometry_in(page, c, &LazyField::new(page))
+}
+
+/// [`connector_geometry`] sharing the page's obstacles with other calls.
+pub(crate) fn geometry_in(page: &Page, c: &Connector, field: &LazyField) -> ConnectorGeometry {
     let ends = resolve_ends(page, c);
-    let path = path_through(&ends, c.route, &c.waypoints);
+    let path = path_in(page, c, &ends, field);
     let polyline = path.flatten(0.5).into_iter().next().map(|pl| pl.points).unwrap_or_default();
     let reversed: Vec<Point> = polyline.iter().rev().copied().collect();
     let lw = c.style.line_width;
@@ -358,8 +485,10 @@ mod waypoint_tests {
     use crate::geom::cubic_point;
     use crate::model::Shape;
 
+    /// A page that leaves routing to the connectors' own flags, so stored bends are the user's.
     fn page_with(route: Route, waypoints: Vec<Point>) -> (Page, Connector) {
         let mut page = Page::new("p", "p");
+        page.routing.avoid = crate::routing_policy::Avoid::Never;
         page.shapes = vec![
             Shape { id: "a".into(), x: 0.0, y: 0.0, w: 60.0, h: 40.0, ..Shape::default() },
             Shape { id: "b".into(), x: 300.0, y: 200.0, w: 60.0, h: 40.0, ..Shape::default() },

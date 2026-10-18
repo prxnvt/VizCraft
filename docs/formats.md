@@ -73,7 +73,16 @@ versions can read older files.
   `hollowDiamond`, `bar`, `openCircle`, `crowsFoot`, `crowsFootBar`, `crowsFootCircle`,
   `barCircle`; unknown names still load as `none`), and the document `conformance` profile
   (`enabled`, `userSet`, `rulesets`, `overrides: [{rule, severity?, disabled}]`, `suppressions:
-  [{key, reason}]`; left out at its default, and junk loads as the default).
+  [{key, reason}]`; left out at its default, and junk loads as the default). Also from Block 2C:
+  shape `compartments` (`[{id, kind: paragraph | list | slot, title?, text, rows, align, height:
+  "auto" | n, fontSize?, bold?, fill?, fontColor?}]`, at most 32 per shape and 256 rows), a glue
+  end may name a compartment port instead of a point (`{"shape": "s1", "port": "attrs.left"}`,
+  the band's left or right midpoint), page `routing` (`{avoid: "always" | "never",
+  straightFallback: "detour" | "keep"}`, left out at the default of always and detour, so older
+  files route every connector), and the `waypoints` of a routed connector now include its end
+  points, which is how a dynamically glued end remembers the connection point the router chose.
+  In draw.io, compartments travel as the wrapper attribute `vizcraftCompartments` (JSON) and come
+  back from `ext` key `drawio.attr.vizcraftCompartments`.
 - **Read:** version 4; version 3 loads unchanged; version 2 and version 1 (the Cascade 0 placeholder: title and metadata
   only, which loads with that title and metadata and one blank page) load as free drawing with an
   empty model, ignoring any `model` key; a wrapper without a `version` (read as 1); and a bare

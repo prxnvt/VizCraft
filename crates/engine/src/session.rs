@@ -458,7 +458,7 @@ impl Session {
                         crate::cmd::page::auto_size(&mut self.doc);
                     }
                     let _t = crate::trace::span("autoroute.refresh");
-                    vizcraft_diagram::autoroute::refresh(&mut self.doc);
+                    vizcraft_diagram::autoroute::refresh(&mut self.doc, &before_doc);
                 }
                 let manages_history = manages_undo || self.no_undo;
                 if !manages_history && changed {

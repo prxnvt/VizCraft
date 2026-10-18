@@ -77,12 +77,18 @@ pub(super) fn offset_end(e: &mut End, d: Point) {
 }
 
 /// A copy of `page` with `drag` applied, for drawing; `None` when the drag changes nothing on
-/// the page (a marquee).
+/// the page (a marquee). Connectors the drag can affect (glued to what moves, running over it, or
+/// being drawn or reglued) are rerouted around the shapes once per frame with a small search
+/// budget, so a shape is never seen being crossed while it moves; the command the drag commits
+/// runs the real routing pass.
 pub fn preview_page(page: &Page, drag: &Drag, zoom: f32) -> Option<Page> {
     let mut p = page.clone();
-    match drag {
+    let moving: Vec<String> = match drag {
         Drag::Marquee { .. } | Drag::Lasso { .. } | Drag::TextBox { .. } => return None,
-        Drag::TextBlock { id, grab, to, shift } => super::text_block::preview(&mut p, id, grab, *to, *shift),
+        Drag::TextBlock { id, grab, to, shift } => {
+            super::text_block::preview(&mut p, id, grab, *to, *shift);
+            Vec::new()
+        }
         Drag::Move { ids, from, to } => {
             let d = move_delta(*from, *to);
             dg::arrange::translate(&mut p, ids, d.x, d.y);
@@ -90,21 +96,25 @@ pub fn preview_page(page: &Page, drag: &Drag, zoom: f32) -> Option<Page> {
                 offset_end(&mut c.start, d);
                 offset_end(&mut c.end, d);
             }
+            ids.clone()
         }
         Drag::Resize { id, handle, to, keep_aspect } => {
             let frame = page.shape(id).and_then(|s| resize_frame(s, *handle, *to, *keep_aspect));
             if let Some((x, y, w, h)) = frame {
                 dg::arrange::set_frame(&mut p, id, x, y, w, h);
             }
+            vec![id.clone()]
         }
         Drag::Rotate { id, to, snap } => {
             if let Some(a) = page.shape(id).map(|s| rotate_angle(s, *to, *snap)) {
                 dg::arrange::set_angle(&mut p, id, a);
             }
+            vec![id.clone()]
         }
         Drag::Connect { from, to } => {
             let end = target_end(page, *to, zoom);
             p.connectors.push(Connector::new(PREVIEW_ID, from.clone(), end));
+            vec![PREVIEW_ID.to_string()]
         }
         Drag::Reglue { id, start, to } => {
             let end = target_end(page, *to, zoom);
@@ -115,7 +125,11 @@ pub fn preview_page(page: &Page, drag: &Drag, zoom: f32) -> Option<Page> {
                     c.end = end;
                 }
             }
+            vec![id.clone()]
         }
+    };
+    if !moving.is_empty() {
+        dg::autoroute::preview(&mut p, &moving, dg::autoroute::PREVIEW_BUDGET);
     }
     Some(p)
 }

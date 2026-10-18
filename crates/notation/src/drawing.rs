@@ -37,10 +37,12 @@ const CHAR_WIDTH: f64 = 0.55;
 /// Line height as a multiple of the font size.
 const LINE_HEIGHT: f64 = 1.2;
 
-/// Whether the drawn route of `c` runs through a shape on `page` it is not glued to. The one
-/// place drawing checks ask; the routing oracle behind it may change.
-pub fn crosses(page: &Page, c: &Connector) -> bool {
-    !vizcraft_diagram::autoroute::clear_of_shapes(page, c)
+/// The connectors on `page` whose drawn route runs through a shape they are not glued to, in
+/// page order, each once: the routing crate's own oracle (`autoroute::crossings`), so the check
+/// and the router agree on what a crossing is.
+pub fn crossing_connectors(page: &Page) -> Vec<String> {
+    let mut seen = std::collections::HashSet::new();
+    vizcraft_diagram::autoroute::crossings(page).into_iter().map(|x| x.connector).filter(|id| seen.insert(id.clone())).collect()
 }
 
 /// The page rectangle shapes should stay inside, or `None` when the page has no edge: an
@@ -102,15 +104,14 @@ fn finite(r: &Rect) -> bool {
 }
 
 fn crossing(page: &Page, rule: &RuleDecl, out: &mut Vec<Issue>) {
-    for c in &page.connectors {
+    for id in crossing_connectors(page) {
         if out.len() >= MAX_PER_RULE {
             return;
         }
-        if crosses(page, c) {
-            let what = format!("{} runs through a shape it is not glued to.", connector_label(c));
-            let fix = Fix::new("Reroute around shapes", "connector.reroute", json!({"ids": [c.id], "avoid": true}));
-            out.push(issue(rule, &what, page, vec![c.id.clone()]).with_fix(fix));
-        }
+        let Some(c) = page.connector(&id) else { continue };
+        let what = format!("{} runs through a shape it is not glued to.", connector_label(c));
+        let fix = Fix::new("Reroute around shapes", "connector.reroute", json!({"ids": [c.id], "avoid": true}));
+        out.push(issue(rule, &what, page, vec![c.id.clone()]).with_fix(fix));
     }
 }
 

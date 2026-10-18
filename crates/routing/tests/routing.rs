@@ -32,7 +32,7 @@ fn assert_well_formed(r: &Route) {
 /// avoid every obstacle other than their own.
 fn assert_clear(r: &Route, obstacles: &[Obstacle], req: &Request, margin: f64) {
     let n = r.points.len();
-    let interior = Route { points: r.points.get(1..n.saturating_sub(1)).unwrap_or_default().to_vec(), fallback: false };
+    let interior = Route { points: r.points.get(1..n.saturating_sub(1)).unwrap_or_default().to_vec(), fallback: false, ..Route::default() };
     assert!(clear_of_obstacles(&interior, obstacles, &[], margin), "interior crosses an obstacle: {:?}", r.points);
     let ignore: Vec<usize> = [req.start.obstacle, req.end.obstacle].into_iter().flatten().collect();
     assert!(clear_of_obstacles(r, obstacles, &ignore, margin), "route crosses an obstacle: {:?}", r.points);
@@ -409,13 +409,13 @@ fn hostile_inputs_never_panic() {
         ] {
             let r = route_orthogonal(&obstacles, &req, &opts);
             assert!(r.points.iter().all(Point::is_finite));
-            let _ = route_all(&obstacles, &[req, req], &opts);
+            let _ = route_all(&obstacles, &[req.clone(), req.clone()], &opts);
         }
         let weird = Options { margin: v, bend_penalty: v, crossing_penalty: Some(v), segment_spacing: v, max_grid: usize::MAX };
         let req = Request::new(End::at(p(-20.0, 5.0)), End::at(p(50.0, 5.0)));
-        let _ = route_all(&obstacles, &[req, req], &weird);
+        let _ = route_all(&obstacles, &[req.clone(), req.clone()], &weird);
         let _ = jumps(&[vec![p(v, 0.0), p(0.0, v)], vec![p(0.0, 0.0), p(v, v)]], JumpOrder::LaterOverEarlier);
-        let _ = clear_of_obstacles(&Route { points: vec![p(v, v)], fallback: false }, &obstacles, &[], v);
+        let _ = clear_of_obstacles(&Route { points: vec![p(v, v)], fallback: false, ..Route::default() }, &obstacles, &[], v);
     }
     // Inverted rectangles behave like normal ones.
     let inverted = [Obstacle { rect: Rect { min: p(120.0, 100.0), max: p(80.0, 0.0) } }];

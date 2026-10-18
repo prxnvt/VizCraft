@@ -43,6 +43,7 @@ pub mod model;
 pub mod page_fields;
 pub mod print_fields;
 pub mod route;
+pub mod routing_policy;
 mod serde_util;
 pub mod shape_fields;
 pub mod snap;
@@ -63,6 +64,7 @@ pub use model::{Arrow, Color, Connector, CoreProps, Document, End, Page, Route, 
 pub use model::{MAX_WAYPOINTS, is_plain_id};
 pub use page_fields::{DrawingScale, Guide, GuideOrientation, HeaderFooter, Layer, Orientation, Units};
 pub use route::{Arrowhead, ConnectorGeometry, EndPoint, Ends, arrowhead, connector_geometry, resolve_ends, route_path, route_polyline};
+pub use routing_policy::{Avoid, RoutingPolicy, StraightFallback};
 pub use shape_fields::{Behavior, CropRect, Hyperlink, ImageRef, LinkKind, Locks, TextBlock};
 pub use style_fields::{
     Bullets, Dash, Glow, Gradient, GradientKind, GradientStop, HAlign, LineCap, Margins, Shadow, TextCase, TextDirection, VAlign,
