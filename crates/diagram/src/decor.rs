@@ -202,10 +202,13 @@ pub fn refresh(doc: &mut Document) {
             remove(doc, i);
             continue;
         };
-        let (w, h, name) = (fg.width, fg.height, fg.name.clone());
-        let shapes = build(doc, deco_page, w, h, &name);
+        // A fixed board is decorated at its sheet; an infinite board at the frame of its drawing, which
+        // grows when a shape moves out.
+        let frame = fg.frame();
+        let (w, h, name) = (frame.width(), frame.height(), fg.name.clone());
+        let shapes = build(doc, deco_page, (frame.x0, frame.y0), w, h, &name);
         if let Some(deco_page) = doc.pages.get_mut(i) {
-            if deco_page.width != w || deco_page.height != h {
+            if deco_page.rect() != crate::geom::Rect::from_xywh(0.0, 0.0, w, h) {
                 deco_page.width = w;
                 deco_page.height = h;
             }
@@ -237,6 +240,8 @@ struct Builder<'a> {
     doc: &'a Document,
     gen_id: &'a str,
     shapes: Vec<Shape>,
+    /// Top-left of the decorated frame; every rectangle is placed relative to it.
+    origin: (f64, f64),
 }
 
 impl Builder<'_> {
@@ -249,7 +254,7 @@ impl Builder<'_> {
     }
     fn rect(&mut self, role: &str, (x, y, w, h): (f64, f64, f64, f64), style: Style) -> Option<&mut Shape> {
         let id = self.id(role)?;
-        let mut s = Shape::new(id, ShapeKind::Rectangle, x, y, w.max(1.0), h.max(1.0));
+        let mut s = Shape::new(id, ShapeKind::Rectangle, x + self.origin.0, y + self.origin.1, w.max(1.0), h.max(1.0));
         s.style = style;
         s.sanitize();
         self.shapes.push(s);
@@ -281,9 +286,9 @@ impl Builder<'_> {
 /// Most grid lines a pattern background draws each way.
 const MAX_GRID_LINES: f64 = 200.0;
 
-fn build(doc: &Document, deco_page: &Page, w: f64, h: f64, page_name: &str) -> Vec<Shape> {
+fn build(doc: &Document, deco_page: &Page, origin: (f64, f64), w: f64, h: f64, page_name: &str) -> Vec<Shape> {
     let deco = Decoration::of(deco_page);
-    let mut b = Builder { doc, gen_id: &deco_page.id, shapes: Vec::new() };
+    let mut b = Builder { doc, gen_id: &deco_page.id, shapes: Vec::new(), origin };
     let bg = deco.color.unwrap_or_else(|| background_color(&doc.theme));
     let page = (0.0, 0.0, w, h);
     match deco.background {
@@ -388,6 +393,7 @@ mod tests {
     #[test]
     fn the_title_block_follows_titles_and_the_frame_follows_the_page_size() {
         let mut doc = Document::new();
+        doc.pages[0].board = crate::board::Board::Fixed;
         set(&mut doc, 0, deco(BackgroundKind::Pattern, BorderKind::Frame)).unwrap();
         let g = generated_page(&doc, "p1").unwrap();
         let text_of = |doc: &Document, role: &str| doc.pages[g].shape(&format!("{}-{role}", doc.pages[g].id)).map(|s| s.text.clone());
@@ -407,6 +413,27 @@ mod tests {
         doc.pages.insert(0, Page::new("p9", "Other"));
         refresh(&mut doc);
         assert!(!doc.pages.iter().any(is_generated));
+    }
+
+    #[test]
+    fn a_border_follows_the_drawing_on_an_infinite_board_and_the_sheet_on_a_fixed_one() {
+        let right_edge = |doc: &Document, role: &str| {
+            let g = generated_page(doc, "p1").unwrap();
+            doc.pages[g].shape(&format!("{}-{role}", doc.pages[g].id)).map(|s| s.bounds().x1).unwrap()
+        };
+        let mut doc = Document::new();
+        doc.pages[0].shapes.push(Shape::new("a", ShapeKind::Rectangle, 0.0, 0.0, 100.0, 50.0));
+        set(&mut doc, 0, deco(BackgroundKind::None, BorderKind::Frame)).unwrap();
+        let before = right_edge(&doc, "frame");
+        doc.pages[0].shapes[0].x = 3000.0;
+        refresh(&mut doc);
+        assert!(right_edge(&doc, "frame") > before + 2000.0, "the border grows with the moved shape");
+        doc.pages[0].board = crate::board::Board::Fixed;
+        refresh(&mut doc);
+        let sheet = right_edge(&doc, "frame");
+        doc.pages[0].shapes[0].x = 5000.0;
+        refresh(&mut doc);
+        assert_eq!(right_edge(&doc, "frame"), sheet, "a fixed board keeps the sheet");
     }
 
     #[test]

@@ -233,7 +233,7 @@ mod tests {
         let r = first.bounds().inflate(-5.0);
         let ids = marquee_ids(page, &r);
         assert_eq!(ids, vec![first.id.clone()]);
-        let all = marquee_ids(page, &page.rect());
+        let all = marquee_ids(page, &page.frame());
         assert_eq!(all.len(), page.shapes.len() + page.connectors.len());
         assert!(marquee_ids(page, &dg::Rect::from_xywh(5.0, 5.0, 10.0, 10.0)).is_empty());
     }
@@ -249,7 +249,7 @@ mod tests {
         page.shapes[0].layers = vec!["h".into()];
         page.shapes[1].layers = vec!["k".into()];
         let (hidden, locked) = (page.shapes[0].id.clone(), page.shapes[1].id.clone());
-        let ids = marquee_ids(page, &page.rect());
+        let ids = marquee_ids(page, &page.frame());
         assert!(!ids.contains(&hidden) && !ids.contains(&locked));
         assert_eq!(ids.len(), page.shapes.len() + page.connectors.len() - 2);
     }

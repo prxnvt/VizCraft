@@ -84,7 +84,7 @@ fn add_set(s: &mut Session, v: &Value) -> CmdResult {
     let title = opt_str(v, "title")?.unwrap_or("Process").to_string();
     // Without a place, centred on the page.
     let (x, y) = (num(v, "x")?, num(v, "y")?);
-    let centre = s.doc.page().map(|p| p.rect().center()).unwrap_or(vizcraft_diagram::Point::ZERO);
+    let centre = s.doc.page().map(|p| p.frame().center()).unwrap_or(vizcraft_diagram::Point::ZERO);
     let (w, h) = if vertical { (n * ct::LANE_THICKNESS, ct::LANE_LENGTH) } else { (ct::LANE_LENGTH, ct::SET_TITLE + n * ct::LANE_THICKNESS) };
     let x = x.unwrap_or((centre.x - w / 2.0).round()).clamp(-MAX_COORD, MAX_COORD);
     let y = y.unwrap_or((centre.y - h / 2.0).round()).clamp(-MAX_COORD, MAX_COORD);
@@ -163,4 +163,25 @@ fn flip(s: &mut Session, v: &Value) -> CmdResult {
     let vertical = ct::flip(page_mut(s)?, &set).map_err(ct_err)?;
     arrange::refit_groups(page_mut(s)?);
     with_sel(s, json!({"set": set, "orientation": if vertical { "vertical" } else { "horizontal" }}))
+}
+
+#[cfg(test)]
+mod frame_tests {
+    use serde_json::json;
+    use vizcraft_diagram::{Board, Document};
+
+    use crate::Session;
+
+    #[test]
+    fn a_lane_set_on_an_empty_infinite_board_lands_at_the_frame_centre() {
+        let mut s = Session::new(Document::new());
+        let page = s.doc.page().unwrap();
+        assert_eq!(page.board, Board::Infinite);
+        let centre = page.frame().center();
+        let r = s.run("lane.addSet", &json!({"lanes": 2})).unwrap();
+        let id = r["id"].as_str().unwrap().to_string();
+        let set = s.doc.page().unwrap().shape(&id).unwrap();
+        let (cx, cy) = (set.x + set.w / 2.0, set.y + set.h / 2.0);
+        assert!((cx - centre.x).abs() <= 1.0 && (cy - centre.y).abs() <= 1.0, "set centre ({cx}, {cy}) against frame centre {centre:?}");
+    }
 }

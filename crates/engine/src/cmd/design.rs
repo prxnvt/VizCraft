@@ -172,7 +172,7 @@ fn apply_quick_style(s: &mut Session, v: &Value) -> CmdResult {
 /// The page a command acts on: the `page` param (id, name or index), else the active page.
 fn page_index(s: &Session, v: &Value) -> Result<usize, EngineError> {
     match v.get("page") {
-        None | Some(Value::Null) => Ok(0),
+        None | Some(Value::Null) => Ok(s.doc.active_index()),
         Some(r) => {
             let r = match r {
                 Value::String(t) => t.clone(),
@@ -321,6 +321,19 @@ mod tests {
         assert_eq!(back.style, original.doc.page().unwrap().shape(&plain).unwrap().style);
         s.run("edit.undo", &json!({})).unwrap();
         assert_eq!(s.doc.theme, DocTheme::new("ember", 2));
+    }
+
+    #[test]
+    fn backgrounds_and_borders_default_to_the_active_page() {
+        let mut s = session();
+        s.run("page.add", &json!({"name": "Second"})).unwrap();
+        s.run("page.setActive", &json!({"page": 1})).unwrap();
+        let second = s.doc.pages[1].id.clone();
+        s.run("design.setBackground", &json!({"kind": "solid"})).unwrap();
+        s.run("design.setBorderTitle", &json!({"kind": "frame"})).unwrap();
+        assert!(vizcraft_diagram::decor::generated_page(&s.doc, &second).is_some(), "the page shown is decorated");
+        let first = s.doc.pages[0].id.clone();
+        assert!(vizcraft_diagram::decor::generated_page(&s.doc, &first).is_none(), "the first page is not");
     }
 
     #[test]

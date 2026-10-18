@@ -78,7 +78,7 @@ fn align(s: &mut Session, v: &Value) -> CmdResult {
     let ids = shapes(s, v)?;
     let pg = page(s)?;
     let anchor = if to_page {
-        pg.rect()
+        pg.frame()
     } else {
         if ids.len() < 2 {
             return Err(EngineError::Params("select two or more shapes to align (or pass `to: \"page\"`)".into()));
@@ -207,6 +207,22 @@ mod tests {
         s
     }
 
+    #[test]
+    fn align_to_page_uses_the_frame_of_an_infinite_board() {
+        let mut s = session();
+        let page = s.doc.page().unwrap();
+        assert_eq!(page.board, vizcraft_diagram::Board::Infinite);
+        let frame = page.frame();
+        s.run("arrange.align", &json!({"ids": ["a"], "edge": "right", "to": "page"})).unwrap();
+        let (x, _, w, _) = frame_of(&s, "a");
+        assert!((x + w - frame.x1).abs() < 1e-6, "right edge {} against frame {}", x + w, frame.x1);
+    }
+
+    fn frame_of(s: &Session, id: &str) -> (f64, f64, f64, f64) {
+        let sh = s.doc.page().unwrap().shape(id).unwrap();
+        (sh.x, sh.y, sh.w, sh.h)
+    }
+
     fn frame(s: &Session, id: &str) -> (f64, f64, f64, f64) {
         let sh = s.doc.page().unwrap().shape(id).unwrap_or_else(|| panic!("no {id}"));
         (sh.x, sh.y, sh.w, sh.h)
@@ -238,9 +254,10 @@ mod tests {
         one_step(&mut s, "arrange.align", json!({"ids": ["a", "b"], "edge": "bottom"}));
         assert_eq!(frame(&s, "b").1, -20.0);
         s.run("edit.select", &json!({"ids": ["c"]})).unwrap();
+        // The board is infinite: the page is the frame of the drawing, read before the move.
+        let middle = s.doc.page().unwrap().frame().center().y;
         one_step(&mut s, "arrange.align", json!({"edge": "middle", "to": "page"}));
-        let page_h = s.doc.page().unwrap().height;
-        assert_eq!(frame(&s, "c").1, page_h / 2.0 - 30.0);
+        assert_eq!(frame(&s, "c").1, middle - 30.0);
         assert!(s.run("arrange.align", &json!({"ids": ["a"], "edge": "left"})).is_err());
         assert!(s.run("arrange.align", &json!({"ids": ["a", "b"], "edge": "diagonal"})).is_err());
         assert!(s.run("arrange.align", &json!({"ids": ["a", "b"], "edge": "left", "to": "moon"})).is_err());

@@ -125,7 +125,7 @@ fn router_end(page: &Page, e: &End, w: Point) -> bool {
 /// Whether the stored `waypoints` of `c` are a route the page's router made (it stores the whole
 /// polyline, its first and last points on the ends), as opposed to bends a person or a file put
 /// there, which are drawn the classic way and kept while they stay clear.
-pub(crate) fn stored_route(page: &Page, c: &Connector) -> bool {
+pub fn stored_route(page: &Page, c: &Connector) -> bool {
     if !crate::routing_policy::routes(page, c) {
         return false;
     }

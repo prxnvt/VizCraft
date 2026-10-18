@@ -4,7 +4,7 @@
 //! `layout.full` algorithm, with the page policy at its default (every connector avoids shapes).
 
 use serde_json::json;
-use vizcraft_diagram::autoroute::{crossings, reroute, unroutable};
+use vizcraft_diagram::autoroute::{crossings, head_trim, reroute, unroutable};
 use vizcraft_diagram::{Connector, End, Page, Point, Route, Shape, ShapeKind};
 use vizcraft_engine::{Document, Session};
 
@@ -290,4 +290,53 @@ fn groups_containers_and_swimlanes_stay_clear() {
         t.run("layout.full", &json!({"algorithm": algorithm})).unwrap();
         assert_session(&t, &format!("parts after layout.full {algorithm}"));
     }
+}
+
+/// A grid of shapes with generous gaps and a few connectors between random pairs, so every
+/// connector has room for a full stub at both ends.
+fn roomy_page(rng: &mut Rng) -> Page {
+    let mut page = Page::new("p1", "Page-1");
+    for i in 0..9 {
+        let (col, row) = ((i % 3) as f64, (i / 3) as f64);
+        page.shapes.push(Shape::new(format!("s{i}"), ShapeKind::Rectangle, col * 220.0, row * 160.0, 90.0, 50.0));
+    }
+    for k in 0..6 {
+        let a = rng.below(9);
+        let b = (a + 1 + rng.below(8)) % 9;
+        let mut c = Connector::new(format!("c{k}"), End::dynamic(format!("s{a}")), End::dynamic(format!("s{b}")));
+        c.route = Route::Orthogonal;
+        page.connectors.push(c);
+    }
+    page
+}
+
+#[test]
+fn the_last_segment_is_at_least_the_arrowhead_trim() {
+    let mut rng = Rng(0x57ab_57ab_1234);
+    let mut checked = 0usize;
+    for case in 0..200 {
+        let mut page = roomy_page(&mut rng);
+        let fallback = reroute(&mut page, None);
+        for c in page.connectors.iter().filter(|c| !fallback.contains(&c.id)) {
+            // Only a route the router stored holds its whole polyline, ends included.
+            if !vizcraft_diagram::route::stored_route(&page, c) {
+                continue;
+            }
+            let w = &c.waypoints;
+            let (Some(a), Some(b), Some(first), Some(second)) = (w.last(), w.len().checked_sub(2).and_then(|i| w.get(i)), w.first(), w.get(1)) else {
+                continue;
+            };
+            let lw = c.style.line_width;
+            let (start_trim, end_trim) = (head_trim(c.start_arrow, lw), head_trim(c.end_arrow, lw));
+            assert!(
+                a.distance(*b) + 1e-6 >= end_trim,
+                "case {case}: {} ends in a segment of {} but its arrowhead needs {end_trim}",
+                c.id,
+                a.distance(*b)
+            );
+            assert!(first.distance(*second) + 1e-6 >= start_trim, "case {case}: {} starts in a segment shorter than {start_trim}", c.id);
+            checked += 1;
+        }
+    }
+    assert!(checked > 100, "only {checked} routes were checked");
 }

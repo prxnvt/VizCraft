@@ -168,6 +168,11 @@ impl Fragment {
         // not own the copy, so the link is cleared rather than pointing at the original.
         for sh in &mut new_shapes {
             sh.parent = sh.parent.as_deref().and_then(|p| map.get(p)).cloned();
+            // A slot lists its members; the copies of those that came along replace them, and a member
+            // left behind drops out rather than naming a shape the copy does not own.
+            for comp in &mut sh.compartments {
+                comp.members = comp.members.iter().filter_map(|m| map.get(m).cloned()).collect();
+            }
             // A callout aims at the copy of its target when the target came along, else at the
             // original if it is on the page the copy lands on, else at nothing.
             if let Some(t) = sh.container.as_mut().and_then(|c| c.target.as_mut()) {
@@ -311,5 +316,34 @@ impl ModelCopies {
         }
         self.relationships.insert(old.to_string(), id.clone());
         Some(id)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+    use vizcraft_diagram::Document;
+
+    use crate::Session;
+
+    #[test]
+    fn a_pasted_slot_keeps_its_members() {
+        let mut s = Session::new(Document::new());
+        for (id, x) in [("k", 0), ("m", 20)] {
+            s.run("shape.add", &json!({"stencil": "basic.rectangle", "id": id, "x": x, "y": 20, "w": 120, "h": 80})).unwrap();
+        }
+        s.run("compartment.add", &json!({"id": "k", "kind": "slot", "compartmentId": "slot", "members": ["m"]})).unwrap();
+        s.run("edit.select", &json!({"ids": ["k"]})).unwrap();
+        s.run("edit.copy", &json!({})).unwrap();
+        let r = s.run("edit.paste", &json!({})).unwrap();
+        let pasted: Vec<String> = r["pasted"].as_array().unwrap().iter().map(|v| v.as_str().unwrap().to_string()).collect();
+        let page = s.doc.page().unwrap();
+        let owner = pasted.iter().filter_map(|id| page.shape(id)).find(|sh| !sh.compartments.is_empty()).expect("the pasted slot");
+        let members = &owner.compartments.iter().find(|c| c.id == "slot").unwrap().members;
+        assert_eq!(members.len(), 1, "{members:?}");
+        assert!(members[0] != "m" && pasted.contains(&members[0]), "the member is the pasted copy, not the original: {members:?}");
+        assert_eq!(page.shape(&members[0]).unwrap().parent.as_deref(), Some(owner.id.as_str()));
+        // The original slot is untouched.
+        assert_eq!(page.shape("k").unwrap().compartments[0].members, ["m"]);
     }
 }

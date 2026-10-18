@@ -107,7 +107,7 @@ fn add(s: &mut Session, v: &Value) -> CmdResult {
     let page = page_mut(s)?;
     let (dw, dh) = ct::DEFAULT_SIZE;
     let (w, h) = (w.unwrap_or(dw), h.unwrap_or(dh));
-    let centre = page.rect().center();
+    let centre = page.frame().center();
     let (x, y) = (x.unwrap_or((centre.x - w / 2.0).round()), y.unwrap_or((centre.y - h / 2.0).round()));
     let mut shape = ct::new_container(id.clone(), x, y, w, h, &heading);
     if let Some(p) = preset {
@@ -288,3 +288,22 @@ fn drop(s: &mut Session, v: &Value) -> CmdResult {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod frame_tests {
+    use serde_json::json;
+    use vizcraft_diagram::Document;
+
+    use crate::Session;
+
+    #[test]
+    fn a_container_on_an_empty_infinite_board_lands_at_the_frame_centre() {
+        let mut s = Session::new(Document::new());
+        let centre = s.doc.page().unwrap().frame().center();
+        let r = s.run("container.add", &json!({})).unwrap();
+        let id = r["id"].as_str().unwrap().to_string();
+        let b = s.doc.page().unwrap().shape(&id).unwrap();
+        let (cx, cy) = (b.x + b.w / 2.0, b.y + b.h / 2.0);
+        assert!((cx - centre.x).abs() <= 1.0 && (cy - centre.y).abs() <= 1.0, "centre ({cx}, {cy}) against frame centre {centre:?}");
+    }
+}

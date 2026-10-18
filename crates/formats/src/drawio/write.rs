@@ -279,11 +279,52 @@ pub(crate) fn model_from_page(page: &Page) -> GraphModel {
             Some(id) => cell.target = Some(cell_id(id)),
             None => g.target_point = Some(dpoint(ends.end.pos)),
         }
-        g.points = c.waypoints.iter().copied().map(dpoint).collect();
+        // draw.io's points are the interior bends only. A route the router stored holds its whole
+        // polyline, ends included; those two points sit on the ends, which the cell's source and target
+        // already give, so they are left out and a reread draws the same line.
+        let mut bends: &[vizcraft_diagram::Point] = &c.waypoints;
+        // A curve is fitted through every stored point, ends included, so it keeps them.
+        if c.route != vizcraft_diagram::Route::Curved && vizcraft_diagram::route::stored_route(page, c) && bends.len() >= 2 {
+            bends = bends.get(1..bends.len() - 1).unwrap_or_default();
+        }
+        g.points = bends.iter().copied().map(dpoint).collect();
         cell.geometry = Some(g);
         model.cells.push(cell);
     }
     model
+}
+
+#[cfg(test)]
+mod route_tests {
+    use vizcraft_diagram::{Connector, Document, End, Point, Shape, ShapeKind};
+
+    use crate::drawio::{load, save};
+
+    #[test]
+    fn a_routed_connector_writes_only_interior_bends_and_rereads_the_same() {
+        let mut doc = Document::new();
+        let page = &mut doc.pages[0];
+        page.shapes.push(Shape::new("a", ShapeKind::Rectangle, 0.0, 0.0, 80.0, 40.0));
+        page.shapes.push(Shape::new("wall", ShapeKind::Rectangle, 150.0, -100.0, 40.0, 260.0));
+        page.shapes.push(Shape::new("b", ShapeKind::Rectangle, 300.0, 100.0, 80.0, 40.0));
+        page.connectors.push(Connector::new("c", End::dynamic("a"), End::dynamic("b")));
+        vizcraft_diagram::autoroute::reroute(page, None);
+        let c = page.connector("c").unwrap();
+        assert!(vizcraft_diagram::route::stored_route(page, c), "the router stored the whole polyline");
+        let whole = c.waypoints.clone();
+        assert!(whole.len() >= 4, "{whole:?}");
+        let drawn = vizcraft_diagram::route_polyline(page, c);
+        let back = load(&save(&doc).unwrap()).unwrap();
+        let bp = &back.pages[0];
+        let rc = bp.connector("c").expect("the connector survives");
+        let interior: Vec<Point> = whole[1..whole.len() - 1].to_vec();
+        assert_eq!(rc.waypoints.len(), interior.len(), "only interior bends are written: {:?}", rc.waypoints);
+        for (got, want) in rc.waypoints.iter().zip(&interior) {
+            assert!(got.distance(*want) < 1.0, "{got:?} against {want:?}");
+        }
+        let again = vizcraft_diagram::route_polyline(bp, rc);
+        assert_eq!(again.len(), drawn.len(), "{again:?} against {drawn:?}");
+    }
 }
 
 #[cfg(test)]
