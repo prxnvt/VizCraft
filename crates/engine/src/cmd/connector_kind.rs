@@ -149,6 +149,20 @@ mod tests {
     }
 
     #[test]
+    fn connector_add_takes_a_kind_and_explicit_params_win_over_it() {
+        let mut s = session();
+        s.run("connector.add", &json!({"from": {"shape": "s1"}, "to": {"shape": "s2"}, "kind": "basic.dependency", "id": "c2"})).unwrap();
+        let c = s.doc.page().unwrap().connector("c2").unwrap().clone();
+        assert_eq!((c.kind.as_str(), c.end_arrow, c.style.dash), ("basic.dependency", Arrow::Open, Dash::Dashed));
+        s.run("connector.add", &json!({"from": {"shape": "s1"}, "to": {"shape": "s2"}, "kind": "basic.dependency", "endArrow": "triangle", "route": "straight", "id": "c3"}))
+            .unwrap();
+        let c = s.doc.page().unwrap().connector("c3").unwrap().clone();
+        assert_eq!((c.kind.as_str(), c.end_arrow, c.route), ("basic.dependency", Arrow::Triangle, Route::Straight));
+        assert!(s.run("connector.add", &json!({"from": {"shape": "s1"}, "to": {"shape": "s2"}, "kind": "vendor.nothing"})).is_err());
+        assert!(s.doc.page().unwrap().connector("c4").is_none());
+    }
+
+    #[test]
     fn apply_kind_is_what_connector_add_needs() {
         let mut c = Connector::new("c", End::free(Point::ZERO), End::free(Point::new(5.0, 5.0)));
         apply_kind(&mut c, "basic.signal").unwrap();
