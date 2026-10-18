@@ -46,6 +46,8 @@ pub enum Dialog {
     SnapSettings(crate::snap_dialog::State),
     /// Define Shape Data: a data key for the active page.
     DefineShapeData(crate::data_dialog::State),
+    /// Edit Data Graphic (`crate::datagraphic_dialog`).
+    DataGraphic(crate::datagraphic_dialog::State),
     /// Print Preview: pages, paper, fit, the sheets each page prints on, and Print.
     PrintPreview(crate::print_preview::State),
     /// Find and Replace (`crate::find_dialog`).
@@ -70,6 +72,7 @@ impl Dialog {
             Dialog::PageSetup(_) => "pageSetup",
             Dialog::SnapSettings(_) => "snapSettings",
             Dialog::DefineShapeData(_) => "defineShapeData",
+            Dialog::DataGraphic(_) => "dataGraphic",
             Dialog::PrintPreview(_) => "printPreview",
             Dialog::Find(_) => "find",
             Dialog::PasteSpecial(_) => "pasteSpecial",
@@ -90,6 +93,7 @@ impl Dialog {
             "pageSetup" => Dialog::PageSetup(crate::page_setup::PageSetup::new(app)),
             "snapSettings" => Dialog::SnapSettings(crate::snap_dialog::open(app)),
             "defineShapeData" => Dialog::DefineShapeData(crate::data_dialog::open(app)),
+            "dataGraphic" => Dialog::DataGraphic(crate::datagraphic_dialog::open(app)),
             "printPreview" => Dialog::PrintPreview(crate::print_preview::open(app)),
             "find" => Dialog::Find(crate::find_dialog::open(app)),
             "pasteSpecial" => Dialog::PasteSpecial(crate::paste_special::open(app)),
@@ -110,6 +114,7 @@ impl Dialog {
             Dialog::PageSetup(_) => "Page Setup".into(),
             Dialog::SnapSettings(_) => "Snap and Glue".into(),
             Dialog::DefineShapeData(_) => "Define Shape Data".into(),
+            Dialog::DataGraphic(_) => "Edit Data Graphic".into(),
             Dialog::PrintPreview(_) => "Print Preview".into(),
             Dialog::Find(_) => "Find and Replace".into(),
             Dialog::PasteSpecial(_) => "Paste Special".into(),
@@ -125,6 +130,7 @@ impl Dialog {
             Dialog::PrintPreview(_) => 560.0,
             Dialog::Find(_) => 420.0,
             Dialog::Symbol(_) => 400.0,
+            Dialog::DataGraphic(_) => 520.0,
             _ => 360.0,
         }
     }
@@ -323,6 +329,11 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
             crate::data_dialog::body(ui, s);
             let (ok, cancel) = buttons(ui, "OK", Some("Cancel"), keys);
             crate::data_dialog::finish(app, s, ok, cancel)
+        }
+        Dialog::DataGraphic(s) => {
+            crate::datagraphic_dialog::body(ui, s);
+            let (ok, cancel) = buttons(ui, "OK", Some("Cancel"), keys);
+            crate::datagraphic_dialog::finish(app, s, ok, cancel)
         }
         Dialog::Find(f) => crate::find_dialog::body(app, ui, f, keys.enter),
         Dialog::PasteSpecial(p) => {

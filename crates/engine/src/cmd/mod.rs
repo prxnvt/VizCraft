@@ -8,6 +8,8 @@ pub mod connector;
 pub mod connector_kind;
 pub mod container;
 pub mod data;
+pub mod datagraphic;
+pub mod datalink;
 pub mod describe;
 pub mod design;
 pub mod edit;
@@ -63,6 +65,8 @@ pub fn registry() -> Registry {
     v.extend(print::specs());
     v.extend(layer::specs());
     v.extend(data::specs());
+    v.extend(datagraphic::specs());
+    v.extend(datalink::specs());
     v.extend(describe::specs());
     v.extend(design::specs());
     v.extend(layout::specs());

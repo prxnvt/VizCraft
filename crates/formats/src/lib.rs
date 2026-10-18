@@ -10,6 +10,7 @@
 //! - [`drawio`]: `.drawio` files read and written through `vizcraft-drawio`.
 //! - [`csv`]: draw.io-style CSV import, placed with the auto-layout.
 //! - [`mermaid`]: Mermaid import through `vizcraft-mermaid`, placed with the auto-layout.
+//! - [`table`]: CSV and XLSX tables for data links, with inferred column types.
 //!
 //! Bytes in, bytes out: readers take a byte slice and writers return a byte vector, with no file
 //! system access, so the desktop app, the CLI, the MCP server and the web build share one code
@@ -23,6 +24,7 @@ pub mod native;
 pub mod pdf;
 pub mod png;
 pub mod svg;
+pub mod table;
 
 use vizcraft_diagram::Page;
 

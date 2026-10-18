@@ -382,6 +382,9 @@ pub struct Shape {
     /// Sections stacked below the main text (see [`crate::compartment`]).
     #[serde(deserialize_with = "lenient_vec", skip_serializing_if = "Vec::is_empty")]
     pub compartments: Vec<crate::compartment::Compartment>,
+    /// The data graphic the shape shows (an id in [`Document::data_graphics`]).
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub data_graphic: Option<String>,
 }
 
 impl Default for Shape {
@@ -411,6 +414,7 @@ impl Default for Shape {
             data: ShapeData::default(),
             container: None,
             compartments: Vec::new(),
+            data_graphic: None,
         }
     }
 }
@@ -1054,6 +1058,12 @@ pub struct Document {
     /// for free drawing.
     #[serde(skip_serializing_if = "is_default")]
     pub conformance: crate::conformance::Conformance,
+    /// Data graphic definitions (see [`crate::data_graphic`]).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub data_graphics: Vec<crate::data_graphic::DataGraphic>,
+    /// Links from shape data to external tables (see [`crate::data_graphic::DataLink`]).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub data_links: Vec<crate::data_graphic::DataLink>,
 }
 
 /// The on-disk form; turned into a [`Document`] by fixing up anything a file got wrong.
@@ -1079,6 +1089,10 @@ struct DocumentRepr {
     theme: DocTheme,
     #[serde(deserialize_with = "lenient")]
     conformance: crate::conformance::Conformance,
+    #[serde(deserialize_with = "lenient_vec")]
+    data_graphics: Vec<crate::data_graphic::DataGraphic>,
+    #[serde(deserialize_with = "lenient_vec")]
+    data_links: Vec<crate::data_graphic::DataLink>,
 }
 
 impl From<DocumentRepr> for Document {
@@ -1095,6 +1109,8 @@ impl From<DocumentRepr> for Document {
             active_page: r.active_page,
             theme: r.theme,
             conformance: r.conformance,
+            data_graphics: r.data_graphics,
+            data_links: r.data_links,
         };
         // Pages only: the model is a separate section the caller sets afterwards, so checking view
         // references here would clear every one of them. The caller runs `sanitize` once the
@@ -1125,6 +1141,8 @@ impl Document {
             active_page: String::new(),
             theme: DocTheme::default(),
             conformance: crate::conformance::Conformance::default(),
+            data_graphics: Vec::new(),
+            data_links: Vec::new(),
         }
     }
     /// Make the document safe to work on: at least one page, every number in range, a sane model,
@@ -1150,6 +1168,7 @@ impl Document {
             self.active_page.clear();
         }
         self.theme.sanitize();
+        crate::data_graphic::sanitize_doc(self);
         self.sanitize_doc_refs();
     }
     /// Clear references that name nothing: a background that is not another background page, a

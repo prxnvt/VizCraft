@@ -43,9 +43,10 @@ impl Default for PaneLayout {
             heights: BTreeMap::new(),
             last_side: BTreeMap::new(),
         };
-        // Layers starts closed: most pages have no layers; Layer Properties opens it. The
-        // Inspector starts open, as the Properties pane it replaced did.
-        for p in panes().into_iter().filter(|p| p.key != "layers") {
+        // Layers starts closed: most pages have no layers; Layer Properties opens it. External
+        // Data starts closed too: it has nothing to show until a table is linked. The Inspector
+        // starts open, as the Properties pane it replaced did.
+        for p in panes().into_iter().filter(|p| !matches!(p.key, "layers" | "externalData")) {
             l.side_mut(p.default_side).push(p.key.to_string());
         }
         // Navigation has nothing to list until pages arrive; it starts folded to its header so

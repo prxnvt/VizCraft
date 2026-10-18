@@ -36,6 +36,11 @@ image = { version = "0.25", default-features = false, features = ["png"] }
 # Text only, no system fonts or raster images, so it reads nothing from the machine and builds for wasm.
 resvg = { version = "0.47", default-features = false, features = ["text"] }
 
+# Table reading for data links: CSV (MIT or Unlicense) and XLSX workbooks (MIT, pure Rust, kept
+# out of the web build).
+csv = "1.4"
+calamine = { version = "0.36", default-features = false }
+
 # testing
 proptest = "1"
 

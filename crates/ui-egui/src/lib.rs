@@ -15,6 +15,7 @@ pub mod chrome;
 pub mod command_palette;
 pub mod control;
 pub mod data_dialog;
+pub mod datagraphic_dialog;
 pub mod dialogs;
 pub mod dock;
 pub mod find_dialog;
@@ -98,6 +99,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.pane.history", "History Pane", "", r#"{"value"?: bool}"#),
     ("ui.pane.layers", "Layers Pane", "", r#"{"value"?: bool}"#),
     ("ui.pane.shapeData", "Inspector Pane", "", r#"{"value"?: bool}"#),
+    ("ui.pane.externalData", "External Data Pane", "", r#"{"value"?: bool}"#),
     ("ui.inspector", "Inspector Mode", "", r#"{"mode"?: "standard|expert", "tab"?: "properties|format"} -> {"mode", "tab"}"#),
     ("ui.paneSide", "Move Pane to Side", "", r#"{"name": "shapes|navigation|properties|history|layers|shapeData", "side": "left|right"}"#),
     ("ui.collapsePanes", "Collapse Side Panes", "", r#"{"side": "left|right", "value"?: bool}"#),
@@ -137,6 +139,12 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "Insert Picker",
         "",
         r#"{"x"?: n, "y"?: n, "query"?: string} -> {"open", "at", "query", "items": [type or stencil id]}; a type-to-filter list of the page's palette types and the Drawing primitives at a canvas point (default: the view centre); Enter inserts, Escape closes"#,
+    ),
+    (
+        "ui.linkData",
+        "Link Data to Shapes",
+        "",
+        r#"{"path"?: file (default: ask), "keyColumn"?: column (default: the first one shapes already hold as data, else the first), "sheet"?: string} -> the datalink.link result; then opens the External Data pane"#,
     ),
     ("window.minimize", "Minimize", "", "{}"),
     ("window.zoom", "Zoom Window", "", "{}"),
@@ -519,6 +527,9 @@ impl CraftApp {
             return Some(r);
         }
         if let Some(r) = insert_picker::ui_command(self, id, p) {
+            return Some(r);
+        }
+        if let Some(r) = datagraphic_dialog::ui_command(self, id, p) {
             return Some(r);
         }
         let s = |k: &str| p.get(k).and_then(Value::as_str);

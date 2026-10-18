@@ -33,6 +33,8 @@ fn registry_ids_are_unique_and_prefixed() {
                 "page",
                 "layer",
                 "data",
+                "datagraphic",
+                "datalink",
                 "design",
                 "layout",
                 "model",

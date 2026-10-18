@@ -882,3 +882,84 @@ fn page_routing_policy_round_trips_and_old_files_route_every_connector() {
     let junk = load(&serde_json::to_vec(&file).unwrap()).unwrap();
     assert_eq!(junk.pages[0].routing, RoutingPolicy::default());
 }
+
+/// A document with one data graphic (a callout and an icon set), shown by `s1`, and one link.
+fn with_graphics() -> Document {
+    use vizcraft_diagram::data_graphic::{DataGraphic, DataItem, DataLink, ItemKind, Op, Rule, TableFormat};
+    let mut doc = Document::new();
+    let mut s = Shape::new("s1", ShapeKind::Rectangle, 0.0, 0.0, 100.0, 60.0);
+    s.data_graphic = Some("dg1".into());
+    doc.page_mut().unwrap().shapes.push(s);
+    let icons = DataItem {
+        kind: ItemKind::Icons,
+        key: "cost".into(),
+        rules: vec![Rule { op: Op::Gt, value: "10".into(), icon: "check".into(), ..Rule::default() }],
+        ..DataItem::default()
+    };
+    doc.data_graphics.push(DataGraphic {
+        id: "dg1".into(),
+        name: "Cost".into(),
+        items: vec![DataItem { key: "cost".into(), ..DataItem::default() }, icons],
+    });
+    doc.data_links.push(DataLink {
+        id: "dl1".into(),
+        path: "/data/assets.xlsx".into(),
+        format: TableFormat::Xlsx,
+        sheet: "Data".into(),
+        key_column: "Tag".into(),
+        data_key: "Tag".into(),
+        columns: vec!["Tag".into(), "Cost".into()],
+        last_refresh: "2026-10-18T12:00:00Z".into(),
+    });
+    doc.sanitize();
+    doc
+}
+
+#[test]
+fn data_graphics_round_trip_and_hostile_ones_are_sanitised() {
+    let doc = with_graphics();
+    let bytes = save(&doc).unwrap();
+    assert_eq!(load(&bytes).unwrap(), doc);
+    let mut v = parse(&bytes);
+    assert_eq!(v["document"]["dataGraphics"][0]["items"][1]["rules"][0], json!({"op": "gt", "value": "10", "icon": "check"}));
+    assert!(parse(&save(&Document::new()).unwrap())["document"].get("dataGraphics").is_none(), "none writes no key");
+    v["document"]["dataGraphics"] = json!([
+        {"id": "dg1", "name": "x".repeat(10_000), "items": [{"kind": "warp", "min": "a", "max": -1e308, "rules": [{"op": 5, "icon": "smiley"}]}]},
+        {"id": "dg1"},
+        {"id": "bad id"},
+        7,
+    ]);
+    let back = load(&serde_json::to_vec(&v).unwrap()).unwrap();
+    assert_eq!(back.data_graphics.len(), 1, "repeated, unusable and junk graphics are dropped");
+    let g = &back.data_graphics[0];
+    assert!(g.name.len() <= vizcraft_diagram::data_graphic::MAX_NAME);
+    assert!(g.items[0].min < g.items[0].max && g.items[0].rules[0].icon.is_empty());
+}
+
+#[test]
+fn data_links_round_trip_and_hostile_ones_are_sanitised() {
+    let doc = with_graphics();
+    let bytes = save(&doc).unwrap();
+    let mut v = parse(&bytes);
+    assert_eq!(v["document"]["dataLinks"][0]["keyColumn"], "Tag");
+    assert_eq!(v["document"]["dataLinks"][0]["format"], "xlsx");
+    v["document"]["dataLinks"] =
+        json!([{"id": "dl1", "path": "p".repeat(100_000), "format": "pdf", "columns": ["c".repeat(500), 3]}, {"id": ""}, {"id": "dl1"}]);
+    let back = load(&serde_json::to_vec(&v).unwrap()).unwrap();
+    assert_eq!(back.data_links.len(), 1);
+    let l = &back.data_links[0];
+    assert_eq!(l.format, vizcraft_diagram::data_graphic::TableFormat::Csv, "an unknown format reads as CSV");
+    assert!(l.path.len() <= vizcraft_diagram::data_graphic::MAX_PATH && l.columns.iter().all(|c| c.len() <= 128));
+}
+
+#[test]
+fn shape_data_graphic_round_trips_and_a_dangling_one_is_cleared() {
+    let doc = with_graphics();
+    let mut v = parse(&save(&doc).unwrap());
+    assert_eq!(v["document"]["pages"][0]["shapes"][0]["dataGraphic"], "dg1");
+    v["document"]["pages"][0]["shapes"][0]["dataGraphic"] = json!("nope");
+    let back = load(&serde_json::to_vec(&v).unwrap()).unwrap();
+    assert_eq!(back.pages[0].shapes[0].data_graphic, None, "a graphic the document lacks is cleared");
+    v["document"]["pages"][0]["shapes"][0]["dataGraphic"] = json!({"x": 1});
+    assert_eq!(load(&serde_json::to_vec(&v).unwrap()).unwrap().pages[0].shapes[0].data_graphic, None);
+}
