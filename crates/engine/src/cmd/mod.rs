@@ -17,6 +17,7 @@ pub mod file;
 pub mod find;
 pub mod help;
 pub mod insert;
+pub mod inspector;
 pub mod lane;
 pub mod layer;
 pub mod layout;
@@ -66,6 +67,7 @@ pub fn registry() -> Registry {
     v.extend(layout::specs());
     v.extend(model::specs());
     v.extend(element::specs());
+    v.extend(inspector::specs());
     v.extend(relationship::specs());
     v.extend(validate::specs());
     v.extend(notation::specs());

@@ -41,10 +41,9 @@ macro_rules! default_panes {
 default_panes! {
     shapes,
     model_tree,
-    properties,
     history,
     layers,
-    shape_data,
+    inspector,
 }
 
 use egui::Ui;
@@ -52,6 +51,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::CraftApp;
+pub use inspector::{InspectorMode, InspectorState, InspectorTab};
 pub use layout::{DEFAULT_HEIGHT, GAP, HEADER_H, MAX_HEIGHT, MAX_WIDTH, MIN_HEIGHT, MIN_WIDTH, PaneLayout, STRIP_W};
 pub use manager::show;
 pub use model_tree::{TreeState, inspect as tree_inspect};
@@ -173,7 +173,8 @@ pub fn spec(key: &str) -> Option<PaneSpec> {
 /// flags (see the module docs: the layout is the truth, the flags mirror it).
 pub fn mirror_view_flags(app: &mut CraftApp) {
     app.session.view.nav_pane = app.ui.panes.is_open("navigation");
-    app.session.view.props_pane = app.ui.panes.is_open("properties");
+    // The Properties pane is the Inspector's Document section now; the flag follows the Inspector.
+    app.session.view.props_pane = app.ui.panes.is_open("shapeData");
 }
 
 fn mirror_id() -> egui::Id {
@@ -188,7 +189,7 @@ fn sync_view_flags(app: &mut CraftApp, ctx: &egui::Context) {
     if let Some(last) = last
         && last != view
     {
-        for (key, was, now) in [("navigation", last.0, view.0), ("properties", last.1, view.1)] {
+        for (key, was, now) in [("navigation", last.0, view.0), ("shapeData", last.1, view.1)] {
             if was != now {
                 if now {
                     app.ui.panes.open(key, None);
@@ -238,6 +239,9 @@ pub fn ui_command(app: &mut CraftApp, id: &str, p: &Value) -> Option<Result<Valu
     if id == "ui.tree" {
         return Some(model_tree::ui_tree(app, p));
     }
+    if id == "ui.inspector" {
+        return Some(inspector::ui_command(app, p));
+    }
     if id == "ui.shapesSearch" {
         return Some(Ok(shapes_search(app, p)));
     }
@@ -278,12 +282,15 @@ pub fn ui_command(app: &mut CraftApp, id: &str, p: &Value) -> Option<Result<Valu
 
 fn toggle_pane(app: &mut CraftApp, name: &str, value: Option<bool>, side: Result<Option<Side>, String>) -> Result<(), String> {
     let side = side?;
+    // `properties` was a pane of its own; it is the Inspector's Document section now.
+    let (name, document) = if name == "properties" { ("shapeData", true) } else { (name, false) };
     if spec(name).is_none() {
         return Err(format!("unknown pane {name:?}"));
     }
     let open = value.unwrap_or(!app.ui.panes.is_open(name));
     if open {
         app.ui.panes.open(name, side);
+        app.ui.inspector.show_document |= document;
     } else {
         app.ui.panes.close(name);
     }
@@ -302,8 +309,8 @@ mod tests {
         let json = serde_json::to_string(&PaneLayout::default()).unwrap();
         assert!(json.contains("leftWidth"));
         // The cascade 1 shape (two lists and two widths) still loads.
-        let back: PaneLayout = serde_json::from_str(r#"{"left": ["properties"], "right": []}"#).unwrap();
-        assert_eq!(back.side_of("properties"), Some("left"));
+        let back: PaneLayout = serde_json::from_str(r#"{"left": ["shapeData"], "right": []}"#).unwrap();
+        assert_eq!(back.side_of("shapeData"), Some("left"));
         assert_eq!(back.side_of("navigation"), None);
         assert_eq!(back.left_width, 240.0);
         assert!(back.heights.is_empty());
@@ -312,7 +319,7 @@ mod tests {
     #[test]
     fn heights_fill_and_squeeze() {
         let l = PaneLayout::default();
-        let keys = vec!["properties".to_string(), "history".to_string()];
+        let keys = vec!["shapeData".to_string(), "history".to_string()];
         let hs = l.heights_for(&keys, 600.0);
         assert_eq!(hs[0], DEFAULT_HEIGHT);
         assert_eq!(hs[1], 600.0 - DEFAULT_HEIGHT - GAP);
@@ -321,7 +328,7 @@ mod tests {
         assert_eq!(hs, vec![MIN_HEIGHT, MIN_HEIGHT]);
         // Collapsed panes are a header tall.
         let mut c = l.clone();
-        c.set_collapsed("properties", true);
+        c.set_collapsed("shapeData", true);
         let hs = c.heights_for(&keys, 600.0);
         assert_eq!(hs[0], HEADER_H);
         assert_eq!(hs[1], 600.0 - HEADER_H - GAP);
@@ -334,14 +341,14 @@ mod tests {
     #[test]
     fn resize_moves_the_splitter_within_limits() {
         let mut l = PaneLayout::default();
-        let keys = vec!["properties".to_string(), "history".to_string()];
+        let keys = vec!["shapeData".to_string(), "history".to_string()];
         let hs = l.heights_for(&keys, 600.0);
         l.resize(&keys, &hs, 0, 50.0);
-        assert_eq!(l.height("properties"), DEFAULT_HEIGHT + 50.0);
+        assert_eq!(l.height("shapeData"), DEFAULT_HEIGHT + 50.0);
         l.resize(&keys, &hs, 0, -10_000.0);
-        assert_eq!(l.height("properties"), MIN_HEIGHT);
+        assert_eq!(l.height("shapeData"), MIN_HEIGHT);
         l.resize(&keys, &hs, 0, 10_000.0);
-        assert!(l.height("properties") <= 600.0 - MIN_HEIGHT);
+        assert!(l.height("shapeData") <= 600.0 - MIN_HEIGHT);
         l.resize(&keys, &hs, 0, f32::NAN);
         l.resize(&keys, &hs, 7, 10.0);
         l.resize(&keys, &[], 0, 10.0);
@@ -349,13 +356,13 @@ mod tests {
 
     #[test]
     fn custom_pane_registration_and_reset() {
-        assert_eq!(panes().len(), 6);
+        assert_eq!(panes().len(), 5);
         set_panes(vec![PaneSpec::new("custom", "Custom Pane", Side::Left, 200.0, |_app, _ui| {})]);
         assert_eq!(panes().len(), 1);
         assert_eq!(spec("custom").unwrap().title, "Custom Pane");
         assert!(spec("navigation").is_none());
         reset_panes();
-        assert_eq!(panes().len(), 6);
+        assert_eq!(panes().len(), 5);
         assert!(spec("navigation").is_some());
     }
 }
