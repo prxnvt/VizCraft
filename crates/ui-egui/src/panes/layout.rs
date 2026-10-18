@@ -43,10 +43,10 @@ impl Default for PaneLayout {
             heights: BTreeMap::new(),
             last_side: BTreeMap::new(),
         };
-        // Layers and Comments start closed: most pages have no layers or comments; Layer
-        // Properties and Review > Comments open them. The Inspector starts open, as the
+        // Layers, Comments and Pan and Zoom start closed: most pages have no layers or comments,
+        // and the minimap is opened from View > Show. The Inspector starts open, as the
         // Properties pane it replaced did.
-        for p in panes().into_iter().filter(|p| !matches!(p.key, "layers" | "comments")) {
+        for p in panes().into_iter().filter(|p| !matches!(p.key, "layers" | "comments" | "panZoom")) {
             l.side_mut(p.default_side).push(p.key.to_string());
         }
         // Navigation has nothing to list until pages arrive; it starts folded to its header so

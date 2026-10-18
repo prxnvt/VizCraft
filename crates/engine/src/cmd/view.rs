@@ -32,6 +32,9 @@ pub fn specs() -> Vec<CommandSpec> {
             .key("Mod+Shift+H")
             .params(r#"{"page"?: bool}"#)
             .when(|s| if s.view.canvas.is_some() { None } else { Some("No canvas is shown") }),
+        CommandSpec::new("view.zoomWidth", "Page Width", "View > Zoom", zoom_width)
+            .params(r#"{"page"?: bool (default true: the frame; false: the drawing)}"#)
+            .when(|s| if s.view.canvas.is_some() { None } else { Some("No canvas is shown") }),
         CommandSpec::new("view.dark", "Dark Mode", "View > Appearance", |s, v| toggle(s, v, |x| &mut x.dark_mode)).params(r#"{"value"?: bool}"#),
         CommandSpec::new("view.navigationPane", "Navigation Pane", "View > Show", |s, v| toggle(s, v, |x| &mut x.nav_pane))
             .params(r#"{"value"?: bool}"#),
@@ -95,6 +98,26 @@ fn zoom_fit(s: &mut Session, v: &Value) -> CmdResult {
     s.view.zoom = pct.clamp(MIN_ZOOM, MAX_ZOOM) / 100.0;
     let c = target.center();
     s.view.pan = [c.x as f32, c.y as f32];
+    Ok(json!({"zoom": s.view.zoom, "pan": s.view.pan}))
+}
+
+/// Fit the width of the page frame (`page`, the default) or of the drawing into the canvas, like
+/// Visio's Page Width: the whole width shows with [`FIT_MARGIN`] to spare. A target taller than the
+/// canvas at that zoom is shown from its top edge; a shorter one is centred.
+fn zoom_width(s: &mut Session, v: &Value) -> CmdResult {
+    let Some([w, h]) = s.view.canvas else { return Err(EngineError::Disabled("No canvas is shown".into())) };
+    let Some(page) = s.doc.page() else { return Err(EngineError::Failed("the document has no page".into())) };
+    let target = if p::bool(v, "page").unwrap_or(true) { page.frame() } else { content_bounds(page).unwrap_or_else(|| page.frame()) };
+    let (tw, th) = (target.width() as f32, target.height() as f32);
+    let aw = w - 2.0 * FIT_MARGIN;
+    let pct = if aw > 0.0 && tw > 0.0 { aw / tw * 100.0 } else { MIN_ZOOM };
+    let pct = if pct.is_finite() { pct.floor() } else { MIN_ZOOM };
+    let zoom = pct.clamp(MIN_ZOOM, MAX_ZOOM) / 100.0;
+    s.view.zoom = zoom;
+    let c = target.center();
+    let half_h = h / 2.0 / zoom;
+    let y = if th * zoom + 2.0 * FIT_MARGIN <= h { c.y as f32 } else { target.y0 as f32 - FIT_MARGIN / zoom + half_h };
+    s.view.pan = [c.x as f32, y];
     Ok(json!({"zoom": s.view.zoom, "pan": s.view.pan}))
 }
 
@@ -414,6 +437,30 @@ mod tests {
     use serde_json::json;
 
     use crate::{Document, Session};
+
+    #[test]
+    fn zoom_width_fits_the_frame_width_and_shows_the_top() {
+        let mut s = Session::new(crate::sample::sample_document());
+        assert!(s.run("view.zoomWidth", &json!({})).is_err(), "no canvas, no fit");
+        s.view.canvas = Some([1000.0, 300.0]);
+        let r = s.run("view.zoomWidth", &json!({})).unwrap();
+        let frame = s.doc.page().unwrap().frame();
+        let zoom = r["zoom"].as_f64().unwrap();
+        assert!(frame.width() * zoom + 2.0 * super::FIT_MARGIN as f64 <= 1000.0 + 1e-3, "the whole width shows");
+        assert!(frame.width() * (zoom + 0.01) + 2.0 * super::FIT_MARGIN as f64 > 1000.0, "and it is the largest whole percentage");
+        assert_eq!(r["pan"][0].as_f64().unwrap() as f32, frame.center().x as f32, "centred across");
+        // A short canvas cannot show the height: the view starts at the top edge.
+        let top = s.view.pan[1] as f64 - 150.0 / zoom;
+        assert!(top < frame.y0 && frame.y0 - top < 25.0 / zoom + 1e-3, "top edge in view with the margin");
+        // A tall canvas centres vertically.
+        s.view.canvas = Some([1000.0, 4000.0]);
+        s.run("view.zoomWidth", &json!({})).unwrap();
+        assert_eq!(s.view.pan[1], frame.center().y as f32);
+        // Degenerate canvases fall back to the smallest zoom instead of failing.
+        s.view.canvas = Some([10.0, 10.0]);
+        s.run("view.zoomWidth", &json!({"page": false})).unwrap();
+        assert_eq!(s.view.zoom, 0.25);
+    }
 
     #[test]
     fn guide_commands_default_to_the_active_page() {

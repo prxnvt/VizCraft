@@ -8,6 +8,7 @@
 //! [`CraftApp::ui`] each frame.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
+pub mod addon_dialog;
 pub mod backstage;
 pub mod breadcrumbs;
 pub mod canvas;
@@ -28,6 +29,7 @@ pub mod page_tabs;
 pub mod palette;
 pub mod panes;
 pub mod paste_special;
+pub mod presentation;
 pub mod print_preview;
 pub mod ribbon;
 pub mod snap_dialog;
@@ -84,7 +86,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "ui.dialog",
         "Open Dialog",
         "",
-        r#"{"name": "commands|zoom|about|preferences|quit|shortcuts|message|pageSetup|snapSettings|find|pasteSpecial", "title"?: string, "text"?: string}"#,
+        r#"{"name": "commands|zoom|about|preferences|quit|shortcuts|message|pageSetup|snapSettings|find|pasteSpecial|numberShapes|arrayShapes|moveShapes|saveMacro", "title"?: string, "text"?: string}"#,
     ),
     ("ui.closeDialog", "Close Dialog", "", "{}"),
     ("ui.backstage", "File Page", "", r#"{"value"?: bool}"#),
@@ -92,7 +94,12 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.saveAsDialog", "Save As...", "", "{}"),
     ("ui.inWindowMenus", "Menu Bar in Window", "", r#"{"value"?: bool}"#),
     ("ui.newWindow", "New Window", "", r#"{"template"?: "blank|sample"}"#),
-    ("ui.pane", "Toggle Pane", "", r#"{"name": "shapes|navigation|properties|history|layers|shapeData", "value"?: bool, "side"?: "left|right"}"#),
+    (
+        "ui.pane",
+        "Toggle Pane",
+        "",
+        r#"{"name": "shapes|navigation|properties|history|layers|shapeData|panZoom", "value"?: bool, "side"?: "left|right"}"#,
+    ),
     ("ui.pane.shapes", "Shapes Pane", "", r#"{"value"?: bool}"#),
     ("ui.pane.navigation", "Model Tree Pane", "", r#"{"value"?: bool}"#),
     ("ui.pane.properties", "Properties Pane", "", r#"{"value"?: bool}"#), // opens the Inspector at its Document section
@@ -101,7 +108,8 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.pane.shapeData", "Inspector Pane", "", r#"{"value"?: bool}"#),
     ("ui.inspector", "Inspector Mode", "", r#"{"mode"?: "standard|expert", "tab"?: "properties|format"} -> {"mode", "tab"}"#),
     ("ui.pane.comments", "Show Comments", "", r#"{"value"?: bool}"#),
-    ("ui.paneSide", "Move Pane to Side", "", r#"{"name": "shapes|navigation|properties|history|layers|shapeData", "side": "left|right"}"#),
+    ("ui.pane.panZoom", "Pan and Zoom Pane", "", r#"{"value"?: bool}"#),
+    ("ui.paneSide", "Move Pane to Side", "", r#"{"name": "shapes|navigation|properties|history|layers|shapeData|comments|panZoom", "side": "left|right"}"#),
     ("ui.collapsePanes", "Collapse Side Panes", "", r#"{"side": "left|right", "value"?: bool}"#),
     ("ui.panesReset", "Reset Panes", "", "{}"),
     ("ui.tree", "Model Tree", "", r#"{"mode"?: "model|context", "branch"?: "model|diagrams", "expand"?: [id], "collapse"?: [id], "reveal"?: id}"#),
@@ -140,12 +148,37 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "",
         r#"{"x"?: n, "y"?: n, "query"?: string} -> {"open", "at", "query", "items": [type or stencil id]}; a type-to-filter list of the page's palette types and the Drawing primitives at a canvas point (default: the view centre); Enter inserts, Escape closes"#,
     ),
+    (
+        "ui.present",
+        "Presentation",
+        "",
+        r#"{"on"?: bool} (full screen, the drawing only; Left and Right or PageUp and PageDown switch pages, Escape leaves)"#,
+    ),
+    ("ui.window.new", "New Window", "", r#"{"same"?: bool} (same: the open file in a second window with its own copy of the edits)"#),
+    ("ui.window.arrangeAll", "Arrange All", "", "{} (tile every window on the screen)"),
+    ("ui.window.cascade", "Cascade", "", "{} (stack every window, each a little right and down of the last)"),
+    ("ui.window.switch", "Switch Windows", "", r#"{"index": n} (0 is the first window)"#),
+    ("ui.macroRecord", "Record Macro", "", r#"{"value"?: bool} (start or stop recording a script; stopping keeps it for Save Macro)"#),
     ("window.minimize", "Minimize", "", "{}"),
     ("window.zoom", "Zoom Window", "", "{}"),
     ("app.about", "About VizCraft", "", "{}"),
     ("app.preferences", "Preferences", "Mod+,", "{}"),
     ("app.quit", "Quit VizCraft", "Mod+Q", "{}"),
 ];
+
+/// What a window command asks of the host that owns all the windows (taken by the host, which
+/// alone knows the monitor and the other windows).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WindowRequest {
+    /// Open this window's file in a second window, holding its own copy of the edits.
+    NewSame,
+    /// Tile every window on the screen.
+    ArrangeAll,
+    /// Stack every window, each a little right and down of the last.
+    Cascade,
+    /// Bring window `n` (0 is the first window) to the front.
+    Switch(usize),
+}
 
 /// The canvas tool: what a left drag on an empty part of the page does.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -280,6 +313,15 @@ pub struct CraftApp {
     pub multi_window: bool,
     /// New window wanted, with this template (taken by the host when `multi_window`).
     pub new_window_request: Option<String>,
+    /// A window command waiting for the host (taken by the host when `multi_window`).
+    pub window_request: Option<WindowRequest>,
+    /// Presentation mode is on: the window shows the drawing only (`presentation`).
+    pub presenting: bool,
+    /// The titles of every window of the app, first window first, kept up to date by the host
+    /// for the Switch Windows menu.
+    pub window_titles: Vec<String>,
+    /// The script `ui.macroRecord` stopped last, held for Save Macro until it is saved.
+    pub last_script: Option<Vec<Value>>,
     /// Quit the whole app, asking about each window's unsaved changes (taken by the host).
     pub quit_all_request: bool,
     /// This window wants to close (the host closes it).
@@ -342,6 +384,10 @@ impl CraftApp {
             integrated_titlebar: false,
             multi_window: false,
             new_window_request: None,
+            window_request: None,
+            presenting: false,
+            window_titles: Vec::new(),
+            last_script: None,
             quit_all_request: false,
             quit_requested: false,
             quit_confirmed: false,
@@ -623,6 +669,38 @@ impl CraftApp {
                 self.new_window(s("template").unwrap_or("blank"));
                 json!({})
             }
+            "ui.present" => {
+                self.presenting = b("on").or_else(|| b("value")).unwrap_or(!self.presenting);
+                self.backstage = false;
+                json!({"presenting": self.presenting})
+            }
+            "ui.window.new" if b("same") != Some(true) => {
+                self.new_window("blank");
+                json!({})
+            }
+            "ui.window.new" => self.request_window(WindowRequest::NewSame),
+            "ui.window.arrangeAll" => self.request_window(WindowRequest::ArrangeAll),
+            "ui.window.cascade" => self.request_window(WindowRequest::Cascade),
+            "ui.window.switch" => match p.get("index").and_then(Value::as_u64).and_then(|i| usize::try_from(i).ok()) {
+                Some(i) => self.request_window(WindowRequest::Switch(i)),
+                None => json!({"requested": false}),
+            },
+            "ui.macroRecord" => {
+                let recording = self.session.is_recording();
+                let want = b("value").unwrap_or(!recording);
+                if want && !recording {
+                    self.last_script = None;
+                    if let Err(e) = self.run("script.recordStart", json!({})) {
+                        return Some(Err(e));
+                    }
+                } else if !want && recording {
+                    match self.run("script.recordStop", json!({})) {
+                        Ok(v) => self.last_script = v.get("script").and_then(Value::as_array).cloned(),
+                        Err(e) => return Some(Err(e)),
+                    }
+                }
+                json!({"recording": self.session.is_recording(), "kept": self.last_script.as_ref().map(Vec::len)})
+            }
             "ui.clearRecent" => {
                 self.ui.recent.clear();
                 json!({"recent": []})
@@ -665,6 +743,18 @@ impl CraftApp {
             }
             _ => return None,
         }))
+    }
+
+    /// Ask the host to carry out a window command. Without a multi-window host (the web, tests)
+    /// there is nothing to arrange, and the status bar says so.
+    fn request_window(&mut self, r: WindowRequest) -> Value {
+        if self.multi_window {
+            self.window_request = Some(r);
+            json!({"requested": true})
+        } else {
+            self.status("Windows can be opened and arranged in the desktop app".to_string());
+            json!({"requested": false})
+        }
     }
 
     /// Show a status bar message.
@@ -862,7 +952,9 @@ impl CraftApp {
         use vizcraft_engine::trace::span;
         let _ui = span("ui.window");
         let t = theme::Tokens::get(&ctx);
-        if self.backstage {
+        if presentation::frame(self, ui) {
+            // Presentation mode drew the drawing and nothing else.
+        } else if self.backstage {
             let _t = span("ui.backstage");
             backstage::show(self, ui);
         } else {

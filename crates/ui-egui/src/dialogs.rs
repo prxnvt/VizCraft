@@ -56,6 +56,8 @@ pub enum Dialog {
     Symbol(crate::symbol_dialog::State),
     /// Links and screen tip of the selected shape (`crate::link_dialog`).
     Links(crate::link_dialog::State),
+    /// Number, Array and Move Shapes and the Save Macro prompt (`crate::addon_dialog`).
+    Addon(crate::addon_dialog::State),
 }
 
 impl Dialog {
@@ -77,6 +79,7 @@ impl Dialog {
             Dialog::PasteSpecial(_) => "pasteSpecial",
             Dialog::Symbol(_) => "symbol",
             Dialog::Links(_) => "links",
+            Dialog::Addon(s) => s.name(),
         }
     }
 
@@ -98,6 +101,7 @@ impl Dialog {
             "pasteSpecial" => Dialog::PasteSpecial(crate::paste_special::open(app)),
             "symbol" => Dialog::Symbol(crate::symbol_dialog::State::default()),
             "links" => Dialog::Links(crate::link_dialog::open(app)),
+            "numberShapes" | "arrayShapes" | "moveShapes" | "saveMacro" => Dialog::Addon(crate::addon_dialog::State::open(name, app)?),
             _ => return None,
         })
     }
@@ -119,6 +123,7 @@ impl Dialog {
             Dialog::PasteSpecial(_) => "Paste Special".into(),
             Dialog::Symbol(_) => "Symbol".into(),
             Dialog::Links(_) => "Link".into(),
+            Dialog::Addon(s) => s.title().into(),
         }
     }
 
@@ -324,6 +329,11 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
             crate::link_dialog::body(ui, app, s);
             let (ok, cancel) = buttons(ui, "OK", Some("Cancel"), keys);
             crate::link_dialog::finish(app, s, ok, cancel)
+        }
+        Dialog::Addon(s) => {
+            crate::addon_dialog::body(ui, app, s);
+            let (ok, cancel) = buttons(ui, s.ok_label(), Some("Cancel"), keys);
+            crate::addon_dialog::finish(app, s, ok, cancel)
         }
         Dialog::SnapSettings(s) => {
             crate::snap_dialog::body(ui, s);

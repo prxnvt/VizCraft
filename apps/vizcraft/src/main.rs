@@ -35,7 +35,7 @@ mod print;
 mod windows;
 
 use vizcraft_engine::Session;
-use vizcraft_ui_egui::{CraftApp, Services, UiState, ViewportCmdExt, window_geometry::WindowGeometry};
+use vizcraft_ui_egui::{CraftApp, Services, UiState, ViewportCmdExt, WindowRequest, window_geometry::WindowGeometry};
 
 /// The app: the first window's document, the restored window geometry until the first frame has
 /// checked it against the monitors, the other document windows, and (macOS) the native menu bar
@@ -166,6 +166,34 @@ impl App {
         self.windows.open(ctx, app, window_builder());
     }
 
+    /// A second window on the file of window `from` (`None` is the root): it starts with a copy of
+    /// the document, edits are not shared afterwards, and both windows say so in their status bar.
+    fn open_same(&mut self, ctx: &egui::Context, from: Option<egui::ViewportId>) {
+        let src = self.windows.app_of(&mut self.root, from);
+        let (doc, path, dirty, prefs, name) = (src.session.doc.clone(), src.session.path.clone(), src.session.dirty, src.prefs(), src.title_stem());
+        let note = format!("{name} is open in two windows; each keeps its own edits");
+        src.status(note.clone());
+        let mut app = CraftApp::new(Session::new(doc), services());
+        app.apply_prefs(prefs);
+        app.ui.window = None;
+        app.integrated_titlebar = cfg!(target_os = "macos");
+        app.session.path = path;
+        app.session.dirty = dirty;
+        app.status(note);
+        self.windows.open(ctx, app, window_builder());
+    }
+
+    /// Carry out the window commands the windows made: a second window on the same file, tiling,
+    /// cascading and switching. `from` is the window that asked (`None` is the root).
+    fn window_request(&mut self, ctx: &egui::Context, from: Option<egui::ViewportId>, request: WindowRequest) {
+        match request {
+            WindowRequest::NewSame => self.open_same(ctx, from),
+            WindowRequest::ArrangeAll => self.windows.arrange(ctx, true),
+            WindowRequest::Cascade => self.windows.arrange(ctx, false),
+            WindowRequest::Switch(i) => self.windows.switch(ctx, i),
+        }
+    }
+
     /// A document Finder asked us to open: in the window in front if that holds an untouched new
     /// document, otherwise in a new window (so nothing open is replaced).
     fn open_document(&mut self, ctx: &egui::Context, path: &str) {
@@ -244,6 +272,13 @@ impl eframe::App for App {
         for template in new_windows {
             self.open_window(ctx, &template);
         }
+        let mut asked: Vec<(Option<egui::ViewportId>, WindowRequest)> =
+            self.windows.take_window_requests().into_iter().map(|(id, r)| (Some(id), r)).collect();
+        asked.extend(self.root.window_request.take().map(|r| (None, r)));
+        for (from, request) in asked {
+            self.window_request(ctx, from, request);
+        }
+        self.windows.sync_titles(&mut self.root);
         if quit {
             self.windows.quit();
         }
@@ -286,6 +321,16 @@ fn prefs_path() -> Option<std::path::PathBuf> {
             .map(|c| c.join("vizcraft"))
     };
     base.map(|b| b.join("ui.json"))
+}
+
+/// The folder saved macros live in: `macros` beside the preferences file. `None` with
+/// `VIZCRAFT_NO_PREFS`, so a test run neither reads nor writes the person's macros;
+/// `VIZCRAFT_MACROS_DIR` still names a folder of its own.
+fn macros_dir() -> Option<std::path::PathBuf> {
+    if no_prefs() {
+        return None;
+    }
+    prefs_path().and_then(|p| p.parent().map(|d| d.join("macros")))
 }
 
 fn no_prefs() -> bool {
@@ -377,6 +422,18 @@ fn services() -> Services {
             let _t = vizcraft_engine::trace::span("blocking.print");
             print::send(path)
         })),
+        // URL and file links (`link.follow`) open in the system's default handler.
+        open_external: Some(Box::new(|target: &str| {
+            let (program, args): (&str, &[&str]) = if cfg!(target_os = "macos") {
+                ("open", &[])
+            } else if cfg!(target_os = "windows") {
+                ("cmd", &["/c", "start", ""])
+            } else {
+                ("xdg-open", &[])
+            };
+            let status = std::process::Command::new(program).args(args).arg(target).status().map_err(|e| e.to_string())?;
+            if status.success() { Ok(()) } else { Err(format!("{program} exited with {status}")) }
+        })),
         ..Default::default()
     }
 }
@@ -427,6 +484,7 @@ fn start_trace() {
 
 fn main() -> eframe::Result {
     load_packs();
+    vizcraft_engine::cmd::r#macro::set_dir(macros_dir());
     let mut control_port: Option<u16> = std::env::var("VIZCRAFT_CONTROL_PORT").ok().and_then(|p| p.parse().ok());
     let mut files = Vec::new();
     let mut sample = false;

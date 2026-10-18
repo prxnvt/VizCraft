@@ -7,6 +7,9 @@ groups! {
     show,
     visual_aids,
     appearance,
+    views,
+    window,
+    macros,
 }
 
 /// The View tab.

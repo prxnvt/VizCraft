@@ -118,9 +118,15 @@ impl Remote {
 }
 
 impl Backend for Remote {
-    fn call(&mut self, method: &str, params: Value) -> Result<Value, String> {
+    fn call(&mut self, method: &str, mut params: Value) -> Result<Value, String> {
         let id = self.next_id;
         self.next_id = self.next_id.wrapping_add(1);
+        // Commands run on behalf of an MCP client are logged with the Mcp origin, not Control.
+        if method == "engine.execute"
+            && let Some(map) = params.as_object_mut()
+        {
+            map.entry("origin").or_insert_with(|| Value::String("mcp".into()));
+        }
         let line = json!({"id": id, "method": method, "params": params}).to_string();
         let reply = match self.roundtrip(&line) {
             Ok(r) => r,

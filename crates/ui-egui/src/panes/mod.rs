@@ -45,6 +45,7 @@ default_panes! {
     layers,
     inspector,
     comments,
+    pan_zoom,
 }
 
 use egui::Ui;
@@ -360,13 +361,13 @@ mod tests {
 
     #[test]
     fn custom_pane_registration_and_reset() {
-        assert_eq!(panes().len(), 6);
+        assert_eq!(panes().len(), 7);
         set_panes(vec![PaneSpec::new("custom", "Custom Pane", Side::Left, 200.0, |_app, _ui| {})]);
         assert_eq!(panes().len(), 1);
         assert_eq!(spec("custom").unwrap().title, "Custom Pane");
         assert!(spec("navigation").is_none());
         reset_panes();
-        assert_eq!(panes().len(), 6);
+        assert_eq!(panes().len(), 7);
         assert!(spec("navigation").is_some());
     }
 }

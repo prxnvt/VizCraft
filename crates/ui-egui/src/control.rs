@@ -5,7 +5,8 @@
 //! answers through [`handle`]. Methods, params and replies are the contract in
 //! `docs/control-protocol.md`; this file and that document change together.
 //!
-//! - `engine.execute {command, params?}`: run any command (engine, `ui.*` or `app.*`)
+//! - `engine.execute {command, params?, origin?}`: run any command (engine, `ui.*` or `app.*`);
+//!   `origin: "mcp"` logs it as made by the MCP server, anything else as the control channel
 //! - `engine.commands`: every command with its enablement, UI commands included
 //! - `ui.inspect`: UI state, view, selection, dialog, window size, title, dirty, rev, perf, tool,
 //!   a diagram summary (page, counts, selection, hover, editing, drag) and the open ribbon
@@ -238,7 +239,9 @@ pub fn handle(app: &mut CraftApp, ctx: &egui::Context, req: &ControlRequest) -> 
         "engine.execute" | "command" => {
             let Some(id) = s("command").or(s("id")) else { return err("missing `command`") };
             let params = p.get("params").cloned().filter(|v| !v.is_null()).unwrap_or(json!({}));
-            match app.run_as(Origin::Control, id, params) {
+            // The MCP server says so with `origin: "mcp"`, so the transaction log tells its steps from a script's.
+            let origin = if s("origin") == Some("mcp") { Origin::Mcp } else { Origin::Control };
+            match app.run_as(origin, id, params) {
                 Ok(v) => ok(v),
                 Err(e) => err(e),
             }
@@ -423,6 +426,18 @@ mod tests {
         app.run("ui.backstage", json!({"value": true})).unwrap();
         set(&mut app, "dark", json!(true)).unwrap();
         assert!(app.backstage_open());
+    }
+
+    #[test]
+    fn execute_logs_the_origin_it_is_told() {
+        let mut app = app();
+        let r = call(&mut app, "engine.execute", json!({"command": "view.zoomIn", "origin": "mcp"}));
+        assert_eq!(r["ok"], true, "{r}");
+        call(&mut app, "engine.execute", json!({"command": "edit.setTitle", "params": {"title": "a"}}));
+        call(&mut app, "engine.execute", json!({"command": "edit.setTitle", "params": {"title": "b"}, "origin": "mcp"}));
+        call(&mut app, "engine.execute", json!({"command": "edit.setTitle", "params": {"title": "c"}, "origin": 5}));
+        let origins: Vec<Origin> = app.session.transactions().iter().rev().take(3).map(|t| t.origin).collect();
+        assert_eq!(origins, [Origin::Control, Origin::Mcp, Origin::Control], "newest first: junk falls back to the control channel");
     }
 
     #[test]
