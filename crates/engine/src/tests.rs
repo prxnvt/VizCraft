@@ -929,6 +929,22 @@ fn a_fragment_round_trip_keeps_connections_and_gives_fresh_ids() {
         let (orig, copy) = (sample::sample_document().page().unwrap().shape("s2").unwrap().clone(), page.shape(&new[0]).unwrap());
         assert_eq!((copy.x, copy.y), (orig.x + 100.0, orig.y - 50.0));
     }
+    // Parents follow the copies when copied along and are cleared when left behind.
+    let mut doc = sample::sample_document();
+    if let Some(page) = doc.pages.first_mut() {
+        for sh in page.shapes.iter_mut() {
+            sh.parent = match sh.id.as_str() {
+                "s3" => Some("s2".into()),
+                "s2" => Some("gone".into()),
+                _ => None,
+            };
+        }
+    }
+    let frag = crate::Fragment::extract(&doc, |id| ["s2", "s3"].contains(&id));
+    let new = frag.insert(&mut doc, 10.0, 10.0).unwrap();
+    let page = doc.page().unwrap();
+    assert_eq!(page.shape(&new[0]).unwrap().parent, None);
+    assert_eq!(page.shape(&new[1]).unwrap().parent.as_deref(), Some(new[0].as_str()));
     // Hostile offsets and hand-made fragments do not break the page.
     let mut doc = crate::Document::new();
     let ids = back.insert(&mut doc, f64::NAN, f64::INFINITY).unwrap();

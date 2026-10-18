@@ -156,6 +156,11 @@ impl Fragment {
             sh.sanitize();
             new_shapes.push(sh);
         }
+        // A parent group or container copied along keeps its members; a parent left behind does
+        // not own the copy, so the link is cleared rather than pointing at the original.
+        for sh in &mut new_shapes {
+            sh.parent = sh.parent.as_deref().and_then(|p| map.get(p)).cloned();
+        }
         copies.finish(doc, &clip_elements);
         let page = doc.page().ok_or_else(|| EngineError::Failed("the document has no page".into()))?;
         let mut kept = Vec::new();
