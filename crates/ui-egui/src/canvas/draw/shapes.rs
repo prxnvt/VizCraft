@@ -37,6 +37,16 @@ pub struct FillCache {
 }
 
 impl FillCache {
+    /// Cached fills, for the performance trace.
+    pub fn len(&self) -> usize {
+        self.map.len()
+    }
+
+    /// Whether nothing is cached.
+    pub fn is_empty(&self) -> bool {
+        self.map.is_empty()
+    }
+
     fn key(s: &Shape, tol: f64) -> [u64; 8] {
         let kind = s.kind as u64;
         [s.x.to_bits(), s.y.to_bits(), s.w.to_bits(), s.h.to_bits(), s.angle_deg.to_bits(), tol.to_bits(), kind, s.style.corner_radius.to_bits()]

@@ -170,6 +170,7 @@ fn column(app: &mut CraftApp, ui: &mut Ui, side: Side, keys: &[String], actions:
                 &mut inner,
                 |ui| {
                     ui.set_min_width(body.width());
+                    let _t = vizcraft_engine::trace::span_with(|| format!("pane {}", sp.key));
                     (sp.show)(app, ui);
                 },
             );

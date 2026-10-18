@@ -25,7 +25,7 @@ the code that depends on it, and say so in the commit message.
 | model | `crates/drawio` (`vizcraft-drawio`) | draw.io codec: `.drawio` files (inline or compressed pages), the mxGraphModel cell IR, style strings, HTML labels, page list/get/set, and draw.io-style CSV import. No workspace dependencies |
 | model | `crates/layout` (`vizcraft-layout`) | Automatic layout over an index-based graph: layered (Sugiyama), tidy tree, radial and force-directed, all four directions, deterministic. No workspace dependencies |
 | model | `crates/routing` (`vizcraft-routing`) | Connector routing over obstacle rectangles: orthogonal routes around shapes, nudging of shared segments, line-jump positions. No workspace dependencies |
-| L4 | `crates/engine` (`vizcraft-engine`) | `Session`, undo, command registry, I/O; `engine::doc` re-exports the diagram `Document` |
+| L4 | `crates/engine` (`vizcraft-engine`) | `Session`, undo, command registry, I/O, the opt-in performance trace (`trace`: spans, frames, counters, written by the app with `--trace`, see [testing.md](testing.md#performance-trace)); `engine::doc` re-exports the diagram `Document` |
 | L6 | `crates/ui-egui` (`vizcraft-ui-egui`) | egui front end: theme, chrome, menus, ribbon, panes, dialogs, keys, control |
 | platform | `crates/macos-open` | Finder Open Documents (odoc) Apple Event, safe API |
 | mcp | `crates/mcp` (`vizcraft-mcp`) | Stdio JSON-RPC MCP server, launched by `vizcraft-cli mcp`; same rank as `ui-egui`, so neither depends on the other, and no UI toolkit. Depends on `engine` for the `Headless` backend, which hosts a `Session` in process (see [docs/mcp.md](mcp.md)) |

@@ -7,3 +7,6 @@ plan/
 .DS_Store
 /.claude/
 /craft-fonts/
+
+# Performance traces from `vizcraft --trace`
+/traces/

@@ -133,6 +133,31 @@ The app opens a real window on the developer's desk. Keep it out of their way:
   target directory with `pkill -f 'target-<branch>.*vizcraft'`.
 - Prefer `ui_shot` over the real app whenever a screenshot is all you need.
 
+## Performance trace
+
+When the app feels slow or uses too much memory, run it with the trace on:
+
+```sh
+cargo run --release -p vizcraft -- --sample --trace
+```
+
+`--trace` (or `VIZCRAFT_TRACE=1`) writes two files into `traces/` at the top of the repository
+(ignored by git; `VIZCRAFT_TRACE_DIR` chooses another folder). Press F12 (`ui.traceMark`) at the
+moment something feels wrong; the mark lands on the timeline and in the summary.
+
+| File | Contents |
+|---|---|
+| `vizcraft-<time>-<pid>.summary.json` | Rewritten every 5 seconds and at exit. Frame time and the gap between frames (mean, p50, p95, worst), frames with no input (an app that never goes idle), every span's count, total, mean, p95 and worst, the 25 slowest frames with their span trees, repaint causes by source line, memory once a second (process RSS, document and undo snapshot estimates, egui textures and text caches), marks |
+| `vizcraft-<time>-<pid>.trace.json` | Chrome trace events, opened in [Perfetto](https://ui.perfetto.dev) or `chrome://tracing`. Every frame is an event; frames slower than `VIZCRAFT_TRACE_DETAIL_MS` (default 8) carry their nested spans; memory is a counter track |
+
+Spans cover each command (`cmd <id>`) and its phases (document clone and compare, model sync,
+theme follow-up, page auto-size, connector rerouting, undo record, issue refresh), the window
+sections (title bar, ribbon, panes one by one, canvas, dialogs) and the canvas phases (drag
+preview, grid, background pages, shapes, connector geometry with line jumps, connectors,
+overlays, rulers). `eframe.previousFrameCpu` is eframe's own measure of layout, tessellation and
+paint, which the spans cannot see. Tracing is off unless asked for and costs one atomic load per
+span when off (`vizcraft_engine::trace`).
+
 ## Parallel-agent etiquette
 
 Several agents work in this repository at once, in separate worktrees (`AGENTS.md`).

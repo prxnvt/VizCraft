@@ -15,6 +15,7 @@ pub mod fragment;
 pub mod io;
 pub mod sample;
 pub mod session;
+pub mod trace;
 
 use std::collections::HashMap;
 

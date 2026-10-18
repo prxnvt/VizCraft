@@ -371,6 +371,30 @@ impl Session {
         r
     }
 
+    /// Sizes for the performance trace: the document's item counts and a rough byte estimate of
+    /// it and of every undo and redo snapshot (each holds a whole copy of the document).
+    pub fn memory_stats(&self) -> serde_json::Value {
+        let doc_bytes = approx_bytes(&self.doc);
+        let snapshots = |v: &[Undo]| v.iter().map(|u| approx_bytes(&u.doc)).fold(0usize, usize::saturating_add);
+        let (undo_bytes, redo_bytes) = (snapshots(&self.history), snapshots(&self.redo));
+        let shapes: usize = self.doc.pages.iter().map(|p| p.shapes.len()).sum();
+        let connectors: usize = self.doc.pages.iter().map(|p| p.connectors.len()).sum();
+        let mb = |b: usize| (b as f64 / 1e4).round() / 100.0;
+        serde_json::json!({
+            "pages": self.doc.pages.len(),
+            "shapes": shapes,
+            "connectors": connectors,
+            "elements": self.doc.model.elements.len(),
+            "imagesMb": mb(self.doc.images.iter().map(|i| i.bytes.len()).sum()),
+            "docEstMb": mb(doc_bytes),
+            "undoSteps": self.history.len(),
+            "undoEstMb": mb(undo_bytes),
+            "redoSteps": self.redo.len(),
+            "redoEstMb": mb(redo_bytes),
+            "issues": self.issues.len(),
+        })
+    }
+
     /// Run a command by id with JSON params. Unknown ids and disabled commands are errors. A
     /// command that changes the document becomes an undo step (consecutive typing is one step);
     /// a command that fails, or panics, leaves the document as it was.
@@ -379,7 +403,11 @@ impl Session {
         if let Some(why) = (spec.enabled)(self) {
             return Err(EngineError::Disabled(format!("{id}: {why}")));
         }
-        let before_doc = self.doc.clone();
+        let _cmd = crate::trace::span_with(|| format!("cmd {id}"));
+        let before_doc = {
+            let _t = crate::trace::span("cmd.cloneDocument");
+            self.doc.clone()
+        };
         let before_sel = self.sel.clone();
         self.no_undo = false;
         let run = spec.run;
@@ -387,13 +415,24 @@ impl Session {
         // A bug inside one command must not take the app down with the user's work in it. The
         // model sync runs inside the same guard: it changes the document as part of the command.
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            let r = run(self, params);
+            let r = {
+                let _t = crate::trace::span("cmd.body");
+                run(self, params)
+            };
             // Views and model are brought into step after every change (connectors bound to
             // relationships, names mirrored), inside the same undo step, before rerouting. Not
             // after a command that replaced the document (open, new): `before_doc` is another file.
-            if r.is_ok() && !manages_undo && !self.no_undo && self.doc != before_doc {
-                vizcraft_notation::bind::sync(&mut self.doc, &before_doc, vizcraft_notation::catalog());
+            let changed = r.is_ok() && !manages_undo && !self.no_undo && {
+                let _t = crate::trace::span("cmd.compareDocument");
+                self.doc != before_doc
+            };
+            if changed {
+                {
+                    let _t = crate::trace::span("bind.sync");
+                    vizcraft_notation::bind::sync(&mut self.doc, &before_doc, vizcraft_notation::catalog());
+                }
                 // New items take the document theme; decoration pages follow titles and sizes.
+                let _t = crate::trace::span("design.afterChange");
                 crate::cmd::design::after_change(&mut self.doc, &before_doc);
             }
             r
@@ -409,18 +448,27 @@ impl Session {
             Ok(_) => {
                 // Connectors that avoid shapes are rerouted after every change, inside the same
                 // undo step, so a moved shape never leaves a route running through another.
-                let changed = self.doc != before_doc;
+                let changed = {
+                    let _t = crate::trace::span("cmd.compareDocument");
+                    self.doc != before_doc
+                };
                 if !manages_undo && changed {
-                    crate::cmd::page::auto_size(&mut self.doc);
+                    {
+                        let _t = crate::trace::span("page.autoSize");
+                        crate::cmd::page::auto_size(&mut self.doc);
+                    }
+                    let _t = crate::trace::span("autoroute.refresh");
                     vizcraft_diagram::autoroute::refresh(&mut self.doc);
                 }
                 let manages_history = manages_undo || self.no_undo;
                 if !manages_history && changed {
                     // Inside a transaction the transaction makes the one step when it commits.
                     if self.txn.depth == 0 {
+                        let _t = crate::trace::span("undo.record");
                         self.record(spec.label, vec![id.to_string()], before_doc, before_sel);
                     }
                     self.touch();
+                    let _t = crate::trace::span("issues.refresh");
                     self.refresh_issues();
                 } else if !manages_history {
                     // A view or selection command: typing before and after it is separate steps.
@@ -607,4 +655,25 @@ fn is_transaction(id: &str) -> bool {
 /// Whether a script records this command: not view-only, UI, app, help, file or script commands.
 pub fn recordable(id: &str) -> bool {
     !["view.", "ui.", "app.", "help.", "file.", "script."].iter().any(|p| id.starts_with(p))
+}
+
+/// A rough size of a document in memory: item structs plus their strings, points and image
+/// bytes. Good enough to see undo snapshots piling up; not an exact count.
+fn approx_bytes(doc: &Document) -> usize {
+    use std::mem::size_of;
+    let mut b = size_of::<Document>();
+    for p in &doc.pages {
+        b = b.saturating_add(size_of::<vizcraft_diagram::Page>());
+        for sh in &p.shapes {
+            let ext: usize = sh.ext.iter().map(|(k, v)| k.len() + v.len() + 48).sum();
+            b = b.saturating_add(size_of::<vizcraft_diagram::Shape>() + sh.id.len() + sh.text.len() + sh.stencil.len() + ext);
+        }
+        for c in &p.connectors {
+            b = b.saturating_add(size_of::<vizcraft_diagram::Connector>() + c.id.len() + c.text.len() + c.waypoints.len() * 16);
+        }
+    }
+    for i in &doc.images {
+        b = b.saturating_add(i.bytes.len());
+    }
+    b.saturating_add(doc.model.elements.len().saturating_mul(256)).saturating_add(doc.model.relationships.len().saturating_mul(192))
 }

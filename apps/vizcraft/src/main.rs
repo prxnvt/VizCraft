@@ -1,6 +1,6 @@
 //! VizCraft desktop app.
 //!
-//! Usage: `vizcraft [--control <port>] [--sample] [--in-window-menus] [--window-pos x,y] [--version] [files...]`
+//! Usage: `vizcraft [--control <port>] [--sample] [--in-window-menus] [--window-pos x,y] [--trace] [--version] [files...]`
 //!
 //! `--control <port>` (or `VIZCRAFT_CONTROL_PORT`) starts a localhost JSON-lines control server:
 //! `{"id":1,"method":"engine.execute","params":{"command":"file.new","params":{}}}`.
@@ -13,6 +13,12 @@
 //! `--window-pos x,y` puts the first window's outer top-left
 //! corner at that screen position, overriding the saved geometry, so test runs can be placed on a
 //! spare monitor (`--window-pos -2500,100`) without moving them afterwards.
+//!
+//! `--trace` (or `VIZCRAFT_TRACE=1`) records a performance trace (frame times, every command and
+//! its model sync, routing and undo work, UI sections, repaint causes, memory) into `traces/` at
+//! the top of the source tree, or `VIZCRAFT_TRACE_DIR`. Frames slower than
+//! `VIZCRAFT_TRACE_DETAIL_MS` (default 8) keep their nested spans. F12 (`ui.traceMark`) marks the
+//! moment. See `vizcraft_engine::trace`.
 //!
 //! Several document windows live in one process (`windows.rs`); on macOS the menu bar is native
 //! (`native_menu.rs`) and Finder's open requests arrive through `vizcraft-macos-open`.
@@ -41,6 +47,57 @@ struct App {
     /// front window's `ui.in_window_menus` each frame.
     #[cfg(target_os = "macos")]
     in_window_menus: bool,
+    /// The previous frame's CPU time as eframe measured it (layout, tessellation and paint).
+    prev_cpu: Option<f32>,
+    /// When memory was last sampled for the trace.
+    mem_sampled: Option<std::time::Instant>,
+}
+
+impl App {
+    /// End the trace frame: input count, eframe's CPU time, repaint causes, and once a second the
+    /// memory counters (process, documents, undo snapshots, egui textures and text caches).
+    fn trace_frame_end(&mut self, ctx: &egui::Context) {
+        use vizcraft_engine::trace;
+        if !trace::enabled() {
+            return;
+        }
+        if ctx.has_requested_repaint() {
+            // Registry paths are shortened to the crate: `egui-0.36.2/src/context.rs:4024`.
+            let short = |f: &str| f.rsplit_once("/registry/src/").and_then(|(_, r)| r.split_once('/')).map_or(f.to_string(), |(_, r)| r.to_string());
+            trace::repaint_causes(
+                ctx.repaint_causes().into_iter().map(|c| format!("{}:{} {}", short(c.file), c.line, c.reason).trim_end().to_string()),
+            );
+        }
+        if let Some(cpu) = self.prev_cpu {
+            // Layout, tessellation and paint of the previous frame, which the spans do not see.
+            trace::sample_ms("eframe.previousFrameCpu", f64::from(cpu) * 1000.0);
+        }
+        let input = ctx.input(|i| i.raw.events.len());
+        trace::frame_end(serde_json::json!({
+            "input": input,
+            "prevCpuMs": self.prev_cpu.map(|s| (f64::from(s) * 1e5).round() / 100.0),
+            "windows": 1 + self.windows.apps_mut().count(),
+        }));
+        let now = std::time::Instant::now();
+        if self.mem_sampled.is_some_and(|t| now.saturating_duration_since(t) < std::time::Duration::from_secs(1)) {
+            return;
+        }
+        self.mem_sampled = Some(now);
+        let mut v = self.root.session.memory_stats();
+        let mb = |b: usize| (b as f64 / 1e4).round() / 100.0;
+        if let Some(o) = v.as_object_mut() {
+            if let Some(m) = memory_stats::memory_stats() {
+                o.insert("rssMb".into(), serde_json::json!(mb(m.physical_mem)));
+            }
+            let textures: usize = ctx.tex_manager().read().allocated().map(|(_, m)| m.bytes_used()).sum();
+            o.insert("eguiTexturesMb".into(), serde_json::json!(mb(textures)));
+            o.insert("eguiGalleys".into(), serde_json::json!(ctx.fonts(|f| f.num_galleys_in_cache())));
+            o.insert("fillCache".into(), serde_json::json!(self.root.canvas.fill_cache_len()));
+            let others: usize = self.windows.apps_mut().map(|a| a.session.memory_stats()["undoEstMb"].as_f64().unwrap_or(0.0) as usize).sum();
+            o.insert("otherWindowsUndoEstMb".into(), serde_json::json!(others));
+        }
+        trace::counter("memory", v);
+    }
 }
 
 impl App {
@@ -111,6 +168,8 @@ impl App {
 
 impl eframe::App for App {
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        vizcraft_engine::trace::frame_begin();
+        let _t = vizcraft_engine::trace::span("app.logic");
         let mut quit = false;
         #[cfg(target_os = "macos")]
         self.menu_events(ctx, &mut quit);
@@ -146,13 +205,19 @@ impl eframe::App for App {
     fn raw_input_hook(&mut self, _ctx: &egui::Context, raw: &mut egui::RawInput) {
         self.root.raw_input_hook(raw);
     }
-    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+    fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
+        self.prev_cpu = frame.info().cpu_usage;
         self.root.ui(ui);
         let ctx = ui.ctx().clone();
-        self.windows.show(&ctx);
+        {
+            let _t = vizcraft_engine::trace::span("app.otherWindows");
+            self.windows.show(&ctx);
+        }
+        self.trace_frame_end(&ctx);
     }
     fn on_exit(&mut self) {
         save_prefs(&self.root);
+        vizcraft_engine::trace::finish();
     }
 }
 
@@ -262,12 +327,27 @@ fn window_builder() -> egui::ViewportBuilder {
     builder
 }
 
+/// Start the performance trace: `VIZCRAFT_TRACE_DIR`, else `traces/` at the top of the source
+/// tree this binary was built from, else `traces/` in the working directory.
+fn start_trace() {
+    let dir = std::env::var_os("VIZCRAFT_TRACE_DIR").map(std::path::PathBuf::from).unwrap_or_else(|| {
+        let tree = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        if tree.join("Cargo.toml").is_file() { tree.join("traces") } else { std::path::PathBuf::from("traces") }
+    });
+    let detail_ms = std::env::var("VIZCRAFT_TRACE_DETAIL_MS").ok().and_then(|v| v.parse().ok()).unwrap_or(8.0);
+    match vizcraft_engine::trace::start(&dir, detail_ms) {
+        Ok(path) => eprintln!("vizcraft: tracing to {}", path.display()),
+        Err(e) => eprintln!("vizcraft: could not start the trace: {e}"),
+    }
+}
+
 fn main() -> eframe::Result {
     let mut control_port: Option<u16> = std::env::var("VIZCRAFT_CONTROL_PORT").ok().and_then(|p| p.parse().ok());
     let mut files = Vec::new();
     let mut sample = false;
     let mut in_window_menus = std::env::var_os("VIZCRAFT_IN_WINDOW_MENUS").is_some_and(|v| v != "0" && !v.is_empty());
     let mut window_pos = None;
+    let mut trace = std::env::var_os("VIZCRAFT_TRACE").is_some_and(|v| v != "0" && !v.is_empty());
     let mut args = std::env::args().skip(1);
     while let Some(a) = args.next() {
         match a.as_str() {
@@ -275,12 +355,13 @@ fn main() -> eframe::Result {
             "--sample" => sample = true,
             "--in-window-menus" => in_window_menus = true,
             "--window-pos" => window_pos = args.next().and_then(|v| parse_window_pos(&v)),
+            "--trace" => trace = true,
             "--version" => {
                 println!("vizcraft {}", env!("CARGO_PKG_VERSION"));
                 return Ok(());
             }
             "--help" | "-h" => {
-                println!("vizcraft [--control <port>] [--sample] [--in-window-menus] [--window-pos x,y] [--version] [files...]");
+                println!("vizcraft [--control <port>] [--sample] [--in-window-menus] [--window-pos x,y] [--trace] [--version] [files...]");
                 return Ok(());
             }
             _ => files.push(a),
@@ -295,6 +376,9 @@ fn main() -> eframe::Result {
         // An explicit position wins over the saved one and is not second-guessed on the first frame.
         options.viewport = options.viewport.with_position(pos);
         restored = None;
+    }
+    if trace {
+        start_trace();
     }
     vizcraft_macos_open::install();
     eframe::run_native(
@@ -334,6 +418,8 @@ fn main() -> eframe::Result {
                 menu: None,
                 #[cfg(target_os = "macos")]
                 in_window_menus,
+                prev_cpu: None,
+                mem_sampled: None,
             }))
         }),
     )

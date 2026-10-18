@@ -44,6 +44,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.tab", "Switch Ribbon Tab", "", r#"{"tab": "File|Home|Insert|Design|View|Help|Connector"}"#),
     ("ui.collapseRibbon", "Collapse the Ribbon", "Mod+F1", r#"{"value"?: bool}"#),
     ("ui.commands", "Search Commands", "Mod+Shift+P", "{}"),
+    ("ui.traceMark", "Mark the Performance Trace", "F12", r#"{"label"?: string} (adds a labelled moment to the trace started with --trace)"#),
     (
         "ui.dialog",
         "Open Dialog",
@@ -453,6 +454,16 @@ impl CraftApp {
                 self.ui.ribbon_collapsed = b("value").unwrap_or(!self.ui.ribbon_collapsed);
                 json!({"collapsed": self.ui.ribbon_collapsed})
             }
+            "ui.traceMark" => {
+                let label = s("label").unwrap_or("marked");
+                if vizcraft_engine::trace::enabled() {
+                    vizcraft_engine::trace::mark(label);
+                    self.status(format!("Trace marked: {label}"));
+                } else {
+                    self.status("No trace is running; start VizCraft with --trace".to_string());
+                }
+                json!({"marked": vizcraft_engine::trace::enabled(), "label": label})
+            }
             "ui.commands" => {
                 self.dialog = dialogs::Dialog::open("commands", self);
                 json!({"dialog": "commands"})
@@ -632,12 +643,19 @@ impl CraftApp {
             theme::apply(ctx, &if dark { theme::Tokens::dark() } else { theme::Tokens::light() });
             self.applied_dark = Some(dark);
         }
+        let _logic = vizcraft_engine::trace::span("ui.logic");
         self.tick_waits(ctx);
-        self.drain_control(ctx);
+        {
+            let _t = vizcraft_engine::trace::span("ui.controlRequests");
+            self.drain_control(ctx);
+        }
         self.drain_inbox();
         self.collect_screenshots(ctx);
         self.issue_screenshots(ctx);
-        keys::shortcuts(self, ctx);
+        {
+            let _t = vizcraft_engine::trace::span("ui.shortcuts");
+            keys::shortcuts(self, ctx);
+        }
         // Closing the window with unsaved changes asks first.
         if ctx.input(|i| i.viewport().close_requested()) && self.has_unsaved() {
             ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
@@ -711,22 +729,42 @@ impl CraftApp {
             ctx.request_repaint();
             return;
         }
+        use vizcraft_engine::trace::span;
+        let _ui = span("ui.window");
         let t = theme::Tokens::get(&ctx);
         if self.backstage {
+            let _t = span("ui.backstage");
             backstage::show(self, ui);
         } else {
-            chrome::title_bar(self, ui);
+            {
+                let _t = span("ui.titleBar");
+                chrome::title_bar(self, ui);
+            }
             if menus::in_window_menus(self) {
+                let _t = span("ui.menuBar");
                 menus::menu_bar(self, ui);
             }
-            ribbon::show(self, ui);
-            chrome::status_bar(self, ui);
-            panes::show(self, ui);
+            {
+                let _t = span("ui.ribbon");
+                ribbon::show(self, ui);
+            }
+            {
+                let _t = span("ui.statusBar");
+                chrome::status_bar(self, ui);
+            }
+            {
+                let _t = span("ui.panes");
+                panes::show(self, ui);
+            }
+            let _t = span("ui.canvas");
             egui::CentralPanel::default().frame(egui::Frame::NONE.fill(t.canvas)).show(ui, |ui| {
                 canvas::show(self, ui);
             });
         }
-        dialogs::show(self, &ctx);
+        {
+            let _t = span("ui.dialogs");
+            dialogs::show(self, &ctx);
+        }
         let title = format!("{}{} - VizCraft", self.title_stem(), if self.session.dirty { " (edited)" } else { "" });
         ctx.send_viewport_cmd(egui::ViewportCommand::Title(title));
         self.frame_ms = now_ms() - t0;

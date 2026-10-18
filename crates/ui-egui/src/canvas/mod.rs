@@ -115,6 +115,11 @@ pub struct CanvasState {
 
 impl CanvasState {
     /// The viewport of the last frame for this view, if the canvas has been laid out.
+    /// Shapes with a cached fill mesh, for the performance trace.
+    pub fn fill_cache_len(&self) -> usize {
+        self.cache.len()
+    }
+
     pub fn viewport(&self, view: &vizcraft_engine::ViewState) -> Option<Viewport2D> {
         self.rect.map(|r| Viewport2D::new(r, view.pan, view.zoom))
     }
@@ -250,7 +255,10 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
     // The page tab strip takes the bottom edge; rulers and the canvas share the rest.
     let full = ui.available_rect_before_wrap();
     let strip_h = crate::page_tabs::STRIP_H.min(full.height());
-    crate::page_tabs::show(app, ui, Rect::from_min_max(Pos2::new(full.min.x, full.max.y - strip_h), full.max));
+    {
+        let _t = vizcraft_engine::trace::span("canvas.pageTabs");
+        crate::page_tabs::show(app, ui, Rect::from_min_max(Pos2::new(full.min.x, full.max.y - strip_h), full.max));
+    }
     let (above, _) = ui.allocate_exact_size(Vec2::new(full.width(), full.height() - strip_h), egui::Sense::hover());
     let rect = rulers::canvas_rect(app, above);
     let response = ui.interact(rect, ui.id().with("canvas"), egui::Sense::click_and_drag());
@@ -273,9 +281,12 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
     handle_pan_and_zoom(ui, &response, &mut app.session.view.pan, &mut app.session.view.zoom);
     let vp = Viewport2D::new(rect, app.session.view.pan, app.session.view.zoom);
 
-    interact::keys(app, ui.ctx());
-    interact::pointer(app, ui, &response, &vp);
-    interact::drag::snap_move(app, vp.zoom, ui.input(|i| i.modifiers.alt));
+    {
+        let _t = vizcraft_engine::trace::span("canvas.interact");
+        interact::keys(app, ui.ctx());
+        interact::pointer(app, ui, &response, &vp);
+        interact::drag::snap_move(app, vp.zoom, ui.input(|i| i.modifiers.alt));
+    }
     if let Some(payload) = response.dnd_release_payload::<crate::panes::MasterDrag>()
         && let Some(p) = ui.ctx().pointer_interact_pos().or(response.hover_pos())
     {
@@ -288,26 +299,43 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
         app.canvas.editing = None;
     }
 
-    paint(app, ui, &vp, &t);
-    rulers::show(app, ui, above, &vp, &t);
+    {
+        let _t = vizcraft_engine::trace::span("canvas.paint");
+        paint(app, ui, &vp, &t);
+    }
+    {
+        let _t = vizcraft_engine::trace::span("canvas.rulers");
+        rulers::show(app, ui, above, &vp, &t);
+    }
+    let _t = vizcraft_engine::trace::span("canvas.textOverlay");
     interact::edit_text::text_overlay(app, ui, &vp, &t);
 }
 
 fn paint(app: &mut CraftApp, ui: &Ui, vp: &Viewport2D, t: &Tokens) {
     let painter = ui.painter_at(vp.screen_rect);
     let Some(real) = app.session.doc.page() else { return };
-    let preview = app.canvas.drag.as_ref().and_then(|d| interact::preview_page(real, d, vp.zoom));
+    let preview = {
+        let _t = vizcraft_engine::trace::span("paint.dragPreview");
+        app.canvas.drag.as_ref().and_then(|d| interact::preview_page(real, d, vp.zoom))
+    };
     let page = preview.as_ref().unwrap_or(real);
-    draw::sheet(&painter, vp, page, t);
-    draw::overlays::underlay(app, &painter, vp, page, t);
+    {
+        let _t = vizcraft_engine::trace::span("paint.sheetAndGrid");
+        draw::sheet(&painter, vp, page, t);
+        draw::overlays::underlay(app, &painter, vp, page, t);
+    }
     let visible = vp.visible_world_rect().inflate(4.0);
     let editing = app.canvas.editing.as_ref().map(|e| e.id().to_string());
     // Fields in shape text expand against the active page, also on its background pages.
     let fields = dg::text_fields::FieldCtx::new(&app.session.doc, app.session.doc.active_index(), Some((crate::now_ms() / 1000.0) as u64));
     // Background pages under the active one, deepest first. Drawn only: hit testing and every
     // command look at the active page, so nothing here can be selected or edited.
-    draw::shapes::background_pages(&painter, vp, &fields, &mut app.canvas.cache);
+    {
+        let _t = vizcraft_engine::trace::span("paint.backgroundPages");
+        draw::shapes::background_pages(&painter, vp, &fields, &mut app.canvas.cache);
+    }
     // Hidden shapes are not drawn; a layer colour tints the shapes on it.
+    let shapes_span = vizcraft_engine::trace::span("paint.shapes");
     for s in page.shapes.iter().filter(|s| dg::layer::visible(page, s)) {
         if s.bounds().intersects(&visible) {
             let tinted = dg::layer::tinted(page, s);
@@ -318,12 +346,21 @@ fn paint(app: &mut CraftApp, ui: &Ui, vp: &Viewport2D, t: &Tokens) {
         }
     }
     app.canvas.cache.end_frame();
+    drop(shapes_span);
     // Page-level geometry, so connectors with line jumps hop over the ones drawn before them.
-    for (c, g) in page.connectors.iter().zip(dg::jumps::page_geometry(page)) {
-        if draw::connector_bounds(&g).is_some_and(|b| b.intersects(&visible)) {
-            draw::connector(&painter, vp, c, &g, editing.as_deref() != Some(c.id.as_str()));
+    let geometry = {
+        let _t = vizcraft_engine::trace::span("paint.connectorGeometry");
+        dg::jumps::page_geometry(page)
+    };
+    {
+        let _t = vizcraft_engine::trace::span("paint.connectors");
+        for (c, g) in page.connectors.iter().zip(geometry) {
+            if draw::connector_bounds(&g).is_some_and(|b| b.intersects(&visible)) {
+                draw::connector(&painter, vp, c, &g, editing.as_deref() != Some(c.id.as_str()));
+            }
         }
     }
+    let _t = vizcraft_engine::trace::span("paint.overlays");
     draw::overlays::overlay(app, &painter, vp, page, real, t);
 }
 
