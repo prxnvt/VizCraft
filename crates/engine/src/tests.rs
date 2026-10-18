@@ -42,6 +42,8 @@ fn registry_ids_are_unique_and_prefixed() {
                 "notation",
                 "insert",
                 "script",
+                "addon",
+                "macro",
                 "help",
                 "guide",
                 "text"

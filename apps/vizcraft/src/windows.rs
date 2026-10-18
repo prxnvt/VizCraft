@@ -6,8 +6,8 @@
 //! where that window was), because closing eframe's root viewport ends the app. Quit asks each
 //! window with unsaved changes in turn; Cancel on any of them stops quitting.
 
-use egui::{Pos2, Rect, Vec2, ViewportBuilder, ViewportCommand, ViewportId, vec2};
-use vizcraft_ui_egui::{CraftApp, ViewportCmdExt};
+use egui::{Pos2, Rect, Vec2, ViewportBuilder, ViewportCommand, ViewportId, pos2, vec2};
+use vizcraft_ui_egui::{CraftApp, ViewportCmdExt, WindowRequest};
 
 /// How far a new window sits from the one in front, in points, right and down.
 pub const CASCADE: f32 = 28.0;
@@ -38,6 +38,54 @@ pub struct Windows {
 /// `None` when the front window's place is unknown (the builder's defaults are used).
 pub fn cascade_from(front: Option<Rect>) -> Option<(Pos2, Vec2)> {
     front.map(|r| (r.min + vec2(CASCADE, CASCADE), r.size()))
+}
+
+/// Room the menu bar takes at the top of a monitor, in points; tiled windows start below it.
+const MENU_BAR: f32 = 28.0;
+/// Room left at the bottom of a monitor for a dock or task bar, in points.
+const DOCK_ROOM: f32 = 8.0;
+/// Smallest size a cascaded window gets, in points.
+const MIN_CASCADE: Vec2 = vec2(640.0, 440.0);
+
+/// Tile `n` windows over `area`: as square a grid as fits (two windows side by side, five in two
+/// rows of three and two), the last row's windows wider to fill it. Empty for no windows.
+pub fn tile(n: usize, area: Rect) -> Vec<Rect> {
+    if n == 0 {
+        return Vec::new();
+    }
+    let cols = (1..=n).find(|c| c * c >= n).unwrap_or(1);
+    let rows = n.div_ceil(cols);
+    let height = area.height() / rows as f32;
+    (0..n)
+        .map(|i| {
+            let (row, col) = (i / cols, i % cols);
+            let in_row = cols.min(n - row * cols);
+            let width = area.width() / in_row as f32;
+            Rect::from_min_size(pos2(area.min.x + col as f32 * width, area.min.y + row as f32 * height), vec2(width, height))
+        })
+        .collect()
+}
+
+/// Stack `n` windows over `area`, each [`CASCADE`] right and down of the one before, all the same
+/// size (two thirds of the area, never below [`MIN_CASCADE`] or above the area). When the stair
+/// would run off the area it starts again at the top left.
+pub fn cascade(n: usize, area: Rect) -> Vec<Rect> {
+    let size = (area.size() * (2.0 / 3.0)).max(MIN_CASCADE).min(area.size());
+    let room = area.size() - size;
+    let steps = (room.x.min(room.y) / CASCADE).floor().max(0.0) as usize + 1;
+    (0..n).map(|i| Rect::from_min_size(area.min + vec2(CASCADE, CASCADE) * (i % steps) as f32, size)).collect()
+}
+
+/// The part of the monitor windows are placed on: below the menu bar, above the dock. The
+/// monitor's own origin is not known to egui, so it is taken to be the nearest multiple of the
+/// monitor's size below the front window's corner, which is right for monitors of one size laid
+/// side by side and the primary monitor (the origin) in every case.
+pub fn work_area(monitor: Vec2, front: Option<Rect>) -> Rect {
+    let origin = match front {
+        Some(r) if monitor.x > 0.0 && monitor.y > 0.0 => pos2((r.min.x / monitor.x).floor() * monitor.x, (r.min.y / monitor.y).floor() * monitor.y),
+        _ => Pos2::ZERO,
+    };
+    Rect::from_min_size(origin + vec2(0.0, MENU_BAR), (monitor - vec2(0.0, MENU_BAR + DOCK_ROOM)).max(vec2(200.0, 200.0)))
 }
 
 /// One window as the quit stepper sees it.
@@ -89,6 +137,60 @@ impl Windows {
         match self.extras.iter_mut().find(|e| Some(e.id) == focused) {
             Some(e) => &mut e.app,
             None => root,
+        }
+    }
+
+    /// The app of window `id` (`None` is the root's).
+    pub fn app_of<'a>(&'a mut self, root: &'a mut CraftApp, id: Option<ViewportId>) -> &'a mut CraftApp {
+        match id.and_then(|id| self.extras.iter_mut().find(|e| e.id == id)) {
+            Some(e) => &mut e.app,
+            None => root,
+        }
+    }
+
+    /// Give every window the list of window titles, root first, for its Switch Windows menu.
+    pub fn sync_titles(&mut self, root: &mut CraftApp) {
+        let mut titles = vec![root.title_stem()];
+        titles.extend(self.extras.iter().filter(|e| !e.closed).map(|e| e.app.title_stem()));
+        for app in self.extras.iter_mut().map(|e| &mut e.app).chain(std::iter::once(root)) {
+            if app.window_titles != titles {
+                app.window_titles = titles.clone();
+            }
+        }
+    }
+
+    /// Window commands the windows made during the last frame, with the window each came from
+    /// (`None` is the root).
+    pub fn take_window_requests(&mut self) -> Vec<(ViewportId, WindowRequest)> {
+        self.extras.iter_mut().filter_map(|e| e.app.window_request.take().map(|r| (e.id, r))).collect()
+    }
+
+    /// Tile or cascade every window on the monitor of the window in front.
+    pub fn arrange(&mut self, ctx: &egui::Context, tile_them: bool) {
+        let front = match self.extras.iter().find(|e| Some(e.id) == self.focused) {
+            Some(e) => e.outer,
+            None => ctx.input(|i| i.viewport().outer_rect),
+        };
+        let monitor = ctx.input(|i| i.viewport().monitor_size).unwrap_or(vec2(1440.0, 900.0));
+        let area = work_area(monitor, front);
+        let ids: Vec<ViewportId> = std::iter::once(ViewportId::ROOT).chain(self.extras.iter().filter(|e| !e.closed).map(|e| e.id)).collect();
+        let rects = if tile_them { tile(ids.len(), area) } else { cascade(ids.len(), area) };
+        for (id, r) in ids.into_iter().zip(rects) {
+            ctx.viewport_cmd_to(id, ViewportCommand::OuterPosition(r.min));
+            ctx.viewport_cmd_to(id, ViewportCommand::InnerSize(r.size()));
+            ctx.viewport_cmd_to(id, ViewportCommand::Focus);
+        }
+    }
+
+    /// Bring window `index` (0 is the root) to the front; an index past the last does nothing.
+    pub fn switch(&mut self, ctx: &egui::Context, index: usize) {
+        let id = match index {
+            0 => Some(ViewportId::ROOT),
+            n => self.extras.iter().filter(|e| !e.closed).nth(n - 1).map(|e| e.id),
+        };
+        if let Some(id) = id {
+            ctx.viewport_cmd_to(id, ViewportCommand::Focus);
+            self.focused = (id != ViewportId::ROOT).then_some(id);
         }
     }
 
@@ -274,6 +376,51 @@ mod tests {
         assert_eq!(pos, pos2(128.0, 78.0));
         assert_eq!(size, vec2(1200.0, 800.0));
         assert_eq!(cascade_from(None), None, "unknown front window: use the builder's defaults");
+    }
+
+    #[test]
+    fn tiling_two_windows_splits_the_area_side_by_side() {
+        let area = Rect::from_min_size(pos2(0.0, 28.0), vec2(1000.0, 600.0));
+        let t = tile(2, area);
+        assert_eq!(t, [Rect::from_min_size(pos2(0.0, 28.0), vec2(500.0, 600.0)), Rect::from_min_size(pos2(500.0, 28.0), vec2(500.0, 600.0))]);
+        assert_eq!(tile(1, area), [area]);
+        assert!(tile(0, area).is_empty());
+    }
+
+    #[test]
+    fn tiling_five_windows_makes_three_over_two_and_covers_the_area() {
+        let area = Rect::from_min_size(pos2(100.0, 40.0), vec2(1200.0, 800.0));
+        let t = tile(5, area);
+        assert_eq!(t.len(), 5);
+        // Three across the top row, two wider ones below.
+        assert!(t[..3].iter().all(|r| r.min.y == 40.0 && (r.width() - 400.0).abs() < 1e-3 && (r.height() - 400.0).abs() < 1e-3));
+        assert!(t[3..].iter().all(|r| r.min.y == 440.0 && (r.width() - 600.0).abs() < 1e-3));
+        assert_eq!((t[3].min.x, t[4].min.x), (100.0, 700.0));
+        let covered: f32 = t.iter().map(|r| r.area()).sum();
+        assert!((covered - area.area()).abs() < 1.0, "no gaps and no overlaps");
+        assert!(t.iter().all(|r| area.expand(0.01).contains_rect(*r)));
+    }
+
+    #[test]
+    fn cascading_steps_down_and_right_then_starts_again() {
+        let area = Rect::from_min_size(pos2(0.0, 28.0), vec2(1200.0, 800.0));
+        let c = cascade(2, area);
+        assert_eq!(c[1].min - c[0].min, vec2(CASCADE, CASCADE));
+        assert_eq!(c[0].size(), c[1].size());
+        // A small area runs out of room and wraps instead of leaving the screen.
+        let c = cascade(40, Rect::from_min_size(pos2(0.0, 0.0), vec2(700.0, 500.0)));
+        assert!(c.iter().all(|r| Rect::from_min_size(pos2(0.0, 0.0), vec2(700.0, 500.0)).expand(0.01).contains_rect(*r)));
+        assert!(cascade(0, area).is_empty());
+    }
+
+    #[test]
+    fn the_work_area_sits_below_the_menu_bar_on_the_monitor_of_the_front_window() {
+        let a = work_area(vec2(1920.0, 1080.0), None);
+        assert_eq!(a.min, pos2(0.0, MENU_BAR));
+        let front = Rect::from_min_size(pos2(-2500.0, 100.0), vec2(800.0, 600.0));
+        let a = work_area(vec2(1920.0, 1080.0), Some(front));
+        assert_eq!(a.min, pos2(-3840.0, MENU_BAR));
+        assert!(work_area(vec2(0.0, 0.0), Some(front)).size().x >= 200.0, "a monitor of unknown size is not a panic");
     }
 
     #[test]

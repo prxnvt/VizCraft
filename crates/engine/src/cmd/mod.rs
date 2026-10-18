@@ -1,5 +1,6 @@
 //! Command implementations, one module per menu: each exposes `specs()`.
 
+pub mod addon;
 pub mod arrange;
 pub mod batch;
 pub mod callout;
@@ -20,6 +21,7 @@ pub mod insert;
 pub mod lane;
 pub mod layer;
 pub mod layout;
+pub mod r#macro;
 pub mod model;
 pub mod notation;
 pub mod page;
@@ -71,6 +73,8 @@ pub fn registry() -> Registry {
     v.extend(notation::specs());
     v.extend(insert::specs());
     v.extend(script::specs());
+    v.extend(addon::specs());
+    v.extend(r#macro::specs());
     v.extend(help::specs());
     Registry::new(v)
 }

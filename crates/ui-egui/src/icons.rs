@@ -137,6 +137,23 @@ pub const NAMES: &[&str] = &[
     "dropdown",
     "more",
     "search",
+    // View: presentation, windows, add-ons and macros
+    "present",
+    "pageWidth",
+    "taskPanes",
+    "newWindow",
+    "arrangeAll",
+    "cascade",
+    "switchWindows",
+    "macroRecord",
+    "macroStop",
+    "macroSave",
+    "macroRun",
+    "macroDelete",
+    "addOns",
+    "numberShapes",
+    "arrayShapes",
+    "moveShapes",
 ];
 
 /// Reference size of the design grid, in points. At this size the stroke is `BASE_STROKE`.
@@ -900,6 +917,94 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
             for x in [5.0, 10.0, 15.0] {
                 pen.fcircle(x, 10.0, 1.3, c);
             }
+        }
+        // View: presentation, windows, add-ons and macros
+        "present" => {
+            pen.rect(2.5, 3.5, 17.5, 13.5, c);
+            pen.fill(&[(8.5, 6.0), (8.5, 11.0), (12.5, 8.5)], a);
+            pen.line(&[(10.0, 13.5), (10.0, 16.5)]);
+            pen.line(&[(6.5, 16.5), (13.5, 16.5)]);
+        }
+        "pageWidth" => {
+            pen.rect(5.0, 3.0, 15.0, 17.0, c);
+            pen.line_c(&[(2.0, 10.0), (18.0, 10.0)], a);
+            pen.line_c(&[(4.5, 7.5), (2.0, 10.0), (4.5, 12.5)], a);
+            pen.line_c(&[(15.5, 7.5), (18.0, 10.0), (15.5, 12.5)], a);
+        }
+        "taskPanes" => {
+            pen.rect(3.0, 3.5, 17.0, 16.5, c);
+            pen.line(&[(11.0, 3.5), (11.0, 16.5)]);
+            pen.frect(12.5, 5.5, 15.5, 8.0, a);
+            pen.frect(12.5, 10.0, 15.5, 14.5, a.linear_multiply(0.55));
+        }
+        "newWindow" => {
+            pen.window();
+            pen.line_c(&[(10.0, 9.0), (10.0, 14.0)], a);
+            pen.line_c(&[(7.5, 11.5), (12.5, 11.5)], a);
+        }
+        "arrangeAll" => {
+            pen.rect(2.5, 3.0, 9.5, 9.5, c);
+            pen.rect(10.5, 3.0, 17.5, 9.5, c);
+            pen.rect(2.5, 10.5, 9.5, 17.0, c);
+            pen.frect(10.5, 10.5, 17.5, 17.0, a.linear_multiply(0.55));
+        }
+        "cascade" => {
+            pen.rect(2.5, 2.5, 12.5, 11.0, c);
+            pen.rect(5.5, 6.0, 15.5, 14.5, c);
+            pen.rect(8.0, 9.5, 17.5, 17.5, a);
+        }
+        "switchWindows" => {
+            pen.rect(2.5, 4.0, 11.5, 12.5, c);
+            pen.rect(8.5, 8.0, 17.5, 16.5, c);
+            pen.line_c(&[(13.0, 11.0), (15.0, 13.0), (13.0, 15.0)], a);
+        }
+        "macroRecord" => {
+            pen.circle(10.0, 10.0, 7.0, c);
+            pen.fcircle(10.0, 10.0, 3.5, a);
+        }
+        "macroStop" => {
+            pen.circle(10.0, 10.0, 7.0, c);
+            pen.frect(7.0, 7.0, 13.0, 13.0, a);
+        }
+        "macroSave" => {
+            pen.circle(8.5, 8.5, 5.5, c);
+            pen.fcircle(8.5, 8.5, 2.5, a);
+            pen.line_c(&[(13.0, 14.0), (17.0, 14.0)], a);
+            pen.line_c(&[(15.0, 12.0), (15.0, 16.0)], a);
+        }
+        "macroRun" => {
+            pen.circle(10.0, 10.0, 7.0, c);
+            pen.fill(&[(8.0, 6.5), (8.0, 13.5), (13.5, 10.0)], a);
+        }
+        "macroDelete" => {
+            pen.circle(10.0, 10.0, 7.0, c);
+            pen.line_c(&[(7.0, 7.0), (13.0, 13.0)], a);
+            pen.line_c(&[(13.0, 7.0), (7.0, 13.0)], a);
+        }
+        "addOns" => {
+            pen.rect(3.0, 6.0, 12.0, 15.0, c);
+            pen.frect(12.0, 3.0, 17.0, 8.0, a);
+            pen.line(&[(7.5, 10.5), (7.5, 10.6)]);
+        }
+        "numberShapes" => {
+            pen.rect(2.5, 3.0, 9.5, 9.0, c);
+            pen.rect(2.5, 11.0, 9.5, 17.0, c);
+            pen.line_c(&[(12.0, 6.0), (17.5, 6.0)], a);
+            pen.line_c(&[(12.0, 14.0), (17.5, 14.0)], a);
+            pen.line_c(&[(5.5, 4.5), (5.5, 7.5)], a);
+            pen.line_c(&[(4.5, 13.0), (6.5, 13.0), (4.5, 15.0), (6.5, 15.0)], a);
+        }
+        "arrayShapes" => {
+            for (x, y) in [(2.5, 2.5), (11.0, 2.5), (2.5, 11.0)] {
+                pen.rect(x, y, x + 6.5, y + 6.5, c);
+            }
+            pen.rect(11.0, 11.0, 17.5, 17.5, a);
+        }
+        "moveShapes" => {
+            pen.rect(2.5, 9.0, 9.5, 17.0, c);
+            pen.rect(11.0, 3.0, 17.5, 9.5, a);
+            pen.line_c(&[(6.0, 7.5), (6.0, 4.0), (9.5, 4.0)], a);
+            pen.line_c(&[(8.0, 2.5), (9.5, 4.0), (8.0, 5.5)], a);
         }
         _ => {
             // Fallback: a rounded tile with the first letter.
