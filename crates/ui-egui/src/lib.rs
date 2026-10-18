@@ -12,6 +12,7 @@ pub mod backstage;
 pub mod canvas;
 pub mod chrome;
 pub mod control;
+pub mod data_dialog;
 pub mod dialogs;
 pub mod icons;
 pub mod keys;
@@ -51,13 +52,14 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.saveAsDialog", "Save As...", "", "{}"),
     ("ui.inWindowMenus", "Menu Bar in Window", "", r#"{"value"?: bool}"#),
     ("ui.newWindow", "New Window", "", r#"{"template"?: "blank|sample"}"#),
-    ("ui.pane", "Toggle Pane", "", r#"{"name": "shapes|navigation|properties|history|layers", "value"?: bool, "side"?: "left|right"}"#),
+    ("ui.pane", "Toggle Pane", "", r#"{"name": "shapes|navigation|properties|history|layers|shapeData", "value"?: bool, "side"?: "left|right"}"#),
     ("ui.pane.shapes", "Shapes Pane", "", r#"{"value"?: bool}"#),
     ("ui.pane.navigation", "Navigation Pane", "", r#"{"value"?: bool}"#),
     ("ui.pane.properties", "Properties Pane", "", r#"{"value"?: bool}"#),
     ("ui.pane.history", "History Pane", "", r#"{"value"?: bool}"#),
     ("ui.pane.layers", "Layers Pane", "", r#"{"value"?: bool}"#),
-    ("ui.paneSide", "Move Pane to Side", "", r#"{"name": "shapes|navigation|properties|history|layers", "side": "left|right"}"#),
+    ("ui.pane.shapeData", "Shape Data Pane", "", r#"{"value"?: bool}"#),
+    ("ui.paneSide", "Move Pane to Side", "", r#"{"name": "shapes|navigation|properties|history|layers|shapeData", "side": "left|right"}"#),
     ("ui.collapsePanes", "Collapse Side Panes", "", r#"{"side": "left|right", "value"?: bool}"#),
     ("ui.panesReset", "Reset Panes", "", "{}"),
     ("ui.shapesSearch", "Search Shapes Pane", "", r#"{"query": string} -> {"query", "results": [master id]}"#),
@@ -361,6 +363,10 @@ impl CraftApp {
         }
         if req.get("close").is_some() {
             self.close_window();
+        }
+        // `view.shapeDataPane` and the like: open, close or toggle (no value) a pane.
+        if let Some(name) = req.get("pane").and_then(Value::as_str) {
+            let _ = panes::ui_command(self, "ui.pane", &json!({"name": name, "value": req.get("value")}));
         }
     }
 

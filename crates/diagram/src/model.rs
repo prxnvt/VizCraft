@@ -8,6 +8,7 @@ use std::fmt;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+use crate::data::ShapeData;
 use crate::doc_fields::{Comment, DocProperties, ImageAsset, sanitize_comments, sanitize_images};
 use crate::geom::{Path, Point, Rect, Transform, finite};
 use crate::kind::ShapeKind;
@@ -370,6 +371,9 @@ pub struct Shape {
     /// A picture from the document's image store drawn in the frame.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
     pub image: Option<ImageRef>,
+    /// Typed shape data rows (see [`crate::data`]).
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
+    pub data: ShapeData,
 }
 
 impl Default for Shape {
@@ -396,6 +400,7 @@ impl Default for Shape {
             locks: Locks::default(),
             behavior: Behavior::default(),
             image: None,
+            data: ShapeData::default(),
         }
     }
 }
@@ -434,6 +439,7 @@ impl Shape {
         if let Some(i) = &mut self.image {
             i.sanitize();
         }
+        self.data.sanitize();
     }
     /// Longest screen tip kept, in bytes.
     pub const MAX_SCREEN_TIP: usize = 4096;

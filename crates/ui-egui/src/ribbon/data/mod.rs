@@ -1,8 +1,10 @@
-//! The Data tab: no groups yet, so it is hidden.
+//! The Data tab: shape data.
 
 use super::Tab;
 
-groups! {}
+groups! {
+    show_hide,
+}
 
 /// The Data tab.
 pub(super) fn tab() -> Tab {

@@ -60,7 +60,7 @@ a command that needs one pushes `{"open": "<dialog>"}` to `session.ui_requests` 
 handles it.
 
 Command id prefixes: `file.*`, `edit.*`, `view.*`, `shape.*` (`crates/engine/src/cmd/shape.rs`), `arrange.*` (`cmd/arrange.rs`),
-`connector.*` (`cmd/connector.rs`), `page.*` (`cmd/page.rs`), `layer.*` (`cmd/layer.rs`), `design.*` (`cmd/design.rs`), `layout.*` (`cmd/layout.rs`), `model.*`, `element.*`,
+`connector.*` (`cmd/connector.rs`), `page.*` (`cmd/page.rs`), `layer.*` (`cmd/layer.rs`), `data.*` (`cmd/data.rs`), `design.*` (`cmd/design.rs`), `layout.*` (`cmd/layout.rs`), `model.*`, `element.*`,
 `relationship.*`, `validate.*`, `notation.*` (`cmd/{model,element,relationship,validate,notation}.rs`), `script.*` (`cmd/script.rs`), `guide.*` (`cmd/view.rs`), `insert.*`, `format.*`, `window.*`, `help.*`, `ui.*` (UI layer), `app.*` (app-level: `app.quit`,
 `app.preferences`, `app.about`). `insert.*` and `format.*` are reserved; no engine
 command uses them yet.
@@ -214,6 +214,28 @@ colour tints its shapes on the canvas (line and text take it, the fill moves hal
 | `layer.delete` | `{layer, page?, deleteShapes?}` -> `{page, layer, deleted}`; by default its shapes stay and leave the layer; `deleteShapes` deletes them, refused while any is locked |
 | `layer.set` | `{layer, page?, name?, visible?, locked?, print?, snap?, glue?, color?}` -> `{page, layer}`; `color` null or `""` clears; hiding or locking drops those shapes from the selection |
 | `layer.assign`, `layer.unassign` | `{ids?, layer, page?}` -> `{page, layer, changed}`; `ids` default to the selected shapes |
+
+Shape data (Block 2). `Shape.data` holds ordered typed rows (`vizcraft_diagram::data::DataRow`:
+key, label, type `string|number|bool|date|enum|url`, unit, enum values, required, default,
+value, hidden) and `page_keys`, whether the shape takes the page's key definitions. A value is
+canonical text, empty (not set) or valid for its type (`data::normalize`); loading a value that
+does not fit makes the row a `string` row, so no text is lost. A page's definitions (`DataKey`)
+are kept as JSON in `Page.ext["vizcraft.dataKeys"]` (`data::page_keys`, `set_page_keys`). A key
+the shape's model element owns (a property of its pack type, or one it holds) is read-only here:
+`data.get` and `data.list` show it with `source: "model"`, and `element.setProperty` writes it.
+A bad value is a params error; a required key left empty is a warning in the result.
+`data::search(doc, page, key, text)` finds shapes by key and value text for Find.
+
+| Command | Params -> result |
+|---|---|
+| `data.set` | `{ids?, key, value, type?, label?, unit?, values?, required?, hidden?}` -> `{key, changed, warnings}`; a new row takes the page's definition, else `type` (default from the value) |
+| `data.remove` | `{ids?, key}` -> `{key, changed}`; refused when no shape has the key |
+| `data.defineKey` | `{key, type, label?, unit?, values?, required?, default?, page?, ids?}` -> `{page, key, changed, warnings}`; `ids` opt shapes in; every opted-in shape gets or updates the row |
+| `data.undefineKey` | `{key, page?, keepRows?}` -> `{page, key, changed}` |
+| `data.usePageKeys` | `{ids?, value?}` -> `{changed, warnings}` |
+| `data.get` | `{id?}` -> `{id, page, element, pageKeys, rows, keys, warnings}`; model rows first |
+| `data.list` | `{page?}` -> `{page, keys, shapes: [{id, values}]}` |
+| `data.defineDialog`, `view.shapeDataPane` | ask the UI for the Define Shape Data dialog and the Shape Data pane (`{"pane": "shapeData", "value"}` in `ui_requests`) |
 
 ### Transactions and scripts
 
@@ -443,7 +465,7 @@ shape's frame centre.
 |---|---|
 | `Document` | `theme: DocTheme { id, variant }` (see Design commands), `title`, `core: CoreProps` (author, timestamps, revision), `pages: Vec<Page>` (always at least one), `id_seq`, `model: vizcraft_model::Model` (not in the document's serde form; the native file writes it as its own section); `next_id(prefix)` hands out `s1`, `c2`, `e3`, `r4` and so on, never reused; pages, shapes, connectors, elements and relationships share one id space (`contains_id`); `properties: DocProperties` (title, author, subject, keywords, description), `comments: Vec<Comment>` (id, `anchor: CommentAnchor { page, shape? }`, author, time, text, `replies: Vec<Reply>`), `images: Vec<ImageAsset>` (id, `media_type` `image/...`, `bytes` as base64 on disk; 16 MiB each, 48 MiB in all, 1024 assets); `background_chain(index)` lists the background pages under a page, deepest first; `active_page` (a page id, empty or unknown meaning the first) picks the page `page()`, `page_mut()` and `active_index()` return first |
 | `Page` | Id, name, width and height (the size; 1100 x 850 by default), `shapes` and `connectors` in z order, `ext`, `view: Option<View>` (the viewpoint the page shows; `None` for free drawing), `orientation`, `units`, `drawing_scale: DrawingScale { page, drawing, units }`, `auto_size`, `background: Option<String>` (another page with `is_background`), `is_background`, `header` and `footer: HeaderFooter { left, center, right }`, `guides: Vec<Guide { orientation, position }>`, `layers: Vec<Layer { id, name, visible, locked, print, snap, glue, color? }>`; `shape_visible` (not hidden, and on no layer or on a visible one) |
-| `Shape` | Id, `stencil` master id (`basic.rectangle`), `kind: ShapeKind` (16 outlines), frame `x, y, w, h`, `angle_deg`, text, `Style`, optional custom connection points (normalized; kinds default to top, right, bottom, left), `ext` (data from other formats kept for round trips), `element: Option<String>` (the model element it draws; `None` is free drawing), `layers` (page layer ids), `parent: Option<String>` (group or container on the same page; cycles are broken on load), `text_block: Option<TextBlock { dx, dy, w, h, angle_deg }>` (`None` is the frame; `text_rect()`), `links: Vec<Hyperlink { kind: url, file, page, shape or element, target, label }>`, `screen_tip`, `locks: Locks` (width, height, aspect, position, rotation, delete, select, text), `behavior: Behavior` (container, non-printing, hidden, no glue, no snap), `image: Option<ImageRef { asset, crop: CropRect }>` |
+| `Shape` | Id, `stencil` master id (`basic.rectangle`), `kind: ShapeKind` (16 outlines), frame `x, y, w, h`, `angle_deg`, text, `Style`, optional custom connection points (normalized; kinds default to top, right, bottom, left), `ext` (data from other formats kept for round trips), `element: Option<String>` (the model element it draws; `None` is free drawing), `layers` (page layer ids), `parent: Option<String>` (group or container on the same page; cycles are broken on load), `text_block: Option<TextBlock { dx, dy, w, h, angle_deg }>` (`None` is the frame; `text_rect()`), `links: Vec<Hyperlink { kind: url, file, page, shape or element, target, label }>`, `screen_tip`, `locks: Locks` (width, height, aspect, position, rotation, delete, select, text), `behavior: Behavior` (container, non-printing, hidden, no glue, no snap), `image: Option<ImageRef { asset, crop: CropRect }>`, `data: ShapeData { rows, page_keys }` (typed shape data, see Shape data below) |
 | `Connector` | Id, `start` and `end` as `End::Glued { shape, point: Option<usize> }` (no point = dynamic glue) or `End::Free { x, y }`, `route` (`straight`, `orthogonal`, `curved`), arrowheads per end (`none`, `triangle`, `open`, `diamond`, `circle`), label text, `Style`, `waypoints` (stored bends), `avoid` (route around shapes), `jumps` (line jumps), `ext`, `relationship: Option<String>` (the model relationship it draws) |
 | `Style` | Fill, line colour and width, font size and colour, bold, italic; colours serialize as `#rrggbb`. Text: `font_family`, `underline`, `strikethrough`, `text_case`, `highlight`, `h_align`, `v_align`, `bullets`, `indent`, `text_direction`, `text_margins: Margins`. Line: `dash`, `line_cap`, `corner_radius` (`Path::rounded_corners`). Effects: `gradient: Option<Gradient { kind, angle_deg, stops }>`, `fill_transparency` and `line_transparency` (0 to 1; `effective_fill`, `effective_line`), `shadow: Option<Shadow { dx, dy, blur, color }>`, `soft_edges`, `glow: Option<Glow { radius, color }>`. A `const fn Style::basic` builds a style in constants |
 
@@ -564,7 +586,7 @@ New prefixes join the existing `file.*`, `edit.*`, `view.*`, `shape.*`, `connect
 | `layer.*` | Built: add, delete, rename, flags, assign shapes (see Layer commands above) | `crates/engine/src/cmd/layer.rs` |
 | `arrange.*` | Built: align, distribute, order, group, ungroup, flip, rotate, size and position (see the arrange commands above) | `crates/engine/src/cmd/arrange.rs` |
 | `design.*` | Format painter (themes, quick styles, backgrounds, borders and the connector style are built) | `crates/engine/src/cmd/design.rs` |
-| `data.*` | Shape data, data graphics, data import | `crates/engine/src/cmd/data.rs` |
+| `data.*` | Built: shape data (set, remove, defineKey, undefineKey, usePageKeys, get, list; see Shape data below); planned: data graphics, data import | `crates/engine/src/cmd/data.rs` |
 
 Every new command follows [Everything is a command](#everything-is-a-command): undoable when it
 changes the document, covered by `hostile_params_never_panic`, never opening a dialog when run

@@ -44,6 +44,8 @@ pub enum Dialog {
     PageSetup(crate::page_setup::PageSetup),
     /// Snap and Glue: what dragged items snap to, and how strongly.
     SnapSettings(crate::snap_dialog::State),
+    /// Define Shape Data: a data key for the active page.
+    DefineShapeData(crate::data_dialog::State),
 }
 
 impl Dialog {
@@ -59,6 +61,7 @@ impl Dialog {
             Dialog::Message { .. } => "message",
             Dialog::PageSetup(_) => "pageSetup",
             Dialog::SnapSettings(_) => "snapSettings",
+            Dialog::DefineShapeData(_) => "defineShapeData",
         }
     }
 
@@ -74,6 +77,7 @@ impl Dialog {
             "shortcuts" => Dialog::Shortcuts { filter: String::new() },
             "pageSetup" => Dialog::PageSetup(crate::page_setup::PageSetup::new(app)),
             "snapSettings" => Dialog::SnapSettings(crate::snap_dialog::open(app)),
+            "defineShapeData" => Dialog::DefineShapeData(crate::data_dialog::open(app)),
             _ => return None,
         })
     }
@@ -89,6 +93,7 @@ impl Dialog {
             Dialog::Message { title, .. } => title.clone(),
             Dialog::PageSetup(_) => "Page Setup".into(),
             Dialog::SnapSettings(_) => "Snap and Glue".into(),
+            Dialog::DefineShapeData(_) => "Define Shape Data".into(),
         }
     }
 
@@ -282,6 +287,11 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
             crate::snap_dialog::body(ui, s);
             let (ok, cancel) = buttons(ui, "OK", Some("Cancel"), keys);
             crate::snap_dialog::finish(app, s, ok, cancel)
+        }
+        Dialog::DefineShapeData(s) => {
+            crate::data_dialog::body(ui, s);
+            let (ok, cancel) = buttons(ui, "OK", Some("Cancel"), keys);
+            crate::data_dialog::finish(app, s, ok, cancel)
         }
         Dialog::Shortcuts { filter } => {
             let r = ui.add(egui::TextEdit::singleline(filter).hint_text("Filter").desired_width(f32::INFINITY));

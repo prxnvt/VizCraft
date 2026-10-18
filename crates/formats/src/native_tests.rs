@@ -578,3 +578,95 @@ fn hostile_new_fields_are_sanitised() {
     // Sanitising is stable: saving and loading again changes nothing.
     assert_eq!(load(&save(&doc).unwrap()).unwrap(), doc);
 }
+
+/// A free shape with typed data of every kind, and a page that defines two of the keys.
+fn with_data() -> Document {
+    use vizcraft_diagram::data::{DataKey, DataRow, DataType, set_page_keys};
+    let mut doc = Document::new();
+    let page = doc.page_mut().unwrap();
+    let mut s = Shape::new("s1", ShapeKind::Rectangle, 0.0, 0.0, 100.0, 60.0);
+    let row = |key: &str, kind: DataType, value: &str| DataRow { key: key.into(), kind, value: value.into(), ..DataRow::default() };
+    s.data.page_keys = true;
+    s.data.rows = vec![
+        DataRow { unit: "USD".into(), required: true, ..row("cost", DataType::Number, "12.5") },
+        row("done", DataType::Bool, "false"),
+        row("due", DataType::Date, "2024-02-29"),
+        DataRow { values: vec!["Low".into(), "High".into()], default: Some("Low".into()), ..row("level", DataType::Enum, "High") },
+        row("site", DataType::Url, "https://example.com/a?b=\"c\""),
+        DataRow { label: "Note, \"quoted\"".into(), hidden: true, ..row("note", DataType::String, "multi\nline \u{e9}") },
+    ];
+    page.shapes.push(s);
+    page.shapes.push(Shape::new("s2", ShapeKind::Rectangle, 200.0, 0.0, 100.0, 60.0));
+    let keys = vec![
+        DataKey { key: "cost".into(), kind: DataType::Number, unit: "USD".into(), required: true, ..DataKey::default() },
+        DataKey {
+            key: "level".into(),
+            kind: DataType::Enum,
+            values: vec!["Low".into(), "High".into()],
+            default: Some("Low".into()),
+            ..DataKey::default()
+        },
+    ];
+    set_page_keys(page, &keys);
+    doc.sanitize();
+    doc
+}
+
+#[test]
+fn shape_data_round_trips_and_is_left_out_when_empty() {
+    let doc = with_data();
+    let bytes = save(&doc).unwrap();
+    let back = load(&bytes).unwrap();
+    assert_eq!(back, doc);
+    assert_eq!(save(&back).unwrap(), bytes, "saving again gives the same bytes");
+    let v = parse(&bytes);
+    let s = &v["document"]["pages"][0]["shapes"];
+    assert_eq!(s[0]["data"]["rows"][0], json!({"key": "cost", "type": "number", "unit": "USD", "required": true, "value": "12.5"}));
+    assert_eq!(s[0]["data"]["pageKeys"], true);
+    assert!(s[1].get("data").is_none(), "a shape without data writes no data key");
+    assert_eq!(vizcraft_diagram::data::page_keys(&back.pages[0]).len(), 2);
+}
+
+#[test]
+fn hostile_shape_data_is_sanitised() {
+    let long = "x".repeat(100_000);
+    let mut rows: Vec<Value> = vec![
+        json!({"key": "cost", "type": "number", "value": "lots"}),
+        json!({"key": "cost", "type": "number", "value": 3}),
+        json!({"key": "n", "type": "number", "value": 4}),
+        json!({"key": "b", "type": "bool", "value": true}),
+        json!({"key": "", "value": "no key"}),
+        json!({"key": long, "value": "long key"}),
+        json!({"key": "e", "type": "enum", "values": [1, "A", "A", ""], "value": "a"}),
+        json!({"key": "u", "type": "url", "value": "javascript:alert(1)"}),
+        json!({"key": "d", "type": "date", "value": "2023-02-29", "default": {"x": 1}}),
+        json!({"key": "t", "type": 5, "value": [1, 2], "label": long, "unit": long, "hidden": "yes"}),
+        json!("junk"),
+        json!(7),
+    ];
+    rows.extend((0..500).map(|i| json!({"key": format!("k{i}"), "value": long})));
+    let file = json!({
+        "format": "vizcraft",
+        "version": 4,
+        "document": {"pages": [{"id": "p1", "ext": {"vizcraft.dataKeys": "[{\"key\": 5}, {\"key\": \"ok\", \"type\": \"enum\"}"},
+                                "shapes": [{"id": "s1", "data": {"rows": rows, "pageKeys": "maybe"}}, {"id": "s2", "data": "junk"}]}]}
+    });
+    let doc = load(&serde_json::to_vec(&file).unwrap()).unwrap();
+    let d = &doc.pages[0].shapes[0].data;
+    use vizcraft_diagram::data::{DataType, MAX_LABEL, MAX_ROWS, MAX_UNIT, MAX_VALUE};
+    assert_eq!(d.rows.len(), MAX_ROWS);
+    assert!(!d.page_keys);
+    let get = |k: &str| d.row(k).unwrap();
+    assert_eq!((get("cost").kind, get("cost").value.as_str()), (DataType::String, "lots"), "a value that does not fit keeps its text");
+    assert_eq!((get("n").kind, get("n").value.as_str()), (DataType::Number, "4"));
+    assert_eq!(get("b").value, "true");
+    assert_eq!((get("e").values.clone(), get("e").value.as_str()), (vec!["A".to_string()], "A"));
+    assert_eq!(get("u").kind, DataType::String);
+    assert_eq!((get("d").kind, get("d").default.clone()), (DataType::String, None));
+    let t = get("t");
+    assert_eq!((t.kind, t.value.as_str(), t.hidden), (DataType::String, "", false));
+    assert!(t.label.len() <= MAX_LABEL && t.unit.len() <= MAX_UNIT);
+    assert!(d.rows.iter().all(|r| r.value.len() <= MAX_VALUE && !r.key.is_empty()));
+    assert!(doc.pages[0].shapes[1].data.rows.is_empty());
+    assert!(vizcraft_diagram::data::page_keys(&doc.pages[0]).is_empty(), "unreadable page keys are none");
+}

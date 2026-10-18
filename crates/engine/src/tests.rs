@@ -27,6 +27,7 @@ fn registry_ids_are_unique_and_prefixed() {
                 "connector",
                 "page",
                 "layer",
+                "data",
                 "design",
                 "layout",
                 "model",
