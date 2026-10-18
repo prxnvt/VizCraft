@@ -38,13 +38,42 @@ use vizcraft_engine::Session;
 
 pub use control::ControlRequest;
 
+/// Sending viewport commands through the performance trace: each one is a platform call, and one
+/// sent every frame keeps the app from idling (the window title once did), so the trace counts
+/// them per frame by kind (`viewportCmd.Title`). Use these instead of egui's `send_viewport_cmd`.
+pub trait ViewportCmdExt {
+    /// `Context::send_viewport_cmd`, counted in the trace.
+    fn viewport_cmd(&self, cmd: egui::ViewportCommand);
+    /// `Context::send_viewport_cmd_to`, counted in the trace.
+    fn viewport_cmd_to(&self, id: egui::ViewportId, cmd: egui::ViewportCommand);
+}
+
+impl ViewportCmdExt for egui::Context {
+    fn viewport_cmd(&self, cmd: egui::ViewportCommand) {
+        vizcraft_engine::trace::tick_with(|| viewport_cmd_kind(&cmd));
+        self.send_viewport_cmd(cmd);
+    }
+
+    fn viewport_cmd_to(&self, id: egui::ViewportId, cmd: egui::ViewportCommand) {
+        vizcraft_engine::trace::tick_with(|| viewport_cmd_kind(&cmd));
+        self.send_viewport_cmd_to(id, cmd);
+    }
+}
+
+/// `viewportCmd.<variant>` for the trace: the variant name without its payload.
+fn viewport_cmd_kind(cmd: &egui::ViewportCommand) -> String {
+    let debug = format!("{cmd:?}");
+    let kind = debug.split(['(', ' ', '{']).next().unwrap_or("?");
+    format!("viewportCmd.{kind}")
+}
+
 /// Commands that live in the UI layer: `(id, label, shortcut, params)`. Listed so the palette,
 /// menus and control channel see them next to the engine's.
 pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.tab", "Switch Ribbon Tab", "", r#"{"tab": "File|Home|Insert|Design|View|Help|Connector"}"#),
     ("ui.collapseRibbon", "Collapse the Ribbon", "Mod+F1", r#"{"value"?: bool}"#),
     ("ui.commands", "Search Commands", "Mod+Shift+P", "{}"),
-    ("ui.traceMark", "Mark the Performance Trace", "F12", r#"{"label"?: string} (adds a labelled moment to the trace started with --trace)"#),
+    ("ui.traceMark", "Mark the Performance Trace", "Mod+Shift+M", r#"{"label"?: string} (adds a labelled moment to the trace started with --trace)"#),
     (
         "ui.dialog",
         "Open Dialog",
@@ -239,6 +268,8 @@ pub struct CraftApp {
     pending_waits: Vec<(u32, std::sync::mpsc::Sender<Value>)>,
     /// Input events injected by the control channel.
     pub(crate) synthetic: Vec<egui::Event>,
+    /// How many of this frame's input events came from `synthetic` (for the trace).
+    synthetic_injected: usize,
     styled: bool,
     fonts_frames: u32,
     applied_dark: Option<bool>,
@@ -270,6 +301,7 @@ impl CraftApp {
             pending_shots: Vec::new(),
             pending_waits: Vec::new(),
             synthetic: Vec::new(),
+            synthetic_injected: 0,
             styled: false,
             fonts_frames: 0,
             applied_dark: None,
@@ -662,14 +694,14 @@ impl CraftApp {
         }
         // Closing the window with unsaved changes asks first.
         if ctx.input(|i| i.viewport().close_requested()) && self.has_unsaved() {
-            ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+            ctx.viewport_cmd(egui::ViewportCommand::CancelClose);
             if !self.asking_before_closing() {
                 self.ask_before_closing();
             }
         }
         if !self.multi_window && std::mem::take(&mut self.quit_requested) {
             self.quit_confirmed = true;
-            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+            ctx.viewport_cmd(egui::ViewportCommand::Close);
         }
         if !self.synthetic.is_empty() {
             ctx.request_repaint();
@@ -708,6 +740,7 @@ impl CraftApp {
     /// Inject synthetic input events from the control channel (one pointer event per frame, so
     /// hover and click land on the widget egui has laid out).
     pub fn raw_input_hook(&mut self, raw: &mut egui::RawInput) {
+        self.synthetic_injected = 0;
         if self.synthetic.is_empty() {
             return;
         }
@@ -717,9 +750,17 @@ impl CraftApp {
         };
         if let Some(egui::Event::PointerMoved(p) | egui::Event::PointerButton { pos: p, .. }) = self.synthetic.first() {
             raw.events.push(egui::Event::PointerMoved(*p));
+            self.synthetic_injected += 1;
         }
         let n = n.min(self.synthetic.len());
         raw.events.extend(self.synthetic.drain(..n));
+        self.synthetic_injected += n;
+    }
+
+    /// How many of this frame's input events the control channel injected (`ui.click`, `ui.key`
+    /// and friends), so a trace can tell a scripted run from a person at the keyboard.
+    pub fn synthetic_injected(&self) -> usize {
+        self.synthetic_injected
     }
 
     /// Lay out the window: title bar, menu bar, ribbon, status bar, panes, canvas, then dialogs.
@@ -771,7 +812,7 @@ impl CraftApp {
         }
         let title = format!("{}{} - VizCraft", self.title_stem(), if self.session.dirty { " (edited)" } else { "" });
         if title != self.sent_title {
-            ctx.send_viewport_cmd(egui::ViewportCommand::Title(title.clone()));
+            ctx.viewport_cmd(egui::ViewportCommand::Title(title.clone()));
             self.sent_title = title;
         }
         self.frame_ms = now_ms() - t0;
@@ -851,7 +892,7 @@ impl CraftApp {
         self.queued_shots.retain_mut(|(token, at, frames)| {
             *frames += 1;
             if now >= *at && *frames >= 3 {
-                ctx.send_viewport_cmd(egui::ViewportCommand::Screenshot(egui::UserData::new(*token)));
+                ctx.viewport_cmd(egui::ViewportCommand::Screenshot(egui::UserData::new(*token)));
                 false
             } else {
                 true

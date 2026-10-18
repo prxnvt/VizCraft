@@ -26,7 +26,7 @@ use std::sync::mpsc::Sender;
 use serde_json::{Value, json};
 use vizcraft_engine::Origin;
 
-use crate::{CraftApp, UiState, menus};
+use crate::{CraftApp, UiState, ViewportCmdExt, menus};
 
 /// One request from the transport thread; the reply goes back through `reply`.
 pub struct ControlRequest {
@@ -316,11 +316,11 @@ pub fn handle(app: &mut CraftApp, ctx: &egui::Context, req: &ControlRequest) -> 
         "ui.resize" => {
             let (Some(w), Some(h)) = (f("width"), f("height")) else { return err("missing width/height") };
             let size = egui::vec2(w, h).clamp(crate::window_geometry::MIN_SIZE, egui::vec2(16384.0, 16384.0));
-            ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(size));
+            ctx.viewport_cmd(egui::ViewportCommand::InnerSize(size));
             ok(json!({"width": size.x, "height": size.y}))
         }
         "ui.focus" => {
-            ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
+            ctx.viewport_cmd(egui::ViewportCommand::Focus);
             ok(json!({}))
         }
         "app.quit" => {

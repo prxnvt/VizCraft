@@ -5,7 +5,7 @@ use egui::{Align2, Rect, Sense, Stroke, Ui, pos2, vec2};
 use serde_json::json;
 
 use crate::theme::{Tokens, regular, semibold};
-use crate::{CraftApp, icons, widgets};
+use crate::{CraftApp, ViewportCmdExt, icons, widgets};
 
 /// Height of the title bar in points.
 pub const TITLE_BAR_H: f32 = 38.0;
@@ -35,11 +35,11 @@ pub fn title_bar(app: &mut CraftApp, ui: &mut Ui) {
             // Drag the window by the title bar (there is no system one on macOS).
             let drag = ui.interact(full, ui.id().with("title_drag"), Sense::click_and_drag());
             if drag.drag_started() {
-                ui.ctx().send_viewport_cmd(egui::ViewportCommand::StartDrag);
+                ui.ctx().viewport_cmd(egui::ViewportCommand::StartDrag);
             }
             if drag.double_clicked() {
                 let max = ui.ctx().input(|i| i.viewport().maximized.unwrap_or(false));
-                ui.ctx().send_viewport_cmd(egui::ViewportCommand::Maximized(!max));
+                ui.ctx().viewport_cmd(egui::ViewportCommand::Maximized(!max));
             }
             let mut qat_end = full.min.x;
             let mut right_start = full.max.x;

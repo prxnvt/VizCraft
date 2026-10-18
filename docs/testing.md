@@ -141,22 +141,50 @@ When the app feels slow or uses too much memory, run it with the trace on:
 cargo run --release -p vizcraft -- --sample --trace
 ```
 
-`--trace` (or `VIZCRAFT_TRACE=1`) writes two files into `traces/` at the top of the repository
-(ignored by git; `VIZCRAFT_TRACE_DIR` chooses another folder). Press F12 (`ui.traceMark`) at the
-moment something feels wrong; the mark lands on the timeline and in the summary.
+`--trace` (or `VIZCRAFT_TRACE=1`) writes into `traces/` at the top of the repository (ignored by
+git; `VIZCRAFT_TRACE_DIR` chooses another folder). Press Cmd+Shift+M (Ctrl+Shift+M elsewhere;
+`ui.traceMark`) at the moment something feels wrong; the mark lands on the timeline and in the
+summary.
 
 | File | Contents |
 |---|---|
-| `vizcraft-<time>-<pid>.summary.json` | Rewritten every 5 seconds and at exit. Frame time and the gap between frames (mean, p50, p95, worst), frames with no input (an app that never goes idle), every span's count, total, mean, p95 and worst, the 25 slowest frames with their span trees, repaint causes by source line, memory once a second (process RSS, document and undo snapshot estimates, egui textures and text caches), marks |
-| `vizcraft-<time>-<pid>.trace.json` | Chrome trace events, opened in [Perfetto](https://ui.perfetto.dev) or `chrome://tracing`. Every frame is an event; frames slower than `VIZCRAFT_TRACE_DETAIL_MS` (default 8) carry their nested spans; memory is a counter track |
+| `vizcraft-<time>-<pid>.summary.json` | Rewritten every 5 seconds and at exit. `session` (build commit, debug or release, GPU adapter and backend, present mode, display scale and predicted frame interval, control port, flags). Frame time; the gap between frames, overall and split into `frameGapPendingMs` (the previous frame asked for an immediate repaint, so one display refresh is normal and more is a stall) and `frameGapIdleMs` (it did not: idle, or a timer). Frames with no input. Every span's count, total, mean, p95 and worst, including `eframe.turnaround` (pending gap minus frame time: eframe, winit, compositor and OS between two frames the app wanted back to back). The 25 slowest frames with their span trees. `stalls` counts and `longestStalls` (below). Repaint causes by source line. `notes` (wakes from outside the UI thread: control-channel requests by method, menu events, open requests). Memory once a second (process RSS, document and undo snapshot estimates, egui textures and text caches). Marks |
+| `vizcraft-<time>-<pid>.trace.json` | Chrome trace events, opened in [Perfetto](https://ui.perfetto.dev) or `chrome://tracing`. Every frame is an event with its input by kind (`inputKinds`), how many events the control channel injected (`synthetic`), whether the UI asked to be drawn again (`repaintPending`) and the viewport commands it sent (`ticks`); frames slower than `VIZCRAFT_TRACE_DETAIL_MS` (default 8) carry their nested spans; stalls are events; memory is a counter track. The array is closed at exit; a killed app leaves it open, which both viewers accept |
+| `vizcraft-<time>-<pid>-stall-<n>.txt` | macOS only: the process's native stacks, captured with the system `sample` tool for one second while the main thread was stalled (at most 10 per run; `VIZCRAFT_TRACE_NO_SAMPLE=1` turns it off). Look for the main thread: that is where the time outside the app's own code goes |
+
+A stall is a gap in which the UI asked to be drawn again and no frame began within
+`VIZCRAFT_TRACE_STALL_MS` (default 100; `0` turns the watchdog off). A watchdog thread notices it
+and starts the stack capture; the next frame closes it with the span tree and repaint causes of
+the frame before, and the input kinds of the frame after. A frame that arrives carrying more than
+four pointer moves is a stall too (`pileup`): the pointer kept moving while no frame ran. Each
+stall says what woke the frame after it (`wake`): `immediate` means the UI had asked for a frame
+at once and it came late, which is a real stall; `external` means something outside the UI
+thread woke the app (a control-channel request, a native menu event, a Finder open request; each
+leaves a note), so the gap was somebody else's pause; `timer` means a delayed repaint request (a tooltip
+delay, the status bar's one-second timer), whose delay egui does not disclose, so the gap may
+have been a legitimate wait. `stalls.unconfirmed` counts everything but `immediate`, and only
+`immediate` gaps feed `frameGapPendingMs`.
 
 Spans cover each command (`cmd <id>`) and its phases (document clone and compare, model sync,
 theme follow-up, page auto-size, connector rerouting, undo record, issue refresh), the window
-sections (title bar, ribbon, panes one by one, canvas, dialogs) and the canvas phases (drag
+sections (title bar, ribbon, panes one by one, canvas, dialogs), the canvas phases (drag
 preview, grid, background pages, shapes, connector geometry with line jumps, connectors,
-overlays, rulers). `eframe.previousFrameCpu` is eframe's own measure of layout, tessellation and
-paint, which the spans cannot see. Tracing is off unless asked for and costs one atomic load per
-span when off (`vizcraft_engine::trace`).
+overlays, rulers) and the host calls that block the UI thread (`blocking.pickOpen`,
+`blocking.pickSave`, `blocking.print`). `eframe.previousFrameCpu` is eframe's own measure of
+layout, tessellation and paint, which the spans cannot see; it leaves out the wait for the GPU
+surface, which only the gap statistics and the stall captures show. Tracing is off unless asked
+for and costs one atomic load per span when off (`vizcraft_engine::trace`).
+
+### Running a lag test
+
+1. Build and run the release binary: `cargo run --release -p vizcraft -- --sample --trace`. The
+   summary's `session.debugAssertions` must read `false`; a debug build lags on its own.
+2. Leave the control channel off, or accept that its requests show as `notes` and its input as
+   `synthetic`, so a scripted run is never mistaken for a person.
+3. When it lags, press Cmd+Shift+M, then keep moving the pointer for a second: the queued moves
+   turn the lag into a `pileup` stall with the frame before it attached.
+4. Quit normally so the trace is closed. Read `longestStalls` first, then the `-stall-<n>.txt`
+   capture named by a confirmed stall, then `frameGapPendingMs` against `frameMs`.
 
 ## Parallel-agent etiquette
 

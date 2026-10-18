@@ -75,7 +75,11 @@ fn answer(line: &str, tx: &Sender<ControlRequest>, ctx: &egui::Context) -> Optio
         // The app dropped the channel: it is quitting.
         return None;
     }
-    // The UI thread only runs when something asks it to.
+    // The UI thread only runs when something asks it to. The note goes first, so the trace knows
+    // the frame it wakes was asked for from here and not late on its own account.
+    if vizcraft_engine::trace::enabled() {
+        vizcraft_engine::trace::note(&format!("control: {method}"));
+    }
     ctx.request_repaint();
     let r = rrx.recv_timeout(REPLY_TIMEOUT).unwrap_or_else(|_| json!({"ok": false, "error": "timeout"}));
     Some(with_id(r))

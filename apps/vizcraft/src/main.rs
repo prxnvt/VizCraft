@@ -15,10 +15,13 @@
 //! spare monitor (`--window-pos -2500,100`) without moving them afterwards.
 //!
 //! `--trace` (or `VIZCRAFT_TRACE=1`) records a performance trace (frame times, every command and
-//! its model sync, routing and undo work, UI sections, repaint causes, memory) into `traces/` at
-//! the top of the source tree, or `VIZCRAFT_TRACE_DIR`. Frames slower than
-//! `VIZCRAFT_TRACE_DETAIL_MS` (default 8) keep their nested spans. F12 (`ui.traceMark`) marks the
-//! moment. See `vizcraft_engine::trace`.
+//! its model sync, routing and undo work, UI sections, repaint causes, input by kind, stalls
+//! between frames with native stack captures, memory) into `traces/` at the top of the source
+//! tree, or `VIZCRAFT_TRACE_DIR`. Frames slower than `VIZCRAFT_TRACE_DETAIL_MS` (default 8) keep
+//! their nested spans; a pending repaint that no frame answers within `VIZCRAFT_TRACE_STALL_MS`
+//! (default 100) is a stall, sampled with the system `sample` tool unless
+//! `VIZCRAFT_TRACE_NO_SAMPLE` is set. Cmd+Shift+M (`ui.traceMark`) marks the moment. See
+//! `vizcraft_engine::trace` and `docs/testing.md`.
 //!
 //! Several document windows live in one process (`windows.rs`); on macOS the menu bar is native
 //! (`native_menu.rs`) and Finder's open requests arrive through `vizcraft-macos-open`.
@@ -32,7 +35,7 @@ mod print;
 mod windows;
 
 use vizcraft_engine::Session;
-use vizcraft_ui_egui::{CraftApp, Services, UiState, window_geometry::WindowGeometry};
+use vizcraft_ui_egui::{CraftApp, Services, UiState, ViewportCmdExt, window_geometry::WindowGeometry};
 
 /// The app: the first window's document, the restored window geometry until the first frame has
 /// checked it against the monitors, the other document windows, and (macOS) the native menu bar
@@ -51,6 +54,35 @@ struct App {
     prev_cpu: Option<f32>,
     /// When memory was last sampled for the trace.
     mem_sampled: Option<std::time::Instant>,
+    /// Frames seen by the trace (display facts are recorded once they have settled).
+    trace_frames: u64,
+}
+
+/// This frame's input events counted by kind for the trace (`pointerMoved`, `key`, ...), without
+/// the zero counts. More pointer moves than a display refresh can carry means the frame was late.
+fn input_kinds(events: &[egui::Event]) -> serde_json::Value {
+    let mut counts: std::collections::BTreeMap<&'static str, u64> = std::collections::BTreeMap::new();
+    for e in events {
+        let kind = match e {
+            egui::Event::PointerMoved(_) => "pointerMoved",
+            egui::Event::MouseMoved(_) => "mouseMoved",
+            egui::Event::PointerButton { .. } => "pointerButton",
+            egui::Event::PointerGone => "pointerGone",
+            egui::Event::MouseWheel { .. } => "scroll",
+            egui::Event::Zoom(_) | egui::Event::Rotate(_) => "zoom",
+            egui::Event::Key { .. } => "key",
+            egui::Event::Text(_) => "text",
+            egui::Event::ModifiersChanged(_) => "modifiers",
+            egui::Event::Copy | egui::Event::Cut | egui::Event::Paste(_) => "clipboard",
+            egui::Event::WindowFocused(_) => "focus",
+            egui::Event::Ime(_) => "ime",
+            egui::Event::Touch { .. } => "touch",
+            egui::Event::Screenshot { .. } => "screenshot",
+            _ => "other",
+        };
+        *counts.entry(kind).or_default() += 1;
+    }
+    serde_json::json!(counts)
 }
 
 impl App {
@@ -72,11 +104,29 @@ impl App {
             // Layout, tessellation and paint of the previous frame, which the spans do not see.
             trace::sample_ms("eframe.previousFrameCpu", f64::from(cpu) * 1000.0);
         }
-        let input = ctx.input(|i| i.raw.events.len());
+        let (input, kinds) = ctx.input(|i| (i.raw.events.len(), input_kinds(&i.raw.events)));
+        let windows = 1 + self.windows.apps_mut().count();
+        self.trace_frames += 1;
+        if self.trace_frames == 5 {
+            // Display facts, once egui's frame-interval prediction has settled.
+            let (dt, inner, monitor) = ctx.input(|i| (i.predicted_dt, i.viewport_rect().size(), i.viewport().monitor_size));
+            trace::session(serde_json::json!({
+                "pixelsPerPoint": ctx.pixels_per_point(),
+                "predictedDtMs": (f64::from(dt) * 1e5).round() / 100.0,
+                "innerSize": [inner.x, inner.y],
+                "monitorSize": monitor.map(|m| [m.x, m.y]),
+                "windows": windows,
+            }));
+        }
         trace::frame_end(serde_json::json!({
             "input": input,
+            "inputKinds": kinds,
+            "synthetic": self.root.synthetic_injected(),
+            // The UI asked to be drawn again: the next gap is a wait on eframe and the platform,
+            // not on the user.
+            "repaintPending": ctx.has_requested_repaint(),
             "prevCpuMs": self.prev_cpu.map(|s| (f64::from(s) * 1e5).round() / 100.0),
-            "windows": 1 + self.windows.apps_mut().count(),
+            "windows": windows,
         }));
         let now = std::time::Instant::now();
         if self.mem_sampled.is_some_and(|t| now.saturating_duration_since(t) < std::time::Duration::from_secs(1)) {
@@ -168,7 +218,9 @@ impl App {
 
 impl eframe::App for App {
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        vizcraft_engine::trace::frame_begin();
+        // Whether the last frame asked for an immediate repaint decides if the gap before this
+        // one was a wait on the platform or on the user.
+        vizcraft_engine::trace::frame_begin(Some(ctx.requested_repaint_last_pass()));
         let _t = vizcraft_engine::trace::span("app.logic");
         let mut quit = false;
         #[cfg(target_os = "macos")]
@@ -184,7 +236,7 @@ impl eframe::App for App {
         let prev = self.root.ui.window;
         self.root.ui.window = ctx.input(|i| WindowGeometry::track(prev, i.viewport(), i.viewport_rect().size()));
         if let Some(pos) = self.restored.take().and_then(|g| ctx.input(|i| g.rescue_position(i.viewport()))) {
-            ctx.send_viewport_cmd(egui::ViewportCommand::OuterPosition(pos));
+            ctx.viewport_cmd(egui::ViewportCommand::OuterPosition(pos));
         }
         // Requests made by the menu run above or the root window this frame.
         new_windows.extend(self.root.new_window_request.take());
@@ -275,10 +327,12 @@ fn save_prefs(app: &CraftApp) {
     }
 }
 
-/// Native file pickers.
+/// Native file pickers and printing. Each blocks the UI thread while it runs, so the trace
+/// records them as `blocking.*` spans: a long gap that is a file dialog is not a stall.
 fn services() -> Services {
     Services {
         pick_open: Some(Box::new(|purpose: &str| {
+            let _t = vizcraft_engine::trace::span("blocking.pickOpen");
             let dialog = if purpose == "import" {
                 rfd::FileDialog::new().add_filter("Diagrams to import", &["drawio", "xml", "mmd", "mermaid", "csv"])
             } else {
@@ -287,6 +341,7 @@ fn services() -> Services {
             dialog.add_filter("All files", &["*"]).pick_file().map(|p| p.to_string_lossy().to_string())
         })),
         pick_save: Some(Box::new(|name: &str| {
+            let _t = vizcraft_engine::trace::span("blocking.pickSave");
             let mut dialog = rfd::FileDialog::new().set_file_name(name);
             // Save As offers PDF next to the document formats; other saves (export) keep the
             // name they suggest.
@@ -298,7 +353,10 @@ fn services() -> Services {
             }
             dialog.save_file().map(|p| p.to_string_lossy().to_string())
         })),
-        print: Some(Box::new(print::send)),
+        print: Some(Box::new(|path: &str| {
+            let _t = vizcraft_engine::trace::span("blocking.print");
+            print::send(path)
+        })),
         ..Default::default()
     }
 }
@@ -334,8 +392,14 @@ fn start_trace() {
         let tree = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         if tree.join("Cargo.toml").is_file() { tree.join("traces") } else { std::path::PathBuf::from("traces") }
     });
-    let detail_ms = std::env::var("VIZCRAFT_TRACE_DETAIL_MS").ok().and_then(|v| v.parse().ok()).unwrap_or(8.0);
-    match vizcraft_engine::trace::start(&dir, detail_ms) {
+    let env_ms = |name: &str, default: f64| std::env::var(name).ok().and_then(|v| v.parse().ok()).unwrap_or(default);
+    let options = vizcraft_engine::trace::Options {
+        detail_ms: env_ms("VIZCRAFT_TRACE_DETAIL_MS", 8.0),
+        stall_ms: env_ms("VIZCRAFT_TRACE_STALL_MS", 100.0),
+        sample_stalls: std::env::var_os("VIZCRAFT_TRACE_NO_SAMPLE").is_none(),
+        ..Default::default()
+    };
+    match vizcraft_engine::trace::start(&dir, options) {
         Ok(path) => eprintln!("vizcraft: tracing to {}", path.display()),
         Err(e) => eprintln!("vizcraft: could not start the trace: {e}"),
     }
@@ -380,15 +444,49 @@ fn main() -> eframe::Result {
     if trace {
         start_trace();
     }
+    let present_mode = format!("{:?}", options.wgpu_options.surface.present_mode);
+    let frame_latency = options.wgpu_options.surface.desired_maximum_frame_latency;
+    let n_files = files.len();
     vizcraft_macos_open::install();
     eframe::run_native(
         "VizCraft",
         options,
         Box::new(move |cc| {
+            if vizcraft_engine::trace::enabled() {
+                // What this run is: build, GPU and surface, flags. The display facts follow once
+                // frames run (`trace_frame_end`).
+                let adapter = cc.wgpu_render_state.as_ref().map(|rs| {
+                    let info = rs.adapter.get_info();
+                    serde_json::json!({
+                        "name": info.name,
+                        "backend": format!("{:?}", info.backend),
+                        "deviceType": format!("{:?}", info.device_type),
+                        "driver": info.driver,
+                        "driverInfo": info.driver_info,
+                    })
+                });
+                vizcraft_engine::trace::session(serde_json::json!({
+                    "app": env!("CARGO_PKG_VERSION"),
+                    "commit": env!("VIZCRAFT_GIT_COMMIT"),
+                    "debugAssertions": cfg!(debug_assertions),
+                    "os": std::env::consts::OS,
+                    "arch": std::env::consts::ARCH,
+                    "adapter": adapter,
+                    "presentMode": present_mode,
+                    "desiredMaximumFrameLatency": frame_latency,
+                    "controlPort": control_port,
+                    "inWindowMenus": in_window_menus,
+                    "sampleDocument": sample,
+                    "filesOnCommandLine": n_files,
+                }));
+            }
             let doc = if sample { vizcraft_engine::sample::sample_document() } else { vizcraft_engine::Document::new() };
             {
                 let ctx = cc.egui_ctx.clone();
-                vizcraft_macos_open::set_waker(move || ctx.request_repaint());
+                vizcraft_macos_open::set_waker(move || {
+                    vizcraft_engine::trace::note("open: request");
+                    ctx.request_repaint();
+                });
             }
             let mut app = CraftApp::new(Session::new(doc), services());
             load_prefs(&mut app);
@@ -420,6 +518,7 @@ fn main() -> eframe::Result {
                 in_window_menus,
                 prev_cpu: None,
                 mem_sampled: None,
+                trace_frames: 0,
             }))
         }),
     )

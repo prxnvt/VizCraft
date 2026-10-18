@@ -98,7 +98,8 @@ impl NativeMenu {
         let ctx = ctx.clone();
         MenuEvent::set_event_handler(Some(move |e: MenuEvent| {
             let _ = tx.send(e);
-            // The UI thread only runs when something asks it to.
+            // The UI thread only runs when something asks it to; the trace is told who asked.
+            vizcraft_engine::trace::note("menu: event");
             ctx.request_repaint();
         }));
         let mut m = NativeMenu { _menu: Menu::new(), bound: Vec::new(), tree: Vec::new(), events: rx };

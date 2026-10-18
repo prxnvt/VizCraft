@@ -7,7 +7,7 @@
 //! window with unsaved changes in turn; Cancel on any of them stops quitting.
 
 use egui::{Pos2, Rect, Vec2, ViewportBuilder, ViewportCommand, ViewportId, vec2};
-use vizcraft_ui_egui::CraftApp;
+use vizcraft_ui_egui::{CraftApp, ViewportCmdExt};
 
 /// How far a new window sits from the one in front, in points, right and down.
 pub const CASCADE: f32 = 28.0;
@@ -118,7 +118,7 @@ impl Windows {
     /// Close the window in front the way its close button does, so unsaved changes are asked about.
     pub fn close_front(&self, ctx: &egui::Context) {
         let id = self.focused.filter(|f| self.extras.iter().any(|e| e.id == *f && !e.closed)).unwrap_or(ViewportId::ROOT);
-        ctx.send_viewport_cmd_to(id, ViewportCommand::Close);
+        ctx.viewport_cmd_to(id, ViewportCommand::Close);
     }
 
     /// Requests the other windows made during the last frame: (new window templates, quit wanted).
@@ -151,20 +151,20 @@ impl Windows {
                 self.extras.clear();
             }
             root.quit_requested = false;
-            ctx.send_viewport_cmd(ViewportCommand::Close);
+            ctx.viewport_cmd(ViewportCommand::Close);
         }
         let root_closing = ctx.input(|i| i.viewport().close_requested()) && !root.has_unsaved();
         if root_closing && self.extras.iter().any(|e| !e.closed) {
             // Ending the root viewport would end the app: keep it, and (unless quitting) give it
             // the next window's document, where that window was.
-            ctx.send_viewport_cmd(ViewportCommand::CancelClose);
+            ctx.viewport_cmd(ViewportCommand::CancelClose);
             if !self.quitting
                 && let Some(i) = self.extras.iter().position(|e| !e.closed)
             {
                 let e = self.extras.remove(i);
                 if let Some(r) = e.outer {
-                    ctx.send_viewport_cmd(ViewportCommand::OuterPosition(r.min));
-                    ctx.send_viewport_cmd(ViewportCommand::InnerSize(r.size()));
+                    ctx.viewport_cmd(ViewportCommand::OuterPosition(r.min));
+                    ctx.viewport_cmd(ViewportCommand::InnerSize(r.size()));
                 }
                 // The control channel belongs to the app, not to a window: keep it.
                 let control = root.take_control();
@@ -207,14 +207,14 @@ impl Windows {
                 } else if let Some(e) = self.extras.iter_mut().find(|e| e.id == id) {
                     e.app.ask_before_closing();
                 }
-                ctx.send_viewport_cmd_to(id, ViewportCommand::Focus);
+                ctx.viewport_cmd_to(id, ViewportCommand::Focus);
                 self.asked = Some(id);
             }
             QuitStep::Finish => {
                 // Everything saved or discarded: end the app.
                 self.extras.clear();
                 root.quit_confirmed = true;
-                ctx.send_viewport_cmd_to(ViewportId::ROOT, ViewportCommand::Close);
+                ctx.viewport_cmd_to(ViewportId::ROOT, ViewportCommand::Close);
             }
         }
     }
@@ -230,7 +230,7 @@ impl Windows {
                 e.app.logic(&ctx);
                 if e.app.quit_requested {
                     e.app.quit_requested = false;
-                    ctx.send_viewport_cmd(ViewportCommand::Close);
+                    ctx.viewport_cmd(ViewportCommand::Close);
                 }
                 e.app.ui(ui);
                 let (has_focus, outer, close) =
