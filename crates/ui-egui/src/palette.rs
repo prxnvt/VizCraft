@@ -1,0 +1,306 @@
+//! The scoped palette's content, without any drawing: which groups of shapes and connector kinds
+//! the Palette pane and the notation tab offer for the active page.
+//!
+//! A page with a view (a viewpoint of some pack) shows that pack's palette groups first, with the
+//! types filtered by the viewpoint unless the filter is switched off, then a Connectors group
+//! (the pack's connector kinds, then the Basic ones) and a Drawing group of the Basic primitives.
+//! A page with no view lists every pack's groups, each pack closed under its name, and Drawing
+//! open. Everything is read from the notation catalog each time, so a pack loaded at run time
+//! appears at once.
+
+use serde_json::{Value, json};
+use vizcraft_notation::{Catalog, ConnectorType, Pack, Viewpoint};
+use vizcraft_stencils::Master;
+
+use crate::CraftApp;
+
+/// What a palette row inserts or selects.
+#[derive(Clone, Copy)]
+pub enum What {
+    /// A stencil master: inserted on the page.
+    Master(&'static Master),
+    /// A connector kind: sets the connector tool's kind.
+    Kind(&'static ConnectorType),
+}
+
+/// One row of the palette.
+#[derive(Clone)]
+pub struct Item {
+    /// The master id or connector kind id.
+    pub id: &'static str,
+    /// The element type the master stands for in the pack, when it has one.
+    pub type_id: Option<&'static str>,
+    /// Shown text.
+    pub label: String,
+    /// What the row does.
+    pub what: What,
+    /// Lowercased words searched besides the label and id.
+    keywords: Vec<String>,
+}
+
+/// A titled group of rows.
+#[derive(Clone)]
+pub struct Group {
+    /// Stable id: the pack's palette group id (`flowchart.steps`), `connectors` or `drawing`.
+    pub id: String,
+    /// Heading.
+    pub label: String,
+    /// The rows, in order.
+    pub items: Vec<Item>,
+    /// Whether the rows are shown as a tile grid (the Drawing group) rather than a list.
+    pub tiles: bool,
+}
+
+/// Groups shown together: a pack under its name when the page has no view, or the unnamed whole
+/// scope when it has one.
+#[derive(Clone)]
+pub struct Section {
+    /// Stable id: the pack id, `scope` or `drawing`.
+    pub id: String,
+    /// The pack's name; `None` for a section whose groups stand on their own.
+    pub label: Option<String>,
+    /// The groups, in order.
+    pub groups: Vec<Group>,
+    /// Whether a named section starts open.
+    pub open: bool,
+}
+
+/// The palette for one page.
+#[derive(Clone)]
+pub struct Palette {
+    /// The viewpoint the page shows, when it shows one the catalog knows.
+    pub viewpoint: Option<String>,
+    /// The sections, top to bottom.
+    pub sections: Vec<Section>,
+}
+
+/// The viewpoint id of the active page, if its view names one.
+pub fn active_viewpoint(app: &CraftApp) -> Option<&str> {
+    app.session.doc.page().and_then(|p| p.view.as_ref()).map(|v| v.viewpoint.as_str()).filter(|v| !v.is_empty())
+}
+
+fn words_of(text: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut cur = String::new();
+    let mut prev_lower = false;
+    for c in text.chars() {
+        if !c.is_alphanumeric() {
+            if !cur.is_empty() {
+                out.push(std::mem::take(&mut cur));
+            }
+            prev_lower = false;
+            continue;
+        }
+        if c.is_uppercase() && prev_lower && !cur.is_empty() {
+            out.push(std::mem::take(&mut cur));
+        }
+        prev_lower = c.is_lowercase() || c.is_numeric();
+        cur.extend(c.to_lowercase());
+    }
+    if !cur.is_empty() {
+        out.push(cur);
+    }
+    out
+}
+
+fn master_item(cat: &'static Catalog, m: &'static Master, label: Option<&str>) -> Item {
+    let type_id = cat.type_for_master(m.id);
+    let mut keywords: Vec<String> = m.keywords.iter().flat_map(|k| words_of(k)).collect();
+    keywords.extend(words_of(m.category));
+    Item { id: m.id, type_id, label: label.filter(|l| !l.is_empty()).unwrap_or(m.label).to_string(), what: What::Master(m), keywords }
+}
+
+fn kind_item(t: &'static ConnectorType) -> Item {
+    let mut keywords: Vec<String> = t.keywords.iter().flat_map(|k| words_of(k)).collect();
+    keywords.extend(words_of(&t.category));
+    Item { id: t.id.as_str(), type_id: None, label: t.label.clone(), what: What::Kind(t), keywords }
+}
+
+/// The pack's palette groups. With a viewpoint, a type it does not list is left out (`*` lists
+/// every type of the pack, an empty list any type), and a group left empty is dropped.
+fn pack_groups(cat: &'static Catalog, pack: &'static Pack, vp: Option<&Viewpoint>) -> Vec<Group> {
+    let mut out = Vec::new();
+    for g in &pack.palette {
+        let mut items = Vec::new();
+        for t in &g.types {
+            if vp.is_some_and(|v| !v.types.is_empty() && !pack.lists(&v.types, t)) {
+                continue;
+            }
+            let Some(m) = cat.master_for_type(t).and_then(vizcraft_stencils::master) else { continue };
+            let label = cat.element_type(t).map(|(_, e)| e.label.as_str());
+            items.push(master_item(cat, m, label));
+        }
+        for gl in &g.glyphs {
+            if let Some(m) = vizcraft_stencils::master(gl) {
+                items.push(master_item(cat, m, None));
+            }
+        }
+        if !items.is_empty() {
+            out.push(Group { id: g.id.clone(), label: g.label.clone(), items, tiles: false });
+        }
+    }
+    out
+}
+
+/// The pack's connector kinds, then the Basic ones, each once.
+fn connector_group(cat: &'static Catalog, pack: Option<&'static Pack>) -> Option<Group> {
+    let mut items: Vec<Item> = Vec::new();
+    for p in pack.into_iter().chain(cat.pack("basic")) {
+        for t in &p.connector_types {
+            if !items.iter().any(|i| i.id == t.id) {
+                items.push(kind_item(t));
+            }
+        }
+    }
+    (!items.is_empty()).then(|| Group { id: "connectors".into(), label: "Connectors".into(), items, tiles: false })
+}
+
+/// The Basic primitives as a tile grid.
+fn drawing_group(cat: &'static Catalog) -> Option<Group> {
+    let pack = cat.pack("basic")?;
+    let items: Vec<Item> = pack.glyphs.iter().filter_map(|g| vizcraft_stencils::master(&g.id)).map(|m| master_item(cat, m, None)).collect();
+    (!items.is_empty()).then(|| Group { id: "drawing".into(), label: "Drawing".into(), items, tiles: true })
+}
+
+/// The palette for a page showing `viewpoint` (or no view), with the viewpoint filter on or off.
+pub fn build(viewpoint: Option<&str>, filter: bool) -> Palette {
+    let cat = vizcraft_notation::catalog();
+    let known = viewpoint.and_then(|v| cat.pack(v.split_once('.').map_or("", |(p, _)| p)).and_then(|p| p.viewpoint(v).map(|vp| (p, vp))));
+    let mut sections = Vec::new();
+    if let Some((pack, vp)) = known {
+        let mut groups = if pack.id == "basic" { Vec::new() } else { pack_groups(cat, pack, filter.then_some(vp)) };
+        groups.extend(connector_group(cat, Some(pack)));
+        groups.extend(drawing_group(cat));
+        sections.push(Section { id: "scope".into(), label: None, groups, open: true });
+    } else {
+        for pack in cat.packs().iter().filter(|p| p.id != "basic") {
+            let mut groups = pack_groups(cat, pack, None);
+            let kinds = pack.connector_types.iter().map(kind_item).collect::<Vec<_>>();
+            if !kinds.is_empty() {
+                groups.push(Group { id: format!("{}.connectors", pack.id), label: "Connectors".into(), items: kinds, tiles: false });
+            }
+            if !groups.is_empty() {
+                sections.push(Section { id: pack.id.clone(), label: Some(pack.name.clone()), groups, open: false });
+            }
+        }
+        if let Some(d) = drawing_group(cat) {
+            sections.push(Section { id: "drawing".into(), label: None, groups: vec![d], open: true });
+        }
+    }
+    Palette { viewpoint: known.map(|(_, vp)| vp.id.clone()), sections }
+}
+
+/// The palette for the active page of `app`.
+pub fn for_app(app: &CraftApp) -> Palette {
+    build(active_viewpoint(app), app.palette_filter)
+}
+
+impl Palette {
+    /// Every group, in order.
+    pub fn groups(&self) -> impl Iterator<Item = &Group> {
+        self.sections.iter().flat_map(|s| s.groups.iter())
+    }
+
+    /// The rows matching `query` (every word must match), best first: the whole label or id, then
+    /// word prefixes of the label or id, then keywords, then substrings; ties keep palette order.
+    /// A row offered twice appears once.
+    pub fn search(&self, query: &str) -> Vec<&Item> {
+        let q: Vec<String> = words_of(&query.chars().take(256).collect::<String>()).into_iter().take(16).collect();
+        if q.is_empty() {
+            return Vec::new();
+        }
+        let whole = q.join(" ");
+        let mut hits: Vec<(u8, usize, &Item)> = Vec::new();
+        for (n, item) in self.groups().flat_map(|g| g.items.iter()).enumerate() {
+            if hits.iter().any(|(_, _, h)| h.id == item.id) {
+                continue;
+            }
+            let names: Vec<String> = words_of(&item.label).into_iter().chain(words_of(item.id)).collect();
+            let hay = format!("{} {} {}", item.label.to_lowercase(), item.id.to_lowercase(), item.keywords.join(" "));
+            let mut worst = 0u8;
+            let mut all = true;
+            for w in &q {
+                let tier = if names.iter().any(|x| x.starts_with(w.as_str())) {
+                    1
+                } else if item.keywords.iter().any(|x| x.starts_with(w.as_str())) {
+                    2
+                } else if hay.contains(w.as_str()) {
+                    3
+                } else {
+                    all = false;
+                    break;
+                };
+                worst = worst.max(tier);
+            }
+            if !all {
+                continue;
+            }
+            if words_of(&item.label).join(" ") == whole || words_of(item.id).join(" ") == whole {
+                worst = 0;
+            }
+            hits.push((worst, n, item));
+        }
+        hits.sort_by_key(|(t, n, _)| (*t, *n));
+        hits.into_iter().map(|(_, _, i)| i).collect()
+    }
+
+    /// The `palette` part of `ui.inspect`: the viewpoint, the filter, the search text and every
+    /// group with the ids of its rows.
+    pub fn report(&self, app: &CraftApp) -> Value {
+        let groups: Vec<Value> = self
+            .sections
+            .iter()
+            .flat_map(|s| {
+                s.groups.iter().map(move |g| {
+                    json!({"id": g.id, "label": g.label, "section": s.id, "pack": s.label,
+                        "items": g.items.iter().map(|i| i.id).collect::<Vec<_>>()})
+                })
+            })
+            .collect();
+        json!({
+            "viewpoint": self.viewpoint,
+            "viewpointFilter": app.palette_filter,
+            "query": app.shapes_query,
+            "connectorKind": app.connector_kind,
+            "groups": groups,
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn labels(p: &Palette) -> Vec<&str> {
+        p.groups().map(|g| g.label.as_str()).collect()
+    }
+
+    #[test]
+    fn a_flowchart_view_lists_steps_data_links_connectors_drawing() {
+        let p = build(Some("flowchart.Flowchart"), true);
+        assert_eq!(labels(&p), ["Steps", "Data", "Links", "Connectors", "Drawing"]);
+        let kinds: Vec<&str> = p.groups().find(|g| g.id == "connectors").unwrap().items.iter().map(|i| i.id).collect();
+        assert_eq!(kinds[0], "flowchart.flow");
+        assert!(kinds.contains(&"basic.arrow"));
+        assert!(p.groups().find(|g| g.id == "drawing").unwrap().tiles);
+    }
+
+    #[test]
+    fn no_view_lists_every_pack_closed_and_drawing_open() {
+        let p = build(None, true);
+        let flow = p.sections.iter().find(|s| s.id == "flowchart").unwrap();
+        assert!(!flow.open && flow.label.as_deref() == Some("Flowchart"));
+        let last = p.sections.last().unwrap();
+        assert!(last.open && last.label.is_none() && last.groups[0].id == "drawing");
+    }
+
+    #[test]
+    fn search_ranks_the_exact_label_first_and_finds_kinds() {
+        let p = build(Some("flowchart.Flowchart"), true);
+        let ids: Vec<&str> = p.search("decision").iter().map(|i| i.id).collect();
+        assert_eq!(ids.first(), Some(&"flowchart.decision"));
+        assert!(p.search("flow").iter().any(|i| i.id == "flowchart.flow"));
+        assert!(p.search("cloud").iter().any(|i| i.id == "basic.cloud"), "Drawing masters are searched");
+        assert!(p.search("").is_empty() && p.search("zzzzqq").is_empty());
+    }
+}

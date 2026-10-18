@@ -9,6 +9,7 @@
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
 pub mod backstage;
+pub mod breadcrumbs;
 pub mod canvas;
 pub mod chrome;
 pub mod control;
@@ -20,6 +21,7 @@ pub mod keys;
 pub mod menus;
 pub mod page_setup;
 pub mod page_tabs;
+pub mod palette;
 pub mod panes;
 pub mod paste_special;
 pub mod print_preview;
@@ -97,6 +99,12 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.collapsePanes", "Collapse Side Panes", "", r#"{"side": "left|right", "value"?: bool}"#),
     ("ui.panesReset", "Reset Panes", "", "{}"),
     ("ui.shapesSearch", "Search Shapes Pane", "", r#"{"query": string} -> {"query", "results": [master id]}"#),
+    (
+        "ui.palette",
+        "Palette",
+        "",
+        r#"{"query"?: string, "group"?: group id or label (opens it), "viewpointFilter"?: bool} -> the palette as ui.inspect reports it: {"viewpoint", "viewpointFilter", "query", "connectorKind", "groups": [{"id", "label", "section", "pack", "items": [ids]}]}"#,
+    ),
     ("ui.clearRecent", "Clear Recent Files", "", "{}"),
     ("ui.shortcuts", "Keyboard Shortcuts", "Mod+/", "{}"),
     ("ui.print", "Print", "Mod+P", "{}"),
@@ -104,7 +112,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "ui.tool",
         "Tool",
         "",
-        r#"{"tool": "pointer|area|lasso|connector|text|textBlock|formatPainter", "from"?: id, "keep"?: bool}; area is the pointer's marquee; formatPainter copies from "from" (default: the primary selection), once unless "keep""#,
+        r#"{"tool": "pointer|area|lasso|connector|text|textBlock|formatPainter", "from"?: id, "keep"?: bool, "kind"?: connector kind id}; kind makes the connector tool draw that kind (any other tool or no kind clears it); area is the pointer's marquee; formatPainter copies from "from" (default: the primary selection), once unless "keep""#,
     ),
     ("ui.find", "Find", "Mod+F", "{}"),
     ("window.minimize", "Minimize", "", "{}"),
@@ -256,6 +264,13 @@ pub struct CraftApp {
     /// Text in the Shapes pane's search field (`ui.shapesSearch`). Transient: not in [`UiState`],
     /// so it is never saved with the preferences.
     pub shapes_query: String,
+    /// The connector kind the connector tool draws (`ui.tool {tool: "connector", kind}`); empty
+    /// is the default kind.
+    pub connector_kind: String,
+    /// Whether the palette hides types outside the page's viewpoint (`ui.palette`).
+    pub palette_filter: bool,
+    /// A palette group to open on the next frame (`ui.palette {group}`).
+    pub palette_focus: Option<String>,
     /// The File page is showing instead of the document.
     backstage: bool,
     control_rx: Option<Receiver<ControlRequest>>,
@@ -297,6 +312,9 @@ impl CraftApp {
             tool: Tool::Pointer,
             canvas: canvas::CanvasState::default(),
             shapes_query: String::new(),
+            connector_kind: String::new(),
+            palette_filter: true,
+            palette_focus: None,
             backstage: false,
             control_rx: None,
             shot_token: 0,
@@ -479,7 +497,14 @@ impl CraftApp {
                 } else {
                     self.canvas.painter_from = None;
                 }
-                json!({"tool": self.tool.name()})
+                self.connector_kind.clear();
+                if let (Tool::Connector, Some(k)) = (self.tool, s("kind")) {
+                    if !vizcraft_notation::catalog().packs().iter().any(|p| p.connector_type(k).is_some()) {
+                        return Some(Err(format!("unknown connector kind `{}`", k.chars().take(64).collect::<String>())));
+                    }
+                    self.connector_kind = k.to_string();
+                }
+                json!({"tool": self.tool.name(), "kind": self.connector_kind})
             }
             "ui.tab" => {
                 let tab = s("tab").unwrap_or("Home");

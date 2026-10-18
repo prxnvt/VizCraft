@@ -263,7 +263,7 @@ pub fn insert_point(app: &CraftApp) -> dg::Point {
 pub fn show(app: &mut CraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     // The page tab strip takes the bottom edge; rulers and the canvas share the rest.
-    let full = ui.available_rect_before_wrap();
+    let full = crate::breadcrumbs::show(app, ui, ui.available_rect_before_wrap());
     let strip_h = crate::page_tabs::STRIP_H.min(full.height());
     {
         let _t = vizcraft_engine::trace::span("canvas.pageTabs");

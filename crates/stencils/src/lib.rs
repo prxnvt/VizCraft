@@ -15,7 +15,7 @@
 mod connectors;
 mod search;
 
-use std::sync::OnceLock;
+use std::sync::{Mutex, PoisonError};
 
 use vizcraft_diagram::{Color, Shape, ShapeKind, Style};
 use vizcraft_notation::{Catalog, Glyph, Pack};
@@ -56,15 +56,36 @@ pub struct StencilSet {
     pub masters: &'static [Master],
 }
 
-/// The stencil sets built from the catalog's glyphs, once per process.
+/// The sets built from one catalog, with the address of that catalog (identity, never read through).
+type Cached = (usize, &'static [StencilSet]);
+
+/// The stencil sets built from the catalog's glyphs. They are rebuilt when the catalog is not the
+/// one they were built from (a pack was loaded), so a pack added at run time shows up in the
+/// palette and in the catalog listing. The catalog replaces itself at most
+/// a fixed number of times, so the strings leaked by the rebuilds are bounded.
 fn built() -> &'static [StencilSet] {
-    static SETS: OnceLock<&'static [StencilSet]> = OnceLock::new();
-    SETS.get_or_init(|| build(vizcraft_notation::catalog()))
+    static SETS: Mutex<Option<Cached>> = Mutex::new(None);
+    let cat = vizcraft_notation::catalog();
+    let key = std::ptr::from_ref(cat) as usize;
+    let mut slot = SETS.lock().unwrap_or_else(PoisonError::into_inner);
+    match *slot {
+        Some((k, sets)) if k == key => sets,
+        _ => {
+            let sets = build(cat);
+            *slot = Some((key, sets));
+            sets
+        }
+    }
+}
+
+/// An identity for the catalog the sets were built from: changes whenever a pack is loaded.
+pub fn catalog_stamp() -> usize {
+    std::ptr::from_ref(vizcraft_notation::catalog()) as usize
 }
 
 /// One stencil set per pack that has glyphs, in catalog order. The strings are leaked once so
-/// the public API can keep handing out `&'static` data; this runs once per process (see
-/// [`built`]) and the built-in packs are small, so the leak is bounded.
+/// the public API can keep handing out `&'static` data; this runs once per catalog (see
+/// [`built`]) and the packs are small, so the leak is bounded.
 fn build(cat: &Catalog) -> &'static [StencilSet] {
     let sets: Vec<StencilSet> = cat.packs().iter().filter(|p| !p.glyphs.is_empty()).map(set_from_pack).collect();
     sets.leak()

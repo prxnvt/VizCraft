@@ -378,6 +378,9 @@ fn shapes_pane_click_inserts_in_view() {
 #[test]
 fn shapes_pane_drag_drops_at_the_pointer() {
     let mut h = harness();
+    // The flowchart pack is closed under its name while the page has no view.
+    h.state_mut().run("ui.palette", json!({"group": "flowchart"})).unwrap();
+    h.run_steps(3);
     let tile = h.get_by_label("Decision").rect().center();
     let drop = screen(&h, Point::new(250.0, 600.0));
     h.event(Event::PointerMoved(tile));

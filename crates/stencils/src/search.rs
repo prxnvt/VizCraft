@@ -1,4 +1,4 @@
-//! Ranked master search over a keyword index built once.
+//! Ranked master search over a keyword index, rebuilt when the catalog changes.
 //!
 //! The index reads the catalog only through [`crate::sets`] and the public [`Master`] fields, so
 //! it works whatever builds the masters. Each master gets its lowercased id, label, the words of
@@ -6,7 +6,7 @@
 //! query word matches it somewhere; matches rank in tiers (see [`Tier`]) and ties keep catalog
 //! order, so the Shapes pane and `shape.search` show the most likely master first.
 
-use std::sync::OnceLock;
+use std::sync::{Mutex, PoisonError};
 
 use crate::Master;
 
@@ -82,10 +82,20 @@ fn entry(set_name: &str, m: &'static Master) -> Entry {
     Entry { master: m, exact: [id, label, name], names, keywords, hay }
 }
 
-/// The index, built on first use.
+/// The index, rebuilt when the stencil sets are (a pack was loaded).
 fn index() -> &'static [Entry] {
-    static INDEX: OnceLock<Vec<Entry>> = OnceLock::new();
-    INDEX.get_or_init(|| crate::sets().iter().flat_map(|s| s.masters.iter().map(move |m| entry(s.name, m))).collect())
+    static INDEX: Mutex<Option<(usize, &'static [Entry])>> = Mutex::new(None);
+    let stamp = crate::catalog_stamp();
+    let mut slot = INDEX.lock().unwrap_or_else(PoisonError::into_inner);
+    match *slot {
+        Some((k, idx)) if k == stamp => idx,
+        _ => {
+            let idx: Vec<Entry> = crate::sets().iter().flat_map(|s| s.masters.iter().map(move |m| entry(s.name, m))).collect();
+            let idx: &'static [Entry] = idx.leak();
+            *slot = Some((stamp, idx));
+            idx
+        }
+    }
 }
 
 /// How one query word matches an entry, or `None` when it does not.

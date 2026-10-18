@@ -55,7 +55,7 @@ use crate::CraftApp;
 pub use layout::{DEFAULT_HEIGHT, GAP, HEADER_H, MAX_HEIGHT, MAX_WIDTH, MIN_HEIGHT, MIN_WIDTH, PaneLayout, STRIP_W};
 pub use manager::show;
 pub use shapes::MasterDrag;
-use shapes::shapes_search;
+use shapes::{palette_command, shapes_search};
 
 /// Which side of the window a pane sits on.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -236,6 +236,9 @@ pub fn ui_command(app: &mut CraftApp, id: &str, p: &Value) -> Option<Result<Valu
     };
     if id == "ui.shapesSearch" {
         return Some(Ok(shapes_search(app, p)));
+    }
+    if id == "ui.palette" {
+        return Some(Ok(palette_command(app, p)));
     }
     let r = match id {
         "ui.pane" => match s("name") {
