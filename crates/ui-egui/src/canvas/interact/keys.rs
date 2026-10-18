@@ -1,16 +1,28 @@
-//! Canvas keys: Escape and the arrow-key nudge.
+//! Canvas keys: Escape, the arrow-key nudge and Alt+Shift+Arrow, which types a chain of steps.
 
 use egui::{Key, Modifiers};
 use serde_json::json;
+
+use vizcraft_engine::suggest::Direction;
 
 use super::run;
 use crate::{CraftApp, menus};
 
 /// Canvas keys: Escape cancels a drag or clears the selection; arrows nudge the selection by one
-/// unit (ten with Shift) through `shape.move`. Nothing fires while a dialog, a menu or a text
-/// field has the keyboard.
+/// unit (ten with Shift) through `shape.move`; Alt+Shift+Arrow with one shape selected runs
+/// `insert.next` that way with the first suggestion, which selects the new shape, so the next
+/// press carries the chain on. Nothing fires while a dialog, a menu or a text field has the
+/// keyboard.
 pub fn keys(app: &mut CraftApp, ctx: &egui::Context) {
-    if app.dialog.is_some() || menus::is_open(ctx) || ctx.egui_wants_keyboard_input() || app.canvas.editing.is_some() || app.backstage_open() {
+    // The insert picker and the insertion popover own the keys while open.
+    let insertion_open = app.insertion.picker.is_some() || app.insertion.popover.is_some();
+    if app.dialog.is_some()
+        || menus::is_open(ctx)
+        || ctx.egui_wants_keyboard_input()
+        || app.canvas.editing.is_some()
+        || app.backstage_open()
+        || insertion_open
+    {
         return;
     }
     let presses: Vec<(Key, Modifiers)> = ctx.input(|i| {
@@ -24,6 +36,16 @@ pub fn keys(app: &mut CraftApp, ctx: &egui::Context) {
     });
     let (mut dx, mut dy) = (0.0, 0.0);
     for (key, m) in presses {
+        if m.alt
+            && m.shift
+            && !m.command
+            && !m.ctrl
+            && let Some(dir) = arrow_direction(key)
+        {
+            ctx.input_mut(|i| i.consume_key(m, key));
+            chain(app, dir);
+            continue;
+        }
         if m.command || m.alt || m.ctrl {
             continue;
         }
@@ -52,4 +74,27 @@ pub fn keys(app: &mut CraftApp, ctx: &egui::Context) {
     if (dx != 0.0 || dy != 0.0) && !app.session.sel.items.is_empty() {
         run(app, "shape.move", json!({"dx": dx, "dy": dy}));
     }
+}
+
+/// The insertion direction an arrow key names.
+fn arrow_direction(key: Key) -> Option<Direction> {
+    match key {
+        Key::ArrowLeft => Some(Direction::Left),
+        Key::ArrowRight => Some(Direction::Right),
+        Key::ArrowUp => Some(Direction::Up),
+        Key::ArrowDown => Some(Direction::Down),
+        _ => None,
+    }
+}
+
+/// One step of a typed chain from the single selected shape.
+fn chain(app: &mut CraftApp, dir: Direction) {
+    let Some(page) = app.session.doc.page() else { return };
+    let shapes: Vec<&String> = app.session.sel.items.iter().filter(|id| page.shape(id).is_some()).collect();
+    let [one] = shapes.as_slice() else {
+        app.status("Select one shape to continue from".to_string());
+        return;
+    };
+    let id = (*one).clone();
+    run(app, "insert.next", json!({"id": id, "direction": dir.name()}));
 }

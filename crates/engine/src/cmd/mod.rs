@@ -29,6 +29,7 @@ pub mod relationship;
 pub mod routing;
 pub mod script;
 pub mod shape;
+pub mod suggest;
 pub mod text;
 pub mod validate;
 pub mod view;
@@ -72,6 +73,7 @@ pub fn registry() -> Registry {
     v.extend(validate::specs());
     v.extend(notation::specs());
     v.extend(insert::specs());
+    v.extend(suggest::specs());
     v.extend(script::specs());
     v.extend(help::specs());
     Registry::new(v)

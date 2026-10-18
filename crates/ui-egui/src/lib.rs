@@ -12,12 +12,14 @@ pub mod backstage;
 pub mod breadcrumbs;
 pub mod canvas;
 pub mod chrome;
+pub mod command_palette;
 pub mod control;
 pub mod data_dialog;
 pub mod dialogs;
 pub mod dock;
 pub mod find_dialog;
 pub mod icons;
+pub mod insert_picker;
 pub mod keys;
 pub mod menus;
 pub mod page_setup;
@@ -75,7 +77,7 @@ fn viewport_cmd_kind(cmd: &egui::ViewportCommand) -> String {
 pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.tab", "Switch Ribbon Tab", "", r#"{"tab": "File|Home|Insert|Design|View|Help|Connector"}"#),
     ("ui.collapseRibbon", "Collapse the Ribbon", "Mod+F1", r#"{"value"?: bool}"#),
-    ("ui.commands", "Search Commands", "Mod+Shift+P", "{}"),
+    ("ui.commands", "Search Commands", "Mod+Shift+P / Mod+K", "{}"),
     ("ui.traceMark", "Mark the Performance Trace", "Mod+Shift+M", r#"{"label"?: string} (adds a labelled moment to the trace started with --trace)"#),
     (
         "ui.dialog",
@@ -129,6 +131,12 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "Search the Dock",
         "",
         r#"{"query": string, "scope"?: "page|document"} -> {"query", "scope", "hits": [{"page", "id", "field", "value"}]}"#,
+    ),
+    (
+        "ui.insertPicker",
+        "Insert Picker",
+        "",
+        r#"{"x"?: n, "y"?: n, "query"?: string} -> {"open", "at", "query", "items": [type or stencil id]}; a type-to-filter list of the page's palette types and the Drawing primitives at a canvas point (default: the view centre); Enter inserts, Escape closes"#,
     ),
     ("window.minimize", "Minimize", "", "{}"),
     ("window.zoom", "Zoom Window", "", "{}"),
@@ -282,6 +290,8 @@ pub struct CraftApp {
     pub tool: Tool,
     /// Canvas interaction state (drag preview, text editing, hover).
     pub canvas: canvas::CanvasState,
+    /// Insertion on the canvas: hover handles, the magic connector, its popover and the insert picker.
+    pub insertion: canvas::interact::insertion::Insertion,
     /// Text in the Shapes pane's search field (`ui.shapesSearch`). Transient: not in [`UiState`],
     /// so it is never saved with the preferences.
     pub shapes_query: String,
@@ -334,6 +344,7 @@ impl CraftApp {
             sent_title: String::new(),
             tool: Tool::Pointer,
             canvas: canvas::CanvasState::default(),
+            insertion: Default::default(),
             shapes_query: String::new(),
             tree: Default::default(),
             connector_kind: String::new(),
@@ -505,6 +516,9 @@ impl CraftApp {
             return Some(r);
         }
         if let Some(r) = dock::ui_command(self, id, p) {
+            return Some(r);
+        }
+        if let Some(r) = insert_picker::ui_command(self, id, p) {
             return Some(r);
         }
         let s = |k: &str| p.get(k).and_then(Value::as_str);

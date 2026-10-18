@@ -6,12 +6,12 @@
 //! title, buttons right-aligned at the bottom, Escape (or a click on the backdrop) cancels and
 //! Enter presses the default button. Colours come from [`Tokens`] only.
 
-use egui::{Align2, Id, Sense, Ui, vec2};
+use egui::{Id, Ui, vec2};
 use serde::Serialize;
 use serde_json::json;
 
 use crate::theme::{Tokens, regular, semibold};
-use crate::{CraftApp, UI_COMMANDS, keys, menus, widgets};
+use crate::{CraftApp, keys, widgets};
 
 /// The open dialog and its editable state.
 #[derive(Clone, Debug, Serialize, PartialEq)]
@@ -305,7 +305,9 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
             }
             ok || cancel
         }
-        Dialog::Commands { query, selected } => palette(app, ui, query, selected, keys),
+        Dialog::Commands { query, selected } => {
+            crate::command_palette::show(app, ui, query, selected, crate::command_palette::Keys { enter: keys.enter, up: keys.up, down: keys.down })
+        }
         Dialog::PrintPreview(s) => {
             crate::print_preview::body(app, ui, s);
             let (print, cancel) = buttons(ui, "Print", Some("Cancel"), keys);
@@ -371,108 +373,6 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
     }
 }
 
-/// One palette hit: id, label, location, platform shortcut, enabled.
-struct Hit {
-    id: String,
-    label: String,
-    location: String,
-    shortcut: String,
-    enabled: bool,
-}
-
-/// The commands matching `query`, best first: label prefix matches, then label, id and location
-/// substring matches. Capped so the list stays readable.
-fn palette_hits(app: &CraftApp, query: &str) -> Vec<Hit> {
-    let q = query.trim().to_lowercase();
-    let mut hits: Vec<(u8, Hit)> = app
-        .session
-        .commands()
-        .into_iter()
-        .map(|c| (c.id, c.label, c.location, c.shortcut))
-        .chain(UI_COMMANDS.iter().map(|(id, label, sc, _)| (id.to_string(), label.to_string(), "UI".to_string(), sc.to_string())))
-        .filter_map(|(id, label, location, sc)| {
-            let l = label.to_lowercase();
-            let rank = if q.is_empty() || l.starts_with(&q) {
-                0
-            } else if l.contains(&q) {
-                1
-            } else if id.to_lowercase().contains(&q) || location.to_lowercase().contains(&q) {
-                2
-            } else {
-                return None;
-            };
-            let enabled = !menus::PLACEHOLDERS.contains(&id.as_str()) && widgets::enabled(app, &id);
-            Some((rank, Hit { id, label, location, shortcut: keys::pretty(&sc), enabled }))
-        })
-        .collect();
-    hits.sort_by_key(|(rank, _)| *rank);
-    hits.into_iter().map(|(_, h)| h).take(40).collect()
-}
-
-/// The command palette body. Returns true to close.
-fn palette(app: &mut CraftApp, ui: &mut Ui, query: &mut String, selected: &mut usize, keys: Keys) -> bool {
-    let t = Tokens::get(ui.ctx());
-    let r = ui.add(egui::TextEdit::singleline(query).hint_text("Type a command, e.g. \"zoom\"").desired_width(f32::INFINITY).font(regular(14.0)));
-    if r.changed() {
-        *selected = 0;
-    }
-    r.request_focus();
-    let hits = palette_hits(app, query);
-    if hits.is_empty() {
-        *selected = 0;
-    } else {
-        if keys.down {
-            *selected = (*selected + 1).min(hits.len() - 1);
-        }
-        if keys.up {
-            *selected = selected.saturating_sub(1);
-        }
-        *selected = (*selected).min(hits.len() - 1);
-    }
-    let mut run: Option<String> = None;
-    egui::ScrollArea::vertical().max_height(340.0).show(ui, |ui| {
-        ui.spacing_mut().item_spacing = vec2(0.0, 1.0);
-        for (k, h) in hits.iter().enumerate() {
-            let (rect, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 26.0), Sense::click());
-            resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, h.enabled, k == *selected, h.label.as_str()));
-            if k == *selected {
-                ui.painter().rect_filled(rect, 4.0, if h.enabled { t.checked } else { t.hover });
-                if keys.down || keys.up {
-                    ui.scroll_to_rect(rect, None);
-                }
-            } else if resp.hovered() {
-                ui.painter().rect_filled(rect, 4.0, t.hover);
-            }
-            let color = if h.enabled { t.text } else { t.text_disabled };
-            let g = ui.painter().text(rect.left_center() + vec2(10.0, 0.0), Align2::LEFT_CENTER, &h.label, regular(12.5), color);
-            ui.painter().text(g.right_center() + vec2(10.0, 0.0), Align2::LEFT_CENTER, &h.location, regular(11.0), t.text_dim);
-            if !h.shortcut.is_empty() {
-                ui.painter().text(rect.right_center() - vec2(10.0, 0.0), Align2::RIGHT_CENTER, &h.shortcut, regular(12.0), t.text_dim);
-            }
-            let resp = resp.on_hover_text(&h.id);
-            if resp.hovered() && ui.input(|i| i.pointer.delta() != egui::Vec2::ZERO) {
-                *selected = k;
-            }
-            if resp.clicked() && h.enabled {
-                run = Some(h.id.clone());
-            }
-        }
-        if hits.is_empty() {
-            ui.label(egui::RichText::new("No command matches.").color(t.text_dim));
-        }
-    });
-    if keys.enter
-        && let Some(h) = hits.get(*selected)
-        && h.enabled
-    {
-        run = Some(h.id.clone());
-    }
-    let Some(id) = run else { return false };
-    let ctx = ui.ctx().clone();
-    menus::run_item(app, &ctx, &id, json!({}));
-    true
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -503,19 +403,5 @@ mod tests {
         assert_eq!(a.dialog.as_ref().map(|d| d.name()), Some("message"));
         a.run("ui.dialog", json!({"name": "shortcuts"})).unwrap();
         assert_eq!(a.dialog.as_ref().map(|d| d.name()), Some("shortcuts"));
-    }
-
-    #[test]
-    fn palette_ranks_prefix_matches_first_and_marks_placeholders() {
-        let a = app();
-        let hits = palette_hits(&a, "zoom");
-        assert!(hits.first().is_some_and(|h| h.label.to_lowercase().starts_with("zoom")), "{:?}", hits.iter().map(|h| &h.label).collect::<Vec<_>>());
-        let print = palette_hits(&a, "print");
-        assert!(print.iter().any(|h| h.id == "ui.print" && h.enabled));
-        let find = palette_hits(&a, "find");
-        assert!(find.iter().any(|h| h.id == "ui.find" && h.enabled), "Find opens the Find dialog");
-        let minimize = palette_hits(&a, "minimize");
-        assert!(minimize.iter().any(|h| h.id == "window.minimize" && !h.enabled), "placeholders show disabled");
-        assert!(palette_hits(&a, "").len() <= 40);
     }
 }

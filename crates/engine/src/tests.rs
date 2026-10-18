@@ -42,6 +42,7 @@ fn registry_ids_are_unique_and_prefixed() {
                 "validate",
                 "notation",
                 "insert",
+                "suggest",
                 "script",
                 "help",
                 "guide",
