@@ -135,8 +135,10 @@ fn fields(item: &Item, in_data: bool) -> Vec<(String, String)> {
         Item::Connector(c) => (&c.text, &c.ext),
     };
     let mut out = vec![("text".to_string(), text.clone())];
-    if in_data && matches!(item, Item::Shape(_)) {
-        out.extend(ext.iter().map(|(k, v)| (format!("data:{k}"), v.clone())));
+    if let (true, Item::Shape(sh)) = (in_data, item) {
+        // Typed shape data rows first, then format round-trip data under keys no row uses.
+        out.extend(sh.data.rows.iter().filter(|r| !r.value.is_empty()).map(|r| (format!("data:{}", r.key), r.value.clone())));
+        out.extend(ext.iter().filter(|(k, _)| !sh.data.rows.iter().any(|r| &r.key == *k)).map(|(k, v)| (format!("data:{k}"), v.clone())));
     }
     out
 }
@@ -191,6 +193,13 @@ fn set_field(doc: &mut Document, page_id: &str, id: &str, field: &str, value: &s
     let page = doc.pages.iter_mut().find(|p| p.id == page_id).ok_or_else(|| EngineError::Params(format!("no page `{}`", short(page_id))))?;
     if let Some(sh) = page.shape_mut(id) {
         match field.strip_prefix("data:") {
+            Some(k) if sh.data.rows.iter().any(|r| r.key == k) => {
+                if let Some(row) = sh.data.rows.iter_mut().find(|r| r.key == k) {
+                    // A replacement must still fit the row's type, unit and enum.
+                    row.value = vizcraft_diagram::data::normalize_text(row.kind, &row.values, &row.unit, value)
+                        .map_err(|e| EngineError::Params(format!("`{}` {}: {e}", short(id), short(field))))?;
+                }
+            }
             Some(k) if sh.ext.contains_key(k) => {
                 sh.ext.insert(k.to_string(), value.to_string());
             }

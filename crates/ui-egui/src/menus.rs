@@ -766,7 +766,8 @@ mod tests {
         assert_eq!(entry(&app, "view.navigationPane").checked, app.session.view.nav_pane);
         assert!(!entry(&app, "edit.undo").enabled);
         assert!(entry(&app, "ui.print").enabled, "Print opens Print Preview");
-        assert!(!entry(&app, "ui.find").enabled, "placeholders show disabled");
+        assert!(entry(&app, "ui.find").enabled, "Find opens the Find dialog");
+        assert!(!entry(&app, "window.minimize").enabled, "placeholders show disabled");
     }
 
     #[test]

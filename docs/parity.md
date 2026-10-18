@@ -111,8 +111,11 @@ When a feature lands, change its State in the same commit as the code. States:
 |---|---|---|---|
 | Themes | 2 | done (B2) | Six of our own with four variants each; `design.setTheme`, `design.setVariant`; hand styling stays |
 | Quick styles | 2 | done (B2) | Twelve presets from the theme; `design.applyQuickStyle` |
-| Fill, line, shadow, gradient | 2 | partly done (B2) | Dash, caps, rounding, gradients, transparency, shadow, soft edges, glow on shapes via `shape.setStyle`; connectors store them but the canvas does not draw connector dash or transparency yet |
-| Format painter | 2 | planned | Copy style from one shape to others |
+| Fill, line, shadow, gradient | 2 | done (B2) | Dash, caps, rounding, gradients, transparency, shadow, soft edges, glow via `shape.setStyle`; connectors draw dash, caps and transparency on the canvas too |
+| Format painter | 2 | done (B2) | `edit.formatPainter {from?, to?}` and a one-shot tool (double-click keeps it armed) |
+| Duplicate and Paste Special | 2 | done (B2) | `edit.duplicate` (Mod+D), `edit.pasteSpecial {as: shapes\|text\|style}` |
+| Change Shape | 2 | done (B2) | `edit.changeShape {stencil}` keeps text, data, layers, glue and hand formatting |
+| Select by type, lasso and area select | 2 | done (B2) | `edit.selectByType`; `ui.tool` `lasso` and `area` |
 | Backgrounds and borders and titles | 2 | done (B2) | `design.setBackground`, `design.setBorderTitle` on a generated background page |
 | Page-wide connector style | 2 | done (B2) | `design.setConnectorStyle {style}` |
 | Page breaks, connection points and AutoConnect toggles | 2 | partly done (B2) | `view.pageBreaks` (Letter paper assumed), `view.connectionPoints`, `view.autoConnect` (stored only, no canvas behaviour yet) |
@@ -157,7 +160,7 @@ When a feature lands, change its State in the same commit as the code. States:
 | Comments | 8 | planned | On shapes and pages |
 | Hyperlinks | 8 | planned | To pages, shapes and URLs |
 | Validation | 4A | partly done (4A) | Rule sets declared by notation packs, live and batch, with structured issues (`validate.*`); the issues pane is Cascade 4B |
-| Find and replace | 2 | planned | Shape text and shape data |
+| Find and replace | 2 | done (B2) | `edit.find`, `edit.replace` over text, typed shape data rows and format data, page or document, match case, whole word; Find dialog (Mod+F); replacements in typed rows must fit the row's type |
 
 ## Semantic model and notation packs
 

@@ -506,7 +506,9 @@ mod tests {
         let print = palette_hits(&a, "print");
         assert!(print.iter().any(|h| h.id == "ui.print" && h.enabled));
         let find = palette_hits(&a, "find");
-        assert!(find.iter().any(|h| h.id == "ui.find" && !h.enabled));
+        assert!(find.iter().any(|h| h.id == "ui.find" && h.enabled), "Find opens the Find dialog");
+        let minimize = palette_hits(&a, "minimize");
+        assert!(minimize.iter().any(|h| h.id == "window.minimize" && !h.enabled), "placeholders show disabled");
         assert!(palette_hits(&a, "").len() <= 40);
     }
 }

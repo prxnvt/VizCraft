@@ -303,3 +303,20 @@ fn replace_in_data_and_connector_text() {
     assert_eq!(page.shape(&a).unwrap().ext.get("tag").map(String::as_str), Some("line-A"));
     assert!(r["hits"].as_array().unwrap().is_empty());
 }
+
+#[test]
+fn find_and_replace_reach_typed_shape_data() {
+    let mut s = blank();
+    let a = add(&mut s, "basic.rectangle", 0.0, "Pump");
+    s.run("data.set", &json!({"ids": [a], "key": "vendor", "value": "Acme"})).unwrap();
+    s.run("data.set", &json!({"ids": [a], "key": "flow", "value": 12, "type": "number"})).unwrap();
+    let r = s.run("edit.find", &json!({"text": "acme", "inData": true})).unwrap();
+    assert_eq!(r["hits"][0]["field"], "data:vendor", "{r}");
+    s.run("edit.replace", &json!({"text": "Acme", "with": "Apex", "inData": true, "all": true})).unwrap();
+    let rows = s.run("data.get", &json!({"id": a})).unwrap();
+    assert!(rows.to_string().contains("Apex"), "{rows}");
+    // A replacement that does not fit the row's type is refused, and the value stays.
+    s.run("edit.replace", &json!({"text": "12", "with": "lots", "inData": true, "all": true})).ok();
+    let rows = s.run("data.get", &json!({"id": a})).unwrap();
+    assert!(rows.to_string().contains("12") && !rows.to_string().contains("lots"), "{rows}");
+}

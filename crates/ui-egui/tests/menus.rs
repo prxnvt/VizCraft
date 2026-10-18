@@ -79,7 +79,8 @@ fn entry_shortcut_text_is_the_platforms() {
     }
     assert!(menus::entry(&app, "ui.print").shortcut.contains('P'));
     assert!(menus::entry(&app, "ui.print").enabled, "Print opens Print Preview");
-    assert!(!menus::entry(&app, "ui.find").enabled, "placeholders are disabled");
+    assert!(menus::entry(&app, "ui.find").enabled, "Find opens the Find dialog");
+    assert!(!menus::entry(&app, "window.minimize").enabled, "placeholders are disabled");
     assert_eq!(menus::entry(&app, "file.open").label, "Open...");
 }
 
