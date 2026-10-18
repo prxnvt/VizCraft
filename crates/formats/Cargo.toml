@@ -24,3 +24,8 @@ resvg = { workspace = true }
 # version PNG export already uses, so there is one SVG parser in the build.
 krilla = "0.8"
 krilla-svg = "0.8"
+# Data links read CSV tables; XLSX workbooks only off the web build, where `table::read` says so.
+csv = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+calamine = { workspace = true }

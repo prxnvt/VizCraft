@@ -13,6 +13,7 @@
 //! - [`jumps`]: line jumps, and the page-level connector geometry that draws them.
 //! - [`views`]: shapes and connectors as views of `vizcraft-model` elements and relationships.
 //! - [`data`]: typed shape data rows and the page's data key definitions.
+//! - [`data_graphic`]: data graphics drawn around shapes, and links to external tables.
 //! - [`container`]: containers, swimlanes (lane sets of lanes, with phases) and callouts.
 //! - [`decor`]: page backgrounds and borders with title blocks, on generated background pages.
 //! - [`theme`]: the built-in document themes, their variants and quick styles.
@@ -34,6 +35,7 @@ pub mod compartment;
 pub mod conformance;
 pub mod container;
 pub mod data;
+pub mod data_graphic;
 pub mod decor;
 pub mod doc_fields;
 pub mod geom;

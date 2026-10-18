@@ -16,6 +16,7 @@ pub mod chrome;
 pub mod command_palette;
 pub mod control;
 pub mod data_dialog;
+pub mod datagraphic_dialog;
 pub mod dialogs;
 pub mod dock;
 pub mod find_dialog;
@@ -109,6 +110,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.pane.history", "History Pane", "", r#"{"value"?: bool}"#),
     ("ui.pane.layers", "Layers Pane", "", r#"{"value"?: bool}"#),
     ("ui.pane.shapeData", "Inspector Pane", "", r#"{"value"?: bool}"#),
+    ("ui.pane.externalData", "External Data Pane", "", r#"{"value"?: bool}"#),
     ("ui.inspector", "Inspector Mode", "", r#"{"mode"?: "standard|expert", "tab"?: "properties|format"} -> {"mode", "tab"}"#),
     ("ui.pane.comments", "Show Comments", "", r#"{"value"?: bool}"#),
     ("ui.pane.panZoom", "Pan and Zoom Pane", "", r#"{"value"?: bool}"#),
@@ -164,6 +166,12 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.window.switch", "Switch Windows", "", r#"{"index": n} (0 is the first window)"#),
     ("ui.macroRecord", "Record Macro", "", r#"{"value"?: bool} (start or stop recording a script; stopping keeps it for Save Macro)"#),
     ("ui.spelling", "Spelling", "", "{}"),
+    (
+        "ui.linkData",
+        "Link Data to Shapes",
+        "",
+        r#"{"path"?: file (default: ask), "keyColumn"?: column (default: the first one shapes already hold as data, else the first), "sheet"?: string} -> the datalink.link result; then opens the External Data pane"#,
+    ),
     ("window.minimize", "Minimize", "", "{}"),
     ("window.zoom", "Zoom Window", "", "{}"),
     ("app.about", "About VizCraft", "", "{}"),
@@ -584,6 +592,9 @@ impl CraftApp {
             return Some(r);
         }
         if let Some(r) = insert_picker::ui_command(self, id, p) {
+            return Some(r);
+        }
+        if let Some(r) = datagraphic_dialog::ui_command(self, id, p) {
             return Some(r);
         }
         let s = |k: &str| p.get(k).and_then(Value::as_str);

@@ -176,6 +176,12 @@ pub const NAMES: &[&str] = &[
     "spelling",
     "language",
     "report",
+    // Data > External Data and Display Data
+    "linkData",
+    "refresh",
+    "externalData",
+    "dataGraphic",
+    "legend",
 ];
 
 /// Reference size of the design grid, in points. At this size the stroke is `BASE_STROKE`.
@@ -1140,6 +1146,43 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
             pen.line(&[(5.0, 10.5), (10.0, 10.5)]);
             pen.frect(10.5, 9.0, 17.5, 12.0, a);
             pen.frect(10.5, 13.5, 17.5, 16.5, a);
+        }
+        // Data > External Data and Display Data
+        "linkData" => {
+            // A table on the left, a shape on the right, a link between them.
+            pen.rect(2.5, 4.0, 9.5, 16.0, c);
+            pen.lines(2.5, 9.5, &[8.0, 12.0]);
+            pen.rect(12.5, 7.0, 17.5, 13.0, c);
+            pen.line_c(&[(9.5, 10.0), (12.5, 10.0)], a);
+        }
+        "refresh" => {
+            pen.arc(10.0, 10.0, 6.0, -2.4, 4.0, c);
+            pen.fill(&[(16.5, 6.0), (17.0, 11.0), (12.5, 9.0)], a);
+        }
+        "externalData" => {
+            // A sheet with a grid.
+            pen.rect(3.0, 3.5, 17.0, 16.5, c);
+            pen.line(&[(3.0, 7.5), (17.0, 7.5)]);
+            pen.line(&[(8.0, 3.5), (8.0, 16.5)]);
+            pen.lines(3.0, 17.0, &[12.0]);
+            pen.frect(3.5, 4.0, 7.5, 7.0, a);
+        }
+        "dataGraphic" => {
+            // A shape with a callout bar below and a badge at its corner.
+            pen.rect(3.0, 3.5, 14.0, 11.5, c);
+            pen.frect(3.0, 14.0, 11.0, 16.5, a);
+            pen.rect(3.0, 14.0, 17.0, 16.5, c);
+            pen.fcircle(15.0, 4.5, 2.6, a);
+        }
+        "legend" => {
+            for (i, y) in [5.0f32, 10.0, 15.0].into_iter().enumerate() {
+                if i == 1 {
+                    pen.fcircle(4.5, y, 2.0, a);
+                } else {
+                    pen.frect(2.5, y - 2.0, 6.5, y + 2.0, a);
+                }
+                pen.line(&[(9.0, y), (17.5, y)]);
+            }
         }
         _ => {
             // Fallback: a rounded tile with the first letter.

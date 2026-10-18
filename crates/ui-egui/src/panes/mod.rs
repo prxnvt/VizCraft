@@ -47,6 +47,7 @@ default_panes! {
     comments,
     pan_zoom,
     document_stencil,
+    external_data,
 }
 
 use egui::Ui;

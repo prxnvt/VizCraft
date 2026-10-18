@@ -38,6 +38,11 @@ resvg = { version = "0.47", default-features = false, features = ["text"] }
 # Boolean operations and offsets on polygons (freeform shapes); pure Rust, MIT or Apache, builds for wasm.
 i_overlay = { version = "9", default-features = false }
 
+# Table reading for data links: CSV (MIT or Unlicense) and XLSX workbooks (MIT, pure Rust, kept
+# out of the web build).
+csv = "1.4"
+calamine = { version = "0.36", default-features = false }
+
 # testing
 proptest = "1"
 
