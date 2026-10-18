@@ -370,6 +370,10 @@ pub struct Shape {
     /// A picture from the document's image store drawn in the frame.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
     pub image: Option<ImageRef>,
+    /// Container, swimlane or callout settings (see [`crate::container`]); `None` for an
+    /// ordinary shape.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub container: Option<crate::container::Container>,
 }
 
 impl Default for Shape {
@@ -396,6 +400,7 @@ impl Default for Shape {
             locks: Locks::default(),
             behavior: Behavior::default(),
             image: None,
+            container: None,
         }
     }
 }
@@ -433,6 +438,9 @@ impl Shape {
         truncate(&mut self.screen_tip, Self::MAX_SCREEN_TIP);
         if let Some(i) = &mut self.image {
             i.sanitize();
+        }
+        if let Some(c) = &mut self.container {
+            c.sanitize();
         }
     }
     /// Longest screen tip kept, in bytes.

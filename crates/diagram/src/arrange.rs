@@ -140,8 +140,9 @@ pub fn group_frame(page: &Page, members: &[String], angle: f64) -> Option<(f64, 
     Some((coord(c.x - w / 2.0), coord(c.y - h / 2.0), w, h))
 }
 
-/// Set every group's frame to the bounds of its members, innermost groups first. Groups with no
-/// members keep their frame (see [`tidy_groups`]).
+/// Set every group's frame to the bounds of its members, innermost groups first, then bring
+/// containers in step ([`crate::container::refit`]). Groups with no members keep their frame
+/// (see [`tidy_groups`]).
 pub fn refit_groups(page: &mut Page) {
     let parent = parents(page);
     let mut groups: Vec<(usize, String)> =
@@ -157,6 +158,7 @@ pub fn refit_groups(page: &mut Page) {
             s.sanitize();
         }
     }
+    crate::container::refit(page);
 }
 
 /// Remove groups left with no members (repeatedly, so a group holding only empty groups goes
@@ -271,6 +273,7 @@ pub fn set_frame(page: &mut Page, id: &str, x: f64, y: f64, w: f64, h: f64) {
     if let Some(s) = page.shape_mut(id) {
         *s = new;
     }
+    crate::container::after_set_frame(page, &old);
     refit_groups(page);
 }
 
