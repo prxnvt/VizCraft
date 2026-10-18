@@ -39,7 +39,7 @@ fn field_menu(app: &mut CraftApp, ui: &mut egui::Ui) {
     widgets::menu_button(ui, app, "field", "Field", "Insert Field", true, |ui, app| {
         for (name, label) in FIELDS.iter().filter(|(n, _)| *n != "data") {
             let p = field_params(app, json!({"field": name}));
-            widgets::menu_item(ui, app, label, "text.insertField", p);
+            widgets::menu_item(ui, app, label, "text.insertField", p, None);
         }
         ui.separator();
         let keys = data_keys(app);
@@ -48,7 +48,7 @@ fn field_menu(app: &mut CraftApp, ui: &mut egui::Ui) {
         }
         for k in keys {
             let p = field_params(app, json!({"field": "data", "key": k}));
-            widgets::menu_item(ui, app, &format!("Data: {k}"), "text.insertField", p);
+            widgets::menu_item(ui, app, &format!("Data: {k}"), "text.insertField", p, None);
         }
     });
 }

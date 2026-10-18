@@ -2,11 +2,11 @@
 //! highlight and colour of the selected text.
 
 use serde_json::{Value, json};
-use vizcraft_diagram::Style;
+use vizcraft_diagram::{Style, TextCase};
 
 use crate::CraftApp;
 use crate::ribbon::Control::*;
-use crate::ribbon::{FONT_SIZES, Group, Size, color32, selected_style, short_num};
+use crate::ribbon::{FONT_SIZES, Group, MenuEntry, Size, color32, selected_style, short_num};
 
 /// Families offered by the font field. Inter and JetBrains Mono draw on the canvas; other names
 /// are kept for exports and draw in the nearest shipped face.
@@ -24,22 +24,29 @@ fn format_toggle(icon: &'static str, label: &'static str, params: fn(&CraftApp) 
 }
 
 /// An icon-only dropdown in a ribbon row: `tip` names it, `menu` lists its entries.
-fn icon_menu(app: &mut CraftApp, ui: &mut egui::Ui, icon: &str, tip: &str, menu: &[(&str, &str, Value)]) {
+fn icon_menu(app: &mut CraftApp, ui: &mut egui::Ui, icon: &str, tip: &str, menu: &[MenuEntry]) {
     crate::widgets::menu_button(ui, app, icon, "", tip, false, |ui, app| {
-        for (label, id, params) in menu {
-            crate::widgets::menu_item(ui, app, label, id, params.clone());
+        for e in menu {
+            let checked = e.checked.map(|f| f(app));
+            crate::widgets::menu_item(ui, app, e.label, e.id, e.params.clone(), checked);
         }
     });
 }
 
+fn case_is(app: &CraftApp, case: TextCase) -> bool {
+    selected_style(app).is_some_and(|s| s.text_case == case)
+}
+
 /// The Change Case menu.
 fn case_menu(app: &mut CraftApp, ui: &mut egui::Ui) {
+    // Sentence and toggle case rewrite the text once and leave no state to show; the other three
+    // are a style the text keeps.
     let entries = [
-        ("Sentence case", "text.setCase", json!({"case": "sentence"})),
-        ("lower case", "text.setCase", json!({"case": "lower"})),
-        ("UPPER CASE", "text.setCase", json!({"case": "upper"})),
-        ("Capitalize Each Word", "text.setCase", json!({"case": "title"})),
-        ("tOGGLE cASE", "text.setCase", json!({"case": "toggle"})),
+        MenuEntry::new("Sentence case", "text.setCase", json!({"case": "sentence"})),
+        MenuEntry::new("lower case", "text.setCase", json!({"case": "lower"})).checked(|a| case_is(a, TextCase::Lower)),
+        MenuEntry::new("UPPER CASE", "text.setCase", json!({"case": "upper"})).checked(|a| case_is(a, TextCase::Upper)),
+        MenuEntry::new("Capitalize Each Word", "text.setCase", json!({"case": "title"})).checked(|a| case_is(a, TextCase::Title)),
+        MenuEntry::new("tOGGLE cASE", "text.setCase", json!({"case": "toggle"})),
     ];
     icon_menu(app, ui, "textCase", "Change Case", &entries);
 }

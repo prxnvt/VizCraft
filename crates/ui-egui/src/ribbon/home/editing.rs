@@ -5,7 +5,7 @@ use egui::{Rect, Sense, vec2};
 use serde_json::json;
 
 use crate::ribbon::Control::*;
-use crate::ribbon::Group;
+use crate::ribbon::{Group, MenuEntry};
 use crate::theme::Tokens;
 use crate::widgets::{big_label, menu_button};
 use crate::{CraftApp, icons};
@@ -22,13 +22,13 @@ pub(in crate::ribbon) fn group() -> Group {
                     icon: "pointer",
                     big: false,
                     menu: vec![
-                        ("Select All", "edit.selectAll", json!({})),
-                        ("Select Shapes", "edit.selectByType", json!({"kind": "shapes"})),
-                        ("Select Connectors", "edit.selectByType", json!({"kind": "connectors"})),
-                        ("Select Groups", "edit.selectByType", json!({"kind": "groups"})),
-                        ("Select Text", "edit.selectByType", json!({"kind": "text"})),
-                        ("Lasso Select", "ui.tool", json!({"tool": "lasso"})),
-                        ("Area Select", "ui.tool", json!({"tool": "area"})),
+                        MenuEntry::new("Select All", "edit.selectAll", json!({})),
+                        MenuEntry::new("Select Shapes", "edit.selectByType", json!({"kind": "shapes"})),
+                        MenuEntry::new("Select Connectors", "edit.selectByType", json!({"kind": "connectors"})),
+                        MenuEntry::new("Select Groups", "edit.selectByType", json!({"kind": "groups"})),
+                        MenuEntry::new("Select Text", "edit.selectByType", json!({"kind": "text"})),
+                        MenuEntry::new("Lasso Select", "ui.tool", json!({"tool": "lasso"})),
+                        MenuEntry::new("Area Select", "ui.tool", json!({"tool": "area"})),
                     ],
                 },
                 super::layers::control(),

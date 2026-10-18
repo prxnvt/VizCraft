@@ -3,7 +3,7 @@
 use serde_json::json;
 
 use crate::ribbon::Control::*;
-use crate::ribbon::Group;
+use crate::ribbon::{Group, MenuEntry};
 use crate::widgets::toggle;
 use crate::{CraftApp, Tool};
 
@@ -16,7 +16,7 @@ pub(in crate::ribbon) fn group() -> Group {
                 id: "edit.paste",
                 icon: "paste",
                 big: true,
-                menu: vec![("Paste", "edit.paste", json!({})), ("Paste Special...", "edit.pasteSpecial", json!({}))],
+                menu: vec![MenuEntry::new("Paste", "edit.paste", json!({})), MenuEntry::new("Paste Special...", "edit.pasteSpecial", json!({}))],
             },
             Stack(vec![Small { id: "edit.cut", icon: "cut" }, Small { id: "edit.copy", icon: "copy" }, Custom(format_painter)]),
         ],

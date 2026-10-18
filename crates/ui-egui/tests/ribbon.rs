@@ -220,8 +220,7 @@ fn bold_and_italic_toggle_the_selected_shapes_style() {
     let rotate = |h: &mut Harness, entry: &str| {
         h.get_by_label("Rotate").click();
         h.run_steps(3);
-        // Menu items carry an empty shortcut column after the label.
-        h.get_by_label(&format!("{entry} ")).click();
+        h.get_by_label(entry).click();
         h.run_steps(3);
     };
     rotate(&mut h, "Rotate Right 90");
@@ -357,7 +356,8 @@ fn a_narrow_window_scrolls_the_groups_with_arrows() {
 #[test]
 fn split_buttons_run_the_main_part_and_open_a_menu_from_the_arrow() {
     let a = app();
-    let split_ctl = Control::Split { id: "edit.redo", icon: "redo", big: true, menu: vec![("Redo Once", "edit.redo", json!({}))] };
+    let split_ctl =
+        Control::Split { id: "edit.redo", icon: "redo", big: true, menu: vec![ribbon::MenuEntry::new("Redo Once", "edit.redo", json!({}))] };
     let mut h = egui_kittest::Harness::builder().with_size(vec2(300.0, 300.0)).build_ui_state(
         move |ui, app: &mut CraftApp| {
             app.logic(ui.ctx());
@@ -489,4 +489,75 @@ fn design_tab_relayout_menu_and_route_button_run_their_commands() {
     h.get_by_label("Route Connectors").click();
     h.run_steps(3);
     assert!(connectors(&h).iter().all(|c| c.avoid));
+}
+
+/// The rows of the open dropdown from `ui.inspect`, as `(label, checked)`.
+fn open_menu_rows(h: &Harness) -> Vec<(String, serde_json::Value)> {
+    let report = vizcraft_ui_egui::control::inspect(h.state(), &h.ctx);
+    report["menu"]["rows"]
+        .as_array()
+        .map(|rows| rows.iter().map(|r| (r["label"].as_str().unwrap_or_default().to_string(), r["checked"].clone())).collect())
+        .unwrap_or_default()
+}
+
+#[test]
+fn inspect_lists_the_orientation_rows_with_their_checked_state() {
+    let mut h = harness_at(1200.0, "Design");
+    assert!(vizcraft_ui_egui::control::inspect(h.state(), &h.ctx)["menu"].is_null(), "no dropdown is open yet");
+    h.get_by_label("Orientation").click();
+    h.run_steps(4);
+    let report = vizcraft_ui_egui::control::inspect(h.state(), &h.ctx);
+    assert_eq!(report["menu"]["title"], "Orientation");
+    // The sample page is landscape.
+    assert_eq!(open_menu_rows(&h), vec![("Portrait".to_string(), json!(false)), ("Landscape".to_string(), json!(true))]);
+    let row = &report["menu"]["rows"][0];
+    assert_eq!(row["id"], "page.setup");
+    assert_eq!(row["enabled"], true);
+    // Choosing Portrait runs the command, closes the menu and moves the mark on reopening.
+    h.get_by_label("Portrait").click();
+    h.run_steps(4);
+    assert!(h.state().session.doc.page().is_some_and(|p| p.height > p.width));
+    h.get_by_label("Orientation").click();
+    h.run_steps(4);
+    assert_eq!(open_menu_rows(&h), vec![("Portrait".to_string(), json!(true)), ("Landscape".to_string(), json!(false))]);
+    // The row's accessibility info says it is selected.
+    assert_eq!(h.get_by_label("Portrait").accesskit_node().toggled(), Some(egui::accesskit::Toggled::True));
+    assert_eq!(h.get_by_label("Landscape").accesskit_node().toggled(), Some(egui::accesskit::Toggled::False));
+}
+
+#[test]
+fn the_size_menu_marks_the_preset_that_matches_the_page_and_has_no_current_suffix() {
+    let mut h = harness_at(1200.0, "Design");
+    h.state_mut().run("page.setup", json!({"width": 826.8, "height": 1169.3})).unwrap();
+    h.run_steps(3);
+    h.get_by_label("Size").click();
+    h.run_steps(4);
+    let rows = open_menu_rows(&h);
+    assert!(rows.iter().all(|(label, _)| !label.contains("(current)")), "{rows:?}");
+    assert!(rows.contains(&("A4".to_string(), json!(true))), "{rows:?}");
+    assert!(rows.contains(&("Letter".to_string(), json!(false))), "{rows:?}");
+    assert!(rows.contains(&("Fit to Drawing".to_string(), serde_json::Value::Null)), "plain actions carry no mark: {rows:?}");
+}
+
+#[test]
+fn the_connector_style_menu_marks_the_route_every_connector_has() {
+    let mut h = harness_at(1200.0, "Design");
+    h.state_mut().run("design.setConnectorStyle", json!({"style": "straight"})).unwrap();
+    h.run_steps(3);
+    h.get_by_label("Connector Style").click();
+    h.run_steps(4);
+    assert_eq!(
+        open_menu_rows(&h),
+        vec![("Right Angle".to_string(), json!(false)), ("Straight".to_string(), json!(true)), ("Curved".to_string(), json!(false))]
+    );
+}
+
+#[test]
+fn a_combo_list_marks_the_current_item() {
+    let mut h = harness_at(1200.0, "View");
+    h.get_by_label("Zoom Level options").click();
+    h.run_steps(4);
+    let rows = open_menu_rows(&h);
+    let marked: Vec<&str> = rows.iter().filter(|(_, c)| *c == json!(true)).map(|(l, _)| l.as_str()).collect();
+    assert_eq!(marked, vec!["100%"], "{rows:?}");
 }

@@ -63,7 +63,7 @@ pub(in crate::ribbon) fn cell(ui: &mut Ui, app: &CraftApp, id: &str, p: &Preset,
     let t = Tokens::get(ui.ctx());
     let on = widgets::enabled(app, id);
     let (r, resp) = ui.allocate_exact_size(CELL, Sense::click());
-    resp.widget_info(|| WidgetInfo::labeled(WidgetType::Button, on, p.label));
+    resp.widget_info(|| WidgetInfo::selected(WidgetType::Button, on, selected, p.label));
     if on && resp.hovered() {
         ui.painter().rect_filled(r, 3.0, t.hover);
     }
@@ -72,6 +72,9 @@ pub(in crate::ribbon) fn cell(ui: &mut Ui, app: &CraftApp, id: &str, p: &Preset,
     ui.painter().rect_stroke(r.shrink(2.0), 3.0, border, egui::StrokeKind::Inside);
     if !on {
         ui.painter().rect_filled(r.shrink(2.0), 3.0, t.ribbon.gamma_multiply(0.6));
+    }
+    if selected {
+        widgets::check_badge(ui, r);
     }
     let resp = widgets::tooltip(app, resp, p.label, id);
     on && resp.clicked()

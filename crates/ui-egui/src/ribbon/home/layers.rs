@@ -37,6 +37,6 @@ fn layers_menu(app: &mut CraftApp, ui: &mut egui::Ui) {
             }
         }
         ui.separator();
-        menu_item(ui, app, "Layer Properties...", "ui.pane.layers", json!({"value": true}));
+        menu_item(ui, app, "Layer Properties...", "ui.pane.layers", json!({"value": true}), None);
     });
 }

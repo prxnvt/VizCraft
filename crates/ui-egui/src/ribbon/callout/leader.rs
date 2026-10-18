@@ -4,7 +4,14 @@ use serde_json::json;
 
 use super::selected_callout;
 use crate::ribbon::Control::*;
-use crate::ribbon::{Group, Size};
+use vizcraft_diagram::container::Side;
+
+use crate::CraftApp;
+use crate::ribbon::{Group, MenuEntry, Size};
+
+fn side_is(app: &CraftApp, side: Side) -> bool {
+    selected_callout(app).is_some_and(|c| c.side == side)
+}
 
 /// The Callout tab's Leader group.
 pub(in crate::ribbon) fn group() -> Group {
@@ -24,11 +31,11 @@ pub(in crate::ribbon) fn group() -> Group {
                 icon: "position",
                 big: false,
                 menu: vec![
-                    ("Facing the Callout", "callout.set", json!({"side": "auto"})),
-                    ("Top", "callout.set", json!({"side": "top"})),
-                    ("Bottom", "callout.set", json!({"side": "bottom"})),
-                    ("Left", "callout.set", json!({"side": "left"})),
-                    ("Right", "callout.set", json!({"side": "right"})),
+                    MenuEntry::new("Facing the Callout", "callout.set", json!({"side": "auto"})).checked(|a| side_is(a, Side::Auto)),
+                    MenuEntry::new("Top", "callout.set", json!({"side": "top"})).checked(|a| side_is(a, Side::Top)),
+                    MenuEntry::new("Bottom", "callout.set", json!({"side": "bottom"})).checked(|a| side_is(a, Side::Bottom)),
+                    MenuEntry::new("Left", "callout.set", json!({"side": "left"})).checked(|a| side_is(a, Side::Left)),
+                    MenuEntry::new("Right", "callout.set", json!({"side": "right"})).checked(|a| side_is(a, Side::Right)),
                 ],
             },
         ],

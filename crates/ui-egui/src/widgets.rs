@@ -5,8 +5,8 @@
 //!
 //! Every widget registers accessibility info (`WidgetInfo`), so tests find it by its label.
 
-use egui::{Align2, CornerRadius, Rect, Response, Sense, Stroke, Ui, WidgetInfo, WidgetType, pos2, vec2};
-use serde_json::Value;
+use egui::{Align2, Atom, CornerRadius, Id, Pos2, Rect, Response, Sense, Stroke, Ui, WidgetInfo, WidgetType, pos2, vec2};
+use serde_json::{Value, json};
 
 use crate::theme::{Tokens, regular, semibold};
 use crate::{CraftApp, UI_COMMANDS, icons};
@@ -46,6 +46,88 @@ pub const GROUP_GAP: f32 = 6.0;
 pub const GAP_W: f32 = 6.0;
 /// Default minimum width of a dropdown menu.
 pub const MENU_MIN_W: f32 = 200.0;
+/// Width of the column at the right edge of a menu row that holds the check mark of the current
+/// choice. Every row of a menu that has a current value reserves it, so labels and shortcuts line up.
+pub const CHECK_COL_W: f32 = 16.0;
+
+/// A check mark drawn with two strokes (no glyph, so every font renders it the same), centred on `c`.
+/// The window menu bar paints it at the left of a row, the ribbon's menus at the right.
+pub fn check_mark(ui: &Ui, c: Pos2, color: egui::Color32) {
+    let s = Stroke::new(1.6, color);
+    ui.painter().line_segment([c + vec2(-4.5, 0.0), c + vec2(-1.5, 3.0)], s);
+    ui.painter().line_segment([c + vec2(-1.5, 3.0), c + vec2(4.5, -3.5)], s);
+}
+
+/// The mark a gallery cell shows when it is the current choice: a small accent disc with a check
+/// in the cell's top right corner. `cell` is the cell's rect.
+pub fn check_badge(ui: &Ui, cell: Rect) {
+    let t = Tokens::get(ui.ctx());
+    let c = pos2(cell.max.x - 7.0, cell.min.y + 7.0);
+    ui.painter().circle_filled(c, 5.5, t.accent);
+    let s = Stroke::new(1.3, t.on_accent);
+    ui.painter().line_segment([c + vec2(-2.8, 0.0), c + vec2(-0.8, 2.0)], s);
+    ui.painter().line_segment([c + vec2(-0.8, 2.0), c + vec2(2.8, -2.2)], s);
+}
+
+/// The placeholder atom that reserves a menu row's check column; [`paint_check_column`] draws into it.
+fn check_column_id() -> Id {
+    Id::new("menu_check_column")
+}
+
+fn check_column() -> Atom<'static> {
+    Atom::custom(check_column_id(), vec2(CHECK_COL_W, 12.0))
+}
+
+/// Paint the check mark into the column [`check_column`] reserved in `layout`, when `on`.
+fn paint_check_column(ui: &Ui, layout: &egui::AtomLayoutResponse, on: bool, enabled: bool) {
+    if !on {
+        return;
+    }
+    if let Some(r) = layout.rect(check_column_id()) {
+        let t = Tokens::get(ui.ctx());
+        check_mark(ui, r.center(), if enabled { t.accent } else { t.text_disabled });
+    }
+}
+
+/// What `ui.inspect` reports about the dropdown that is open: its title and the rows drawn in the
+/// last frame. An open menu is egui popup state, so the widgets record themselves as they draw.
+#[derive(Clone, Default)]
+struct MenuRecord {
+    frame: u64,
+    title: String,
+    rows: Vec<Value>,
+}
+
+fn record_id() -> Id {
+    Id::new("open_menu_record")
+}
+
+/// Start the record for the dropdown `title`, which is being drawn this frame.
+fn begin_menu(ui: &Ui, title: &str) {
+    let frame = ui.ctx().cumulative_frame_nr();
+    ui.ctx().data_mut(|d| d.insert_temp(record_id(), MenuRecord { frame, title: title.to_string(), rows: Vec::new() }));
+}
+
+/// Add a row to the open dropdown's record.
+fn record_row(ui: &Ui, row: Value) {
+    let frame = ui.ctx().cumulative_frame_nr();
+    ui.ctx().data_mut(|d| {
+        let rec = d.get_temp_mut_or_insert_with(record_id(), MenuRecord::default);
+        if rec.frame != frame {
+            *rec = MenuRecord { frame, ..MenuRecord::default() };
+        }
+        rec.rows.push(row);
+    });
+}
+
+/// The dropdown that was drawn in the last frame, as `{title, rows: [{label, id, enabled,
+/// checked}]}`, or `None` when no dropdown is open. `checked` is null for a row with no current
+/// value to show.
+pub fn open_menu(ctx: &egui::Context) -> Option<Value> {
+    let frame = ctx.cumulative_frame_nr();
+    let rec = ctx.data(|d| d.get_temp::<MenuRecord>(record_id()))?;
+    (rec.frame + 1 >= frame && !rec.rows.is_empty()).then(|| json!({"title": rec.title, "rows": rec.rows}))
+}
 
 /// The portable shortcut string for a command (engine or UI), first alternative only.
 pub fn shortcut_of(app: &CraftApp, id: &str) -> &'static str {
@@ -290,6 +372,7 @@ pub fn split(
     let arrow = arrow.on_hover_text(format!("{name} options"));
     egui::Popup::menu(&arrow).show(|ui| {
         ui.set_min_width(MENU_MIN_W);
+        begin_menu(ui, &name);
         menu(ui, app);
     });
     main
@@ -336,17 +419,33 @@ pub fn menu_button(
     let resp = resp.on_hover_text(tip);
     egui::Popup::menu(&resp).show(|ui| {
         ui.set_min_width(MENU_MIN_W);
+        begin_menu(ui, tip);
         menu(ui, app);
     });
     resp
 }
 
 /// A menu item that runs a command and closes the menu. Shows the shortcut; disabled when the
-/// command is.
-pub fn menu_item(ui: &mut Ui, app: &mut CraftApp, label: &str, id: &str, params: Value) {
+/// command is. `checked` is the item's current-choice state: `None` for an item with no current
+/// value, `Some(on)` for one that has (the row then reserves a check column at the right, after
+/// the shortcut, and paints the mark there while `on`; its accessibility info says selected).
+pub fn menu_item(ui: &mut Ui, app: &mut CraftApp, label: &str, id: &str, params: Value, checked: Option<bool>) {
     let sc = shortcut_text(app, id);
     let on = enabled(app, id);
-    let resp = ui.add_enabled(on, egui::Button::new(label).shortcut_text(sc).min_size(vec2(MENU_MIN_W, 0.0)));
+    let mut button = egui::Button::new(label).min_size(vec2(MENU_MIN_W, 0.0));
+    button = match (sc.is_empty(), checked.is_some()) {
+        (true, false) => button,
+        (false, false) => button.shortcut_text(sc),
+        (true, true) => button.right_text(check_column()),
+        (false, true) => button.shortcut_text((sc, check_column())),
+    };
+    let out = ui.add_enabled_ui(on, |ui| button.atom_ui(ui)).inner;
+    let resp = out.response.clone();
+    paint_check_column(ui, &out, checked == Some(true), on);
+    if let Some(c) = checked {
+        resp.widget_info(|| WidgetInfo::selected(WidgetType::Button, on, c, label));
+    }
+    record_row(ui, json!({"label": label, "id": id, "enabled": on, "checked": checked}));
     if resp.clicked() {
         let _ = app.run(id, params);
         ui.close();
@@ -356,6 +455,8 @@ pub fn menu_item(ui: &mut Ui, app: &mut CraftApp, label: &str, id: &str, params:
 /// A ribbon-style text field with a dropdown list of `items`; `current` shows when the field is
 /// not being edited. Returns a value the user chose from the list or typed and confirmed with
 /// Enter. `id` keeps the edit state apart from other combos.
+///
+/// The current item in the list carries the same check mark as a checked menu row.
 pub fn combo(ui: &mut Ui, id: &str, width: f32, current: &str, items: &[String]) -> Option<String> {
     let mut out = None;
     let edit_id = ui.id().with(("combo_text", id));
@@ -380,8 +481,15 @@ pub fn combo(ui: &mut Ui, id: &str, width: f32, current: &str, items: &[String])
         egui::Popup::menu(&aresp).show(|ui| {
             egui::ScrollArea::vertical().max_height(420.0).show(ui, |ui| {
                 ui.set_min_width(width + 40.0);
+                begin_menu(ui, id);
                 for it in items {
-                    if ui.selectable_label(it == current, it).clicked() {
+                    let on = it == current;
+                    let button = egui::Button::new(it.as_str()).min_size(vec2(width + 40.0, 0.0)).right_text(check_column());
+                    let row = button.atom_ui(ui);
+                    paint_check_column(ui, &row, on, true);
+                    row.response.widget_info(|| WidgetInfo::selected(WidgetType::Button, true, on, it));
+                    record_row(ui, json!({"label": it, "id": Value::Null, "enabled": true, "checked": on}));
+                    if row.response.clicked() {
                         out = Some(it.clone());
                         ui.close();
                     }

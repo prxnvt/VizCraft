@@ -8,7 +8,8 @@
 //! - `engine.execute {command, params?}`: run any command (engine, `ui.*` or `app.*`)
 //! - `engine.commands`: every command with its enablement, UI commands included
 //! - `ui.inspect`: UI state, view, selection, dialog, window size, title, dirty, rev, perf, tool,
-//!   and a diagram summary (page, counts, selection, hover, editing, drag)
+//!   a diagram summary (page, counts, selection, hover, editing, drag) and the open ribbon
+//!   dropdown (`menu`: its title and rows with `label`, `id`, `enabled` and `checked`)
 //! - `ui.set {path, value}`: set one field of the UI state by dotted path or JSON pointer
 //! - `ui.menus`: the menu tree with labels, ids, shortcuts, enablement and check marks
 //! - `ui.click`, `ui.move`, `ui.drag`, `ui.key`, `ui.text`: synthetic input, queued for the next frame
@@ -88,6 +89,8 @@ pub fn inspect(app: &CraftApp, ctx: &egui::Context) -> Value {
         "perf": {"frameMs": app.frame_ms},
         "tool": app.tool.name(),
         "diagram": crate::canvas::summary(app),
+        // The ribbon dropdown that is open, row by row, with each row's check state.
+        "menu": crate::widgets::open_menu(ctx),
     })
 }
 
@@ -472,10 +475,12 @@ mod tests {
             "perf",
             "tool",
             "diagram",
+            "menu",
         ] {
             assert!(v.get(k).is_some(), "{k} missing in {v}");
         }
         assert_eq!(v["dialog"], Value::Null);
+        assert_eq!(v["menu"], Value::Null, "no dropdown is open");
         assert_eq!(v["dirty"], false);
         assert_eq!(v["tool"], "pointer");
         assert_eq!(v["diagram"]["shapes"], 6);

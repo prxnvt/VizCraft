@@ -702,7 +702,7 @@ fn draw_items(app: &CraftApp, ui: &mut Ui, items: &[Item], hi: Option<usize>, t:
                 }
                 let color = if e.enabled { t.text } else { t.text_disabled };
                 if e.checked {
-                    check_mark(ui, pos2(r.min.x + 14.0, r.center().y), if e.enabled { t.accent } else { t.text_disabled });
+                    widgets::check_mark(ui, pos2(r.min.x + 14.0, r.center().y), if e.enabled { t.accent } else { t.text_disabled });
                 }
                 ui.painter().text(pos2(r.min.x + 28.0, r.center().y), Align2::LEFT_CENTER, &e.label, font.clone(), color);
                 if !e.shortcut.is_empty() {
@@ -718,13 +718,6 @@ fn draw_items(app: &CraftApp, ui: &mut Ui, items: &[Item], hi: Option<usize>, t:
         }
     }
     rows
-}
-
-/// A check mark drawn with two strokes (no glyph, so every font renders it the same).
-fn check_mark(ui: &Ui, c: Pos2, color: egui::Color32) {
-    let s = Stroke::new(1.6, color);
-    ui.painter().line_segment([c + vec2(-4.5, 0.0), c + vec2(-1.5, 3.0)], s);
-    ui.painter().line_segment([c + vec2(-1.5, 3.0), c + vec2(4.5, -3.5)], s);
 }
 
 /// A right-pointing chevron for submenu rows.

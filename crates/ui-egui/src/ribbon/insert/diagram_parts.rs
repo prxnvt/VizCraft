@@ -9,7 +9,7 @@ use crate::ribbon::{Group, MenuEntry, Size};
 
 /// One menu entry per preset: `id` with `{"style": name}`.
 fn styles(id: &'static str, presets: &'static [vizcraft_diagram::container::Preset]) -> Vec<MenuEntry> {
-    presets.iter().map(|p| (p.label, id, json!({"style": p.name}))).collect()
+    presets.iter().map(|p| MenuEntry::new(p.label, id, json!({"style": p.name}))).collect()
 }
 
 /// The Insert tab's Diagram Parts group.
@@ -27,10 +27,10 @@ pub(in crate::ribbon) fn group() -> Group {
                 icon: "swimlanes",
                 big: true,
                 menu: vec![
-                    ("Horizontal Lanes", "lane.addSet", json!({"orientation": "horizontal"})),
-                    ("Vertical Lanes", "lane.addSet", json!({"orientation": "vertical"})),
-                    ("Two Lanes", "lane.addSet", json!({"lanes": 2})),
-                    ("Four Lanes", "lane.addSet", json!({"lanes": 4})),
+                    MenuEntry::new("Horizontal Lanes", "lane.addSet", json!({"orientation": "horizontal"})),
+                    MenuEntry::new("Vertical Lanes", "lane.addSet", json!({"orientation": "vertical"})),
+                    MenuEntry::new("Two Lanes", "lane.addSet", json!({"lanes": 2})),
+                    MenuEntry::new("Four Lanes", "lane.addSet", json!({"lanes": 4})),
                 ],
             },
         ],

@@ -16,27 +16,27 @@ fn align_menu() -> Vec<MenuEntry> {
         ("middle", "Align Middle", "Align Middle to Page"),
         ("bottom", "Align Bottom", "Align Bottom to Page"),
     ];
-    let mut out: Vec<MenuEntry> = edges.iter().map(|(e, l, _)| (*l, "arrange.align", json!({"edge": e}))).collect();
-    out.extend(edges.iter().map(|(e, _, l)| (*l, "arrange.align", json!({"edge": e, "to": "page"}))));
+    let mut out: Vec<MenuEntry> = edges.iter().map(|(e, l, _)| MenuEntry::new(l, "arrange.align", json!({"edge": e}))).collect();
+    out.extend(edges.iter().map(|(e, _, l)| MenuEntry::new(l, "arrange.align", json!({"edge": e, "to": "page"}))));
     out
 }
 
 /// The Position menu: distribute and auto space.
 fn position_menu() -> Vec<MenuEntry> {
     vec![
-        ("Distribute Horizontally", "arrange.distribute", json!({"axis": "horizontal"})),
-        ("Distribute Vertically", "arrange.distribute", json!({"axis": "vertical"})),
-        ("Auto Space", "arrange.autoSpace", json!({})),
+        MenuEntry::new("Distribute Horizontally", "arrange.distribute", json!({"axis": "horizontal"})),
+        MenuEntry::new("Distribute Vertically", "arrange.distribute", json!({"axis": "vertical"})),
+        MenuEntry::new("Auto Space", "arrange.autoSpace", json!({})),
     ]
 }
 
 /// The Rotate menu: quarter turns and flips.
 fn rotate_menu() -> Vec<MenuEntry> {
     vec![
-        ("Rotate Right 90", "arrange.rotate", json!({"deg": 90})),
-        ("Rotate Left 90", "arrange.rotate", json!({"deg": -90})),
-        ("Flip Horizontal", "arrange.flip", json!({"axis": "horizontal"})),
-        ("Flip Vertical", "arrange.flip", json!({"axis": "vertical"})),
+        MenuEntry::new("Rotate Right 90", "arrange.rotate", json!({"deg": 90})),
+        MenuEntry::new("Rotate Left 90", "arrange.rotate", json!({"deg": -90})),
+        MenuEntry::new("Flip Horizontal", "arrange.flip", json!({"axis": "horizontal"})),
+        MenuEntry::new("Flip Vertical", "arrange.flip", json!({"axis": "vertical"})),
     ]
 }
 
@@ -56,8 +56,8 @@ pub(in crate::ribbon) fn group() -> Group {
                     icon: "bringFront",
                     big: false,
                     menu: vec![
-                        ("Bring to Front", "arrange.order", json!({"how": "front"})),
-                        ("Bring Forward", "arrange.order", json!({"how": "forward"})),
+                        MenuEntry::new("Bring to Front", "arrange.order", json!({"how": "front"})),
+                        MenuEntry::new("Bring Forward", "arrange.order", json!({"how": "forward"})),
                     ],
                 },
                 Menu {
@@ -65,15 +65,15 @@ pub(in crate::ribbon) fn group() -> Group {
                     icon: "sendBack",
                     big: false,
                     menu: vec![
-                        ("Send to Back", "arrange.order", json!({"how": "back"})),
-                        ("Send Backward", "arrange.order", json!({"how": "backward"})),
+                        MenuEntry::new("Send to Back", "arrange.order", json!({"how": "back"})),
+                        MenuEntry::new("Send Backward", "arrange.order", json!({"how": "backward"})),
                     ],
                 },
                 Menu {
                     label: "Group",
                     icon: "group",
                     big: false,
-                    menu: vec![("Group", "arrange.group", json!({})), ("Ungroup", "arrange.ungroup", json!({}))],
+                    menu: vec![MenuEntry::new("Group", "arrange.group", json!({})), MenuEntry::new("Ungroup", "arrange.ungroup", json!({}))],
                 },
             ]),
             Stack(vec![Small { id: "edit.delete", icon: "delete" }]),

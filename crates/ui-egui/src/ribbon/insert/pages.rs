@@ -4,7 +4,7 @@
 use serde_json::json;
 
 use crate::ribbon::Control::*;
-use crate::ribbon::Group;
+use crate::ribbon::{Group, MenuEntry};
 
 /// The Insert tab's Pages group.
 pub(in crate::ribbon) fn group() -> Group {
@@ -15,9 +15,9 @@ pub(in crate::ribbon) fn group() -> Group {
             icon: "new",
             big: true,
             menu: vec![
-                ("Blank Page", "page.add", json!({})),
-                ("Background Page", "page.add", json!({"background": true})),
-                ("Duplicate Page", "page.duplicate", json!({})),
+                MenuEntry::new("Blank Page", "page.add", json!({})),
+                MenuEntry::new("Background Page", "page.add", json!({"background": true})),
+                MenuEntry::new("Duplicate Page", "page.duplicate", json!({})),
             ],
         }],
     )

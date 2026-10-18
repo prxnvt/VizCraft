@@ -86,8 +86,33 @@ pub struct Group {
     pub controls: Vec<Control>,
 }
 
-/// One entry of a dropdown menu: `(label, command id, params)`.
-pub type MenuEntry = (&'static str, &'static str, Value);
+/// One entry of a dropdown menu: a command run by id with params, and optionally how to tell
+/// that it is the menu's current choice.
+pub struct MenuEntry {
+    /// The row's text.
+    pub label: &'static str,
+    /// The command the row runs.
+    pub id: &'static str,
+    /// The command's params.
+    pub params: Value,
+    /// Whether this row is the current choice, read from the app each time the menu is drawn. A
+    /// row with `Some` reserves the check column at the right and paints the mark while the
+    /// function returns true; `None` is a row with no current value (a plain action).
+    pub checked: Option<fn(&CraftApp) -> bool>,
+}
+
+impl MenuEntry {
+    /// An entry with no current-value state.
+    pub const fn new(label: &'static str, id: &'static str, params: Value) -> Self {
+        MenuEntry { label, id, params, checked: None }
+    }
+
+    /// The same entry, drawn with a check mark while `f` holds.
+    pub fn checked(mut self, f: fn(&CraftApp) -> bool) -> Self {
+        self.checked = Some(f);
+        self
+    }
+}
 
 /// Command params worked out from the app when the control is drawn (the selection, the tool).
 pub type ParamsFn = fn(&CraftApp) -> Value;
@@ -203,9 +228,9 @@ impl Control {
             Control::Gallery { .. } => out.push("shape.add"),
             Control::Split { id, menu, .. } => {
                 out.push(id);
-                out.extend(menu.iter().map(|(_, id, _)| *id));
+                out.extend(menu.iter().map(|e| e.id));
             }
-            Control::Menu { menu, .. } => out.extend(menu.iter().map(|(_, id, _)| *id)),
+            Control::Menu { menu, .. } => out.extend(menu.iter().map(|e| e.id)),
             Control::Stack(items) | Control::Row(items) => items.iter().for_each(|c| c.ids(out)),
             Control::Label { .. } | Control::Gap | Control::Custom(_) => {}
         }
@@ -298,8 +323,9 @@ impl Control {
 }
 
 fn menu_entries(ui: &mut Ui, app: &mut CraftApp, menu: &[MenuEntry]) {
-    for (label, id, params) in menu {
-        menu_item(ui, app, label, id, params.clone());
+    for e in menu {
+        let checked = e.checked.map(|f| f(app));
+        menu_item(ui, app, e.label, e.id, e.params.clone(), checked);
     }
 }
 

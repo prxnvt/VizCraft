@@ -3,17 +3,34 @@
 //! glow).
 
 use egui::{Rect, Sense, Stroke, Ui, WidgetInfo, WidgetType, vec2};
-use serde_json::{Value, json};
+use serde_json::json;
 use vizcraft_diagram::theme::{self, QUICK_STYLES, VARIANTS};
+use vizcraft_diagram::{Arrow, Dash, GradientKind, LineCap, Style};
 
 use crate::CraftApp;
 use crate::ribbon::Control::*;
-use crate::ribbon::{Group, LINE_WEIGHTS, MenuEntry, color32, selected_shape, selected_style, short_num};
+use crate::ribbon::{Group, LINE_WEIGHTS, MenuEntry, color32, selected_connector, selected_shape, selected_style, short_num};
 use crate::theme::Tokens;
 use crate::widgets;
 
 /// Size of one quick style cell.
 const CELL: egui::Vec2 = egui::Vec2::new(24.0, 20.0);
+
+/// The quick style the selected shape wears: the first whose fill, line, text colour, line width,
+/// gradient and shadow are what applying it sets. `None` when nothing matches or no shape is selected.
+fn current_quick_style(app: &CraftApp) -> Option<usize> {
+    let st = &selected_shape(app)?.style;
+    (0..QUICK_STYLES).find(|n| {
+        theme::quick_style(&app.session.doc.theme, *n).is_some_and(|q| {
+            st.fill == q.fill
+                && st.line == q.line
+                && st.font_color == q.text
+                && (st.line_width - q.line_width).abs() < 0.01
+                && st.gradient == q.gradient
+                && st.shadow == q.shadow
+        })
+    })
+}
 
 /// The quick styles of the active theme: one row per intensity, one column per accent.
 fn quick_styles(app: &mut CraftApp, ui: &mut Ui) {
@@ -21,6 +38,7 @@ fn quick_styles(app: &mut CraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let on = widgets::enabled(app, id);
     let doc_theme = app.session.doc.theme.clone();
+    let current = current_quick_style(app);
     let mut chosen = None;
     ui.vertical(|ui| {
         ui.spacing_mut().item_spacing = vec2(0.0, 0.0);
@@ -31,7 +49,8 @@ fn quick_styles(app: &mut CraftApp, ui: &mut Ui) {
                     let n = row * VARIANTS + col;
                     let Some(q) = theme::quick_style(&doc_theme, n) else { continue };
                     let (r, resp) = ui.allocate_exact_size(CELL, Sense::click());
-                    resp.widget_info(|| WidgetInfo::labeled(WidgetType::Button, on, &q.name));
+                    let is_current = current == Some(n);
+                    resp.widget_info(|| WidgetInfo::selected(WidgetType::Button, on, is_current, &q.name));
                     if on && resp.hovered() {
                         ui.painter().rect_filled(r, 3.0, t.hover);
                     }
@@ -42,6 +61,9 @@ fn quick_styles(app: &mut CraftApp, ui: &mut Ui) {
                     if q.shadow.is_some() && on {
                         let edge = Rect::from_min_max(swatch.left_bottom(), swatch.right_bottom() + vec2(0.0, 1.5));
                         ui.painter().rect_filled(edge.translate(vec2(1.0, 0.0)), 0.0, t.shadow);
+                    }
+                    if is_current {
+                        widgets::check_badge(ui, r);
                     }
                     let resp = widgets::tooltip(app, resp, &q.name, id);
                     if on && resp.clicked() {
@@ -56,65 +78,84 @@ fn quick_styles(app: &mut CraftApp, ui: &mut Ui) {
     }
 }
 
-fn set_style(label: &'static str, params: Value) -> MenuEntry {
-    (label, "shape.setStyle", params)
+/// Whether the primary selected item's style passes `test`; false with nothing selected.
+fn style_is(app: &CraftApp, test: impl Fn(&Style) -> bool) -> bool {
+    selected_style(app).is_some_and(test)
+}
+
+/// Whether two style numbers are the same value (the commands store what the menu sends).
+fn near(a: f64, b: f64) -> bool {
+    (a - b).abs() < 0.001
+}
+
+/// A `shape.setStyle` entry, drawn checked while the selected style passes the test.
+macro_rules! style_entry {
+    ($label:expr, $params:expr, |$s:ident| $test:expr) => {
+        MenuEntry::new($label, "shape.setStyle", $params).checked(|a| style_is(a, |$s| $test))
+    };
 }
 
 /// Fill: gradient, transparency and shadow.
 fn fill_menu() -> Vec<MenuEntry> {
     vec![
-        set_style("No Gradient", json!({"gradient": false})),
-        set_style("Linear Gradient", json!({"gradient": "linear"})),
-        set_style("Radial Gradient", json!({"gradient": "radial"})),
-        set_style("Opaque", json!({"fillTransparency": 0})),
-        set_style("25% Transparent", json!({"fillTransparency": 0.25})),
-        set_style("50% Transparent", json!({"fillTransparency": 0.5})),
-        set_style("75% Transparent", json!({"fillTransparency": 0.75})),
-        set_style("No Shadow", json!({"shadow": false})),
-        set_style("Shadow", json!({"shadow": true})),
+        style_entry!("No Gradient", json!({"gradient": false}), |s| s.gradient.is_none()),
+        style_entry!("Linear Gradient", json!({"gradient": "linear"}), |s| s.gradient.as_ref().is_some_and(|g| g.kind == GradientKind::Linear)),
+        style_entry!("Radial Gradient", json!({"gradient": "radial"}), |s| s.gradient.as_ref().is_some_and(|g| g.kind == GradientKind::Radial)),
+        style_entry!("Opaque", json!({"fillTransparency": 0}), |s| near(s.fill_transparency, 0.0)),
+        style_entry!("25% Transparent", json!({"fillTransparency": 0.25}), |s| near(s.fill_transparency, 0.25)),
+        style_entry!("50% Transparent", json!({"fillTransparency": 0.5}), |s| near(s.fill_transparency, 0.5)),
+        style_entry!("75% Transparent", json!({"fillTransparency": 0.75}), |s| near(s.fill_transparency, 0.75)),
+        style_entry!("No Shadow", json!({"shadow": false}), |s| s.shadow.is_none()),
+        style_entry!("Shadow", json!({"shadow": true}), |s| s.shadow.is_some()),
     ]
+}
+
+/// Whether every selected connector (the primary one at least) has these arrowheads.
+fn arrows_are(app: &CraftApp, start: Arrow, end: Arrow) -> bool {
+    selected_connector(app).is_some_and(|c| c.start_arrow == start && c.end_arrow == end)
 }
 
 /// Line: dash pattern, arrows (connectors), corner rounding, cap and transparency.
 fn line_menu() -> Vec<MenuEntry> {
-    let mut out = vec![
-        set_style("Solid", json!({"dash": "solid"})),
-        set_style("Dashed", json!({"dash": "dashed"})),
-        set_style("Dotted", json!({"dash": "dotted"})),
-        set_style("Dash Dot", json!({"dash": "dashDot"})),
-        set_style("Long Dash", json!({"dash": "longDash"})),
-    ];
-    out.extend([
-        ("No Arrows", "connector.setArrows", json!({"start": "none", "end": "none"})),
-        ("Arrow at End", "connector.setArrows", json!({"start": "none", "end": "triangle"})),
-        ("Arrows at Both Ends", "connector.setArrows", json!({"start": "triangle", "end": "triangle"})),
-    ]);
-    out.extend([
-        set_style("Square Corners", json!({"cornerRadius": 0})),
-        set_style("Rounded Corners", json!({"cornerRadius": 8})),
-        set_style("Very Rounded Corners", json!({"cornerRadius": 20})),
-        set_style("Round Line Caps", json!({"lineCap": "round"})),
-        set_style("Square Line Caps", json!({"lineCap": "square"})),
-        set_style("Flat Line Caps", json!({"lineCap": "butt"})),
-        set_style("Line Opaque", json!({"lineTransparency": 0})),
-        set_style("Line 50% Transparent", json!({"lineTransparency": 0.5})),
-    ]);
-    out
+    vec![
+        style_entry!("Solid", json!({"dash": "solid"}), |s| s.dash == Dash::Solid),
+        style_entry!("Dashed", json!({"dash": "dashed"}), |s| s.dash == Dash::Dashed),
+        style_entry!("Dotted", json!({"dash": "dotted"}), |s| s.dash == Dash::Dotted),
+        style_entry!("Dash Dot", json!({"dash": "dashDot"}), |s| s.dash == Dash::DashDot),
+        style_entry!("Long Dash", json!({"dash": "longDash"}), |s| s.dash == Dash::LongDash),
+        MenuEntry::new("No Arrows", "connector.setArrows", json!({"start": "none", "end": "none"})).checked(|a| arrows_are(a, Arrow::None, Arrow::None)),
+        MenuEntry::new("Arrow at End", "connector.setArrows", json!({"start": "none", "end": "triangle"}))
+            .checked(|a| arrows_are(a, Arrow::None, Arrow::Triangle)),
+        MenuEntry::new("Arrows at Both Ends", "connector.setArrows", json!({"start": "triangle", "end": "triangle"}))
+            .checked(|a| arrows_are(a, Arrow::Triangle, Arrow::Triangle)),
+        style_entry!("Square Corners", json!({"cornerRadius": 0}), |s| near(s.corner_radius, 0.0)),
+        style_entry!("Rounded Corners", json!({"cornerRadius": 8}), |s| near(s.corner_radius, 8.0)),
+        style_entry!("Very Rounded Corners", json!({"cornerRadius": 20}), |s| near(s.corner_radius, 20.0)),
+        style_entry!("Round Line Caps", json!({"lineCap": "round"}), |s| s.line_cap == LineCap::Round),
+        style_entry!("Square Line Caps", json!({"lineCap": "square"}), |s| s.line_cap == LineCap::Square),
+        style_entry!("Flat Line Caps", json!({"lineCap": "butt"}), |s| s.line_cap == LineCap::Butt),
+        style_entry!("Line Opaque", json!({"lineTransparency": 0}), |s| near(s.line_transparency, 0.0)),
+        style_entry!("Line 50% Transparent", json!({"lineTransparency": 0.5}), |s| near(s.line_transparency, 0.5)),
+    ]
 }
 
 /// Effects: shadow, soft edges and glow.
 fn effects_menu() -> Vec<MenuEntry> {
     vec![
-        set_style("No Shadow", json!({"shadow": false})),
-        set_style("Offset Shadow", json!({"shadow": {"dx": 3, "dy": 3, "blur": 2}})),
-        set_style("Soft Shadow", json!({"shadow": {"dx": 0, "dy": 4, "blur": 10, "color": "#00000040"}})),
-        set_style("No Soft Edges", json!({"softEdges": 0})),
-        set_style("Soft Edges 2.5", json!({"softEdges": 2.5})),
-        set_style("Soft Edges 5", json!({"softEdges": 5})),
-        set_style("Soft Edges 10", json!({"softEdges": 10})),
-        set_style("No Glow", json!({"glow": false})),
-        set_style("Small Glow", json!({"glow": 4})),
-        set_style("Large Glow", json!({"glow": 10})),
+        style_entry!("No Shadow", json!({"shadow": false}), |s| s.shadow.is_none()),
+        style_entry!("Offset Shadow", json!({"shadow": {"dx": 3, "dy": 3, "blur": 2}}), |s| s
+            .shadow
+            .is_some_and(|d| near(d.dx, 3.0) && near(d.dy, 3.0) && near(d.blur, 2.0))),
+        style_entry!("Soft Shadow", json!({"shadow": {"dx": 0, "dy": 4, "blur": 10, "color": "#00000040"}}), |s| s
+            .shadow
+            .is_some_and(|d| near(d.dx, 0.0) && near(d.dy, 4.0) && near(d.blur, 10.0))),
+        style_entry!("No Soft Edges", json!({"softEdges": 0}), |s| near(s.soft_edges, 0.0)),
+        style_entry!("Soft Edges 2.5", json!({"softEdges": 2.5}), |s| near(s.soft_edges, 2.5)),
+        style_entry!("Soft Edges 5", json!({"softEdges": 5}), |s| near(s.soft_edges, 5.0)),
+        style_entry!("Soft Edges 10", json!({"softEdges": 10}), |s| near(s.soft_edges, 10.0)),
+        style_entry!("No Glow", json!({"glow": false}), |s| s.glow.is_none()),
+        style_entry!("Small Glow", json!({"glow": 4}), |s| s.glow.is_some_and(|g| near(g.radius, 4.0))),
+        style_entry!("Large Glow", json!({"glow": 10}), |s| s.glow.is_some_and(|g| near(g.radius, 10.0))),
     ]
 }
 
