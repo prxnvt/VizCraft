@@ -32,6 +32,7 @@ fn registry_ids_are_unique_and_prefixed() {
                 "validate",
                 "notation",
                 "insert",
+                "script",
                 "help"
             ]
             .contains(&prefix),
@@ -82,6 +83,14 @@ fn hostile_params_never_panic() {
         json!({"text": "{\"vizcraft\": \"clip\", \"shapes\": [1, {}, {\"id\": 3, \"x\": \"a\"}], \"connectors\": [{\"start\": {\"shape\": \"zz\"}}]}"}),
         json!({"text": "{\"vizcraft\": \"clip\", \"shapes\": {}, \"connectors\": 5}"}),
         json!({"text": "not json at all"}),
+        json!({"commands": [{"command": "shape.move", "params": {"ids": ["s2"], "dx": 1e308}}, {"command": "nope.nope"}], "label": 5}),
+        json!({"commands": [{"command": "shape.move", "params": {"ids": ["s2"], "dx": 5}}, {"id": "edit.undo"}], "label": "x".repeat(1000)}),
+        json!({"commands": [{"command": "file.new"}, {"command": "edit.selectAll"}, {"command": "edit.delete"}, {"command": "fail.now"}]}),
+        json!({"commands": [{"command": 5}, {"params": []}], "script": 7}),
+        json!({"commands": "x", "script": "[{\"command\": \"edit.batch\", \"params\": {\"commands\": [{\"command\": \"script.run\", \"params\": {\"script\": []}}]}}]"}),
+        json!({"script": [{"command": "edit.selectAll"}, {"command": "edit.copy"}, {"command": "edit.paste"}, {"id": "edit.delete"}], "label": ""}),
+        json!({"script": "not json", "commands": []}),
+        nested_batches(40),
     ];
     for spec in reg.all() {
         // File commands touch the disk; given a path they would write junk files. `page.set` with a
@@ -111,6 +120,15 @@ fn hostile_params_never_panic() {
             }
         }
     }
+}
+
+/// `edit.batch` params with `depth` batches nested inside each other around one shape move.
+fn nested_batches(depth: usize) -> Value {
+    let mut v = json!({"commands": [{"command": "shape.move", "params": {"ids": ["s2"], "dx": 1}}]});
+    for _ in 0..depth {
+        v = json!({"commands": [{"command": "edit.batch", "params": v}, {"command": "script.run", "params": {"script": [{"command": "edit.selectNone"}]}}]});
+    }
+    v
 }
 
 #[test]
@@ -779,4 +797,187 @@ fn cascade_1_document_opens_as_free_drawing() {
     assert!(s.doc.model.is_empty(), "free shapes are never rebound");
     assert!(s.doc.connector("c1").is_some_and(|c| c.relationship.is_none()));
     assert!(s.issues.is_empty());
+}
+
+#[test]
+fn batch_undoes_and_redoes_in_one_step() {
+    let mut s = s();
+    let before = s.doc.clone();
+    let r = run(
+        &mut s,
+        "edit.batch",
+        json!({"label": "Build a pair", "commands": [
+            {"command": "shape.add", "params": {"stencil": "basic.rectangle", "x": 0, "y": 0, "id": "pa"}},
+            {"command": "shape.add", "params": {"stencil": "basic.rectangle", "x": 0, "y": 200, "id": "pb"}},
+            {"command": "connector.add", "params": {"from": {"shape": "pa"}, "to": {"shape": "pb"}, "id": "pc"}},
+            {"command": "edit.select", "params": {"ids": ["s2"]}},
+            {"command": "shape.move", "params": {"dx": 10, "dy": 0}},
+        ]}),
+    );
+    assert_eq!(r["completed"], 5);
+    assert_eq!(r["results"][2]["result"]["id"], "pc");
+    let after = s.doc.clone();
+    assert_eq!(s.undo_label(), Some("Build a pair"));
+    let log = s.transactions();
+    assert_eq!(log.len(), 1);
+    assert_eq!(log[0].label, "Build a pair");
+    assert_eq!(log[0].origin, crate::Origin::Ui);
+    assert_eq!(log[0].commands, ["shape.add", "shape.add", "connector.add", "edit.select", "shape.move"]);
+
+    run(&mut s, "edit.undo", json!({}));
+    assert_eq!(s.doc, before);
+    assert!(!s.can_undo(), "the whole batch was one step");
+    run(&mut s, "edit.redo", json!({}));
+    assert_eq!(s.doc, after);
+    assert!(!s.can_redo());
+    assert_eq!(s.transactions().len(), 1, "undo and redo add no log entries");
+
+    // A batch of selection commands changes nothing and makes no step.
+    run(&mut s, "edit.batch", json!({"commands": [{"command": "edit.selectAll"}, {"command": "edit.selectNone"}]}));
+    assert_eq!(s.undo_label(), Some("Build a pair"));
+    // Batches nest, and the outer one is still one step with the default label.
+    run(
+        &mut s,
+        "edit.batch",
+        json!({"commands": [{"command": "edit.batch", "params": {"commands": [{"command": "shape.delete", "params": {"ids": ["pa"]}}]}}]}),
+    );
+    assert_eq!(s.undo_label(), Some("Batch"));
+    assert_eq!(s.transactions().back().unwrap().commands, ["edit.batch", "shape.delete"]);
+    run(&mut s, "edit.undo", json!({}));
+    assert_eq!(s.doc, after);
+}
+
+#[test]
+fn a_failing_batch_leaves_the_document_unchanged() {
+    let mut s = s();
+    run(&mut s, "shape.setText", json!({"id": "s2", "text": "First"}));
+    run(&mut s, "edit.select", json!({"ids": ["s3"]}));
+    let (doc, sel, rev) = (s.doc.clone(), s.sel.clone(), s.rev());
+    for (commands, at) in [
+        (
+            json!([{"command": "shape.move", "params": {"ids": ["s2"], "dx": 50, "dy": 0}}, {"command": "edit.selectAll"}, {"command": "nope.nope"}]),
+            2,
+        ),
+        (json!([{"command": "shape.delete", "params": {"ids": ["s2"]}}, {"command": "edit.undo"}]), 1),
+        (json!([{"command": "file.new"}, {"command": "shape.setText", "params": {"id": "s2", "text": "gone"}}]), 1),
+        (
+            json!([{"command": "shape.add", "params": {"stencil": "basic.rectangle", "x": 0, "y": 0}}, {"command": "edit.batch", "params": {"commands": [{"command": "edit.selectNone"}, {"command": "shape.move", "params": {"ids": ["zz"], "dx": 1, "dy": 1}}]}}]),
+            1,
+        ),
+    ] {
+        let e = s.run("edit.batch", &json!({"commands": commands})).unwrap_err().to_string();
+        assert!(e.contains(&format!("commands[{at}]")), "{e}");
+        assert_eq!(s.doc, doc, "{e}");
+        assert_eq!(s.sel, sel, "{e}");
+        assert_eq!(s.undo_label(), Some("Edit Text"), "history kept: {e}");
+        assert!(s.rev() != rev, "the UI repaints after a rollback");
+    }
+    assert!(s.path.is_none());
+    assert_eq!(s.transactions().len(), 1);
+    // The engine API reports the same way.
+    let steps = vec![("shape.move".to_string(), json!({"ids": ["s2"], "dx": 1, "dy": 1})), ("nope.nope".to_string(), json!({}))];
+    assert!(s.transaction("Move", &steps).is_err());
+    assert_eq!(s.doc, doc);
+    run(&mut s, "edit.undo", json!({}));
+    assert_eq!(s.doc, sample::sample_document());
+    // Bad params name the entry; too deep a nest is refused.
+    assert!(params_err(&mut s, "edit.batch", json!({"commands": []})).contains("empty"));
+    assert!(params_err(&mut s, "edit.batch", json!({"commands": [{"params": {}}]})).contains("commands[0]"));
+    assert!(params_err(&mut s, "edit.batch", json!({"commands": [{"command": "edit.selectAll", "params": 3}]})).contains("params"));
+    assert!(s.run("edit.batch", &nested_batches(9)).unwrap_err().to_string().contains("deep"));
+    assert_eq!(s.doc, sample::sample_document());
+}
+
+#[test]
+fn the_transaction_log_names_the_origin_and_is_bounded() {
+    let mut s = s();
+    s.run_as(crate::Origin::Mcp, "edit.batch", &json!({"label": "Agent", "commands": [{"command": "edit.setTitle", "params": {"title": "a"}}]}))
+        .unwrap();
+    s.run_as(crate::Origin::Control, "edit.setTitle", &json!({"title": "b"})).unwrap();
+    run(&mut s, "script.run", json!({"script": [{"command": "edit.setTitle", "params": {"title": "c"}}]}));
+    let log: Vec<_> = s.transactions().iter().map(|t| (t.label.as_str(), t.origin)).collect();
+    use crate::Origin::*;
+    assert_eq!(log, [("Agent", Mcp), ("Document Title", Control), ("Run Script", Script)]);
+    assert_eq!(s.origin(), Ui, "run_as and script.run put the origin back");
+    for i in 0..crate::session::MAX_LOG + 5 {
+        run(&mut s, "edit.setTitle", json!({"title": format!("t{i}")}));
+    }
+    assert_eq!(s.transactions().len(), crate::session::MAX_LOG);
+    assert_eq!(s.transactions().back().unwrap().origin, Ui);
+}
+
+#[test]
+fn a_fragment_round_trip_keeps_connections_and_gives_fresh_ids() {
+    let s = s();
+    let ids = ["s2", "s3", "c8"];
+    let frag = crate::Fragment::extract(&s.doc, |id| ids.contains(&id));
+    assert_eq!((frag.shapes.len(), frag.connectors.len()), (2, 1));
+    let back = crate::Fragment::from_json(&serde_json::from_str(&frag.to_json().to_string()).unwrap()).unwrap();
+    assert_eq!(back, frag);
+
+    for mut doc in [s.doc.clone(), crate::Document::new()] {
+        let old = doc.clone();
+        let new = back.insert(&mut doc, 100.0, -50.0).unwrap();
+        assert_eq!(new.len(), 3);
+        for id in &new {
+            assert!(!old.contains_id(id), "{id} is fresh");
+        }
+        let page = doc.page().unwrap();
+        let c = page.connector(&new[2]).unwrap();
+        assert_eq!(c.start.shape(), Some(new[0].as_str()), "glue follows the copies");
+        assert_eq!(c.end.shape(), Some(new[1].as_str()));
+        let (orig, copy) = (sample::sample_document().page().unwrap().shape("s2").unwrap().clone(), page.shape(&new[0]).unwrap());
+        assert_eq!((copy.x, copy.y), (orig.x + 100.0, orig.y - 50.0));
+    }
+    // Hostile offsets and hand-made fragments do not break the page.
+    let mut doc = crate::Document::new();
+    let ids = back.insert(&mut doc, f64::NAN, f64::INFINITY).unwrap();
+    assert!(doc.page().unwrap().shape(&ids[0]).unwrap().x.is_finite());
+    assert!(crate::Fragment::from_json(&json!({"shapes": []})).is_err());
+    assert!(crate::Fragment::from_json(&json!({"vizcraft": "clip", "shapes": 5})).unwrap().is_empty());
+}
+
+#[test]
+fn a_recorded_script_replays_to_the_same_document() {
+    let mut s = blank();
+    let first = run(&mut s, "shape.add", json!({"stencil": "basic.rectangle", "x": 0, "y": 0}))["id"].as_str().unwrap().to_string();
+    run(&mut s, "script.recordStart", json!({}));
+    assert!(s.is_recording());
+    run(&mut s, "shape.add", json!({"stencil": "basic.rectangle", "x": 0, "y": 200}));
+    run(&mut s, "view.zoomIn", json!({}));
+    let a = run(&mut s, "shape.add", json!({"stencil": "flowchart.process", "x": 300, "y": 0}))["id"].as_str().unwrap().to_string();
+    run(&mut s, "connector.add", json!({"from": {"shape": first}, "to": {"shape": a}}));
+    // An undone step and the selection made after it leave the script with it; redo brings
+    // the undone step back.
+    run(&mut s, "shape.add", json!({"stencil": "basic.ellipse", "x": 600, "y": 0, "id": "gone"}));
+    run(&mut s, "edit.select", json!({"ids": ["gone"]}));
+    run(&mut s, "edit.undo", json!({}));
+    run(&mut s, "shape.setText", json!({"id": first, "text": "kept"}));
+    run(&mut s, "shape.setText", json!({"id": first, "text": "kept, then undone"}));
+    run(&mut s, "edit.undo", json!({}));
+    run(&mut s, "edit.redo", json!({}));
+    run(&mut s, "edit.batch", json!({"commands": [{"command": "edit.selectAll"}, {"command": "edit.copy"}, {"command": "edit.paste"}]}));
+    let _ = s.run("shape.move", &json!({"ids": ["zz"], "dx": 1, "dy": 1}));
+    let script = run(&mut s, "script.recordStop", json!({}))["script"].clone();
+    assert!(!s.is_recording());
+    let ids: Vec<&str> = script.as_array().unwrap().iter().map(|x| x["command"].as_str().unwrap()).collect();
+    assert_eq!(ids, ["shape.add", "shape.add", "connector.add", "shape.setText", "shape.setText", "edit.batch"]);
+    assert!(matches!(s.run("script.recordStop", &json!({})), Err(EngineError::Disabled(_))));
+
+    // Replay on the document as it was when recording started.
+    let mut t = blank();
+    run(&mut t, "shape.add", json!({"stencil": "basic.rectangle", "x": 0, "y": 0}));
+    let r = run(&mut t, "script.run", json!({"script": script.to_string()}));
+    assert_eq!(r["completed"], 6);
+    assert_eq!(t.doc, s.doc);
+    assert_eq!(t.undo_label(), Some("Run Script"));
+    run(&mut t, "edit.undo", json!({}));
+    assert_eq!(page(&t).shapes.len(), 1, "the replay is one undo step");
+    // A failing script changes nothing.
+    let before = t.doc.clone();
+    let bad = json!([{"command": "shape.add", "params": {"stencil": "basic.rectangle", "x": 0, "y": 0}}, {"command": "nope.nope"}]);
+    assert!(t.run("script.run", &json!({"script": bad})).unwrap_err().to_string().contains("commands[1]"));
+    assert_eq!(t.doc, before);
+    assert!(params_err(&mut t, "script.run", json!({})).contains("script"));
+    assert!(params_err(&mut t, "script.run", json!({"script": "[]"})).contains("empty"));
 }

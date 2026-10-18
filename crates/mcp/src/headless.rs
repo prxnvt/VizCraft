@@ -50,7 +50,7 @@ impl Headless {
             return Err(format!("`{}` needs the app window; {NO_WINDOW}", vizcraft_engine::cmd::short(id)));
         }
         let args = params.get("params").filter(|v| !v.is_null()).cloned().unwrap_or_else(|| json!({}));
-        let result = self.session.run(id, &args);
+        let result = self.session.run_as(vizcraft_engine::Origin::Mcp, id, &args);
         let dropped: Vec<String> =
             std::mem::take(&mut self.session.ui_requests).into_iter().map(|r| format!("UI request ignored (no window): {r}")).collect();
         let mut result = result.map_err(|e| e.to_string())?;
@@ -249,6 +249,31 @@ mod tests {
         assert_eq!(r["isError"], true, "{r}");
         let r = call(&mut s, 7, "doc_inspect", json!({"page": [1]}));
         assert_eq!(r["isError"], true, "{r}");
+    }
+
+    #[test]
+    fn command_batch_undoes_in_one_step_and_a_failure_changes_nothing() {
+        let mut h = Headless::new();
+        let before = h.session().doc.clone();
+        let add = |id: &str, y: i32| json!({"id": "shape.add", "params": {"stencil": "basic.rectangle", "x": 0, "y": y, "id": id}});
+        let ok = json!({"commands": [add("a", 0), add("b", 200), {"id": "connector.add", "params": {"from": {"shape": "a"}, "to": {"shape": "b"}}}]});
+        let r = crate::call_tool(&mut h, "command_batch", &ok);
+        assert!(!r.is_error, "{:?}", r.content);
+        assert_eq!(h.session().doc.page().unwrap().shapes.len(), 2);
+        let log = h.session().transactions();
+        assert_eq!(log.len(), 1);
+        assert_eq!((log[0].label.as_str(), log[0].origin), ("Agent Batch", vizcraft_engine::Origin::Mcp));
+        let after = h.session().doc.clone();
+
+        let bad = json!({"commands": [add("c", 400), {"id": "shape.delete", "params": {"ids": ["nope"]}}]});
+        let r = crate::call_tool(&mut h, "command_batch", &bad);
+        assert!(r.is_error);
+        let body = text_json(&r.to_value());
+        assert_eq!(body["failedIndex"], 1, "{body}");
+        assert_eq!(h.session().doc, after, "the failed batch changed nothing");
+
+        assert!(h.call("engine.execute", json!({"command": "edit.undo"})).is_ok());
+        assert_eq!(h.session().doc, before, "one undo takes the whole batch back");
     }
 
     #[test]
