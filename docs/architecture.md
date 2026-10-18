@@ -62,7 +62,7 @@ handles it.
 Command id prefixes: `file.*`, `edit.*`, `view.*`, `shape.*` (`crates/engine/src/cmd/shape.rs`), `arrange.*` (`cmd/arrange.rs`),
 `container.*`, `lane.*`, `callout.*` (`cmd/{container,lane,callout}.rs`),
 `connector.*` (`cmd/connector.rs`), `page.*` (`cmd/page.rs`), `layer.*` (`cmd/layer.rs`), `data.*` (`cmd/data.rs`), `design.*` (`cmd/design.rs`), `layout.*` (`cmd/layout.rs`), `model.*`, `element.*`,
-`relationship.*`, `validate.*`, `notation.*` (`cmd/{model,element,relationship,validate,notation}.rs`), `script.*` (`cmd/script.rs`), `guide.*` (`cmd/view.rs`), `doc.*` (`cmd/describe.rs`, with `page.describe` and `shape.describe`; `connector.setKind` and `connector.kinds` live in `cmd/connector_kind.rs`), `text.*` (`cmd/text.rs`, which also holds `shape.addTextBox`), `insert.*`, `format.*`, `window.*`, `help.*`, `ui.*` (UI layer), `app.*` (app-level: `app.quit`,
+`relationship.*`, `validate.*`, `notation.*` (`cmd/{model,element,relationship,validate,notation}.rs`), `script.*` (`cmd/script.rs`), `guide.*` (`cmd/view.rs`), `doc.*` (`cmd/describe.rs`, with `page.describe` and `shape.describe`; `connector.setKind` and `connector.kinds` live in `cmd/connector_kind.rs`), `text.*` (`cmd/text.rs`, which also holds `shape.addTextBox`), `inspector.*` (`cmd/inspector.rs`), `suggest.*` (`cmd/suggest.rs` over `crates/engine/src/suggest.rs`), `insert.*` (`cmd/insert.rs` and `cmd/suggest.rs` for `insert.next` and `insert.connect`), `format.*`, `window.*`, `help.*`, `ui.*` (UI layer), `app.*` (app-level: `app.quit`,
 `app.preferences`, `app.about`). `insert.*` and `format.*` are reserved; no engine
 command uses them yet.
 

@@ -118,7 +118,7 @@ built once, so a pack loaded later does not appear in it; paste does not remap s
 the draw.io writer exports routed end points as extra points; the router's final stub is
 shorter than an arrowhead; `design.setBackground` and `design.setBorderTitle` act on page 0
 rather than the active page; the ISO 5807 rule references name symbols, not clauses. All but the
-last are folded into the Block 3 and Block 4 briefs below (`b4-fixes` holds the ones no feature
+last are folded into the Block 3 and Block 4 briefs below and were fixed there by `b3-palette` and `b4-fixes` (`b4-fixes` holds the ones no feature
 branch owns); the clause references wait for Block 7's Flowchart completion.
 
 Before the morphology templates, checkers and code exports of Blocks 5 and 7 build on the
@@ -440,7 +440,8 @@ with no overflow; every control runs by id; `cargo xtask ci` green.
 
 ## Block 3: workspace (ROADMAP Cascade 4B, 5 branches)
 
-State: planned. Briefs written on 2026-10-18 against main at c291529 (Block 2C merged). Runs
+State: done. All five branches merged into main on 2026-10-18 with `cargo xtask ci` green; the
+follow-ups are listed under the briefs below. Briefs written on 2026-10-18 against main at c291529 (Block 2C merged). Ran
 alongside Block 4 under the five-agent cap: Block 3's five branches start first and a Block 4
 branch starts each time one of them reports.
 

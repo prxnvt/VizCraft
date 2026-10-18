@@ -206,11 +206,11 @@ When a feature lands, change its State in the same commit as the code. States:
 | Search results tab | 4B | done (B3) | Dock tab over `edit.find` with Page or Document scope; click selects; `ui.search {query, scope?}` |
 | Generate tab | 5B | planned | Scaffold preview diff and run log |
 | Agent activity view | 4B | done (B3) | Activity dock tab lists `Session::transactions()` newest first with origin badge and command ids, and "Undo to before this" |
-| Hover suggest-and-connect | 4B | planned | Clone and connect, suggesting only legal next element types |
-| Double-click insert picker | 4B | planned | Type to insert on empty canvas |
-| Keyboard chaining | 4B | planned | Alt+Shift+Arrow adds a connected element |
-| Magic connector | 4B | planned | Offers only legal relationship types |
-| Command palette over the model | 4B | planned | Cmd/Ctrl+K over commands, element types, patterns and elements by name or tag |
+| Hover suggest-and-connect | 4B | done (B3) | Four handles outside the hovered shape (while the AutoConnect aid is on); a click runs `insert.next` with the one suggestion or opens a popover of `suggest.next` (legal targets with their relationship, most frequent on the page first); dragging a handle to empty canvas drops a new shape there |
+| Double-click insert picker | 4B | done (B3) | Type-to-filter list of the page's palette types and Drawing primitives; Enter inserts at the point; `ui.insertPicker {x?, y?, query?}` |
+| Keyboard chaining | 4B | done (B3) | Alt+Shift+Arrow runs `insert.next` in that direction with the first suggestion and selects the new shape |
+| Magic connector | 4B | done (B3) | Dragging a handle onto another shape opens the `suggest.connect` choices (illegal pairs last and marked); one legal choice applies at once; `insert.connect {from, to, relationship?}` |
+| Command palette over the model | 4B | done but patterns (B3) | Mod+K or Mod+Shift+P; `suggest.search {query, kinds?}` over commands, element types of the packs in use and elements by name or tag; commands run, types insert at the view centre, elements select and reveal; patterns wait for Cascade 5A |
 | Notation ribbon tabs | 4B | partly done (B3) | One contextual tab per active pack (Insert menus per palette group, Viewpoint menu, Check) and a Model tab; Validate and Generate tabs wait for Cascade 5B |
 | New from notation | 4B | done (B3) | Backstage New page lists packs by audience; choosing one runs `file.new` then `model.setViewpoint` |
 | Drill-down breadcrumbs | 4B | done (B3) | Path bar above the canvas (document, page, owner element for `<element id>/<viewpoint>` views); click switches pages |
