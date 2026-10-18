@@ -129,6 +129,7 @@ fn glue(s: &mut Session, v: &Value) -> CmdResult {
     if !matches!(which, "start" | "end") {
         return Err(EngineError::Params("`end` must be \"start\" or \"end\"".into()));
     }
+    super::protect::check(s, super::opt_str(v, "shape")?, super::protect::Lock::Glue)?;
     let page = page_mut(s)?;
     if page.connector(id).is_none() {
         return Err(not_a_connector(id));

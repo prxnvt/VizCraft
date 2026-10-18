@@ -32,7 +32,7 @@ fn harness(app: CraftApp) -> Harness<'static, CraftApp> {
 #[test]
 fn registry_has_the_four_panes_and_commands() {
     let keys: Vec<&str> = panes::panes().iter().map(|p| p.key).collect();
-    assert_eq!(keys, ["shapes", "navigation", "history", "layers", "shapeData", "comments", "panZoom"]);
+    assert_eq!(keys, ["shapes", "navigation", "history", "layers", "shapeData", "comments", "panZoom", "documentStencil"]);
     for p in panes::panes() {
         assert!(p.default_width >= MIN_WIDTH && p.default_width <= MAX_WIDTH);
         assert!(!p.title.is_empty());
@@ -117,13 +117,14 @@ fn window_menu_items_track_the_layout() {
     let mut a = app();
     let items = panes::window_menu_items(&a);
     assert_eq!(items.len(), 7);
-    assert!(items.iter().all(|(title, _, on)| *on == !matches!(*title, "Layers" | "Comments" | "Pan and Zoom")), "every pane but Layers, Comments and Pan and Zoom start open");
+    let closed = |t: &str| matches!(t, "Layers" | "Comments" | "Pan and Zoom" | "Document Stencil");
+    assert!(items.iter().all(|(title, _, on)| *on == !closed(title)), "every pane but Layers, Comments, Pan and Zoom and Document Stencil start open");
     assert_eq!(items[0], ("Palette", "ui.pane.shapes", true));
     assert_eq!(items[1], ("Model Tree", "ui.pane.navigation", true));
     for (_, id, _) in &items {
         a.run(id, json!({})).unwrap();
     }
-    assert!(panes::window_menu_items(&a).iter().all(|(title, _, on)| *on == matches!(*title, "Layers" | "Comments" | "Pan and Zoom")), "each toggle flipped");
+    assert!(panes::window_menu_items(&a).iter().all(|(title, _, on)| *on == closed(title)), "each toggle flipped");
 }
 
 #[test]

@@ -77,7 +77,7 @@ fn shape_style_with(shape: &Shape, html: bool) -> DStyle {
     let mut s = DStyle::default();
     let rest = shape.ext.get(EXT_STYLE).map(|r| DStyle::parse(r)).unwrap_or_default();
     match shape.kind {
-        ShapeKind::Rectangle => pair(&mut s, "rounded", "0"),
+        ShapeKind::Rectangle | ShapeKind::Freeform => pair(&mut s, "rounded", "0"),
         ShapeKind::RoundedRectangle => pair(&mut s, "rounded", "1"),
         ShapeKind::Ellipse => name(&mut s, "ellipse"),
         ShapeKind::Diamond => name(&mut s, "rhombus"),
@@ -220,13 +220,21 @@ fn labelled(id: String, value: String, ext: &std::collections::BTreeMap<String, 
 /// [`COMPARTMENTS_ATTR`] (an `object` wrapper when the cell had none), so draw.io keeps them and
 /// the import reads them back.
 fn compartments_ext(shape: &Shape) -> std::borrow::Cow<'_, std::collections::BTreeMap<String, String>> {
-    if shape.compartments.is_empty() {
+    let path = vizcraft_diagram::shapeop::path_json(shape);
+    if shape.compartments.is_empty() && path.is_none() {
         return std::borrow::Cow::Borrowed(&shape.ext);
     }
     let mut ext = shape.ext.clone();
-    if let Ok(json) = serde_json::to_string(&shape.compartments) {
+    if !shape.compartments.is_empty()
+        && let Ok(json) = serde_json::to_string(&shape.compartments)
+    {
         ext.entry(EXT_WRAPPER.to_string()).or_insert_with(|| "object".to_string());
         ext.insert(format!("{EXT_ATTR}{COMPARTMENTS_ATTR}"), json);
+    }
+    // A freeform outline travels the same way, in `vizcraftPath`; draw.io draws the frame.
+    if let Some(json) = path {
+        ext.entry(EXT_WRAPPER.to_string()).or_insert_with(|| "object".to_string());
+        ext.insert(format!("{EXT_ATTR}{}", vizcraft_diagram::shapeop::PATH_ATTR), json);
     }
     std::borrow::Cow::Owned(ext)
 }

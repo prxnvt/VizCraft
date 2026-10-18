@@ -882,3 +882,92 @@ fn page_routing_policy_round_trips_and_old_files_route_every_connector() {
     let junk = load(&serde_json::to_vec(&file).unwrap()).unwrap();
     assert_eq!(junk.pages[0].routing, RoutingPolicy::default());
 }
+
+/// A freeform with a hole (a subtract result) and an open freeform line.
+fn freeforms() -> Document {
+    use vizcraft_diagram::geom::{Path, Point};
+    let mut doc = Document::new();
+    let page = doc.page_mut().unwrap();
+    let a = Shape::new("a", ShapeKind::Rectangle, 0.0, 0.0, 100.0, 100.0);
+    let b = Shape::new("b", ShapeKind::Rectangle, 25.0, 25.0, 50.0, 50.0);
+    let r = vizcraft_diagram::shapeop::boolean(vizcraft_diagram::shapeop::BoolOp::Subtract, &[&a, &b]);
+    let ring = vizcraft_diagram::shapeop::freeform(&a, "ring".into(), &vizcraft_diagram::shapeop::regions_path(&r), true).unwrap();
+    let line =
+        vizcraft_diagram::shapeop::freeform(&a, "line".into(), &Path::polyline(&[Point::new(200.0, 0.0), Point::new(260.0, 40.0)]), false).unwrap();
+    page.shapes.extend([ring, line]);
+    doc
+}
+
+#[test]
+fn freeform_paths_round_trip_natively_and_through_drawio() {
+    let doc = freeforms();
+    let bytes = save(&doc).unwrap();
+    let v = parse(&bytes);
+    assert_eq!(v["document"]["pages"][0]["shapes"][0]["kind"], "freeform");
+    assert_eq!(v["document"]["pages"][0]["shapes"][1]["path"]["closed"], false);
+    assert_eq!(load(&bytes).unwrap().pages, doc.pages);
+    let xml = crate::drawio::save(&doc).unwrap();
+    assert!(String::from_utf8_lossy(&xml).contains("vizcraftPath"));
+    let back = crate::drawio::load(&xml).unwrap();
+    let page = back.page().unwrap();
+    for (got, want) in page.shapes.iter().zip(&doc.page().unwrap().shapes) {
+        assert_eq!((got.kind, &got.path, got.x, got.y, got.w, got.h), (want.kind, &want.path, want.x, want.y, want.w, want.h));
+        assert!(!got.ext.keys().any(|k| k.contains("vizcraftPath")), "{:?}", got.ext);
+    }
+    // Junk paths load tolerantly; a path on another kind is dropped.
+    let mut junk = v.clone();
+    junk["document"]["pages"][0]["shapes"][0]["path"] =
+        json!({"els": [{"lineTo": {"x": 1, "y": 2}}, 5, {"moveTo": {"x": 1e300, "y": 0}}], "closed": "x"});
+    junk["document"]["pages"][0]["shapes"][1]["kind"] = json!("rectangle");
+    let back = load(&serde_json::to_vec(&junk).unwrap()).unwrap();
+    let shapes = &back.page().unwrap().shapes;
+    assert!(shapes[0].path.as_ref().is_some_and(|f| f.els.is_empty()));
+    assert!(shapes[1].path.is_none());
+}
+
+#[test]
+fn shape_names_round_trip_and_are_capped() {
+    let mut doc = Document::new();
+    let mut s = Shape::new("s", ShapeKind::Rectangle, 0.0, 0.0, 10.0, 10.0);
+    s.name = "Pump \"P-101\"".into();
+    doc.page_mut().unwrap().shapes.push(s);
+    let bytes = save(&doc).unwrap();
+    assert_eq!(parse(&bytes)["document"]["pages"][0]["shapes"][0]["name"], "Pump \"P-101\"");
+    assert_eq!(load(&bytes).unwrap().pages, doc.pages);
+    assert!(!String::from_utf8_lossy(&save(&Document::new()).unwrap()).contains("\"name\": \"\""));
+    let mut v = parse(&bytes);
+    v["document"]["pages"][0]["shapes"][0]["name"] = json!("n".repeat(10_000));
+    let back = load(&serde_json::to_vec(&v).unwrap()).unwrap();
+    assert_eq!(back.page().unwrap().shapes[0].name.len(), Shape::MAX_NAME);
+}
+
+#[test]
+fn document_masters_round_trip_and_junk_is_dropped() {
+    use vizcraft_diagram::CustomMaster;
+    let mut doc = Document::new();
+    let shapes = vec![Shape::new("a", ShapeKind::Ellipse, 40.0, 40.0, 30.0, 30.0)];
+    doc.masters.push(CustomMaster::new("m1".into(), "Valve", shapes, Vec::new()).unwrap());
+    let bytes = save(&doc).unwrap();
+    let v = parse(&bytes);
+    assert_eq!(v["document"]["masters"][0]["name"], "Valve");
+    assert_eq!(load(&bytes).unwrap().masters, doc.masters);
+    assert!(parse(&save(&Document::new()).unwrap())["document"].get("masters").is_none());
+    let mut junk = v.clone();
+    junk["document"]["masters"] =
+        json!([5, {"id": "m1"}, {"id": "bad id", "shapes": [{}]}, v["document"]["masters"][0], v["document"]["masters"][0]]);
+    assert_eq!(load(&serde_json::to_vec(&junk).unwrap()).unwrap().masters, doc.masters);
+}
+
+#[test]
+fn document_protection_round_trips_and_defaults_off() {
+    let mut doc = Document::new();
+    doc.protection = vizcraft_diagram::Protection { shapes: true, backgrounds: false };
+    let bytes = save(&doc).unwrap();
+    assert_eq!(parse(&bytes)["document"]["protection"]["shapes"], true);
+    assert_eq!(load(&bytes).unwrap().protection, doc.protection);
+    let free = save(&Document::new()).unwrap();
+    assert!(parse(&free)["document"].get("protection").is_none());
+    let mut junk = parse(&free);
+    junk["document"]["protection"] = json!({"shapes": "yes", "backgrounds": 3});
+    assert_eq!(load(&serde_json::to_vec(&junk).unwrap()).unwrap().protection, vizcraft_diagram::Protection::default());
+}

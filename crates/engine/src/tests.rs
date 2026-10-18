@@ -51,7 +51,9 @@ fn registry_ids_are_unique_and_prefixed() {
                 "macro",
                 "help",
                 "guide",
-                "text"
+                "text",
+                "shapeop",
+                "master"
             ]
             .contains(&prefix),
             "{}: unexpected prefix",

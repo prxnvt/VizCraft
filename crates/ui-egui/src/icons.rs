@@ -166,6 +166,12 @@ pub const NAMES: &[&str] = &[
     "numberShapes",
     "arrayShapes",
     "moveShapes",
+    // Developer
+    "shapeOps",
+    "shapeName",
+    "behavior",
+    "stencilPane",
+    "drawingExplorer",
 ];
 
 /// Reference size of the design grid, in points. At this size the stroke is `BASE_STROKE`.
@@ -1080,6 +1086,36 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
             pen.rect(11.0, 3.0, 17.5, 9.5, a);
             pen.line_c(&[(6.0, 7.5), (6.0, 4.0), (9.5, 4.0)], a);
             pen.line_c(&[(8.0, 2.5), (9.5, 4.0), (8.0, 5.5)], a);
+        }
+        // Developer
+        "shapeOps" => {
+            pen.rect(2.5, 2.5, 12.5, 12.5, c);
+            pen.rect(7.5, 7.5, 17.5, 17.5, c);
+            pen.frect(7.5, 7.5, 12.5, 12.5, a);
+        }
+        "shapeName" => {
+            pen.closed(&[(2.5, 6.0), (13.0, 6.0), (17.5, 10.0), (13.0, 14.0), (2.5, 14.0)], c);
+            pen.fcircle(13.0, 10.0, 1.2, a);
+            pen.line_c(&[(5.0, 10.0), (10.0, 10.0)], a);
+        }
+        "behavior" => {
+            pen.rect(2.5, 4.5, 12.5, 14.5, c);
+            pen.circle(14.0, 14.0, 3.5, a);
+            pen.fcircle(14.0, 14.0, 1.2, a);
+        }
+        "stencilPane" => {
+            pen.rect(3.0, 2.5, 17.0, 17.5, c);
+            pen.rect(5.5, 5.0, 9.0, 8.5, a);
+            pen.circle(13.0, 6.75, 1.9, a);
+            pen.fill(&[(7.25, 11.0), (9.25, 14.5), (5.25, 14.5)], a);
+            pen.line(&[(11.0, 13.0), (15.0, 13.0)]);
+        }
+        "drawingExplorer" => {
+            pen.rect(2.5, 2.5, 7.5, 6.5, c);
+            pen.line(&[(5.0, 6.5), (5.0, 15.0), (10.0, 15.0)]);
+            pen.line(&[(5.0, 10.5), (10.0, 10.5)]);
+            pen.frect(10.5, 9.0, 17.5, 12.0, a);
+            pen.frect(10.5, 13.5, 17.5, 16.5, a);
         }
         _ => {
             // Fallback: a rounded tile with the first letter.

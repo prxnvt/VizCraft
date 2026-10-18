@@ -32,6 +32,7 @@ pub mod paste_special;
 pub mod presentation;
 pub mod print_preview;
 pub mod ribbon;
+pub mod shape_name_dialog;
 pub mod snap_dialog;
 pub mod symbol_dialog;
 pub mod theme;
@@ -109,7 +110,8 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.inspector", "Inspector Mode", "", r#"{"mode"?: "standard|expert", "tab"?: "properties|format"} -> {"mode", "tab"}"#),
     ("ui.pane.comments", "Show Comments", "", r#"{"value"?: bool}"#),
     ("ui.pane.panZoom", "Pan and Zoom Pane", "", r#"{"value"?: bool}"#),
-    ("ui.paneSide", "Move Pane to Side", "", r#"{"name": "shapes|navigation|properties|history|layers|shapeData|comments|panZoom", "side": "left|right"}"#),
+    ("ui.pane.documentStencil", "Document Stencil", "", r#"{"value"?: bool}"#),
+    ("ui.paneSide", "Move Pane to Side", "", r#"{"name": "shapes|navigation|properties|history|layers|shapeData|comments|panZoom|documentStencil", "side": "left|right"}"#),
     ("ui.collapsePanes", "Collapse Side Panes", "", r#"{"side": "left|right", "value"?: bool}"#),
     ("ui.panesReset", "Reset Panes", "", "{}"),
     ("ui.tree", "Model Tree", "", r#"{"mode"?: "model|context", "branch"?: "model|diagrams", "expand"?: [id], "collapse"?: [id], "reveal"?: id}"#),
