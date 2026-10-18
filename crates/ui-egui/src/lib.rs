@@ -88,7 +88,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.newWindow", "New Window", "", r#"{"template"?: "blank|sample"}"#),
     ("ui.pane", "Toggle Pane", "", r#"{"name": "shapes|navigation|properties|history|layers|shapeData", "value"?: bool, "side"?: "left|right"}"#),
     ("ui.pane.shapes", "Shapes Pane", "", r#"{"value"?: bool}"#),
-    ("ui.pane.navigation", "Navigation Pane", "", r#"{"value"?: bool}"#),
+    ("ui.pane.navigation", "Model Tree Pane", "", r#"{"value"?: bool}"#),
     ("ui.pane.properties", "Properties Pane", "", r#"{"value"?: bool}"#),
     ("ui.pane.history", "History Pane", "", r#"{"value"?: bool}"#),
     ("ui.pane.layers", "Layers Pane", "", r#"{"value"?: bool}"#),
@@ -96,6 +96,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.paneSide", "Move Pane to Side", "", r#"{"name": "shapes|navigation|properties|history|layers|shapeData", "side": "left|right"}"#),
     ("ui.collapsePanes", "Collapse Side Panes", "", r#"{"side": "left|right", "value"?: bool}"#),
     ("ui.panesReset", "Reset Panes", "", "{}"),
+    ("ui.tree", "Model Tree", "", r#"{"mode"?: "model|context", "branch"?: "model|diagrams", "expand"?: [id], "collapse"?: [id], "reveal"?: id}"#),
     ("ui.shapesSearch", "Search Shapes Pane", "", r#"{"query": string} -> {"query", "results": [master id]}"#),
     ("ui.clearRecent", "Clear Recent Files", "", "{}"),
     ("ui.shortcuts", "Keyboard Shortcuts", "Mod+/", "{}"),
@@ -256,6 +257,8 @@ pub struct CraftApp {
     /// Text in the Shapes pane's search field (`ui.shapesSearch`). Transient: not in [`UiState`],
     /// so it is never saved with the preferences.
     pub shapes_query: String,
+    /// The Model Tree pane's mode, open rows and rename state (`ui.tree`). Transient.
+    pub tree: panes::TreeState,
     /// The File page is showing instead of the document.
     backstage: bool,
     control_rx: Option<Receiver<ControlRequest>>,
@@ -297,6 +300,7 @@ impl CraftApp {
             tool: Tool::Pointer,
             canvas: canvas::CanvasState::default(),
             shapes_query: String::new(),
+            tree: Default::default(),
             backstage: false,
             control_rx: None,
             shot_token: 0,

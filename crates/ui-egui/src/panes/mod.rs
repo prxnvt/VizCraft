@@ -40,7 +40,7 @@ macro_rules! default_panes {
 
 default_panes! {
     shapes,
-    navigation,
+    model_tree,
     properties,
     history,
     layers,
@@ -54,6 +54,7 @@ use serde_json::Value;
 use crate::CraftApp;
 pub use layout::{DEFAULT_HEIGHT, GAP, HEADER_H, MAX_HEIGHT, MAX_WIDTH, MIN_HEIGHT, MIN_WIDTH, PaneLayout, STRIP_W};
 pub use manager::show;
+pub use model_tree::{TreeState, inspect as tree_inspect};
 pub use shapes::MasterDrag;
 use shapes::shapes_search;
 
@@ -234,6 +235,9 @@ pub fn ui_command(app: &mut CraftApp, id: &str, p: &Value) -> Option<Result<Valu
         None => Ok(None),
         Some(x) => Side::parse(x).map(Some).ok_or_else(|| format!("unknown side {x:?} (left or right)")),
     };
+    if id == "ui.tree" {
+        return Some(model_tree::ui_tree(app, p));
+    }
     if id == "ui.shapesSearch" {
         return Some(Ok(shapes_search(app, p)));
     }

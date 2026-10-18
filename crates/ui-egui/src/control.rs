@@ -89,6 +89,7 @@ pub fn inspect(app: &CraftApp, ctx: &egui::Context) -> Value {
         "perf": {"frameMs": app.frame_ms},
         "tool": app.tool.name(),
         "diagram": crate::canvas::summary(app),
+        "tree": crate::panes::tree_inspect(app),
         // The ribbon dropdown that is open, row by row, with each row's check state.
         "menu": crate::widgets::open_menu(ctx),
     })

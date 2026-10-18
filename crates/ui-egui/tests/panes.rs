@@ -119,7 +119,7 @@ fn window_menu_items_track_the_layout() {
     assert_eq!(items.len(), 6);
     assert!(items.iter().all(|(title, _, on)| *on == !matches!(*title, "Layers" | "Shape Data")), "every pane but Layers and Shape Data starts open");
     assert_eq!(items[0], ("Shapes", "ui.pane.shapes", true));
-    assert_eq!(items[1], ("Navigation", "ui.pane.navigation", true));
+    assert_eq!(items[1], ("Model Tree", "ui.pane.navigation", true));
     for (_, id, _) in &items {
         a.run(id, json!({})).unwrap();
     }
