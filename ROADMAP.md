@@ -22,7 +22,7 @@ notation, and the audience packs follow in Cascade 6.
 
 | Measure | Value |
 |---|---|
-| Cascade | 0 and 1 done; Cascade 3 done (interop, layout, routing, MCP tools, resources, Headless backend, stencil search); Cascade 4A (model core) done; Cascade 2 (trimmed) in progress (Block 2A of docs/cascade-plan.md landed: pages, layers, arrange and groups, snap and rulers, themes and styles); Cascade 4B (workspace redesign) next |
+| Cascade | 0 and 1 done; Cascade 3 done (interop, layout, routing, MCP tools, resources, Headless backend, stencil search); Cascade 4A (model core) done; Cascade 2 (trimmed) done except the Pan and Zoom pane (Blocks 2A and 2B of docs/cascade-plan.md; done-when covered by `crates/engine/tests/cascade2_done_when.rs`); Cascade 4B (workspace redesign) next |
 | Direction | Model-backed engineering workbench: semantic model, notation packs, rules, patterns and code-scaffold generators, then industrial, embedded and enterprise packs |
 | App runs | a small diagram editor: canvas with shapes, text and glued connectors (obstacle-avoiding routes, line jumps), Shapes pane with search, Home, Insert, Design and Connector ribbon tabs, auto-layout, .drawio open and save, Mermaid and CSV import, inside the full chrome (menus, dialogs, command palette, control channel, multiple windows, web shell) |
 | Document model | `vizcraft-model` (elements, relationships, containment, identity registry, issues) held by the diagram document, `vizcraft-notation` (Basic and Flowchart packs, rules engine), `vizcraft-diagram` (multi-page documents reachable through `page.*` and draw.io files; the canvas shows the first page until page tabs land), `vizcraft-stencils` (masters built from the pack glyphs), saved as `.vizcraft` or `.drawio`, exported as SVG or PNG |
@@ -60,7 +60,7 @@ Done when: a person can draw a small flowchart (shapes, text, glued connectors t
 shapes move), save it as `.vizcraft`, reopen it, export SVG, and an agent can build the same
 diagram through the MCP server alone.
 
-## Cascade 2: editing richness (trimmed)
+## Cascade 2: editing richness (trimmed, done but the Pan and Zoom pane)
 
 Cascade 2 is trimmed to the pieces that later cascades build on: containers carry statechart
 composites, swimlanes, zones and capability maps; layers and arrange are prerequisites for
@@ -76,7 +76,7 @@ patterns; the Shape Data pane is the first form of the typed Inspector.
 | Light themes and styles | A small set of our own document themes, quick styles, format painter, fill, line, shadow, gradient; Design ribbon tab; `design.*` commands. Kept light: notation packs add conditional styles in Cascade 4A | `crates/diagram`, `crates/engine/src/cmd/design.rs`, `crates/ui-egui/src/ribbon.rs` | done (Block 2A `b2-styles`, format painter in Block 2B `b2-edit`) |
 | Better routing | Line jumps where connectors cross; orthogonal rerouting that avoids obstacles | `crates/routing` (router and jumps), `crates/diagram` (`autoroute`, `jumps`, stored waypoints) | done (wired in Cascade 3) |
 | Shape Data pane (first Inspector) | Typed key and value data on shapes, edited in a right-dock pane; each key may carry schema hooks (type, unit, enum, required, default) that notation packs fill in later; Cascade 4B grows the pane into the Inspector; `data.*` commands | `crates/engine/src/cmd/data.rs`, `crates/ui-egui/src/panes.rs` | done (Block 2B `b2-data`) |
-| Pan and Zoom pane | Overview of the page with the visible area as a draggable frame | `crates/ui-egui/src/panes.rs` | planned |
+| Pan and Zoom pane | Overview of the page with the visible area as a draggable frame | `crates/ui-egui/src/panes.rs` | planned (moved to Block 4 `b4-view` in docs/cascade-plan.md) |
 | Find and replace | Search shape text and shape data, replace | `crates/engine/src/cmd/edit.rs`, `crates/ui-egui/src/dialogs.rs` | done (Block 2B `b2-edit`) |
 | PNG and PDF export | Raster and vector export of a page or all pages | `crates/formats` | done (Block 2B `b2-output`: PDF, multi-page PNG, headers and footers, print) |
 
