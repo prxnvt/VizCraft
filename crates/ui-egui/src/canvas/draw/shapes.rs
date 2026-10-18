@@ -82,6 +82,7 @@ pub fn shape(painter: &Painter, vp: &Viewport2D, s: &Shape, cache: &mut FillCach
     if let Some(detail) = s.detail_world() {
         outline(painter, vp, st, &flatten(&detail, tol), line_c);
     }
+    super::containers::decor(painter, vp, s);
     if show_text && !s.text.trim().is_empty() {
         shape_text(painter, vp, s);
     }

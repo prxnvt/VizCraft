@@ -2,8 +2,10 @@
 
 pub mod arrange;
 pub mod batch;
+pub mod callout;
 pub mod connector;
 pub mod data;
+pub mod container;
 pub mod design;
 pub mod edit;
 pub mod effects;
@@ -12,6 +14,7 @@ pub mod file;
 pub mod find;
 pub mod help;
 pub mod insert;
+pub mod lane;
 pub mod layer;
 pub mod layout;
 pub mod model;
@@ -41,6 +44,9 @@ pub fn registry() -> Registry {
     v.extend(view::specs());
     v.extend(shape::specs());
     v.extend(arrange::specs());
+    v.extend(container::specs());
+    v.extend(lane::specs());
+    v.extend(callout::specs());
     v.extend(connector::specs());
     v.extend(page::specs());
     v.extend(print::specs());

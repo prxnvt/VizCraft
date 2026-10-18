@@ -9,13 +9,15 @@
 //! Layout: this module holds the constants, [`Drag`] and the per-frame [`pointer`] dispatch and
 //! cursor; [`select`] handles clicks and the marquee, [`drag`] handle geometry, previews and
 //! commits, [`connect`] connector ends, [`tools`] what a press starts per tool, [`edit_text`]
-//! in-place text editing and [`keys`] the canvas keys.
+//! in-place text editing, [`keys`] the canvas keys and [`membership`] container membership on
+//! moves and drops.
 
 pub mod connect;
 pub mod drag;
 pub mod edit_text;
 pub mod keys;
 pub mod painter;
+pub mod membership;
 pub mod select;
 pub mod tools;
 

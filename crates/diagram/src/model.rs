@@ -374,6 +374,10 @@ pub struct Shape {
     /// Typed shape data rows (see [`crate::data`]).
     #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
     pub data: ShapeData,
+    /// Container, swimlane or callout settings (see [`crate::container`]); `None` for an
+    /// ordinary shape.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub container: Option<crate::container::Container>,
 }
 
 impl Default for Shape {
@@ -401,6 +405,7 @@ impl Default for Shape {
             behavior: Behavior::default(),
             image: None,
             data: ShapeData::default(),
+            container: None,
         }
     }
 }
@@ -440,6 +445,9 @@ impl Shape {
             i.sanitize();
         }
         self.data.sanitize();
+        if let Some(c) = &mut self.container {
+            c.sanitize();
+        }
     }
     /// Longest screen tip kept, in bytes.
     pub const MAX_SCREEN_TIP: usize = 4096;

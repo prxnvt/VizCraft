@@ -18,7 +18,7 @@ the code that depends on it, and say so in the commit message.
 |---|---|---|
 | model | `crates/model` (`vizcraft-model`) | Semantic model: elements, relationships, containment, views (`View` on a page), the identity registry (`identity`: identifier formats, auto-numbering, uniqueness, pairs) and structured issues (`Issue`, `Severity`). Depends on serde only |
 | model | `crates/notation` (`vizcraft-notation`) | Notation packs: the pack schema (`schema`), JSON and TOML loader with consistency checks, the built-in Basic and Flowchart packs (`catalog()`), connection-table queries (`legal`), the rules engine (`rules::{live, batch}`) and the model sync pass (`bind::sync`). Depends on `model` and `diagram` |
-| model | `crates/diagram` (`vizcraft-diagram`) | Geometry (points, rects, transforms, paths), shape outlines and connection points, the document model, hit testing, layer rules (`layer`), glue and connector routing, auto-layout (`autolayout`), obstacle-avoiding routes (`autoroute`) line jumps (`jumps`), align, distribute, z order and groups (`arrange`), diagram items as views of model items (`views`), and snapping to the grid, guides, shapes and connection points (`snap`). The `Document` holds the semantic model. Depends on serde, `model`, `layout` and `routing` |
+| model | `crates/diagram` (`vizcraft-diagram`) | Geometry (points, rects, transforms, paths), shape outlines and connection points, the document model, hit testing, layer rules (`layer`), glue and connector routing, auto-layout (`autolayout`), obstacle-avoiding routes (`autoroute`) line jumps (`jumps`), align, distribute, z order and groups (`arrange`), containers, swimlanes and callouts (`container`), diagram items as views of model items (`views`), and snapping to the grid, guides, shapes and connection points (`snap`). The `Document` holds the semantic model. Depends on serde, `model`, `layout` and `routing` |
 | model | `crates/stencils` (`vizcraft-stencils`) | Built-in stencil catalog: Basic and Flowchart sets, masters with default size and style, ranked keyword search over an index built once (`search`); its sets and masters are built once from the glyphs of the notation packs. Depends on `diagram` and `notation` |
 | model | `crates/formats` (`vizcraft-formats`) | File formats, bytes in and bytes out: `.vizcraft` native JSON (`native::save`, `native::load`; version 3 carries the model section, version 4 the richer style, shape, page and document fields), SVG export (`svg::export_page`, `svg::export_page_with` and `SvgOptions { print, date }`: header and footer fields expanded, non-printing shapes left out when printing), PNG export (`png::render_page`: the SVG export rasterised on the CPU by `resvg` with the bundled Inter faces, no system fonts, builds for wasm), PDF export and print layout (`pdf::export_pages`, `pdf::plan`, `pdf::print_pages`: the same SVG drawn into vector PDF pages by `krilla` and `krilla-svg` with subsets of the bundled Inter faces embedded; builds for wasm), `.drawio` (`drawio::{load, save, import, page_xml, master_style}`), Mermaid (`mermaid::import`) and CSV (`csv::import`) import into `Imported { pages, warnings }`. Depends on `diagram`, `stencils`, `drawio`, `mermaid` and `layout` |
 | model | `crates/mermaid` (`vizcraft-mermaid`) | Mermaid parser: flowchart, sequence, class, state and ER text to a typed IR with a common node, edge and group view (`Diagram::to_graph`); warnings for unsupported statements. No workspace dependencies |
@@ -60,6 +60,7 @@ a command that needs one pushes `{"open": "<dialog>"}` to `session.ui_requests` 
 handles it.
 
 Command id prefixes: `file.*`, `edit.*`, `view.*`, `shape.*` (`crates/engine/src/cmd/shape.rs`), `arrange.*` (`cmd/arrange.rs`),
+`container.*`, `lane.*`, `callout.*` (`cmd/{container,lane,callout}.rs`),
 `connector.*` (`cmd/connector.rs`), `page.*` (`cmd/page.rs`), `layer.*` (`cmd/layer.rs`), `data.*` (`cmd/data.rs`), `design.*` (`cmd/design.rs`), `layout.*` (`cmd/layout.rs`), `model.*`, `element.*`,
 `relationship.*`, `validate.*`, `notation.*` (`cmd/{model,element,relationship,validate,notation}.rs`), `script.*` (`cmd/script.rs`), `guide.*` (`cmd/view.rs`), `insert.*`, `format.*`, `window.*`, `help.*`, `ui.*` (UI layer), `app.*` (app-level: `app.quit`,
 `app.preferences`, `app.about`). `insert.*` and `format.*` are reserved; no engine
@@ -113,6 +114,36 @@ members, a group left empty is deleted, and copying a group copies its members. 
 Auto routing does not treat groups as obstacles. On the canvas, a click on a member selects its
 outermost group, the next click one level down, and once inside a group a click picks a sibling
 directly; a marquee or a lasso selects whole groups.
+
+Containers, swimlanes and callouts (Block 2B, `cmd/{container,lane,callout}.rs` over
+`vizcraft_diagram::container`). They are shapes with `Shape::container: Option<Container>` (role
+`container`, `laneSet`, `lane` or `callout`; margins, heading position, style and size, band
+colour, style preset name, `autoFit`, `locked`, a lane set's `vertical` and `phases`, a callout's
+`target`, `leader` and `side`). Members name their container as `parent`, as group members do,
+but a container draws itself, a click on a member selects the member (`group_chain` stops at a
+container), and its frame is refitted only by `container.fit` or with `autoFit`. The heading is
+the shape's own text placed in the band through `text_block`; the band, separators, phases and
+callout leaders are `container::Decor` items that the canvas (`canvas/draw/containers.rs`) and SVG
+export draw alike. `arrange::refit_groups` ends in `container::refit` (lane sets restack their
+lanes, auto-fit containers refit, headings follow their bands) and `arrange::set_frame` calls
+`container::after_set_frame` (a lane's new length goes to its set, a set's new thickness to its
+last lane). A canvas move commits `edit.batch [container.drop, shape.move]`, and a drop from the
+Shapes pane `[shape.add, container.drop]`, so membership changes in the same undo step: a shape
+fully inside a container joins the innermost one, a member dragged fully out leaves; locked
+containers keep their members.
+
+| Command | Params -> result |
+|---|---|
+| `container.add` | `{ids?, x?, y?, w?, h?, heading?, style?, id?}` -> `{id, members}`; around `ids` (else the selection) or empty at x, y; styles `classic`, `outline`, `slate`, `sage`, `dashed`, `amber` |
+| `container.addMember`, `container.removeMember` | `{container?, ids}` -> `{container, added}`; `{container?, ids?}` -> `{container, removed}` |
+| `container.fit`, `container.disband`, `container.selectContents` | `{container?}`; members stay on disband; a lane set selects its lanes' members |
+| `container.set` | `{container?, margins?, heading?, headingPosition?, headingStyle?, autoFit?, locked?, style?}` |
+| `container.drop` | `{ids?, dx?, dy?}` -> `{changes: [{id, container}]}`; membership as if the shapes moved by dx, dy |
+| `lane.addSet`, `lane.add`, `lane.remove`, `lane.move` | `{x?, y?, lanes?, orientation?, title?, id?}` -> `{id, lanes}` (default: centred on the page); `{set?, index?, title?, id?}`; `{lane?}`; `{lane?, index}` |
+| `lane.addPhase`, `lane.flip` | `{set?, at, title?}`; `{set?}` -> `{set, orientation}` |
+| `callout.add`, `callout.set` | `{target?, text?, x?, y?, style?, id?}` -> `{id}`; `{callout?, target?, leader?, style?, side?}`; styles `box`, `plain`, `rounded`, `note`, `bubble` |
+
+A param naming one container, set, lane or callout falls back to the selection.
 
 Design commands (Block 2, `cmd/design.rs`). Each document change is one undo step; a page is
 named by id, name or zero-based index and defaults to the active page.
@@ -478,7 +509,7 @@ shape's frame centre.
 |---|---|
 | `Document` | `theme: DocTheme { id, variant }` (see Design commands), `title`, `core: CoreProps` (author, timestamps, revision), `pages: Vec<Page>` (always at least one), `id_seq`, `model: vizcraft_model::Model` (not in the document's serde form; the native file writes it as its own section); `next_id(prefix)` hands out `s1`, `c2`, `e3`, `r4` and so on, never reused; pages, shapes, connectors, elements and relationships share one id space (`contains_id`); `properties: DocProperties` (title, author, subject, keywords, description), `comments: Vec<Comment>` (id, `anchor: CommentAnchor { page, shape? }`, author, time, text, `replies: Vec<Reply>`), `images: Vec<ImageAsset>` (id, `media_type` `image/...`, `bytes` as base64 on disk; 16 MiB each, 48 MiB in all, 1024 assets); `background_chain(index)` lists the background pages under a page, deepest first; `active_page` (a page id, empty or unknown meaning the first) picks the page `page()`, `page_mut()` and `active_index()` return first |
 | `Page` | Id, name, width and height (the size; 1100 x 850 by default), `shapes` and `connectors` in z order, `ext`, `view: Option<View>` (the viewpoint the page shows; `None` for free drawing), `orientation`, `units`, `drawing_scale: DrawingScale { page, drawing, units }`, `auto_size`, `background: Option<String>` (another page with `is_background`), `is_background`, `header` and `footer: HeaderFooter { left, center, right, margin? }` (slots may hold `{page}`-style fields), `guides: Vec<Guide { orientation, position }>`, `layers: Vec<Layer { id, name, visible, locked, print, snap, glue, color? }>`; `shape_visible` (not hidden, and on no layer or on a visible one) |
-| `Shape` | Id, `stencil` master id (`basic.rectangle`), `kind: ShapeKind` (16 outlines), frame `x, y, w, h`, `angle_deg`, text, `Style`, optional custom connection points (normalized; kinds default to top, right, bottom, left), `ext` (data from other formats kept for round trips), `element: Option<String>` (the model element it draws; `None` is free drawing), `layers` (page layer ids), `parent: Option<String>` (group or container on the same page; cycles are broken on load), `text_block: Option<TextBlock { dx, dy, w, h, angle_deg }>` (`None` is the frame; `text_rect()`), `links: Vec<Hyperlink { kind: url, file, page, shape or element, target, label }>`, `screen_tip`, `locks: Locks` (width, height, aspect, position, rotation, delete, select, text), `behavior: Behavior` (container, non-printing, hidden, no glue, no snap), `image: Option<ImageRef { asset, crop: CropRect }>`, `data: ShapeData { rows, page_keys }` (typed shape data, see Shape data below) |
+| `Shape` | Id, `stencil` master id (`basic.rectangle`), `kind: ShapeKind` (16 outlines), frame `x, y, w, h`, `angle_deg`, text, `Style`, optional custom connection points (normalized; kinds default to top, right, bottom, left), `ext` (data from other formats kept for round trips), `element: Option<String>` (the model element it draws; `None` is free drawing), `layers` (page layer ids), `parent: Option<String>` (group or container on the same page; cycles are broken on load), `text_block: Option<TextBlock { dx, dy, w, h, angle_deg }>` (`None` is the frame; `text_rect()`), `links: Vec<Hyperlink { kind: url, file, page, shape or element, target, label }>`, `screen_tip`, `locks: Locks` (width, height, aspect, position, rotation, delete, select, text), `behavior: Behavior` (container, non-printing, hidden, no glue, no snap), `image: Option<ImageRef { asset, crop: CropRect }>`, `data: ShapeData { rows, page_keys }` (typed shape data, see Shape data below), `container: Option<Container>` (container, lane set, lane or callout settings; see the container commands) |
 | `Connector` | Id, `start` and `end` as `End::Glued { shape, point: Option<usize> }` (no point = dynamic glue) or `End::Free { x, y }`, `route` (`straight`, `orthogonal`, `curved`), arrowheads per end (`none`, `triangle`, `open`, `diamond`, `circle`), label text, `Style`, `waypoints` (stored bends), `avoid` (route around shapes), `jumps` (line jumps), `ext`, `relationship: Option<String>` (the model relationship it draws) |
 | `Style` | Fill, line colour and width, font size and colour, bold, italic; colours serialize as `#rrggbb`. Text: `font_family`, `underline`, `strikethrough`, `text_case`, `highlight`, `h_align`, `v_align`, `bullets`, `indent`, `text_direction`, `text_margins: Margins`. Line: `dash`, `line_cap`, `corner_radius` (`Path::rounded_corners`). Effects: `gradient: Option<Gradient { kind, angle_deg, stops }>`, `fill_transparency` and `line_transparency` (0 to 1; `effective_fill`, `effective_line`), `shadow: Option<Shadow { dx, dy, blur, color }>`, `soft_edges`, `glow: Option<Glow { radius, color }>`. A `const fn Style::basic` builds a style in constants |
 
