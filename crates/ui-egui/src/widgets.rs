@@ -388,40 +388,58 @@ pub fn menu_button(
     big_btn: bool,
     menu: impl FnOnce(&mut Ui, &mut CraftApp),
 ) -> Response {
+    menu_button_if(ui, app, icon, label, tip, big_btn, true, menu)
+}
+
+/// [`menu_button`] that can be switched off: while `on` is false it draws dimmed and neither
+/// reacts to the pointer nor opens its menu (a menu whose rows need a selection).
+pub fn menu_button_if(
+    ui: &mut Ui,
+    app: &mut CraftApp,
+    icon: &str,
+    label: &str,
+    tip: &str,
+    big_btn: bool,
+    on: bool,
+    menu: impl FnOnce(&mut Ui, &mut CraftApp),
+) -> Response {
     let t = Tokens::get(ui.ctx());
+    let sense = if on { Sense::click() } else { Sense::hover() };
     let resp = if big_btn {
-        let (r, resp) = ui.allocate_exact_size(vec2(big_width(ui, label, ARROW_GLYPH + 4.0), CONTENT_H), Sense::click());
-        bg(ui, r, &resp, false, true, &t);
-        let last = paint_big(ui, r, icon, label, true, true, &t);
+        let (r, resp) = ui.allocate_exact_size(vec2(big_width(ui, label, ARROW_GLYPH + 4.0), CONTENT_H), sense);
+        bg(ui, r, &resp, false, on, &t);
+        let last = paint_big(ui, r, icon, label, on, true, &t);
         // The arrow follows the last line, which moved left to make room for it.
         icons::paint(
             ui.painter(),
             Rect::from_center_size(pos2(last.max.x + 6.0, last.center().y), vec2(ARROW_GLYPH, ARROW_GLYPH)),
             "dropdown",
-            t.icon,
-            t.accent,
+            if on { t.icon } else { t.text_disabled },
+            if on { t.accent } else { t.text_disabled },
         );
         resp
     } else {
-        let (r, resp) = ui.allocate_exact_size(vec2(small_width(ui, Some(label)) + ARROW_W, SMALL_H), Sense::click());
-        bg(ui, r, &resp, false, true, &t);
-        paint_small(ui, r, icon, Some(label), true, &t);
+        let (r, resp) = ui.allocate_exact_size(vec2(small_width(ui, Some(label)) + ARROW_W, SMALL_H), sense);
+        bg(ui, r, &resp, false, on, &t);
+        paint_small(ui, r, icon, Some(label), on, &t);
         icons::paint(
             ui.painter(),
             Rect::from_center_size(pos2(r.max.x - ARROW_W / 2.0, r.center().y), vec2(ARROW_GLYPH, ARROW_GLYPH)),
             "dropdown",
-            t.icon,
-            t.accent,
+            if on { t.icon } else { t.text_disabled },
+            if on { t.accent } else { t.text_disabled },
         );
         resp
     };
-    resp.widget_info(|| WidgetInfo::labeled(WidgetType::Button, true, tip));
+    resp.widget_info(|| WidgetInfo::labeled(WidgetType::Button, on, tip));
     let resp = resp.on_hover_text(tip);
-    egui::Popup::menu(&resp).show(|ui| {
-        ui.set_min_width(MENU_MIN_W);
-        begin_menu(ui, tip);
-        menu(ui, app);
-    });
+    if on {
+        egui::Popup::menu(&resp).show(|ui| {
+            ui.set_min_width(MENU_MIN_W);
+            begin_menu(ui, tip);
+            menu(ui, app);
+        });
+    }
     resp
 }
 

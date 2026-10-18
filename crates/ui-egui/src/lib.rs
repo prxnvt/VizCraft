@@ -273,6 +273,9 @@ pub struct CraftApp {
     styled: bool,
     fonts_frames: u32,
     applied_dark: Option<bool>,
+    /// The conformance profile in effect, worked out once per document revision (computing it
+    /// walks the model, and the Process tab asks every frame): (revision, catalog address, profile).
+    pub(crate) profile_cache: std::cell::RefCell<Option<(u64, usize, vizcraft_diagram::Conformance)>>,
 }
 
 impl CraftApp {
@@ -305,6 +308,7 @@ impl CraftApp {
             styled: false,
             fonts_frames: 0,
             applied_dark: None,
+            profile_cache: std::cell::RefCell::new(None),
         }
     }
 

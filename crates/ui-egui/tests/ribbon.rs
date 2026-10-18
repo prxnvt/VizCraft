@@ -453,17 +453,16 @@ fn connectors(h: &Harness) -> Vec<vizcraft_diagram::Connector> {
 }
 
 #[test]
-fn design_tab_toggles_avoid_shapes_and_line_jumps() {
-    let mut h = harness_at(1200.0, "Design");
+fn design_tab_line_jumps_toggle_acts_on_the_selection_or_the_page() {
+    let mut h = harness_at(1280.0, "Design");
     assert!(!connectors(&h).is_empty());
-    // Nothing selected: the toggles act on every connector.
-    h.get_by_label("Avoid Shapes").click();
+    // Nothing selected: the toggle acts on every connector, and a second click turns it off.
+    h.get_by_label("Line Jumps").click();
     h.run_steps(3);
-    assert!(connectors(&h).iter().all(|c| c.avoid && c.route == vizcraft_diagram::Route::Orthogonal));
-    assert_eq!(h.state().session.undo_label(), Some("Avoid Shapes"));
-    h.get_by_label("Avoid Shapes").click();
+    assert!(connectors(&h).iter().all(|c| c.jumps));
+    h.get_by_label("Line Jumps").click();
     h.run_steps(3);
-    assert!(connectors(&h).iter().all(|c| !c.avoid && c.waypoints.is_empty()), "a second click turns it off");
+    assert!(connectors(&h).iter().all(|c| !c.jumps));
     // With one connector selected, only that one changes.
     let id = first_connector(&h);
     h.state_mut().run("edit.select", json!({"ids": [id.clone()]})).unwrap();
@@ -560,4 +559,277 @@ fn a_combo_list_marks_the_current_item() {
     let rows = open_menu_rows(&h);
     let marked: Vec<&str> = rows.iter().filter(|(_, c)| *c == json!(true)).map(|(l, _)| l.as_str()).collect();
     assert_eq!(marked, vec!["100%"], "{rows:?}");
+}
+
+fn page(h: &Harness) -> vizcraft_diagram::Page {
+    h.state().session.doc.page().cloned().unwrap()
+}
+
+/// Open the dropdown `name` and return its rows.
+fn open_menu(h: &mut Harness, name: &str) -> Vec<(String, serde_json::Value)> {
+    h.get_by_label(name).click();
+    h.run_steps(4);
+    open_menu_rows(h)
+}
+
+/// The labels of the rows marked checked.
+fn marked(rows: &[(String, serde_json::Value)]) -> Vec<&str> {
+    rows.iter().filter(|(_, c)| *c == json!(true)).map(|(l, _)| l.as_str()).collect()
+}
+
+#[test]
+fn home_fits_1280_wide_without_a_scroll_arrow() {
+    let h = harness_at(1280.0, "Home");
+    let o = Overflow::get(&h.ctx);
+    assert!(!o.overflows(), "{o:?}");
+    assert!(h.query_by_label("Scroll ribbon right").is_none());
+    // Delete moved beside Cut and Copy; Undo and Redo are a small stack.
+    for label in ["Delete", "Undo", "Redo", "Format Painter"] {
+        assert!(h.query_by_label(label).is_some(), "{label} is missing from Home");
+    }
+}
+
+#[test]
+fn every_tab_the_organising_pass_touched_fits_1280_wide() {
+    for tab in ["Design", "Insert", "Process"] {
+        let h = harness_at(1280.0, tab);
+        assert!(!Overflow::get(&h.ctx).overflows(), "{tab} overflows at 1280");
+    }
+    let mut a = app();
+    let conn = a.session.doc.page().and_then(|p| p.connectors.first()).map(|c| c.id.clone()).unwrap();
+    a.session.sel = vizcraft_engine::Selection::single(conn);
+    a.ui.tab = "Connector".into();
+    let mut h = egui_kittest::Harness::builder().with_size(vec2(1280.0, 700.0)).build_ui_state(
+        |ui, app: &mut CraftApp| {
+            app.logic(ui.ctx());
+            app.ui(ui);
+        },
+        a,
+    );
+    h.run_steps(5);
+    assert!(!Overflow::get(&h.ctx).overflows(), "Connector overflows at 1280");
+}
+
+#[test]
+fn the_board_menu_marks_the_pages_board_and_sets_it() {
+    let mut h = harness_at(1280.0, "Design");
+    h.state_mut().run("page.setup", json!({"board": "infinite"})).unwrap();
+    h.run_steps(3);
+    let rows = open_menu(&mut h, "Board");
+    assert_eq!(rows.iter().map(|(l, _)| l.as_str()).collect::<Vec<_>>(), ["Infinite", "Fixed Size"]);
+    assert_eq!(marked(&rows), ["Infinite"]);
+    h.get_by_label("Fixed Size").click();
+    h.run_steps(4);
+    assert_eq!(page(&h).board, vizcraft_diagram::Board::Fixed);
+    assert_eq!(marked(&open_menu(&mut h, "Board")), ["Fixed Size"]);
+}
+
+#[test]
+fn the_avoid_shapes_menu_marks_the_pages_policy_and_sets_it() {
+    let mut h = harness_at(1280.0, "Design");
+    let rows = open_menu(&mut h, "Avoid Shapes");
+    assert_eq!(rows.iter().map(|(l, _)| l.as_str()).collect::<Vec<_>>(), ["Always", "Never"]);
+    assert_eq!(marked(&rows), ["Always"], "the default policy is always");
+    h.get_by_label("Never").click();
+    h.run_steps(4);
+    assert_eq!(page(&h).routing.avoid, vizcraft_diagram::Avoid::Never);
+    assert_eq!(h.state().session.undo_label(), Some("Connector Routing"));
+    assert_eq!(marked(&open_menu(&mut h, "Avoid Shapes")), ["Never"]);
+    h.get_by_label("Always").click();
+    h.run_steps(4);
+    assert_eq!(page(&h).routing.avoid, vizcraft_diagram::Avoid::Always);
+}
+
+#[test]
+fn the_straight_lines_menu_marks_the_fallback_and_sets_it() {
+    let mut h = harness_at(1280.0, "Design");
+    let rows = open_menu(&mut h, "Straight Lines");
+    assert_eq!(rows.iter().map(|(l, _)| l.as_str()).collect::<Vec<_>>(), ["Detour", "Keep Straight"]);
+    assert_eq!(marked(&rows), ["Detour"]);
+    h.get_by_label("Keep Straight").click();
+    h.run_steps(4);
+    assert_eq!(page(&h).routing.straight_fallback, vizcraft_diagram::StraightFallback::Keep);
+    assert_eq!(marked(&open_menu(&mut h, "Straight Lines")), ["Keep Straight"]);
+}
+
+#[test]
+fn default_kind_lists_the_catalog_and_acts_on_every_connector_when_nothing_is_selected() {
+    let mut h = harness_at(1280.0, "Design");
+    let rows = open_menu(&mut h, "Default Kind");
+    let catalog = vizcraft_stencils::connector_kinds();
+    assert!(catalog.len() > 3);
+    for k in catalog {
+        assert!(rows.iter().any(|(l, _)| l == k.label), "{} is missing from the menu", k.label);
+    }
+    assert!(marked(&rows).is_empty(), "no kind is shared yet: {:?}", marked(&rows));
+    let kind = catalog.iter().find(|k| k.id == "basic.dependency").expect("the basic pack has a dependency kind");
+    h.get_by_label(kind.label).click();
+    h.run_steps(4);
+    assert!(connectors(&h).iter().all(|c| c.kind == kind.id), "every connector took the kind");
+    assert_eq!(marked(&open_menu(&mut h, "Default Kind")), [kind.label]);
+    // With one connector selected, only that one is changed.
+    h.get_by_label(kind.label).click();
+    h.run_steps(3);
+    let first = first_connector(&h);
+    h.state_mut().run("edit.select", json!({"ids": [first.clone()]})).unwrap();
+    h.run_steps(2);
+    let other = catalog.iter().find(|k| k.id == "basic.bus").expect("the basic pack has a bus kind");
+    open_menu(&mut h, "Default Kind");
+    h.get_by_label(other.label).click();
+    h.run_steps(4);
+    for c in connectors(&h) {
+        assert_eq!(c.kind == other.id, c.id == first, "{}", c.id);
+    }
+}
+
+fn connector_tab(width: f32) -> (Harness, String) {
+    let mut a = app();
+    let conn = a.session.doc.page().and_then(|p| p.connectors.first()).map(|c| c.id.clone()).unwrap();
+    a.session.sel = vizcraft_engine::Selection::single(conn.clone());
+    a.ui.tab = "Connector".into();
+    a.ui.panes.close("history");
+    let mut h = egui_kittest::Harness::builder().with_size(vec2(width, 700.0)).build_ui_state(
+        |ui, app: &mut CraftApp| {
+            app.logic(ui.ctx());
+            app.ui(ui);
+        },
+        a,
+    );
+    h.run_steps(5);
+    (h, conn)
+}
+
+#[test]
+fn the_connector_tab_kind_menu_marks_the_selected_connectors_kind() {
+    let (mut h, conn) = connector_tab(1280.0);
+    h.state_mut().run("connector.setKind", json!({"ids": [conn.clone()], "kind": "basic.bus"})).unwrap();
+    h.run_steps(3);
+    let rows = open_menu(&mut h, "Kind");
+    let bus = vizcraft_stencils::connector_kind("basic.bus").expect("basic.bus").label;
+    assert_eq!(marked(&rows), [bus]);
+    let dep = vizcraft_stencils::connector_kind("basic.dependency").expect("basic.dependency").label;
+    h.get_by_label(dep).click();
+    h.run_steps(4);
+    let kind = h.state().session.doc.page().and_then(|p| p.connector(&conn)).map(|c| c.kind.clone());
+    assert_eq!(kind.as_deref(), Some("basic.dependency"));
+    assert_eq!(marked(&open_menu(&mut h, "Kind")), [dep]);
+}
+
+#[test]
+fn the_arrow_menus_offer_all_thirteen_ends_and_mark_the_current_one() {
+    let (mut h, conn) = connector_tab(1280.0);
+    let ends = |h: &Harness| h.state().session.doc.page().and_then(|p| p.connector(&conn)).map(|c| (c.start_arrow, c.end_arrow)).unwrap();
+    // The sample's connectors have no start end and a triangle at the end.
+    let rows = open_menu(&mut h, "End Arrow");
+    assert_eq!(rows.len(), vizcraft_diagram::Arrow::ALL.len());
+    for label in ["None", "Hollow triangle", "Crow's foot with bar", "Crow's foot with circle", "Bar with circle", "Hollow circle"] {
+        assert!(rows.iter().any(|(l, _)| l == label), "{label} is missing: {rows:?}");
+    }
+    assert_eq!(marked(&rows), ["Triangle"]);
+    h.get_by_label("Crow's foot with bar").click();
+    h.run_steps(4);
+    assert_eq!(ends(&h), (vizcraft_diagram::Arrow::None, vizcraft_diagram::Arrow::CrowsFootBar));
+    assert_eq!(marked(&open_menu(&mut h, "End Arrow")), ["Crow's foot with bar"]);
+    h.get_by_label("Crow's foot with bar").click();
+    h.run_steps(3);
+    let rows = open_menu(&mut h, "Start Arrow");
+    assert_eq!(rows.len(), 13);
+    assert_eq!(marked(&rows), ["None"]);
+    h.get_by_label("Hollow diamond").click();
+    h.run_steps(4);
+    assert_eq!(ends(&h).0, vizcraft_diagram::Arrow::HollowDiamond);
+    assert_eq!(marked(&open_menu(&mut h, "Start Arrow")), ["Hollow diamond"]);
+}
+
+#[test]
+fn the_compartment_menu_needs_one_shape_and_adds_the_chosen_kind() {
+    let mut h = harness_at(1280.0, "Insert");
+    // Nothing selected: the menu does not open.
+    h.get_by_label("Compartment").click();
+    h.run_steps(4);
+    assert!(open_menu_rows(&h).is_empty());
+    let shape = first_shape(&h);
+    h.state_mut().run("edit.select", json!({"ids": [shape.clone()]})).unwrap();
+    h.run_steps(3);
+    let rows = open_menu(&mut h, "Compartment");
+    assert_eq!(rows.iter().map(|(l, _)| l.as_str()).collect::<Vec<_>>(), ["Paragraph", "List", "Slot"]);
+    let count = |h: &Harness| h.state().session.doc.page().and_then(|p| p.shape(&shape)).map_or(0, |s| s.compartments.len());
+    assert_eq!(count(&h), 0);
+    h.get_by_label("List").click();
+    h.run_steps(4);
+    assert_eq!(count(&h), 1);
+    let kind = h.state().session.doc.page().and_then(|p| p.shape(&shape)).map(|s| s.compartments[0].kind);
+    assert_eq!(kind, Some(vizcraft_diagram::CompartmentKind::List));
+    // Two shapes selected: the menu is off again.
+    let second = h.state().session.doc.page().map(|p| p.shapes[1].id.clone()).unwrap();
+    h.state_mut().run("edit.select", json!({"ids": [shape, second]})).unwrap();
+    h.run_steps(3);
+    h.get_by_label("Compartment").click();
+    h.run_steps(4);
+    assert!(open_menu_rows(&h).is_empty());
+}
+
+#[test]
+fn the_rules_menu_lists_off_and_every_ruleset_with_the_profile_checked() {
+    let mut h = harness_at(1280.0, "Process");
+    let sets = vizcraft_notation::catalog().rulesets();
+    assert!(!sets.is_empty());
+    h.state_mut().run("validate.setProfile", json!({"enabled": false})).unwrap();
+    h.run_steps(3);
+    let rows = open_menu(&mut h, "Rules");
+    assert_eq!(rows.len(), sets.len() + 1);
+    assert_eq!(rows[0].0, "Off");
+    assert_eq!(marked(&rows), ["Off"], "the profile is off");
+    let (_, set) = sets.iter().find(|(_, r)| r.id == "drawing.tidy").expect("the drawing pack has a tidy ruleset");
+    h.get_by_label(set.label.as_str()).click();
+    h.run_steps(4);
+    let profile = vizcraft_notation::rules::profile(&h.state().session.doc, vizcraft_notation::catalog());
+    assert!(profile.enabled);
+    assert_eq!(profile.rulesets, ["drawing.tidy"]);
+    assert_eq!(marked(&open_menu(&mut h, "Rules")), [set.label.as_str()]);
+    h.get_by_label("Off").click();
+    h.run_steps(4);
+    assert!(!vizcraft_notation::rules::profile(&h.state().session.doc, vizcraft_notation::catalog()).enabled);
+}
+
+#[test]
+fn live_checking_toggles_the_profile_and_next_and_previous_issue_run_their_commands() {
+    let mut h = harness_at(1280.0, "Process");
+    h.state_mut().run("validate.setProfile", json!({"enabled": false})).unwrap();
+    h.run_steps(3);
+    let toggled = |h: &Harness| h.get_by_label("Live Checking").accesskit_node().toggled();
+    assert_eq!(toggled(&h), Some(egui::accesskit::Toggled::False));
+    h.get_by_label("Live Checking").click();
+    h.run_steps(4);
+    assert!(h.state().session.doc.conformance.enabled);
+    assert_eq!(toggled(&h), Some(egui::accesskit::Toggled::True));
+    h.get_by_label("Live Checking").click();
+    h.run_steps(4);
+    assert!(!h.state().session.doc.conformance.enabled);
+    // The issue buttons run validate.next and validate.previous (no issue: nothing selected).
+    for (label, id) in [("Next Issue", "validate.next"), ("Previous Issue", "validate.previous")] {
+        assert!(widgets::exists(h.state(), id));
+        assert!(h.query_by_label(label).is_some(), "{label} is missing");
+        h.get_by_label(label).click();
+        h.run_steps(3);
+    }
+}
+
+#[test]
+fn the_new_controls_are_listed_with_their_commands() {
+    let a = app();
+    let tabs = ribbon::tabs(&a);
+    let ids = |name: &str| tabs.iter().find(|t| t.name == name).map(|t| t.ids()).unwrap_or_default();
+    let design = ids("Design");
+    for id in ["page.setup", "page.setRouting", "connector.setJumps", "design.setConnectorStyle"] {
+        assert!(design.contains(&id), "Design lacks {id}");
+    }
+    let connector = ids("Connector");
+    for id in ["connector.setArrows", "connector.setRoute"] {
+        assert!(connector.contains(&id), "Connector lacks {id}");
+    }
+    let process = ids("Process");
+    for id in ["validate.run", "validate.setProfile", "validate.next", "validate.previous"] {
+        assert!(process.contains(&id), "Process lacks {id}");
+    }
 }

@@ -4119,6 +4119,7 @@ dependencies = [
  "serde_json",
  "vizcraft-diagram",
  "vizcraft-engine",
+ "vizcraft-notation",
  "vizcraft-stencils",
  "web-time",
 ]

@@ -88,6 +88,14 @@ pub const NAMES: &[&str] = &[
     "layout",
     "routeAround",
     "lineJumps",
+    "board",
+    "connectorKind",
+    "compartment",
+    // Validation
+    "rules",
+    "liveChecking",
+    "nextIssue",
+    "prevIssue",
     // Arrange
     "align",
     "position",
@@ -652,6 +660,62 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
             pen.line_c(&[(10.0, 17.5), (10.0, 15.0)], a);
             pen.arc(10.0, 12.0, 3.0, FRAC_PI_2, PI, a);
             pen.line_c(&[(10.0, 9.0), (10.0, 2.5)], a);
+        }
+        "board" => {
+            // A ruled sheet: rulers along the top and left edge, one mark placed on the board.
+            pen.rect(3.0, 3.0, 17.0, 17.0, c);
+            for t in [7.0, 10.0, 13.0] {
+                let len = if t == 10.0 { 3.0 } else { 2.0 };
+                pen.line_c(&[(t, 3.0), (t, 3.0 + len)], a);
+                pen.line_c(&[(3.0, t), (3.0 + len, t)], a);
+            }
+            pen.fcircle(12.5, 12.5, 1.8, a);
+        }
+        "connectorKind" => {
+            // Two boxes joined by an elbowed connector that ends in a head: a connector as a kind.
+            pen.rect(2.5, 11.5, 7.5, 16.5, c);
+            pen.rect(12.5, 3.5, 17.5, 8.5, c);
+            pen.line_c(&[(7.5, 14.0), (10.0, 14.0), (10.0, 6.0)], a);
+            pen.fill(&[(12.0, 6.0), (8.5, 4.0), (8.5, 8.0)], a);
+        }
+        "compartment" => {
+            // A box cut into bands, text rows in the lower two.
+            pen.rect(3.0, 3.0, 17.0, 17.0, c);
+            pen.line(&[(3.0, 7.5), (17.0, 7.5)]);
+            pen.line(&[(3.0, 12.5), (17.0, 12.5)]);
+            pen.line_c(&[(6.0, 10.0), (14.0, 10.0)], a);
+            pen.line_c(&[(6.0, 15.0), (12.0, 15.0)], a);
+        }
+        "rules" => {
+            // A checklist: ticks beside three rule lines.
+            for y in [5.0, 10.0, 15.0] {
+                pen.line_c(&[(2.5, y), (4.0, y + 1.5), (6.5, y - 1.8)], a);
+                pen.line(&[(9.5, y), (17.5, y)]);
+            }
+        }
+        "liveChecking" => {
+            // A tick in a ring with rays: a check that keeps running.
+            pen.circle(10.0, 10.0, 5.0, c);
+            pen.line_c(&[(7.5, 10.2), (9.3, 12.0), (12.8, 8.0)], a);
+            for i in 0..8 {
+                let t = TAU * (i as f32 + 0.5) / 8.0;
+                let (sx, sy) = (t.cos(), t.sin());
+                pen.line_c(&[(10.0 + 7.2 * sx, 10.0 + 7.2 * sy), (10.0 + 8.8 * sx, 10.0 + 8.8 * sy)], a);
+            }
+        }
+        "nextIssue" => {
+            // An issue marker with a chevron leading on.
+            pen.circle(7.0, 10.0, 4.5, c);
+            pen.line_c(&[(7.0, 7.8), (7.0, 10.6)], a);
+            pen.fcircle(7.0, 12.4, 0.8, a);
+            pen.line_c(&[(13.5, 6.5), (17.0, 10.0), (13.5, 13.5)], a);
+        }
+        "prevIssue" => {
+            // An issue marker with a chevron leading back.
+            pen.circle(13.0, 10.0, 4.5, c);
+            pen.line_c(&[(13.0, 7.8), (13.0, 10.6)], a);
+            pen.fcircle(13.0, 12.4, 0.8, a);
+            pen.line_c(&[(6.5, 6.5), (3.0, 10.0), (6.5, 13.5)], a);
         }
         // Arrange
         "align" => {

@@ -1,9 +1,10 @@
-//! Home > Clipboard: paste (with Paste Special), cut, copy, duplicate and the format painter.
+//! Home > Clipboard: paste (with Paste Special), cut, copy, the format painter and delete (the
+//! last two share a row of icons).
 
 use serde_json::json;
 
 use crate::ribbon::Control::*;
-use crate::ribbon::{Group, MenuEntry};
+use crate::ribbon::{Group, MenuEntry, Size};
 use crate::widgets::toggle;
 use crate::{CraftApp, Tool};
 
@@ -18,7 +19,13 @@ pub(in crate::ribbon) fn group() -> Group {
                 big: true,
                 menu: vec![MenuEntry::new("Paste", "edit.paste", json!({})), MenuEntry::new("Paste Special...", "edit.pasteSpecial", json!({}))],
             },
-            Stack(vec![Small { id: "edit.cut", icon: "cut" }, Small { id: "edit.copy", icon: "copy" }, Custom(format_painter)]),
+            Stack(vec![
+                Small { id: "edit.cut", icon: "cut" }, Small { id: "edit.copy", icon: "copy" },
+                Row(vec![
+                    Custom(format_painter),
+                    Button { id: "edit.delete", icon: "delete", label: "Delete", size: Size::Icon, params: |_| json!({}), checked: None },
+                ]),
+            ]),
         ],
     )
 }

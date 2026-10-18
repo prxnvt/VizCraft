@@ -1,4 +1,4 @@
-//! The contextual Connector tab, shown while a connector is selected: route, arrows and style.
+//! The contextual Connector tab, shown while a connector is selected: kind, route, arrows and style.
 
 use super::Tab;
 use crate::CraftApp;
@@ -9,6 +9,7 @@ fn has_connector_selected(app: &CraftApp) -> bool {
 }
 
 groups! {
+    kind,
     route,
     arrows,
     style,

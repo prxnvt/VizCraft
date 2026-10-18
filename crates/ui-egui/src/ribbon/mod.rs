@@ -20,6 +20,7 @@
 
 mod controls;
 mod draw;
+mod kinds;
 
 /// Declares a tab's group modules and its `groups()` list, left to right. Each tab's `mod.rs`
 /// invokes it with one group per line, so adding a group is one file plus one line there.
@@ -381,9 +382,6 @@ pub const FONT_SIZES: &[u32] = &[8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 36, 4
 
 /// Line weights offered by the Home tab's weight field, in world units (pixels at 100%).
 pub const LINE_WEIGHTS: &[f32] = &[0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0];
-
-/// Arrowhead names offered by the Connector tab, as `connector.setArrows` takes them.
-pub const ARROWS: &[&str] = &["none", "triangle", "open", "diamond", "circle"];
 
 /// The tabs, in Visio's order: Home, Insert, Design, Data, Process, Review, View, Developer,
 /// Help, then the contextual Connector, Container and Callout tabs (shown while a connector, a

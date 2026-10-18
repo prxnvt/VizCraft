@@ -1,5 +1,6 @@
-//! Home > Arrange: align, position (distribute and auto space), z order, group, rotate and flip,
-//! and delete. Every entry runs an `arrange.*` command on the selection.
+//! Home > Arrange: align, position (distribute and auto space), z order, group, rotate and flip.
+//! Every entry runs an `arrange.*` command on the selection. Delete lives beside Cut and Copy in
+//! Clipboard.
 
 use serde_json::json;
 
@@ -76,7 +77,6 @@ pub(in crate::ribbon) fn group() -> Group {
                     menu: vec![MenuEntry::new("Group", "arrange.group", json!({})), MenuEntry::new("Ungroup", "arrange.ungroup", json!({}))],
                 },
             ]),
-            Stack(vec![Small { id: "edit.delete", icon: "delete" }]),
         ],
     )
 }

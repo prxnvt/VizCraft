@@ -14,6 +14,8 @@ vizcraft-engine = { workspace = true }
 # The canvas draws and hit-tests the model directly; the Shapes pane lists the catalog.
 vizcraft-diagram = { workspace = true }
 vizcraft-stencils = { workspace = true }
+# The Process tab reads the conformance profile in effect and lists the rulesets of the catalog.
+vizcraft-notation = { workspace = true }
 egui = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
