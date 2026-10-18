@@ -17,6 +17,14 @@ layering check and the wasm build. Run it before every commit with your own targ
 CARGO_TARGET_DIR=target-my-branch cargo xtask ci
 ```
 
+GitHub Actions runs the same command on every push to `main` and every pull request
+(`.github/workflows/rust.yml`, one Ubuntu job): it installs the X11, Wayland, xkbcommon and GL
+development packages that eframe's winit backends link against, a stable toolchain with rustfmt,
+clippy and the `wasm32-unknown-unknown` target so the wasm step runs instead of skipping itself,
+caches the cargo registry and `target/` with `Swatinem/rust-cache`, and sets
+`VIZCRAFT_SKIP_SNAPSHOTS` so the pixel snapshot tests stay out of the gate there too. A green
+run means exactly what a green `cargo xtask ci` means on your machine, nothing more.
+
 ## Engine unit tests
 
 Every command lands with a test in `crates/engine/src/tests.rs`. The `run` helper there unwraps

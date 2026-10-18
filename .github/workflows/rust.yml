@@ -1,22 +1,60 @@
-name: Rust
+# The repository's quality gate, run the same way as on a developer machine: `cargo xtask ci`
+# (rustfmt, clippy -D warnings, tests, assets, layers, wasm; see AGENTS.md, Quality gates).
+# One Ubuntu job is enough: nothing in the step set needs macOS or Windows, and the macOS-only
+# crates (`macos-open`, `muda`) compile to empty modules elsewhere.
+name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [main]
   pull_request:
-    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+# A newer push to the same branch or pull request supersedes the run in progress.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
+  # Fresh runners gain nothing from incremental artifacts, and the cache is smaller without them.
+  CARGO_INCREMENTAL: 0
+  # Pixel snapshot tests need a wgpu adapter and references for the runner's OS; docs/testing.md
+  # keeps them out of the gate, so skip them explicitly rather than depend on the runner's GPU.
+  VIZCRAFT_SKIP_SNAPSHOTS: 1
 
 jobs:
-  build:
-
+  ci:
+    name: cargo xtask ci
     runs-on: ubuntu-latest
-
+    timeout-minutes: 60
     steps:
-    - uses: actions/checkout@v4
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # eframe's winit backends (x11, wayland), xkbcommon and the glutin/wgpu GL loaders link
+      # against these. rfd talks to the desktop portal over D-Bus (no GTK) and muda is macOS-only,
+      # so neither needs a package here.
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            pkg-config libxkbcommon-dev libwayland-dev libx11-dev libxrandr-dev libxi-dev \
+            libxcursor-dev libgl1-mesa-dev
+
+      # rustfmt and clippy for the first two steps; the wasm32 target for the last one
+      # (`cargo xtask wasm` is a plain `cargo check --target wasm32-unknown-unknown`, no trunk or
+      # wasm-bindgen CLI, and it skips itself when the target is missing instead of failing).
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+        with:
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+
+      # Caches ~/.cargo/registry, ~/.cargo/git and target/, keyed on the lockfile and toolchain.
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: xtask-ci
+
+      - name: cargo xtask ci
+        run: cargo xtask ci

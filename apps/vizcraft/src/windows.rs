@@ -116,6 +116,9 @@ impl Windows {
     }
 
     /// Close the window in front the way its close button does, so unsaved changes are asked about.
+    /// Only the native macOS menu bar dispatches File > Close here; the in-window bar closes
+    /// through `menus::run_item`, so on other platforms this would be dead code.
+    #[cfg(target_os = "macos")]
     pub fn close_front(&self, ctx: &egui::Context) {
         let id = self.focused.filter(|f| self.extras.iter().any(|e| e.id == *f && !e.closed)).unwrap_or(ViewportId::ROOT);
         ctx.viewport_cmd_to(id, ViewportCommand::Close);
