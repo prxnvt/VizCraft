@@ -101,8 +101,9 @@ fn key(h: &mut Harness<'_, CraftApp>, k: Key, m: Modifiers) {
     h.run_steps(2);
 }
 
-/// An empty spot on the page, away from every shape and connector.
-const EMPTY: Point = Point { x: 150.0, y: 700.0 };
+/// An empty spot in view, away from every shape and connector. The sample is on an infinite
+/// board, so the view is centred on the drawing and not on a sheet at the origin.
+const EMPTY: Point = Point { x: 150.0, y: 600.0 };
 
 #[test]
 fn the_view_starts_on_the_page() {

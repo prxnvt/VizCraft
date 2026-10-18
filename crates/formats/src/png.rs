@@ -105,6 +105,7 @@ mod tests {
     fn doc_with_page(w: f64, h: f64) -> Document {
         let mut doc = Document::new();
         let mut page = Page::new("p1", "Page-1");
+        page.board = vizcraft_diagram::Board::Fixed;
         page.width = w;
         page.height = h;
         doc.pages = vec![page];
@@ -187,5 +188,21 @@ mod tests {
             }
         }
         assert!(render_svg(b"not svg", 1.0).is_err());
+    }
+    #[test]
+    fn the_same_drawing_renders_at_the_sheet_size_on_a_fixed_board_and_the_frame_size_on_an_infinite_one() {
+        use vizcraft_diagram::{Board, Shape, ShapeKind};
+        let doc = |board: Board| {
+            let mut doc = doc_with_page(200.0, 120.0);
+            doc.pages[0].board = board;
+            doc.pages[0].shapes.push(Shape::new("s1", ShapeKind::Rectangle, 10.0, 20.0, 100.0, 60.0));
+            doc
+        };
+        let (fixed, fw, fh) = render_page(&doc(Board::Fixed), 0, 1.0).unwrap();
+        assert_eq!((fw, fh, header_size(&fixed)), (200, 120, (200, 120)));
+        // The shape spans 100 by 60; the frame adds the 25 unit fit margin on every side.
+        let (infinite, iw, ih) = render_page(&doc(Board::Infinite), 0, 1.0).unwrap();
+        assert_eq!((iw, ih, header_size(&infinite)), (150, 110, (150, 110)));
+        assert_ne!(fixed, infinite);
     }
 }

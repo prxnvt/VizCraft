@@ -393,7 +393,8 @@ impl CraftApp {
         };
         let Some(page) = self.session.doc.page() else { return };
         let cut = |extent: f64, view: f32| extent as f32 * self.session.view.zoom > view - 2.0 * vizcraft_engine::cmd::view::FIT_MARGIN;
-        if cut(page.width, w) || cut(page.height, h) {
+        let frame = page.frame();
+        if cut(frame.width(), w) || cut(frame.height(), h) {
             let _ = self.run("view.zoomFit", json!({}));
         }
     }

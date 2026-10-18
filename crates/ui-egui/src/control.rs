@@ -480,7 +480,9 @@ mod tests {
         assert_eq!(v["tool"], "pointer");
         assert_eq!(v["diagram"]["shapes"], 6);
         assert_eq!(v["diagram"]["connectors"], 6);
-        assert_eq!(v["diagram"]["page"]["width"], 1100.0);
+        assert_eq!(v["diagram"]["page"]["board"], "infinite", "the sample is on an infinite board");
+        let frame = app.session.doc.page().unwrap().frame();
+        assert_eq!(v["diagram"]["page"]["width"], frame.width(), "width and height report the frame");
         assert_eq!(v["diagram"]["selected"], json!([]));
         app.run("edit.setTitle", json!({"title": "x"})).unwrap();
         app.run("ui.dialog", json!({"name": "zoom"})).unwrap();

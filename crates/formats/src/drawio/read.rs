@@ -385,6 +385,8 @@ impl<'a> Tree<'a> {
 /// One draw.io page model as a VizCraft page. Cell ids are kept as they are.
 pub(crate) fn page_from_model(model: &GraphModel, id: String, name: String, warnings: &mut Warnings) -> Page {
     let mut page = Page::new(id, name);
+    // A draw.io page is a sheet of the size the file gives; it keeps its look.
+    page.board = vizcraft_diagram::Board::Fixed;
     if let Some(w) = model.page_width().filter(|w| *w > 0.0) {
         page.width = w;
     }

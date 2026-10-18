@@ -97,7 +97,10 @@ impl Headless {
             "status": if s.status.is_empty() { None } else { Some(s.status.as_str()) },
             "pages": s.doc.pages.len(),
             "diagram": {
-                "page": page.map(|p| json!({"id": p.id, "name": p.name, "width": p.width, "height": p.height})),
+                "page": page.map(|p| {
+                    let f = p.frame();
+                    json!({"id": p.id, "name": p.name, "board": p.board, "width": f.width(), "height": f.height()})
+                }),
                 "shapes": page.map_or(0, |p| p.shapes.len()),
                 "connectors": page.map_or(0, |p| p.connectors.len()),
                 "selected": &s.sel.items,

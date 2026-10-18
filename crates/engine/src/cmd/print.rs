@@ -138,11 +138,20 @@ pub fn layout_params(v: &Value, page_wide: bool) -> Result<PrintLayout, EngineEr
     Ok(PrintLayout { paper, fit, tiles })
 }
 
+/// Whether the first printed page's frame is at least as wide as it is tall, which picks the
+/// default paper orientation.
+fn first_is_wide(s: &Session, pages: &[usize]) -> bool {
+    s.doc.pages.get(pages.first().copied().unwrap_or(0)).is_some_and(|p| {
+        let f = p.frame();
+        f.width() >= f.height()
+    })
+}
+
 /// How `file.print` with params `v` would lay each page out, as (page id, page name, plan), without
 /// writing anything; Print Preview draws its tiles from this.
 pub fn plans(s: &Session, v: &Value) -> Result<Vec<(String, String, Plan)>, EngineError> {
     let pages = resolve_pages(s, v, "all")?;
-    let wide = s.doc.pages.get(pages.first().copied().unwrap_or(0)).is_some_and(|p| p.width >= p.height);
+    let wide = first_is_wide(s, &pages);
     let layout = layout_params(v, wide)?;
     pages
         .iter()
@@ -164,7 +173,7 @@ fn temp_print_path() -> String {
 /// downloads it instead).
 pub fn print_pdf(s: &Session, v: &Value) -> Result<pdf::Printed, EngineError> {
     let pages = resolve_pages(s, v, "all")?;
-    let wide = s.doc.pages.get(pages.first().copied().unwrap_or(0)).is_some_and(|p| p.width >= p.height);
+    let wide = first_is_wide(s, &pages);
     let layout = layout_params(v, wide)?;
     let opts = SvgOptions { print: true, date: today() };
     pdf::print_pages(&s.doc, &pages, &opts, &layout).map_err(|e| EngineError::Failed(format!("print: {e}")))

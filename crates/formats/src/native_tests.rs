@@ -670,3 +670,32 @@ fn hostile_shape_data_is_sanitised() {
     assert!(doc.pages[0].shapes[1].data.rows.is_empty());
     assert!(vizcraft_diagram::data::page_keys(&doc.pages[0]).is_empty(), "unreadable page keys are none");
 }
+
+#[test]
+fn a_new_document_is_infinite_and_a_file_without_the_board_key_loads_fixed() {
+    use vizcraft_diagram::Board;
+    let doc = Document::new();
+    assert_eq!(doc.pages[0].board, Board::Infinite);
+    let bytes = save(&doc).unwrap();
+    let v = parse(&bytes);
+    assert_eq!(v["document"]["pages"][0]["board"], json!("infinite"), "the name on disk");
+    assert_eq!(load(&bytes).unwrap().pages[0].board, Board::Infinite);
+
+    // A version 4 file from before boards has no key: its sheet stays.
+    let mut old = v.clone();
+    old["document"]["pages"][0].as_object_mut().unwrap().remove("board");
+    let loaded = load(&serde_json::to_vec_pretty(&old).unwrap()).unwrap();
+    assert_eq!(loaded.pages[0].board, Board::Fixed);
+    assert_eq!(loaded.pages[0].frame().width(), loaded.pages[0].width);
+
+    // Fixed round trips, and a name from a newer version or a junk value loads as Fixed.
+    let mut fixed = doc.clone();
+    fixed.pages[0].board = Board::Fixed;
+    let reloaded = load(&save(&fixed).unwrap()).unwrap();
+    assert_eq!(reloaded.pages[0].board, Board::Fixed);
+    for junk in [json!("endless"), json!(7), json!(null), json!({"a": 1})] {
+        let mut v = v.clone();
+        v["document"]["pages"][0]["board"] = junk.clone();
+        assert_eq!(load(&serde_json::to_vec_pretty(&v).unwrap()).unwrap().pages[0].board, Board::Fixed, "{junk}");
+    }
+}

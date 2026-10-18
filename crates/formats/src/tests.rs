@@ -23,6 +23,8 @@ pub(crate) fn sample() -> Document {
     sc.text = "Store".into();
     sc.style.fill = Color { r: 10, g: 20, b: 30, a: 128 };
     let page = doc.page_mut().unwrap();
+    // Most format tests count on the sheet; the board tests switch it back to Infinite.
+    page.board = vizcraft_diagram::Board::Fixed;
     page.shapes.extend([sa, sb, sc]);
     let c1 = doc.next_id("c");
     let c2 = doc.next_id("c");
@@ -194,4 +196,26 @@ fn numbers_are_compact_and_finite() {
     assert_eq!(svg::num(f64::INFINITY), "0");
     assert_eq!(svg::num(-12.3456), "-12.346");
     assert_eq!(svg::num(1e7), "10000000");
+}
+
+#[test]
+fn drawio_and_print_use_the_frame_of_an_infinite_board() {
+    use vizcraft_diagram::Board;
+    let mut doc = sample();
+    doc.pages[0].width = 3000.0;
+    doc.pages[0].height = 2000.0;
+    // On a fixed board the file carries the sheet size.
+    let fixed = String::from_utf8(crate::drawio::save(&doc).unwrap()).unwrap();
+    assert!(fixed.contains("pageWidth=\"3000\"") && fixed.contains("pageHeight=\"2000\""), "{fixed}");
+    // On an infinite board it carries the frame around the drawing.
+    doc.pages[0].board = Board::Infinite;
+    let frame = doc.pages[0].frame();
+    let infinite = String::from_utf8(crate::drawio::save(&doc).unwrap()).unwrap();
+    assert!(infinite.contains(&format!("pageWidth=\"{}\"", frame.width())), "{infinite}");
+    assert!(!infinite.contains("pageWidth=\"3000\""));
+    // Print takes the frame as the default paper, so the drawing fits one sheet however big the
+    // stored sheet is.
+    let plan = crate::pdf::plan(&doc, 0, &crate::pdf::PrintLayout::default(), false).unwrap();
+    assert_eq!((plan.cols, plan.rows), (1, 1));
+    assert!((plan.paper_w - frame.width()).abs() < 1e-6, "{plan:?}");
 }

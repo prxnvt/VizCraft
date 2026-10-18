@@ -124,6 +124,7 @@ fn print_skips_non_printing_shapes_tiles_and_asks_the_os() {
     let d = dir("print");
     let mut s = Session::new(Document::new());
     if let Some(p) = s.doc.pages.first_mut() {
+        p.board = vizcraft_diagram::Board::Fixed;
         p.layers = vec![Layer { id: "notes".into(), print: false, ..Layer::default() }];
         let mut far = Shape::new("far", ShapeKind::Rectangle, 4000.0, 10.0, 50.0, 50.0);
         far.layers = vec!["notes".into()];

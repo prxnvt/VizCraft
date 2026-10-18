@@ -211,9 +211,10 @@ fn zoom_fit_shows_the_whole_page_or_drawing() {
     assert_eq!(s.view.zoom, 1.0);
     // A page as wide as a laid-out Mermaid import, in a canvas that cuts it off at 100%.
     s.doc.page_mut().unwrap().width = 1470.0;
+    s.doc.page_mut().unwrap().board = vizcraft_diagram::Board::Fixed;
     s.view.canvas = Some([1000.0, 700.0]);
     let r = run(&mut s, "view.zoomFit", json!({}));
-    let page = s.doc.page().unwrap().rect();
+    let page = s.doc.page().unwrap().frame();
     let m = cmd::view::FIT_MARGIN;
     let (zoom, pan) = (s.view.zoom, s.view.pan);
     assert_eq!(r["zoom"], json!(zoom));
@@ -240,6 +241,20 @@ fn zoom_fit_shows_the_whole_page_or_drawing() {
         run(&mut s, "view.zoomFit", json!({}));
         assert!(s.view.zoom.is_finite() && s.view.pan.iter().all(|v| v.is_finite()), "{canvas:?}");
     }
+}
+
+#[test]
+fn zoom_fit_on_an_infinite_board_fits_the_drawing_frame() {
+    let mut s = s();
+    assert_eq!(s.doc.page().unwrap().board, vizcraft_diagram::Board::Infinite, "the sample is on an infinite board");
+    s.doc.page_mut().unwrap().width = 1e9;
+    s.view.canvas = Some([1000.0, 700.0]);
+    run(&mut s, "view.zoomFit", json!({}));
+    let frame = s.doc.page().unwrap().frame();
+    assert!(s.view.zoom > cmd::view::MIN_ZOOM / 100.0, "the stored sheet size plays no part: {}", s.view.zoom);
+    assert_eq!(s.view.pan, [frame.center().x as f32, frame.center().y as f32]);
+    let m = cmd::view::FIT_MARGIN;
+    assert!(frame.width() as f32 * s.view.zoom <= 1000.0 - 2.0 * m && frame.height() as f32 * s.view.zoom <= 700.0 - 2.0 * m);
 }
 
 #[test]

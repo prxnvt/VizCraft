@@ -232,12 +232,13 @@ fn inspect(args: &[String]) -> Result<(), CliError> {
     }
     println!("  revision:  {}", doc.core.revision);
     for page in &doc.pages {
+        let frame = page.frame();
         println!(
             "  page {:<5} {} ({} x {}): {} shapes, {} connectors",
             page.id,
             page.name,
-            page.width,
-            page.height,
+            frame.width(),
+            frame.height(),
             page.shapes.len(),
             page.connectors.len()
         );

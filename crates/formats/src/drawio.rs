@@ -79,7 +79,7 @@ pub fn load(bytes: &[u8]) -> Result<Document, FormatError> {
     let mut doc = Document::new();
     for (i, src) in imported.pages.into_iter().enumerate() {
         let index = if i == 0 { 0 } else { doc.add_page(&src.name) };
-        let (id, name, width, height) = (src.id.clone(), src.name.clone(), src.width, src.height);
+        let (id, name, width, height, board) = (src.id.clone(), src.name.clone(), src.width, src.height, src.board);
         doc.adopt(index, src, true);
         let free = vizcraft_diagram::is_plain_id(&id) && !doc.contains_id(&id);
         if let Some(page) = doc.pages.get_mut(index) {
@@ -91,6 +91,7 @@ pub fn load(bytes: &[u8]) -> Result<Document, FormatError> {
             }
             page.width = width;
             page.height = height;
+            page.board = board;
         }
     }
     doc.sanitize();

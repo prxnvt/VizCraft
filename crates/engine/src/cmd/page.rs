@@ -15,7 +15,7 @@
 use std::collections::HashMap;
 
 use serde_json::{Value, json};
-use vizcraft_diagram::{DrawingScale, End, Orientation, Page, Rect, Units, connector_geometry};
+use vizcraft_diagram::{Board, DrawingScale, End, Orientation, Page, Rect, Units};
 
 use super::file::{import_into_session, import_opts, place};
 use super::{drop_undrawn_relationships, num, opt_bool, opt_str, short};
@@ -29,7 +29,7 @@ pub const MAX_PAGES: usize = 1000;
 pub const MAX_PAGE_NAME: usize = 256;
 
 /// Space `page.fitToDrawing` leaves around the drawing when no `margin` is given (a quarter inch).
-pub const FIT_MARGIN: f64 = 25.0;
+pub const FIT_MARGIN: f64 = vizcraft_diagram::board::FIT_MARGIN;
 
 /// Largest `margin` `page.fitToDrawing` accepts.
 pub const MAX_FIT_MARGIN: f64 = 10_000.0;
@@ -64,7 +64,7 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("page.setActive", "Go to Page", "Page", set_active)
             .params(r#"{"page": id|name|index} -> {page, index} (not an undo step)"#),
         CommandSpec::new("page.setup", "Page Setup", "Design > Page Setup", setup).params(
-            r#"{"page"?: id|name|index, "width"?: number, "height"?: number, "orientation"?: "portrait"|"landscape", "units"?: "in"|"ft"|"mm"|"cm"|"m"|"pt"|"px", "drawingScale"?: {page, drawing, units?}, "autoSize"?: bool} -> {page, width, height, orientation, units, drawingScale, autoSize} (orientation swaps width and height to match; with no params the UI opens the Page Setup dialog)"#,
+            r#"{"page"?: id|name|index, "width"?: number, "height"?: number, "orientation"?: "portrait"|"landscape", "units"?: "in"|"ft"|"mm"|"cm"|"m"|"pt"|"px", "drawingScale"?: {page, drawing, units?}, "autoSize"?: bool, "board"?: "infinite"|"fixed"} -> {page, board, width, height, orientation, units, drawingScale, autoSize} (board is infinite for new pages; width, height, orientation and autoSize apply to a fixed board only and are kept while it is infinite; orientation swaps width and height to match; with no params the UI opens the Page Setup dialog)"#,
         ),
         CommandSpec::new("page.setBackground", "Background Page", "Page", set_background).params(
             r#"{"page"?: id|name|index, "background": id|name|index|null} -> {page, background} (only a background page may be assigned, never one that would make a cycle)"#,
@@ -204,6 +204,8 @@ fn list(s: &mut Session, v: &Value) -> CmdResult {
                 "name": p.name,
                 "width": p.width,
                 "height": p.height,
+                "board": p.board,
+                "frame": frame_json(p),
                 "shapes": p.shapes.len(),
                 "connectors": p.connectors.len(),
                 "isBackground": p.is_background,
@@ -455,10 +457,17 @@ fn size_param(v: &Value, key: &str) -> Result<Option<f64>, EngineError> {
     }
 }
 
+/// A page's frame (see `Page::frame`) as `{x, y, w, h}`.
+pub fn frame_json(p: &Page) -> Value {
+    let f = p.frame();
+    json!({"x": f.x0, "y": f.y0, "w": f.width(), "h": f.height()})
+}
+
 /// A page's setup as `page.setup` reports it.
 pub fn setup_json(p: &Page) -> Value {
     json!({
         "page": p.id,
+        "board": p.board,
         "width": p.width,
         "height": p.height,
         "orientation": p.orientation,
@@ -481,7 +490,12 @@ fn setup(s: &mut Session, v: &Value) -> CmdResult {
     let units = units_param(v, "units")?;
     let scale = scale_param(v)?;
     let auto_size = opt_bool(v, "autoSize")?;
-    let nothing = width.is_none() && height.is_none() && orientation.is_none() && units.is_none() && scale.is_none() && auto_size.is_none();
+    let board = match opt_str(v, "board")?.map(|t| t.trim().to_ascii_lowercase()) {
+        None => None,
+        Some(t) => Some(Board::from_name(&t).ok_or_else(|| EngineError::Params("`board` must be infinite or fixed".into()))?),
+    };
+    let nothing =
+        board.is_none() && width.is_none() && height.is_none() && orientation.is_none() && units.is_none() && scale.is_none() && auto_size.is_none();
     if nothing && page_ref(v)?.is_none() {
         // The ribbon's launcher: the UI opens the Page Setup dialog, which runs this command
         // again with the settings. Other callers just get the setup back.
@@ -516,11 +530,14 @@ fn setup(s: &mut Session, v: &Value) -> CmdResult {
     if let Some(sc) = scale {
         page.drawing_scale = sc;
     }
+    if let Some(b) = board {
+        page.board = b;
+    }
     if let Some(a) = auto_size {
         page.auto_size = a;
-        if a {
-            grow_to_fit(page);
-        }
+    }
+    if page.auto_size && page.board == Board::Fixed && (auto_size == Some(true) || board.is_some()) {
+        grow_to_fit(page);
     }
     Ok(setup_json(page))
 }
@@ -568,9 +585,7 @@ fn set_background(s: &mut Session, v: &Value) -> CmdResult {
 
 /// Bounds of every shape and connector on `page`, or `None` when it has none.
 pub fn drawing_bounds(page: &Page) -> Option<Rect> {
-    let shapes = page.shapes.iter().map(|s| s.bounds());
-    let connectors = page.connectors.iter().filter_map(|c| connector_geometry(page, c).path.bounds());
-    shapes.chain(connectors).filter(|r| [r.x0, r.y0, r.x1, r.y1].iter().all(|v| v.is_finite())).reduce(|a, b| a.union(&b))
+    vizcraft_diagram::board::drawing_bounds(page)
 }
 
 /// Grow an auto-size page to the right and down so its drawing fits with [`AUTO_SIZE_STEP`] to
@@ -595,7 +610,8 @@ pub fn grow_to_fit(page: &mut Page) -> bool {
 /// session runs it after every change, in the same undo step, so a shape dropped or moved past
 /// the edge takes the page with it.
 pub fn auto_size(doc: &mut Document) {
-    for page in doc.pages.iter_mut().filter(|p| p.auto_size) {
+    // An infinite board has no edge to grow, so the flag waits until the page is Fixed again.
+    for page in doc.pages.iter_mut().filter(|p| p.auto_size && p.board == Board::Fixed) {
         grow_to_fit(page);
     }
 }
@@ -983,6 +999,7 @@ mod tests {
     #[test]
     fn auto_size_grows_the_page_when_a_shape_goes_past_the_edge() {
         let mut s = Session::new(Document::new());
+        s.run("page.setup", &json!({"board": "fixed"})).unwrap();
         add_shape(&mut s, 1200.0, 100.0);
         assert_eq!(s.doc.page().unwrap().width, 1100.0, "without auto size the page stays");
         s.run("page.setup", &json!({"autoSize": true})).unwrap();
@@ -1001,6 +1018,38 @@ mod tests {
         // It never shrinks.
         s.run("edit.delete", &json!({"ids": [id]})).unwrap();
         assert_eq!(s.doc.page().unwrap().height, h);
+        // An infinite board ignores the flag: nothing grows.
+        s.run("page.setup", &json!({"board": "infinite"})).unwrap();
+        add_shape(&mut s, 5000.0, 5000.0);
+        assert_eq!(s.doc.page().unwrap().height, h);
+    }
+
+    #[test]
+    fn board_round_trips_through_setup_and_list_reports_the_frame() {
+        let mut s = Session::new(Document::new());
+        let r = s.run("page.setup", &json!({})).unwrap();
+        assert_eq!(r["board"], "infinite", "a new document is infinite");
+        s.ui_requests.clear();
+        let r = s.run("page.list", &json!({})).unwrap();
+        assert_eq!(r["pages"][0]["board"], "infinite");
+        assert_eq!(r["pages"][0]["frame"], json!({"x": 0.0, "y": 0.0, "w": 1100.0, "h": 850.0}), "an empty infinite page frames a Letter sheet");
+        add_shape(&mut s, 400.0, 300.0);
+        let f = s.run("page.list", &json!({})).unwrap()["pages"][0]["frame"].clone();
+        assert!(f["w"].as_f64().unwrap() < 1100.0 && f["x"].as_f64().unwrap() < 400.0, "{f}");
+        let r = s.run("page.setup", &json!({"board": "fixed", "width": 500, "height": 400})).unwrap();
+        assert_eq!((r["board"].as_str(), s.doc.page().unwrap().board), (Some("fixed"), vizcraft_diagram::Board::Fixed));
+        let f = s.run("page.list", &json!({})).unwrap()["pages"][0]["frame"].clone();
+        assert_eq!(f, json!({"x": 0.0, "y": 0.0, "w": 500.0, "h": 400.0}));
+        s.run("edit.undo", &json!({})).unwrap();
+        assert_eq!(s.doc.page().unwrap().board, vizcraft_diagram::Board::Infinite, "undo restores the board");
+        let r = s.run("page.setup", &json!({"board": "infinite"})).unwrap();
+        assert_eq!(r["board"], "infinite");
+        assert!(s.run("page.setup", &json!({"board": "endless"})).is_err());
+        assert!(s.run("page.setup", &json!({"board": 3})).is_err());
+        // A page added later is infinite, whatever the active page is.
+        s.run("page.setup", &json!({"board": "fixed"})).unwrap();
+        s.run("page.add", &json!({})).unwrap();
+        assert_eq!(s.doc.page().unwrap().board, vizcraft_diagram::Board::Infinite);
     }
 
     #[test]
