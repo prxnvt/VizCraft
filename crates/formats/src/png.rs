@@ -2,7 +2,8 @@
 //!
 //! Choices:
 //! - **One drawing path.** The PNG is the SVG export drawn into pixels, so the two exports never
-//!   disagree and there is no second renderer to keep in step with the canvas.
+//!   disagree and there is no second renderer to keep in step with the canvas. Gradients,
+//!   shadows, glow and soft edges come through as resvg draws the SVG gradients and blur filters.
 //! - **Fonts.** The repository's Inter faces are compiled in and `sans-serif` maps to Inter, so
 //!   text looks the same on every machine and no system font is ever read (the web build has none).
 //! - **Background.** The page is white, like a printed page and like the SVG export.
@@ -126,6 +127,39 @@ mod tests {
         assert_eq!(header_size(&png), (10, 5));
         let (_, w, h) = render_page(&doc_with_page(100_000.0, 50.0), 0, 4.0).unwrap();
         assert!(w <= MAX_SIDE && h >= 1, "{w} x {h}");
+    }
+
+    #[test]
+    fn gradient_shadow_dash_and_effects_reach_the_pixels() {
+        use vizcraft_diagram::{Dash, Glow, Gradient, GradientStop, HeaderFooter, Shadow, Shape, ShapeKind};
+        let mut doc = doc_with_page(200.0, 120.0);
+        let mut s = Shape::new("s1", ShapeKind::Rectangle, 10.0, 20.0, 100.0, 60.0);
+        let stops = vec![
+            GradientStop { offset: 0.0, color: vizcraft_diagram::Color::WHITE },
+            GradientStop { offset: 1.0, color: vizcraft_diagram::Color::rgb(0, 0, 255) },
+        ];
+        s.style.gradient = Some(Gradient { angle_deg: 90.0, stops, ..Gradient::default() });
+        s.style.shadow = Some(Shadow { dx: 30.0, dy: 0.0, blur: 0.0, color: vizcraft_diagram::Color::BLACK });
+        s.style.dash = Dash::Dashed;
+        s.style.corner_radius = 6.0;
+        s.text = "Hi".into();
+        s.style.underline = true;
+        let mut t = Shape::new("s2", ShapeKind::Ellipse, 150.0, 90.0, 20.0, 20.0);
+        t.style.glow = Some(Glow::default());
+        t.style.soft_edges = 3.0;
+        let page = &mut doc.pages[0];
+        page.shapes.extend([s, t]);
+        page.footer = HeaderFooter { center: "Footer".into(), ..HeaderFooter::default() };
+        let (png, w, _) = render_page(&doc, 0, 1.0).unwrap();
+        let px = Pixmap::decode_png(&png).unwrap();
+        let at = |x: u32, y: u32| px.pixel(x, y).map(|p| (p.red(), p.green(), p.blue())).unwrap();
+        assert!(w >= 200);
+        // Right of the shape but inside the hard shadow: black.
+        assert_eq!(at(125, 50), (0, 0, 0));
+        // The gradient runs from white at the top to blue at the bottom.
+        let (top, bottom) = (at(60, 24), at(60, 76));
+        assert!(top.2 > 200 && top.0 > 150, "{top:?}");
+        assert!(bottom.0 < 60 && bottom.2 > 200, "{bottom:?}");
     }
 
     #[test]

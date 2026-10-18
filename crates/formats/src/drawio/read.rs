@@ -19,11 +19,10 @@ pub(crate) const EXT_FONT_STYLE: &str = "drawio.fontStyle";
 pub(crate) const EXT_MODEL: &str = "drawio.model.";
 
 /// What draw.io draws when a vertex style leaves a key out: white fill, black line.
-pub(crate) const DRAWIO_SHAPE: Style =
-    Style { fill: Color::WHITE, line: Color::BLACK, line_width: 1.0, font_size: 12.0, font_color: Color::BLACK, bold: false, italic: false };
+pub(crate) const DRAWIO_SHAPE: Style = Style::basic(Color::WHITE, Color::BLACK, 1.0, 12.0, Color::BLACK);
 
 /// What draw.io draws when an edge style leaves a key out.
-pub(crate) const DRAWIO_EDGE: Style = Style { fill: Color::TRANSPARENT, ..DRAWIO_SHAPE };
+pub(crate) const DRAWIO_EDGE: Style = Style::basic(Color::TRANSPARENT, Color::BLACK, 1.0, 12.0, Color::BLACK);
 
 /// Deepest chain of nested vertices followed when adding up group offsets.
 const MAX_NESTING: usize = 64;

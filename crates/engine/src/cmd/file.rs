@@ -377,7 +377,7 @@ mod tests {
         let r = s.run("file.save", &json!({"path": path.to_string_lossy()})).unwrap();
         assert_eq!(r["saved"], true);
         let text = std::fs::read_to_string(&path).unwrap();
-        assert!(text.contains("\"version\": 3"));
+        assert!(text.contains("\"version\": 4"));
 
         let mut t = Session::new(Document::new());
         t.run("file.open", &json!({"path": path.to_string_lossy()})).unwrap();

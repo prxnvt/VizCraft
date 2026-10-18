@@ -8,9 +8,13 @@ use std::fmt;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+use crate::doc_fields::{Comment, DocProperties, ImageAsset, sanitize_comments, sanitize_images};
 use crate::geom::{Path, Point, Rect, Transform, finite};
 use crate::kind::ShapeKind;
-use crate::serde_util::{lenient, lenient_vec, num};
+use crate::page_fields::{DrawingScale, Guide, HeaderFooter, Layer, MAX_LAYERS, Orientation, Units, sanitize_guides, sanitize_layers};
+use crate::serde_util::{is_default, lenient, lenient_vec, num};
+use crate::shape_fields::{Behavior, Hyperlink, ImageRef, Locks, TextBlock};
+use crate::style_fields::{Bullets, Dash, Glow, Gradient, HAlign, LineCap, Margins, Shadow, TextCase, TextDirection, VAlign};
 use crate::{MAX_EXTENT, MAX_TEXT};
 use vizcraft_model::{Model, View};
 
@@ -130,6 +134,78 @@ pub struct Style {
     /// Italic text.
     #[serde(deserialize_with = "lenient")]
     pub italic: bool,
+    /// Font family name; empty means the default (Inter). At most [`Style::MAX_FONT_FAMILY`] bytes.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "String::is_empty")]
+    pub font_family: String,
+    /// Underlined text.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_false")]
+    pub underline: bool,
+    /// Struck-through text.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_false")]
+    pub strikethrough: bool,
+    /// Letter case applied when drawing.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
+    pub text_case: TextCase,
+    /// Colour behind the text; transparent means none.
+    #[serde(skip_serializing_if = "is_transparent")]
+    pub highlight: Color,
+    /// Horizontal text alignment.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
+    pub h_align: HAlign,
+    /// Vertical text alignment.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
+    pub v_align: VAlign,
+    /// Marker before every text line.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
+    pub bullets: Bullets,
+    /// Extra space before every text line, in world units, 0 to [`Style::MAX_INDENT`].
+    #[serde(deserialize_with = "num", skip_serializing_if = "is_default")]
+    pub indent: f64,
+    /// Which way text runs.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
+    pub text_direction: TextDirection,
+    /// Space between the text block edge and the text.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
+    pub text_margins: Margins,
+    /// Dash pattern of the line.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
+    pub dash: Dash,
+    /// How open line ends are drawn.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
+    pub line_cap: LineCap,
+    /// Corner rounding radius in world units, 0 to [`Style::MAX_CORNER_RADIUS`]; rounds the
+    /// corners of straight-sided outlines and connector bends.
+    #[serde(deserialize_with = "num", skip_serializing_if = "is_default")]
+    pub corner_radius: f64,
+    /// Gradient fill drawn instead of `fill` when set and drawable.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub gradient: Option<Gradient>,
+    /// Fill transparency, 0 (as the colour says) to 1 (invisible); multiplies the fill alpha.
+    #[serde(deserialize_with = "num", skip_serializing_if = "is_default")]
+    pub fill_transparency: f64,
+    /// Line transparency, 0 to 1; multiplies the line alpha.
+    #[serde(deserialize_with = "num", skip_serializing_if = "is_default")]
+    pub line_transparency: f64,
+    /// Drop shadow; `None` for no shadow.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub shadow: Option<Shadow>,
+    /// Soft edges: how far in from the outline the shape fades out, in world units, 0 to
+    /// [`Style::MAX_EFFECT`].
+    #[serde(deserialize_with = "num", skip_serializing_if = "is_default")]
+    pub soft_edges: f64,
+    /// Glow around the outline; `None` for no glow.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub glow: Option<Glow>,
+}
+
+fn is_transparent(c: &Color) -> bool {
+    c.a == 0
+}
+
+/// `c` with its alpha scaled by `1 - transparency` (transparency clamped to `0..=1`).
+fn fade(c: Color, transparency: f64) -> Color {
+    let keep = 1.0 - finite(transparency, 0.0).clamp(0.0, 1.0);
+    Color { a: (f64::from(c.a) * keep).round().clamp(0.0, 255.0) as u8, ..c }
 }
 
 impl Default for Style {
@@ -140,25 +216,87 @@ impl Default for Style {
 
 impl Style {
     /// The style a new shape gets when nothing else says otherwise: white fill, slate line.
-    pub const DEFAULT: Style = Style {
-        fill: Color::WHITE,
-        line: Color::rgb(0x3a, 0x4a, 0x5c),
-        line_width: 1.5,
-        font_size: 12.0,
-        font_color: Color::rgb(0x1e, 0x26, 0x30),
-        bold: false,
-        italic: false,
-    };
+    pub const DEFAULT: Style = Style::basic(Color::WHITE, Color::rgb(0x3a, 0x4a, 0x5c), 1.5, 12.0, Color::rgb(0x1e, 0x26, 0x30));
+
+    /// A style with these colours and sizes, upright regular text and every other field at its
+    /// default. A `const fn` because `Style { .., ..Style::DEFAULT }` cannot be used in a constant
+    /// (the style owns strings and lists).
+    pub const fn basic(fill: Color, line: Color, line_width: f64, font_size: f64, font_color: Color) -> Style {
+        Style {
+            fill,
+            line,
+            line_width,
+            font_size,
+            font_color,
+            bold: false,
+            italic: false,
+            font_family: String::new(),
+            underline: false,
+            strikethrough: false,
+            text_case: TextCase::Normal,
+            highlight: Color::TRANSPARENT,
+            h_align: HAlign::Center,
+            v_align: VAlign::Middle,
+            bullets: Bullets::None,
+            indent: 0.0,
+            text_direction: TextDirection::LeftToRight,
+            text_margins: Margins::DEFAULT,
+            dash: Dash::Solid,
+            line_cap: LineCap::Butt,
+            corner_radius: 0.0,
+            gradient: None,
+            fill_transparency: 0.0,
+            line_transparency: 0.0,
+            shadow: None,
+            soft_edges: 0.0,
+            glow: None,
+        }
+    }
 
     /// Largest line width kept.
     pub const MAX_LINE_WIDTH: f64 = 100.0;
     /// Largest font size kept.
     pub const MAX_FONT_SIZE: f64 = 1000.0;
 
-    /// Clamp the numbers to sane ranges (line width 0 to 100, font size 1 to 1000).
+    /// Longest font family name kept, in bytes.
+    pub const MAX_FONT_FAMILY: usize = 128;
+    /// Largest indent kept.
+    pub const MAX_INDENT: f64 = 1000.0;
+    /// Largest corner radius kept.
+    pub const MAX_CORNER_RADIUS: f64 = 10_000.0;
+    /// Largest soft-edge distance kept.
+    pub const MAX_EFFECT: f64 = 500.0;
+
+    /// Clamp the numbers to sane ranges (line width 0 to 100, font size 1 to 1000, transparency 0
+    /// to 1, distances to their maximums) and cap the font family name.
     pub fn sanitize(&mut self) {
         self.line_width = if self.line_width.is_finite() { self.line_width.clamp(0.0, Self::MAX_LINE_WIDTH) } else { 1.0 };
         self.font_size = if self.font_size.is_finite() && self.font_size > 0.0 { self.font_size.clamp(1.0, Self::MAX_FONT_SIZE) } else { 12.0 };
+        truncate(&mut self.font_family, Self::MAX_FONT_FAMILY);
+        let unit = |v: f64| finite(v, 0.0).clamp(0.0, 1.0);
+        self.fill_transparency = unit(self.fill_transparency);
+        self.line_transparency = unit(self.line_transparency);
+        self.indent = finite(self.indent, 0.0).clamp(0.0, Self::MAX_INDENT);
+        self.corner_radius = finite(self.corner_radius, 0.0).clamp(0.0, Self::MAX_CORNER_RADIUS);
+        self.soft_edges = finite(self.soft_edges, 0.0).clamp(0.0, Self::MAX_EFFECT);
+        self.text_margins.sanitize();
+        if let Some(g) = &mut self.gradient {
+            g.sanitize();
+        }
+        if let Some(s) = &mut self.shadow {
+            s.sanitize();
+        }
+        if let Some(g) = &mut self.glow {
+            g.sanitize();
+        }
+    }
+    /// The fill colour with `fill_transparency` applied to its alpha.
+    pub fn effective_fill(&self) -> Color {
+        fade(self.fill, self.fill_transparency)
+    }
+    /// The line colour with `line_transparency` applied to its alpha.
+    pub fn effective_line(&self) -> Color {
+        fade(self.line, self.line_transparency)
     }
 }
 
@@ -207,6 +345,30 @@ pub struct Shape {
     /// element's name.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
     pub element: Option<String>,
+    /// Ids of the page layers the shape is on (see [`Page::layers`]); empty is no layer.
+    #[serde(deserialize_with = "lenient_vec", skip_serializing_if = "Vec::is_empty")]
+    pub layers: Vec<String>,
+    /// The group or container shape this shape belongs to, on the same page.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub parent: Option<String>,
+    /// Where the text sits; `None` is the shape's own frame.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub text_block: Option<TextBlock>,
+    /// Hyperlinks, at most [`Hyperlink::MAX_PER_SHAPE`].
+    #[serde(deserialize_with = "lenient_vec", skip_serializing_if = "Vec::is_empty")]
+    pub links: Vec<Hyperlink>,
+    /// Tooltip text, at most [`Shape::MAX_SCREEN_TIP`] bytes.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "String::is_empty")]
+    pub screen_tip: String,
+    /// Protection against editing.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
+    pub locks: Locks,
+    /// Behaviour flags.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
+    pub behavior: Behavior,
+    /// A picture from the document's image store drawn in the frame.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub image: Option<ImageRef>,
 }
 
 impl Default for Shape {
@@ -225,6 +387,14 @@ impl Default for Shape {
             connection_points: Vec::new(),
             ext: BTreeMap::new(),
             element: None,
+            layers: Vec::new(),
+            parent: None,
+            text_block: None,
+            links: Vec::new(),
+            screen_tip: String::new(),
+            locks: Locks::default(),
+            behavior: Behavior::default(),
+            image: None,
         }
     }
 }
@@ -249,6 +419,33 @@ impl Shape {
             *p = Point::new(finite(p.x, 0.5).clamp(0.0, 1.0), finite(p.y, 0.5).clamp(0.0, 1.0));
         }
         sanitize_ext(&mut self.ext);
+        self.layers.iter_mut().for_each(|l| truncate(l, MAX_ID));
+        self.layers.truncate(MAX_LAYERS);
+        if let Some(p) = &mut self.parent {
+            truncate(p, MAX_ID);
+        }
+        if let Some(t) = &mut self.text_block {
+            t.sanitize();
+        }
+        self.links.truncate(Hyperlink::MAX_PER_SHAPE);
+        self.links.iter_mut().for_each(Hyperlink::sanitize);
+        truncate(&mut self.screen_tip, Self::MAX_SCREEN_TIP);
+        if let Some(i) = &mut self.image {
+            i.sanitize();
+        }
+    }
+    /// Longest screen tip kept, in bytes.
+    pub const MAX_SCREEN_TIP: usize = 4096;
+    /// The text block in the shape's unrotated local frame (`(0, 0)` to `(w, h)`) with its own
+    /// rotation relative to the shape: the stored [`TextBlock`], or the whole frame.
+    pub fn text_rect(&self) -> (Rect, f64) {
+        match &self.text_block {
+            Some(t) => {
+                let c = Point::new(self.w / 2.0 + t.dx, self.h / 2.0 + t.dy);
+                (Rect::from_xywh(c.x - t.w / 2.0, c.y - t.h / 2.0, t.w, t.h), t.angle_deg)
+            }
+            None => (Rect::from_xywh(0.0, 0.0, self.w, self.h), 0.0),
+        }
     }
     /// The unrotated frame.
     pub fn frame(&self) -> Rect {
@@ -304,9 +501,11 @@ impl Shape {
     }
 }
 
-/// Keep at most `max` bytes of `s`, cutting at a char boundary.
 /// Most bends one connector keeps.
 pub const MAX_WAYPOINTS: usize = 1000;
+
+/// Most background pages drawn under one page.
+pub const MAX_BACKGROUND_DEPTH: usize = 8;
 
 /// Most `ext` entries one item keeps.
 pub const MAX_EXT_ENTRIES: usize = 256;
@@ -340,7 +539,8 @@ fn sanitize_ext(ext: &mut BTreeMap<String, String>) {
     }
 }
 
-fn truncate(s: &mut String, max: usize) {
+/// Keep at most `max` bytes of `s`, cutting at a char boundary.
+pub(crate) fn truncate(s: &mut String, max: usize) {
     if s.len() > max {
         let mut cut = max;
         while cut > 0 && !s.is_char_boundary(cut) {
@@ -589,6 +789,36 @@ pub struct Page {
     /// The model view this page shows (viewpoint and layout); `None` for a free-drawing page.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
     pub view: Option<View>,
+    /// Portrait or landscape; informational next to `width` and `height`, which are the size.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
+    pub orientation: Orientation,
+    /// Units for rulers and measurements.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
+    pub units: Units,
+    /// Drawing scale.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
+    pub drawing_scale: DrawingScale,
+    /// The page grows to fit its shapes.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_false")]
+    pub auto_size: bool,
+    /// The background page drawn under this one: the id of another page with `is_background`.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub background: Option<String>,
+    /// This page is a background page for others.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_false")]
+    pub is_background: bool,
+    /// Header text, drawn near the top edge in exports.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
+    pub header: HeaderFooter,
+    /// Footer text, drawn near the bottom edge in exports.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
+    pub footer: HeaderFooter,
+    /// Guide lines, at most [`crate::page_fields::MAX_GUIDES`].
+    #[serde(deserialize_with = "lenient_vec", skip_serializing_if = "Vec::is_empty")]
+    pub guides: Vec<Guide>,
+    /// Layers, at most [`MAX_LAYERS`], with unique ids.
+    #[serde(deserialize_with = "lenient_vec", skip_serializing_if = "Vec::is_empty")]
+    pub layers: Vec<Layer>,
 }
 
 impl Default for Page {
@@ -614,6 +844,16 @@ impl Page {
             connectors: Vec::new(),
             ext: BTreeMap::new(),
             view: None,
+            orientation: Orientation::Landscape,
+            units: Units::Inches,
+            drawing_scale: DrawingScale::ONE_TO_ONE,
+            auto_size: false,
+            background: None,
+            is_background: false,
+            header: HeaderFooter::default(),
+            footer: HeaderFooter::default(),
+            guides: Vec::new(),
+            layers: Vec::new(),
         }
     }
     /// The page sheet as a rectangle at the origin.
@@ -628,6 +868,71 @@ impl Page {
         self.shapes.iter_mut().for_each(Shape::sanitize);
         self.connectors.iter_mut().for_each(Connector::sanitize);
         sanitize_ext(&mut self.ext);
+        self.drawing_scale.sanitize();
+        if let Some(b) = &mut self.background {
+            truncate(b, MAX_ID);
+        }
+        self.header.sanitize();
+        self.footer.sanitize();
+        sanitize_guides(&mut self.guides);
+        sanitize_layers(&mut self.layers);
+        self.sanitize_shape_refs();
+    }
+    /// Drop shape layer ids that name no layer on this page (and repeats), and parents that are
+    /// not another shape on this page or that would make a cycle.
+    fn sanitize_shape_refs(&mut self) {
+        let layer_ids: HashSet<&str> = self.layers.iter().map(|l| l.id.as_str()).collect();
+        for s in &mut self.shapes {
+            let mut seen = HashSet::new();
+            s.layers.retain(|l| layer_ids.contains(l.as_str()) && seen.insert(l.clone()));
+        }
+        let index: HashMap<String, usize> = self.shapes.iter().enumerate().map(|(i, s)| (s.id.clone(), i)).collect();
+        let mut parent: Vec<Option<usize>> =
+            self.shapes.iter().enumerate().map(|(i, s)| s.parent.as_ref().and_then(|p| index.get(p).copied()).filter(|&p| p != i)).collect();
+        // Walk each parent chain once (0 unvisited, 1 on the current chain, 2 done); a step back
+        // onto the current chain is a cycle, broken at the shape that closes it.
+        let mut state = vec![0u8; parent.len()];
+        for start in 0..parent.len() {
+            let mut chain = Vec::new();
+            let mut at = Some(start);
+            while let Some(i) = at {
+                match state.get(i).copied() {
+                    Some(0) => {
+                        if let Some(st) = state.get_mut(i) {
+                            *st = 1;
+                        }
+                        chain.push(i);
+                        at = parent.get(i).copied().flatten();
+                    }
+                    Some(1) => {
+                        if let Some(&last) = chain.last()
+                            && let Some(p) = parent.get_mut(last)
+                        {
+                            *p = None;
+                        }
+                        break;
+                    }
+                    _ => break,
+                }
+            }
+            for i in chain {
+                if let Some(st) = state.get_mut(i) {
+                    *st = 2;
+                }
+            }
+        }
+        let ids: Vec<String> = self.shapes.iter().map(|s| s.id.clone()).collect();
+        for (s, p) in self.shapes.iter_mut().zip(parent) {
+            s.parent = p.and_then(|p| ids.get(p).cloned());
+        }
+    }
+    /// The layer with this id.
+    pub fn layer(&self, id: &str) -> Option<&Layer> {
+        self.layers.iter().find(|l| l.id == id)
+    }
+    /// Whether `shape` is drawn: not hidden, and on no layer or on at least one visible layer.
+    pub fn shape_visible(&self, shape: &Shape) -> bool {
+        !shape.behavior.hidden && (shape.layers.is_empty() || shape.layers.iter().any(|l| self.layer(l).is_none_or(|l| l.visible)))
     }
     /// The shape with this id.
     pub fn shape(&self, id: &str) -> Option<&Shape> {
@@ -698,6 +1003,15 @@ pub struct Document {
     /// document's own serde form: the native file writes it as its own versioned section.
     #[serde(skip)]
     pub model: Model,
+    /// File properties (title, author, subject, keywords, description).
+    #[serde(skip_serializing_if = "is_default")]
+    pub properties: DocProperties,
+    /// Review comments, at most [`Comment::MAX_COMMENTS`].
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub comments: Vec<Comment>,
+    /// The image store shapes draw pictures from (see [`ImageAsset`] for the caps).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub images: Vec<ImageAsset>,
 }
 
 /// The on-disk form; turned into a [`Document`] by fixing up anything a file got wrong.
@@ -712,11 +1026,26 @@ struct DocumentRepr {
     pages: Vec<Page>,
     #[serde(deserialize_with = "lenient")]
     id_seq: u64,
+    #[serde(deserialize_with = "lenient")]
+    properties: DocProperties,
+    #[serde(deserialize_with = "lenient_vec")]
+    comments: Vec<Comment>,
+    #[serde(deserialize_with = "lenient_vec")]
+    images: Vec<ImageAsset>,
 }
 
 impl From<DocumentRepr> for Document {
     fn from(r: DocumentRepr) -> Self {
-        let mut doc = Document { title: r.title, core: r.core, pages: r.pages, id_seq: r.id_seq, model: Model::new() };
+        let mut doc = Document {
+            title: r.title,
+            core: r.core,
+            pages: r.pages,
+            id_seq: r.id_seq,
+            model: Model::new(),
+            properties: r.properties,
+            comments: r.comments,
+            images: r.images,
+        };
         // Pages only: the model is a separate section the caller sets afterwards, so checking view
         // references here would clear every one of them. The caller runs `sanitize` once the
         // model is in place.
@@ -734,7 +1063,16 @@ impl Default for Document {
 impl Document {
     /// A document with one blank page.
     pub fn new() -> Self {
-        Document { title: String::new(), core: CoreProps::default(), pages: vec![Page::new("p1", "Page-1")], id_seq: 1, model: Model::new() }
+        Document {
+            title: String::new(),
+            core: CoreProps::default(),
+            pages: vec![Page::new("p1", "Page-1")],
+            id_seq: 1,
+            model: Model::new(),
+            properties: DocProperties::default(),
+            comments: Vec::new(),
+            images: Vec::new(),
+        }
     }
     /// Make the document safe to work on: at least one page, every number in range, a sane model,
     /// and view references that point at model items (see [`crate::views::sanitize_refs`]).
@@ -743,14 +1081,70 @@ impl Document {
         self.model.sanitize();
         crate::views::sanitize_refs(self);
     }
-    /// At least one page and every page, shape and connector in range; the model and view
-    /// references are left alone.
+    /// At least one page, every page, shape and connector in range, the properties, comments and
+    /// image store bounded, and references between them repaired; the model and view references
+    /// are left alone.
     fn sanitize_pages(&mut self) {
         if self.pages.is_empty() {
             let id = self.next_id("p");
             self.pages.push(Page::new(id, "Page-1"));
         }
         self.pages.iter_mut().for_each(Page::sanitize);
+        self.properties.sanitize();
+        sanitize_comments(&mut self.comments);
+        sanitize_images(&mut self.images);
+        self.sanitize_doc_refs();
+    }
+    /// Clear references that name nothing: a background that is not another background page, a
+    /// shape picture whose asset is not in the store, and comment anchors (an unknown page moves
+    /// the comment to the first page; an unknown shape anchors it to its page).
+    fn sanitize_doc_refs(&mut self) {
+        let backgrounds: HashSet<String> = self.pages.iter().filter(|p| p.is_background).map(|p| p.id.clone()).collect();
+        let assets: HashSet<&str> = self.images.iter().map(|a| a.id.as_str()).collect();
+        for page in &mut self.pages {
+            if page.background.as_ref().is_some_and(|b| *b == page.id || !backgrounds.contains(b)) {
+                page.background = None;
+            }
+            for s in &mut page.shapes {
+                if s.image.as_ref().is_some_and(|i| !assets.contains(i.asset.as_str())) {
+                    s.image = None;
+                }
+            }
+        }
+        let first = self.pages.first().map(|p| p.id.clone()).unwrap_or_default();
+        for c in &mut self.comments {
+            let page = self.pages.iter().find(|p| p.id == c.anchor.page);
+            let shape_ok = |p: &Page| c.anchor.shape.as_deref().is_none_or(|s| p.shape(s).is_some());
+            match page {
+                Some(p) if shape_ok(p) => {}
+                Some(_) => c.anchor.shape = None,
+                None => {
+                    c.anchor.page = first.clone();
+                    c.anchor.shape = None;
+                }
+            }
+        }
+    }
+    /// The background pages drawn under page `index`, deepest first (a background may have its
+    /// own background). Stops at a repeat or after [`MAX_BACKGROUND_DEPTH`] pages.
+    pub fn background_chain(&self, index: usize) -> Vec<&Page> {
+        let mut chain: Vec<&Page> = Vec::new();
+        let mut at = self.pages.get(index).and_then(|p| p.background.as_deref());
+        let mut seen: HashSet<&str> = self.pages.get(index).map(|p| p.id.as_str()).into_iter().collect();
+        while let Some(id) = at {
+            if chain.len() >= MAX_BACKGROUND_DEPTH || !seen.insert(id) {
+                break;
+            }
+            let Some(p) = self.pages.iter().find(|p| p.id == id) else { break };
+            chain.push(p);
+            at = p.background.as_deref();
+        }
+        chain.reverse();
+        chain
+    }
+    /// The image asset with this id.
+    pub fn image(&self, id: &str) -> Option<&ImageAsset> {
+        self.images.iter().find(|a| a.id == id)
     }
     /// A fresh id such as `s7` or `c8`: the counter goes up by one (shared by every prefix, so an
     /// id is never reused after a delete) and skips any number already taken by a loaded file.

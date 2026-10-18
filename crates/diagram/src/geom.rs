@@ -287,6 +287,66 @@ impl Polyline {
     }
 }
 
+/// The points of a subpath made only of a MoveTo and LineTos (plus an optional Close), with a
+/// closing point that repeats the start dropped; `None` when it has curves.
+fn straight_subpath(sub: &[PathEl]) -> Option<(Vec<Point>, bool)> {
+    let mut pts = Vec::with_capacity(sub.len());
+    let mut closed = false;
+    for el in sub {
+        match *el {
+            PathEl::MoveTo(p) | PathEl::LineTo(p) if !closed => pts.push(p),
+            PathEl::Close => closed = true,
+            _ => return None,
+        }
+    }
+    if closed && pts.len() > 1 && pts.first().zip(pts.last()).is_some_and(|(a, b)| a.distance(*b) < 1e-9) {
+        pts.pop();
+    }
+    Some((pts, closed))
+}
+
+/// Append `pts` to `out` with each corner replaced by a cubic of radius up to `r`; an open
+/// polyline keeps its two end points sharp.
+fn round_polygon(out: &mut Path, pts: &[Point], closed: bool, r: f64) {
+    // Control points at this fraction of the way to the corner approximate a circular arc.
+    const K: f64 = 0.552_284_75;
+    let n = pts.len();
+    let corner = |k: usize| -> Option<(Point, Point, Point)> {
+        let v = *pts.get(k)?;
+        let prev = *pts.get(if k == 0 { n.checked_sub(1)? } else { k - 1 })?;
+        let next = *pts.get(if k + 1 == n { 0 } else { k + 1 })?;
+        let (d1, d2) = (v.distance(prev), v.distance(next));
+        if d1 < 1e-9 || d2 < 1e-9 {
+            return None;
+        }
+        let rr = r.min(d1 / 2.0).min(d2 / 2.0);
+        Some((v.lerp(prev, rr / d1), v, v.lerp(next, rr / d2)))
+    };
+    let rounded = |k: usize| if closed || (k > 0 && k + 1 < n) { corner(k) } else { None };
+    for k in 0..n {
+        let Some(&v) = pts.get(k) else { continue };
+        match rounded(k) {
+            Some((a, v, b)) => {
+                if k == 0 {
+                    out.move_to(a);
+                } else {
+                    out.line_to(a);
+                }
+                out.cubic_to(a.lerp(v, K), b.lerp(v, K), b);
+            }
+            None if k == 0 => {
+                out.move_to(v);
+            }
+            None => {
+                out.line_to(v);
+            }
+        }
+    }
+    if closed {
+        out.close();
+    }
+}
+
 /// Most segments one cubic is split into when flattening, so hostile tolerances stay cheap.
 const MAX_CUBIC_STEPS: usize = 64;
 
@@ -350,6 +410,30 @@ impl Path {
     /// Whether there are no commands.
     pub fn is_empty(&self) -> bool {
         self.els.is_empty()
+    }
+    /// A copy with the corners of straight-sided subpaths rounded to radius `r` (each corner's
+    /// radius shrinks to half its shorter side). Subpaths with curves, and any `r` that is not a
+    /// positive finite number, are left as they are.
+    pub fn rounded_corners(&self, r: f64) -> Path {
+        if !(r.is_finite() && r > 0.0) {
+            return self.clone();
+        }
+        let mut out = Path::new();
+        let mut i = 0;
+        while i < self.els.len() {
+            // One subpath: a MoveTo and everything up to the next MoveTo.
+            let mut j = i + 1;
+            while j < self.els.len() && !matches!(self.els.get(j), Some(PathEl::MoveTo(_))) {
+                j += 1;
+            }
+            let sub = self.els.get(i..j).unwrap_or_default();
+            match straight_subpath(sub) {
+                Some((pts, closed)) if pts.len() >= 3 => round_polygon(&mut out, &pts, closed, r),
+                _ => out.els.extend_from_slice(sub),
+            }
+            i = j;
+        }
+        out
     }
     /// A copy with every point mapped through `t`.
     pub fn transformed(&self, t: &Transform) -> Path {
