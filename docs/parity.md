@@ -225,7 +225,15 @@ When a feature lands, change its State in the same commit as the code. States:
 | Off-page connector pairing | 4A | done | Paired objects, matched by identifier |
 | Unmatched off-page detection | 4A | done | An off-page connector with no continuation raises an issue |
 | Cross-reference display | 7 | planned | Live cross-references between paired items in the electrical pack |
-| Flowchart rules | 4A | done | Unconnected connectors and dangling decisions, declared in the Flowchart pack |
+| Flowchart rules | 4A | done | Unconnected connectors and dangling decisions, declared in the Flowchart pack; grouped in the `flowchart.iso5807` ruleset with standard references (2C) |
+| Conformance profile | 2C | done | `Document.conformance`: on or off, chosen rulesets (a pack id means every rule of the pack), severity overrides, suppressions by issue key; `validate.setProfile`, `validate.suppress`; a profile the user never set behaves as before (every rule of the packs in use) |
+| Rulesets and references | 2C | done | Packs declare named rulesets; every rule may cite its standard; `notation.rulesets`, `validate.explain {rule}` |
+| Drawing rules | 2C | done | The `drawing` pack, no glyphs: connector crosses shape (batch), unglued end, overlapping shapes, off the board, text overflow, each with a fix where one exists |
+| Reasoner | 2C | done | A fact index per run: type hierarchy (`extends`), transitive containment, inverse relationships (`inverseOf`), reachability; type lists in checks match subtypes |
+| Rule vocabulary | 2C | done | Added `forbiddenCycle`, `requiredPath`, `connected`, `containment`, `portDirection`, `portFanIn`, `uniqueProperty`, `propertyCompare`, `nameFormat` and the drawing checks to the twelve of 4A |
+| Fixes on issues | 2C | done | `Issue.fixes: [{label, command, params}]` (at most four); the Problems tab (Block 3) and agents run them |
+| Packs from disk | 2C | done | `notation.load {path}`, the `packs` folder beside the preferences file (scanned at app start), `VIZCRAFT_PACKS_DIR` for headless runs; pack test cases under `tests/<pack>/` run by `vizcraft-cli validate` and the notation tests |
+| Issue navigation | 2C | done | `validate.next`, `validate.previous` select the issue's items on their page; ribbon buttons in wave 2 |
 | Statechart checks | 6 | planned | Unreachable states, dead ends, unknown events |
 | Memory map checks | 6 | planned | Overlap, alignment, overflow |
 | Cross-sheet continuity | 6 | planned | P&ID batch rule |

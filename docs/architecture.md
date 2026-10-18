@@ -246,7 +246,13 @@ undo step; the read-only ones never change the document.
 | `relationship.create` | `{from, to, type?, name?, properties?, id?, strict?}` -> `{id, type, legal, connector?}`; type defaults from the connection table; `strict` refuses an illegal one; a connector is drawn when both ends share a page |
 | `relationship.retype`, `relationship.reconnect`, `relationship.setProperty` | `{id, type}` -> `{id, type, legal}`; `{id, from?, to?}` -> `{id, source, target, legal, removed}` (views reglued on their page or removed); `{id, key, value}` |
 | `validate.run` | `{scope?: "all" \| "page" \| "selection", page?, ids?}` -> `{issues, live, batch}`: live issues for the scope plus the batch rules, sorted by severity, rule and first subject |
-| `validate.list` | `{severity?: "error" \| "warning" \| "info", rule?}` -> `{issues}` from `Session.issues` |
+| `validate.list` | `{severity?: "error" \| "warning" \| "info", rule?}` -> `{issues}` from `Session.issues` (each may carry `fixes`) |
+| `validate.setProfile` | `{enabled?, rulesets?: [ruleset or pack id], overrides?: [{rule, severity?, disabled?}], suppressions?: [{key, reason?}]}` -> `{profile}`; each given list replaces the stored one; `enabled` or `rulesets` marks the profile as chosen by the user |
+| `validate.suppress` | `{key, reason?}` -> `{key, added}`; the issue with that key no longer reports |
+| `validate.explain` | `{rule}` -> `{rule, description, severity, mode, reference, ruleset, pack, check, selected, override?}` |
+| `validate.next`, `validate.previous` | `{}` -> `{index, issue, count}`; select the next or previous issue's items on their page, wrapping around |
+| `notation.rulesets` | `{}` -> `{rulesets: [{id, label, description, pack, rules, active}]}` |
+| `notation.load` | `{path}` -> `{pack, errors, cases}`; loads a `.json` or `.toml` pack into the catalog with the built-in limits (a built-in pack cannot be replaced) and runs its test cases from `tests/<pack id>/` beside the file |
 | `notation.list` | `{}` -> `{packs: [{id, version, name, audience, description, types, glyphs}]}` (`types` and `glyphs` are counts) |
 | `notation.describe` | `{pack, type?}` -> the pack schema as JSON; with `type` (qualified or local): `{type, pack, legal}` for an element type, `{relationship, pack}` for a relationship type |
 | `notation.legal` | `{from, to?}` (element, shape or type ids) -> `{from, relationships: [{relationship, targets}]}`; with `to`, only relationships reaching its type, plus `to` and `legal` |
@@ -588,15 +594,30 @@ schema with kind, unit, enum values, required and default, ports, container flag
 types, the connection table (source types, relationship, target types, `outMax`, `inMax`),
 conditional styles, palette groups, viewpoints, identifier scopes, rules, and the templates,
 patterns and exporters it supports. `loader::{load, load_json, load_toml}` cap the size and run
-`validate::check`, so a bad pack is an error, never a panic. `catalog()` holds the built-in Basic
-(glyphs only: free drawing) and Flowchart packs.
+`validate::check`, so a bad pack is an error, never a panic. Since Block 2C a pack also declares
+`connectorTypes`, named `rulesets` (id, label, description, rule ids), `extends` on an element
+type, `inverseOf` on a relationship type and a `reference` (the standard and clause) on a rule.
+`catalog()` holds the built-in Basic (glyphs only: free drawing), Flowchart and `drawing` (rules
+only) packs and is reloadable: `catalog::use_packs_dir` rebuilds it from the built-ins plus a
+folder of pack files (the app's `packs` folder beside its preferences, or `VIZCRAFT_PACKS_DIR`),
+and `catalog::add_pack` (`notation.load`) adds one; each replacement is kept for the process,
+capped at 256. A pack may ship test cases (`packs/tests/<pack>/<case>.json`: a document, an
+optional profile and the issue keys expected) run by `cases` and by `vizcraft-cli validate`.
 
 Rules are data: each declares an id, severity, mode (live after every change, or batch on request)
 and one check from a fixed vocabulary: `illegalRelationship`, `multiplicity`, `requiredProperty`,
 `propertyType`, `duplicateIdentifier`, `unmatchedPair`, `viewpointType`, `danglingConnector`,
-`minOutgoing`, `minIncoming`, `exclusiveDirections`, `unreachable`. `rules::live` and
-`rules::batch` (with a `Scope` of all, a page or items) run the rules of every pack the model uses
-and return issues sorted by severity, rule and first subject.
+`minOutgoing`, `minIncoming`, `exclusiveDirections`, `unreachable`, and since Block 2C
+`forbiddenCycle`, `requiredPath`, `connected`, `containment`, `portDirection`, `portFanIn`,
+`uniqueProperty`, `propertyCompare`, `nameFormat` and the drawing checks `crossesShape`,
+`ungluedEnd`, `overlap`, `offBoard`, `textOverflow` (`drawing.rs`, on view geometry with no
+model). `rules::live` and `rules::batch` (with a `Scope` of all, a page or items) first read the
+document's conformance profile (`vizcraft_diagram::Conformance`: enabled, rulesets, overrides,
+suppressions; a profile the user never set runs every rule of the packs in use, as before), build
+the reasoner's fact index once (`infer::Facts`: type hierarchy, transitive containment, inverse
+relationships, reachability), run the selected rules, apply severity overrides and suppressions,
+and return issues sorted by severity, rule and first subject, each with the `fixes` its rule
+offers.
 
 `bind::sync(doc, before, catalog)` runs after every document change: references to missing model
 items are cleared; a second view of one element on a page becomes a new element; a connector glued

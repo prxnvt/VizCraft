@@ -93,7 +93,7 @@ that caused it, `command_run` and `command_batch` report them:
 
 | Key | Value |
 |---|---|
-| `issues` | The issues this call raised: the live issues after the call that were not live before it, in the order the app lists them. Each is `{rule, severity, message, subjects, items, page?}`: `severity` is `error`, `warning` or `info`, `subjects` are element and relationship ids, `items` the shapes and connectors that draw them |
+| `issues` | The issues this call raised: the live issues after the call that were not live before it, in the order the app lists them. Each is `{rule, severity, message, subjects, items, page?, fixes?}`: `severity` is `error`, `warning` or `info`, `subjects` are element and relationship ids, `items` the shapes and connectors that draw them, and `fixes` (when a rule offers any) is a list of `{label, command, params}` an agent can run with `command_run`. Which rules run is the document's conformance profile (`validate.setProfile`, `validate.explain`, `notation.rulesets`); a document whose profile is off reports nothing |
 | `openIssues` | How many issues are live after the call, counting older ones |
 
 The server reads the live list with the engine command `validate.list {}` once before the call

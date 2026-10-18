@@ -71,7 +71,9 @@ versions can read older files.
   connector `kind` (a connector kind id such as `basic.dependency`, left out when empty, cut at
   128 bytes), and eight more arrowhead names beside the first five (`hollowTriangle`,
   `hollowDiamond`, `bar`, `openCircle`, `crowsFoot`, `crowsFootBar`, `crowsFootCircle`,
-  `barCircle`; unknown names still load as `none`).
+  `barCircle`; unknown names still load as `none`), and the document `conformance` profile
+  (`enabled`, `userSet`, `rulesets`, `overrides: [{rule, severity?, disabled}]`, `suppressions:
+  [{key, reason}]`; left out at its default, and junk loads as the default).
 - **Read:** version 4; version 3 loads unchanged; version 2 and version 1 (the Cascade 0 placeholder: title and metadata
   only, which loads with that title and metadata and one blank page) load as free drawing with an
   empty model, ignoring any `model` key; a wrapper without a `version` (read as 1); and a bare
