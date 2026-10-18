@@ -90,7 +90,7 @@ pub fn ensure_gluable(page: &Page, shape: &Shape, what: &str) -> Result<(), Engi
 fn page_index(s: &Session, v: &Value) -> Result<usize, EngineError> {
     let r = match v.get("page") {
         None | Some(Value::Null) => {
-            return if s.doc.pages.is_empty() { Err(EngineError::Failed("the document has no page".into())) } else { Ok(0) };
+            return if s.doc.pages.is_empty() { Err(EngineError::Failed("the document has no page".into())) } else { Ok(s.doc.active_index()) };
         }
         Some(Value::String(t)) => t.clone(),
         Some(Value::Number(n)) => n.to_string(),
@@ -293,6 +293,16 @@ fn unassign(s: &mut Session, v: &Value) -> CmdResult {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
+
+    #[test]
+    fn layer_commands_default_to_the_active_page() {
+        let mut s = Session::new(crate::Document::new());
+        s.run("page.add", &json!({"name": "Second"})).unwrap();
+        s.run("page.setActive", &json!({"page": "Second"})).unwrap();
+        s.run("layer.add", &json!({"name": "Notes"})).unwrap();
+        assert!(s.doc.pages[0].layers.is_empty(), "the first page is untouched");
+        assert_eq!(s.doc.pages[1].layers.len(), 1, "the active page gets the layer");
+    }
     use vizcraft_diagram::{Document, End, Page, Shape, ShapeKind};
 
     use crate::Session;

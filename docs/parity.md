@@ -133,7 +133,7 @@ When a feature lands, change its State in the same commit as the code. States:
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| Shape data | 2 | planned | Key and value pairs on shapes; Shape Data pane |
+| Shape data | 2 | done (B2) | Typed rows on shapes (string, number, bool, date, enum, url; unit, required, default); page data keys shapes opt in to (stored in page `ext` for now); element properties shown read-only; `data.*`; Shape Data pane, Define Shape Data dialog, Data tab Show/Hide |
 | Data graphics | 8 | planned | Callouts, icon sets, colour by value |
 | Import from CSV | 3 | done | draw.io-style CSV; org charts from CSV in Cascade 4 |
 

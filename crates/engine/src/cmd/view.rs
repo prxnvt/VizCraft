@@ -245,7 +245,9 @@ fn snap(s: &mut Session, v: &Value) -> CmdResult {
 /// The page a guide command acts on: `page` (id, name or index), else the active page.
 fn guide_page(s: &Session, v: &Value) -> Result<usize, EngineError> {
     let r = match v.get("page") {
-        None | Some(Value::Null) => return if s.doc.pages.is_empty() { Err(EngineError::Failed("the document has no page".into())) } else { Ok(0) },
+        None | Some(Value::Null) => {
+            return if s.doc.pages.is_empty() { Err(EngineError::Failed("the document has no page".into())) } else { Ok(s.doc.active_index()) };
+        }
         Some(Value::String(t)) => t.clone(),
         Some(Value::Number(n)) => n.to_string(),
         Some(_) => return Err(EngineError::Params("`page` must be a page id, name or index".into())),
@@ -404,5 +406,22 @@ mod aid_tests {
         }
         assert!(s.doc.page().unwrap().guides.is_empty());
         assert!(!s.can_undo());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use crate::{Document, Session};
+
+    #[test]
+    fn guide_commands_default_to_the_active_page() {
+        let mut s = Session::new(Document::new());
+        s.run("page.add", &json!({"name": "Second"})).unwrap();
+        s.run("page.setActive", &json!({"page": "Second"})).unwrap();
+        s.run("guide.add", &json!({"orientation": "vertical", "position": 40})).unwrap();
+        assert!(s.doc.pages[0].guides.is_empty(), "the first page is untouched");
+        assert_eq!(s.doc.pages[1].guides.len(), 1, "the active page gets the guide");
     }
 }
