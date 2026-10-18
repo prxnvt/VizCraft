@@ -43,11 +43,15 @@ pub fn crosses(page: &Page, c: &Connector) -> bool {
     !vizcraft_diagram::autoroute::clear_of_shapes(page, c)
 }
 
-/// The page rectangle shapes should stay inside, or `None` when the page has no edge. The one
-/// place drawing checks read the page size.
+/// The page rectangle shapes should stay inside, or `None` when the page has no edge: an
+/// infinite board has none, and a fixed board's edge is its frame. The one place drawing checks
+/// read the page size.
 pub fn board(page: &Page) -> Option<Rect> {
-    (page.width.is_finite() && page.height.is_finite() && page.width > 0.0 && page.height > 0.0)
-        .then(|| Rect::from_xywh(0.0, 0.0, page.width, page.height))
+    if page.board != vizcraft_diagram::Board::Fixed {
+        return None;
+    }
+    let f = page.frame();
+    (f.width().is_finite() && f.height().is_finite() && f.width() > 0.0 && f.height() > 0.0).then_some(f)
 }
 
 /// Run one drawing check; other checks are ignored.
@@ -274,8 +278,10 @@ mod tests {
     }
 
     #[test]
-    fn board_is_the_page_rectangle() {
+    fn board_is_the_page_rectangle_of_a_fixed_board_only() {
         let mut p = Page::new("p1", "P");
+        assert!(board(&p).is_none(), "a new page is an infinite board, which has no edge");
+        p.board = vizcraft_diagram::Board::Fixed;
         assert!(board(&p).is_some());
         p.width = 0.0;
         assert!(board(&p).is_none());

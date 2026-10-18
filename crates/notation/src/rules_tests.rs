@@ -802,7 +802,10 @@ fn off_board_and_text_overflow() {
     long.text = "word ".repeat(80);
     let mut fits = free_shape("fits", 500.0);
     fits.text = "Short".into();
-    let d = drawing_doc(vec![free_shape("off", -50.0), free_shape("gone", 5000.0), long, fits], vec![]);
+    let mut d = drawing_doc(vec![free_shape("off", -50.0), free_shape("gone", 5000.0), long, fits], vec![]);
+    // An infinite board has no edge, so nothing is off it.
+    assert!(only(&drawing_issues(&d), "drawing.offBoard").is_empty(), "no off-board issues on an infinite board");
+    d.pages[0].board = vizcraft_diagram::Board::Fixed;
     let all = drawing_issues(&d);
     let off = only(&all, "drawing.offBoard");
     assert_eq!(off.iter().map(|i| i.items[0].as_str()).collect::<Vec<_>>(), ["gone", "off"]);
