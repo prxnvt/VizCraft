@@ -6,10 +6,12 @@ import are built; the rest is planned ([ROADMAP.md](../ROADMAP.md)).
 
 | Format | Direction | Cascade | Public source |
 |---|---|---|---|
-| `.vizcraft` (native JSON) | read, write (built; version 3 adds the model section in 4A, version 4 the Block 1 document fields; also reads `.craft.json`) | 1, 4A, B1 | Our own; documented below |
+| `.vizcraft` (native JSON) | read, write (built; version 3 adds the model section in 4A, version 4 the Block 1 document fields; Block 4 adds the optional freeform `path`, `name`, `language` and `dataGraphic` on shapes and `masters`, `protection`, `language`, `ignoredWords`, `dataGraphics` and `dataLinks` on the document, all lenient on read; also reads `.craft.json`) | 1, 4A, B1 | Our own; documented below |
 | `.drawio` (mxGraph XML) | read, write (built: every page; import into a page) | 3 | draw.io documentation; the Apache-2.0 mxGraph and draw.io format documentation |
 | Mermaid | import (built: flowchart, sequence, class, state, ER) | 3 | Mermaid syntax documentation |
 | CSV | import (built) | 3 | draw.io documentation on CSV import |
+| Table (CSV or XLSX) for data links | read (built: `datalink.*`; capped at 10 000 rows, 256 columns and 4 KB per cell; XLSX through `calamine`, not in the web build) | B4 | CSV through the `csv` crate; XLSX from ECMA-376 SpreadsheetML (test workbooks are assembled from hand-written XML parts) |
+| `.vizcraft-stencil` (custom masters, JSON) | read, write (built: `master.export`, `master.import`) | B4 | Our own: a named list of `Fragment` snapshots |
 | SVG | export (built: one page) | 1 | W3C SVG 1.1 |
 | PNG | export (built: one page or several, one file each) | 2, built in 3 | W3C PNG specification (written by `resvg`) |
 | PDF | export (built: one vector page per document page, foreground pages by default, built from the SVG export through the krilla and krilla-svg crates; text is real PDF text in embedded subsets of the bundled Inter faces; blur effects are rasterised inside the PDF; 100 page units are one inch (0.72 pt per unit), pages capped at 200 inches; printing uses the same writer with paper layout, tiling or fit, and non-printing shapes left out) | 2, B2 | ISO 32000 (PDF) |

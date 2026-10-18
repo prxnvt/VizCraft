@@ -61,7 +61,7 @@ after a caught panic. An unknown command id is an error, not a crash.
 
 | Method | Params | Result |
 |---|---|---|
-| `engine.execute` | `command` (an id), `params?` (object, default `{}`) | the command's result; engine commands and `ui.*` commands alike |
+| `engine.execute` | `command` (an id), `params?` (object, default `{}`), `origin?` (`mcp` logs the transaction as an MCP call; the MCP Remote backend sends it) | the command's result; engine commands and `ui.*` commands alike |
 | `engine.commands` | none | array of `{id, label, location, shortcut, params, enabled, reason?}` for every command, UI commands included |
 | `ui.inspect` | none | the UI state, see below |
 | `ui.set` | `path` (dotted path or JSON pointer into `UiState`: `dark`, `panes.leftWidth`, `/ribbonCollapsed`), `value` | the updated `UiState`; unknown paths and wrong types are errors |

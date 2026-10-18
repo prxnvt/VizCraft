@@ -27,6 +27,12 @@ When a feature lands, change its State in the same commit as the code. States:
 | Fit to Window | 2 | done | `view.zoomFit {page?}` (Mod+Shift+H) fits the page or the drawing into the canvas; the app fits on its own after opening a file or a replacing import that the canvas cuts off |
 | Pan | 0 | done (chrome) | `view.pan`, `view.resetPan`; middle-drag, Cmd+drag (Ctrl off macOS) or Space+drag |
 | Multiple windows | 0 | done (chrome) | One process, one window per document |
+| Window arrangement | B4 | done (B4) | View > Window: New Window (`ui.window.new {same?}`, the same file in a second window with its own copy of the edits), Arrange All, Cascade and Switch Windows (`ui.window.*`) |
+| Presentation mode | B4 | done (B4) | `ui.present {on?}`: full screen, the drawing only; arrow keys and PageUp and PageDown switch pages, Escape leaves |
+| Page Width | B4 | done (B4) | `view.zoomWidth {page?}` fits the frame's width to the canvas |
+| Task Panes menu | B4 | done (B4) | View > Show lists every pane with its check mark, plus the Dock toggle |
+| Add-ons | B4 | done (B4) | Number Shapes, Array Shapes and Move Shapes under View > Macros > Add-Ons; `addon.numberShapes`, `addon.arrayShapes`, `addon.moveShapes`, each one undo step |
+| Macros | B4 | done (B4) | Record and Stop over `script.*`, Save, Run and Delete; `macro.save`, `macro.list`, `macro.run`, `macro.delete` keep one JSON file per macro in the `macros` folder beside the preferences (`VIZCRAFT_MACROS_DIR` for headless runs) |
 | Side panes | 0 | done (chrome) | Left and right panes, resizable and reorderable; diagram panes are added per cascade |
 | Ribbon | 0 | done (chrome) | Tabs, groups, contextual tabs; diagram tabs are added per cascade |
 | Dropdowns show their current choice | 2C | done | Every ribbon menu, combo list and gallery with a current value marks it with a right-aligned check mark; `ui.inspect` lists the open menu's rows with `checked` |
@@ -46,6 +52,10 @@ When a feature lands, change its State in the same commit as the code. States:
 | Basic and Flowchart stencils | 1 | done | Original shapes defined in code (`vizcraft-stencils`), inserted with `shape.add` |
 | Connection points | 1 | done | Four per built-in shape; shown on hover, connectors drag from and glue to them |
 | Stencil search | 3 | done | Search field in the Palette ranks types, connector kinds and Drawing masters by exact name, word prefix, keyword and substring; `ui.shapesSearch` sets it by id |
+| Freeform shapes and boolean operations | B4 | done (B4) | `ShapeKind::Freeform` with a stored path (`Shape.path`, at most 4096 elements); Developer > Operations: `shapeop.union`, `combine`, `fragment`, `intersect`, `subtract`, `offset {distance}`, `join`, `trim`, each one undo step, results round-trip natively and through draw.io as `vizcraftPath`; the canvas fills holes and hit testing ignores them for now |
+| Locks, behaviour and protection | B4 | done (B4) | `shape.setLocks` (width, height, aspect, position, rotation, delete, select, text), `shape.setBehavior` (container, non-printing, hidden, no glue, no snap), `doc.protect {shapes?, backgrounds?}`; commands and canvas drags refuse what a lock forbids; the select and text locks are stored but not yet enforced by clicks and `shape.setText` |
+| Shape names | B4 | done (B4) | `shape.rename {id, name}` and the Developer tab's Shape Name dialog |
+| Custom masters (Document Stencil) | B4 | done (B4) | `master.add`, `master.list`, `master.remove`, `master.insert`, `master.export` and `master.import` (a `.vizcraft-stencil` JSON file); the Document Stencil pane with previews |
 | Custom stencils | Future | planned | Plugin stencil sets loaded from files |
 
 ## Connectors and glue
@@ -138,14 +148,15 @@ When a feature lands, change its State in the same commit as the code. States:
 | Rulers | 2 | done (B2) | `view.rulers`; shows the selection extent |
 | Guides | 2 | done (B2) | Dragged from the rulers; `guide.add`, `guide.move`, `guide.delete` |
 | Dynamic alignment guides | 2 | done (B2) | Alignment lines while dragging |
-| Pan and Zoom pane | 2 | planned | Page overview with the visible area as a frame |
+| Pan and Zoom pane | 2 | done (B4) | Minimap of the frame and every shape with the visible area as a draggable, resizable rectangle that sets `view.pan` and `view.zoom`; hidden by default (`ui.pane.panZoom`) |
 
 ## Data
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
 | Shape data | 2 | done (B2) | Typed rows on shapes (string, number, bool, date, enum, url; unit, required, default); page data keys shapes opt in to (stored in page `ext` for now); element properties shown read-only; `data.*`; Inspector pane (B3, was Shape Data), Define Shape Data dialog, Data tab Show/Hide |
-| Data graphics | 8 | planned | Callouts, icon sets, colour by value |
+| Data graphics | B4 | done (B4) | `DataGraphic` definitions (text callout, data bar, icon set, colour by value over a shape data key or an element property) in `Document.data_graphics`, one named per shape; `datagraphic.define`, `list`, `remove`, `apply`, `legend` (a group of shapes at the frame's right edge); the canvas and SVG draw the same layout; colour by value never writes `shape.style`; Data > Display Data gallery and dialog |
+| External data links | B4 | done (B4) | `datalink.link {path, format?, sheet?, keyColumn, dataKey?, columns?}` reads a CSV or XLSX table (10 000 rows, 256 columns, 4 KB cells; XLSX not on the web) and sets data rows on the shapes whose key matches; `datalink.refresh`, `datalink.bind`, `datalink.unlink`, `datalink.list`; the External Data pane and Data > External Data |
 | Import from CSV | 3 | done | draw.io-style CSV; org charts from CSV in Cascade 4 |
 
 ## Diagram types and templates
@@ -165,8 +176,12 @@ When a feature lands, change its State in the same commit as the code. States:
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| Comments | 8 | planned | On shapes and pages |
-| Hyperlinks | 8 | planned | To pages, shapes and URLs |
+| Comments | B4 | done (B4) | Threads anchored to a page or shape with replies; `comment.add`, `reply`, `edit`, `delete`, `list`, `show`, `next`, `previous`; the Comments pane and Review > Comments; markers on the canvas while the pane is open |
+| Hyperlinks and screen tips | B4 | done (B4) | `link.add {id, kind: url, file, page, shape or element, target, label?}` (Mod+Shift+K opens the Link dialog), `link.set`, `link.remove`, `link.follow` (switches page and selects, or asks the app to open a URL or file), `shape.setScreenTip`; link glyph on the canvas, Mod+click follows, tooltip after a hover |
+| Subprocesses | B4 | done (B4) | `process.createSubprocess {ids?, name?}` moves the selection to a new page behind one linked Predefined Process shape in one undo step; `process.linkSubprocess {id, page}`; Process > Subprocess |
+| Spelling | B4 | done (B4) | `proof.check`, `proof.suggest`, `proof.ignore`, `proof.setLanguage` over a SCOWL en-US word list (`assets/dictionaries`); fields, URLs, paths, capitals and words with digits are skipped; Review > Proofing opens the Spelling dialog, Review > Language sets the proofing language (`Shape.language`, `Document.language`, `none` skips); only `en-US` has a dictionary; F7 is not yet bound |
+| Shape reports | B4 | done (B4) | `report.list` and `report.run {report: inventory, data or connections, scope, format: csv, html or table, path?}`; the table format places a compartment shape at the frame's right edge; Review > Reporting; XLSX waits for Block 5 |
+| Info page and hidden data | B4 | done (B4) | Backstage > Info: `doc.setProperties`, statistics, `doc.inspectHidden` and `doc.removeHidden {what}` (one undo step) |
 | Validation | 4A | partly done (4A) | Rule sets declared by notation packs, live and batch, with structured issues (`validate.*`); the issues pane is Cascade 4B |
 | Find and replace | 2 | done (B2) | `edit.find`, `edit.replace` over text, typed shape data rows and format data, page or document, match case, whole word; Find dialog (Mod+F); replacements in typed rows must fit the row's type |
 
