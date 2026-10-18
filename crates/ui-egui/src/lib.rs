@@ -25,6 +25,7 @@ pub mod paste_special;
 pub mod print_preview;
 pub mod ribbon;
 pub mod snap_dialog;
+pub mod symbol_dialog;
 pub mod theme;
 pub mod widgets;
 pub mod window_geometry;
@@ -73,7 +74,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "ui.tool",
         "Tool",
         "",
-        r#"{"tool": "pointer|area|lasso|connector|text|formatPainter", "from"?: id, "keep"?: bool}; area is the pointer's marquee; formatPainter copies from "from" (default: the primary selection), once unless "keep""#,
+        r#"{"tool": "pointer|area|lasso|connector|text|textBlock|formatPainter", "from"?: id, "keep"?: bool}; area is the pointer's marquee; formatPainter copies from "from" (default: the primary selection), once unless "keep""#,
     ),
     ("ui.find", "Find", "Mod+F", "{}"),
     ("window.minimize", "Minimize", "", "{}"),
@@ -91,7 +92,7 @@ pub enum Tool {
     Pointer,
     /// Drag from a shape or empty space to draw a connector.
     Connector,
-    /// Click to add a text block, or edit the text of the shape under the pointer.
+    /// Click or drag on empty page to add a text box, or click a shape to edit its text.
     Text,
     /// The pointer, but a drag on empty space draws a freehand lasso instead of a rectangle.
     Lasso,
@@ -101,6 +102,8 @@ pub enum Tool {
         /// Stay armed after a click (a double-click on the button arms it this way).
         keep: bool,
     },
+    /// Move, resize and turn the selected shape's text block; double-click resets it.
+    TextBlock,
 }
 
 impl Tool {
@@ -112,6 +115,7 @@ impl Tool {
             Tool::Text => "text",
             Tool::Lasso => "lasso",
             Tool::FormatPainter { .. } => "formatPainter",
+            Tool::TextBlock => "textBlock",
         }
     }
     /// The tool for a `ui.tool` name.
@@ -123,6 +127,7 @@ impl Tool {
             "formatPainter" => Some(Tool::FormatPainter { keep: false }),
             "connector" => Some(Tool::Connector),
             "text" => Some(Tool::Text),
+            "textBlock" => Some(Tool::TextBlock),
             _ => None,
         }
     }

@@ -226,8 +226,10 @@ pub fn overlay(app: &CraftApp, painter: &egui::Painter, vp: &Viewport2D, page: &
             }
         }
     }
+    interact::text_block::overlay(app, painter, vp, page, t);
     if let Some(s) = interact::single_shape(app, page)
         && !matches!(drag, Some(Drag::Move { .. }))
+        && app.tool != crate::Tool::TextBlock
     {
         let top = vp.world_to_screen(pos(s.transform().apply(dg::Point::new(s.w / 2.0, 0.0))));
         let rot = vp.world_to_screen(pos(interact::rotate_handle_world(s, vp.zoom)));

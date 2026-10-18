@@ -12,7 +12,8 @@ use std::collections::HashMap;
 
 use egui::epaint::{Mesh, PathShape};
 use egui::{Color32, Painter, Pos2, Stroke};
-use vizcraft_diagram::{Color, Document, GradientKind, LineCap, Point, Shape, Style};
+use vizcraft_diagram::text_fields::{FieldCtx, expand_shape};
+use vizcraft_diagram::{Color, GradientKind, LineCap, Point, Shape, Style};
 
 use super::text::shape_text;
 use super::{color, fill_rings, flatten, line_px, pos, stroke_lines, tolerance};
@@ -90,12 +91,13 @@ pub fn shape(painter: &Painter, vp: &Viewport2D, s: &Shape, cache: &mut FillCach
 
 /// Draw the background pages under page `index`, deepest first: their visible shapes, then their
 /// connectors. Generated decorations (backgrounds, borders and titles) live there.
-pub fn background_pages(painter: &Painter, vp: &Viewport2D, doc: &Document, index: usize, cache: &mut FillCache) {
+/// Fields in their text name the foreground page `fields` is for.
+pub fn background_pages(painter: &Painter, vp: &Viewport2D, fields: &FieldCtx<'_>, cache: &mut FillCache) {
     let visible = vp.visible_world_rect().inflate(4.0);
-    for bg in doc.background_chain(index) {
+    for bg in fields.doc.background_chain(fields.page_index) {
         for s in bg.shapes.iter().filter(|s| bg.shape_visible(s)) {
             if s.bounds().intersects(&visible) {
-                shape(painter, vp, s, cache, true);
+                shape(painter, vp, &expand_shape(s, fields), cache, true);
             }
         }
         for (c, g) in bg.connectors.iter().zip(vizcraft_diagram::jumps::page_geometry(bg)) {

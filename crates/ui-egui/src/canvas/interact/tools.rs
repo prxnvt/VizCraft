@@ -26,7 +26,14 @@ pub(super) fn decide(app: &CraftApp, page: &Page, vp: &Viewport2D, at: Pos2, m: 
     let zoom = vp.zoom;
     let tol = f64::from(GRAB / zoom);
     match app.tool {
-        Tool::Text | Tool::FormatPainter { .. } => None,
+        Tool::FormatPainter { .. } => None,
+        // A drag on empty page draws a text box; on a shape the click edits its text instead.
+        Tool::Text => match dg::hit(page, w, f64::from(HIT / zoom)) {
+            Some(_) => None,
+            None => Some(Start::Drag(Drag::TextBox { from: w, to: w })),
+        },
+        // Decided in `text_block::decide`, which may select the shape first.
+        Tool::TextBlock => None,
         Tool::Connector => Some(Start::Drag(Drag::Connect { from: target_end(page, w, zoom), to: w })),
         Tool::Pointer | Tool::Lasso => {
             if let Some(s) = single_shape(app, page) {
@@ -57,5 +64,24 @@ pub(super) fn decide(app: &CraftApp, page: &Page, vp: &Viewport2D, at: Pos2, m: 
                 None => Some(Start::Drag(Drag::Marquee { from: w, to: w, add: m.shift })),
             }
         }
+    }
+}
+
+/// Smallest text box a drag draws; a shorter drag is a click (default size).
+const MIN_TEXT_BOX: f64 = 8.0;
+
+/// Add a text box with `shape.addTextBox` and start editing it: the drawn rectangle `rect`, or the
+/// default size centred on `at`.
+pub(super) fn add_text_box(app: &mut CraftApp, at: Point, rect: Option<dg::Rect>) {
+    use vizcraft_engine::cmd::text::{TEXT_BOX_H, TEXT_BOX_W};
+    let params = match rect.filter(|r| r.width() >= MIN_TEXT_BOX && r.height() >= MIN_TEXT_BOX) {
+        Some(r) => serde_json::json!({"x": r.x0.round(), "y": r.y0.round(), "w": r.width().round(), "h": r.height().round()}),
+        None => serde_json::json!({"x": (at.x - TEXT_BOX_W / 2.0).round(), "y": (at.y - TEXT_BOX_H / 2.0).round()}),
+    };
+    if let Ok(r) = app.run("shape.addTextBox", params)
+        && let Some(id) = r.get("id").and_then(|v| v.as_str())
+    {
+        let id = id.to_string();
+        super::start_editing_new(app, &id);
     }
 }

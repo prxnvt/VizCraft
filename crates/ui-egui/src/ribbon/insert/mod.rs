@@ -7,6 +7,7 @@ groups! {
     basic_shapes,
     flowchart,
     diagram_parts,
+    text,
 }
 
 /// The Insert tab.

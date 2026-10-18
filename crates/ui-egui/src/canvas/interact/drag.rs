@@ -81,7 +81,8 @@ pub(super) fn offset_end(e: &mut End, d: Point) {
 pub fn preview_page(page: &Page, drag: &Drag, zoom: f32) -> Option<Page> {
     let mut p = page.clone();
     match drag {
-        Drag::Marquee { .. } | Drag::Lasso { .. } => return None,
+        Drag::Marquee { .. } | Drag::Lasso { .. } | Drag::TextBox { .. } => return None,
+        Drag::TextBlock { id, grab, to, shift } => super::text_block::preview(&mut p, id, grab, *to, *shift),
         Drag::Move { ids, from, to } => {
             let d = move_delta(*from, *to);
             dg::arrange::translate(&mut p, ids, d.x, d.y);
@@ -183,6 +184,8 @@ pub(super) fn finish(app: &mut CraftApp, drag: Drag, zoom: f32) {
                 run(app, "connector.add", json!({"from": end_json(&from), "to": end_json(&end)}));
             }
         }
+        Drag::TextBox { from, to } => super::tools::add_text_box(app, from, Some(dg::Rect::from_points(from, to))),
+        Drag::TextBlock { id, grab, to, shift } => super::text_block::finish(app, &id, &grab, to, shift),
         Drag::Reglue { id, start, to } => {
             let end = target_end(page, to, zoom);
             let current = page.connector(&id).map(|c| if start { &c.start } else { &c.end });

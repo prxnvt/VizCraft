@@ -97,6 +97,9 @@ pub struct CanvasState {
     pub drag: Option<Drag>,
     /// In-place text editing in progress.
     pub editing: Option<TextEditing>,
+    /// Where the caret was when the last edit ended (item id, character index), for inserting a
+    /// symbol there after the editor closed.
+    pub last_caret: Option<(String, usize)>,
     /// The shape or connector under the pointer.
     pub hover: Option<Hit>,
     /// The shape whose connection points show (under or near the pointer).
@@ -205,6 +208,8 @@ pub fn summary(app: &CraftApp) -> Value {
             Drag::Rotate { .. } => "rotate",
             Drag::Connect { .. } => "connect",
             Drag::Reglue { .. } => "reglue",
+            Drag::TextBox { .. } => "textBox",
+            Drag::TextBlock { .. } => "textBlock",
         }),
         "canvas": app.canvas.rect.map(|r| [r.min.x, r.min.y, r.width(), r.height()]),
     })
@@ -297,13 +302,16 @@ fn paint(app: &mut CraftApp, ui: &Ui, vp: &Viewport2D, t: &Tokens) {
     draw::overlays::underlay(app, &painter, vp, page, t);
     let visible = vp.visible_world_rect().inflate(4.0);
     let editing = app.canvas.editing.as_ref().map(|e| e.id().to_string());
+    // Fields in shape text expand against the active page, also on its background pages.
+    let fields = dg::text_fields::FieldCtx::new(&app.session.doc, app.session.doc.active_index(), Some((crate::now_ms() / 1000.0) as u64));
     // Background pages under the active one, deepest first. Drawn only: hit testing and every
     // command look at the active page, so nothing here can be selected or edited.
-    draw::shapes::background_pages(&painter, vp, &app.session.doc, app.session.doc.active_index(), &mut app.canvas.cache);
+    draw::shapes::background_pages(&painter, vp, &fields, &mut app.canvas.cache);
     // Hidden shapes are not drawn; a layer colour tints the shapes on it.
     for s in page.shapes.iter().filter(|s| dg::layer::visible(page, s)) {
         if s.bounds().intersects(&visible) {
-            let s = dg::layer::tinted(page, s);
+            let tinted = dg::layer::tinted(page, s);
+            let s = dg::text_fields::expand_shape(&tinted, &fields);
             // A callout's leader just under the callout, over whatever it points across.
             draw::containers::leader(&painter, vp, page, &s);
             draw::shape(&painter, vp, &s, &mut app.canvas.cache, editing.as_deref() != Some(s.id.as_str()));

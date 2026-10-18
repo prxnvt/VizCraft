@@ -1,4 +1,4 @@
-//! Home > Tools: the canvas tool (pointer, connector, text).
+//! Home > Tools: the canvas tool (pointer, connector, text, text block).
 
 use serde_json::json;
 
@@ -27,14 +27,24 @@ pub(in crate::ribbon) fn group() -> Group {
                 params: |_| json!({"tool": "connector"}),
                 checked: Some(|a| a.tool == Tool::Connector),
             },
-            Button {
-                id: "ui.tool",
-                icon: "text",
-                label: "Text",
-                size: Size::Small,
-                params: |_| json!({"tool": "text"}),
-                checked: Some(|a| a.tool == Tool::Text),
-            },
+            Row(vec![
+                Button {
+                    id: "ui.tool",
+                    icon: "text",
+                    label: "Text",
+                    size: Size::Small,
+                    params: |_| json!({"tool": "text"}),
+                    checked: Some(|a| a.tool == Tool::Text),
+                },
+                Button {
+                    id: "ui.tool",
+                    icon: "textBlock",
+                    label: "Text Block",
+                    size: Size::Icon,
+                    params: |_| json!({"tool": "textBlock"}),
+                    checked: Some(|a| a.tool == Tool::TextBlock),
+                },
+            ]),
         ])],
     )
 }

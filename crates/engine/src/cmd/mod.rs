@@ -24,6 +24,7 @@ pub mod print;
 pub mod relationship;
 pub mod script;
 pub mod shape;
+pub mod text;
 pub mod validate;
 pub mod view;
 
@@ -43,6 +44,7 @@ pub fn registry() -> Registry {
     v.extend(batch::specs());
     v.extend(view::specs());
     v.extend(shape::specs());
+    v.extend(text::specs());
     v.extend(arrange::specs());
     v.extend(container::specs());
     v.extend(lane::specs());

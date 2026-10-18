@@ -41,7 +41,8 @@ fn registry_ids_are_unique_and_prefixed() {
                 "insert",
                 "script",
                 "help",
-                "guide"
+                "guide",
+                "text"
             ]
             .contains(&prefix),
             "{}: unexpected prefix",

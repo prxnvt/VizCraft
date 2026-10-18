@@ -22,7 +22,9 @@
 //!   shape. Letter case and bullets are applied to the drawn lines; underline and strikethrough
 //!   are `text-decoration`; a highlight is a box behind each line, its width estimated from the
 //!   character count. The font is the style's family, then Inter, then sans-serif; named, not
-//!   embedded. Text direction is not drawn yet.
+//!   embedded. Text direction is not drawn yet. Fields (`{{pageName}}` and the rest, see
+//!   `vizcraft_diagram::text_fields`) are expanded first; on a background page they name the page
+//!   being exported.
 //! - **Header and footer.** Drawn last, the header's or footer's margin in from the page edges (a
 //!   quarter inch by default), one line per slot, at 10 points, with fields (`{page}`, `{pages}`,
 //!   `{pageName}`, `{title}`, `{date}`) expanded by `vizcraft_diagram::print_fields`.
@@ -42,6 +44,7 @@ use std::fmt::Write as _;
 
 use vizcraft_diagram::jumps::page_geometry;
 use vizcraft_diagram::print_fields::{FieldValues, expand};
+use vizcraft_diagram::text_fields::{FieldCtx, expand_shape, system_now_secs};
 use vizcraft_diagram::{
     Color, Connector, ConnectorGeometry, Document, Gradient, GradientKind, HAlign, LineCap, Page, Path, PathEl, Rect, Shape, Style, VAlign,
     connector_geometry,
@@ -147,13 +150,15 @@ fn page_svg(doc: &Document, page_index: usize, page: &Page, opts: &SvgOptions) -
     }
     let _ = writeln!(out, "  <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" fill=\"#ffffff\"/>", num(r.x0), num(r.y0), num(w), num(h));
     let mut cx = Ctx::default();
+    // Fields on background pages show this page's name and number.
+    let fields = FieldCtx::new(doc, page_index, system_now_secs());
     let mut body = String::new();
     for bg in doc.background_chain(page_index) {
         let _ = writeln!(body, "  <g class=\"background\" data-page=\"{}\">", escape(&bg.id));
-        page_items_svg(&mut body, &mut cx, bg, opts.print);
+        page_items_svg(&mut body, &mut cx, bg, opts.print, &fields);
         body.push_str("  </g>\n");
     }
-    page_items_svg(&mut body, &mut cx, page, opts.print);
+    page_items_svg(&mut body, &mut cx, page, opts.print, &fields);
     let date = if opts.date.is_empty() { doc.core.modified.get(..10).unwrap_or_default() } else { opts.date.as_str() };
     header_footer_svg(&mut body, page, &FieldValues::for_page(doc, page_index, date));
     if !cx.defs.is_empty() {
@@ -224,12 +229,12 @@ impl Ctx {
 }
 
 /// The drawn shapes, then the connectors, of one page.
-fn page_items_svg(out: &mut String, cx: &mut Ctx, page: &Page, print: bool) {
+fn page_items_svg(out: &mut String, cx: &mut Ctx, page: &Page, print: bool, fields: &FieldCtx<'_>) {
     for s in page.shapes.iter().filter(|s| drawn(page, s, print)) {
         if vizcraft_diagram::container::is_callout(s) {
             decor_svg(out, &vizcraft_diagram::container::leader_decor(page, s));
         }
-        shape_svg(out, cx, s);
+        shape_svg(out, cx, &expand_shape(s, fields));
     }
     for (c, g) in page.connectors.iter().zip(page_geometry(page)) {
         connector_svg(out, c, &g);
@@ -797,6 +802,27 @@ mod style_tests {
         // The background page itself exports without anything under it.
         let own = String::from_utf8(export_page(&doc, 1).unwrap_or_default()).unwrap_or_default();
         assert!(!own.contains("class=\"background\""));
+    }
+
+    #[test]
+    fn fields_expand_on_the_page_and_on_its_background_page() {
+        let mut doc = Document::new();
+        let mut bg = vizcraft_diagram::Page::new("bg", "Back");
+        bg.is_background = true;
+        let mut s = Shape::new("f", vizcraft_diagram::ShapeKind::Rectangle, 0.0, 0.0, 100.0, 40.0);
+        s.text = "{{pageName}} {{pageNumber}}/{{pageCount}}".into();
+        bg.shapes.push(s.clone());
+        doc.pages.push(bg);
+        doc.pages[0].background = Some("bg".into());
+        s.id = "g".into();
+        s.text = "[{{data:missing}}] {{title}}".into();
+        doc.pages[0].shapes.push(s);
+        doc.pages[0].name = "Floor".into();
+        doc.title = "Plan".into();
+        let svg = String::from_utf8(export_page(&doc, 0).unwrap()).unwrap();
+        assert!(svg.contains(">Floor 1/1</tspan>"), "{svg}");
+        assert!(svg.contains(">[] Plan</tspan>"), "{svg}");
+        assert!(!svg.contains("{{"), "{svg}");
     }
 
     #[test]

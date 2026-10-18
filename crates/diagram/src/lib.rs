@@ -42,6 +42,7 @@ mod serde_util;
 pub mod shape_fields;
 pub mod snap;
 pub mod style_fields;
+pub mod text_fields;
 pub mod theme;
 pub mod views;
 
