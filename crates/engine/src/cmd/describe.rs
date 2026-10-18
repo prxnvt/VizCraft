@@ -262,8 +262,10 @@ fn page_json(page: &Page, d: Detail, lk: &Lookup, budget: &mut usize) -> Value {
             }
         }
     } else if d == Detail::Layout {
-        o.insert("width".into(), int(page.width));
-        o.insert("height".into(), int(page.height));
+        // The frame, not the stored sheet: on an infinite board the sheet means nothing.
+        let f = page.frame();
+        o.insert("board".into(), json!(page.board));
+        o.insert("frame".into(), json!({"x": int(f.x0), "y": int(f.y0), "w": int(f.width()), "h": int(f.height())}));
     }
     o.insert("id".into(), json!(page.id));
     o.insert("name".into(), json!(page.name));
@@ -459,10 +461,16 @@ fn shape_lines(shapes: &[Value], d: Detail, base: usize, out: &mut Vec<String>) 
 fn page_lines(page: &Page, described: &Value, d: Detail, out: &mut Vec<String>) {
     let mut head = format!("page {} {} ({} shapes, {} connectors)", page.id, quoted(&page.name), page.shapes.len(), page.connectors.len());
     if d >= Detail::Layout {
-        head.push_str(&format!(" {}x{}", num_text(described.get("width")), num_text(described.get("height"))));
+        let frame = described.get("frame");
+        head.push_str(&format!(
+            " {} {}x{}",
+            described.get("board").and_then(Value::as_str).unwrap_or("fixed"),
+            num_text(frame.and_then(|f| f.get("w"))),
+            num_text(frame.and_then(|f| f.get("h")))
+        ));
     }
     if d == Detail::Full {
-        let skip = ["shapes", "connectors", "id", "name", "width", "height", "truncated"];
+        let skip = ["shapes", "connectors", "id", "name", "width", "height", "board", "frame", "truncated"];
         let rest: Map<String, Value> = described
             .as_object()
             .map(|o| o.iter().filter(|(k, _)| !skip.contains(&k.as_str())).map(|(k, v)| (k.clone(), v.clone())).collect())
@@ -661,7 +669,12 @@ mod tests {
         }
         assert!(sh.get("rotation").is_none(), "no rotation when it is zero");
         assert!(sh.get("style").is_none());
-        assert_eq!(layout["page"]["width"], 1100);
+        assert_eq!(layout["page"]["board"], "infinite", "a new document is an infinite board");
+        assert!(
+            layout["page"]["frame"]["w"].is_number() && layout["page"].get("width").is_none(),
+            "layout reports the frame, not the sheet: {}",
+            layout["page"]
+        );
         assert_eq!(layout["page"]["connectors"][0]["route"], "orthogonal");
 
         let full = s.run("page.describe", &json!({"detail": "full"})).unwrap();
@@ -710,7 +723,13 @@ mod tests {
         let layout = s.run("doc.describe", &json!({"format": "text", "detail": "layout"})).unwrap();
         let layout = layout["text"].as_str().unwrap();
         assert!(layout.lines().nth(1).unwrap().contains(" @ "), "{layout}");
-        assert!(layout.lines().next().unwrap().ends_with(" 1100x850"), "{layout}");
+        let head = layout.lines().next().unwrap();
+        let size = head.rsplit(' ').next().unwrap();
+        assert!(head.contains(" infinite ") || head.contains(" fixed "), "the header names the board: {head}");
+        assert!(
+            size.split_once('x').is_some_and(|(w, h)| w.parse::<i64>().is_ok() && h.parse::<i64>().is_ok()),
+            "the header ends with the frame size: {head}"
+        );
         assert!(layout.contains("[orthogonal]"), "{layout}");
 
         let full = s.run("doc.describe", &json!({"format": "text", "detail": "full"})).unwrap();

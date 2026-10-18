@@ -79,7 +79,8 @@ fn page_and_shape_resources_climb_the_ladder() {
 
     let (_, layout) = read(&mut s, "vizcraft://page/p1?detail=layout").unwrap();
     assert_eq!(layout["shapes"][0]["x"], 380);
-    assert_eq!(layout["width"], 1100);
+    assert!(layout["board"].is_string() && layout["frame"]["w"].is_number(), "layout reports the board and its frame: {layout}");
+    assert!(!has_key(&layout, "width"), "the stored sheet size is not a layout fact");
     assert!(!has_key(&layout, "style"));
 
     let (_, full) = read(&mut s, "vizcraft://page/p1?detail=full").unwrap();
