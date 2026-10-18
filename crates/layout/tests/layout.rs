@@ -387,6 +387,21 @@ fn radial_and_force_do_not_overlap() {
 }
 
 #[test]
+fn radial_fans_a_lone_childs_subtree_out_beyond_it() {
+    // 0 -> 1, and 1 -> 2, 3: the root's only child owns the whole circle. Its children must land
+    // beyond it, seen from the root, not beside the root (which put the sample flowchart's
+    // shapes in one row with the root).
+    let chain = uniform(4, &[(0, 1), (1, 2), (1, 3)]);
+    let l = layout(&chain, &opts(Algorithm::Radial)).unwrap();
+    let c = |v: usize| Point::new(l.nodes[v].x + 30.0, l.nodes[v].y + 20.0);
+    let out = Point::new(c(1).x - c(0).x, c(1).y - c(0).y);
+    for v in [2, 3] {
+        let along = (c(v).x - c(1).x) * out.x + (c(v).y - c(1).y) * out.y;
+        assert!(along > 0.0, "child {v} of the lone child points back towards the root: {along}");
+    }
+}
+
+#[test]
 fn components_are_packed_apart_and_groups_get_rects() {
     let mut g = uniform(7, &[(0, 1), (1, 2), (3, 4), (5, 6)]);
     g.groups = vec![Group { members: vec![0, 3], padding: 10.0 }, Group { members: vec![], padding: 5.0 }];

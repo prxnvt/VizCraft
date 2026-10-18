@@ -335,9 +335,13 @@ pub(crate) fn radial(sub: &Sub, opt: &Options, notes: &mut Notes) -> Piece {
     let mut wedge = vec![0.0f64; n];
     wedge[tree.root] = tau;
     for &v in &tree.bfs {
-        let mut start = wedge_start[v];
+        // Below the root, a node's children fan out across at most a half circle centred on the
+        // node's own direction. Without the cap a lone child of the root owns the whole circle,
+        // and its children land beside the root (at its height) instead of beyond the child.
+        let span = if v == tree.root { wedge[v] } else { wedge[v].min(std::f64::consts::PI) };
+        let mut start = wedge_start[v] + (wedge[v] - span) / 2.0;
         for &c in &tree.children[v] {
-            let size = if leaves[v] > 0.0 { wedge[v] * leaves[c] / leaves[v] } else { 0.0 };
+            let size = if leaves[v] > 0.0 { span * leaves[c] / leaves[v] } else { 0.0 };
             wedge_start[c] = start;
             wedge[c] = size;
             start += size;

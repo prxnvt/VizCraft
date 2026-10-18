@@ -221,7 +221,7 @@ grows each auto-size page whose drawing reaches past its right or bottom edge
 | `page.rename`, `page.move`, `page.setActive` | `{page?, name}` (unique, at most 256 characters); `{page, index}`; `{page}` (not an undo step and not an edit) |
 | `page.setup` | `{page?, width?, height?, orientation?, units?, drawingScale?: {page, drawing, units?}, autoSize?}`; orientation swaps width and height to match; with no params the UI opens the Page Setup dialog |
 | `page.setBackground`, `page.fitToDrawing` | `{page?, background: page or null}` (a background page only, no loops); `{page?, margin?}` (moves the drawing to the margin and sizes the page around it) |
-| `layout.full` | `{algorithm?: "layered" \| "tree" \| "radial" \| "force", direction?, nodeSpacing?, layerSpacing?, ids?}`: the named shapes, else a selection of two or more, else the page; the page grows to fit |
+| `layout.full` | `{algorithm?: "layered" \| "tree" \| "radial" \| "force", direction?, nodeSpacing?, layerSpacing?, ids?}`: the named shapes, else a selection of two or more, else the page; groups, containers and lane sets move as one node with their members, callouts follow their target, position-locked shapes and locked layers stay put, connectors between moved shapes get dynamic glue; refused on a generated decoration page; the page grows to fit |
 | `layout.incremental` | `{ids, algorithm?, direction?, nodeSpacing?, layerSpacing?}`: places only `ids`, every other shape stays |
 | `layout.route` | `{ids?}`: routes connectors around shapes, never moves a shape |
 
@@ -555,7 +555,9 @@ Routing and glue are pure functions of shape geometry and the connector's stored
 no extra bookkeeping. Bends of `avoid` connectors come from `autoroute::{reroute, refresh}`
 (`vizcraft-routing`), stored because routing is too costly to redo every frame; the canvas and
 SVG export draw through `jumps::page_geometry` for line jumps. `autolayout::{layout_items,
-layout_incremental}` place shapes with `vizcraft-layout`. `Document::{find_page, add_page, adopt}`
+layout_incremental}` place shapes with `vizcraft-layout`; `layout_items` lays out units (a group,
+container or lane set with everything inside it is one node) so a layout never splits a group or
+pulls members out of their lanes. `Document::{find_page, add_page, adopt}`
 serve the importers and page commands. Hit
 testing (`shape_at`, `connector_at`, `shapes_in_rect`, `connection_point_at`) uses the real
 outline and rotation. Loading is tolerant: missing or wrong-typed fields take defaults, and

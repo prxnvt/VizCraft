@@ -1,7 +1,9 @@
 //! Automatic placement of shapes, built on `vizcraft-layout`.
 //!
 //! The page's shapes become layout nodes (sized by their bounding boxes) and the connectors glued
-//! at both ends to two of them become layout edges. The `layout.*` commands and the Mermaid and
+//! at both ends to two of them become layout edges. A whole page or selection is laid out in
+//! units: groups, containers and lane sets move as one node with everything inside them, and
+//! callouts follow their targets. The `layout.*` commands and the Mermaid and
 //! CSV importers all place shapes through [`layout_items`] (rearrange everything) or
 //! [`layout_incremental`] (place new shapes around ones that stay put), so they agree on what a
 //! layout does.
@@ -12,7 +14,8 @@ pub use vizcraft_layout::{Algorithm, Direction, Options};
 
 use crate::MAX_EXTENT;
 use crate::geom::{Point, Rect};
-use crate::model::Page;
+use crate::model::{End, Page};
+use crate::{arrange, container, layer};
 
 /// Where a whole-page layout puts its top-left corner, so the drawing does not touch the page edge.
 pub const PAGE_MARGIN: f64 = 40.0;
@@ -82,43 +85,184 @@ pub fn grow_page(page: &mut Page) {
     }
 }
 
+/// The shape a layout moves in order to move `id`, or `None` for a callout, which follows its
+/// target instead of being laid out. A group member is moved by its outermost group and a lane by
+/// its lane set (lanes stack inside their set), so neither is ever pulled apart. Members of an
+/// ordinary container stay themselves: they can be laid out on their own, inside the container.
+fn unit_root(page: &Page, id: &str) -> Option<String> {
+    let mut at = id.to_string();
+    for _ in 0..=arrange::MAX_GROUP_DEPTH {
+        if let Some(group) = arrange::group_chain(page, &at).pop() {
+            at = group;
+        } else if let Some(set) = container::set_of(page, &at) {
+            at = set;
+        } else {
+            break;
+        }
+    }
+    page.shape(&at).filter(|s| !container::is_callout(s)).map(|s| s.id.clone())
+}
+
+/// One node of a layout: a shape and everything inside it (a group with its members, a container
+/// with its members, a lane set with its lanes and their members), moved together.
+struct Unit {
+    /// The shapes moved together, the unit's own shape first.
+    ids: Vec<String>,
+    /// Their bounding box before the layout.
+    bounds: Rect,
+}
+
+/// The units a layout of `ids` (every shape when `None`) moves, in page order: the shapes lifted
+/// by [`unit_root`], outermost only, each with its descendants. A unit holding a shape that must
+/// not move (on a locked layer, or with its position locked) is left out, so it stays put.
+fn units(page: &Page, ids: Option<&[String]>) -> Vec<Unit> {
+    let asked: Vec<String> = match ids {
+        Some(ids) => ids.to_vec(),
+        None => page.shapes.iter().map(|s| s.id.clone()).collect(),
+    };
+    let mut roots: Vec<String> = Vec::new();
+    for id in &asked {
+        if let Some(r) = unit_root(page, id)
+            && !roots.contains(&r)
+        {
+            roots.push(r);
+        }
+    }
+    let roots: HashSet<String> = arrange::top_level(page, &roots).into_iter().collect();
+    page.shapes
+        .iter()
+        .filter(|s| roots.contains(&s.id))
+        .filter_map(|s| {
+            let ids = arrange::with_descendants(page, std::slice::from_ref(&s.id));
+            let pinned = ids.iter().filter_map(|id| page.shape(id)).any(|m| m.locks.position || layer::locked(page, m));
+            let bounds = arrange::bounds_of(page, &ids)?;
+            (!pinned).then_some(Unit { ids, bounds })
+        })
+        .collect()
+}
+
 /// Lay out the shapes named by `ids` (or every shape on the page when `None`) with `opts`.
 ///
+/// The layout works on units ([`units`]): a group, container or lane set is one node and moves
+/// with everything inside it, so groups stay whole and lanes keep their members; a callout is not
+/// laid out but moves with its target. Connectors between units count as edges between them.
 /// A selection keeps its previous top-left corner; a whole page starts at [`PAGE_MARGIN`].
-/// Connectors between moved shapes lose their stored bends, because those were drawn for the old
-/// positions (connectors that avoid shapes get new ones from the engine's routing refresh). The
-/// page grows to fit the result. Returns the layout's notes (for example a tree layout falling
-/// back to layered), or the reason the layout was refused.
+/// Connectors between shapes that moved apart lose their stored bends and fixed connection
+/// points (dynamic glue picks the nearest side for the new arrangement); connectors inside a unit
+/// keep both, moved along. The page grows to fit the result. Returns the layout's notes (for
+/// example a tree layout falling back to layered), or the reason the layout was refused.
 pub fn layout_items(page: &mut Page, ids: Option<&[String]>, opts: &Options) -> Result<Vec<String>, String> {
-    let wanted: Option<HashSet<&str>> = ids.map(|ids| ids.iter().map(String::as_str).collect());
-    let chosen: Vec<usize> =
-        page.shapes.iter().enumerate().filter(|(_, s)| wanted.as_ref().is_none_or(|w| w.contains(s.id.as_str()))).map(|(i, _)| i).collect();
-    if chosen.is_empty() {
+    let units = units(page, ids);
+    if units.is_empty() {
         return Ok(Vec::new());
     }
-    let (graph, _) = graph_of(page, &chosen);
+    let mut unit_of: HashMap<&str, usize> = HashMap::new();
+    let mut graph = vizcraft_layout::Graph::default();
+    for (n, u) in units.iter().enumerate() {
+        for id in &u.ids {
+            unit_of.insert(id.as_str(), n);
+        }
+        let b = u.bounds;
+        graph.nodes.push(vizcraft_layout::Node { width: (b.x1 - b.x0).clamp(1.0, 1.0e5), height: (b.y1 - b.y0).clamp(1.0, 1.0e5) });
+    }
+    for c in &page.connectors {
+        let (Some(a), Some(b)) = (c.start.shape().and_then(|s| unit_of.get(s)), c.end.shape().and_then(|s| unit_of.get(s))) else { continue };
+        if a != b {
+            graph.edges.push(vizcraft_layout::Edge::new(*a, *b));
+        }
+    }
     let origin = if ids.is_some() {
-        chosen
-            .iter()
-            .filter_map(|&i| page.shapes.get(i))
-            .map(|s| s.bounds())
-            .fold(None, |acc: Option<Point>, b| Some(acc.map_or(Point::new(b.x0, b.y0), |p| Point::new(p.x.min(b.x0), p.y.min(b.y0)))))
+        units.iter().map(|u| Point::new(u.bounds.x0, u.bounds.y0)).reduce(|p, q| Point::new(p.x.min(q.x), p.y.min(q.y)))
     } else {
         None
     }
     .unwrap_or(Point::new(PAGE_MARGIN, PAGE_MARGIN));
     let out = vizcraft_layout::layout(&graph, opts).map_err(|e| e.to_string())?;
-    let mut moved: HashSet<String> = HashSet::new();
-    for (n, &i) in chosen.iter().enumerate() {
-        let Some(pos) = out.nodes.get(n) else { continue };
-        place(page, i, Point::new(origin.x + pos.x, origin.y + pos.y));
-        if let Some(s) = page.shapes.get(i) {
-            moved.insert(s.id.clone());
+    let mut delta: HashMap<String, Point> = HashMap::new();
+    for (u, pos) in units.iter().zip(&out.nodes) {
+        let d = Point::new(origin.x + pos.x - u.bounds.x0, origin.y + pos.y - u.bounds.y0);
+        for id in &u.ids {
+            delta.insert(id.clone(), d);
         }
     }
-    clear_bends(page, &moved);
+    // Callouts left out of the layout follow their target.
+    let mut followers: Vec<(String, String)> = Vec::new();
+    for s in &page.shapes {
+        if container::is_callout(s)
+            && !delta.contains_key(&s.id)
+            && !s.locks.position
+            && !layer::locked(page, s)
+            && let Some(t) = s.container.as_ref().and_then(|c| c.target.as_deref())
+            && let Some(d) = delta.get(t).copied()
+        {
+            delta.insert(s.id.clone(), d);
+            followers.push((s.id.clone(), t.to_string()));
+        }
+    }
+    for s in &mut page.shapes {
+        if let Some(d) = delta.get(&s.id) {
+            s.x += d.x;
+            s.y += d.y;
+            s.sanitize();
+        }
+    }
+    let moved = |e: &End| e.shape().and_then(|s| delta.get(s)).copied().unwrap_or(Point::ZERO);
+    for c in &mut page.connectors {
+        let (ds, de) = (moved(&c.start), moved(&c.end));
+        if ds == de {
+            // Both ends moved together (or neither did): the drawing is the same, only shifted.
+            for w in &mut c.waypoints {
+                *w = Point::new(w.x + ds.x, w.y + ds.y);
+            }
+        } else {
+            c.waypoints.clear();
+            for e in [&mut c.start, &mut c.end] {
+                if let End::Glued { point, .. } = e {
+                    *point = None;
+                }
+            }
+        }
+    }
+    // Groups refit and lane sets restack (a no-op for whole units, needed when a selection
+    // rearranged some members of a container).
+    arrange::refit_groups(page);
+    for (callout, target) in &followers {
+        settle_callout(page, callout, target);
+    }
     grow_page(page);
     Ok(out.notes)
+}
+
+/// Put callout `id`, already moved along with its target, where it covers no other shape: its old
+/// offset from the target first, then that offset mirrored left to right, top to bottom and both.
+/// A free spot on the page (not left of or above its origin) wins over one off it; when every
+/// spot covers something the callout keeps its old offset. The shapes that hold the target or
+/// the callout (containers, lanes) and group frames do not count as covered.
+fn settle_callout(page: &mut Page, id: &str, target: &str) {
+    let (Some(c), Some(t)) = (page.shape(id), page.shape(target)) else { return };
+    let (cb, tb) = (c.bounds(), t.bounds());
+    let mut holders: HashSet<String> = arrange::ancestors(page, target).into_iter().collect();
+    holders.extend(arrange::ancestors(page, id));
+    let others: Vec<Rect> = page
+        .shapes
+        .iter()
+        .filter(|s| s.id != id && !holders.contains(&s.id) && !arrange::is_group(s) && page.shape_visible(s))
+        .map(|s| s.bounds())
+        .collect();
+    let (tc, cc) = (tb.center(), cb.center());
+    let (ox, oy) = (cc.x - tc.x, cc.y - tc.y);
+    let spots: Vec<Point> = [(ox, oy), (-ox, oy), (ox, -oy), (-ox, -oy)].iter().map(|&(x, y)| Point::new(tc.x + x - cc.x, tc.y + y - cc.y)).collect();
+    let moved = |d: &Point| Rect::new(cb.x0 + d.x, cb.y0 + d.y, cb.x1 + d.x, cb.y1 + d.y);
+    let free = |r: &Rect| !others.iter().any(|o| overlaps_strictly(r, o));
+    let on_page = |r: &Rect| r.x0 >= 0.0 && r.y0 >= 0.0;
+    let best = spots.iter().find(|d| free(&moved(d)) && on_page(&moved(d))).or_else(|| spots.iter().find(|d| free(&moved(d))));
+    if let Some(d) = best.copied()
+        && let Some(c) = page.shape_mut(id)
+    {
+        c.x += d.x;
+        c.y += d.y;
+        c.sanitize();
+    }
 }
 
 /// Place the shapes named by `new_ids` and leave every other shape exactly where it is.
@@ -354,5 +498,141 @@ mod tests {
         // Hostile spacing is refused, not a panic.
         let bad = Options { node_spacing: f64::NAN, ..Options::default() };
         assert!(layout_incremental(&mut page, &all[..2], &bad).is_err());
+    }
+    /// A page with Cascade 2 parts, all piled up: a group `g` of `ga` and `gb` with a connector
+    /// between them glued to fixed points, loose shapes `n1` and `n2`, a lane set `set` of three
+    /// lanes holding `l0`, `l1` and `l2`, and a callout `co` up and right of `n1`, aimed at it. Connectors run
+    /// ga -> n1 -> n2 -> l0 -> l1 -> l2 and gb -> l1.
+    fn parts_page() -> Page {
+        let mut page = Page::new("p", "p");
+        page.shapes.push(Shape::new("ga", ShapeKind::Rectangle, 0.0, 0.0, 100.0, 60.0));
+        page.shapes.push(Shape::new("gb", ShapeKind::Rectangle, 140.0, 0.0, 100.0, 60.0));
+        arrange::group(&mut page, &["ga".to_string(), "gb".to_string()], "g").unwrap();
+        page.shapes.push(Shape::new("n1", ShapeKind::Rectangle, 0.0, 0.0, 100.0, 60.0));
+        page.shapes.push(Shape::new("n2", ShapeKind::Rectangle, 0.0, 0.0, 100.0, 60.0));
+        page.shapes.push(container::new_lane_set("set", 0.0, 0.0, false, "Process"));
+        for (i, lane) in ["lane0", "lane1", "lane2"].iter().enumerate() {
+            container::add_lane(&mut page, "set", container::new_lane(*lane, lane, false), None).unwrap();
+            let r = container::content_rect(page.shape(lane).unwrap());
+            let member = format!("l{i}");
+            page.shapes.push(Shape::new(member.clone(), ShapeKind::Rectangle, r.x0 + 20.0 + 100.0 * i as f64, r.y0 + 20.0, 100.0, 60.0));
+            container::add_members(&mut page, lane, &[member]).unwrap();
+        }
+        page.shapes.push(container::new_callout("co", "n1", "Note", 130.0, -80.0));
+        let mut inner = Connector::new("inner", End::point("ga", 1), End::point("gb", 3));
+        inner.waypoints = vec![Point::new(120.0, 30.0)];
+        page.connectors.push(inner);
+        for (a, b) in [("ga", "n1"), ("n1", "n2"), ("n2", "l0"), ("l0", "l1"), ("l1", "l2"), ("gb", "l1")] {
+            page.connectors.push(Connector::new(format!("{a}{b}"), End::point(a, 2), End::point(b, 0)));
+        }
+        page
+    }
+
+    /// Where `id` sits relative to `of`, top-left to top-left, rounded to a thousandth so moving
+    /// both by the same amount compares equal.
+    fn offset(page: &Page, id: &str, of: &str) -> (f64, f64) {
+        let (a, b) = (page.shape(id).unwrap(), page.shape(of).unwrap());
+        (((a.x - b.x) * 1000.0).round() / 1000.0, ((a.y - b.y) * 1000.0).round() / 1000.0)
+    }
+
+    #[test]
+    fn groups_lanes_and_callouts_survive_every_algorithm() {
+        for algorithm in [Algorithm::Layered, Algorithm::Tree, Algorithm::Radial, Algorithm::Force] {
+            for direction in [Direction::TopBottom, Direction::LeftRight] {
+                let mut page = parts_page();
+                let before = page.clone();
+                let opts = Options { algorithm, direction, ..Options::default() };
+                layout_items(&mut page, None, &opts).unwrap();
+                let why = format!("{algorithm:?} {direction:?}");
+                // The group moved as one: its members kept their places relative to each other,
+                // and it is still their group, fitted to them.
+                assert_eq!(offset(&page, "gb", "ga"), offset(&before, "gb", "ga"), "{why}");
+                assert_eq!(page.shape("ga").unwrap().parent.as_deref(), Some("g"), "{why}");
+                let (members, frame) = (arrange::bounds_of(&page, &["ga".to_string(), "gb".to_string()]).unwrap(), page.shape("g").unwrap().bounds());
+                assert!(
+                    [frame.x0 - members.x0, frame.y0 - members.y0, frame.x1 - members.x1, frame.y1 - members.y1].iter().all(|v| v.abs() < 1e-6),
+                    "{why}"
+                );
+                // The lane set moved as one: lanes still stacked in it, members still in their lanes.
+                for (i, lane) in ["lane0", "lane1", "lane2"].iter().enumerate() {
+                    let member = format!("l{i}");
+                    assert_eq!(offset(&page, lane, "set"), offset(&before, lane, "set"), "{why}: {lane}");
+                    assert_eq!(offset(&page, &member, lane), offset(&before, &member, lane), "{why}: {member}");
+                    assert_eq!(page.shape(&member).unwrap().parent.as_deref(), Some(*lane), "{why}");
+                    assert!(page.shape(lane).unwrap().bounds().contains_rect(&page.shape(&member).unwrap().bounds()), "{why}: {member}");
+                }
+                // The units do not overlap each other.
+                let units = ["g", "n1", "n2", "set"].map(|id| page.shape(id).unwrap().bounds());
+                for (i, a) in units.iter().enumerate() {
+                    for b in units.iter().skip(i + 1) {
+                        assert!(!overlaps_strictly(a, b), "{why}: units overlap");
+                    }
+                }
+                // The callout was not laid out: it sits beside its target as before (perhaps
+                // mirrored to a free side), still aimed at it, covering nothing.
+                let (co, n1) = (page.shape("co").unwrap(), page.shape("n1").unwrap());
+                let (was_co, was_n1) = (before.shape("co").unwrap(), before.shape("n1").unwrap());
+                let d = |a: &Shape, b: &Shape| {
+                    let (p, q) = (a.bounds().center(), b.bounds().center());
+                    (((p.x - q.x).abs() * 1000.0).round(), ((p.y - q.y).abs() * 1000.0).round())
+                };
+                assert_eq!(d(co, n1), d(was_co, was_n1), "{why}");
+                assert_eq!(co.container.as_ref().unwrap().target.as_deref(), Some("n1"));
+                for s in page.shapes.iter().filter(|s| !["co", "g", "set", "lane0", "lane1", "lane2"].contains(&s.id.as_str())) {
+                    assert!(!overlaps_strictly(&co.bounds(), &s.bounds()), "{why}: the callout covers {}", s.id);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn connectors_between_moved_shapes_get_dynamic_glue_and_ones_inside_a_unit_keep_theirs() {
+        let mut page = parts_page();
+        let before = page.clone();
+        layout_items(&mut page, None, &Options::default()).unwrap();
+        let c = page.connector("inner").unwrap();
+        assert_eq!((c.start.clone(), c.end.clone()), (End::point("ga", 1), End::point("gb", 3)), "inside the group: glue kept");
+        let (now, was) = (page.shape("ga").unwrap(), before.shape("ga").unwrap());
+        let bend = c.waypoints.first().copied().unwrap();
+        assert!(
+            c.waypoints.len() == 1 && (bend.x - (120.0 + now.x - was.x)).abs() < 1e-6 && (bend.y - (30.0 + now.y - was.y)).abs() < 1e-6,
+            "its bend moved with the group"
+        );
+        let c = page.connector("n1n2").unwrap();
+        assert_eq!((c.start.clone(), c.end.clone()), (End::dynamic("n1"), End::dynamic("n2")), "between units: dynamic glue");
+        // Members of one lane set moved together, so their connector keeps its glue too.
+        assert_eq!(page.connector("l0l1").unwrap().start, End::point("l0", 2));
+    }
+
+    #[test]
+    fn a_selection_lifts_group_members_and_lanes_to_their_unit() {
+        let mut page = parts_page();
+        let before = page.clone();
+        // Selecting one group member and one lane lays out the whole group and the whole set.
+        layout_items(&mut page, Some(&["ga".to_string(), "lane1".to_string()]), &Options::default()).unwrap();
+        assert_eq!(offset(&page, "gb", "ga"), offset(&before, "gb", "ga"));
+        assert_eq!(offset(&page, "lane1", "set"), offset(&before, "lane1", "set"));
+        assert_eq!(page.shape("n1").unwrap(), before.shape("n1").unwrap(), "unselected shapes stay");
+        assert!(!overlaps_strictly(&page.shape("g").unwrap().bounds(), &page.shape("set").unwrap().bounds()));
+        // A callout alone is nothing to lay out.
+        let mut page = parts_page();
+        let before = page.clone();
+        assert!(layout_items(&mut page, Some(&["co".to_string()]), &Options::default()).unwrap().is_empty());
+        assert_eq!(page, before);
+    }
+
+    #[test]
+    fn locked_shapes_stay_put() {
+        let mut page = tree_page();
+        page.shapes[1].x = 900.0;
+        page.shapes[1].locks.position = true;
+        page.layers.push(crate::page_fields::Layer { id: "lk".into(), name: "Locked".into(), locked: true, ..Default::default() });
+        page.shapes[2].x = 700.0;
+        page.shapes[2].layers = vec!["lk".into()];
+        let before = page.clone();
+        layout_items(&mut page, None, &Options::default()).unwrap();
+        assert_eq!(page.shapes[1], before.shapes[1], "position locked");
+        assert_eq!(page.shapes[2], before.shapes[2], "on a locked layer");
+        assert_ne!(page.shapes[0], before.shapes[0], "the rest is laid out");
     }
 }
