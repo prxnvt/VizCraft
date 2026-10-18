@@ -49,9 +49,9 @@ worktree. Report in at most 15 lines: commits, command ids added, doc rows to ch
 | 2A Drawing substrate, wave 1 | 1 | none |
 | 2B Drawing substrate, wave 2 | 1, 2A (groups, pages) | none |
 | 2C Diagramming correctness | 2B (containers, text) | none |
-| 3 Workspace (ROADMAP 4B) | 1, 2A pages, 2B Shape Data pane, 2C (conformance profile, connector kinds) | 4 |
-| 4 Visio extras | 1, 2A, 2B | 3 |
-| 5 Generators and glyphs (ROADMAP 5A, 5B) | 1, 3 dock | late 3 and 4 |
+| 3 Workspace (ROADMAP 4B) | 1, 2A pages, 2B Shape Data pane, 2C (conformance profile and `Issue.fixes`, connector kinds, `describe`, disk packs) | 4 |
+| 4 Visio extras | 1, 2A, 2B, 2C board frame (`b4-fixes`); inside the block `b4-pictures` needs `b4-shapeops` merged | 3 |
+| 5 Generators and glyphs (ROADMAP 5A, 5B) | 1, 3 dock, 4 table reader (`b4-datagfx`) | late 3 and 4 |
 | 7 First deep packs (ROADMAP 6) | 5 (glyphs for drawing, patterns and codegen for generator pieces) | 8 once a track's first pack lands |
 | 8 Second-wave packs and interop (ROADMAP 7 plus new standards) | 7 per track | 9 |
 | 9 General pack and broad interop (ROADMAP 8) | 2B containers, 5 patterns | 8 |
@@ -117,7 +117,9 @@ and lasso code, and generated borders and `autolayout::grow_page` use it; the Sh
 built once, so a pack loaded later does not appear in it; paste does not remap slot member ids;
 the draw.io writer exports routed end points as extra points; the router's final stub is
 shorter than an arrowhead; `design.setBackground` and `design.setBorderTitle` act on page 0
-rather than the active page; the ISO 5807 rule references name symbols, not clauses.
+rather than the active page; the ISO 5807 rule references name symbols, not clauses. All but the
+last are folded into the Block 3 and Block 4 briefs below (`b4-fixes` holds the ones no feature
+branch owns); the clause references wait for Block 7's Flowchart completion.
 
 Before the morphology templates, checkers and code exports of Blocks 5 and 7 build on the
 drawing layer, the drawing layer has to be right. This block fixes what is wrong today
@@ -436,29 +438,495 @@ icons drawn in `icons.rs` for Board, Kind, Rules, Live Checking, Next and Previo
 Compartment. Done when: screenshots of Design, Connector, Insert, Process and Home at 1280 px
 with no overflow; every control runs by id; `cargo xtask ci` green.
 
-## Block 3: workspace (ROADMAP Cascade 4B, 5 agents)
+## Block 3: workspace (ROADMAP Cascade 4B, 5 branches)
 
-Scope as in ROADMAP 4B. Visio items folded in: Drawing Explorer becomes the model tree's
-Diagrams branch; the Issues window becomes the Problems tab.
+State: planned. Briefs written on 2026-10-18 against main at c291529 (Block 2C merged). Runs
+alongside Block 4 under the five-agent cap: Block 3's five branches start first and a Block 4
+branch starts each time one of them reports.
 
-| Branch | Scope | Own |
-|---|---|---|
-| `b3-tree` | Model tree pane, Context mode, Drawing Explorer branch | `panes/model_tree.rs` |
-| `b3-palette` | Scoped Palette, New from notation in the backstage, notation ribbon tabs, drill-down breadcrumbs | `panes/palette.rs`, `backstage.rs`, `ribbon/notation/` |
-| `b3-inspector` | Typed Inspector grown from the Shape Data pane | `panes/shape_data.rs` becomes `panes/inspector.rs` |
-| `b3-dock` | Bottom dock with Problems, Search results, Tables and Generate slots, agent activity view over the b1 transaction log | `crates/ui-egui/src/dock/` (new) |
-| `b3-insert` | Hover suggest-and-connect, double-click picker, keyboard chaining, magic connector, command palette over the model; suggestion queries in the engine | `canvas/` insertion module, `crates/engine/src/suggest.rs` (new) |
+Cascade 4B as ROADMAP.md states it, with the Visio items folded in: Drawing Explorer becomes the
+model tree's Diagrams branch and the Issues window becomes the Problems tab. The block consumes
+Block 2C: the Problems tab reads the conformance profile and runs `Issue.fixes`, the scoped palette
+lists connector kinds from `connector.kinds`, hover suggestions rest on the legal-pair table and
+the Flow kind, and the Shapes pane is rebuilt so a pack loaded from disk appears in it (today
+`vizcraft_stencils::sets()` is built once per process).
 
-## Block 4: Visio extras (6 branches, 5 at a time, alongside Block 3)
+What exists to build on: `model.tree`, `model.views`, `model.move`, `model.delete`,
+`element.show`, `element.deleteFromView`, `element.rename` and `model.setViewpoint` in
+`crates/engine/src/cmd/{model.rs, element.rs}`; `Page.view` (a `View { viewpoint, layout }`, the
+viewpoint id carrying its pack as a prefix); `Pack.palette`, `Pack.viewpoints`, `Pack.audience` and
+`ElementType.properties` in `crates/notation/src/schema.rs`; `legal::legal_from`,
+`legal::relationship_for` and `legal::is_legal`; `Registry::is_free` in `crates/model/src/identity.rs`;
+`Session.issues`, `validate.*`, `Issue.fixes` and `Session::transactions()`; the pane registry
+(`panes/mod.rs`: one file per pane, one line in `default_panes!`, one `ui.pane.<key>` row in
+`UI_COMMANDS`); `canvas::insert_master`, `CanvasState.hover_shape` and the `Tool` enum; the
+command palette (`Dialog::Commands` in `dialogs.rs`, `ui.commands`, Mod+Shift+P).
 
-| Branch | Scope | Own |
-|---|---|---|
-| `b4-links` | Hyperlinks (URL, file, page, shape, element), ScreenTips, comments with threads (pane, previous, next, show), Process Subprocess (create new page, link existing) | `cmd/link.rs`, `cmd/comment.rs`, `panes/comments.rs`, `ribbon/review/comments.rs`, `ribbon/process/subprocess.rs` |
-| `b4-pictures` | Insert picture (PNG, JPEG, SVG) into the asset store, crop tool, Picture contextual tab (brightness, contrast, recolour, transparency, border, change, reset, compress); Ink (pen, highlighter, eraser, lasso, colour, thickness, convert ink to shapes) | `cmd/picture.rs`, `cmd/ink.rs`, `canvas/` crop and ink tools, picture and ink contextual tabs |
-| `b4-shapeops` | Boolean operations (union, combine, fragment, intersect, subtract, offset, join, trim) through an MIT or Apache polygon crate; Protection locks; Behaviour; Shape Name; custom stencils and Document Stencil; Developer tab | `cmd/shapeop.rs`, `cmd/master.rs`, `ribbon/developer/`, `crates/stencils` custom masters |
-| `b4-view` | Presentation mode, Zoom dialog, Page Width, Pan and Zoom pane, Task Panes menu, New Window on the same document, Arrange All, Cascade, Switch Windows; add-ons Number Shapes, Array Shapes, Move Shapes; Macros group over b1 scripts (record, run, list, delete) | `cmd/view.rs`, `cmd/addon.rs`, `cmd/macro.rs`, `panes/pan_zoom.rs`, `apps/vizcraft` windows |
-| `b4-review` | Spelling against a permissively licensed dictionary, proofing language per text; Info backstage page (properties, protect diagram, inspect for hidden data); Shape Reports to CSV, HTML and an on-page table (XLSX after Block 5) | `cmd/proof.rs`, `cmd/report.rs`, `backstage.rs` Info page |
-| `b4-datagfx` | Data graphics (text callouts, data bars, icon sets, colour by value) from shape data and element properties; Insert Legend; External Data link to a CSV or XLSX file with Refresh All (the substitute for Excel, Access and SQL wizards) | `cmd/datagraphic.rs`, `cmd/datalink.rs`, `ribbon/data/` groups |
+Models: `b3-insert` runs on Opus (placement geometry, interaction design and the suggestion
+engine); the other four are UI wiring over commands that already exist, so they run on Sonnet. All
+at medium effort.
+
+### Branches
+
+Ports 8031 to 8035; worktrees under `.claude/worktrees/<branch>`; branches from main at the commit
+that added this section.
+
+| Branch | Model | Own | Commands |
+|---|---|---|---|
+| `b3-tree` (8031) | Sonnet | new `crates/ui-egui/src/panes/model_tree.rs` (pane key stays `navigation`, title "Model Tree", so `view.navigationPane`, `ui.pane.navigation` and saved layouts keep working); `panes/navigation.rs` is deleted | UI only: `ui.tree {mode?: "model" or "context", branch?: "model" or "diagrams", expand?: [ids], collapse?: [ids], reveal?: id}`; `ui.inspect` gains `tree` |
+| `b3-palette` (8032) | Sonnet | `crates/ui-egui/src/panes/shapes.rs` rewritten as the scoped palette (key stays `shapes`, title "Palette"), `crates/ui-egui/src/backstage.rs` (New from notation), new `crates/ui-egui/src/ribbon/notation/` (one contextual tab per active pack) and `ribbon/model/` (Model tab), `crates/stencils/src/lib.rs` (sets rebuilt when the catalog changes) | UI only: `ui.palette {query?, group?, viewpointFilter?: bool}`; `ui.shapesSearch` keeps working; `ui.inspect` gains `palette` |
+| `b3-inspector` (8033) | Sonnet | `crates/ui-egui/src/panes/shape_data.rs` becomes `panes/inspector.rs` (key stays `shapeData`, title "Inspector"; `panes/properties.rs` is absorbed as the Document section and deleted), `crates/ui-egui/src/ribbon/data/show_hide.rs` (labels), new `crates/engine/src/cmd/inspector.rs` | `inspector.get {id}`, `element.checkTag {id, tag}`; UI `ui.inspector {mode?: "standard" or "expert", tab?: "properties" or "format"}` |
+| `b3-dock` (8034) | Sonnet | new `crates/ui-egui/src/dock/` (`mod.rs` layout and tabs, `problems.rs`, `search.rs`, `activity.rs`, `tables.rs` and `generate.rs` as labelled empty slots), `crates/ui-egui/src/ribbon/process/diagram_validation.rs` (Problems button; Check opens the dock) | UI only: `ui.dock {open?: bool, tab?: "problems" or "search" or "activity" or "tables" or "generate", height?}`, `ui.search {query, scope?}`; `ui.inspect` gains `dock` |
+| `b3-insert` (8035) | Opus | new `crates/engine/src/suggest.rs` and `crates/engine/src/cmd/suggest.rs`, new `crates/ui-egui/src/canvas/interact/insertion.rs` and `canvas/draw/insertion.rs`, `crates/ui-egui/src/canvas/interact/keys.rs` (Alt+Shift+Arrow), new `crates/ui-egui/src/insert_picker.rs` and `command_palette.rs` (the `Dialog::Commands` body moves here) | `suggest.next {id, direction?}`, `suggest.connect {from, to}`, `suggest.search {query, kinds?}`, `insert.next {id, type?, direction, relationship?, text?}`, `insert.connect {from, to, relationship?}`; UI `ui.insertPicker {x?, y?, query?}`; `ui.commands` gains Mod+K as a second shortcut |
+
+Shared files, one line each unless said otherwise, merged by the main session: `panes/mod.rs`
+(`default_panes!`: `b3-tree` swaps `navigation` for `model_tree`, `b3-inspector` swaps
+`shape_data` for `inspector` and removes `properties`); `lib.rs` (`UI_COMMANDS` rows; `UiState`
+gains `dock` from `b3-dock` and `inspector` from `b3-inspector`; `CraftApp::ui` gains the
+`dock::show` call between `panes::show` and `canvas::show`); `control.rs` (`ui.inspect` fields);
+`ribbon/mod.rs` `tabs()` (two tabs from `b3-palette`); `engine/src/lib.rs` (`pub mod suggest;`)
+and `engine/src/cmd/mod.rs` (`inspector`, `suggest`); `dialogs.rs` (two lines from `b3-insert`:
+the `Dialog::Commands` arm calls `command_palette::show`); `icons.rs` is append-only (one match
+arm per new icon, keep-both at merge). `ribbon/view/show.rs` belongs to `b4-view`: `b3-dock`
+reports the Dock toggle line it wants there instead of editing it. Merge order: tree, inspector,
+palette, dock, insert (it touches the most canvas code); snapshots regenerated once after the
+last merge.
+
+Done when for the block: a new Flowchart document opened from the backstage's New page shows the
+model tree, the scoped palette grouped as the pack's palette says, the Inspector typed by the
+element schema and a Problems tab that jumps to the offending shape; over the control channel a
+chain of five `insert.next` steps from a Terminator builds a flowchart that `validate.run` finds
+nothing wrong with and `autoroute::crossings` finds empty; a planted crossing appears in the
+Problems tab and its Fix button reroutes it; a pack loaded with `notation.load` appears in the
+palette without a restart; `ui.inspect` reports tree, palette, inspector and dock state; `cargo
+xtask ci` is green.
+
+### Briefs
+
+Each brief below is pasted after the template above with the shared lines filled in (worktree
+`.claude/worktrees/<branch>`, branch `<branch>` from main at the commit that added this section,
+`CARGO_TARGET_DIR=target-<branch>`, the port from the table, prefix `B3:`).
+
+`b3-tree` (Sonnet). Goal: the model tree pane that takes over the left dock, as ROADMAP Cascade
+4B describes it. Two branches at the root: Model (the containment tree from `model.tree`, root
+elements grouped by type when the model has more than one type, each element row showing its
+name, tag and the pages it appears on from `model.views`) and Diagrams (every page, its shapes
+and connectors by text or id, the Drawing Explorer of the TODO). Context mode follows the canvas
+selection: the tree expands to and highlights the selected items' elements, and the Model branch
+filters to their owners and neighbours. Clicking a row selects its items on their page (switching
+the active page with `page.setActive` first); double-click renames through `element.rename`
+(inline editor); drag an element onto another to re-own it with `model.move`; a right-click menu
+offers Show in All Views (`model.views`, then select), Delete from View (`element.deleteFromView`)
+and Delete from Model (`model.delete`, with a confirmation dialog since it removes every view);
+the pane header has Model and Context mode buttons with the check mark convention. Free drawing
+(no model) shows only the Diagrams branch. Keep the pane key `navigation` so nothing else
+changes; delete `panes/navigation.rs`. `ui.tree` sets mode, branch, expanded ids and reveals an
+id; `ui.inspect` gains `tree: {mode, branch, expanded, selected}`. Cap the rows drawn per frame
+(virtualise with `egui::ScrollArea::show_rows`) so a model of ten thousand elements stays smooth.
+Done when: kittest tests that the sample's elements list under the Model branch grouped by type,
+that the Diagrams branch lists the pages and their shapes, that a click selects and switches
+page, that Context mode follows a selection change, that a rename runs `element.rename`; a
+snapshot of the pane in light mode; `ui.inspect` test; `cargo xtask ci` green.
+
+`b3-palette` (Sonnet). Goal: the scoped palette, New from notation and the notation and Model
+ribbon tabs. Rewrite `panes/shapes.rs` as a compact list (icon, label, one row each, a tile grid
+only for the Drawing group) with a search field at the top: when the active page has a view, the
+pack's `palette` groups come first (types filtered by the page's viewpoint unless
+`viewpointFilter: false`), then a Connectors group listing that pack's connector kinds from
+`connector.kinds` plus the Basic ones, then one Drawing group at the bottom with the Basic
+primitives; with no view, every pack's groups appear collapsed under the pack name with Drawing
+open. Click inserts at `canvas::insert_point`, drag inserts where dropped (keep `MasterDrag`);
+a connector kind row sets the connector tool's kind (`ui.tool {tool: "connector", kind}`, a new
+param kept in a `CraftApp.connector_kind` field and passed to `connector.add` where the connector
+drag commits in `canvas/interact/drag.rs`: one line there, which `b4-shapeops` owns, so report it
+if it grows). Search covers types, kinds and Drawing masters, best first. Fix the stale stencil cache:
+`vizcraft_stencils::sets()` rebuilds when `vizcraft_notation::catalog()` returns a different
+catalog (compare pointer identity; keep the leaked strings bounded by the number of pack loads),
+so `notation.load` shows up in the palette and in `shape.catalog`. Backstage New page: packs
+grouped by `audience` with name and description; choosing one runs `file.new` then
+`model.setViewpoint {viewpoint}` with the pack's first viewpoint, and the palette follows.
+`ribbon/notation/`: one contextual tab built from data, named after the active page's pack,
+visible when the page has a view, with an Insert group (one menu per palette group, items run
+`shape.add {stencil}` through `vizcraft_notation::catalog().master_for_type`), a Viewpoint menu
+(check marks, `model.setViewpoint`) and a Check button (`validate.run`). `ribbon/model/`: a Model
+tab with a Model group (Model Tree pane toggle, Show in All Views, Move in Model, Delete from
+Model, Delete from View). Drill-down breadcrumbs: a path bar above the canvas (document title,
+page name, and the owner element when a page's view name matches an element's child view
+convention `<element id>/<viewpoint>`; plain pages show two crumbs) that switches pages on click;
+put it in `panes/shapes.rs`'s sibling file `crates/ui-egui/src/breadcrumbs.rs` (new, yours) with
+one call line in `canvas/mod.rs` above the page strip. Done when: kittest tests that a Flowchart
+page shows Steps, Data, Links, Connectors and Drawing groups in that order; that the viewpoint
+filter hides a type outside the viewpoint; that a disk pack loaded in the test appears; that New
+from notation gives a page with the viewpoint set; snapshots of the palette and the notation tab
+at 1280 px; `cargo xtask ci` green.
+
+`b3-inspector` (Sonnet). Goal: the typed Inspector grown from the Shape Data pane. Rename the
+file and title, keep the key. Sections, each collapsible: Identity (name through
+`element.rename`, tag through `element.retag` with a live check as you type that calls
+`element.checkTag` on every change and colours the field red with the conflicting element named
+when the tag is taken), Properties (for a model element: one editor per `ElementType.properties`
+entry typed by `PropKind` with unit, enum values and required marker, through
+`element.setProperty`; shape data rows as today through `data.*`; page keys at the end),
+Relationships (every relationship the element takes part in: type label, direction arrow, the
+other element's name; click selects the connector drawing it on this page or shows the page it is
+on), Views ("Appears in N views", each page named, click switches), Shape (kind, stencil, text,
+position and size through `shape.*` and `arrange.setBounds`), and the Document section the
+Properties pane held (title, author, revision; delete `panes/properties.rs`, keep its
+`ui.pane.properties` row pointing at the Inspector's Document section). Two modes, persisted in
+`UiState.inspector`: Standard hides ids, `ext` keys and read-only model fields; Expert shows them.
+A Format secondary tab at the top switches the body to fill, line and text controls that run
+`shape.setStyle` and `text.setFormat`. `inspector.get {id}` in `cmd/inspector.rs` assembles
+everything the pane shows in one call (`{element?, type?, identity: {tag, format, free, conflict?},
+properties: [{key, label, kind, unit, values, required, value, source}], relationships: [{id, type,
+direction, other, otherName, pages}], views: [{page, pageName, items}], shape: {...}}`) so agents
+and the pane read the same thing; `element.checkTag` returns `{free, scope, conflict?}` from
+`Registry::is_free`. Multiple selection edits the shared rows as today. Done when: engine tests
+for both commands (the Flowchart sample: a taken tag reports its conflict, a free one is free;
+properties carry their schema; views count matches `model.views`); kittest tests that the pane
+shows typed editors for a flowchart Process, that typing a taken tag colours the field, that
+Expert mode shows the id; snapshots of both modes; `hostile_params_never_panic` green; `cargo
+xtask ci` green.
+
+`b3-dock` (Sonnet). Goal: the bottom dock with Problems, Search, Activity and the Tables and
+Generate slots. `dock/mod.rs` holds `DockLayout {open, height, tab}` (persisted in
+`UiState.dock`, sanitised like `PaneLayout`), a tab strip with a close button, a draggable
+splitter between the dock and the canvas, and `show` drawn in `CraftApp::ui` after the side
+panes so the dock sits between them. Problems: one row per issue, merging the live
+`Session.issues` with the last `validate.run` result by key; columns severity (icon), message,
+rule, page, items; a severity filter and a text filter; click selects the items on their page
+(`page.setActive`, `edit.select`), the row's Explain button shows `validate.explain` (rule,
+reference, message) in a popover, Suppress runs `validate.suppress {key, reason}` after a
+one-line reason field, and each `Issue.fixes` entry is a button that runs its command and params
+as one transaction; a toolbar with Check (`validate.run`), the Rules menu (the same entries and
+check marks as Process, through `validate.setProfile`), Live Checking toggle, Next and Previous;
+when the profile is off the tab shows "Checking is off" with a Turn On button. Search: a query
+field over `edit.find {query, scope}` with scope Page or Document, results as rows (page, item,
+text, data key), click selects, a Replace button opens the Find dialog with the query. Activity:
+`Session::transactions()` newest first with label, origin badge (ui, control, mcp, script),
+command count and an expandable list of ids, and an "Undo to before this" button that runs
+`edit.undo` once per record from the newest down to and including the chosen one (enabled only
+while every one of them is still on the undo stack). Tables and Generate: empty tabs saying
+which block fills them. The dock opens itself the first time Check runs from the ribbon
+(`ribbon/process/diagram_validation.rs` gets a Problems button and Check sets `ui.dock {open:
+true, tab: "problems"}` after `validate.run`). `ui.dock` and `ui.search` as in the table;
+`ui.inspect` gains `dock: {open, height, tab, rows}`. Done when: kittest tests that a planted
+crossing on a page with the drawing ruleset appears as a row, that clicking selects the
+connector, that the Fix button clears the issue, that Suppress hides exactly one row, that
+Search lists a text hit and selects it, that Activity lists a control-channel batch and undoes
+it; snapshots of each tab; `ui.inspect` test; `cargo xtask ci` green. Report the one line you
+want in `ribbon/view/show.rs` (Dock toggle) and the UI_COMMANDS rows.
+
+`b3-insert` (Opus). Goal: insertion on the canvas, as ROADMAP Cascade 4B describes it, over a
+suggestion engine in the engine. `suggest.rs`: `next(doc, shape_id) -> Vec<Suggestion {type,
+label, relationship, kind}>` from `legal::legal_from` on the shape's element type (every legal
+target type with its relationship type; for a free shape, the same stencil joined by the Basic
+Arrow kind), ordered by how often that pair already occurs on the page then by palette order;
+`connect(doc, from, to) -> Vec<RelationshipChoice {id, label, legal}>` from the connection table
+(illegal pairs listed last and marked, since a rule reports them); `search(doc, query, kinds)`
+over commands (the registry and `UI_COMMANDS`), element types of the packs in use, elements by
+name or tag, and later patterns. `insert.next` is one transaction: create the element and its
+shape one step away in `direction` (step = the source's size plus the page's layout gap, pushed
+clear of overlaps the way `layout.incremental` places a new shape, never crossing the frame of a
+container the source is not in), create the relationship and its connector glued to both (the
+pack's kind for that relationship type, else Arrow), reroute, return the ids; `insert.connect`
+creates the relationship and connector between two existing shapes. Canvas: hover handles (four
+small arrows outside the hovered shape's sides after 300 ms, drawn in `draw/insertion.rs`); a
+click on one runs `insert.next` with the single suggestion, or opens a popover listing the
+suggestions when there are several (type icon, label, relationship); dragging a handle onto
+another shape is the magic connector (drop opens the `connect` choices, one legal choice applies
+at once), dragging onto empty canvas drops a new shape there through `insert.next` with the
+popover; the ghost of the shape and connector draws while dragging. Double-click on empty
+canvas opens the insert picker (`insert_picker.rs`: a type-to-filter list of the page's palette
+types and the Drawing primitives, Enter inserts at the point, Escape closes). Alt+Shift+Arrow
+with one shape selected runs `insert.next` in that direction with the first suggestion and
+selects the new shape, so a chain can be typed. The command palette moves to
+`command_palette.rs` and reads `suggest.search`: commands run, types insert at the canvas
+centre, elements select and reveal (switching page); Mod+K joins Mod+Shift+P. Done when: engine
+tests that `suggest.next` on a flowchart Process lists only Flowchart types with Flow, that
+`insert.next` yields a glued, bound, non-overlapping shape with `crossings` empty, that a chain
+of five steps validates clean, that `insert.connect` between two shapes with no legal pair still
+connects and raises the rule's issue, that `search` finds an element by tag; kittest tests for
+the handles appearing, a handle click inserting, Alt+Shift+Right chaining, the picker inserting,
+the palette selecting an element; a snapshot with handles visible; `hostile_params_never_panic`
+green; `cargo xtask ci` green.
+
+## Block 4: Visio extras (7 branches, 5 agents at a time, alongside Block 3)
+
+State: planned. Briefs written on 2026-10-18 against main at c291529. Branches start as Block 3
+branches report, in the order of the table below; `b4-pictures` starts only after `b4-shapeops`
+is merged, because ink strokes and boolean results are both freeform path shapes, which
+`b4-shapeops` adds. `b4-fixes` is new in this block: it holds the Block 2C follow-ups that no
+other branch owns.
+
+Decisions on the two questions the plan left open:
+
+| Question | Decision |
+|---|---|
+| CAD drawing insert (`.dwg`, `.dxf`) | `.dwg` is dropped for good: it has no public specification, and the only open reader is GPL, which AGENTS.md forbids. `.dxf` is deferred, not built in Block 4: an SVG or PNG exported from the CAD tool inserted as a picture (`b4-pictures`) covers the underlay use today. If the industrial track in Block 7 wants a floor-plan underlay, add Autodesk's published DXF Reference to the Formats list in AGENTS.md then and read the LINE, LWPOLYLINE, CIRCLE, ARC and TEXT entities only. The CAD Drawing Tools contextual tab goes with it. |
+| Pan and Zoom pane in `b4-view` | Kept. On an infinite board it is a minimap of `Page::frame()` (the drawing's bounds) with the visible area as a draggable, resizable rectangle; on a fixed board it frames the sheet. Hidden by default, opened from View > Show > Task Panes. It finishes ROADMAP Cascade 2. |
+
+Models: `b4-shapeops` (boolean geometry and the freeform path), `b4-pictures` (image drawing,
+crop, ink recognition) and `b4-datagfx` (a layout of graphics around shapes shared by canvas and
+SVG) run on Opus; `b4-fixes`, `b4-links`, `b4-view` and `b4-review` are precise sweeps and UI
+wiring and run on Sonnet. All at medium effort.
+
+### Branches
+
+Ports 8036 to 8042; worktrees under `.claude/worktrees/<branch>`; the first five branch from main
+at the commit that added this section, `b4-pictures` and `b4-datagfx` from the main commit the
+main session names when they start.
+
+| Branch | Model | Own | Commands |
+|---|---|---|---|
+| `b4-fixes` (8036) | Sonnet | `crates/engine/src/cmd/{lane.rs, container.rs, arrange.rs, design.rs}`, `crates/engine/src/fragment.rs`, `crates/diagram/src/{decor.rs, autolayout.rs, autoroute.rs}`, `crates/diagram/tests/board_reads.rs`, `crates/formats/src/drawio/write.rs`, `crates/ui-egui/src/canvas/interact/select.rs` (tests only) | none new; `design.setBackground` and `design.setBorderTitle` default to the active page |
+| `b4-shapeops` (8037) | Opus | `Shape.path` and `Shape.name` in `crates/diagram/src/shape_fields.rs`, `ShapeKind::Freeform` in `crates/diagram/src/kind.rs`, new `crates/diagram/src/{shapeop.rs, master.rs}`, `Document.masters` and `Document.protection` in `crates/diagram/src/doc_fields.rs`, new `crates/engine/src/cmd/{shapeop.rs, master.rs, protect.rs}`, `crates/ui-egui/src/canvas/interact/drag.rs` and `canvas/draw/overlays.rs` (locks), `crates/ui-egui/src/ribbon/developer/`, new `crates/ui-egui/src/panes/document_stencil.rs` and `shape_name_dialog.rs` | `shapeop.union`, `shapeop.combine`, `shapeop.fragment`, `shapeop.intersect`, `shapeop.subtract`, `shapeop.offset {distance}`, `shapeop.join`, `shapeop.trim` (all `{ids?}`); `shape.setLocks {ids?, width?, height?, aspect?, position?, rotation?, delete?, select?, text?}`, `shape.setBehavior {ids?, container?, nonPrinting?, hidden?, noGlue?, noSnap?}`, `shape.rename {id, name}`, `doc.protect {shapes?, backgrounds?}`; `master.add {ids?, name}`, `master.list`, `master.remove {id}`, `master.insert {id, x?, y?}`, `master.export {path}`, `master.import {path}` |
+| `b4-links` (8038) | Sonnet | new `crates/engine/src/cmd/{link.rs, comment.rs, process.rs}`, new `crates/ui-egui/src/panes/comments.rs`, `canvas/draw/links.rs`, `canvas/interact/links.rs`, `link_dialog.rs`, `ribbon/insert/links.rs`, `ribbon/review/comments.rs`, `ribbon/process/subprocess.rs` | `link.add {id, kind: url or file or page or shape or element, target, label?}`, `link.set {id, index, ...}`, `link.remove {id, index}`, `link.follow {id, index?}`, `shape.setScreenTip {ids?, text}`; `comment.add {page?, shape?, text}`, `comment.reply {id, text}`, `comment.edit {id, text}`, `comment.delete {id}`, `comment.list {page?}`; `process.createSubprocess {ids?, name?}`, `process.linkSubprocess {id, page}` |
+| `b4-view` (8039) | Sonnet | `crates/engine/src/cmd/view.rs`, new `crates/engine/src/cmd/{addon.rs, macro.rs}`, new `crates/ui-egui/src/panes/pan_zoom.rs`, `presentation.rs`, `addon_dialog.rs`, `crates/ui-egui/src/ribbon/view/{show.rs, zoom.rs}` and new `ribbon/view/{views.rs, window.rs, macros.rs}`, `apps/vizcraft/src/{main.rs, windows.rs, control_server.rs}` | `view.zoomWidth {page?}`; `addon.numberShapes {ids?, start?, position?: before or after, separator?, renumber?}`, `addon.arrayShapes {ids?, rows, cols, dx, dy}`, `addon.moveShapes {ids?, dx?, dy?, distance?, angle?, copy?}`; `macro.save {name, script?}`, `macro.list`, `macro.run {name}`, `macro.delete {name}`; UI `ui.present {on?}`, `ui.window.new {same?}`, `ui.window.arrangeAll`, `ui.window.cascade`, `ui.window.switch {index}` |
+| `b4-review` (8040) | Sonnet | new `crates/engine/src/proof.rs` and `cmd/{proof.rs, report.rs, document.rs}`, `assets/dictionaries/en-US.txt` with its `ATTRIBUTION.md` row, `Shape.language`, `Document.language` and `Document.ignored_words` fields, new `crates/ui-egui/src/{spelling_dialog.rs, info_page.rs}`, new `ribbon/review/{proofing.rs, language.rs, reporting.rs}` | `proof.check {ids? or page? or all?}`, `proof.suggest {word}`, `proof.ignore {word}`, `proof.setLanguage {ids?, language}`; `report.list`, `report.run {report: inventory or data or connections, scope: page or document, format: csv or html or table, path?}`; `doc.setProperties {title?, subject?, author?, keywords?, description?}`, `doc.inspectHidden`, `doc.removeHidden {what: [...]}` |
+| `b4-pictures` (8041) | Opus | new `crates/engine/src/cmd/{picture.rs, ink.rs}`, `ImageRef.adjust` in `crates/diagram/src/shape_fields.rs`, new `crates/diagram/src/ink.rs`, new `crates/ui-egui/src/canvas/draw/pictures.rs`, `canvas/interact/{crop.rs, ink.rs}`, `ribbon/picture/`, `ribbon/ink/`, `ribbon/insert/illustrations.rs`, `ribbon/review/ink.rs`, new `crates/formats/src/svg/pictures.rs` | `picture.insert {path? or bytes?, mediaType?, x?, y?, w?, h?}`, `picture.change {id, path? or bytes?}`, `picture.crop {id, crop: {x, y, w, h}}`, `picture.adjust {id, brightness?, contrast?, transparency?, recolor?}`, `picture.reset {id}`, `picture.compress {ids? or all?, maxDimension?, quality?}`; `ink.add {points, width?, color?, highlighter?}`, `ink.erase {ids}`, `ink.toShapes {ids?}`; UI `ui.insertPicture`, `ui.tool` gains `crop`, `pen`, `highlighter`, `eraser` |
+| `b4-datagfx` (8042) | Opus | new `crates/diagram/src/data_graphic.rs`, `Document.data_graphics`, `Document.data_links` and `Shape.data_graphic` fields, new `crates/engine/src/cmd/{datagraphic.rs, datalink.rs}`, new `crates/formats/src/table.rs` (CSV and XLSX table reading), new `crates/ui-egui/src/canvas/draw/data_graphics.rs`, `crates/formats/src/svg/data_graphics.rs`, `panes/external_data.rs`, `datagraphic_dialog.rs`, `ribbon/data/{external_data.rs, display_data.rs}` | `datagraphic.define {id?, name, items}`, `datagraphic.list`, `datagraphic.remove {id}`, `datagraphic.apply {ids?, graphic}`, `datagraphic.legend {page?, graphic?}`; `datalink.link {path, format?, sheet?, keyColumn, dataKey?, columns?}`, `datalink.list`, `datalink.refresh {id?}`, `datalink.bind {id, row, shape}`, `datalink.unlink {id}`; UI `ui.linkData` |
+
+Shared files, merged by the main session: struct fields in `crates/diagram/src/model.rs`,
+`shape_fields.rs` and `doc_fields.rs` as the table lists them, each with serde defaults,
+sanitising and one test in `formats/src/native_tests.rs` (the Block 2C convention); `lib.rs`
+(`UI_COMMANDS` rows; `Tool` variants from `b4-pictures`; `Services.open_external` from
+`b4-links`; `CraftApp.window_request` and `presenting` from `b4-view`); `dialogs.rs` (two lines
+per new dialog: the enum variant and its `show` arm); `panes/mod.rs` `default_panes!` (comments,
+pan_zoom, document_stencil, external_data); `ribbon/mod.rs` `tabs()` (Picture and Ink from
+`b4-pictures`; Developer exists and `b4-shapeops` fills it); `ribbon/<tab>/mod.rs` `groups!`
+lines (Insert: links, illustrations; Review: comments, ink, proofing, language, reporting;
+Process: subprocess; View: views, window, macros; Data: external_data, display_data);
+`engine/src/cmd/mod.rs` and `engine/src/lib.rs` (`pub mod proof;`); `control.rs` (`ui.inspect`
+fields; `engine.execute` gains `origin?` from `b4-view`); `icons.rs` append-only; workspace
+`Cargo.toml` dependencies (`i_overlay` from `b4-shapeops`; `calamine` and `csv` from
+`b4-datagfx`; the `raster-images` feature of `resvg` from `b4-pictures`), each MIT or Apache,
+pure Rust, building for wasm or gated behind `cfg(not(target_arch = "wasm32"))` with an error
+there. `backstage.rs` belongs to `b3-palette`: `b4-review` reports the one Info nav line.
+`apps/vizcraft/src/main.rs` belongs to `b4-view`: `b4-links` reports the one line that fills
+`Services.open_external`. Merge order: fixes, shapeops, links, view, review, pictures, datagfx;
+snapshots regenerated once after the last merge.
+
+Done when for the block: over the control channel the sample document gains a picture with a
+crop and a brightness change, an ink stroke converted to a rectangle, two shapes unioned into
+one, a hyperlink into a subprocess page that `link.follow` reaches and returns from, a comment
+thread, a data graphic driven by a linked CSV that `datalink.refresh` updates, and an inventory
+report on a new page; `proof.check` finds a planted misspelling; the Review, Developer, Data,
+Picture, Ink and View tabs screenshot at 1280 px with no overflow; the Pan and Zoom pane pans
+the canvas; `cargo xtask ci` is green.
+
+### Briefs
+
+Each brief below is pasted after the template above with the shared lines filled in (worktree
+`.claude/worktrees/<branch>`, branch `<branch>` from main at the commit named in the Branches
+paragraph, `CARGO_TARGET_DIR=target-<branch>`, the port from the table, prefix `B4:`).
+
+`b4-fixes` (Sonnet). Goal: the Block 2C follow-ups that no other branch owns, each a precise
+change with a test. (1) The sheet is read where the frame is meant: `lane.add`, `lane.addSet`
+and `container.add` place a new item at `Page::frame().center()` when nothing is selected
+(`cmd/lane.rs`, `cmd/container.rs`); `arrange.align {to: "page"}` and the other `to: page`
+anchors use `frame()` (`cmd/arrange.rs`); generated border and title pages (`decor.rs`) decorate
+the frame of an infinite board and `decor::refresh` redraws them when the frame changes (a moved
+shape grows the border), while a fixed board keeps the sheet; `autolayout::grow_page` grows only
+a fixed board and is a no-op on an infinite one; the two `page.rect()` reads in `select.rs` tests
+become `frame()`; `crates/diagram/tests/board_reads.rs` loses the `decor.rs` and `autolayout.rs`
+rows from `ALLOWED` and stays green. (2) `Fragment::insert` remaps `compartments[].members`
+through the id map and drops members left behind (`fragment.rs`), so pasting a slot keeps its
+members. (3) `drawio/write.rs` writes only interior bends: when `route::stored_route` (make it `pub`, it is
+`pub(crate)` today) says the waypoints hold the whole polyline, the first and last points are left
+out, and a reread gives the same drawing. (4) `design::page_index` defaults to the active page rather than index 0, so the
+Design tab's Backgrounds and Borders act on the page shown. (5) The router's final stub is at
+least the arrowhead's trim: `autoroute.rs` sets each request's stub length from
+`arrows::outline` for the connector's ends at its line width, and `routing_invariant.rs` gains
+the check that the last segment is at least that long. The ISO 5807 clause references are not
+yours; they wait for Block 7. Done when: tests for each of the five (a lane set on an empty
+infinite board lands at the frame centre; align to page on an infinite board uses the frame; a
+border follows a moved shape on an infinite board and stays put on a fixed one; a pasted slot
+has its members; a routed connector round-trips through draw.io with only interior bends;
+`design.setBackground` with page 2 active decorates page 2; no arrow tip inside a stub);
+`cargo xtask ci` green.
+
+`b4-shapeops` (Opus). Goal: freeform geometry, boolean operations, locks and behaviour, shape
+names, custom masters and the Developer tab. The freeform path: `Shape.path: Option<Freeform
+{els: Vec<PathEl>, closed: bool}>` in local coordinates from (0, 0) to (w, h), sanitised and
+capped at 4096 elements; `ShapeKind::Freeform` whose `outline(w, h)` is the stored path (the
+unit square when none), so hit testing, the canvas, SVG, PNG and PDF draw it with no further
+change; an open path draws no fill. Boolean operations in `diagram/src/shapeop.rs` through
+`i_overlay` (MIT, pure Rust): union, combine (exclusive or), fragment (every piece), intersect,
+subtract (the first selected minus the rest), offset by a distance; join (open paths end to end
+within a tolerance) and trim (split at intersections) on open paths; the result takes the
+first shape's style, text, data, layers and parent, the inputs are removed, fragment yields
+several shapes, and every operation is one undo step; results round-trip natively and to draw.io
+through `ext` (`vizcraftPath`). Locks and behaviour: `shape.setLocks` and `shape.setBehavior`
+write the Block 1 fields; `cmd/protect.rs` holds `check(page, ids, Lock) -> Result` and
+`doc.protect` writes `Document.protection {shapes, backgrounds}`, read by the same check; one
+call line each in `shape.move`, `shape.resize`, `shape.rotate`, `shape.delete`,
+`cmd::delete_items`, `connector.glue` (no_glue), `snap.rs` (no_snap) and `page.setBackground`
+(backgrounds), reported if you cannot keep them to one line; the canvas drag (`drag.rs`) refuses
+a move or resize the locks forbid and `overlays.rs` hides the handles for locked dimensions;
+`select: true` makes a shape unselectable by click (still by id). `shape.rename` sets
+`Shape.name`, shown by `describe` and the Inspector later. Custom masters:
+`Document.masters: Vec<CustomMaster>` in `diagram/src/master.rs` (a `Fragment`-shaped snapshot
+with a name and bounds), `master.*` as in the table, export and import as a JSON file with the
+`.vizcraft-stencil` extension written by `master.rs` itself; the Document Stencil pane lists
+them with previews, click inserts, a button adds the selection. Developer tab: Shape Design
+group (Operations menu, Shape Name, Behavior menu with check marks, Protection menu with check
+marks), Show/Hide group (Document Stencil pane toggle, Drawing Explorer runs `ui.pane.navigation`
+then `ui.tree {branch: "diagrams"}`). Done when: engine tests (union of two overlapping
+rectangles is one freeform whose area is the union within one percent; subtract leaves a hole
+drawn even-odd; fragment of two overlapping rectangles gives three; offset grows the bounds by
+the distance; join and trim as described; a freeform round-trips natively and through draw.io; a
+position-locked shape refuses `shape.move`; `doc.protect {shapes: true}` refuses
+`shape.delete`; a master from the selection inserts a copy with fresh ids and glue kept); a
+golden SVG of a fragment result; a kittest test that a locked shape has no move drag; Developer
+tab screenshot at 1280 px; `hostile_params_never_panic` green; `cargo xtask ci` green.
+
+`b4-links` (Sonnet). Goal: hyperlinks, screen tips, comments and subprocesses over the Block 1
+fields (`Shape.links`, `Shape.screen_tip`, `Document.comments`). `link.*` as in the table;
+`link.follow` on a page, shape or element link switches page and selects (`element.show` for an
+element with no shape on the active page); on a URL or file link it pushes
+`{"request": "openExternal", "target"}` to `session.ui_requests`, which the UI hands to
+`Services.open_external` (a new optional callback; report the `apps/vizcraft/src/main.rs` line
+that fills it with the `open` crate or `std::process::Command`). Canvas: `draw/links.rs` draws a
+small link glyph at the top right of a shape with links and comment markers at comment anchors
+while the Comments pane is open; `interact/links.rs` shows the screen tip as a tooltip after a
+hover delay and follows the first link on Mod+click (one call line each in `draw/mod.rs` and
+`interact/mod.rs`). `link_dialog.rs` edits a shape's links (kind, target with a page or shape
+picker, label). Comments: `comment.*` as in the table, author from `Session.author`, time from
+`cmd::now_iso`; the Comments pane lists the active page's threads with reply fields, Previous and
+Next select the anchor shape; Review > Comments has New Comment, Delete, Previous, Next and a
+Show Comments toggle with its check mark. Subprocess: `process.createSubprocess` moves the
+selected shapes and the connectors among them to a new page (a `Fragment` extract and insert,
+then delete), puts one Predefined Process shape with the name and a page link where they were,
+re-glues connectors from outside to it, and selects it, as one undo step;
+`process.linkSubprocess` adds a page link to an existing shape; Process > Subprocess has Create
+from Selection, Create New (an empty page plus the linked shape) and Link to Existing (a menu of
+pages). Done when: engine tests (links round-trip; follow switches page and selects; a URL
+follow pushes the request; a comment thread round-trips and lists per page; subprocess creation
+moves, re-glues and links, and undo restores in one step); a kittest test with a recording
+`open_external` service; snapshots of the Comments pane and the Review tab; `hostile_params_never_panic`
+green; `cargo xtask ci` green.
+
+`b4-view` (Sonnet). Goal: presentation mode, Page Width, the Pan and Zoom pane, Task Panes,
+window arrangement, the add-ons and the Macros group. `view.zoomWidth` fits the frame's width to
+the canvas. `presentation.rs`: `ui.present {on?}` hides title bar, menus, ribbon, panes, dock and
+status bar and asks for full screen (`egui::ViewportCommand::Fullscreen`); Left, Right, PageUp and
+PageDown switch pages, Escape leaves; `CraftApp::ui` consults it in one line. Pan and Zoom pane
+(key `panZoom`, right side, hidden by default): the frame and every shape as filled rectangles,
+the visible area as a draggable, resizable frame that sets `view.pan` and `view.zoom`; the pane
+follows pan and zoom changes. View > Show gets a Task Panes menu (every pane with its check mark,
+from `panes::window_menu_items`) and the Dock toggle `b3-dock` reports. View > Window: New
+Window (`ui.window.new {same: true}` opens the same file in a new window; the two windows do not
+share edits, and the status bar says so), Arrange All (tile), Cascade and a Switch Windows menu,
+through `CraftApp.window_request` consumed in `windows.rs` with the monitor size from the
+viewport info. Add-ons under View > Macros > Add-Ons with small dialogs: Number Shapes (text
+prefix or suffix in z-order, `renumber` strips an existing number first), Array Shapes (rows by
+columns of copies at the pitch, one undo step), Move Shapes (by offset or by distance and angle,
+optionally copying). Macros: Record and Stop (over `script.recordStart` and `script.recordStop`,
+the button toggling with a check mark), Save (names the script just stopped), a Run menu of saved
+macros, Delete; `cmd/macro.rs` stores one JSON file per macro in the directory `macro::set_dir`
+names (the app passes the `macros` folder beside the preferences file, `VIZCRAFT_MACROS_DIR`
+overrides it for headless runs), names sanitised to a safe file stem, at most 256 macros and
+64 KB each. Also fold in: `engine.execute` accepts `origin?: "mcp"` so the control server runs
+it with `run_as(Origin::Mcp)`, and report the one line the MCP Remote backend needs to send it.
+Done when: tests for `view.zoomWidth`, each add-on (numbering order and prefix, array count and
+pitch, move by angle), a macro saved and run from a temporary directory, the pure window
+arrangement function (positions for two and five windows); kittest tests that dragging the Pan
+and Zoom frame pans and that presentation hides the chrome; snapshots of the pane, presentation
+mode and the View tab at 1280 px; `cargo xtask ci` green.
+
+`b4-review` (Sonnet). Goal: spelling, proofing language, the Info backstage page and shape
+reports. Dictionary: a SCOWL-derived en-US word list (size 60) at `assets/dictionaries/en-US.txt`
+with its `ATTRIBUTION.md` row (verify the licence text from the SCOWL distribution and cite it);
+`engine/src/proof.rs` loads it with `include_str!`, indexes words by length and checks tokens of
+letters and apostrophes, skipping words with digits, all-capitals words, `{{...}}` fields, URLs,
+file paths and the document's `ignored_words`; suggestions are edit-distance one, then two when
+none, capped at eight. `proof.check` walks shape texts, compartments and connector texts,
+returning each misspelling with ids, offsets and suggestions; `proof.setLanguage` writes
+`Shape.language` (a BCP 47 tag; `Document.language` is the default; `none` skips the shape;
+only `en-US` has a dictionary, other tags are skipped with a note in the result). Review >
+Proofing opens `spelling_dialog.rs` (Not in Dictionary, suggestions, Ignore, Ignore All, Change,
+Change All, each change through `shape.setText` or `text.*`), Review > Language has a Proofing
+Language menu with check marks. Info page (`info_page.rs`, reached from the backstage nav line you
+report for `b3-palette`'s file): editable properties through `doc.setProperties`, statistics
+(pages, shapes, connectors, elements, comments, images, data rows), Inspect for Hidden Data
+(`doc.inspectHidden` counts comments, hidden shapes and layers, screen tips, data rows, images and
+properties; `doc.removeHidden {what}` removes the chosen kinds in one undo step). Shape Reports:
+`report.list` names the built-in reports (inventory: id, name, type, text, page; data: one column
+per data key in use; connections: from, to, kind, relationship); `report.run` returns rows and
+columns and, by format, writes a CSV file (a small quoting writer in `cmd/report.rs`), an HTML
+file with one table and the document title, or an on-page table (a shape with the report name as
+text and one list compartment with one tab-separated row per record, placed at the frame's right
+edge); XLSX waits for Block 5. Review > Reporting has a Shape Reports menu (report, scope,
+format). Done when: tests that `proof.check` flags "teh" with "the" among the suggestions and
+skips fields, URLs and capitals; that an ignored word survives a native round-trip; that
+`language: none` skips; a CSV golden for the sample's inventory; an HTML row count; the on-page
+table's row count; inspect-hidden counts and removal in one undo step; `cargo xtask assets`
+green with the new row; snapshots of the Info page and the Review tab; `cargo xtask ci` green.
+
+`b4-pictures` (Opus; starts after `b4-shapeops` is merged). Goal: pictures and ink. Pictures:
+`picture.insert` decodes PNG and JPEG headers for size, keeps SVG as text, stores the bytes once
+in `Document.images` (deduplicated by content hash) and adds a Rectangle shape with a
+transparent outline and `image: Some(ImageRef)` sized to the picture (scaled to a quarter of the
+frame when larger); `ImageRef.adjust {brightness, contrast, transparency, recolor: none or
+grayscale or sepia or a tint colour}` is new; `picture.crop` takes fractions of the source; the
+canvas (`draw/pictures.rs`, one call line where `draw/shapes.rs` fills a shape) draws through a
+texture cache keyed by asset, adjustments and scale, rasterising SVG with `resvg` at the drawn
+size; SVG export (`svg/pictures.rs`, one call line in `svg.rs`) writes an `<image>` with a data
+URI, a clip path for the crop and a filter for the adjustments, so PNG and PDF follow (enable
+the `raster-images` feature of `resvg`); `picture.compress` downscales to `maxDimension` and
+re-encodes opaque images as JPEG at `quality`. The crop tool (`Tool::Crop`, `interact/crop.rs`)
+drags the crop rectangle's handles and commits `picture.crop` on release. The Picture contextual
+tab (visible when a picture shape is selected): Adjust (Brightness and Contrast menus with steps
+and check marks, Recolor menu, Transparency menu, Compress, Change Picture through
+`pick_open("picture")`, Reset), Picture Styles (border weight and colour through
+`shape.setStyle`), Size (Crop toggle). Insert > Illustrations has Picture (`ui.insertPicture`
+picks a file then runs `picture.insert`). Ink: a stroke is a freeform open-path shape (from
+`b4-shapeops`) with round caps and `ext["vizcraft.ink"]` set to `pen` or `highlighter`
+(highlighter: width 12, line transparency 0.5, drawn behind other shapes); `ink.add` simplifies
+the points (Ramer-Douglas-Peucker, tolerance 1.5 units, at most 4096 points), `ink.erase`
+deletes strokes, `ink.toShapes` recognises a closed stroke whose points fit an ellipse within
+15 percent as an Ellipse, one with four corners as a Rectangle, a nearly straight one as a Line
+connector, and leaves the rest; the Pen, Highlighter and Eraser tools (`interact/ink.rs`) collect
+a drag and commit one `ink.add` on release, the eraser deletes strokes under a click or drag.
+Review > Ink: Pen, Highlighter, Eraser, Lasso Select (`ui.tool lasso`), Colour and Thickness
+menus, Convert to Shapes. Done when: tests that a PNG inserted from bytes is stored once and
+round-trips; a golden SVG with the data URI, clip path and filter; a PNG export pixel check at
+the picture's centre; a PDF export containing an image object; crop and adjust round-trip and
+change the pixels; compress shrinks the asset; an ink stroke commits as one shape and undoes in
+one step; `ink.toShapes` on synthetic square and circle strokes gives a Rectangle and an Ellipse;
+screenshots of the Picture and Ink tabs at 1280 px; `hostile_params_never_panic` green with junk
+base64; `cargo xtask ci` green.
+
+`b4-datagfx` (Opus). Goal: data graphics, legends and external data links. `diagram/src/data_graphic.rs`:
+`DataGraphic {id, name, items: Vec<DataItem>}` where an item names its source (a shape data key
+or an element property) and its kind: text callout (position, label, number format), data bar
+(min, max, position, colour), icon set (rules of operator, value and icon name from `icons.rs`
+names), colour by value (rules of operator and value to fill and optional line, or ranges); a
+layout function returns each item's rectangle around the shape so the canvas and SVG draw the
+same thing, and `evaluate(doc, shape)` reads shape data rows, page keys and element properties
+in `diagram` (the model is reachable there); colour by value applies at draw time and never
+writes `shape.style`. `Document.data_graphics` holds the definitions, `Shape.data_graphic`
+names one. `datagraphic.*` as in the table; `datagraphic.legend` builds a group of shapes (title,
+one row per rule with a swatch and label) at the frame's right edge, regenerated on request.
+Canvas and SVG modules with one call line each in `draw/mod.rs` and `svg.rs`. External data:
+`formats/src/table.rs` reads a CSV (the `csv` crate) or XLSX (`calamine`, gated off wasm) table
+into columns and rows with caps (10 000 rows, 256 columns, 4 KB cells) and infers column types
+(number, bool, date, text); `datalink.link` stores a `DataLink {id, path, format, sheet,
+keyColumn, dataKey, columns, lastRefresh}` in `Document.data_links` and refreshes it;
+`datalink.refresh` rereads the file and, for each row, sets data rows on every shape whose
+`dataKey` value equals the row's key, defining missing page keys with the inferred types, in one
+undo step, returning linked and unmatched counts; `datalink.bind` sets the key on a shape and
+refreshes it. The External Data pane lists the rows with a linked mark, Link to Selection and
+Refresh; Data > External Data has Link Data to Shapes (`ui.linkData` picks the file), Refresh All
+and the pane toggle; Data > Display Data has a Data Graphics gallery with the current one checked,
+Edit Data Graphic (`datagraphic_dialog.rs`: the item list with typed fields), Insert Legend and
+Remove. Done when: tests that a graphic with all four kinds on a shape with a number row renders
+(snapshot) and exports (golden SVG) at the rectangles the layout function returns; that colour by
+value leaves `shape.style` unchanged; that the legend has one row per rule; that a CSV with three
+rows linked by a Tag column sets rows on the two matching shapes and reports one unmatched; that
+a refresh after the file changes updates values in one undo step; an XLSX read test on a minimal
+workbook assembled in the test from hand-written XML parts (no file from another application);
+`hostile_params_never_panic` green with junk paths; `cargo xtask ci` green.
 
 ## Block 5: generators and glyphs (6 branches, 5 at a time)
 
@@ -512,6 +980,7 @@ Excluded, with the reason, unless you say otherwise:
 | TODO item | Reason | Substitute |
 |---|---|---|
 | Online Pictures | Third-party image search service | Insert picture from file (`b4-pictures`) |
+| CAD Drawing (`.dwg`, `.dxf`) and the CAD Drawing Tools tab | `.dwg` has no public specification and the only open reader is GPL; `.dxf` is deferred (see the Block 4 decisions) | Insert an SVG or PNG exported from the CAD tool as a picture (`b4-pictures`) |
 | Chart (Excel object), Object (OLE), ActiveX controls, COM add-ins | Windows component technologies | Data graphics and table views |
 | Visual Basic, Macro Security | No embedded VBA | Command-script macros (`b1-engine-txn`, `b4-view`) |
 | SharePoint workflow import and export | Proprietary product integration | none |
@@ -524,6 +993,5 @@ Decisions needed before their block starts:
 
 | Item | Question | Block |
 |---|---|---|
-| CAD drawing (.dwg, .dxf) | DXF is not on the allowed public-specification list in AGENTS.md; add it or drop CAD insert? | 4 |
 | AADL textual export | The AADL standard is a paid SAE document; draw the notation only, or buy and use the standard? | 8 |
 | PNML (Petri net) and DMN, CMMN XML | Add each public schema to the Formats list in AGENTS.md when the pack starts | 8 |
