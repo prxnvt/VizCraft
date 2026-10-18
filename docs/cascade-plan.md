@@ -107,6 +107,18 @@ channel).
 
 ## Block 2C: diagramming correctness (8 branches in two waves)
 
+State: wave 1 (seven branches) merged into main on 2026-10-18 with `cargo xtask ci` green;
+wave 2 (`b2c-ribbon`) running. Integration notes: every clash between branches was a read of
+the stored sheet size that the board branch's guard test caught (describe, the drawing pack's
+off-board check, three tests planting off-board shapes or crossings); fixed by reading
+`Page::frame()` or pinning a test page to a fixed board or to `page.setRouting {avoid: never}`.
+Follow-ups left for later briefs: `Page::rect()` is still the sheet in lane, container, arrange
+and lasso code, and generated borders and `autolayout::grow_page` use it; the Shapes pane is
+built once, so a pack loaded later does not appear in it; paste does not remap slot member ids;
+the draw.io writer exports routed end points as extra points; the router's final stub is
+shorter than an arrowhead; `design.setBackground` and `design.setBorderTitle` act on page 0
+rather than the active page; the ISO 5807 rule references name symbols, not clauses.
+
 Before the morphology templates, checkers and code exports of Blocks 5 and 7 build on the
 drawing layer, the drawing layer has to be right. This block fixes what is wrong today
 (connectors cross shapes, a fixed sheet, dropdowns that do not show their state, no sections
