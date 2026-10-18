@@ -168,6 +168,19 @@ impl Fragment {
         // not own the copy, so the link is cleared rather than pointing at the original.
         for sh in &mut new_shapes {
             sh.parent = sh.parent.as_deref().and_then(|p| map.get(p)).cloned();
+            // A callout aims at the copy of its target when the target came along, else at the
+            // original if it is on the page the copy lands on, else at nothing.
+            if let Some(t) = sh.container.as_mut().and_then(|c| c.target.as_mut()) {
+                match map.get(t.as_str()) {
+                    Some(new) => *t = new.clone(),
+                    None if doc.page().is_some_and(|p| p.shape(t).is_some()) => {}
+                    None => {
+                        if let Some(c) = sh.container.as_mut() {
+                            c.target = None;
+                        }
+                    }
+                }
+            }
         }
         copies.finish(doc, &clip_elements);
         let page = doc.page().ok_or_else(|| EngineError::Failed("the document has no page".into()))?;

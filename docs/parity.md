@@ -101,8 +101,9 @@ When a feature lands, change its State in the same commit as the code. States:
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
 | Groups | 2 | done (B2) | Click selects the outermost group, next click one level down; move, resize, rotate, delete and copy carry members |
-| Containers | 2 | planned | Members move with the container; container fits its members |
-| Swimlanes | 2 | planned | Lanes in a cross-functional flowchart |
+| Containers | 2 | done (B2) | `container.*`: drop in and drag out to change membership, auto-fit, margins, heading position and style, lock, select contents, disband; Container tab; drawn on canvas and in export |
+| Swimlanes | 2 | done (B2) | `lane.*`: lane sets of lanes, phases, reorder, flip orientation; cross-functional flowchart |
+| Callouts | 2 | done (B2) | `callout.add`, `callout.set`: leader follows the target; Callout tab |
 | Pools and lanes | 6 | planned | BPMN variant of swimlanes |
 
 ## Themes and styles

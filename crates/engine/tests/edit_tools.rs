@@ -320,3 +320,21 @@ fn find_and_replace_reach_typed_shape_data() {
     let rows = s.run("data.get", &json!({"id": a})).unwrap();
     assert!(rows.to_string().contains("12") && !rows.to_string().contains("lots"), "{rows}");
 }
+
+#[test]
+fn pasted_callouts_aim_at_the_pasted_target() {
+    let mut s = blank();
+    let t = add(&mut s, "basic.rectangle", 0.0, "Tank");
+    let c = s.run("callout.add", &json!({"target": t, "text": "Check level"})).unwrap()["id"].as_str().unwrap().to_string();
+    let target_of =
+        |s: &Session, id: &str| s.doc.page().and_then(|p| p.shape(id)).and_then(|sh| sh.container.as_ref()).and_then(|k| k.target.clone());
+    // Copied together: the copy aims at the copied target.
+    s.run("edit.select", &json!({"ids": [t, c]})).unwrap();
+    let new = ids(&s.run("edit.duplicate", &json!({})).unwrap(), "duplicated");
+    let (new_t, new_c) = (new[0].clone(), new[1].clone());
+    assert_eq!(target_of(&s, &new_c).as_deref(), Some(new_t.as_str()));
+    // Copied alone on the same page: it keeps the original target.
+    s.run("edit.select", &json!({"ids": [c]})).unwrap();
+    let alone = ids(&s.run("edit.duplicate", &json!({})).unwrap(), "duplicated");
+    assert_eq!(target_of(&s, &alone[0]).as_deref(), Some(t.as_str()));
+}

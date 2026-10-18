@@ -25,8 +25,8 @@
 pub mod arrange;
 pub mod autolayout;
 pub mod autoroute;
-pub mod data;
 pub mod container;
+pub mod data;
 pub mod decor;
 pub mod doc_fields;
 pub mod geom;

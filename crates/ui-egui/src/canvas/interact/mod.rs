@@ -16,8 +16,8 @@ pub mod connect;
 pub mod drag;
 pub mod edit_text;
 pub mod keys;
-pub mod painter;
 pub mod membership;
+pub mod painter;
 pub mod select;
 pub mod tools;
 
