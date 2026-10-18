@@ -20,6 +20,8 @@ fn sheet() -> Document {
     let page = doc.pages.first_mut().expect("a new document has a page");
     page.width = 680.0;
     page.height = ROW * ends.len() as f64 + 40.0;
+    // A fixed sheet, so the golden frames the page and not the drawing bounds.
+    page.board = vizcraft_diagram::Board::Fixed;
     for (i, arrow) in ends.iter().enumerate() {
         let y = 40.0 + ROW * i as f64;
         for (col, width) in WIDTHS.into_iter().enumerate() {
