@@ -256,7 +256,9 @@ fn tool_toggles_set_the_canvas_tool() {
 fn an_insert_gallery_button_adds_that_master_on_the_page() {
     let mut h = harness_at(1200.0, "Insert");
     // The Shapes pane has buttons with the same names; close it so the labels find the ribbon's.
+    // The Inspector shows the selected shape's text, which is also "Decision"; close it too.
     h.state_mut().run("ui.pane", serde_json::json!({"name": "shapes", "value": false})).unwrap();
+    h.state_mut().run("ui.pane", serde_json::json!({"name": "shapeData", "value": false})).unwrap();
     h.run_steps(2);
     let count = |h: &Harness| h.state().session.doc.page().map(|p| p.shapes.len()).unwrap();
     let before = count(&h);

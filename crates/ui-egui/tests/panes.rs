@@ -32,7 +32,7 @@ fn harness(app: CraftApp) -> Harness<'static, CraftApp> {
 #[test]
 fn registry_has_the_four_panes_and_commands() {
     let keys: Vec<&str> = panes::panes().iter().map(|p| p.key).collect();
-    assert_eq!(keys, ["shapes", "navigation", "properties", "history", "layers", "shapeData"]);
+    assert_eq!(keys, ["shapes", "navigation", "history", "layers", "shapeData"]);
     for p in panes::panes() {
         assert!(p.default_width >= MIN_WIDTH && p.default_width <= MAX_WIDTH);
         assert!(!p.title.is_empty());
@@ -45,7 +45,7 @@ fn registry_has_the_four_panes_and_commands() {
     let l = PaneLayout::default();
     assert_eq!(l.left, ["shapes", "navigation"], "Shapes opens on the left above Navigation");
     assert!(l.is_collapsed("navigation") && !l.is_collapsed("shapes"), "Navigation starts folded so Shapes gets the height");
-    assert_eq!(l.right, ["properties", "history"], "the right side stacks two panes by default");
+    assert_eq!(l.right, ["history", "shapeData"], "the right side stacks two panes by default");
 }
 
 #[test]
@@ -61,7 +61,7 @@ fn ui_pane_toggles_opens_and_closes() {
     a.run("ui.pane", json!({"name": "navigation", "value": false})).unwrap();
     assert!(!a.ui.panes.is_open("navigation"), "closing twice stays closed");
     let r = a.run("ui.pane", json!({"name": "navigation", "value": true, "side": "right"})).unwrap();
-    assert_eq!(layout(&r).right, ["properties", "history", "navigation"]);
+    assert_eq!(layout(&r).right, ["history", "shapeData", "navigation"]);
     // The per-pane ids menus use.
     a.run("ui.pane.history", json!({})).unwrap();
     assert!(!a.ui.panes.is_open("history"));
@@ -77,9 +77,9 @@ fn ui_pane_toggles_opens_and_closes() {
 #[test]
 fn ui_pane_side_moves_and_opens() {
     let mut a = app();
-    let r = a.run("ui.paneSide", json!({"name": "properties", "side": "left"})).unwrap();
+    let r = a.run("ui.paneSide", json!({"name": "shapeData", "side": "left"})).unwrap();
     let l = layout(&r);
-    assert_eq!(l.left, ["shapes", "navigation", "properties"]);
+    assert_eq!(l.left, ["shapes", "navigation", "shapeData"]);
     assert_eq!(l.right, ["history"]);
     a.run("ui.pane", json!({"name": "history", "value": false})).unwrap();
     assert!(a.ui.panes.right.is_empty());
@@ -89,9 +89,9 @@ fn ui_pane_side_moves_and_opens() {
     assert!(a.run("ui.paneSide", json!({"name": "history", "side": "middle"})).is_err());
     assert!(a.run("ui.paneSide", json!({"name": "nothing", "side": "left"})).is_err());
     // A closed pane remembers its side.
-    a.run("ui.pane", json!({"name": "properties", "value": false})).unwrap();
-    a.run("ui.pane", json!({"name": "properties", "value": true})).unwrap();
-    assert_eq!(a.ui.panes.side("properties"), Some(Side::Left));
+    a.run("ui.pane", json!({"name": "shapeData", "value": false})).unwrap();
+    a.run("ui.pane", json!({"name": "shapeData", "value": true})).unwrap();
+    assert_eq!(a.ui.panes.side("shapeData"), Some(Side::Left));
     // Reset puts everything back.
     let r = a.run("ui.panesReset", json!({})).unwrap();
     assert_eq!(layout(&r), PaneLayout::default());
@@ -116,21 +116,21 @@ fn collapse_commands_fold_a_side() {
 fn window_menu_items_track_the_layout() {
     let mut a = app();
     let items = panes::window_menu_items(&a);
-    assert_eq!(items.len(), 6);
-    assert!(items.iter().all(|(title, _, on)| *on == !matches!(*title, "Layers" | "Shape Data")), "every pane but Layers and Shape Data starts open");
+    assert_eq!(items.len(), 5);
+    assert!(items.iter().all(|(title, _, on)| *on == !matches!(*title, "Layers")), "every pane but Layers starts open");
     assert_eq!(items[0], ("Shapes", "ui.pane.shapes", true));
     assert_eq!(items[1], ("Navigation", "ui.pane.navigation", true));
     for (_, id, _) in &items {
         a.run(id, json!({})).unwrap();
     }
-    assert!(panes::window_menu_items(&a).iter().all(|(title, _, on)| *on == matches!(*title, "Layers" | "Shape Data")), "each toggle flipped");
+    assert!(panes::window_menu_items(&a).iter().all(|(title, _, on)| *on == matches!(*title, "Layers")), "each toggle flipped");
 }
 
 #[test]
 fn persistence_round_trips_through_prefs() {
     let mut first = app();
     first.run("ui.paneSide", json!({"name": "history", "side": "left"})).unwrap();
-    first.run("ui.pane", json!({"name": "properties", "value": false})).unwrap();
+    first.run("ui.pane", json!({"name": "shapeData", "value": false})).unwrap();
     first.run("ui.collapsePanes", json!({"side": "left", "value": true})).unwrap();
     first.ui.panes.set_collapsed("history", true);
     first.ui.panes.heights.insert("navigation".into(), 300.0);
@@ -148,35 +148,35 @@ fn persistence_round_trips_through_prefs() {
     let h = harness(second);
     let app = h.state();
     assert!(!app.session.view.props_pane, "the layout is the source of truth");
-    assert!(!app.ui.panes.is_open("properties"));
+    assert!(!app.ui.panes.is_open("shapeData"));
 }
 
 #[test]
 fn sanitize_drops_junk_layouts() {
     let junk = json!({
         "left": ["ghost", "navigation", "navigation", 7],
-        "right": ["navigation", "properties", ""],
+        "right": ["navigation", "shapeData", ""],
         "leftWidth": -5, "rightWidth": 1e12,
         "collapsed": ["ghost", "history", "history"],
-        "heights": {"ghost": 100, "navigation": "tall", "history": 1e9, "properties": -3},
+        "heights": {"ghost": 100, "navigation": "tall", "history": 1e9, "shapeData": -3},
         "lastSide": {"ghost": "left", "history": "right"}
     });
     // A list with a number in it is not a layout at all: the whole state is rejected, not panicked.
     assert!(serde_json::from_value::<PaneLayout>(junk.clone()).is_err());
     let mut j = junk.clone();
     j["left"] = json!(["ghost", "navigation", "navigation"]);
-    j["heights"] = json!({"ghost": 100, "navigation": null, "history": 1e9, "properties": -3});
+    j["heights"] = json!({"ghost": 100, "navigation": null, "history": 1e9, "shapeData": -3});
     assert!(serde_json::from_value::<PaneLayout>(j.clone()).is_err(), "a null height is rejected");
-    j["heights"] = json!({"ghost": 100, "history": 1e9, "properties": -3});
+    j["heights"] = json!({"ghost": 100, "history": 1e9, "shapeData": -3});
     let mut l: PaneLayout = serde_json::from_value(j).unwrap();
     l.sanitize();
     assert_eq!(l.left, ["navigation"]);
-    assert_eq!(l.right, ["properties"], "a pane cannot be on both sides; unknown keys go");
+    assert_eq!(l.right, ["shapeData"], "a pane cannot be on both sides; unknown keys go");
     assert_eq!((l.left_width, l.right_width), (MIN_WIDTH, MAX_WIDTH));
     assert_eq!(l.collapsed, ["history"]);
     assert!(!l.heights.contains_key("ghost"));
     assert_eq!(l.height("history"), panes::MAX_HEIGHT);
-    assert_eq!(l.height("properties"), MIN_HEIGHT);
+    assert_eq!(l.height("shapeData"), MIN_HEIGHT);
     assert!(!l.last_side.contains_key("ghost"));
     // Loading through prefs sanitises too, and the app then lays out without trouble.
     let mut a = app();
@@ -202,7 +202,7 @@ fn hostile_ui_set_values_never_panic() {
         json!(""),
         json!([]),
         json!([1, 2]),
-        json!(["navigation", "navigation", "properties"]),
+        json!(["navigation", "navigation", "shapeData"]),
         json!({}),
         json!({"navigation": "right"}),
         json!({"navigation": 1e300}),
@@ -270,26 +270,26 @@ fn view_commands_and_pane_commands_agree() {
     h.run_steps(2);
     assert_eq!(h.state().ui.panes.side("navigation"), Some(Side::Left));
     // And the other way round: the pane command sets the flag the menus check.
-    h.state_mut().run("ui.pane", json!({"name": "properties"})).unwrap();
+    h.state_mut().run("ui.pane", json!({"name": "shapeData"})).unwrap();
     assert!(!h.state().session.view.props_pane);
     h.run_steps(2);
     assert!(!h.state().session.view.props_pane, "the frame does not reopen it");
-    assert!(!h.state().ui.panes.is_open("properties"));
+    assert!(!h.state().ui.panes.is_open("shapeData"));
     // A moved pane is still "on" for the View menu.
-    h.state_mut().run("ui.paneSide", json!({"name": "properties", "side": "left"})).unwrap();
+    h.state_mut().run("ui.paneSide", json!({"name": "shapeData", "side": "left"})).unwrap();
     h.run_steps(2);
     assert!(h.state().session.view.props_pane);
-    assert_eq!(h.state().ui.panes.left, ["shapes", "navigation", "properties"]);
+    assert_eq!(h.state().ui.panes.left, ["shapes", "navigation", "shapeData"]);
 }
 
 #[test]
 fn splitter_drag_resizes_the_upper_pane() {
     let mut h = harness(app());
-    // Right side: Properties over History. Properties has the default height; the splitter sits
+    // Right side: History over the Inspector. History has the default height; the splitter sits
     // in the gap below it. The side column starts under the fold bar.
     let width = 1280.0;
     let x = width - 130.0;
-    let top = h.state().ui.panes.heights.get("properties").copied().unwrap_or(DEFAULT_HEIGHT);
+    let top = h.state().ui.panes.heights.get("history").copied().unwrap_or(DEFAULT_HEIGHT);
     assert_eq!(top, DEFAULT_HEIGHT);
     // Find the gap by probing: the pane rects are not exported, so hover down the column until the
     // resize cursor shows.
@@ -304,7 +304,7 @@ fn splitter_drag_resizes_the_upper_pane() {
         }
         y += 1.0;
     }
-    let gap_y = gap_y.expect("a splitter between Properties and History");
+    let gap_y = gap_y.expect("a splitter between History and the Inspector");
     h.drag_at(egui::pos2(x, gap_y));
     h.run_steps(2);
     for i in 1..=10 {
@@ -313,8 +313,8 @@ fn splitter_drag_resizes_the_upper_pane() {
     }
     h.drop_at(egui::pos2(x, gap_y + 80.0));
     h.run_steps(2);
-    let after = h.state().ui.panes.height("properties");
-    assert!((after - (DEFAULT_HEIGHT + 80.0)).abs() < 4.0, "properties grew by the drag: {after}");
+    let after = h.state().ui.panes.height("history");
+    assert!((after - (DEFAULT_HEIGHT + 80.0)).abs() < 4.0, "history grew by the drag: {after}");
     assert!(after >= MIN_HEIGHT);
 }
 

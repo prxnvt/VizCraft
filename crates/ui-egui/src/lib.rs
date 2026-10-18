@@ -89,10 +89,11 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.pane", "Toggle Pane", "", r#"{"name": "shapes|navigation|properties|history|layers|shapeData", "value"?: bool, "side"?: "left|right"}"#),
     ("ui.pane.shapes", "Shapes Pane", "", r#"{"value"?: bool}"#),
     ("ui.pane.navigation", "Navigation Pane", "", r#"{"value"?: bool}"#),
-    ("ui.pane.properties", "Properties Pane", "", r#"{"value"?: bool}"#),
+    ("ui.pane.properties", "Properties Pane", "", r#"{"value"?: bool}"#), // opens the Inspector at its Document section
     ("ui.pane.history", "History Pane", "", r#"{"value"?: bool}"#),
     ("ui.pane.layers", "Layers Pane", "", r#"{"value"?: bool}"#),
-    ("ui.pane.shapeData", "Shape Data Pane", "", r#"{"value"?: bool}"#),
+    ("ui.pane.shapeData", "Inspector Pane", "", r#"{"value"?: bool}"#),
+    ("ui.inspector", "Inspector Mode", "", r#"{"mode"?: "standard|expert", "tab"?: "properties|format"} -> {"mode", "tab"}"#),
     ("ui.paneSide", "Move Pane to Side", "", r#"{"name": "shapes|navigation|properties|history|layers|shapeData", "side": "left|right"}"#),
     ("ui.collapsePanes", "Collapse Side Panes", "", r#"{"side": "left|right", "value"?: bool}"#),
     ("ui.panesReset", "Reset Panes", "", "{}"),
@@ -205,6 +206,8 @@ pub struct UiState {
     pub in_window_menus: bool,
     /// Grid, rulers, guides, page breaks, connection points, AutoConnect and snap settings.
     pub aids: vizcraft_engine::cmd::view::Aids,
+    /// The Inspector's mode and tab.
+    pub inspector: panes::InspectorState,
 }
 
 impl Default for UiState {
@@ -219,6 +222,7 @@ impl Default for UiState {
             window: None,
             in_window_menus: false,
             aids: Default::default(),
+            inspector: Default::default(),
         }
     }
 }
