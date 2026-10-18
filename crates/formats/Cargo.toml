@@ -19,3 +19,8 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 # PNG export rasterises the SVG export on the CPU; the bundled Inter faces are the only fonts it reads.
 resvg = { workspace = true }
+# PDF export draws the same usvg tree into vector PDF pages and embeds subsets of the bundled
+# Inter faces. Pure Rust, MIT OR Apache-2.0, builds for wasm; krilla-svg 0.8 uses resvg 0.47, the
+# version PNG export already uses, so there is one SVG parser in the build.
+krilla = "0.8"
+krilla-svg = "0.8"

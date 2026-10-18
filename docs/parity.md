@@ -351,8 +351,10 @@ When a feature lands, change its State in the same commit as the code. States:
 |---|---|---|---|
 | `.vizcraft` native format | 1 | done | Versioned JSON; see [docs/formats.md](formats.md) |
 | SVG export | 1 | done | First page, through `file.export {path, format?}` |
-| PNG export | 2 | done (one page, built in Cascade 3) | `file.export {format: "png", page?, scale?}`; all pages at once is planned |
-| PDF export | 2 | planned | Page or all pages |
+| PNG export | 2 | done (B2) | `file.export {format: "png", page?, pages?, scale?}`; several pages write name-1.png, name-2.png and so on |
+| PDF export | 2 | done (B2) | Vector, one PDF page per page (foreground pages by default), embedded Inter subsets; `file.export {format: "pdf", pages?}`; Save As PDF |
+| Print | 2 | done (B2) | `file.print {pages?, fit?, tiles?, paper?, path?, send?}`: print-ready PDF without non-printing shapes, tiled or fitted; Print Preview (`ui.print`, Mod+P); sending to the printer is opt-in (the Print button sets it) |
+| Headers and footers | 2 | done (B2) | `page.setHeaderFooter`; fields `{page}`, `{pages}`, `{pageName}`, `{title}`, `{date}` (UTC) |
 | .drawio read and write | 3 | done | Multi-page, compressed pages; groups, containers and layers flattened for now |
 | Mermaid import | 3 | done | Flowchart, sequence, class, state, ER |
 | CSV import | 3 | done | draw.io-style CSV |

@@ -20,6 +20,7 @@ pub mod menus;
 pub mod page_setup;
 pub mod page_tabs;
 pub mod panes;
+pub mod print_preview;
 pub mod ribbon;
 pub mod snap_dialog;
 pub mod theme;
@@ -121,6 +122,9 @@ pub struct Services {
     pub inbox: Option<Inbox>,
     /// Web: hand bytes to the browser as a download.
     pub download: Option<Box<dyn Fn(&str, &[u8])>>,
+    /// Desktop: hand a print-ready PDF (`file.print`) to the operating system; returns what was
+    /// done, for the status bar, or why it failed.
+    pub print: Option<Box<dyn Fn(&str) -> Result<String, String>>>,
 }
 
 /// Files delivered asynchronously.
@@ -368,6 +372,13 @@ impl CraftApp {
         if let Some(name) = req.get("pane").and_then(Value::as_str) {
             let _ = panes::ui_command(self, "ui.pane", &json!({"name": name, "value": req.get("value")}));
         }
+        if let Some(path) = req.get("print").and_then(Value::as_str) {
+            let msg = match &self.services.print {
+                Some(send) => send(path).unwrap_or_else(|e| format!("Could not print: {e}")),
+                None => format!("Print file written to {path}; this front end cannot send it to a printer"),
+            };
+            self.status(msg);
+        }
     }
 
     /// Close this window, asking about unsaved changes first.
@@ -454,7 +465,11 @@ impl CraftApp {
             }
             // Placeholders (`menus::PLACEHOLDERS`): listed so every front sees them, shown
             // disabled in menus; running one by id only reports that it is not there yet.
-            "ui.print" | "ui.find" | "window.minimize" | "window.zoom" => {
+            "ui.print" => {
+                self.dialog = dialogs::Dialog::open("printPreview", self);
+                json!({"dialog": "printPreview"})
+            }
+            "ui.find" | "window.minimize" | "window.zoom" => {
                 self.status(format!("{} is not available in this craft yet", widgets::label_of(self, id)));
                 json!({"placeholder": true})
             }
@@ -522,8 +537,14 @@ impl CraftApp {
         let name = format!("{}.{}", self.title_stem(), vizcraft_engine::io::EXTENSION);
         let picked = self.services.pick_save.as_ref().and_then(|f| f(&name));
         if let Some(path) = picked {
-            let _ = self.run("file.save", json!({"path": path}));
+            self.save_as_dialog_picked(path);
         }
+    }
+
+    /// Ask for a path and save there (`file.saveAs`, which exports a PDF when the name ends in
+    /// `.pdf`).
+    fn save_as_dialog_picked(&mut self, path: String) {
+        let _ = self.run("file.saveAs", json!({"path": path}));
     }
 
     /// Ask for an SVG path and export the page there (`file.export` without a path). On the web

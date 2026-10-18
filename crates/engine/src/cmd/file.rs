@@ -27,14 +27,16 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("file.new", "New", "File", new).key("Mod+N").params(r#"{"template"?: "blank|sample"}"#),
         CommandSpec::new("file.open", "Open", "File", open).key("Mod+O").params(r#"{"path"?: string}"#),
         CommandSpec::new("file.save", "Save", "File", save).key("Mod+S").params(r#"{"path"?: string}"#),
-        CommandSpec::new("file.saveAs", "Save As", "File", save_as).key("Mod+Shift+S").params(r#"{"path"?: string}"#),
+        CommandSpec::new("file.saveAs", "Save As", "File", save_as)
+            .key("Mod+Shift+S")
+            .params(r#"{"path"?: string} (a path ending in .pdf exports every foreground page as PDF instead of saving)"#),
         CommandSpec::new("file.close", "Close", "File", |s, _| {
             s.ui_requests.push(json!({"close": true}));
             sel_result(s)
         })
         .key("Mod+W"),
         CommandSpec::new("file.export", "Export...", "File", export).key("Mod+Shift+E").params(
-            r#"{"path"?: string, "format"?: "svg"|"png"|"drawio", "page"?: id|name|index, "scale"?: number} -> {exported, path, format, page} (svg and png: one page, the active one unless `page` names another; png: `scale` pixels per unit, 0.25 to 4, default 1; drawio: every page; format from the extension when omitted)"#,
+            r#"{"path"?: string, "format"?: "svg"|"png"|"pdf"|"drawio", "page"?: id|name|index, "pages"?: "active"|"all"|[id|name|index], "scale"?: number, "print"?: bool} -> {exported, path, format, page, pages, paths} (svg: one page; png: the active page unless `page` or `pages` names others, several pages write name-1.png, name-2.png and so on, listed in `paths`; pdf: one vector page per document page, every foreground page by default, fonts embedded; png: `scale` pixels per unit, 0.25 to 4, default 1; drawio: every page; `print` leaves out non-printing shapes and layers, otherwise the export matches the screen; format from the extension when omitted)"#,
         ),
         CommandSpec::new("file.import", "Import...", "File", import).key("Mod+Shift+I").params(IMPORT_PARAMS),
         CommandSpec::new("file.setAuthor", "User Name", "File > Options", |s, v| {
@@ -95,9 +97,15 @@ fn save(s: &mut Session, v: &Value) -> CmdResult {
 }
 
 fn save_as(s: &mut Session, v: &Value) -> CmdResult {
-    if p::str(v, "path").is_none() {
+    let Some(path) = p::str(v, "path") else {
         s.ui_requests.push(json!({"open": "saveAs"}));
         return Ok(json!({"saved": false}));
+    };
+    // Save As offers PDF: the document is exported, every foreground page, and stays where it was
+    // saved (a PDF cannot be opened again as a document).
+    if path.to_ascii_lowercase().ends_with(".pdf") {
+        let r = export(s, &json!({"path": path, "format": "pdf"}))?;
+        return Ok(json!({"saved": false, "exported": r.get("exported"), "path": path, "format": "pdf"}));
     }
     save(s, v)
 }
@@ -109,25 +117,49 @@ fn export(s: &mut Session, v: &Value) -> CmdResult {
     };
     let format = crate::io::export_format(path, p::str(v, "format"))?;
     // Read every param before writing anything, so a bad page or scale leaves no file behind.
-    let page = match v.get("page") {
-        None | Some(Value::Null) => s.doc.active_index(),
-        Some(Value::String(r)) => s.doc.find_page(r).ok_or_else(|| EngineError::Params(format!("no page `{}`", short(r))))?,
-        Some(Value::Number(n)) => n
-            .as_u64()
-            .and_then(|i| usize::try_from(i).ok())
-            .filter(|&i| i < s.doc.pages.len())
-            .ok_or_else(|| EngineError::Params(format!("no page {n}")))?,
-        Some(_) => return Err(EngineError::Params("`page` must be a page id, name or index".into())),
-    };
+    // A PDF holds every foreground page unless told otherwise; SVG and PNG the active page.
+    let pages = super::print::resolve_pages(s, v, if format == "pdf" { "all" } else { "active" })?;
     let scale = super::num(v, "scale")?.unwrap_or(1.0);
     if scale <= 0.0 {
         return Err(EngineError::Params("`scale` must be greater than 0".into()));
     }
-    let bytes = crate::io::export_page_bytes(path, Some(format), &s.doc, page, scale)?;
-    std::fs::write(path, bytes).map_err(|e| EngineError::Failed(format!("{path}: {e}")))?;
+    let opts = vizcraft_formats::svg::SvgOptions { print: opt_bool(v, "print")?.unwrap_or(false), date: super::print::today() };
+    let fail = |e: vizcraft_formats::FormatError| EngineError::Failed(format!("{path}: {e}"));
+    let first = pages.first().copied().unwrap_or(0);
+    // (file name, bytes) for every file to write, all made before any is written.
+    let files: Vec<(String, Vec<u8>)> = match format {
+        "pdf" => vec![(path.to_string(), vizcraft_formats::pdf::export_pages(&s.doc, &pages, &opts).map_err(fail)?)],
+        "png" if pages.len() > 1 => {
+            let (stem, ext) = numbered_stem(path);
+            let mut out = Vec::with_capacity(pages.len());
+            for (n, &i) in pages.iter().enumerate() {
+                let (png, _, _) = vizcraft_formats::png::render_page_with(&s.doc, i, scale, &opts).map_err(fail)?;
+                out.push((format!("{stem}-{}{ext}", n + 1), png));
+            }
+            out
+        }
+        "png" => vec![(path.to_string(), vizcraft_formats::png::render_page_with(&s.doc, first, scale, &opts).map_err(fail)?.0)],
+        "svg" if pages.len() > 1 => return Err(EngineError::Params("an SVG file holds one page; export PNG or PDF for several".into())),
+        "svg" => vec![(path.to_string(), vizcraft_formats::svg::export_page_with(&s.doc, first, &opts).map_err(fail)?)],
+        _ => vec![(path.to_string(), crate::io::export_page_bytes(path, Some(format), &s.doc, first, scale)?)],
+    };
+    for (name, bytes) in &files {
+        std::fs::write(name, bytes).map_err(|e| EngineError::Failed(format!("{name}: {e}")))?;
+    }
     s.status = format!("Exported {path}");
-    let page_id = s.doc.pages.get(page).map(|p| p.id.clone());
-    Ok(json!({"exported": true, "path": path, "format": format, "page": page_id}))
+    let ids: Vec<String> = pages.iter().filter_map(|&i| s.doc.pages.get(i).map(|p| p.id.clone())).collect();
+    let paths: Vec<&String> = files.iter().map(|(n, _)| n).collect();
+    Ok(json!({"exported": true, "path": path, "format": format, "page": ids.first(), "pages": ids, "paths": paths}))
+}
+
+/// `path` split for numbered files: `out/plan.png` gives (`out/plan`, `.png`); a name without an
+/// extension keeps an empty one.
+fn numbered_stem(path: &str) -> (&str, &str) {
+    let file_start = path.rfind(['/', '\\']).map_or(0, |i| i + 1);
+    match path.rfind('.').filter(|&i| i > file_start) {
+        Some(i) => (path.get(..i).unwrap_or(path), path.get(i..).unwrap_or("")),
+        None => (path, ""),
+    }
 }
 
 fn import(s: &mut Session, v: &Value) -> CmdResult {

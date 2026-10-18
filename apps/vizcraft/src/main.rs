@@ -22,6 +22,7 @@
 mod control_server;
 #[cfg(target_os = "macos")]
 mod native_menu;
+mod print;
 mod windows;
 
 use vizcraft_engine::Session;
@@ -220,7 +221,19 @@ fn services() -> Services {
             };
             dialog.add_filter("All files", &["*"]).pick_file().map(|p| p.to_string_lossy().to_string())
         })),
-        pick_save: Some(Box::new(|name: &str| rfd::FileDialog::new().set_file_name(name).save_file().map(|p| p.to_string_lossy().to_string()))),
+        pick_save: Some(Box::new(|name: &str| {
+            let mut dialog = rfd::FileDialog::new().set_file_name(name);
+            // Save As offers PDF next to the document formats; other saves (export) keep the
+            // name they suggest.
+            if name.ends_with(&format!(".{}", vizcraft_engine::io::EXTENSION)) {
+                dialog = dialog
+                    .add_filter("VizCraft documents", &[vizcraft_engine::io::EXTENSION])
+                    .add_filter("draw.io diagrams", &["drawio"])
+                    .add_filter("PDF", &["pdf"]);
+            }
+            dialog.save_file().map(|p| p.to_string_lossy().to_string())
+        })),
+        print: Some(Box::new(print::send)),
         ..Default::default()
     }
 }

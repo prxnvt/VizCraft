@@ -16,6 +16,7 @@ pub mod layout;
 pub mod model;
 pub mod notation;
 pub mod page;
+pub mod print;
 pub mod relationship;
 pub mod script;
 pub mod shape;
@@ -40,6 +41,7 @@ pub fn registry() -> Registry {
     v.extend(arrange::specs());
     v.extend(connector::specs());
     v.extend(page::specs());
+    v.extend(print::specs());
     v.extend(layer::specs());
     v.extend(data::specs());
     v.extend(design::specs());

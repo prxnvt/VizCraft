@@ -5,6 +5,8 @@
 //! - [`svg`]: export of one page as a standalone SVG 1.1 document.
 //! - [`png`]: export of one page as a PNG image, the SVG export rasterised with resvg and the
 //!   bundled Inter fonts.
+//! - [`pdf`]: export of pages as vector PDF (krilla and krilla-svg, Inter subsets embedded) and
+//!   the print layout (paper, fit, tiles).
 //! - [`drawio`]: `.drawio` files read and written through `vizcraft-drawio`.
 //! - [`csv`]: draw.io-style CSV import, placed with the auto-layout.
 //! - [`mermaid`]: Mermaid import through `vizcraft-mermaid`, placed with the auto-layout.
@@ -18,6 +20,7 @@ pub mod csv;
 pub mod drawio;
 pub mod mermaid;
 pub mod native;
+pub mod pdf;
 pub mod png;
 pub mod svg;
 

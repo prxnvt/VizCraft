@@ -1,4 +1,5 @@
 //! PNG export of one page: the [`svg`](crate::svg) export rasterised with resvg on the CPU.
+//! Several pages are several files; the engine names them (`file.export`).
 //!
 //! Choices:
 //! - **One drawing path.** The PNG is the SVG export drawn into pixels, so the two exports never
@@ -18,6 +19,7 @@ use resvg::usvg::{self, fontdb};
 use vizcraft_diagram::Document;
 
 use crate::FormatError;
+use crate::svg::SvgOptions;
 
 /// Smallest scale accepted; smaller requests are raised to this.
 pub const MIN_SCALE: f64 = 0.25;
@@ -30,7 +32,7 @@ pub const MAX_PNG_BYTES: usize = 48 * 1024 * 1024;
 
 /// The fonts the SVG export names, built once: parsing the faces is cheap but not free, and every
 /// render needs the same set.
-fn fonts() -> Arc<fontdb::Database> {
+pub(crate) fn fonts() -> Arc<fontdb::Database> {
     static DB: OnceLock<Arc<fontdb::Database>> = OnceLock::new();
     DB.get_or_init(|| {
         let mut db = fontdb::Database::new();
@@ -54,14 +56,24 @@ pub fn effective_scale(w: f64, h: f64, scale: f64) -> f64 {
 /// Render page `page_index` (0 based) of `doc` at `scale` pixels per page unit. Returns the PNG
 /// bytes with the image width and height in pixels.
 pub fn render_page(doc: &Document, page_index: usize, scale: f64) -> Result<(Vec<u8>, u32, u32), FormatError> {
-    let svg = crate::svg::export_page(doc, page_index)?;
+    render_page_with(doc, page_index, scale, &SvgOptions::default())
+}
+
+/// [`render_page`] with export options (printing, the date fields expand to).
+pub fn render_page_with(doc: &Document, page_index: usize, scale: f64, opts: &SvgOptions) -> Result<(Vec<u8>, u32, u32), FormatError> {
+    let svg = crate::svg::export_page_with(doc, page_index, opts)?;
     render_svg(&svg, scale)
+}
+
+/// Parse SVG bytes from the [`crate::svg`] export with the bundled fonts.
+pub(crate) fn parse_svg(svg: &[u8]) -> Result<usvg::Tree, FormatError> {
+    let opt = usvg::Options { font_family: "Inter".into(), fontdb: fonts(), ..usvg::Options::default() };
+    usvg::Tree::from_data(svg, &opt).map_err(|e| FormatError::Encode(format!("cannot read the page drawing: {e}")))
 }
 
 /// Rasterise SVG bytes from [`crate::svg::export_page`] onto a white image.
 fn render_svg(svg: &[u8], scale: f64) -> Result<(Vec<u8>, u32, u32), FormatError> {
-    let opt = usvg::Options { font_family: "Inter".into(), fontdb: fonts(), ..usvg::Options::default() };
-    let tree = usvg::Tree::from_data(svg, &opt).map_err(|e| FormatError::Encode(format!("cannot read the page drawing: {e}")))?;
+    let tree = parse_svg(svg)?;
     let size = tree.size();
     let (w, h) = (f64::from(size.width()), f64::from(size.height()));
     let s = effective_scale(w, h, scale);

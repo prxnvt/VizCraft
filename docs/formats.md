@@ -11,8 +11,8 @@ import are built; the rest is planned ([ROADMAP.md](../ROADMAP.md)).
 | Mermaid | import (built: flowchart, sequence, class, state, ER) | 3 | Mermaid syntax documentation |
 | CSV | import (built) | 3 | draw.io documentation on CSV import |
 | SVG | export (built: one page) | 1 | W3C SVG 1.1 |
-| PNG | export (built: one page) | 2, built in 3 | W3C PNG specification (written by `resvg`) |
-| PDF | export | 2 | ISO 32000 (PDF) |
+| PNG | export (built: one page or several, one file each) | 2, built in 3 | W3C PNG specification (written by `resvg`) |
+| PDF | export (built: one vector page per document page, foreground pages by default, built from the SVG export through the krilla and krilla-svg crates; text is real PDF text in embedded subsets of the bundled Inter faces; blur effects are rasterised inside the PDF; 100 page units are one inch (0.72 pt per unit), pages capped at 200 inches; printing uses the same writer with paper layout, tiling or fit, and non-printing shapes left out) | 2, B2 | ISO 32000 (PDF) |
 | `.vsdx` | import | 4 | Microsoft Open Specifications [MS-VSDX]; ECMA-376 Open Packaging Conventions |
 
 ## Rules for every format

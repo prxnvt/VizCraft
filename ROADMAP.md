@@ -78,7 +78,7 @@ patterns; the Shape Data pane is the first form of the typed Inspector.
 | Shape Data pane (first Inspector) | Typed key and value data on shapes, edited in a right-dock pane; each key may carry schema hooks (type, unit, enum, required, default) that notation packs fill in later; Cascade 4B grows the pane into the Inspector; `data.*` commands | `crates/engine/src/cmd/data.rs`, `crates/ui-egui/src/panes.rs` | done (Block 2B `b2-data`) |
 | Pan and Zoom pane | Overview of the page with the visible area as a draggable frame | `crates/ui-egui/src/panes.rs` | planned |
 | Find and replace | Search shape text and shape data, replace | `crates/engine/src/cmd/edit.rs`, `crates/ui-egui/src/dialogs.rs` | planned |
-| PNG and PDF export | Raster and vector export of a page or all pages | `crates/formats` | planned (PNG of one page built in Cascade 3) |
+| PNG and PDF export | Raster and vector export of a page or all pages | `crates/formats` | done (Block 2B `b2-output`: PDF, multi-page PNG, headers and footers, print) |
 
 Done when: a multi-page cross-functional flowchart with swimlanes, layers, a theme, typed shape
 data and aligned shapes can be built and exported to PNG and PDF, by hand and over the control
@@ -316,7 +316,7 @@ General drawing stays available, as a pack, but is no longer the identity of the
 | Comments and hyperlinks | Comments on shapes, elements and pages; hyperlinks between pages, shapes, elements and URLs | `crates/diagram`, `crates/model`, `crates/engine` | planned |
 | .vsdx import | Import from the public MS-VSDX specification (OPC zip and XML) | `crates/formats` | planned |
 | Runtime-loaded packs | Third-party notation packs loaded from files at run time (replaces Plugin stencils) | `crates/notation` | planned |
-| Print | Page tiling and printing | `crates/formats`, `apps/vizcraft` | planned |
+| Print | Page tiling and printing | `crates/formats`, `apps/vizcraft` | done early (Block 2B `b2-output`) |
 
 Done when: each General diagram type has a template that opens to a valid example, a sample .vsdx
 built from the public specification imports, and a pack loaded from a file at run time appears in
