@@ -40,6 +40,8 @@ pub enum Dialog {
         title: String,
         text: String,
     },
+    /// Page Setup for the active page (`crate::page_setup`).
+    PageSetup(crate::page_setup::PageSetup),
 }
 
 impl Dialog {
@@ -53,6 +55,7 @@ impl Dialog {
             Dialog::Commands { .. } => "commands",
             Dialog::Shortcuts { .. } => "shortcuts",
             Dialog::Message { .. } => "message",
+            Dialog::PageSetup(_) => "pageSetup",
         }
     }
 
@@ -66,6 +69,7 @@ impl Dialog {
             "zoom" => Dialog::Zoom { percent: (app.session.view.zoom * 100.0).round() },
             "commands" => Dialog::Commands { query: String::new(), selected: 0 },
             "shortcuts" => Dialog::Shortcuts { filter: String::new() },
+            "pageSetup" => Dialog::PageSetup(crate::page_setup::PageSetup::new(app)),
             _ => return None,
         })
     }
@@ -79,6 +83,7 @@ impl Dialog {
             Dialog::Commands { .. } => "Command Palette".into(),
             Dialog::Shortcuts { .. } => "Keyboard Shortcuts".into(),
             Dialog::Message { title, .. } => title.clone(),
+            Dialog::PageSetup(_) => "Page Setup".into(),
         }
     }
 
@@ -298,6 +303,14 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
         Dialog::Message { text, .. } => {
             ui.label(egui::RichText::new(text.as_str()).color(t.text));
             let (ok, cancel) = buttons(ui, "Close", None, keys);
+            ok || cancel
+        }
+        Dialog::PageSetup(p) => {
+            crate::page_setup::fields(ui, p);
+            let (ok, cancel) = buttons(ui, "OK", Some("Cancel"), keys);
+            if ok {
+                crate::page_setup::apply(app, p);
+            }
             ok || cancel
         }
     }

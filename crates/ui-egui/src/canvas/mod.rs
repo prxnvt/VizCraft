@@ -1,4 +1,4 @@
-//! The diagram canvas: the page drawn through [`Viewport2D`] on a pasteboard, with selection,
+//! The diagram canvas: the active page (over its background pages) drawn through [`Viewport2D`] on a pasteboard, with selection,
 //! handles, connector drawing, in-place text editing and drops from the Shapes pane.
 //!
 //! - [`draw`] paints the document (sheet, shapes, connectors, text) in document colours, and
@@ -6,6 +6,7 @@
 //! - [`interact`] turns pointer and keys into commands; drags are previewed in [`CanvasState`]
 //!   and commit one command on release. In-place text editing is `interact/edit_text.rs`.
 //! - [`tess`] triangulates concave outlines for filling.
+//! - The page tab strip along the bottom edge is `crate::page_tabs`.
 //!
 //! This module holds the viewport, the canvas state, pan and zoom, insertion and the per-frame
 //! [`show`] that runs input and painting. Chrome (selection, handles, hover, marquee, connection
@@ -237,7 +238,11 @@ pub fn insert_point(app: &CraftApp) -> dg::Point {
 /// Draw the central canvas area and handle its input.
 pub fn show(app: &mut CraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
-    let (rect, response) = ui.allocate_exact_size(ui.available_size(), egui::Sense::click_and_drag());
+    // The page tab strip takes the bottom edge; the canvas gets the rest.
+    let full = ui.available_rect_before_wrap();
+    let strip_h = crate::page_tabs::STRIP_H.min(full.height());
+    crate::page_tabs::show(app, ui, Rect::from_min_max(Pos2::new(full.min.x, full.max.y - strip_h), full.max));
+    let (rect, response) = ui.allocate_exact_size(Vec2::new(full.width(), full.height() - strip_h), egui::Sense::click_and_drag());
     app.canvas.rect = Some(rect);
     if rect.width() > 1.0 && rect.height() > 1.0 {
         // Only a real size: a fit into a collapsed canvas would drop to the smallest zoom.
@@ -283,6 +288,18 @@ fn paint(app: &mut CraftApp, ui: &Ui, vp: &Viewport2D, t: &Tokens) {
     draw::sheet(&painter, vp, page, t);
     let visible = vp.visible_world_rect().inflate(4.0);
     let editing = app.canvas.editing.as_ref().map(|e| e.id().to_string());
+    // Background pages under the active one, deepest first. Drawn only: hit testing and every
+    // command look at the active page, so nothing here can be selected or edited.
+    for bg in app.session.doc.background_chain(app.session.doc.active_index()) {
+        for s in bg.shapes.iter().filter(|s| bg.shape_visible(s) && s.bounds().intersects(&visible)) {
+            draw::shape(&painter, vp, s, &mut app.canvas.cache, true);
+        }
+        for (c, g) in bg.connectors.iter().zip(dg::jumps::page_geometry(bg)) {
+            if draw::connector_bounds(&g).is_some_and(|b| b.intersects(&visible)) {
+                draw::connector(&painter, vp, c, &g, true);
+            }
+        }
+    }
     for s in &page.shapes {
         if s.bounds().intersects(&visible) {
             draw::shape(&painter, vp, s, &mut app.canvas.cache, editing.as_deref() != Some(s.id.as_str()));

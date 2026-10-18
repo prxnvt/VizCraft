@@ -1,8 +1,9 @@
-//! The Design tab: page layout and connector routing.
+//! The Design tab: page setup, page layout and connector routing.
 
 use super::Tab;
 
 groups! {
+    page_setup,
     layout,
     connectors,
 }

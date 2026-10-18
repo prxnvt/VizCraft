@@ -83,14 +83,21 @@ must name existing items or nothing changes. Each document change is one undo st
 | `connector.reroute`, `connector.setJumps` | `{ids?, avoid?}` (true: route around shapes and keep clear; false: clear bends); `{ids?, on}` |
 | `shape.search` | `{query, limit?}` -> `{masters: [{id, label, category, keywords, w, h, style}]}` (`style` is the draw.io style string) |
 
-Interop and layout commands (Cascade 3). Each is one undo step; a page is named by id, name or
-zero-based index (`Document::find_page`).
+Interop, layout and page commands. Each is one undo step except `page.setActive`; a page is named
+by id, name or zero-based index (`Document::find_page`), and an optional `page` means the active
+page (`Document::page`), which every page-scoped command acts on. After every change the session
+grows each auto-size page whose drawing reaches past its right or bottom edge
+(`cmd::page::auto_size`), in the same undo step.
 
 | Command | Params |
 |---|---|
 | `file.import` | `{path? \| text?, format?: "drawio" \| "mermaid" \| "csv", page?, replace?, layout?, direction?, routing?: "orthogonal"}` -> `{page, ids, warnings}`; imported ids are kept when plain and free (`Document::adopt`); with a `layout` on a page that has shapes, the existing shapes stay and new ones are placed incrementally |
 | `file.export` | `{path?, format?: "svg" \| "drawio"}` |
 | `page.list`, `page.get`, `page.set` | `{path?}`; `{page?, path?, format?: "drawio" \| "vizcraft"}`; `{page, xml, path?, layout?, direction?, routing?}`; with `path` they read or edit that file and leave the session alone |
+| `page.add`, `page.delete`, `page.duplicate` | `{name?, background?: bool, index?}` -> `{page, index, name}` (takes the active page's setup and becomes active); `{page?}` (the last foreground page is refused; references to a deleted background page are cleared); `{page?}` -> `{page, index, name, ids}` (fresh ids, glue and parents remapped) |
+| `page.rename`, `page.move`, `page.setActive` | `{page?, name}` (unique, at most 256 characters); `{page, index}`; `{page}` (not an undo step and not an edit) |
+| `page.setup` | `{page?, width?, height?, orientation?, units?, drawingScale?: {page, drawing, units?}, autoSize?}`; orientation swaps width and height to match; with no params the UI opens the Page Setup dialog |
+| `page.setBackground`, `page.fitToDrawing` | `{page?, background: page or null}` (a background page only, no loops); `{page?, margin?}` (moves the drawing to the margin and sizes the page around it) |
 | `layout.full` | `{algorithm?: "layered" \| "tree" \| "radial" \| "force", direction?, nodeSpacing?, layerSpacing?, ids?}`: the named shapes, else a selection of two or more, else the page; the page grows to fit |
 | `layout.incremental` | `{ids, algorithm?, direction?, nodeSpacing?, layerSpacing?}`: places only `ids`, every other shape stays |
 | `layout.route` | `{ids?}`: routes connectors around shapes, never moves a shape |
@@ -227,11 +234,14 @@ Modules: `theme`, `icons`, `widgets`, `chrome` (title bar + status bar), `menus`
 in-window menu bar), `ribbon` (Home, Insert, Design, Process, View, Help, and the contextual
 Connector tab; Data, Review and Developer exist but stay hidden while they have no groups),
 `panes` (side panes, `PaneSpec`, `set_panes`; Shapes, Navigation, Properties, History),
-`canvas` (the diagram canvas: `Viewport2D` screen/world projections; drawing of the page, shapes,
-text and connectors; selection, marquee, move, resize and rotate handles, connector drag and
+`canvas` (the diagram canvas: `Viewport2D` screen/world projections; drawing of the active page
+over its background pages, which are drawn only and never hit; shapes, text and connectors; selection, marquee, move, resize and rotate handles, connector drag and
 reglue, in-place text editing, arrow-key nudge; pan with middle-drag, Space+left-drag or
 Cmd+left-drag, Ctrl off macOS; `insert_point` and `insert_master` place new shapes), `dialogs`,
-`keys`, `control`, `window_geometry`, `backstage` (optional File page).
+`keys`, `control`, `window_geometry`, `backstage` (optional File page), `page_tabs` (the page tab
+strip under the canvas: click switches, double-click renames, plus adds, right-click inserts,
+duplicates, renames, deletes and assigns a background) and `page_setup` (the Page Setup dialog
+and the paper size presets the Design tab's Size menu shares).
 
 Files are cut so that parallel work touches separate files:
 
@@ -339,7 +349,7 @@ shape's frame centre.
 
 | Type | Holds |
 |---|---|
-| `Document` | `title`, `core: CoreProps` (author, timestamps, revision), `pages: Vec<Page>` (always at least one), `id_seq`, `model: vizcraft_model::Model` (not in the document's serde form; the native file writes it as its own section); `next_id(prefix)` hands out `s1`, `c2`, `e3`, `r4` and so on, never reused; pages, shapes, connectors, elements and relationships share one id space (`contains_id`); `properties: DocProperties` (title, author, subject, keywords, description), `comments: Vec<Comment>` (id, `anchor: CommentAnchor { page, shape? }`, author, time, text, `replies: Vec<Reply>`), `images: Vec<ImageAsset>` (id, `media_type` `image/...`, `bytes` as base64 on disk; 16 MiB each, 48 MiB in all, 1024 assets); `background_chain(index)` lists the background pages under a page, deepest first |
+| `Document` | `title`, `core: CoreProps` (author, timestamps, revision), `pages: Vec<Page>` (always at least one), `id_seq`, `model: vizcraft_model::Model` (not in the document's serde form; the native file writes it as its own section); `next_id(prefix)` hands out `s1`, `c2`, `e3`, `r4` and so on, never reused; pages, shapes, connectors, elements and relationships share one id space (`contains_id`); `properties: DocProperties` (title, author, subject, keywords, description), `comments: Vec<Comment>` (id, `anchor: CommentAnchor { page, shape? }`, author, time, text, `replies: Vec<Reply>`), `images: Vec<ImageAsset>` (id, `media_type` `image/...`, `bytes` as base64 on disk; 16 MiB each, 48 MiB in all, 1024 assets); `background_chain(index)` lists the background pages under a page, deepest first; `active_page` (a page id, empty or unknown meaning the first) picks the page `page()`, `page_mut()` and `active_index()` return |
 | `Page` | Id, name, width and height (the size; 1100 x 850 by default), `shapes` and `connectors` in z order, `ext`, `view: Option<View>` (the viewpoint the page shows; `None` for free drawing), `orientation`, `units`, `drawing_scale: DrawingScale { page, drawing, units }`, `auto_size`, `background: Option<String>` (another page with `is_background`), `is_background`, `header` and `footer: HeaderFooter { left, center, right }`, `guides: Vec<Guide { orientation, position }>`, `layers: Vec<Layer { id, name, visible, locked, print, snap, glue, color? }>`; `shape_visible` (not hidden, and on no layer or on a visible one) |
 | `Shape` | Id, `stencil` master id (`basic.rectangle`), `kind: ShapeKind` (16 outlines), frame `x, y, w, h`, `angle_deg`, text, `Style`, optional custom connection points (normalized; kinds default to top, right, bottom, left), `ext` (data from other formats kept for round trips), `element: Option<String>` (the model element it draws; `None` is free drawing), `layers` (page layer ids), `parent: Option<String>` (group or container on the same page; cycles are broken on load), `text_block: Option<TextBlock { dx, dy, w, h, angle_deg }>` (`None` is the frame; `text_rect()`), `links: Vec<Hyperlink { kind: url, file, page, shape or element, target, label }>`, `screen_tip`, `locks: Locks` (width, height, aspect, position, rotation, delete, select, text), `behavior: Behavior` (container, non-printing, hidden, no glue, no snap), `image: Option<ImageRef { asset, crop: CropRect }>` |
 | `Connector` | Id, `start` and `end` as `End::Glued { shape, point: Option<usize> }` (no point = dynamic glue) or `End::Free { x, y }`, `route` (`straight`, `orthogonal`, `curved`), arrowheads per end (`none`, `triangle`, `open`, `diamond`, `circle`), label text, `Style`, `waypoints` (stored bends), `avoid` (route around shapes), `jumps` (line jumps), `ext`, `relationship: Option<String>` (the model relationship it draws) |
@@ -458,7 +468,7 @@ New prefixes join the existing `file.*`, `edit.*`, `view.*`, `shape.*`, `connect
 
 | Prefix | Covers | Module |
 |---|---|---|
-| `page.*` | Add, delete, rename, reorder, page setup, background page (`page.list`, `page.get`, `page.set` are built) | `crates/engine/src/cmd/page.rs` |
+| `page.*` | Built: list, get, set, add, delete, duplicate, rename, move, setActive, setup, setBackground, fitToDrawing | `crates/engine/src/cmd/page.rs` |
 | `layer.*` | Add, delete, rename, flags, assign shapes | `crates/engine/src/cmd/layer.rs` |
 | `arrange.*` | Align, distribute, order, group, ungroup, flip, rotate, size and position | `crates/engine/src/cmd/arrange.rs` |
 | `design.*` | Themes, quick styles, page background, format painter | `crates/engine/src/cmd/design.rs` |

@@ -130,6 +130,17 @@ fn window_snapshots() {
     run(&mut h, "ui.dialog", json!({"name": "about"}));
     snap(&mut results, &mut h, "dialog-about");
 
+    // The page tab strip with two pages, the second active, on the Design tab's ribbon.
+    let mut h = window(false);
+    run(&mut h, "page.add", json!({"name": "Details"}));
+    run(&mut h, "ui.tab", json!({"tab": "Design"}));
+    snap(&mut results, &mut h, "page-tabs");
+
+    // The Page Setup dialog, opened the way the ribbon's launcher opens it.
+    let mut h = window(false);
+    run(&mut h, "page.setup", json!({}));
+    snap(&mut results, &mut h, "dialog-page-setup");
+
     // The command palette.
     let mut h = window(true);
     run(&mut h, "ui.commands", json!({}));

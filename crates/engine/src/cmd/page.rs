@@ -873,12 +873,10 @@ mod tests {
         let mut s = Session::new(crate::sample::sample_document());
         s.run("page.add", &json!({"name": "Second"})).unwrap();
         let active = s.doc.page().unwrap().id.clone();
-        for name in ["doc.vizcraft"] {
-            let bytes = crate::io::save_bytes(name, &s.doc).unwrap();
-            let back = crate::io::load_bytes(name, &bytes).unwrap();
-            assert_eq!(back.page().unwrap().id, active, "{name}");
-            assert_eq!(back.active_index(), 1);
-        }
+        let bytes = crate::io::save_bytes("doc.vizcraft", &s.doc).unwrap();
+        let back = crate::io::load_bytes("doc.vizcraft", &bytes).unwrap();
+        assert_eq!(back.page().unwrap().id, active);
+        assert_eq!(back.active_index(), 1);
         // An unknown id from a file falls back to the first page.
         let mut doc = s.doc.clone();
         doc.active_page = "missing".into();

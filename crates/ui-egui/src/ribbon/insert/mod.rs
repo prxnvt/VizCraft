@@ -1,8 +1,9 @@
-//! The Insert tab: stencil galleries and the connector and text tools.
+//! The Insert tab: pages, stencil galleries and the connector and text tools.
 
 use super::Tab;
 
 groups! {
+    pages,
     basic_shapes,
     flowchart,
     diagram_parts,

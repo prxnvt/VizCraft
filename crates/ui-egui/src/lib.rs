@@ -16,6 +16,8 @@ pub mod dialogs;
 pub mod icons;
 pub mod keys;
 pub mod menus;
+pub mod page_setup;
+pub mod page_tabs;
 pub mod panes;
 pub mod ribbon;
 pub mod theme;
@@ -36,7 +38,12 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.tab", "Switch Ribbon Tab", "", r#"{"tab": "File|Home|Insert|Design|View|Help|Connector"}"#),
     ("ui.collapseRibbon", "Collapse the Ribbon", "Mod+F1", r#"{"value"?: bool}"#),
     ("ui.commands", "Search Commands", "Mod+Shift+P", "{}"),
-    ("ui.dialog", "Open Dialog", "", r#"{"name": "commands|zoom|about|preferences|quit|shortcuts|message", "title"?: string, "text"?: string}"#),
+    (
+        "ui.dialog",
+        "Open Dialog",
+        "",
+        r#"{"name": "commands|zoom|about|preferences|quit|shortcuts|message|pageSetup", "title"?: string, "text"?: string}"#,
+    ),
     ("ui.closeDialog", "Close Dialog", "", "{}"),
     ("ui.backstage", "File Page", "", r#"{"value"?: bool}"#),
     ("ui.openFileDialog", "Open...", "", "{}"),
