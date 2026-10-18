@@ -50,7 +50,7 @@ fn task_panes_lists_every_pane_with_its_check_mark() {
     let rows: Vec<(String, bool)> =
         menu["rows"].as_array().unwrap().iter().map(|r| (r["label"].as_str().unwrap().to_string(), r["checked"] == json!(true))).collect();
     assert!(rows.contains(&("Pan and Zoom".to_string(), false)), "{rows:?}");
-    assert!(rows.contains(&("Shapes".to_string(), true)), "{rows:?}");
+    assert!(rows.contains(&("Palette".to_string(), true)), "{rows:?}");
     assert_eq!(rows.len(), vizcraft_ui_egui::panes::panes().len());
 }
 
@@ -62,14 +62,14 @@ fn presentation_hides_the_chrome_pages_with_keys_and_escape_leaves() {
     let mut h = harness_with(a, 1280.0);
     let drawn = |h: &Harness<'static, CraftApp>, label: &str| h.query_all_by_label_contains(label).count() > 0;
     assert!(drawn(&h, "Home") && drawn(&h, "Insert"), "the ribbon shows normally");
-    assert!(drawn(&h, "Shapes"), "and so do the panes");
+    assert!(drawn(&h, "Drawing"), "and so do the panes (the Palette's Drawing group)");
     assert!(drawn(&h, "Ready"), "and the status bar");
     let zoom = h.state().session.view.zoom;
     let pan = h.state().session.view.pan;
     h.state_mut().run("ui.present", json!({})).unwrap();
     h.run_steps(4);
     assert!(h.state().presenting);
-    for label in ["Home", "Insert", "Shapes", "Ready"] {
+    for label in ["Home", "Insert", "Drawing", "Ready"] {
         assert!(!drawn(&h, label), "{label} is still drawn in presentation mode");
     }
     assert!(h.state().session.view.canvas.is_some(), "the canvas is still drawn");
