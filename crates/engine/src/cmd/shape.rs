@@ -133,11 +133,12 @@ fn move_shapes(s: &mut Session, v: &Value) -> CmdResult {
         let x = coord(req_num(v, "x")?);
         let y = coord(req_num(v, "y")?);
         super::layer::ensure_unlocked(s, [id])?;
-        let sh = page_mut(s)?.shape_mut(id).ok_or_else(|| not_a_shape(id))?;
-        sh.x = x;
-        sh.y = y;
-        sh.sanitize();
+        let page = page_mut(s)?;
+        let sh = page.shape(id).ok_or_else(|| not_a_shape(id))?;
+        let (dx, dy) = (x - sh.x, y - sh.y);
         let id = id.to_string();
+        // A group carries its members.
+        super::arrange::move_shapes(page, std::slice::from_ref(&id), dx, dy);
         return with_sel(s, json!({"moved": [id]}));
     }
     let dx = num(v, "dx")?;
@@ -150,12 +151,11 @@ fn move_shapes(s: &mut Session, v: &Value) -> CmdResult {
     let ids = targets(s, v, Kinds::Both)?;
     super::layer::ensure_unlocked(s, &ids)?;
     let page = page_mut(s)?;
+    // Shapes move through the arrange code so a group carries its members.
+    let shape_ids: Vec<String> = ids.iter().filter(|id| page.shape(id).is_some()).cloned().collect();
+    super::arrange::move_shapes(page, &shape_ids, dx, dy);
     for id in &ids {
-        if let Some(sh) = page.shape_mut(id) {
-            sh.x = coord(sh.x + dx);
-            sh.y = coord(sh.y + dy);
-            sh.sanitize();
-        } else if let Some(c) = page.connector_mut(id) {
+        if let Some(c) = page.connector_mut(id) {
             for e in [&mut c.start, &mut c.end] {
                 if let End::Free { x, y } = e {
                     *x = coord(*x + dx);
@@ -175,16 +175,12 @@ fn resize(s: &mut Session, v: &Value) -> CmdResult {
     let x = num(v, "x")?.map(coord);
     let y = num(v, "y")?.map(coord);
     super::layer::ensure_unlocked(s, [id])?;
-    let sh = page_mut(s)?.shape_mut(id).ok_or_else(|| not_a_shape(id))?;
-    sh.w = w;
-    sh.h = h;
-    if let Some(x) = x {
-        sh.x = x;
-    }
-    if let Some(y) = y {
-        sh.y = y;
-    }
-    sh.sanitize();
+    let page = page_mut(s)?;
+    let sh = page.shape(id).ok_or_else(|| not_a_shape(id))?;
+    let (x, y) = (x.unwrap_or(sh.x), y.unwrap_or(sh.y));
+    // A group scales its members.
+    vizcraft_diagram::arrange::set_frame(page, id, x, y, w, h);
+    let sh = page.shape(id).ok_or_else(|| not_a_shape(id))?;
     let frame = json!({"id": sh.id, "x": sh.x, "y": sh.y, "w": sh.w, "h": sh.h});
     with_sel(s, frame)
 }
@@ -196,9 +192,9 @@ fn rotate(s: &mut Session, v: &Value) -> CmdResult {
     let page = page_mut(s)?;
     let mut out = 0.0;
     for id in &ids {
-        if let Some(sh) = page.shape_mut(id) {
-            sh.angle_deg = angle;
-            sh.sanitize();
+        // A group turns its members with it.
+        vizcraft_diagram::arrange::set_angle(page, id, angle.rem_euclid(360.0));
+        if let Some(sh) = page.shape(id) {
             out = sh.angle_deg;
         }
     }

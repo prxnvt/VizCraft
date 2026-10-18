@@ -1,5 +1,9 @@
 //! Selection: the single selected shape or connector, clicks (Shift adds or removes) and the
 //! marquee.
+//!
+//! Groups: a click on a member selects its outermost group; a second click selects the next
+//! group down, then the member itself. Once a member is selected, a click on another member of
+//! the same group selects that member directly. A marquee selects whole groups.
 
 use egui::{Modifiers, Pos2};
 use serde_json::json;
@@ -50,10 +54,68 @@ pub(super) fn segment_hits_rect(a: Point, b: Point, r: &dg::Rect) -> bool {
     (0..4).any(|i| crosses(corners[i], corners[(i + 1) % 4]))
 }
 
-/// Ids a marquee over `r` selects: shapes whose outline bounds touch it and connectors whose
-/// route crosses it, shapes first. Hidden shapes and shapes on a locked layer are skipped.
+/// The groups around shape `id`, outermost first, then `id` itself.
+fn chain(page: &Page, id: &str) -> Vec<String> {
+    let mut c = dg::arrange::group_chain(page, id);
+    c.reverse();
+    c.push(id.to_string());
+    c
+}
+
+/// How deep in `chain` the selection already is: `(k, true)` when `chain[k]` is selected,
+/// `(k, false)` when a member of `chain[k]` is (the user is working inside that group). The
+/// deepest such level wins.
+fn depth(page: &Page, chain: &[String], sel: &[String]) -> Option<(usize, bool)> {
+    (0..chain.len()).rev().find_map(|k| {
+        let g = chain.get(k)?;
+        if sel.contains(g) {
+            Some((k, true))
+        } else if sel.iter().any(|s| page.shape(s).is_some_and(|x| x.parent.as_ref() == Some(g))) {
+            Some((k, false))
+        } else {
+            None
+        }
+    })
+}
+
+/// What a click on shape `id` selects, given the current selection `sel`: the outermost group
+/// around it, or one level further down when that level (or a sibling in it) is selected.
+pub fn click_target(page: &Page, id: &str, sel: &[String]) -> String {
+    let c = chain(page, id);
+    let last = c.len().saturating_sub(1);
+    let k = match depth(page, &c, sel) {
+        None => 0,
+        Some((k, _)) => (k + 1).min(last),
+    };
+    c.get(k).cloned().unwrap_or_else(|| id.to_string())
+}
+
+/// What a press-and-drag on shape `id` moves: the selected level of its group chain, else the
+/// shape at the level the user is working in, else the outermost group.
+pub fn press_target(page: &Page, id: &str, sel: &[String]) -> String {
+    let c = chain(page, id);
+    let last = c.len().saturating_sub(1);
+    let k = match depth(page, &c, sel) {
+        None => 0,
+        Some((k, true)) => k,
+        Some((k, false)) => (k + 1).min(last),
+    };
+    c.get(k).cloned().unwrap_or_else(|| id.to_string())
+}
+
+/// Ids a marquee over `r` selects: shapes whose outline bounds touch it (a member stands for its
+/// outermost group) and connectors whose route crosses it, shapes first. Hidden shapes and
+/// shapes on a locked layer are skipped.
 pub fn marquee_ids(page: &Page, r: &dg::Rect) -> Vec<String> {
-    let shapes = page.shapes.iter().filter(|s| dg::layer::selectable(page, s) && s.bounds().intersects(r)).map(|s| s.id.clone());
+    let mut seen = std::collections::HashSet::new();
+    let shapes = page
+        .shapes
+        .iter()
+        .filter(|s| dg::layer::selectable(page, s) && s.bounds().intersects(r))
+        .map(|s| chain(page, &s.id).into_iter().next().unwrap_or_else(|| s.id.clone()))
+        .filter(|id| seen.insert(id.clone()))
+        .collect::<Vec<_>>()
+        .into_iter();
     let connectors = page
         .connectors
         .iter()
@@ -75,6 +137,12 @@ pub(super) fn click(app: &mut CraftApp, vp: &Viewport2D, at: Pos2, m: Modifiers)
         return;
     }
     let sel = app.session.sel.items.clone();
+    // A click on a group member picks the group level (see the module doc).
+    let hit = match hit {
+        Some(Hit::Shape(id)) if m.shift => Some(Hit::Shape(press_target(page, &id, &sel))),
+        Some(Hit::Shape(id)) => Some(Hit::Shape(click_target(page, &id, &sel))),
+        other => other,
+    };
     match hit {
         Some(Hit::Shape(id) | Hit::Connector(id)) if m.shift => {
             if sel.contains(&id) {
@@ -132,5 +200,54 @@ mod tests {
         let ids = marquee_ids(page, &page.rect());
         assert!(!ids.contains(&hidden) && !ids.contains(&locked));
         assert_eq!(ids.len(), page.shapes.len() + page.connectors.len() - 2);
+    }
+
+    /// Shapes `a`, `b` in group `g1`, which is in `g2` with `c`.
+    fn nested() -> Page {
+        let mut p = Page::new("p1", "Page 1");
+        for (id, x) in [("a", 0.0), ("b", 100.0), ("c", 300.0)] {
+            p.shapes.push(Shape::new(id, dg::ShapeKind::Rectangle, x, 0.0, 50.0, 50.0));
+        }
+        dg::arrange::group(&mut p, &["a".into(), "b".into()], "g1").unwrap();
+        dg::arrange::group(&mut p, &["g1".into(), "c".into()], "g2").unwrap();
+        p
+    }
+
+    fn v(ids: &[&str]) -> Vec<String> {
+        ids.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn clicks_walk_down_nested_groups() {
+        let p = nested();
+        assert_eq!(click_target(&p, "a", &[]), "g2");
+        assert_eq!(click_target(&p, "a", &v(&["g2"])), "g1");
+        assert_eq!(click_target(&p, "a", &v(&["g1"])), "a");
+        assert_eq!(click_target(&p, "a", &v(&["a"])), "a");
+        // Working inside g1: a click on the sibling selects it directly.
+        assert_eq!(click_target(&p, "b", &v(&["a"])), "b");
+        // c is a direct member of g2.
+        assert_eq!(click_target(&p, "c", &v(&["g1"])), "c");
+        assert_eq!(click_target(&p, "c", &v(&["zzz"])), "g2");
+        // A shape in no group is itself.
+        let mut q = p.clone();
+        q.shapes.push(Shape::new("d", dg::ShapeKind::Rectangle, 0.0, 200.0, 10.0, 10.0));
+        assert_eq!(click_target(&q, "d", &v(&["g2"])), "d");
+    }
+
+    #[test]
+    fn drags_move_the_selected_level() {
+        let p = nested();
+        assert_eq!(press_target(&p, "a", &[]), "g2");
+        assert_eq!(press_target(&p, "a", &v(&["g2"])), "g2");
+        assert_eq!(press_target(&p, "a", &v(&["g1"])), "g1");
+        assert_eq!(press_target(&p, "b", &v(&["a"])), "b");
+        assert_eq!(press_target(&p, "a", &v(&["a"])), "a");
+    }
+
+    #[test]
+    fn marquee_selects_whole_groups() {
+        let p = nested();
+        assert_eq!(marquee_ids(&p, &dg::Rect::from_xywh(-10.0, -10.0, 70.0, 70.0)), v(&["g2"]));
     }
 }

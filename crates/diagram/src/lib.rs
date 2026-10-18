@@ -18,6 +18,7 @@
 //! Nothing here panics on hostile input; sizes are clamped and non-finite numbers replaced.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
+pub mod arrange;
 pub mod autolayout;
 pub mod autoroute;
 pub mod doc_fields;

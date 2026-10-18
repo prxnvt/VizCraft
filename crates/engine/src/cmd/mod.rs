@@ -1,5 +1,6 @@
 //! Command implementations, one module per menu: each exposes `specs()`.
 
+pub mod arrange;
 pub mod batch;
 pub mod connector;
 pub mod edit;
@@ -33,6 +34,7 @@ pub fn registry() -> Registry {
     v.extend(batch::specs());
     v.extend(view::specs());
     v.extend(shape::specs());
+    v.extend(arrange::specs());
     v.extend(connector::specs());
     v.extend(page::specs());
     v.extend(layer::specs());
@@ -273,6 +275,8 @@ pub struct Deleted {
 /// the glued end turned into a free end where it was drawn, so a single deleted step leaves its
 /// arrows in place to re-glue.
 pub fn delete_on_page(page: &mut Page, ids: &[String]) -> Deleted {
+    // A deleted group takes its members with it.
+    let ids = &vizcraft_diagram::arrange::with_descendants(page, ids);
     let wanted: HashSet<&str> = ids.iter().map(String::as_str).collect();
     let shapes: Vec<String> = page.shapes.iter().filter(|x| wanted.contains(x.id.as_str())).map(|x| x.id.clone()).collect();
     let gone_shapes: HashSet<&str> = shapes.iter().map(String::as_str).collect();
@@ -306,6 +310,8 @@ pub fn delete_on_page(page: &mut Page, ids: &[String]) -> Deleted {
             out.items.push(id.clone());
         }
     }
+    // A group left with no members goes too, and the others refit.
+    out.items.extend(vizcraft_diagram::arrange::tidy_groups(page));
     out
 }
 

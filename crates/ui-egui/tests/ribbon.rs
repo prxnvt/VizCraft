@@ -214,12 +214,17 @@ fn bold_and_italic_toggle_the_selected_shapes_style() {
     h.run_steps(3);
     assert!(style(&h, &id).italic);
     // Rotate right turns the shape a quarter turn from where it is.
-    h.get_by_label("Rotate Right").click();
-    h.run_steps(3);
+    let rotate = |h: &mut Harness, entry: &str| {
+        h.get_by_label("Rotate").click();
+        h.run_steps(3);
+        // Menu items carry an empty shortcut column after the label.
+        h.get_by_label(&format!("{entry} ")).click();
+        h.run_steps(3);
+    };
+    rotate(&mut h, "Rotate Right 90");
     assert_eq!(style_angle(&h, &id), 90.0);
     for _ in 0..2 {
-        h.get_by_label("Rotate Left").click();
-        h.run_steps(3);
+        rotate(&mut h, "Rotate Left 90");
     }
     assert_eq!(style_angle(&h, &id), 270.0);
 }
