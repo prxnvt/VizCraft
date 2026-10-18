@@ -89,6 +89,7 @@ pub fn inspect(app: &CraftApp, ctx: &egui::Context) -> Value {
         "perf": {"frameMs": app.frame_ms},
         "tool": app.tool.name(),
         "inspector": {"open": app.ui.panes.is_open("shapeData"), "mode": app.ui.inspector.mode, "tab": app.ui.inspector.tab},
+        "palette": crate::palette::for_app(app).report(app),
         "diagram": crate::canvas::summary(app),
         "tree": crate::panes::tree_inspect(app),
         // The ribbon dropdown that is open, row by row, with each row's check state.

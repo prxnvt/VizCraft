@@ -118,7 +118,7 @@ fn window_menu_items_track_the_layout() {
     let items = panes::window_menu_items(&a);
     assert_eq!(items.len(), 5);
     assert!(items.iter().all(|(title, _, on)| *on == !matches!(*title, "Layers")), "every pane but Layers starts open");
-    assert_eq!(items[0], ("Shapes", "ui.pane.shapes", true));
+    assert_eq!(items[0], ("Palette", "ui.pane.shapes", true));
     assert_eq!(items[1], ("Model Tree", "ui.pane.navigation", true));
     for (_, id, _) in &items {
         a.run(id, json!({})).unwrap();

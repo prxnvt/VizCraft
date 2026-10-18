@@ -1,16 +1,19 @@
-//! The Shapes pane: a search field and the stencil sets as grids of master tiles that insert on
-//! click or drag onto the canvas; also `ui.shapesSearch`.
+//! The Palette pane (key `shapes`): a search field and the scoped palette of the active page
+//! (see [`crate::palette`]): a compact list per group, the connector kinds as rows that arm the
+//! connector tool, and the Drawing group as a tile grid. Masters insert on click or drag onto the
+//! canvas. Also `ui.palette` and `ui.shapesSearch`.
 
 use egui::{CornerRadius, Rect, Sense, Stroke, Ui, pos2, vec2};
 use serde_json::{Value, json};
 
 use crate::CraftApp;
+use crate::palette::{self, Group, Item, What};
 use crate::theme::{Tokens, regular, semibold};
 
 use super::{PaneSpec, Side};
 
-/// The Shapes pane.
-pub(super) const SPEC: PaneSpec = PaneSpec::new("shapes", "Shapes", Side::Left, 240.0, shapes);
+/// The Palette pane.
+pub(super) const SPEC: PaneSpec = PaneSpec::new("shapes", "Palette", Side::Left, 240.0, shapes);
 
 /// Drag-and-drop payload of a master dragged from the Shapes pane onto the canvas.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -80,20 +83,89 @@ fn master_tile(app: &mut CraftApp, ui: &mut Ui, m: &'static vizcraft_stencils::M
     }
     let at = pos2(r.center().x - galley.size().x / 2.0, art.bottom() + 4.0);
     ui.painter().with_clip_rect(r).galley(at, galley, t.text);
-    if resp.dragged() {
-        egui::DragAndDrop::set_payload(ui.ctx(), MasterDrag(m.id.to_string()));
-        ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
-        // A ghost of the master follows the pointer.
-        if let Some(p) = ui.ctx().pointer_interact_pos() {
-            let layer = egui::LayerId::new(egui::Order::Tooltip, egui::Id::new("master-drag-ghost"));
-            let ghost = Rect::from_center_size(p, vec2(48.0, 32.0));
-            master_preview(&ui.ctx().layer_painter(layer), m, ghost);
+    act(app, ui, &resp, What::Master(m));
+}
+
+/// What a click or a drag on a palette entry does: a master inserts at the visible centre (a drag
+/// carries a [`MasterDrag`] to the canvas, with a ghost under the pointer); a connector kind arms
+/// the connector tool with that kind.
+fn act(app: &mut CraftApp, ui: &mut Ui, resp: &egui::Response, what: What) {
+    match what {
+        What::Master(m) => {
+            if resp.dragged() {
+                egui::DragAndDrop::set_payload(ui.ctx(), MasterDrag(m.id.to_string()));
+                ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+                // A ghost of the master follows the pointer.
+                if let Some(p) = ui.ctx().pointer_interact_pos() {
+                    let layer = egui::LayerId::new(egui::Order::Tooltip, egui::Id::new("master-drag-ghost"));
+                    let ghost = Rect::from_center_size(p, vec2(48.0, 32.0));
+                    master_preview(&ui.ctx().layer_painter(layer), m, ghost);
+                }
+            }
+            if resp.clicked() {
+                let at = crate::canvas::insert_point(app);
+                crate::canvas::insert_master(app, m.id, at);
+            }
+        }
+        What::Kind(k) => {
+            if resp.clicked() {
+                let _ = app.run("ui.tool", json!({"tool": "connector", "kind": k.id}));
+            }
         }
     }
-    if resp.clicked() {
-        let at = crate::canvas::insert_point(app);
-        crate::canvas::insert_master(app, m.id, at);
+}
+
+/// Height of one list row.
+const ROW_H: f32 = 22.0;
+
+/// A small drawing of a connector kind: its line (dashed as the kind says) and line ends, fitted
+/// into `r`.
+fn kind_preview(painter: &egui::Painter, k: &vizcraft_notation::ConnectorType, r: Rect, fallback: egui::Color32) {
+    use vizcraft_diagram::{Arrow, Color, Dash};
+    let col = Color::parse(&k.line).map_or(fallback, crate::canvas::draw::color);
+    let stroke = Stroke::new((k.line_width as f32).clamp(1.0, 2.5), col);
+    let (a, b) = (r.left_center(), r.right_center());
+    let has = |name: &str| Arrow::from_name(name).is_some_and(|x| x != Arrow::None);
+    let (a, b) = (a + vec2(if has(&k.start_arrow) { 4.0 } else { 0.0 }, 0.0), b - vec2(if has(&k.end_arrow) { 4.0 } else { 0.0 }, 0.0));
+    match Dash::from_name(&k.dash).unwrap_or_default() {
+        Dash::Solid => {
+            painter.line_segment([a, b], stroke);
+        }
+        _ => {
+            painter.extend(egui::Shape::dashed_line(&[a, b], stroke, 3.0, 2.0));
+        }
     }
+    if has(&k.end_arrow) {
+        painter.add(egui::Shape::convex_polygon(vec![b + vec2(4.0, 0.0), b + vec2(-1.0, -3.0), b + vec2(-1.0, 3.0)], col, Stroke::NONE));
+    }
+    if has(&k.start_arrow) {
+        painter.add(egui::Shape::convex_polygon(vec![a - vec2(4.0, 0.0), a + vec2(1.0, -3.0), a + vec2(1.0, 3.0)], col, Stroke::NONE));
+    }
+}
+
+/// One list row: a small preview and the label. The connector kind in use is drawn checked.
+fn item_row(app: &mut CraftApp, ui: &mut Ui, item: &Item) {
+    let t = Tokens::get(ui.ctx());
+    let (r, resp) = ui.allocate_exact_size(vec2(ui.available_width(), ROW_H), Sense::click_and_drag());
+    let label = item.label.as_str();
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, label));
+    let in_use = matches!(item.what, What::Kind(k) if app.tool == crate::Tool::Connector && app.connector_kind == k.id);
+    if in_use {
+        ui.painter().rect_filled(r, CornerRadius::same(3), t.checked);
+    } else if resp.hovered() || resp.dragged() {
+        ui.painter().rect_filled(r, CornerRadius::same(3), t.hover);
+    }
+    let art = Rect::from_center_size(pos2(r.left() + 20.0, r.center().y), vec2(26.0, 16.0));
+    match item.what {
+        What::Master(m) => master_preview(ui.painter(), m, art),
+        What::Kind(k) => kind_preview(ui.painter(), k, art, t.text),
+    }
+    ui.painter().with_clip_rect(r).text(pos2(r.left() + 40.0, r.center().y), egui::Align2::LEFT_CENTER, label, regular(12.0), t.text);
+    let tip = match item.what {
+        What::Master(m) => m.label,
+        What::Kind(_) => "Draw connectors of this kind",
+    };
+    act(app, ui, &resp.on_hover_text(tip), item.what);
 }
 
 /// Tiles in rows of as many as fit the pane's width.
@@ -152,34 +224,103 @@ fn search_field(app: &mut CraftApp, ui: &mut Ui) {
     }
 }
 
-/// The Shapes pane: a search field, then each stencil set as a collapsible section of master
-/// tiles, or one flat "Results" grid while the field has text.
+/// Draw one group: a collapsing heading (open unless forced otherwise) over a list of rows, or a
+/// tile grid for the Drawing group.
+fn group_body(app: &mut CraftApp, ui: &mut Ui, section: &str, g: &Group, focus: Option<&str>) {
+    let forced = focus.is_some_and(|f| f == g.id || f.eq_ignore_ascii_case(&g.label)).then_some(true);
+    egui::CollapsingHeader::new(egui::RichText::new(g.label.as_str()).font(semibold(12.0)))
+        .id_salt(("palette-group", section, g.id.as_str()))
+        .default_open(true)
+        .open(forced)
+        .show_unindented(ui, |ui| {
+            if g.tiles {
+                let masters: Vec<&'static vizcraft_stencils::Master> = g.items.iter().filter_map(|i| if let What::Master(m) = i.what { Some(m) } else { None }).collect();
+                tile_grid(app, ui, &masters);
+            } else {
+                ui.spacing_mut().item_spacing = vec2(0.0, 1.0);
+                for item in &g.items {
+                    item_row(app, ui, item);
+                }
+            }
+        });
+}
+
+/// The Palette pane: a search field, then the scoped palette of the active page, or one flat
+/// "Results" list while the field has text.
 fn shapes(app: &mut CraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     search_field(app, ui);
-    ui.add_space(6.0);
+    ui.add_space(4.0);
+    let pal = palette::for_app(app);
+    if pal.viewpoint.is_some() {
+        let mut on = app.palette_filter;
+        if ui.checkbox(&mut on, egui::RichText::new("Only this viewpoint").font(regular(11.5)).color(t.text_dim)).changed() {
+            let _ = app.run("ui.palette", json!({"viewpointFilter": on}));
+        }
+    }
+    ui.add_space(2.0);
     let query = app.shapes_query.trim().to_string();
     if !query.is_empty() {
-        let hits = vizcraft_stencils::search(&query);
+        let hits = pal.search(&query);
         if hits.is_empty() {
             ui.add_space(4.0);
             ui.label(egui::RichText::new("No shapes match").font(regular(12.0)).color(t.text_dim));
         } else {
             ui.label(egui::RichText::new("Results").font(semibold(12.0)).color(t.text));
             ui.add_space(2.0);
-            tile_grid(app, ui, &hits);
+            ui.spacing_mut().item_spacing = vec2(0.0, 1.0);
+            for item in hits {
+                item_row(app, ui, item);
+            }
         }
         return;
     }
-    for set in vizcraft_stencils::sets() {
-        egui::CollapsingHeader::new(egui::RichText::new(set.name).font(semibold(12.0)))
-            .id_salt(("stencil-set", set.id))
-            .default_open(true)
-            .show_unindented(ui, |ui| {
-                let masters: Vec<&'static vizcraft_stencils::Master> = set.masters.iter().collect();
-                tile_grid(app, ui, &masters);
-            });
+    let focus = app.palette_focus.take();
+    for sec in &pal.sections {
+        match &sec.label {
+            Some(name) => {
+                let open = focus.as_deref().is_some_and(|f| f == sec.id || f.eq_ignore_ascii_case(name) || sec.groups.iter().any(|g| f == g.id)).then_some(true);
+                egui::CollapsingHeader::new(egui::RichText::new(name.as_str()).font(semibold(12.5)))
+                    .id_salt(("palette-pack", sec.id.as_str()))
+                    .default_open(sec.open)
+                    .open(open)
+                    .show_unindented(ui, |ui| {
+                        for g in &sec.groups {
+                            group_body(app, ui, &sec.id, g, focus.as_deref());
+                        }
+                    });
+            }
+            None => {
+                for g in &sec.groups {
+                    group_body(app, ui, &sec.id, g, focus.as_deref());
+                }
+            }
+        }
     }
+}
+
+/// `ui.palette {query?, group?, viewpointFilter?}`: set the search text, open the group (or pack)
+/// named by id or label, and switch the viewpoint filter. A query opens the pane if it is
+/// closed. The reply is the palette as `ui.inspect` reports it.
+pub(super) fn palette_command(app: &mut CraftApp, p: &Value) -> Value {
+    if let Some(q) = p.get("query").and_then(Value::as_str) {
+        app.shapes_query = q.chars().take(256).collect();
+    }
+    if let Some(f) = p.get("viewpointFilter").and_then(Value::as_bool) {
+        app.palette_filter = f;
+    }
+    if let Some(g) = p.get("group").and_then(Value::as_str) {
+        app.palette_focus = Some(g.chars().take(128).collect());
+    }
+    if p.get("group").is_some() || !app.shapes_query.trim().is_empty() {
+        if !app.ui.panes.is_open("shapes") {
+            app.ui.panes.open("shapes", None);
+        }
+        if app.ui.panes.is_collapsed("shapes") {
+            app.ui.panes.set_collapsed("shapes", false);
+        }
+    }
+    palette::for_app(app).report(app)
 }
 
 /// `ui.shapesSearch {query}`: set the Shapes pane's search text (a missing or non-string query

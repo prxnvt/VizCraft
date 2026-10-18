@@ -45,6 +45,8 @@ mod developer;
 mod help;
 mod home;
 mod insert;
+mod model;
+mod notation;
 mod process;
 mod review;
 mod view;
@@ -387,13 +389,14 @@ pub const LINE_WEIGHTS: &[f32] = &[0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0];
 /// Help, then the contextual Connector, Container and Callout tabs (shown while a connector, a
 /// container or lane, or a callout is selected). Tabs with no
 /// groups yet are left out, so they stay hidden until a group lands.
-pub fn tabs(_app: &CraftApp) -> Vec<Tab> {
+pub fn tabs(app: &CraftApp) -> Vec<Tab> {
     [
         home::tab(),
         insert::tab(),
         design::tab(),
         data::tab(),
         process::tab(),
+        model::tab(),
         review::tab(),
         view::tab(),
         developer::tab(),
@@ -401,6 +404,7 @@ pub fn tabs(_app: &CraftApp) -> Vec<Tab> {
         connector::tab(),
         container::tab(),
         callout::tab(),
+        notation::tab(app),
     ]
     .into_iter()
     .filter(|t| !t.groups.is_empty())
