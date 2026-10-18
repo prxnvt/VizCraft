@@ -4,7 +4,7 @@
 
 use serde_json::{Value, json};
 use vizcraft_diagram::autolayout::{self, Algorithm, Direction, Options};
-use vizcraft_diagram::autoroute;
+use vizcraft_diagram::{autoroute, decor};
 
 use super::connector::connector_targets;
 use super::{Kinds, has_connectors, has_shapes, ids_param, num, opt_str, page_mut, targets, with_sel};
@@ -19,19 +19,28 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("layout.full", "Re-Layout", "Design > Layout", full)
             .params(concat!(
                 r#"{"ids"?: [string], "algorithm"?: "layered"|"tree"|"radial"|"force" (default layered), "direction"?: "TB"|"BT"|"LR"|"RL" (also "TD"), "nodeSpacing"?: n, "layerSpacing"?: n} -> {"ids", "notes"}"#,
-                r#"; rearranges `ids`, else the selected shapes when two or more are selected, else the whole page"#
+                r#"; rearranges `ids`, else the selected shapes when two or more are selected, else the whole page; groups, containers and lane sets move whole, callouts follow their target, locked shapes stay"#
             ))
-            .when(has_shapes),
+            .when(can_lay_out),
         CommandSpec::new("layout.incremental", "Place New Shapes", "Design > Layout", incremental)
             .params(concat!(
                 r#"{"ids": [string], "algorithm"?: "layered"|"tree"|"radial"|"force", "direction"?: "TB"|"BT"|"LR"|"RL" (also "TD"), "nodeSpacing"?: n, "layerSpacing"?: n} -> {"ids", "notes"}"#,
-                r#"; places only the shapes in `ids` next to the shapes they connect to; every other shape stays where it is"#
+                r#"; places only the shapes in `ids` (with everything inside them) next to the shapes they connect to; every other shape stays where it is; new groups, containers and lane sets are placed whole, new members of an existing container or lane stay inside it, callouts follow their target, locked shapes stay"#
             ))
-            .when(has_shapes),
+            .when(can_lay_out),
         CommandSpec::new("layout.route", "Route Connectors", "Design > Layout", route)
             .params(r#"{"ids"?: [string]} -> {"ids"}; routes the connectors (default: the selected ones, else all) around shapes, orthogonal, and keeps them clear after every change; never moves a shape"#)
             .when(has_connectors),
     ]
+}
+
+/// Enabled when the active page has shapes and is not a generated decoration page (its shapes are
+/// rebuilt from the decoration settings after every change, so a layout could not stick).
+fn can_lay_out(s: &Session) -> Option<&'static str> {
+    if s.doc.page().is_some_and(decor::is_generated) {
+        return Some("this decoration page is generated from the Design settings");
+    }
+    has_shapes(s)
 }
 
 /// The layout options from the params: algorithm, direction and the two spacings.
@@ -214,5 +223,164 @@ mod tests {
         assert_eq!(before, after);
         assert!(page.shape("n").unwrap().bounds().x0 >= page.shape("b").unwrap().bounds().x1);
         assert!(s.run("layout.incremental", &json!({})).is_err(), "ids are required");
+    }
+    /// The sample flowchart plus a page built through commands with a group, a three-lane
+    /// swimlane with two shapes per lane, a callout and connectors across all of them: what a
+    /// person gets from the Insert tab, which Re-Layout must not take apart.
+    fn parts() -> Session {
+        let mut s = Session::new(crate::sample::sample_document());
+        let run = |s: &mut Session, id: &str, v: serde_json::Value| s.run(id, &v).unwrap();
+        run(&mut s, "page.add", json!({"name": "Parts"}));
+        let add = |s: &mut Session, id: &str, x: f64, y: f64| {
+            s.run("shape.add", &json!({"stencil": "flowchart.process", "x": x, "y": y, "id": id, "text": id})).unwrap();
+        };
+        add(&mut s, "ga", 60.0, 60.0);
+        add(&mut s, "gb", 220.0, 60.0);
+        run(&mut s, "arrange.group", json!({"ids": ["ga", "gb"], "id": "g"}));
+        add(&mut s, "n1", 500.0, 60.0);
+        add(&mut s, "n2", 700.0, 60.0);
+        let lanes = run(&mut s, "lane.addSet", json!({"x": 60, "y": 300, "lanes": 3, "title": "Process", "id": "set"}))["lanes"].clone();
+        for (i, lane) in lanes.as_array().unwrap().iter().enumerate() {
+            for (j, x) in [160.0, 400.0].into_iter().enumerate() {
+                let id = format!("l{i}{j}");
+                add(&mut s, &id, x + 120.0 * i as f64, 360.0 + 140.0 * i as f64);
+                run(&mut s, "container.addMember", json!({"container": lane, "ids": [id]}));
+            }
+        }
+        run(&mut s, "callout.add", json!({"target": "n1", "text": "Note", "id": "co"}));
+        for (a, b) in
+            [("ga", "n1"), ("n1", "n2"), ("n2", "l00"), ("l00", "l01"), ("l01", "l10"), ("l10", "l11"), ("l11", "l20"), ("l20", "l21"), ("gb", "l10")]
+        {
+            run(&mut s, "connector.add", json!({"from": {"shape": a}, "to": {"shape": b}}));
+        }
+        run(&mut s, "edit.select", json!({"ids": []}));
+        s
+    }
+
+    /// Top-left of `id` relative to `of`, to a thousandth.
+    fn rel(page: &Page, id: &str, of: &str) -> (i64, i64) {
+        let (a, b) = (page.shape(id).unwrap(), page.shape(of).unwrap());
+        (((a.x - b.x) * 1000.0).round() as i64, ((a.y - b.y) * 1000.0).round() as i64)
+    }
+
+    #[test]
+    fn relayout_keeps_groups_swimlanes_and_callouts_whole_in_every_mode() {
+        let fresh = parts();
+        let before = fresh.doc.page().unwrap().clone();
+        let lanes: Vec<String> = vizcraft_diagram::container::lanes(&before, "set");
+        assert_eq!(lanes.len(), 3);
+        for algorithm in ["layered", "tree", "radial", "force"] {
+            let mut s = parts();
+            s.run("layout.full", &json!({"algorithm": algorithm})).unwrap();
+            assert_eq!(s.undo_label(), Some("Re-Layout"), "{algorithm}");
+            let page = s.doc.page().unwrap();
+            assert_eq!(rel(page, "gb", "ga"), rel(&before, "gb", "ga"), "{algorithm}: the group stays whole");
+            for (i, lane) in lanes.iter().enumerate() {
+                assert_eq!(rel(page, lane, "set"), rel(&before, lane, "set"), "{algorithm}: {lane} stays in its set");
+                for j in 0..2 {
+                    let m = format!("l{i}{j}");
+                    assert_eq!(page.shape(&m).unwrap().parent.as_ref(), Some(lane), "{algorithm}");
+                    assert!(page.shape(lane).unwrap().bounds().contains_rect(&page.shape(&m).unwrap().bounds()), "{algorithm}: {m} left its lane");
+                }
+            }
+            let co = page.shape("co").unwrap().bounds();
+            for other in ["ga", "gb", "n1", "n2", "set"] {
+                let b = page.shape(other).unwrap().bounds();
+                assert!(!(co.x0 < b.x1 && b.x0 < co.x1 && co.y0 < b.y1 && b.y0 < co.y1), "{algorithm}: the callout covers {other}");
+            }
+            let units = ["g", "n1", "n2", "set"].map(|id| page.shape(id).unwrap().bounds());
+            for (i, a) in units.iter().enumerate() {
+                for b in units.iter().skip(i + 1) {
+                    assert!(!(a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1), "{algorithm}: units overlap");
+                }
+            }
+            // The sample page was not touched, and one undo puts the page back.
+            assert_eq!(s.doc.pages[0], fresh.doc.pages[0]);
+            s.run("edit.undo", &json!({})).unwrap();
+            assert_eq!(s.doc.page().unwrap(), &before, "{algorithm}: one undo step");
+        }
+    }
+
+    #[test]
+    fn place_new_shapes_keeps_groups_lane_members_and_callouts_by_the_unit_rules_in_every_mode() {
+        for algorithm in ["layered", "tree", "radial", "force"] {
+            let mut s = parts();
+            let run = |s: &mut Session, id: &str, v: serde_json::Value| s.run(id, &v).unwrap();
+            let lane1 = vizcraft_diagram::container::lanes(s.doc.page().unwrap(), "set")[1].clone();
+            // New: a group downstream of n2, a step added to the middle lane (still outside it),
+            // and a shape with a callout, all far off to the right.
+            for (id, x, y) in [("na", 2000.0, 60.0), ("nb", 2160.0, 60.0), ("nm", 2000.0, 400.0), ("nc", 2000.0, 800.0)] {
+                run(&mut s, "shape.add", json!({"stencil": "flowchart.process", "x": x, "y": y, "id": id, "text": id}));
+            }
+            run(&mut s, "arrange.group", json!({"ids": ["na", "nb"], "id": "ng"}));
+            run(&mut s, "container.addMember", json!({"container": lane1, "ids": ["nm"]}));
+            run(&mut s, "callout.add", json!({"target": "nc", "text": "New note", "id": "nco"}));
+            for (a, b) in [("n2", "na"), ("l11", "nm"), ("l01", "nm"), ("nb", "nc")] {
+                run(&mut s, "connector.add", json!({"from": {"shape": a}, "to": {"shape": b}}));
+            }
+            let before = s.doc.page().unwrap().clone();
+            let new = ["na", "nb", "ng", "nm", "nc", "nco"];
+            s.run("layout.incremental", &json!({"ids": ["ng", "nm", "nc", "nco"], "algorithm": algorithm})).unwrap();
+            assert_eq!(s.undo_label(), Some("Place New Shapes"), "{algorithm}");
+            let page = s.doc.page().unwrap();
+            for old in before.shapes.iter().filter(|sh| !new.contains(&sh.id.as_str())) {
+                assert_eq!(page.shape(&old.id), Some(old), "{algorithm}: {} moved", old.id);
+            }
+            assert_eq!(rel(page, "nb", "na"), rel(&before, "nb", "na"), "{algorithm}: the new group stays whole");
+            let nm = page.shape("nm").unwrap();
+            assert_eq!(nm.parent.as_ref(), Some(&lane1), "{algorithm}");
+            assert!(page.shape(&lane1).unwrap().bounds().contains_rect(&nm.bounds()), "{algorithm}: the new step left its lane");
+            let overlap = |a: &str, b: &str| {
+                let (x, y) = (page.shape(a).unwrap().bounds(), page.shape(b).unwrap().bounds());
+                x.x0 < y.x1 && y.x0 < x.x1 && x.y0 < y.y1 && y.y0 < x.y1
+            };
+            for other in ["l10", "l11"] {
+                assert!(!overlap("nm", other), "{algorithm}: the new step covers {other}");
+            }
+            let units = ["g", "n1", "n2", "set", "ng", "nc"];
+            for (i, a) in units.iter().enumerate() {
+                for b in units.iter().skip(i + 1) {
+                    assert!(!overlap(a, b), "{algorithm}: {a} and {b} overlap");
+                }
+            }
+            // The new callout was not placed: it followed its target and covers nothing.
+            let gap = |p: &Page| {
+                let (c, t) = (p.shape("nco").unwrap().bounds().center(), p.shape("nc").unwrap().bounds().center());
+                (((c.x - t.x).abs() * 1000.0).round() as i64, ((c.y - t.y).abs() * 1000.0).round() as i64)
+            };
+            assert_eq!(gap(page), gap(&before), "{algorithm}");
+            for other in page.shapes.iter().filter(|sh| !["nco", "g", "ng"].contains(&sh.id.as_str())) {
+                assert!(!overlap("nco", &other.id), "{algorithm}: the new callout covers {}", other.id);
+            }
+            s.run("edit.undo", &json!({})).unwrap();
+            assert_eq!(s.doc.page().unwrap(), &before, "{algorithm}: one undo step");
+        }
+    }
+
+    #[test]
+    fn relayout_of_the_sample_reglues_fixed_points_so_connectors_follow_the_new_arrangement() {
+        for algorithm in ["layered", "tree", "radial", "force"] {
+            let mut s = Session::new(crate::sample::sample_document());
+            s.run("layout.full", &json!({"algorithm": algorithm, "direction": "LR"})).unwrap();
+            let page = s.doc.page().unwrap();
+            for c in &page.connectors {
+                assert!(
+                    matches!(c.start, End::Glued { point: None, .. }) && matches!(c.end, End::Glued { point: None, .. }),
+                    "{algorithm}: {}",
+                    c.id
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn relayout_is_off_on_a_generated_decoration_page() {
+        let mut s = Session::new(crate::sample::sample_document());
+        s.run("design.setBorderTitle", &json!({"kind": "frame"})).unwrap();
+        let generated = s.doc.pages.iter().position(vizcraft_diagram::decor::is_generated).unwrap();
+        s.run("page.setActive", &json!({"page": generated})).unwrap();
+        assert!(!s.doc.page().unwrap().shapes.is_empty(), "the frame is drawn with shapes");
+        assert!(matches!(s.run("layout.full", &json!({})), Err(crate::EngineError::Disabled(why)) if why.contains("decoration")));
+        assert!(matches!(s.run("layout.incremental", &json!({"ids": ["x"]})), Err(crate::EngineError::Disabled(_))));
     }
 }
