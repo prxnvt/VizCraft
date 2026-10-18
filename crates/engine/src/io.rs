@@ -21,7 +21,7 @@ const NATIVE_EXTENSIONS: [&str; 3] = ["craft.json", "vizcraft", "json"];
 const DRAWIO_EXTENSIONS: [&str; 2] = ["drawio.xml", "drawio"];
 
 /// Export formats `export_bytes` knows, by name.
-pub const EXPORT_FORMATS: [&str; 3] = ["svg", "png", "drawio"];
+pub const EXPORT_FORMATS: [&str; 4] = ["svg", "png", "pdf", "drawio"];
 
 /// Formats `import_bytes` knows, by name.
 pub const IMPORT_FORMATS: [&str; 3] = ["drawio", "mermaid", "csv"];
@@ -139,11 +139,12 @@ pub fn export_bytes(name: &str, format: Option<&str>, doc: &Document) -> Result<
 
 /// Export page `page_index` of `doc` for a file called `name`, in `format` or the one its
 /// extension names. `scale` is pixels per page unit for PNG (clamped by the renderer) and is
-/// ignored otherwise; draw.io files always hold every page.
+/// ignored otherwise; draw.io files always hold every page; PDF holds this one page.
 pub fn export_page_bytes(name: &str, format: Option<&str>, doc: &Document, page_index: usize, scale: f64) -> Result<Vec<u8>, EngineError> {
     match export_format(name, format)? {
         "svg" => vizcraft_formats::svg::export_page(doc, page_index).map_err(|e| fail(name, e)),
         "png" => vizcraft_formats::png::render_page(doc, page_index, scale).map(|(png, _, _)| png).map_err(|e| fail(name, e)),
+        "pdf" => vizcraft_formats::pdf::export_pages(doc, &[page_index], &Default::default()).map_err(|e| fail(name, e)),
         "drawio" => vizcraft_formats::drawio::save(doc).map_err(|e| fail(name, e)),
         other => Err(EngineError::Failed(format!("{name}: cannot export as `{other}`"))),
     }
@@ -229,10 +230,12 @@ mod tests {
         assert!(export_bytes("out.png", None, &doc).unwrap().starts_with(b"\x89PNG\r\n\x1a\n"));
         assert!(export_page_bytes("out.png", None, &doc, 7, 1.0).is_err());
         assert!(export_page_bytes("out.svg", None, &doc, 7, 1.0).is_err());
-        assert!(export_format("out.svg", Some("pdf")).is_err());
+        assert_eq!(export_format("out.svg", Some("pdf")).unwrap(), "pdf");
+        assert!(export_format("out.svg", Some("jpeg")).is_err());
         assert!(export_format("dir.svg/out", None).is_err());
         assert!(export_bytes("out.svg", None, &doc).unwrap().starts_with(b"<?xml"));
-        assert!(export_bytes("out.pdf", None, &doc).is_err());
+        assert!(export_bytes("out.pdf", None, &doc).unwrap().starts_with(b"%PDF-"));
+        assert!(export_page_bytes("out.pdf", None, &doc, 7, 1.0).is_err());
 
         assert_eq!(strip_extension("/tmp/Plans.vizcraft"), "/tmp/Plans");
         assert_eq!(strip_extension("Plans.craft.json"), "Plans");

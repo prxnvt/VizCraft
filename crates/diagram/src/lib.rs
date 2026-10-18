@@ -32,6 +32,7 @@ pub mod kind;
 pub mod layer;
 pub mod model;
 pub mod page_fields;
+pub mod print_fields;
 pub mod route;
 mod serde_util;
 pub mod shape_fields;

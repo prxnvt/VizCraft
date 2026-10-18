@@ -90,8 +90,11 @@ impl DrawingScale {
     }
 }
 
-/// Header or footer text in three slots.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// Header or footer text in three slots, with an optional distance from the page edge.
+///
+/// The slots may hold fields (`{page}`, `{pages}`, `{pageName}`, `{title}`, `{date}`) that exports
+/// and printing expand (`crate::print_fields`).
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct HeaderFooter {
     /// Left-aligned text.
@@ -103,17 +106,30 @@ pub struct HeaderFooter {
     /// Right-aligned text.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "String::is_empty")]
     pub right: String,
+    /// Distance of the text from the top (header) or bottom (footer) page edge, and from the
+    /// side edges, in world units; `None` is [`HeaderFooter::DEFAULT_MARGIN`].
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub margin: Option<f64>,
 }
 
 impl HeaderFooter {
     /// Longest slot text kept, in bytes.
     pub const MAX: usize = 1024;
+    /// The margin when none is set: a quarter inch.
+    pub const DEFAULT_MARGIN: f64 = 25.0;
+    /// Largest margin kept, in world units (five inches).
+    pub const MAX_MARGIN: f64 = 500.0;
 
-    /// Cap every slot at [`HeaderFooter::MAX`] bytes.
+    /// Cap every slot at [`HeaderFooter::MAX`] bytes and keep the margin finite and in range.
     pub fn sanitize(&mut self) {
         for s in [&mut self.left, &mut self.center, &mut self.right] {
             truncate(s, Self::MAX);
         }
+        self.margin = self.margin.filter(|m| m.is_finite()).map(|m| m.clamp(0.0, Self::MAX_MARGIN));
+    }
+    /// The margin in use: the set one, else [`HeaderFooter::DEFAULT_MARGIN`].
+    pub fn margin(&self) -> f64 {
+        self.margin.filter(|m| m.is_finite()).map_or(Self::DEFAULT_MARGIN, |m| m.clamp(0.0, Self::MAX_MARGIN))
     }
     /// Whether every slot is blank.
     pub fn is_empty(&self) -> bool {

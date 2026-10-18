@@ -44,6 +44,8 @@ pub enum Dialog {
     PageSetup(crate::page_setup::PageSetup),
     /// Snap and Glue: what dragged items snap to, and how strongly.
     SnapSettings(crate::snap_dialog::State),
+    /// Print Preview: pages, paper, fit, the sheets each page prints on, and Print.
+    PrintPreview(crate::print_preview::State),
 }
 
 impl Dialog {
@@ -59,6 +61,7 @@ impl Dialog {
             Dialog::Message { .. } => "message",
             Dialog::PageSetup(_) => "pageSetup",
             Dialog::SnapSettings(_) => "snapSettings",
+            Dialog::PrintPreview(_) => "printPreview",
         }
     }
 
@@ -74,6 +77,7 @@ impl Dialog {
             "shortcuts" => Dialog::Shortcuts { filter: String::new() },
             "pageSetup" => Dialog::PageSetup(crate::page_setup::PageSetup::new(app)),
             "snapSettings" => Dialog::SnapSettings(crate::snap_dialog::open(app)),
+            "printPreview" => Dialog::PrintPreview(crate::print_preview::open(app)),
             _ => return None,
         })
     }
@@ -89,6 +93,7 @@ impl Dialog {
             Dialog::Message { title, .. } => title.clone(),
             Dialog::PageSetup(_) => "Page Setup".into(),
             Dialog::SnapSettings(_) => "Snap and Glue".into(),
+            Dialog::PrintPreview(_) => "Print Preview".into(),
         }
     }
 
@@ -97,6 +102,7 @@ impl Dialog {
             Dialog::Commands { .. } => 520.0,
             Dialog::Shortcuts { .. } => 460.0,
             Dialog::About => 400.0,
+            Dialog::PrintPreview(_) => 560.0,
             _ => 360.0,
         }
     }
@@ -278,6 +284,11 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
             ok || cancel
         }
         Dialog::Commands { query, selected } => palette(app, ui, query, selected, keys),
+        Dialog::PrintPreview(s) => {
+            crate::print_preview::body(app, ui, s);
+            let (print, cancel) = buttons(ui, "Print", Some("Cancel"), keys);
+            crate::print_preview::finish(app, s, print, cancel)
+        }
         Dialog::SnapSettings(s) => {
             crate::snap_dialog::body(ui, s);
             let (ok, cancel) = buttons(ui, "OK", Some("Cancel"), keys);
@@ -466,7 +477,9 @@ mod tests {
         let hits = palette_hits(&a, "zoom");
         assert!(hits.first().is_some_and(|h| h.label.to_lowercase().starts_with("zoom")), "{:?}", hits.iter().map(|h| &h.label).collect::<Vec<_>>());
         let print = palette_hits(&a, "print");
-        assert!(print.iter().any(|h| h.id == "ui.print" && !h.enabled));
+        assert!(print.iter().any(|h| h.id == "ui.print" && h.enabled));
+        let find = palette_hits(&a, "find");
+        assert!(find.iter().any(|h| h.id == "ui.find" && !h.enabled));
         assert!(palette_hits(&a, "").len() <= 40);
     }
 }

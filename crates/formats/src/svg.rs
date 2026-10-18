@@ -23,8 +23,12 @@
 //!   are `text-decoration`; a highlight is a box behind each line, its width estimated from the
 //!   character count. The font is the style's family, then Inter, then sans-serif; named, not
 //!   embedded. Text direction is not drawn yet.
-//! - **Header and footer.** Drawn last, a quarter inch in from the page edges, one line per
-//!   slot, at 10 points.
+//! - **Header and footer.** Drawn last, the header's or footer's margin in from the page edges (a
+//!   quarter inch by default), one line per slot, at 10 points, with fields (`{page}`, `{pages}`,
+//!   `{pageName}`, `{title}`, `{date}`) expanded by `vizcraft_diagram::print_fields`.
+//! - **Printing.** With [`SvgOptions::print`] the shapes `vizcraft_diagram::layer::printable`
+//!   rejects (non-printing shapes, shapes on no printing layer) are left out, on background pages
+//!   too; by default the export matches the screen.
 //! - **Connectors.** One `<path>` from the page-level geometry ([`page_geometry`]: the line stops
 //!   where a filled head begins, and connectors with line jumps carry their hops as arcs), heads as filled or open paths, the label centred on a white box at the label
 //!   position. The box width is estimated from the character count, since there is no font
@@ -34,6 +38,7 @@
 use std::fmt::Write as _;
 
 use vizcraft_diagram::jumps::page_geometry;
+use vizcraft_diagram::print_fields::{FieldValues, expand};
 use vizcraft_diagram::{
     Color, Connector, ConnectorGeometry, Document, Gradient, GradientKind, HAlign, LineCap, Page, Path, PathEl, Rect, Shape, Style, VAlign,
     connector_geometry,
@@ -53,24 +58,49 @@ const LINE_HEIGHT: f64 = 1.2;
 /// Rough advance width of one character as a multiple of the font size, for label boxes.
 const CHAR_WIDTH: f64 = 0.6;
 
-/// Export page `page_index` (0 based) of `doc` as SVG bytes.
+/// How a page is exported.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct SvgOptions {
+    /// Leave out what does not print (`vizcraft_diagram::layer::printable`).
+    pub print: bool,
+    /// The text `{date}` expands to in the header and footer; empty uses the date part of the
+    /// document's last save (`core.modified`), so plain exports stay reproducible.
+    pub date: String,
+}
+
+/// Export page `page_index` (0 based) of `doc` as SVG bytes, as the screen shows it.
 pub fn export_page(doc: &Document, page_index: usize) -> Result<Vec<u8>, FormatError> {
+    export_page_with(doc, page_index, &SvgOptions::default())
+}
+
+/// Export page `page_index` (0 based) of `doc` as SVG bytes with `opts`.
+pub fn export_page_with(doc: &Document, page_index: usize, opts: &SvgOptions) -> Result<Vec<u8>, FormatError> {
     let page = doc.pages.get(page_index).ok_or(FormatError::NoPage(page_index))?;
-    Ok(page_svg(doc, page_index, page).into_bytes())
+    Ok(page_svg(doc, page_index, page, opts).into_bytes())
 }
 
 /// The canvas: the page rectangle, grown to the content bounds plus a margin when needed.
 pub fn canvas_rect(page: &Page) -> Rect {
+    canvas_rect_with(page, false)
+}
+
+/// [`canvas_rect`], counting only printable shapes when `print` is set.
+pub fn canvas_rect_with(page: &Page, print: bool) -> Rect {
     let page_rect = page.rect();
-    match content_bounds(page) {
+    match content_bounds(page, print) {
         Some(c) if !page_rect.contains_rect(&c) => page_rect.union(&c.inflate(MARGIN)),
         _ => page_rect,
     }
 }
 
-/// Bounds of every shape and connector on the page, or `None` for an empty page.
-fn content_bounds(page: &Page) -> Option<Rect> {
-    let shapes = page.shapes.iter().filter(|s| page.shape_visible(s)).map(effect_bounds);
+/// Whether shape `s` of `page` is drawn: visible, and printable when printing.
+fn drawn(page: &Page, s: &Shape, print: bool) -> bool {
+    if print { vizcraft_diagram::layer::printable(page, s) } else { page.shape_visible(s) }
+}
+
+/// Bounds of every drawn shape and connector on the page, or `None` for an empty page.
+fn content_bounds(page: &Page, print: bool) -> Option<Rect> {
+    let shapes = page.shapes.iter().filter(|s| drawn(page, s, print)).map(effect_bounds);
     let connectors = page.connectors.iter().filter_map(|c| {
         let g = connector_geometry(page, c);
         let heads = g.start_head.iter().chain(g.end_head.iter()).filter_map(|h| h.path.bounds());
@@ -93,8 +123,8 @@ fn effect_bounds(s: &Shape) -> Rect {
     r
 }
 
-fn page_svg(doc: &Document, page_index: usize, page: &Page) -> String {
-    let r = canvas_rect(page);
+fn page_svg(doc: &Document, page_index: usize, page: &Page, opts: &SvgOptions) -> String {
+    let r = canvas_rect_with(page, opts.print);
     let (w, h) = (r.width().max(1.0), r.height().max(1.0));
     let mut out = String::new();
     out.push_str("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
@@ -117,11 +147,12 @@ fn page_svg(doc: &Document, page_index: usize, page: &Page) -> String {
     let mut body = String::new();
     for bg in doc.background_chain(page_index) {
         let _ = writeln!(body, "  <g class=\"background\" data-page=\"{}\">", escape(&bg.id));
-        page_items_svg(&mut body, &mut cx, bg);
+        page_items_svg(&mut body, &mut cx, bg, opts.print);
         body.push_str("  </g>\n");
     }
-    page_items_svg(&mut body, &mut cx, page);
-    header_footer_svg(&mut body, page);
+    page_items_svg(&mut body, &mut cx, page, opts.print);
+    let date = if opts.date.is_empty() { doc.core.modified.get(..10).unwrap_or_default() } else { opts.date.as_str() };
+    header_footer_svg(&mut body, page, &FieldValues::for_page(doc, page_index, date));
     if !cx.defs.is_empty() {
         out.push_str("  <defs>\n");
         out.push_str(&cx.defs);
@@ -189,9 +220,9 @@ impl Ctx {
     }
 }
 
-/// The visible shapes, then the connectors, of one page.
-fn page_items_svg(out: &mut String, cx: &mut Ctx, page: &Page) {
-    for s in page.shapes.iter().filter(|s| page.shape_visible(s)) {
+/// The drawn shapes, then the connectors, of one page.
+fn page_items_svg(out: &mut String, cx: &mut Ctx, page: &Page, print: bool) {
+    for s in page.shapes.iter().filter(|s| drawn(page, s, print)) {
         shape_svg(out, cx, s);
     }
     for (c, g) in page.connectors.iter().zip(page_geometry(page)) {
@@ -400,21 +431,23 @@ fn text_svg(out: &mut String, lines: &[String], x: f64, first_baseline: f64, anc
     out.push_str("</text>\n");
 }
 
-/// Header and footer text, a quarter inch in from the page edges, in the default text style at
-/// a small size.
-fn header_footer_svg(out: &mut String, page: &Page) {
-    const INSET: f64 = 25.0;
+/// Header and footer text, each its margin in from the page edges, in the default text style at
+/// a small size, with fields expanded from `values`.
+fn header_footer_svg(out: &mut String, page: &Page, values: &FieldValues) {
     let st = Style { font_size: 10.0, ..Style::DEFAULT };
-    for (hf, baseline) in [(&page.header, INSET + 7.0), (&page.footer, page.height - INSET)] {
+    for (hf, top) in [(&page.header, true), (&page.footer, false)] {
         if hf.is_empty() {
             continue;
         }
+        let inset = hf.margin();
+        // The header's cap height sits at the margin; the footer's baseline sits at the margin.
+        let baseline = if top { inset + 7.0 } else { page.height - inset };
         for (text, x, anchor) in
-            [(&hf.left, INSET, Anchor::Start), (&hf.center, page.width / 2.0, Anchor::Middle), (&hf.right, page.width - INSET, Anchor::End)]
+            [(&hf.left, inset, Anchor::Start), (&hf.center, page.width / 2.0, Anchor::Middle), (&hf.right, page.width - inset, Anchor::End)]
         {
             if !text.trim().is_empty() {
                 // One line only: a header slot is a single line of text.
-                let line = text.lines().next().unwrap_or_default().to_string();
+                let line = expand(text.lines().next().unwrap_or_default(), values);
                 text_svg(out, &[line], x, baseline, anchor, &st, "");
             }
         }
@@ -707,8 +740,8 @@ mod style_tests {
         doc.pages.push(bg);
         if let Some(p) = doc.page_mut() {
             p.background = Some("bg".into());
-            p.header = HeaderFooter { left: "Plant".into(), center: String::new(), right: "Rev A\nignored".into() };
-            p.footer = HeaderFooter { left: String::new(), center: "Page 1".into(), right: String::new() };
+            p.header = HeaderFooter { left: "Plant".into(), center: String::new(), right: "Rev A\nignored".into(), margin: None };
+            p.footer = HeaderFooter { left: String::new(), center: "Page 1".into(), right: String::new(), margin: None };
             p.shapes.push(Shape::new("s1", ShapeKind::Rectangle, 100.0, 100.0, 50.0, 50.0));
         }
         doc.sanitize();

@@ -302,8 +302,8 @@ fn rich() -> Document {
     page.drawing_scale = DrawingScale { page: 1.0, drawing: 50.0, units: Units::Meters };
     page.auto_size = true;
     page.background = Some("p3".into());
-    page.header = HeaderFooter { left: "Left".into(), center: "Centre".into(), right: "Right".into() };
-    page.footer = HeaderFooter { left: String::new(), center: "Page 1".into(), right: String::new() };
+    page.header = HeaderFooter { left: "Left".into(), center: "Centre".into(), right: "Right".into(), margin: None };
+    page.footer = HeaderFooter { left: String::new(), center: "Page 1".into(), right: String::new(), margin: None };
     page.guides = vec![
         Guide { orientation: GuideOrientation::Vertical, position: 250.0 },
         Guide { orientation: GuideOrientation::Horizontal, position: -10.5 },

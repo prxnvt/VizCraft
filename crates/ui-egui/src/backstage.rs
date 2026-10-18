@@ -1,7 +1,8 @@
-//! The File page (Backstage): a full-window page with New, Open, Save, Save As, Preferences and
-//! About in a coloured column, the recent files and the document's facts beside it. Opened by
-//! the File tab (`ui.tab {"tab": "File"}` or `ui.backstage`); Escape or the back arrow returns
-//! to the document. Every row runs a command, nothing here has behaviour of its own.
+//! The File page (Backstage): a full-window page with New, Open, Save, Save As, Export, Print,
+//! Import, Close, Preferences and About in a coloured column, the recent files and the
+//! document's facts beside it. Opened by the File tab (`ui.tab {"tab": "File"}` or
+//! `ui.backstage`); Escape or the back arrow returns to the document. Every row runs a command;
+//! nothing here has behaviour of its own.
 
 use egui::{Align2, Sense, Stroke, Ui, pos2, vec2};
 use serde_json::json;
@@ -38,6 +39,7 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
                 ("Save", "file.save"),
                 ("Save As", "file.saveAs"),
                 ("Export", "file.export"),
+                ("Print", "ui.print"),
                 ("Import", "file.import"),
                 ("Close", "file.close"),
             ] {
