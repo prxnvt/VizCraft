@@ -3,7 +3,9 @@
 pub mod arrange;
 pub mod batch;
 pub mod connector;
+pub mod design;
 pub mod edit;
+pub mod effects;
 pub mod element;
 pub mod file;
 pub mod help;
@@ -38,6 +40,7 @@ pub fn registry() -> Registry {
     v.extend(connector::specs());
     v.extend(page::specs());
     v.extend(layer::specs());
+    v.extend(design::specs());
     v.extend(layout::specs());
     v.extend(model::specs());
     v.extend(element::specs());

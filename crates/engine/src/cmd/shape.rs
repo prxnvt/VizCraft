@@ -26,7 +26,7 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("shape.setText", "Edit Text", "Home > Font", set_text).params(r#"{"id": string, "text": string}; on a shape of an element, renames the element and every view of it"#).when(has_shapes),
         CommandSpec::new("shape.setStyle", "Shape Style", "Home > Shape Styles", set_style)
             .params(
-                r##"{"ids"?: [string], "fill"?: "#rrggbb", "line"?: "#rrggbb", "lineWidth"?: n, "fontSize"?: n, "fontColor"?: "#rrggbb", "bold"?: bool, "italic"?: bool}"##,
+                r##"{"ids"?: [string], "fill"?: "#rrggbb", "line"?: "#rrggbb", "lineWidth"?: n, "fontSize"?: n, "fontColor"?: "#rrggbb", "bold"?: bool, "italic"?: bool, "dash"?: "solid"|"dashed"|"dotted"|"dashDot"|"longDash", "lineCap"?: "butt"|"round"|"square", "cornerRadius"?: n, "gradient"?: false|true|"linear"|"radial"|{"kind"?, "angle"?, "stops": [{"offset", "color"}]}, "fillTransparency"?: 0..1, "lineTransparency"?: 0..1, "shadow"?: false|true|{"dx"?, "dy"?, "blur"?, "color"?}, "softEdges"?: n, "glow"?: false|true|radius|{"radius"?, "color"?}}; numbers are clamped; connectors take the line keys only"##,
             )
             .when(has_shapes),
         CommandSpec::new("shape.search", "Search Shapes", "Shapes pane", search).params(
@@ -231,6 +231,8 @@ struct StylePatch {
     font_color: Option<Color>,
     bold: Option<bool>,
     italic: Option<bool>,
+    /// Line and fill effects (dash, gradient, shadow and the rest).
+    effects: super::effects::EffectPatch,
 }
 
 impl StylePatch {
@@ -249,6 +251,7 @@ impl StylePatch {
             font_color: color("fontColor")?,
             bold: opt_bool(v, "bold")?,
             italic: opt_bool(v, "italic")?,
+            effects: super::effects::EffectPatch::parse(v)?,
         };
         let empty = patch.fill.is_none()
             && patch.line.is_none()
@@ -256,9 +259,13 @@ impl StylePatch {
             && patch.font_size.is_none()
             && patch.font_color.is_none()
             && patch.bold.is_none()
-            && patch.italic.is_none();
+            && patch.italic.is_none()
+            && patch.effects.is_empty();
         if empty {
-            return Err(EngineError::Params("give at least one of fill, line, lineWidth, fontSize, fontColor, bold, italic".into()));
+            return Err(EngineError::Params(format!(
+                "give at least one of fill, line, lineWidth, fontSize, fontColor, bold, italic, {}",
+                super::effects::KEYS
+            )));
         }
         Ok(patch)
     }
@@ -286,6 +293,8 @@ impl StylePatch {
         if let Some(i) = self.italic {
             st.italic = i;
         }
+        // After the fill, so a gradient made from the fill uses the new colour.
+        self.effects.apply(st, with_fill);
         st.sanitize();
     }
 }

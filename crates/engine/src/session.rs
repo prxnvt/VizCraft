@@ -393,6 +393,8 @@ impl Session {
             // after a command that replaced the document (open, new): `before_doc` is another file.
             if r.is_ok() && !manages_undo && !self.no_undo && self.doc != before_doc {
                 vizcraft_notation::bind::sync(&mut self.doc, &before_doc, vizcraft_notation::catalog());
+                // New items take the document theme; decoration pages follow titles and sizes.
+                crate::cmd::design::after_change(&mut self.doc, &before_doc);
             }
             r
         }));

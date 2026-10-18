@@ -296,16 +296,7 @@ fn paint(app: &mut CraftApp, ui: &Ui, vp: &Viewport2D, t: &Tokens) {
     let editing = app.canvas.editing.as_ref().map(|e| e.id().to_string());
     // Background pages under the active one, deepest first. Drawn only: hit testing and every
     // command look at the active page, so nothing here can be selected or edited.
-    for bg in app.session.doc.background_chain(app.session.doc.active_index()) {
-        for s in bg.shapes.iter().filter(|s| bg.shape_visible(s) && s.bounds().intersects(&visible)) {
-            draw::shape(&painter, vp, s, &mut app.canvas.cache, true);
-        }
-        for (c, g) in bg.connectors.iter().zip(dg::jumps::page_geometry(bg)) {
-            if draw::connector_bounds(&g).is_some_and(|b| b.intersects(&visible)) {
-                draw::connector(&painter, vp, c, &g, true);
-            }
-        }
-    }
+    draw::shapes::background_pages(&painter, vp, &app.session.doc, app.session.doc.active_index(), &mut app.canvas.cache);
     // Hidden shapes are not drawn; a layer colour tints the shapes on it.
     for s in page.shapes.iter().filter(|s| dg::layer::visible(page, s)) {
         if s.bounds().intersects(&visible) {
