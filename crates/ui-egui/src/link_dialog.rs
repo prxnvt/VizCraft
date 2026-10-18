@@ -89,7 +89,7 @@ fn target_field(ui: &mut Ui, app: &CraftApp, i: usize, row: &mut Row) {
             });
         }
         LinkKind::Url | LinkKind::File | LinkKind::Element => {
-            ui.add(egui::TextEdit::singleline(&mut row.target).desired_width(200.0));
+            ui.add_sized([200.0, 22.0], egui::TextEdit::singleline(&mut row.target));
         }
     }
 }
@@ -113,7 +113,7 @@ pub fn body(ui: &mut Ui, app: &CraftApp, s: &mut State) {
                 }
             });
             target_field(ui, app, i, row);
-            ui.add(egui::TextEdit::singleline(&mut row.label).hint_text("Label").desired_width(110.0));
+            ui.add_sized([110.0, 22.0], egui::TextEdit::singleline(&mut row.label).hint_text("Label"));
             if ui.small_button("Remove").clicked() {
                 remove = Some(i);
             }
