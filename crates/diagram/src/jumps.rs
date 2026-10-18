@@ -8,7 +8,7 @@ use vizcraft_routing::{JumpOrder, Point as RPoint};
 
 use crate::geom::{Path, PathEl, Point, Vec2, polyline_length};
 use crate::model::Page;
-use crate::route::{ConnectorGeometry, connector_geometry};
+use crate::route::ConnectorGeometry;
 
 /// Radius of a hop, in world units.
 pub const HOP_RADIUS: f64 = 5.0;
@@ -19,10 +19,11 @@ const KAPPA: f64 = 0.552_284_75;
 
 /// The geometry of every connector on `page`, in page order. Connectors with `jumps` set have
 /// their `line` drawn with a semicircular hop at each place where they cross a connector earlier
-/// in the list; every other field is exactly [`connector_geometry`]'s. Costs nothing extra when
+/// in the list; every other field is exactly [`crate::route::connector_geometry`]'s. Costs nothing extra when
 /// no connector has `jumps` set.
 pub fn page_geometry(page: &Page) -> Vec<ConnectorGeometry> {
-    let mut geoms: Vec<ConnectorGeometry> = page.connectors.iter().map(|c| connector_geometry(page, c)).collect();
+    let field = crate::autoroute::LazyField::new(page);
+    let mut geoms: Vec<ConnectorGeometry> = page.connectors.iter().map(|c| crate::route::geometry_in(page, c, &field)).collect();
     // Only connectors up to the last one with jumps can matter: later ones are never hopped over.
     let Some(last) = page.connectors.iter().rposition(|c| c.jumps) else { return geoms };
     let polylines: Vec<Vec<RPoint>> =
@@ -108,6 +109,7 @@ fn semicircle(path: &mut Path, c: Point, d: Vec2, r: f64) {
 mod tests {
     use super::*;
     use crate::model::{Connector, End, Route};
+    use crate::route::connector_geometry;
 
     fn crossing_page(first_jumps: bool, second_jumps: bool) -> Page {
         let mut page = Page::default();

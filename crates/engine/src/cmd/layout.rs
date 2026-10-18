@@ -164,6 +164,8 @@ mod tests {
     #[test]
     fn connector_reroute_and_jumps_toggle_per_connector() {
         let mut s = walled();
+        // The per-connector flag only decides on a page that does not route every connector.
+        s.run("page.setRouting", &json!({"avoid": "never"})).unwrap();
         s.run("connector.reroute", &json!({"ids": ["c"]})).unwrap();
         assert!(s.doc.page().unwrap().connector("c").unwrap().avoid);
         s.run("connector.reroute", &json!({"avoid": false})).unwrap();

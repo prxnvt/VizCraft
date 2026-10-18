@@ -670,3 +670,21 @@ fn hostile_shape_data_is_sanitised() {
     assert!(doc.pages[0].shapes[1].data.rows.is_empty());
     assert!(vizcraft_diagram::data::page_keys(&doc.pages[0]).is_empty(), "unreadable page keys are none");
 }
+
+#[test]
+fn page_routing_policy_round_trips_and_old_files_route_every_connector() {
+    use vizcraft_diagram::{Avoid, RoutingPolicy, StraightFallback};
+    let mut doc = Document::new();
+    doc.pages[0].routing = RoutingPolicy { avoid: Avoid::Never, straight_fallback: StraightFallback::Keep };
+    let bytes = save(&doc).unwrap();
+    let text = String::from_utf8(bytes.clone()).unwrap();
+    assert!(text.contains(r#""routing""#) && text.contains(r#""straightFallback": "keep""#), "{text}");
+    assert_eq!(load(&bytes).unwrap().pages[0].routing, doc.pages[0].routing);
+    // The default is left out, and a file without it (or with junk) loads with avoidance on.
+    let plain = String::from_utf8(save(&Document::new()).unwrap()).unwrap();
+    assert!(!plain.contains("routing"));
+    let mut file: Value = serde_json::from_str(&text).unwrap();
+    file["document"]["pages"][0]["routing"] = json!({"avoid": ["x"], "straightFallback": 9});
+    let junk = load(&serde_json::to_vec(&file).unwrap()).unwrap();
+    assert_eq!(junk.pages[0].routing, RoutingPolicy::default());
+}

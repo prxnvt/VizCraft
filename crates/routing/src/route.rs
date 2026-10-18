@@ -1,15 +1,57 @@
 //! Routing one connector: terminals and stubs, the search region, grid construction and fallback.
 
 use crate::geom::{self, Opts};
-use crate::search::{self, DOWN, Ends, Grid, LEFT, RIGHT, UP};
-use crate::{End, Point, Rect, Request, Route, Side};
+use crate::search::{self, DOWN, Grid, LEFT, RIGHT, Source, Target, UP};
+use crate::{End, MAX_CANDIDATES, Point, Rect, Request, Route, Side};
+
+/// How far one end of a routed connector may slide along its side when nudging spreads
+/// connectors apart.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct Slide {
+    /// Largest slide either way.
+    pub limit: f64,
+    /// The glued obstacle the end sits on: the slide stays within its side, and the stub may
+    /// overlap it.
+    pub rect: Option<Rect>,
+    /// That obstacle's index, which nudging must not treat as blocking the stub.
+    pub index: Option<usize>,
+}
 
 /// A routed connector plus what nudging needs to know about it.
+#[derive(Default)]
 pub(crate) struct Routed {
     pub route: Route,
     /// The clearance the route was found with (it may be smaller than requested after a retry),
     /// or `None` for a fallback route, which nudging leaves alone.
     pub margin: Option<f64>,
+    /// Obstacles the route may pass through.
+    pub ignore: Vec<usize>,
+    /// How the first point may slide, if at all.
+    pub start_slide: Option<Slide>,
+    /// How the last point may slide, if at all.
+    pub end_slide: Option<Slide>,
+}
+
+/// The slide an end allows, given the rectangle of the obstacle it is glued to.
+fn slide_of(end: &End, obstacles: &[Option<Rect>]) -> Option<Slide> {
+    let limit = if end.spread.is_finite() { end.spread.clamp(0.0, geom::COORD_LIMIT) } else { 0.0 };
+    if limit <= 0.0 {
+        return None;
+    }
+    let rect = end.obstacle.and_then(|k| obstacles.get(k).copied().flatten());
+    Some(Slide { limit, rect, index: rect.and(end.obstacle) })
+}
+
+impl Routed {
+    /// A route made elsewhere, described by `req`, for nudging; `margin` is the clearance assumed.
+    pub fn preset(route: Route, req: &Request, obstacles: &[Option<Rect>], margin: f64) -> Self {
+        Self::with(route, Some(margin), req, obstacles)
+    }
+
+    fn with(route: Route, margin: Option<f64>, req: &Request, obstacles: &[Option<Rect>]) -> Self {
+        let (start_slide, end_slide) = if margin.is_some() { (slide_of(&req.start, obstacles), slide_of(&req.end, obstacles)) } else { (None, None) };
+        Self { route, margin, ignore: req.ignore.clone(), start_slide, end_slide }
+    }
 }
 
 /// Why one routing attempt did not produce a route.
@@ -38,6 +80,10 @@ struct Terminal {
     /// Heading pointing out of the shape, if the side is fixed.
     dir: Option<usize>,
     glued: Option<usize>,
+    /// Length of the stub, which the search counts as already travelled.
+    cost: f64,
+    /// Which of the end's candidates this is, if it came from one.
+    index: Option<usize>,
 }
 
 /// The side of `r` closest to `p`, used when a glued end names no side.
@@ -57,11 +103,10 @@ fn nearest_side(p: Point, r: &Rect) -> Side {
     best.1
 }
 
-fn terminal(end: &End, obstacles: &[Option<Rect>], margin: f64) -> Terminal {
-    let glued_rect = end.obstacle.and_then(|k| obstacles.get(k).copied().flatten());
-    let glued = glued_rect.and(end.obstacle);
-    let side = end.side.or_else(|| glued_rect.map(|r| nearest_side(end.point, &r)));
-    let p = end.point;
+fn terminal_at(p: Point, side: Option<Side>, glued_index: Option<usize>, obstacles: &[Option<Rect>], margin: f64, index: Option<usize>) -> Terminal {
+    let glued_rect = glued_index.and_then(|k| obstacles.get(k).copied().flatten());
+    let glued = glued_rect.and(glued_index);
+    let side = side.or_else(|| glued_rect.map(|r| nearest_side(p, &r)));
     // The stub reaches one margin beyond the glued shape even when the point sits inside it, so
     // the grid search always starts outside every expanded obstacle.
     let stub = match (side, glued_rect) {
@@ -71,7 +116,22 @@ fn terminal(end: &End, obstacles: &[Option<Rect>], margin: f64) -> Terminal {
         (Some(Side::Top), g) => Point::new(p.x, g.map_or(p.y - margin, |g| (p.y - margin).min(g.min.y - margin))),
         (Some(Side::Bottom), g) => Point::new(p.x, g.map_or(p.y + margin, |g| (p.y + margin).max(g.max.y + margin))),
     };
-    Terminal { point: p, stub, dir: side.map(side_dir), glued }
+    let cost = (stub.x - p.x).abs() + (stub.y - p.y).abs();
+    Terminal { point: p, stub, dir: side.map(side_dir), glued, cost, index }
+}
+
+/// Every place an end may start or finish: its candidates, or its one point.
+fn terminals(end: &End, obstacles: &[Option<Rect>], margin: f64) -> Vec<Terminal> {
+    if end.candidates.is_empty() {
+        return vec![terminal_at(end.point, end.side, end.obstacle, obstacles, margin, None)];
+    }
+    end.candidates
+        .iter()
+        .take(MAX_CANDIDATES)
+        .enumerate()
+        .filter(|(_, (p, _))| geom::point_ok(*p))
+        .map(|(i, (p, side))| terminal_at(*p, Some(*side), end.obstacle, obstacles, margin, Some(i)))
+        .collect()
 }
 
 /// The simple orthogonal route used when routing around obstacles is impossible or unsafe.
@@ -87,22 +147,23 @@ fn fallback(start: &End, end: &End) -> Route {
         let my = a.y / 2.0 + b.y / 2.0;
         [a, Point::new(a.x, my), Point::new(b.x, my), b]
     };
-    Route { points: geom::simplify(&points), fallback: true }
+    Route { points: geom::simplify(&points), fallback: true, ..Route::default() }
 }
 
 /// Routes one request. `existing` holds segments of connectors routed before, used only when
 /// crossings are penalised.
 pub(crate) fn route_one(obstacles: &[Option<Rect>], req: &Request, opts: &Opts, existing: &[(Point, Point)]) -> Routed {
     let (s, e) = (req.start.point, req.end.point);
+    let fail = |route: Route| Routed { route, margin: None, ignore: req.ignore.clone(), ..Routed::default() };
     if !s.is_finite() || !e.is_finite() {
         let points = [s, e].into_iter().filter(Point::is_finite).collect();
-        return Routed { route: Route { points, fallback: true }, margin: None };
+        return fail(Route { points, fallback: true, ..Route::default() });
     }
     if !geom::point_ok(s) || !geom::point_ok(e) || obstacles.len() > geom::MAX_OBSTACLES {
-        return Routed { route: fallback(&req.start, &req.end), margin: None };
+        return fail(fallback(&req.start, &req.end));
     }
-    if geom::same_point(s, e) {
-        return Routed { route: Route { points: vec![s], fallback: false }, margin: Some(opts.margin) };
+    if req.start.candidates.is_empty() && req.end.candidates.is_empty() && geom::same_point(s, e) {
+        return Routed::with(Route { points: vec![s], ..Route::default() }, Some(opts.margin), req, obstacles);
     }
     // Tight layouts may leave no room at the full margin; trying smaller clearances before giving
     // up keeps routes obstacle-free where a fallback would cut through shapes.
@@ -113,24 +174,27 @@ pub(crate) fn route_one(obstacles: &[Option<Rect>], req: &Request, opts: &Opts, 
     for m in margins {
         for level in 0..3 {
             match attempt(obstacles, req, opts, existing, m, level) {
-                Ok(points) => return Routed { route: Route { points, fallback: false }, margin: Some(m) },
+                Ok((points, start_candidate, end_candidate)) => {
+                    let route = Route { points, fallback: false, start_candidate, end_candidate };
+                    return Routed::with(route, Some(m), req, obstacles);
+                }
                 Err(Miss::NoPath) => {}
                 Err(Miss::TooBig) => break,
             }
         }
     }
-    Routed { route: fallback(&req.start, &req.end), margin: None }
+    fail(fallback(&req.start, &req.end))
 }
 
 /// Whether a stub segment avoids every expanded obstacle except the one its end is glued to.
-fn stub_clear(t: &Terminal, obstacles: &[Option<Rect>], m: f64) -> bool {
+fn stub_clear(t: &Terminal, obstacles: &[Option<Rect>], ignore: &[usize], m: f64) -> bool {
     if geom::same_point(t.point, t.stub) {
         return true;
     }
     obstacles
         .iter()
         .enumerate()
-        .filter(|(k, _)| Some(*k) != t.glued)
+        .filter(|(k, _)| Some(*k) != t.glued && !ignore.contains(k))
         .filter_map(|(_, r)| r.as_ref())
         .all(|r| !geom::segment_hits_interior(t.point, t.stub, &r.expanded(m)))
 }
@@ -150,18 +214,24 @@ fn union(a: &Rect, b: &Rect) -> Rect {
     Rect { min: Point::new(a.min.x.min(b.min.x), a.min.y.min(b.min.y)), max: Point::new(a.max.x.max(b.max.x), a.max.y.max(b.max.y)) }
 }
 
+/// A polyline and the candidate indices of the start and end it joins.
+type Found = (Vec<Point>, Option<usize>, Option<usize>);
+
 /// One search at margin `m` inside the region for `level` (0 and 1 are windows around the
 /// terminals, 2 covers every obstacle). A route confined to the region cannot touch obstacles
 /// outside it, so ignoring those is sound and keeps grids small for local connectors.
-fn attempt(obstacles: &[Option<Rect>], req: &Request, opts: &Opts, existing: &[(Point, Point)], m: f64, level: u8) -> Result<Vec<Point>, Miss> {
-    let a = terminal(&req.start, obstacles, m);
-    let b = terminal(&req.end, obstacles, m);
-    if !stub_clear(&a, obstacles, m) || !stub_clear(&b, obstacles, m) {
+fn attempt(obstacles: &[Option<Rect>], req: &Request, opts: &Opts, existing: &[(Point, Point)], m: f64, level: u8) -> Result<Found, Miss> {
+    let ignore = &req.ignore;
+    let starts: Vec<Terminal> = terminals(&req.start, obstacles, m).into_iter().filter(|t| stub_clear(t, obstacles, ignore, m)).collect();
+    let ends: Vec<Terminal> = terminals(&req.end, obstacles, m).into_iter().filter(|t| stub_clear(t, obstacles, ignore, m)).collect();
+    if starts.is_empty() || ends.is_empty() {
         return Err(Miss::NoPath);
     }
-    let terms = bbox(&[a.point, a.stub, b.point, b.stub]);
+    let all: Vec<Point> = starts.iter().chain(&ends).flat_map(|t| [t.point, t.stub]).collect();
+    let terms = bbox(&all);
     let span = (terms.max.x - terms.min.x).max(terms.max.y - terms.min.y);
-    let expanded: Vec<Rect> = obstacles.iter().filter_map(|r| r.map(|r| r.expanded(m))).collect();
+    let expanded: Vec<Rect> =
+        obstacles.iter().enumerate().filter(|(k, _)| !ignore.contains(k)).filter_map(|(_, r)| r.map(|r| r.expanded(m))).collect();
     let region = match level {
         0 => terms.expanded(span * 0.5 + 4.0 * m + 20.0),
         1 => terms.expanded(span * 2.0 + 8.0 * m + 100.0),
@@ -172,8 +242,12 @@ fn attempt(obstacles: &[Option<Rect>], req: &Request, opts: &Opts, existing: &[(
         .filter(|r| r.min.x < region.max.x && r.max.x > region.min.x && r.min.y < region.max.y && r.max.y > region.min.y)
         .collect();
 
-    let mut xs = vec![region.min.x, region.max.x, a.point.x, a.stub.x, b.point.x, b.stub.x];
-    let mut ys = vec![region.min.y, region.max.y, a.point.y, a.stub.y, b.point.y, b.stub.y];
+    let mut xs = vec![region.min.x, region.max.x];
+    let mut ys = vec![region.min.y, region.max.y];
+    for p in &all {
+        xs.push(p.x);
+        ys.push(p.y);
+    }
     for r in &inside {
         xs.extend([r.min.x, r.max.x].into_iter().filter(|&x| x > region.min.x && x < region.max.x));
         ys.extend([r.min.y, r.max.y].into_iter().filter(|&y| y > region.min.y && y < region.max.y));
@@ -186,19 +260,20 @@ fn attempt(obstacles: &[Option<Rect>], req: &Request, opts: &Opts, existing: &[(
         return Err(Miss::TooBig);
     }
     let grid = build_grid(xs, ys, &inside, existing, opts.crossing > 0.0);
-    let ends = Ends {
-        start: grid.node_at(a.stub).ok_or(Miss::NoPath)?,
-        start_dir: a.dir,
-        end: grid.node_at(b.stub).ok_or(Miss::NoPath)?,
-        // The route arrives heading into the shape, the opposite of the side's outward heading.
-        end_dir: b.dir.map(|d| d ^ 1),
-    };
-    let nodes = search::search(&grid, &ends, opts.bend, opts.crossing).ok_or(Miss::NoPath)?;
-    let mut points = Vec::with_capacity(nodes.len() + 2);
+    let sources: Vec<Source> = starts.iter().filter_map(|t| Some(Source { node: grid.node_at(t.stub)?, dir: t.dir, cost: t.cost })).collect();
+    // The route arrives heading into the shape, the opposite of the side's outward heading.
+    let targets: Vec<Target> =
+        ends.iter().filter_map(|t| Some(Target { node: grid.node_at(t.stub)?, dir: t.dir.map(|d| d ^ 1), cost: t.cost })).collect();
+    if sources.len() != starts.len() || targets.len() != ends.len() {
+        return Err(Miss::NoPath);
+    }
+    let found = search::search(&grid, &sources, &targets, opts.bend, opts.crossing).ok_or(Miss::NoPath)?;
+    let (Some(a), Some(b)) = (starts.get(found.source), ends.get(found.target)) else { return Err(Miss::NoPath) };
+    let mut points = Vec::with_capacity(found.nodes.len() + 2);
     points.push(a.point);
-    points.extend(nodes.iter().filter_map(|&n| grid.point(n)));
+    points.extend(found.nodes.iter().filter_map(|&n| grid.point(n)));
     points.push(b.point);
-    Ok(geom::simplify(&points))
+    Ok((geom::simplify(&points), a.index, b.index))
 }
 
 /// Marks index rectangles in a 2D difference array; prefix sums then give per-cell cover counts in

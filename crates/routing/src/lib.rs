@@ -1,6 +1,8 @@
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 //! Model-independent connector routing for diagrams: orthogonal routes that go around shapes,
-//! nudging of overlapping parallel segments, and line-jump positions where connectors cross.
+//! nudging of overlapping parallel segments (and fanning out of ends that share a side), the
+//! crossing oracle ([`crossings`]), clear rounded bends for curved lines ([`round_bends`]), and
+//! line-jump positions where connectors cross.
 //!
 //! The crate knows nothing about pages, shapes or styles. Callers describe shapes as axis-aligned
 //! [`Obstacle`] rectangles (rotated shapes as their bounding boxes) and connectors as [`Request`]s
@@ -11,10 +13,14 @@
 //!
 //! The router builds a sparse orthogonal visibility grid from the obstacle edges (expanded by the
 //! clearance margin) and the connector ends, then runs an A* search over (grid point, heading)
-//! states that minimises length plus a penalty per bend. Every entry point accepts hostile input:
+//! states that minimises length plus a penalty per bend. An end may offer several candidate points
+//! (every connection point of a dynamically glued shape): the search starts from all of them and
+//! finishes at any of the other end's, so the cheapest clear route also picks the sides. Every
+//! entry point accepts hostile input:
 //! non-finite or absurd coordinates, inverted rectangles and oversized problems produce a simple
 //! fallback route (marked [`Route::fallback`]) instead of a panic or an unbounded computation.
 
+mod curve;
 mod geom;
 mod jumps;
 mod nudge;
@@ -109,9 +115,11 @@ impl Obstacle {
 }
 
 /// One end of a connector.
-#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct End {
-    /// Where the connector starts or finishes.
+    /// Where the connector starts or finishes. With [`End::candidates`] set, this is only the
+    /// position the fallback route uses.
     pub point: Point,
     /// The direction the connector must leave (at the start) or enter (at the end) through, or
     /// `None` for any direction. When the end is glued and this is `None`, the side of the glued
@@ -121,12 +129,25 @@ pub struct End {
     /// obstacle only on its first (or last) segment, the stub that leaves the shape. An index out
     /// of range is treated as `None`.
     pub obstacle: Option<usize>,
+    /// Alternative places the end may use, each leaving (or entering) through its side: every
+    /// connection point of a dynamically glued shape. When this is not empty the search starts
+    /// (or finishes) at whichever candidate gives the cheapest clear route, and [`Route`] reports
+    /// which one it chose; `point` and `side` then serve only the fallback. At most
+    /// [`MAX_CANDIDATES`] are used; candidates with unusable coordinates are skipped.
+    pub candidates: Vec<(Point, Side)>,
+    /// How far nudging may slide this end along its side to spread connectors that leave the same
+    /// side apart; zero (the default) keeps the end where the route put it. The slide never takes
+    /// the end past the glued obstacle's side.
+    pub spread: f64,
 }
+
+/// Most candidates one end offers to the search; more are ignored.
+pub const MAX_CANDIDATES: usize = 64;
 
 impl End {
     /// A free end at `point` that may leave in any direction.
     pub fn at(point: Point) -> Self {
-        Self { point, side: None, obstacle: None }
+        Self { point, ..Self::default() }
     }
 
     /// Returns this end with a required side.
@@ -140,21 +161,43 @@ impl End {
         self.obstacle = Some(index);
         self
     }
+
+    /// Returns this end with candidate positions for the search to choose from.
+    pub fn with_candidates(mut self, candidates: Vec<(Point, Side)>) -> Self {
+        self.candidates = candidates;
+        self
+    }
+
+    /// Returns this end allowed to slide `by` along its side when nudging spreads connectors.
+    pub fn with_spread(mut self, by: f64) -> Self {
+        self.spread = by;
+        self
+    }
 }
 
 /// A connector to route, from `start` to `end`.
-#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Request {
     /// Where the connector begins.
     pub start: End,
     /// Where the connector finishes.
     pub end: End,
+    /// Indices of obstacles this connector may pass through, such as a container that encloses
+    /// one of its ends. Out-of-range indices are ignored.
+    pub ignore: Vec<usize>,
 }
 
 impl Request {
     /// Creates a request between two ends.
     pub fn new(start: End, end: End) -> Self {
-        Self { start, end }
+        Self { start, end, ignore: Vec::new() }
+    }
+
+    /// Returns this request allowed to pass through the obstacles in `ignore`.
+    pub fn ignoring(mut self, ignore: Vec<usize>) -> Self {
+        self.ignore = ignore;
+        self
     }
 }
 
@@ -191,6 +234,12 @@ pub struct Route {
     /// True when no obstacle-avoiding route was found (or the input was unusable) and `points` is
     /// a simple orthogonal route that may cross obstacles.
     pub fallback: bool,
+    /// Index into the start's [`End::candidates`] of the candidate the route leaves from, or
+    /// `None` when the start has no candidates or the route is a fallback.
+    pub start_candidate: Option<usize>,
+    /// Index into the end's [`End::candidates`] of the candidate the route arrives at, or `None`
+    /// when the end has no candidates or the route is a fallback.
+    pub end_candidate: Option<usize>,
 }
 
 /// Which connector draws the hop where two connectors cross.
@@ -219,9 +268,10 @@ pub struct Jump {
 /// Routes one connector orthogonally around the obstacles.
 ///
 /// The route keeps `options.margin` clear of every obstacle except the ones its ends are glued to
-/// (which it crosses only on its stub), honours the side directions of both ends and minimises
-/// length plus `bend_penalty` per bend. When no such route exists or the problem is too large or
-/// malformed, it returns a three-segment orthogonal route marked `fallback`.
+/// (which it crosses only on its stub) and the ones the request ignores, honours the side
+/// directions of both ends (or picks the cheapest candidates) and minimises length plus
+/// `bend_penalty` per bend. When no such route exists or the problem is too large or malformed,
+/// it returns a three-segment orthogonal route marked `fallback`.
 pub fn route_orthogonal(obstacles: &[Obstacle], request: &Request, options: &Options) -> Route {
     let opts = geom::Opts::from(options);
     let obs = geom::prepare(obstacles);
@@ -231,10 +281,8 @@ pub fn route_orthogonal(obstacles: &[Obstacle], request: &Request, options: &Opt
 /// Routes several connectors, then pushes overlapping parallel segments apart.
 ///
 /// Connectors are routed in order; with `crossing_penalty` set, each one avoids crossing the ones
-/// before it where that is cheap. Afterwards interior segments of different connectors that lie on
-/// the same line and overlap are spread `segment_spacing` apart within the free channel around
-/// them, so they stay `margin` clear of obstacles. First and last segments are never moved, since
-/// they carry the fixed ends; interior segments lying on them move aside instead.
+/// before it where that is cheap. Afterwards segments of different connectors that lie on the
+/// same line and overlap are spread `segment_spacing` apart (see [`nudge_routes`]).
 pub fn route_all(obstacles: &[Obstacle], requests: &[Request], options: &Options) -> Vec<Route> {
     let opts = geom::Opts::from(options);
     let obs = geom::prepare(obstacles);
@@ -254,6 +302,37 @@ pub fn route_all(obstacles: &[Obstacle], requests: &[Request], options: &Options
         nudge::nudge(&mut routed, &obs, opts.spacing);
     }
     routed.into_iter().map(|r| r.route).collect()
+}
+
+/// Pushes overlapping parallel segments of `routes` apart in place, as [`route_all`] does after
+/// routing; `requests[i]` describes `routes[i]` (its ignored obstacles, glued shapes and how far
+/// its ends may slide). Use it to spread routes that came from elsewhere, or a mix of routed and
+/// precomputed ones, in one pass.
+///
+/// Interior segments (both ends are bends) move freely within the channel that stays
+/// `options.margin` clear of the obstacles. First and last segments carry the ends: they move only
+/// when their end has a [`End::spread`], sliding the end along its side by at most that much, so
+/// connectors that leave the same side fan out instead of running on top of each other; otherwise
+/// they stay put and interior segments lying on them move aside. Fallback routes and routes
+/// without a request are left alone.
+pub fn nudge_routes(obstacles: &[Obstacle], requests: &[Request], routes: &mut [Route], options: &Options) {
+    let opts = geom::Opts::from(options);
+    if opts.spacing <= 0.0 {
+        return;
+    }
+    let obs = geom::prepare(obstacles);
+    let mut routed: Vec<route::Routed> = routes
+        .iter()
+        .enumerate()
+        .map(|(i, r)| match requests.get(i) {
+            Some(req) if !r.fallback && r.points.iter().all(|p| geom::point_ok(*p)) => route::Routed::preset(r.clone(), req, &obs, opts.margin),
+            _ => route::Routed { route: r.clone(), margin: None, ..route::Routed::default() },
+        })
+        .collect();
+    nudge::nudge(&mut routed, &obs, opts.spacing);
+    for (dst, src) in routes.iter_mut().zip(routed) {
+        *dst = src.route;
+    }
 }
 
 /// For each polyline, the crossings where it should draw a hop over another polyline.
@@ -283,4 +362,64 @@ pub fn clear_of_obstacles(route: &Route, obstacles: &[Obstacle], ignore: &[usize
         let r = o.rect.normalized().expanded(margin);
         segments.iter().all(|(a, b)| !geom::segment_hits_interior(*a, *b, &r))
     })
+}
+
+/// One place where a polyline enters an obstacle, from [`crossings`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct Hit {
+    /// Index of the obstacle entered.
+    pub obstacle: usize,
+    /// Index of the segment (from point `segment` to point `segment + 1`) that enters it.
+    pub segment: usize,
+}
+
+/// How far a polyline may sink into its own end obstacles' outlines before [`crossings`] counts
+/// it, so a line that starts on a shape's edge is not reported for touching it.
+pub const OWN_TOLERANCE: f64 = 0.5;
+
+/// Every place where the polyline `points` enters an obstacle: the oracle for "this connector
+/// crosses a shape". Each obstacle is grown by `clearance` first (a negative clearance shrinks it,
+/// a tolerance for drawing error). Obstacles in `ignore` never count.
+///
+/// `start_own` and `end_own` name the obstacles the polyline's ends belong to. Those are checked
+/// shrunk by [`OWN_TOLERANCE`] whatever the clearance, and the stub inside them is allowed: the
+/// leading segments whose points all lie strictly inside the start's obstacle (a connection
+/// point inside a rotated shape's bounding box, say), and likewise the trailing ones of the end's.
+/// Once the line is out, it must not come back in. Segments with non-finite points are skipped.
+/// The result is sorted by segment, then obstacle.
+pub fn crossings(
+    points: &[Point],
+    obstacles: &[Obstacle],
+    ignore: &[usize],
+    start_own: Option<usize>,
+    end_own: Option<usize>,
+    clearance: f64,
+) -> Vec<Hit> {
+    geom::crossings(points, obstacles, ignore, start_own, end_own, clearance)
+}
+
+/// A rounded bend from [`round_bends`]: the cubic from `from` (on the incoming segment) to `to`
+/// (on the outgoing one) with control points `c1` and `c2`, drawn instead of the sharp corner.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct Bend {
+    /// Where the curve leaves the incoming segment.
+    pub from: Point,
+    /// First control point.
+    pub c1: Point,
+    /// Second control point.
+    pub c2: Point,
+    /// Where the curve joins the outgoing segment.
+    pub to: Point,
+}
+
+/// Rounds the bends of a polyline with the largest circular arc that stays clear: for each
+/// interior point of `points` (index 1 to `len - 2`), `Some(bend)` with the arc to draw, or `None`
+/// to keep the corner sharp (no room, a straight run or a reversal).
+///
+/// An arc may use up to half of each neighbouring interior segment and three quarters of the
+/// first and last segments, so arcs never overlap and the line still leaves its ends straight.
+/// Each arc is checked by sampling it against the obstacles grown by `clearance`, except those in
+/// `ignore`; one that hits is shrunk until it clears or becomes too small to see.
+pub fn round_bends(points: &[Point], obstacles: &[Obstacle], ignore: &[usize], clearance: f64) -> Vec<Option<Bend>> {
+    curve::round_bends(points, obstacles, ignore, clearance)
 }

@@ -1,7 +1,7 @@
 //! The sparse orthogonal grid and the A* search over (grid point, heading) states.
 
 use std::cmp::Ordering;
-use std::collections::BinaryHeap;
+use std::collections::{BinaryHeap, HashMap};
 
 use crate::Point;
 
@@ -137,47 +137,85 @@ fn min_bends(dir: usize, dx: f64, dy: f64) -> u32 {
     }
 }
 
-/// What the search needs to know about the two ends.
-pub(crate) struct Ends {
-    pub start: usize,
-    /// Heading the route must leave the start in, or `None` for any.
-    pub start_dir: Option<usize>,
-    pub end: usize,
-    /// Heading the route must arrive at the end with, or `None` for any.
-    pub end_dir: Option<usize>,
+/// A place the search may start from: a grid node, the heading it must leave in (`None` for
+/// any) and the cost already spent reaching it (the stub out of the shape).
+pub(crate) struct Source {
+    pub node: usize,
+    pub dir: Option<usize>,
+    pub cost: f64,
 }
 
-/// Finds the cheapest node path from `ends.start` to `ends.end`, minimising length plus `bend`
-/// per bend plus `crossing` per crossing. Returns `None` when no path exists.
-pub(crate) fn search(grid: &Grid, ends: &Ends, bend: f64, crossing: f64) -> Option<Vec<usize>> {
+/// A place the search may finish at: a grid node, the heading it must arrive with (`None` for
+/// any) and the cost still to pay after it (the stub into the shape).
+pub(crate) struct Target {
+    pub node: usize,
+    pub dir: Option<usize>,
+    pub cost: f64,
+}
+
+/// What a successful search found: the node path and which source and target it joins.
+pub(crate) struct Found {
+    pub nodes: Vec<usize>,
+    pub source: usize,
+    pub target: usize,
+}
+
+/// Finds the cheapest node path from any of `sources` to any of `targets`, minimising the
+/// sources' and targets' own costs plus length plus `bend` per bend plus `crossing` per crossing.
+/// Ties go to the earlier source and target, so the result is deterministic. Returns `None` when
+/// no path exists.
+pub(crate) fn search(grid: &Grid, sources: &[Source], targets: &[Target], bend: f64, crossing: f64) -> Option<Found> {
     let nodes = grid.nodes();
-    if ends.start >= nodes || ends.end >= nodes || grid.blocked(ends.start) || grid.blocked(ends.end) {
-        return None;
-    }
-    let target = grid.point(ends.end)?;
+    let usable = |n: usize| n < nodes && !grid.blocked(n);
     let goal = nodes.checked_mul(4)?;
     let states = goal.checked_add(1)?;
+    // Targets by node, and their positions for the heuristic.
+    let mut at_node: HashMap<usize, Vec<usize>> = HashMap::new();
+    let mut target_points: Vec<Point> = Vec::new();
+    for (k, t) in targets.iter().enumerate() {
+        if usable(t.node)
+            && let Some(p) = grid.point(t.node)
+        {
+            at_node.entry(t.node).or_default().push(k);
+            target_points.push(p);
+        }
+    }
+    if target_points.is_empty() {
+        return None;
+    }
     let mut best = vec![f64::INFINITY; states];
     let mut parent = vec![usize::MAX; states];
+    let mut origin: HashMap<usize, usize> = HashMap::new();
+    let mut goal_target = usize::MAX;
     let mut heap = BinaryHeap::new();
     let h = |node: usize, dir: usize| -> f64 {
         grid.point(node).map_or(0.0, |p| {
-            let (dx, dy) = (target.x - p.x, target.y - p.y);
-            dx.abs() + dy.abs() + bend * f64::from(min_bends(dir, dx, dy))
+            target_points.iter().fold(f64::INFINITY, |acc, t| {
+                let (dx, dy) = (t.x - p.x, t.y - p.y);
+                acc.min(dx.abs() + dy.abs() + bend * f64::from(min_bends(dir, dx, dy)))
+            })
         })
     };
-    let starts: &[usize] = match ends.start_dir {
-        Some(RIGHT) => &[RIGHT],
-        Some(LEFT) => &[LEFT],
-        Some(DOWN) => &[DOWN],
-        Some(_) => &[UP],
-        None => &[RIGHT, LEFT, DOWN, UP],
-    };
-    for &d in starts {
-        let s = ends.start * 4 + d;
-        if let Some(b) = best.get_mut(s) {
-            *b = 0.0;
-            heap.push(Entry { f: h(ends.start, d), g: 0.0, state: s });
+    for (k, src) in sources.iter().enumerate() {
+        if !usable(src.node) || !src.cost.is_finite() {
+            continue;
+        }
+        let dirs: &[usize] = match src.dir {
+            Some(RIGHT) => &[RIGHT],
+            Some(LEFT) => &[LEFT],
+            Some(DOWN) => &[DOWN],
+            Some(_) => &[UP],
+            None => &[RIGHT, LEFT, DOWN, UP],
+        };
+        for &d in dirs {
+            let s = src.node * 4 + d;
+            if let Some(b) = best.get_mut(s)
+                && src.cost < *b
+            {
+                *b = src.cost;
+                origin.insert(s, k);
+                heap.push(Entry { f: src.cost + h(src.node, d), g: src.cost, state: s });
+            }
         }
     }
     // Reopening states is allowed, so cap the work explicitly to guarantee termination.
@@ -189,28 +227,34 @@ pub(crate) fn search(grid: &Grid, ends: &Ends, bend: f64, crossing: f64) -> Opti
             return None;
         }
         if state == goal {
-            return reconstruct(&parent, goal, states);
+            let (nodes, first) = reconstruct(&parent, goal, states)?;
+            let source = *origin.get(&first)?;
+            return Some(Found { nodes, source, target: goal_target });
         }
         if best.get(state).is_none_or(|&b| g > b) {
             continue;
         }
         let (node, dir) = (state / 4, state % 4);
-        if node == ends.end {
-            let extra = match ends.end_dir {
-                None => Some(0.0),
-                Some(rd) if rd == dir => Some(0.0),
-                Some(rd) if rd == dir ^ 1 => None,
-                Some(_) => Some(bend),
-            };
-            if let Some(e) = extra
-                && let Some(b) = best.get_mut(goal)
-                && g + e < *b
-            {
-                *b = g + e;
-                if let Some(p) = parent.get_mut(goal) {
-                    *p = state;
+        if let Some(here) = at_node.get(&node) {
+            for &k in here {
+                let Some(t) = targets.get(k) else { continue };
+                let extra = match t.dir {
+                    None => Some(0.0),
+                    Some(rd) if rd == dir => Some(0.0),
+                    Some(rd) if rd == dir ^ 1 => None,
+                    Some(_) => Some(bend),
+                };
+                if let Some(e) = extra
+                    && let Some(b) = best.get_mut(goal)
+                    && g + e + t.cost < *b
+                {
+                    *b = g + e + t.cost;
+                    goal_target = k;
+                    if let Some(p) = parent.get_mut(goal) {
+                        *p = state;
+                    }
+                    heap.push(Entry { f: *b, g: *b, state: goal });
                 }
-                heap.push(Entry { f: g + e, g: g + e, state: goal });
             }
         }
         for nd in [RIGHT, LEFT, DOWN, UP] {
@@ -227,6 +271,7 @@ pub(crate) fn search(grid: &Grid, ends: &Ends, bend: f64, crossing: f64) -> Opti
                 if let Some(p) = parent.get_mut(ns) {
                     *p = state;
                 }
+                origin.remove(&ns);
                 heap.push(Entry { f: ng + h(next, nd), g: ng, state: ns });
             }
         }
@@ -234,18 +279,21 @@ pub(crate) fn search(grid: &Grid, ends: &Ends, bend: f64, crossing: f64) -> Opti
     None
 }
 
-/// Walks the parent links back from the goal and returns the node sequence from the start.
-fn reconstruct(parent: &[usize], goal: usize, states: usize) -> Option<Vec<usize>> {
+/// Walks the parent links back from the goal and returns the node sequence from the start, with
+/// the first state of the path (a source state).
+fn reconstruct(parent: &[usize], goal: usize, states: usize) -> Option<(Vec<usize>, usize)> {
     let mut out = Vec::new();
     let mut s = *parent.get(goal)?;
+    let mut first = s;
     // A path visits each state at most once, so this bound only trips on a corrupted parent chain.
     for _ in 0..states {
         if s == usize::MAX {
             out.reverse();
             out.dedup();
-            return Some(out);
+            return Some((out, first));
         }
         out.push(s / 4);
+        first = s;
         s = *parent.get(s)?;
     }
     None

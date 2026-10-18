@@ -9,7 +9,7 @@
 //! or reverse even when the segment beyond them moves too.
 
 use crate::geom::{self, eps_for, near};
-use crate::route::Routed;
+use crate::route::{Routed, Slide};
 use crate::{Point, Rect};
 
 /// Share of a neighbour's length a segment may eat into; below one half so that two segments
@@ -67,9 +67,15 @@ struct Member {
     prev_far: f64,
     next_far: f64,
     margin: f64,
-    /// First and last segments carry the fixed ends, so they never move; they still take part in
-    /// groups so that interior segments move off them.
+    /// First and last segments carry the ends, so they move only when their ends may slide; fixed
+    /// ones still take part in groups so that interior segments move off them.
     fixed: bool,
+    /// For a first or last segment that may slide: the interval its across coordinate must stay
+    /// in (the slide limit and the glued shape's side).
+    slide: Option<(f64, f64)>,
+    /// Obstacles this segment may overlap: the route's ignored ones and, for a sliding end
+    /// segment, the shape it leaves.
+    exempt: Vec<usize>,
 }
 
 /// Nudges every non-fallback route in place, horizontal segments first, then vertical ones.
@@ -82,6 +88,18 @@ pub(crate) fn nudge(routes: &mut [Routed], obstacles: &[Option<Rect>], spacing: 
     }
 }
 
+/// The interval a sliding end segment's across coordinate `c` may take: `limit` either way, and
+/// within the side of the glued shape it leaves.
+fn slide_range(slide: &Slide, c: f64, axis: Axis) -> (f64, f64) {
+    let (mut lo, mut hi) = (c - slide.limit, c + slide.limit);
+    if let Some(r) = &slide.rect {
+        let (_, _, c0, c1) = axis.rect(r);
+        lo = lo.max(c0);
+        hi = hi.min(c1);
+    }
+    (lo.min(c), hi.max(c))
+}
+
 fn members(routes: &[Routed], axis: Axis) -> Vec<Member> {
     let mut out = Vec::new();
     for (ri, r) in routes.iter().enumerate() {
@@ -90,15 +108,41 @@ fn members(routes: &[Routed], axis: Axis) -> Vec<Member> {
         let last = pts.len().saturating_sub(2);
         for seg in 0..pts.len().saturating_sub(1) {
             let (Some(&a), Some(&b)) = (pts.get(seg), pts.get(seg + 1)) else { continue };
-            let fixed = seg == 0 || seg == last;
-            // Fixed segments have no neighbours to respect; their own ends stand in.
-            let p = seg.checked_sub(1).and_then(|k| pts.get(k)).copied().unwrap_or(a);
-            let n = pts.get(seg + 2).copied().unwrap_or(b);
             if !near(axis.across(a), axis.across(b)) || near(axis.along(a), axis.along(b)) {
                 continue;
             }
+            let c = axis.across(a);
+            // An end segment slides only when every end it carries may slide.
+            let ends: Vec<Option<&Slide>> =
+                [(seg == 0).then_some(r.start_slide.as_ref()), (seg == last).then_some(r.end_slide.as_ref())].into_iter().flatten().collect();
+            let is_end = !ends.is_empty();
+            let slide = if is_end && ends.iter().all(Option::is_some) {
+                ends.iter().flatten().map(|s| slide_range(s, c, axis)).reduce(|x, y| (x.0.max(y.0), x.1.min(y.1)))
+            } else {
+                None
+            };
+            let fixed = is_end && slide.is_none_or(|(lo, hi)| hi - lo <= eps_for(lo, hi));
+            let mut exempt = r.ignore.clone();
+            if slide.is_some() {
+                exempt.extend(ends.iter().flatten().filter_map(|s| s.index));
+            }
+            // An end has no neighbour beyond it; its own point stands in.
+            let p = seg.checked_sub(1).and_then(|k| pts.get(k)).copied().unwrap_or(a);
+            let n = pts.get(seg + 2).copied().unwrap_or(b);
             let (lo, hi) = (axis.along(a).min(axis.along(b)), axis.along(a).max(axis.along(b)));
-            out.push(Member { route: ri, seg, across: axis.across(a), lo, hi, prev_far: axis.across(p), next_far: axis.across(n), margin, fixed });
+            out.push(Member {
+                route: ri,
+                seg,
+                across: c,
+                lo,
+                hi,
+                prev_far: axis.across(p),
+                next_far: axis.across(n),
+                margin,
+                fixed,
+                slide: if fixed { None } else { slide },
+                exempt,
+            });
         }
     }
     out.sort_by(|a, b| a.across.total_cmp(&b.across).then(a.lo.total_cmp(&b.lo)).then(a.route.cmp(&b.route)).then(a.seg.cmp(&b.seg)));
@@ -110,7 +154,11 @@ fn members(routes: &[Routed], axis: Axis) -> Vec<Member> {
 fn channel(m: &Member, obstacles: &[Option<Rect>], axis: Axis) -> (f64, f64) {
     let c = m.across;
     let (mut lo, mut hi) = (f64::NEG_INFINITY, f64::INFINITY);
-    for r in obstacles.iter().flatten() {
+    for (k, r) in obstacles.iter().enumerate() {
+        let Some(r) = r else { continue };
+        if m.exempt.contains(&k) {
+            continue;
+        }
         let (a0, a1, c0, c1) = axis.rect(&r.expanded(m.margin));
         // Only obstacles whose interior overlaps the closed extent matter; one that merely touches
         // an end leaves the stretched neighbour on its boundary, which is allowed.
@@ -128,13 +176,23 @@ fn channel(m: &Member, obstacles: &[Option<Rect>], axis: Axis) -> (f64, f64) {
             return (c, c);
         }
     }
-    for far in [m.prev_far, m.next_far] {
+    let first = m.seg == 0;
+    for (k, far) in [m.prev_far, m.next_far].into_iter().enumerate() {
+        // A sliding end segment has no neighbour on its end's side: the slide range bounds it.
+        let at_end = m.slide.is_some() && ((k == 0 && first) || (k == 1 && near(far, c)));
+        if at_end {
+            continue;
+        }
         let room = (far - c).abs() * MAX_SHRINK;
         if far < c {
             lo = lo.max(c - room);
         } else {
             hi = hi.min(c + room);
         }
+    }
+    if let Some((s0, s1)) = m.slide {
+        lo = lo.max(s0);
+        hi = hi.min(s1);
     }
     (lo, hi)
 }
