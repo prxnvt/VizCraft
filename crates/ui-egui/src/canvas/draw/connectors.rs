@@ -1,0 +1,46 @@
+//! Drawing connectors: the routed line, arrowheads and the label.
+
+use egui::epaint::TextShape;
+use egui::{Color32, Painter, Stroke};
+use vizcraft_diagram::{Arrowhead, Connector, ConnectorGeometry};
+
+use super::text::{font_for, layout};
+use super::{PAGE_FILL, color, fill_rings, flatten, line_px, pos, stroke_lines, tolerance};
+use crate::canvas::Viewport2D;
+use crate::canvas::tess::triangulate;
+
+/// Screen-space bounds of a connector's route, for culling.
+pub fn connector_bounds(g: &ConnectorGeometry) -> Option<vizcraft_diagram::Rect> {
+    vizcraft_diagram::Rect::bounding(g.polyline.iter().copied()).map(|r| r.inflate(20.0))
+}
+
+fn head(painter: &Painter, vp: &Viewport2D, h: &Arrowhead, colour: Color32, width: f32) {
+    let rings = flatten(&h.path, tolerance(vp.zoom));
+    if h.filled {
+        let tris: Vec<Vec<[u32; 3]>> = rings.iter().map(|(p, _)| triangulate(p)).collect();
+        fill_rings(painter, vp, &rings, &tris, colour);
+        stroke_lines(painter, vp, &rings, Stroke::new(width.min(1.0), colour));
+    } else {
+        stroke_lines(painter, vp, &rings, Stroke::new(width, colour));
+    }
+}
+
+/// Draw one connector from its geometry. `show_text` is false while its label is edited.
+pub fn connector(painter: &Painter, vp: &Viewport2D, c: &Connector, g: &ConnectorGeometry, show_text: bool) {
+    let colour = color(c.style.line);
+    let width = line_px(c.style.line_width, vp.zoom);
+    stroke_lines(painter, vp, &flatten(&g.line, tolerance(vp.zoom)), Stroke::new(width, colour));
+    for h in [&g.start_head, &g.end_head].into_iter().flatten() {
+        head(painter, vp, h, colour, width);
+    }
+    if show_text && !c.text.trim().is_empty() {
+        let st = &c.style;
+        let Some(font) = font_for(st.font_size, st.bold, vp.zoom) else { return };
+        let galley = layout(painter, &c.text, font, color(st.font_color), st.italic, 200.0 * vp.zoom);
+        let centre = vp.world_to_screen(pos(g.label_pos));
+        let at = centre - galley.rect.center().to_vec2();
+        let bg = galley.rect.translate(at.to_vec2()).expand(2.0 * vp.zoom);
+        painter.rect_filled(bg, 2.0 * vp.zoom, PAGE_FILL);
+        painter.add(TextShape::new(at, galley, color(st.font_color)));
+    }
+}

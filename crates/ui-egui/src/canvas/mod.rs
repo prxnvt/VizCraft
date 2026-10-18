@@ -1,25 +1,27 @@
 //! The diagram canvas: the page drawn through [`Viewport2D`] on a pasteboard, with selection,
 //! handles, connector drawing, in-place text editing and drops from the Shapes pane.
 //!
-//! - [`draw`] paints the document (sheet, shapes, connectors, text) in document colours.
+//! - [`draw`] paints the document (sheet, shapes, connectors, text) in document colours, and
+//!   the selection chrome on top (`draw/overlays.rs`).
 //! - [`interact`] turns pointer and keys into commands; drags are previewed in [`CanvasState`]
-//!   and commit one command on release.
+//!   and commit one command on release. In-place text editing is `interact/edit_text.rs`.
 //! - [`tess`] triangulates concave outlines for filling.
 //!
-//! Chrome drawn here (selection, handles, hover, marquee, connection points) uses
-//! `theme::Tokens` only.
+//! This module holds the viewport, the canvas state, pan and zoom, insertion and the per-frame
+//! [`show`] that runs input and painting. Chrome (selection, handles, hover, marquee, connection
+//! points) uses `theme::Tokens` only.
 
 pub mod draw;
 pub mod interact;
 pub mod tess;
 
-use egui::{Align, Color32, Key, KeyboardShortcut, Modifiers, Pos2, Rect, Response, Stroke, Ui, UiBuilder, Vec2, vec2};
+use egui::{Pos2, Rect, Response, Ui, Vec2};
 use serde_json::{Value, json};
-use vizcraft_diagram::{self as dg, End, Hit, Page};
+use vizcraft_diagram::{self as dg, Hit, Page};
 
 use crate::CraftApp;
 use crate::theme::Tokens;
-use draw::{color, point, pos};
+use draw::point;
 pub use interact::{Drag, TextEditing};
 
 /// 2D viewport coordinates and projections between screen space and world space.
@@ -270,7 +272,7 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
     }
 
     paint(app, ui, &vp, &t);
-    text_overlay(app, ui, &vp, &t);
+    interact::edit_text::text_overlay(app, ui, &vp, &t);
 }
 
 fn paint(app: &mut CraftApp, ui: &Ui, vp: &Viewport2D, t: &Tokens) {
@@ -293,147 +295,7 @@ fn paint(app: &mut CraftApp, ui: &Ui, vp: &Viewport2D, t: &Tokens) {
             draw::connector(&painter, vp, c, &g, editing.as_deref() != Some(c.id.as_str()));
         }
     }
-    overlay(app, &painter, vp, page, real, t);
-}
-
-fn frame_screen(vp: &Viewport2D, s: &dg::Shape) -> Vec<Pos2> {
-    let tr = s.transform();
-    [(0.0, 0.0), (s.w, 0.0), (s.w, s.h), (0.0, s.h)].iter().map(|&(x, y)| vp.world_to_screen(pos(tr.apply(dg::Point::new(x, y))))).collect()
-}
-
-fn connection_marks(painter: &egui::Painter, vp: &Viewport2D, s: &dg::Shape, colour: Color32, hot: Option<usize>) {
-    for (i, p) in s.connection_points_world().into_iter().enumerate() {
-        let c = vp.world_to_screen(pos(p));
-        let r = 3.0;
-        let st = Stroke::new(1.5, colour);
-        painter.line_segment([c - vec2(r, r), c + vec2(r, r)], st);
-        painter.line_segment([c - vec2(r, -r), c + vec2(r, -r)], st);
-        if hot == Some(i) {
-            painter.circle_stroke(c, 6.0, Stroke::new(2.0, colour));
-        }
-    }
-}
-
-/// Selection, handles, hover, connection points, connector targets and the marquee.
-fn overlay(app: &CraftApp, painter: &egui::Painter, vp: &Viewport2D, page: &Page, real: &Page, t: &Tokens) {
-    let accent = t.accent;
-    let sel = &app.session.sel.items;
-    let drag = app.canvas.drag.as_ref();
-    // Hover outline on a shape that is not selected.
-    if drag.is_none()
-        && let Some(Hit::Shape(id)) = &app.canvas.hover
-        && !sel.contains(id)
-        && let Some(s) = page.shape(id)
-    {
-        painter.add(egui::Shape::closed_line(frame_screen(vp, s), Stroke::new(1.0, accent.gamma_multiply(0.6))));
-    }
-    // Connection points: on the shape under the pointer, and on a connector drag's target.
-    let target = drag.and_then(|d| interact::drag_target(real, d, vp.zoom));
-    let show_points = match (drag, app.tool) {
-        (Some(Drag::Connect { .. } | Drag::Reglue { .. }), _) => target.as_ref().and_then(End::shape).map(str::to_string),
-        (None, crate::Tool::Pointer | crate::Tool::Connector) => app.canvas.hover_shape.clone(),
-        _ => None,
-    };
-    if let Some(s) = show_points.as_deref().and_then(|id| page.shape(id)) {
-        let hot = match &target {
-            Some(End::Glued { point, .. }) => *point,
-            _ => None,
-        };
-        if target.as_ref().is_some_and(|e| e.shape().is_some()) {
-            painter.add(egui::Shape::closed_line(frame_screen(vp, s), Stroke::new(2.0, accent)));
-        }
-        connection_marks(painter, vp, s, accent, hot);
-    }
-    // Selected shapes and connectors.
-    for id in sel {
-        if let Some(s) = page.shape(id) {
-            painter.add(egui::Shape::closed_line(frame_screen(vp, s), Stroke::new(1.0, accent)));
-        } else if let Some(c) = page.connector(id) {
-            let g = dg::connector_geometry(page, c);
-            let pts: Vec<Pos2> = g.polyline.iter().map(|p| vp.world_to_screen(pos(*p))).collect();
-            painter.add(egui::Shape::line(pts, Stroke::new(3.0, accent.gamma_multiply(0.45))));
-            for (p, glued) in [(g.ends.start.pos, g.ends.start.shape.is_some()), (g.ends.end.pos, g.ends.end.shape.is_some())] {
-                let c = vp.world_to_screen(pos(p));
-                painter.circle(c, 4.5, if glued { accent } else { t.page }, Stroke::new(1.5, accent));
-            }
-        }
-    }
-    if let Some(s) = interact::single_shape(app, page)
-        && !matches!(drag, Some(Drag::Move { .. }))
-    {
-        let top = vp.world_to_screen(pos(s.transform().apply(dg::Point::new(s.w / 2.0, 0.0))));
-        let rot = vp.world_to_screen(pos(interact::rotate_handle_world(s, vp.zoom)));
-        painter.line_segment([top, rot], Stroke::new(1.0, accent));
-        painter.circle(rot, 4.5, accent, Stroke::new(1.5, t.page));
-        for i in 0..interact::HANDLES.len() {
-            if let Some(h) = interact::handle_world(s, i) {
-                let c = vp.world_to_screen(pos(h));
-                let r = Rect::from_center_size(c, vec2(7.0, 7.0));
-                painter.rect(r, 1.0, t.page, Stroke::new(1.0, accent), egui::StrokeKind::Middle);
-            }
-        }
-    }
-    if let Some(r) = drag.and_then(interact::marquee_rect) {
-        let r = Rect::from_two_pos(vp.world_to_screen(pos(dg::Point::new(r.x0, r.y0))), vp.world_to_screen(pos(dg::Point::new(r.x1, r.y1))));
-        painter.rect(r, 0.0, t.selection.gamma_multiply(0.5), Stroke::new(1.0, accent), egui::StrokeKind::Inside);
-    }
-}
-
-/// The in-place text editor over the edited shape or connector label. Enter commits,
-/// Shift+Enter starts a new line, Escape cancels, clicking elsewhere commits.
-fn text_overlay(app: &mut CraftApp, ui: &mut Ui, vp: &Viewport2D, t: &Tokens) {
-    let Some(page) = app.session.doc.page() else { return };
-    let Some(ed) = app.canvas.editing.as_ref() else { return };
-    let (centre, width, style) = match &ed.target {
-        Hit::Shape(id) => match page.shape(id) {
-            Some(s) => (s.center(), s.w as f32 * vp.zoom, s.style.clone()),
-            None => return,
-        },
-        Hit::Connector(id) => match page.connector(id) {
-            Some(c) => (dg::connector_geometry(page, c).label_pos, 160.0 * vp.zoom, c.style.clone()),
-            None => return,
-        },
-    };
-    let font = draw::font_for(style.font_size, style.bold, vp.zoom.max(0.5)).unwrap_or_else(|| crate::theme::regular(12.0));
-    let lines = ed.text.lines().count().max(1) + usize::from(ed.text.ends_with('\n'));
-    let height = font.size * 1.35 * lines as f32 + 10.0;
-    let width = width.clamp(80.0, 1200.0);
-    let r = Rect::from_center_size(vp.world_to_screen(pos(centre)), vec2(width, height));
-
-    let (escape, enter) = ui.input_mut(|i| (i.consume_key(Modifiers::NONE, Key::Escape), i.consume_key(Modifiers::NONE, Key::Enter)));
-    if escape {
-        app.canvas.editing = None;
-        return;
-    }
-    if enter {
-        interact::commit_editing(app);
-        return;
-    }
-    let Some(ed) = app.canvas.editing.as_mut() else { return };
-    let frame = egui::Frame::NONE.fill(draw::PAGE_FILL).stroke(Stroke::new(1.0, t.accent)).inner_margin(egui::Margin::same(4)).corner_radius(2);
-    let edit = egui::TextEdit::multiline(&mut ed.text)
-        .id(egui::Id::new("canvas-text-edit"))
-        .font(font)
-        .text_color(color(style.font_color))
-        .horizontal_align(Align::Center)
-        .frame(frame)
-        .desired_width(width - 8.0)
-        .desired_rows(1)
-        .return_key(KeyboardShortcut::new(Modifiers::SHIFT, Key::Enter));
-    let mut child = ui.new_child(UiBuilder::new().max_rect(r));
-    let resp = child.put(r, edit);
-    if ed.focus {
-        resp.request_focus();
-        // Start with the whole text selected, so typing replaces it and arrows keep it.
-        let id = resp.id;
-        let mut state = egui::TextEdit::load_state(ui.ctx(), id).unwrap_or_default();
-        let all = egui::text::CCursorRange::two(egui::text::CCursor::new(0), egui::text::CCursor::new(ed.text.chars().count()));
-        state.cursor.set_char_range(Some(all));
-        state.store(ui.ctx(), id);
-        ed.focus = false;
-    } else if resp.lost_focus() {
-        interact::commit_editing(app);
-    }
+    draw::overlays::overlay(app, &painter, vp, page, real, t);
 }
 
 #[cfg(test)]

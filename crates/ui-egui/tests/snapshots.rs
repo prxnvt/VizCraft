@@ -101,6 +101,11 @@ fn window_snapshots() {
     run(&mut h, "ui.tab", json!({"tab": "View"}));
     snap(&mut results, &mut h, "ribbon-view");
 
+    // The Process tab's ribbon.
+    let mut h = window(false);
+    run(&mut h, "ui.tab", json!({"tab": "Process"}));
+    snap(&mut results, &mut h, "ribbon-process");
+
     // The in-window Edit menu open.
     let mut h = window(false);
     h.get_by_label("Edit").click();

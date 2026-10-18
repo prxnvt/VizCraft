@@ -181,13 +181,28 @@ A test `hostile_params_never_panic` runs every command with junk params.
 ## UI (`vizcraft-ui-egui`) public API
 
 Modules: `theme`, `icons`, `widgets`, `chrome` (title bar + status bar), `menus` (menu tree +
-in-window menu bar), `ribbon` (Home, Insert, Design, View, Help, and the contextual Connector tab),
+in-window menu bar), `ribbon` (Home, Insert, Design, Process, View, Help, and the contextual
+Connector tab; Data, Review and Developer exist but stay hidden while they have no groups),
 `panes` (side panes, `PaneSpec`, `set_panes`; Shapes, Navigation, Properties, History),
 `canvas` (the diagram canvas: `Viewport2D` screen/world projections; drawing of the page, shapes,
 text and connectors; selection, marquee, move, resize and rotate handles, connector drag and
 reglue, in-place text editing, arrow-key nudge; pan with middle-drag, Space+left-drag or
 Cmd+left-drag, Ctrl off macOS; `insert_point` and `insert_master` place new shapes), `dialogs`,
 `keys`, `control`, `window_geometry`, `backstage` (optional File page).
+
+Files are cut so that parallel work touches separate files:
+
+| Path under `crates/ui-egui/src` | Holds | To add one |
+| --- | --- | --- |
+| `ribbon/mod.rs` | `Tab`, `Group`, `Control`, shared helpers, `tabs()` in Visio order | |
+| `ribbon/draw.rs`, `ribbon/controls.rs` | Tab strip, body, collapsed popup; colour, gallery and caption controls | |
+| `ribbon/<tab>/mod.rs`, `ribbon/<tab>/<group>.rs` | One directory per tab, one file per group | Group: a file with `fn group() -> Group` plus one line in the tab's `groups!` list |
+| `panes/mod.rs` | `PaneSpec`, the pane list, `ui.pane*` commands | |
+| `panes/layout.rs`, `panes/manager.rs` | `PaneLayout`; drawing of the sides, headers and splitters | |
+| `panes/<pane>.rs` | One file per pane with its `SPEC` | Pane: a file plus one line in `default_panes!` and a `ui.pane.<key>` row in `UI_COMMANDS` |
+| `canvas/mod.rs` | Viewport, `CanvasState`, pan and zoom, insertion, per-frame `show` | |
+| `canvas/draw/` | `mod.rs` conversions and sheet; `shapes.rs`, `text.rs`, `connectors.rs`, `overlays.rs` (selection chrome) | |
+| `canvas/interact/` | `mod.rs` `Drag` and pointer dispatch; `select.rs`, `drag.rs`, `connect.rs`, `tools.rs`, `edit_text.rs`, `keys.rs` | |
 
 A canvas drag previews in UI state and commits one command on release, so every drag is one undo
 step. The canvas tool (`CraftApp.tool`: pointer, connector, text) is set by `ui.tool`.
