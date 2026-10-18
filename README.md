@@ -1,146 +1,90 @@
 # VizCraft
 
-VizCraft is a desktop diagramming app in Rust and [egui](https://github.com/emilk/egui) 0.36,
-aiming at the feature range of Microsoft Visio: shapes and stencils, glued connectors, pages and
-layers, themes, shape data, auto-layout, and import and export of the common diagram formats.
-Agents drive it through an MCP server modelled on draw.io's, so a model can open, build and edit
-diagrams the way a person does.
+VizCraft is an open-source desktop diagramming application written in Rust with
+[egui](https://github.com/emilk/egui). It targets the feature range of Microsoft Visio and is
+oriented towards engineering work: every shape can be a view of a typed element in a semantic
+model, notations are defined as data packs with their own validation rules, and an MCP server
+lets AI agents build and edit diagrams through the same commands a person uses.
 
-Today the application chrome is complete and the diagram model is being built. The window,
-native and in-window menus, ribbon, side panes, several windows in one process, preferences, a
-command registry, a command-line tool and a JSON control channel all work; the document is the
-diagram model (pages, shapes, connectors) being built in Cascade 1. What lands when is in [ROADMAP.md](ROADMAP.md), and the Visio-class
-feature catalog with the state of each feature is in [docs/parity.md](docs/parity.md).
+VizCraft is under active development. Progress is tracked in [ROADMAP.md](ROADMAP.md), and the
+state of each planned feature is listed in [docs/parity.md](docs/parity.md).
 
-The design is written down once, in [docs/architecture.md](docs/architecture.md). That file is
-the contract the crates are built against; this README tells you how to use the repository and
-links to the contract rather than repeating it.
+## Requirements
 
-## Layout
+- Rust 1.90 or later (edition 2024).
+- macOS, Linux or Windows. The browser build is described in [docs/web.md](docs/web.md).
 
-| Path | What it is |
-|---|---|
-| `crates/engine` | `vizcraft-engine`: `Session`, undo, selection, the command registry, file I/O; its document is the `vizcraft-diagram` model. Knows nothing about egui. |
-| `crates/ui-egui` | `vizcraft-ui-egui`: the egui front end. Theme, icons, chrome, menus, ribbon, panes, canvas viewport, dialogs, keys, control channel handling. Depends on `egui` only, not eframe. |
-| `crates/macos-open` | Finder "Open Documents" (odoc Apple Event) support, behind a safe API. |
-| `apps/vizcraft` | The desktop binary: eframe, native menu (muda on macOS), file dialogs (rfd), multi-window host, control server. |
-| `apps/vizcraft-web` | Browser shell: wasm32-unknown-unknown target run through trunk and wasm-bindgen; see [docs/web.md](docs/web.md). |
-| `apps/vizcraft-cli` | Headless command line: list the registry, run commands against a document, inspect a file, talk to a running app. |
-| `xtask` | `cargo xtask ci`, `layers`, `assets`, `wasm`, `ico`, `version`. |
-| `assets/` | Fonts (Inter, JetBrains Mono) and the app icon. Every file here has a row in [ATTRIBUTION.md](ATTRIBUTION.md). |
-| `packaging/` | Icon rendering, the macOS bundle and the Linux desktop entry; see [packaging/README.md](packaging/README.md). |
-| `docs/` | The architecture contract, the parity catalog, formats, the MCP design, the control protocol, testing and the web build (links below). |
-
-These crates are planned and do not exist yet:
-
-| Path (planned) | What it will be |
-|---|---|
-| `crates/diagram` | `vizcraft-diagram`: pages, layers, shapes, connectors, groups and containers, text, styles and themes, shape data; geometry, hit testing, glue, connector routing, auto-layout. |
-| `crates/stencils` | The built-in stencil library: original shapes defined in code, categories and a keyword search index. |
-| `crates/formats` | The native `.vizcraft` format, .drawio read and write, Mermaid and CSV import, SVG export, later .vsdx import. |
-| `crates/mcp` | `vizcraft-mcp`: the MCP server, launched by `vizcraft-cli mcp`. |
-
-The layering (engine below UI below apps) is enforced by `cargo xtask layers`, so a dependency
-pointing the wrong way fails CI rather than quietly spreading.
-
-## Running
+## Building and running
 
 ```sh
-cargo run --release -p vizcraft                                # an empty document
-cargo run --release -p vizcraft -- --sample                    # the built-in sample document
-cargo run --release -p vizcraft -- project.vizcraft            # open a file
-cargo run --release -p vizcraft -- --sample --control 7990     # plus the control channel
-cargo run --release -p vizcraft -- --window-pos -2500,100      # place the window (x,y)
+cargo run --release -p vizcraft
 ```
 
-`--control <port>` (or `VIZCRAFT_CONTROL_PORT=<port>`) opens a JSON-lines server on
-`127.0.0.1` that runs commands, injects input and takes screenshots of the window. It is how
-agents look at what they built and how UI tests drive the app:
+Options follow `--`, for example `cargo run --release -p vizcraft -- --sample`.
+
+| Option | Effect |
+|---|---|
+| `<file>` | Opens a `.vizcraft` or `.drawio` file |
+| `--sample` | Starts with the built-in sample document |
+| `--control <port>` | Starts the local JSON control channel ([docs/control-protocol.md](docs/control-protocol.md)) |
+| `--trace` | Records a performance trace into `traces/` ([docs/testing.md](docs/testing.md#performance-trace)) |
+| `--help` | Lists every option |
+
+The headless command-line tool runs commands against documents without a window:
 
 ```sh
-printf '%s\n' '{"id":1,"method":"engine.execute","params":{"command":"file.new","params":{}}}' \
-               '{"id":2,"method":"ui.screenshot","params":{"path":"/tmp/vizcraft.png"}}' \
-  | nc 127.0.0.1 7990
+cargo run --release -p vizcraft-cli -- --help
 ```
 
-The methods, their parameters and replies are in [docs/control-protocol.md](docs/control-protocol.md).
-Other flags: `--in-window-menus` (or `VIZCRAFT_IN_WINDOW_MENUS=1`) draws the menu bar inside the
-window instead of the macOS menu bar, and `--version` prints the version.
+## Automation and agents
 
-The command line runs the same commands without a window. `vizcraft-cli commands` prints the
-registry (ids, labels, shortcuts, enablement), `vizcraft-cli run` runs a sequence of commands
-against a document and saves the result, `vizcraft-cli inspect` summarises a file, and
-`vizcraft-cli control` sends requests to a running app. `cargo run --release -p vizcraft-cli --
---help` lists them all.
+Every user-visible action is a command with a stable id (for example `file.save` or
+`shape.add`). The ribbon, menus, keyboard shortcuts, command palette, command-line tool, control
+channel and MCP server all run commands by id, so anything a person can do can also be scripted.
+The MCP server is started with `vizcraft-cli mcp`; its tools are documented in
+[docs/mcp.md](docs/mcp.md).
 
-Preferences (theme, ribbon state, pane layout, window geometry, recent files) persist in
-`ui.json` under the platform's application-support folder; `VIZCRAFT_NO_PREFS=1` runs without
-reading or writing them, which tests and screenshot sessions use.
+## File formats
 
-## MCP server
+VizCraft saves its own `.vizcraft` format, reads and writes draw.io files, imports Mermaid and
+CSV, and exports SVG, PNG and PDF. Each format and the public specification it follows are listed
+in [docs/formats.md](docs/formats.md).
 
-The MCP server runs over stdio (`vizcraft-cli mcp [--connect ADDR]`) against a running app
-through the control channel. Today it has the generic tools (`command_list`, `command_run`,
-`command_batch`, `doc_inspect`, `screenshot`); it grows to draw.io parity, with an in-process
-headless session, in Cascade 3. Every engine command is
-reachable through generic command tools, and dedicated tools mirror the workflows draw.io's MCP
-server offers (open XML, Mermaid or CSV, search shapes, list and edit pages). The design and the
-tool table are in [docs/mcp.md](docs/mcp.md); the file formats it reads and writes are in
-[docs/formats.md](docs/formats.md).
+## Repository layout
 
-## How the chrome is organised
-
-Every user-visible action is a command in the engine registry: an id such as `file.save`, a
-label, the ribbon or menu location it belongs to, a shortcut, a one-line params doc, an `enabled`
-check and a `run` function. The menus, the ribbon, the shortcuts, the command palette, the CLI
-and the control channel all dispatch by that id, so adding a command once makes it reachable
-everywhere, and a command run from a script behaves exactly like the same command clicked. UI-only
-commands (`ui.*`: switch tab, show a pane, open a dialog) live in `ui-egui` and are listed the
-same way so nothing is hidden from automation. The exact `CommandSpec` is in the contract.
-
-The front end is a set of modules in `crates/ui-egui`, each owning one strip of the window:
-
-| Module | Owns |
+| Path | Contents |
 |---|---|
-| `theme` | `Tokens`: every colour, light and dark. Nothing else names a colour. |
-| `icons` | The icon set, drawn in code. No image files. |
-| `chrome` | The title bar (integrated with the traffic lights on macOS) and the status bar. |
-| `menus` | One menu tree, shown as egui menus in the window or handed to the native macOS bar. |
-| `ribbon` | Tab strip plus the ribbon body, collapsible, with contextual tabs. Groups are built from command ids. |
-| `panes` | Left and right side panels, their layout persisted as part of `UiState`. |
-| `canvas` | `Viewport2D`: pan and zoom of the central canvas, world and screen coordinates. |
-| `dialogs` | Modal dialogs; commands never open them directly, they ask through `ui_requests`. |
-| `keys` | Shortcut parsing (`Mod+S`) and dispatch to command ids. |
-| `control` | Handling of control-channel requests: run, inspect, click, key, screenshot. |
-| `window_geometry` | Saving and sanitising window position and size between runs. |
-| `backstage` | The optional full-window File page. |
+| `apps/vizcraft` | Desktop application |
+| `apps/vizcraft-cli` | Command-line tool and MCP launcher |
+| `apps/vizcraft-web` | Browser build |
+| `crates/engine` | Session, undo, command registry and file I/O |
+| `crates/ui-egui` | User interface |
+| `crates/diagram` | Diagram document: pages, shapes, connectors, geometry |
+| `crates/model`, `crates/notation` | Semantic model, notation packs and validation rules |
+| `crates/formats`, `crates/drawio`, `crates/mermaid` | File formats |
+| `crates/layout`, `crates/routing` | Automatic layout and connector routing |
+| `crates/stencils` | Built-in shape library |
+| `crates/mcp` | MCP server |
+| `xtask` | Build and quality tooling |
 
-`CraftApp` ties them together: `logic` runs once per frame before layout (control requests,
-shortcuts, close requests, drops), `ui` lays the window out top to bottom (title bar, menu bar
-when in-window menus are on, ribbon, status bar, panes, then the central canvas). The desktop app
-owns one `CraftApp` per window; the public API is listed in the contract.
+The design of these crates and the rules between them are documented in
+[docs/architecture.md](docs/architecture.md).
 
-## Documentation
+## Contributing
 
-| Document | What it covers |
-|---|---|
-| [docs/architecture.md](docs/architecture.md) | The design contract: crates, layers, `Session`, commands, the UI API, and the planned diagram crates. |
-| [docs/parity.md](docs/parity.md) | The Visio-class feature catalog, with the cascade and state of each feature. |
-| [docs/formats.md](docs/formats.md) | The file formats VizCraft reads and writes, each with its public specification. |
-| [docs/mcp.md](docs/mcp.md) | The MCP server: backends, tools, resources, launch. |
-| [docs/control-protocol.md](docs/control-protocol.md) | The JSON-lines control channel: methods, params, replies. |
-| [docs/testing.md](docs/testing.md) | Tests, snapshots and desktop-app etiquette. |
-| [docs/web.md](docs/web.md) | The browser build. |
-| [ROADMAP.md](ROADMAP.md) | The cascades and what has landed. |
+Contributions are welcome. Before opening a pull request, read [CONTRIBUTING.md](CONTRIBUTING.md)
+and [AGENTS.md](AGENTS.md), and make sure the full check passes:
 
-## Quality gates
+```sh
+cargo xtask ci
+```
 
-`cargo xtask ci` runs rustfmt, clippy with `-D warnings`, the tests, the asset-attribution check,
-the layering check and the wasm build. It must pass before every commit. The rules behind it,
-and the rules for agents working in this repository, are in [AGENTS.md](AGENTS.md).
+This runs formatting, Clippy, the test suite, the asset attribution check, the dependency
+layering check and the WebAssembly build. Testing practice is described in
+[docs/testing.md](docs/testing.md).
 
 ## Licence
 
-MIT OR Apache-2.0, at your option ([LICENSE-MIT](LICENSE-MIT), [LICENSE-APACHE](LICENSE-APACHE)).
-Third-party material is listed in [NOTICE](NOTICE) and, per file, in
-[ATTRIBUTION.md](ATTRIBUTION.md). Contributions are welcome: [CONTRIBUTING.md](CONTRIBUTING.md).
+VizCraft is licensed under either the [MIT licence](LICENSE-MIT) or the
+[Apache License 2.0](LICENSE-APACHE), at your option. Third-party material is listed in
+[NOTICE](NOTICE) and [ATTRIBUTION.md](ATTRIBUTION.md).
