@@ -930,18 +930,406 @@ a refresh after the file changes updates values in one undo step; an XLSX read t
 workbook assembled in the test from hand-written XML parts (no file from another application);
 `hostile_params_never_panic` green with junk paths; `cargo xtask ci` green.
 
-## Block 5: generators and glyphs (6 branches, 5 at a time)
+## Block 5: generators and glyphs (7 branches, 5 agents at a time)
 
-ROADMAP 5A and 5B, plus one notation-drawing foundation every pack in Block 7 needs.
+State: briefs written on 2026-10-18 against main at 5bfa7fa (Block 4 merged). ROADMAP Cascades 5A
+and 5B plus the notation-drawing foundation every pack in Block 7 needs. `b5-fixes` is new in this
+block: it holds the Block 3 and Block 4 follow-ups that no other branch owns, the way `b4-fixes`
+did for Block 2C. The first five branches start together; `b5-patterns` starts when `b5-fixes` and
+`b5-layout` are merged (its generators lay out through the layout primitives and it edits the
+command palette after the fixes), and `b5-reimport` when `b5-patterns` and `b5-tables` are merged
+(it syncs pattern instances with tables).
 
-| Branch | Scope |
+Decisions on the questions the scope left open:
+
+| Question | Decision |
 |---|---|
-| `b5-patterns` | Pattern framework, `pattern.*` commands, provenance, Patterns tab, starter workflow patterns |
-| `b5-layout` | Pins and model order, band and chain primitives, grid and container primitives (`crates/layout`) |
-| `b5-codegen` | Generator framework, ownership manifest, traceability and regions, `generate.*` commands, CLI `--check` |
-| `b5-tables` | CSV, XLSX and Markdown table exporters; derived table and matrix views in the Tables tab; Generate dock |
-| `b5-reimport` | Re-import contract and table-driven pattern sync (after `b5-patterns` and `b5-tables`) |
-| `b5-glyphs` | Connector ends and compartments landed in Block 2C; here: BPMN flows and the Chen relationship end, ports drawn on shapes, glyph path extensions, and notation rendering variants so one model can draw in several notations (ER: Information Engineering, Chen, Barker, IDEF1X; DFD: Yourdon and DeMarco, Gane and Sarson) (`crates/stencils`, `diagram/kind.rs`, glyph drawing in canvas and SVG) |
+| Where the Generate dock goes | With `b5-codegen`, which owns the commands the dock shows; `b5-tables` keeps the Tables tab. |
+| The "Chen relationship end" | Chen draws no end marker: the cardinality sits as text beside each end ("1", "N", "M"). So the end is a per-end label, `Connector.start_label` and `end_label`, drawn by the canvas and the exports and set through `connector.setEndLabels`; it serves UML multiplicities too. Chen's double line for total participation waits for the ER pack in Block 7. |
+| Variants before any ER or DFD pack exists | The variant machinery (pack schema, page field, command, palette and redraw) is built and tested against a pack built in code in the tests (the `engtest` convention in `cmd/notation.rs`); the ER and DFD packs in Block 7 fill it with their real variants. |
+| Pattern provenance | ROADMAP says the inserted group records the pattern. The record is `Model.patterns` (pattern id, arguments, member elements by role, the names generated for them), and the inserted shapes are grouped as well so they move as one. |
+| XLSX writing | Our own stored-entry ZIP writer and the smallest SpreadsheetML parts from the ECMA-376 specification, so there is no new dependency and the web build writes workbooks too; the main session adds ECMA-376 to the Formats list in AGENTS.md and docs/formats.md at the merge. |
+| Codegen dependencies | `sha2` for checksums and `diffy` for unified diffs and the three-way merge, both MIT or Apache and pure Rust, building for wasm. |
+
+Models: `b5-layout` (layout geometry), `b5-glyphs` (holes, path glyphs, ports and variants),
+`b5-codegen` (the regeneration contract), `b5-patterns` (generator design and reparameterize) and
+`b5-reimport` (identity matching and two-way sync) run on Opus; `b5-fixes` (precise sweeps) and
+`b5-tables` (exporters from a public specification and dock wiring over model queries) run on
+Sonnet. All at medium effort.
+
+What exists to build on: `vizcraft_layout::{Graph, Node, Edge, Group, Options, Algorithm, layout}`
+and `autolayout::{layout_items, layout_incremental, grow_page}` behind `layout.full`,
+`layout.incremental` and `file.import {layout}`; `Session::transaction` (one undo step for a list
+of steps), `Document::next_id`, `Document::adopt` and `bind::sync` after every command, so a model
+element placed with `cmd::model::place_shape` binds on its own; `Pack.patterns` and
+`Pack.exporters` (declared, empty) and `ElementType.ports` with bind's rule that a connector glued
+at connection point `i` attaches to port `i`; `Freeform {els, closed}` on `ShapeKind::Freeform`
+shapes and `Arrow` with thirteen ends drawn from one `arrows::outline` table by the canvas, SVG and
+PDF; `compartment::points` appending band points after the kind's; `vizcraft_stencils::sets()`
+rebuilt by catalog stamp (connector kinds are not yet); `formats::table::read` for CSV and XLSX
+tables and the CSV and HTML writers in `cmd/report.rs`; the dock with `DockTab::Tables` and
+`DockTab::Generate` as labelled empty slots, `dock::open_on` and `ui.dock`; `suggest::search` with
+`HitKind` over commands, types and elements; `Issue` with `Fix` and `Session.issues`;
+`vizcraft-cli validate` as the shape of a headless subcommand; `Services.pick_open(purpose)` and
+`pick_save`; `lane.addSet` and the container commands for lanes; `IdScope` and
+`Registry::next_tag` for tags.
+
+### Branches
+
+Ports 8051 to 8057; worktrees under `.claude/worktrees/<branch>`; the first five branch from main
+at the commit that added this section, `b5-patterns` and `b5-reimport` from the main commit the
+main session names when they start.
+
+| Branch | Model | Own | Commands |
+|---|---|---|---|
+| `b5-fixes` (8051) | Sonnet | the hunks named in the brief of `crates/engine/src/cmd/{shape.rs, text.rs, comment.rs, describe.rs, data.rs}`, the `page_param` function in `cmd/model.rs` and `select_if_active` in `cmd/element.rs`, `recordable` and the new `undo_depth` and `redo_depth` in `crates/engine/src/session.rs`, `crates/routing/src/{lib.rs, route.rs}`, `crates/diagram/src/autoroute.rs`, `crates/engine/tests/routing_invariant.rs`, `crates/ui-egui/src/dock/{problems.rs, activity.rs}`, `canvas/draw/links.rs`, `canvas/interact/{links.rs, edit_text.rs}`, `panes/comments.rs`, `ribbon/model/model.rs`, `ribbon/developer/show_hide.rs`, the `drain_inbox` and `suggest.search` hunks in `lib.rs`, the search helper in `command_palette.rs`, the data graphics pass in `canvas/mod.rs`, the `pick_open` closure in `apps/vizcraft/src/main.rs` | none new; `ui.spelling` gains F7; `suggest.search` lists UI commands from every origin; `validate.run` from every origin feeds the Problems rows |
+| `b5-layout` (8052) | Opus | `crates/layout/src/` (`Node.pin`, `Node.order`, new `primitives/{mod.rs, band.rs, chain.rs, grid.rs, container.rs, radial.rs}`), `crates/diagram/src/autolayout.rs`, `crates/engine/src/cmd/layout.rs` | `layout.full {.., keepOrder?}`; `layout.incremental` pins the shapes it keeps; `layout.primitive {primitive: pipeline or bands or chain or matrix or nested or hubSpoke or rings or timeline or voter, ids?, roles?, direction?, nodeSpacing?, layerSpacing?}` |
+| `b5-codegen` (8053) | Opus | new `crates/codegen` (`vizcraft-codegen`: `lib.rs`, `spec.rs`, `target.rs`, `targets/markdown.rs`, `manifest.rs`, `writer.rs`, `merge.rs`, `regions.rs`, `names.rs`), new `crates/engine/src/cmd/generate.rs`, new `apps/vizcraft-cli/src/generate.rs`, `crates/ui-egui/src/dock/generate.rs`, new `crates/ui-egui/src/ribbon/generate/` | `generate.targets`, `generate.preview {spec? or target, output?, options?, scope?, renames?}`, `generate.run {same}`, `generate.check {same}`; CLI `vizcraft-cli generate FILE [--spec SPEC or --target ID --output DIR] [--check or --preview] [--json]`; UI `ui.generate {spec?, target?, output?}` |
+| `b5-tables` (8054) | Sonnet | new `crates/model/src/query.rs`, new `crates/engine/src/cmd/table.rs`, `crates/engine/src/cmd/report.rs`, new `crates/formats/src/{tables.rs, xlsx.rs}`, `crates/ui-egui/src/dock/tables.rs` | `table.list {type? or pack?, columns?, filter?}`, `table.matrix {rows: type, cols: type, relationship?, property?}`, `table.set {id, key, value}`, `table.toggle {row, col, relationship}`, `table.export {view: list or matrix, the view's params, format: csv or xlsx or markdown, path?}`; `report.run` gains `format: xlsx or markdown`; UI `ui.tables {view?, type?, rows?, cols?, relationship?, property?, filter?}` |
+| `b5-glyphs` (8055) | Opus | `crates/diagram/src/{arrows.rs, hit.rs, kind.rs}`, `Freeform` in `shape_fields.rs`, `Connector.start_label` and `end_label` in `model.rs`, `crates/notation/src/schema.rs` (`Glyph.path`, `Glyph.detail`, `Pack.variants`), new `crates/notation/src/glyph_path.rs`, `crates/notation/src/{loader.rs, catalog.rs}`, `crates/stencils/src/` (`Master.path`, the kinds cache in `connectors.rs`, new `ports.rs`), new `crates/engine/src/cmd/variant.rs`, `connector.setEndLabels` in `cmd/connector.rs`, the `place_shape` hunk in `cmd/model.rs`, `cmd/notation.rs`, `crates/ui-egui/src/canvas/draw/{shapes.rs, connectors.rs}`, `canvas/tess.rs`, new `canvas/draw/ports.rs`, `panes/shapes.rs`, `ribbon/notation/`, `ribbon/connector/`, the shape path hunk in `crates/formats/src/svg.rs`, new `formats/src/svg/ports.rs` | `variant.list {page?}`, `variant.set {page?, variant}`; `connector.setEndLabels {ids?, start?, end?}`; `Arrow` gains `slash` |
+| `b5-patterns` (8056; after `b5-fixes` and `b5-layout` are merged) | Opus | new `crates/patterns` (`vizcraft-patterns`: `lib.rs`, `schema.rs`, `emit.rs`, `workflow.rs`), new `crates/model/src/pattern.rs`, new `crates/engine/src/cmd/pattern.rs`, `crates/engine/src/suggest.rs`, new `crates/ui-egui/src/panes/patterns.rs` and `pattern_dialog.rs`, new `ribbon/insert/patterns.rs`, the pattern arm in `command_palette.rs`, the `patterns` list in `crates/notation/packs/flowchart.json` | `pattern.list {pack?, audience?}`, `pattern.insert {pattern, args?, page?, x?, y?}`, `pattern.reparameterize {instance, args}`, `pattern.instances {page?}`, `pattern.forget {instance}`; UI `ui.pane.patterns`, `ui.patterns {query?, pattern?}` |
+| `b5-reimport` (8057; after `b5-patterns` and `b5-tables` are merged) | Opus | new `crates/model/src/sync.rs`, the import path in `crates/engine/src/cmd/file.rs`, new `crates/diagram/src/import_record.rs`, `crates/formats/src/{csv.rs, mermaid.rs}` (ids and tags carried), new `crates/patterns/src/tables.rs`, `pattern.sync` in `cmd/pattern.rs`, the Sync button in `panes/patterns.rs` | `file.import {.., merge?: bool, source?}`, `file.reimport {source?}`; `pattern.sync {instance, direction: fromTable or toTable, table?: {columns, rows} or path?}`; the patterns `table.raciLanes`, `table.tree` and `table.matrix` |
+
+Shared files, merged by the main session: struct fields with serde defaults, sanitising and one
+test in `formats/src/native_tests.rs` (`Model.patterns` in `crates/model/src/types.rs` from
+`b5-patterns`, `View.variant` there from `b5-glyphs`, `Document.imports` in
+`crates/diagram/src/model.rs` from `b5-reimport`, the two connector labels there from
+`b5-glyphs`); `crates/model/src/lib.rs` and `crates/diagram/src/lib.rs` module lines;
+`engine/src/cmd/mod.rs` (`layout` exists; `generate`, `table`, `variant`, `pattern` are new) and
+`engine/Cargo.toml` (`vizcraft-patterns`, `vizcraft-codegen`); the workspace `Cargo.toml`
+(`vizcraft-patterns`, `vizcraft-codegen`, `sha2`, `diffy`) and the `MODEL_SUFFIXES` line in
+`xtask/src/layers.rs` (`-patterns`, `-codegen`); `lib.rs` (`UI_COMMANDS` rows; the `drain_inbox`
+and `suggest.search` hunks belong to `b5-fixes`); `dialogs.rs` (two lines for the pattern
+dialog); `panes/mod.rs` `default_panes!` and the closed-by-default list in `panes/layout.rs`
+(patterns), with the pane counts in `tests/panes.rs`; `ribbon/mod.rs` `tabs()` (Generate from
+`b5-codegen`) and the tab list in `tests/ribbon.rs`; `ribbon/insert/mod.rs` `groups!`
+(patterns); `canvas/mod.rs` (the data graphics pass moves for `b5-fixes`; one call line for ports
+from `b5-glyphs`); `cmd/model.rs` (`page_param` for `b5-fixes`, `place_shape` for `b5-glyphs`);
+`command_palette.rs` (`b5-fixes` first, then `b5-patterns`); `control.rs` (`ui.inspect` fields);
+`icons.rs` append-only; `apps/vizcraft-cli/src/main.rs` (one match line and the usage text from
+`b5-codegen`). `apps/vizcraft/src/main.rs` belongs to `b5-fixes`, which also adds the `spec`
+picker purpose `b5-codegen` calls. Merge order: fixes, layout, glyphs, tables, codegen, patterns,
+reimport; snapshots regenerated once after codegen (the end of the first wave) and once after
+reimport.
+
+Done when for the block: over the control channel `pattern.insert` of a parallel split with four
+branches lands as Flowchart elements laid out by the pipeline primitive in one undo step and
+`pattern.reparameterize` to six keeps a label edited by hand; `generate.run` of the Markdown
+catalogue over the sample writes under a manifest, a second run changes no byte, a hand edit to an
+owned file is merged or stops with an issue, and `vizcraft-cli generate --check` exits 1 when the
+output is stale; the Tables tab lists the Flowchart elements, a rename typed in a cell reaches the
+model, and Export writes a CSV and an XLSX that `table::read` reads back; a changed Mermaid file
+re-imported with `merge: true` keeps ids and geometry, places the new node and flags the removed
+one; a RACI table inserts lanes and `pattern.sync` reads them back; a test pack with two variants
+redraws a page on `variant.set`, a `slash` end exports to SVG, and ports draw on a typed shape; a
+freeform with a hole fills even-odd on the canvas and in SVG; the Block 3 and Block 4 follow-ups
+each have their test; the Patterns pane, the Tables and Generate dock tabs and the Generate tab
+screenshot at 1280 px with no overflow; `cargo xtask ci` is green.
+
+### Briefs
+
+Each brief below is pasted after the template above with the shared lines filled in (worktree
+`.claude/worktrees/<branch>`, branch `<branch>` from main at the commit named in the Branches
+paragraph, `CARGO_TARGET_DIR=target-<branch>`, the port from the table, prefix `B5:`).
+
+`b5-fixes` (Sonnet). Goal: the Block 3 and Block 4 follow-ups that no other branch owns, each a
+precise change with a test. (1) The text lock holds: `shape.setText`, the shared setter in
+`cmd/text.rs` that `text.*` and `connector.setText` go through, and the canvas in-place editor
+(`interact/edit_text.rs`) call `protect::check` with `Lock::Text` before editing, so a text-locked
+shape and a protected document refuse the edit with the lock's message. (2) The router's final
+stub is at least the arrowhead's trim: `vizcraft_routing::End` gains `stub: Option<f64>` (the
+length of the segment that leaves or enters the shape; `Options.margin` when `None`), `route.rs`
+builds the terminal from it, `autoroute.rs` sets each end's stub from `arrows::outline` for the
+connector's ends at its line width, and `routing_invariant.rs` gains the check that no arrow tip
+lies inside a stub. (3) The `ui.spelling` row in `UI_COMMANDS` gets the shortcut `F7` (the key
+whitelist in `keys.rs` already passes function keys; its reachability test must stay green).
+(4) Comments on deleted shapes: `cmd::delete_items` and `shape.delete` move the comments anchored
+to a deleted shape to its page (the thread stays, the shape anchor goes) inside the same undo
+step; `comment.list` shows them as page comments. (5) Canvas comment markers act: a click on a
+marker drawn by `draw/links.rs` runs `comment.show {id}`, opens the Comments pane and scrolls it
+to that thread (`panes/comments.rs` gets a reveal field); the hit test lives in
+`interact/links.rs` next to the link follow. (6) `pick_open` in `apps/vizcraft/src/main.rs`
+answers the purposes the UI already asks for: `picture` (png, jpg, jpeg, svg), `data` (csv, xlsx)
+and the new `spec` (toml, json) that `b5-codegen` will ask for, each with an All files fallback.
+(7) Data graphics draw above connectors: the per-shape `draw::data_graphics::shape` call in
+`canvas/mod.rs` moves to a pass after the connectors and before the overlays. (8)
+`session::recordable` skips `macro.` commands like `script.`. (9) `Session::undo_depth()` and
+`redo_depth()` return the stack sizes; `dock/activity.rs` reads them instead of `memory_stats`.
+(10) The Developer tab's Drawing Explorer button ends with the tree on the Diagrams branch:
+prove it with a kittest test that reads `ui.inspect` after the click and fix `show_hide.rs` if it
+does not (its comment predates `ui.tree`). (11) `describe` prints `Shape.name` at every detail
+level when it is set, not only at `full`. (12) The Model tab's Show in All Views
+(`ribbon/model/model.rs`) runs `model.views {id}` and then selects the element's shapes on the
+chosen page, as the model tree does, instead of a bare `page.setActive`. (13) `validate.run` over
+the control channel feeds the Problems rows: `dock/problems.rs` keeps the result of a
+whole-document run from any origin (only a UI-origin run also opens the dock). (14) The engine
+label of `view.shapeDataPane` in `cmd/data.rs` becomes "Inspector". (15) `page_param` in
+`cmd/model.rs` defaults to the active page and `select_if_active` in `cmd/element.rs` compares
+with `Document::active_index()`, not 0. (16) `suggest.search` lists the UI commands from every
+origin: `CraftApp::run` intercepts the command (the way `problems::on_run` intercepts
+`validate.run`) and runs `suggest::search` with the registry rows plus `UI_COMMANDS`, through one
+helper in `command_palette.rs` the palette shares. (17) `drain_inbox` in `lib.rs` routes a
+dropped or picked png, jpg, jpeg or svg file to `picture.insert {bytes, mediaType}` (base64 as
+`ui.insertPicture` sends it) instead of trying to open it as a document. Done when: tests for
+each of the seventeen (a text-locked shape refuses `shape.setText`; no arrow tip inside a stub on
+the sample; F7 opens the Spelling dialog in a kittest test; a deleted shape's comment lists as a
+page comment and undo restores its anchor; a marker click reveals the thread; the pass order in a
+snapshot where a data bar crosses a connector; a recorded script holds no `macro.` step; the
+Activity depths match `can_undo`; the explorer click lands on Diagrams; `describe` shows a name at
+structure detail; Show in All Views selects; a control-origin `validate.run` fills the rows;
+the label; `page_param` with page 2 active; `suggest.search` over the control channel finds
+`ui.commands`; an inbox PNG becomes a picture shape); `cargo xtask ci` green.
+
+`b5-layout` (Opus). Goal: pins and model order in the layered layout, and the layout primitives
+the patterns and the audience packs lay out with, all in `crates/layout` with no diagram
+dependency. Pins: `Node.pin: Option<Point>` keeps that node's top-left where it is; the layered
+layout assigns the pinned nodes their layers and positions first and places the rest around them
+(a pinned node never moves, overlaps with pinned nodes are resolved by moving free nodes only);
+the tree, radial and force layouts honour pins the same way. Model order: `Node.order:
+Option<u32>` sorts the nodes of a layer by this before crossing reduction and keeps the order
+where crossing reduction would only tie, so the drawing follows the model's creation order;
+`layout.full {keepOrder: true}` passes the element creation order, and `layout.incremental` pins
+every shape it keeps. Primitives, in `crates/layout/src/primitives/`, each a pure function from a
+`Graph` plus the primitive's roles to a `Layout` with the same normalised coordinates, bounds and
+notes as `layout`, each refusing bad roles with a `LayoutError` rather than guessing: `band.rs`
+(horizontal or vertical bands: each node names its band, nodes are laid out layered inside their
+band and the bands stack with a gap, the swimlane case), `chain.rs` (pipeline: a chain of steps
+with an optional parallel band that fans out between two steps and joins again; two-row chain: a
+forward chain on the top row and each step's compensation below it, joined by vertical edges),
+`grid.rs` (matrix: rows by columns in the given order with equal cells; timeline: nodes on one
+axis by order with equal spacing and labels below), `container.rs` (nested-container packer: a
+tree of groups packed recursively, children laid out layered inside their container's padding,
+containers sized to their content), `radial.rs` (hub and spoke: one hub, spokes on a circle whose
+radius clears the spoke sizes; concentric rings: ring lists around a centre; N-channel voter: N
+channel chains side by side feeding one voter node below them). `Primitive` is a serde enum so
+`layout.primitive` takes it as JSON: `{primitive, ids?, roles?, direction?, nodeSpacing?,
+layerSpacing?}` where `roles` names the ids the primitive needs (`bands: [[ids]]`, `forward` and
+`compensation`, `rows` and `cols`, `hub`, `center` and `rings`, `channels` and `voter`, `parallel:
+{from, to, members}`), lays the named shapes out on the active page in one undo step with the same
+unit rules as `layout.full` (groups, containers and lane sets move as one), reroutes their
+connectors and returns the bounds. `autolayout.rs` maps the page to the graph the same way for
+both commands. Done when: tests that a pinned node keeps its position under every algorithm and
+nothing overlaps it; that `keepOrder` draws three siblings in creation order where crossing
+reduction would tie; that each primitive places a small graph as described (bands do not
+interleave, the parallel band fans and joins, compensation rows align under their steps, the matrix
+has equal cells, nested containers contain their children with padding, spokes clear the hub,
+channels feed the voter) with no overlaps; that `layout.primitive` on the sample is one undo step
+and reroutes; `hostile_params_never_panic` green with junk roles; `cargo xtask ci` green.
+
+`b5-codegen` (Opus). Goal: the generator framework under the code-scaffold generation contract in
+docs/architecture.md, its commands, the CLI check and the Generate dock and tab. `crates/codegen`
+depends on `model`, `notation`, `sha2` and `diffy`. `spec.rs`: a generator spec read from a TOML
+or JSON file in the repository (`.vizcraft-gen.toml`: `name`, `target`, `options`, `output` as a
+directory relative to the spec file, `scope` with pack, type and element id lists; size capped,
+every path checked, errors never panics) or given inline to a command. `target.rs`: `trait
+Target` (id, label, `single_file`, a construct-support matrix of `Supported`, `Flattened` or
+`Unsupported` per construct, and `generate(&ModelView, &Names, options) -> Vec<Output {path,
+text}>`), a registry of built-in targets, and `ModelView`: the model cut to the scope and sorted
+by type, tag then id so output is deterministic. `targets/markdown.rs`: the reference target
+`markdown-catalog`, a Markdown element catalogue over any pack (one section per element type with
+the pack's label, a table of elements with tag, name and declared properties, a relationships
+section), every construct followed by `<!-- vizcraft:id=<element id> -->`. `names.rs`:
+identifiers come from the manifest's rename map (element id to identifier), filled on first
+generation from the tag or name sanitised to the target's rules and made unique; a later rename in
+the model changes nothing until `renames: true`, when the map updates and the preview lists the
+renames. `manifest.rs`: `.vizcraft-gen/manifest.json` inside the output directory (generator
+version, spec checksum, one row per written file with its SHA-256, the rename map) and
+`.vizcraft-gen/last/<path>` copies of what was last generated, the base of the merge.
+`writer.rs`: `plan(spec, model) -> Plan` with one entry per file (`Create`, `Unchanged`,
+`Update`, `Merge`, `Conflict`, `Delete` for a manifest file the target no longer emits) and the
+issues the support matrix raises; `apply(plan)` writes only owned paths inside the output
+directory (no `..`, no absolute paths, no symlink escapes), atomically (temp file then rename),
+in stable order, with newlines normalised. `merge.rs`: a file whose on-disk checksum differs from
+the manifest is merged three ways with `diffy::merge` (last generated, on disk, new); a conflict
+stops the run with an issue naming the file and the preview shows the diff (`diffy::create_patch`).
+`regions.rs`: for a single-file target, `vizcraft:begin <element id>` to `vizcraft:end <element
+id>` blocks in the target's comment syntax are copied from the on-disk file into the new text;
+blocks whose id is gone are appended at the end with an issue. Commands in `cmd/generate.rs`:
+`generate.targets` (ids, labels and support matrices); `generate.preview`, `generate.run` and
+`generate.check` share the params `{spec?: path, target?, output?, options?, scope?, renames?}`
+(a spec path or an inline target and output; a relative output is resolved against the
+document's folder from `Session.path`); preview returns `{files: [{path, action, diff}], issues,
+renames}`, run returns `{written, merged, deleted, unchanged, stopped?, issues}`, check returns
+`{ok, stale, missing, modified}`; on wasm run and check return an error and preview plans against
+nothing on disk. CLI: `apps/vizcraft-cli/src/generate.rs` with `vizcraft-cli generate FILE
+[--spec SPEC or --target ID --output DIR] [--check or --preview] [--json]`, exit 1 when a check
+finds stale output or a run stops, 2 for usage; one match line and the usage text in `main.rs`.
+UI: `dock/generate.rs` becomes the Generate tab: a spec row (path field, Browse through
+`pick_open("spec")`, target menu from `generate.targets`, output field), Preview, Generate and
+Check buttons, the file list with an action badge per file, a unified diff per file in JetBrains
+Mono with added and removed lines coloured from `Tokens`, the issues and a run log; `ui.generate
+{spec?, target?, output?}` sets the fields and `ui.inspect` gains `generate: {spec, target,
+output, files}`. `ribbon/generate/`: a Generate tab with a Generate group (Preview, Generate,
+Check, Generate Dock toggle) and a Targets gallery with the current target checked. Done when:
+tests that the catalogue over the sample generates under the manifest, that a second run is
+byte-identical, that a hand edit outside a construct merges and one inside the same lines stops
+with an issue, that a renamed element keeps its identifier until `renames: true`, that a
+single-file protected region survives, that a file outside the output directory is refused, that
+`generate.check` reports a stale file after a model change, and that the CLI exits 1 on it; a
+kittest test that Preview fills the dock; snapshots of the dock and the Generate tab at 1280 px;
+`hostile_params_never_panic` green with junk paths; `cargo xtask ci` green.
+
+`b5-tables` (Sonnet). Goal: model-derived tables and matrices in the Tables tab, edited in place,
+and CSV, XLSX and Markdown exporters. `crates/model/src/query.rs`: `list(model, cat, type or
+pack, columns) -> Table` (one row per element: id, tag, name, then the declared properties, or
+the named columns) and `matrix(model, rows: type, cols: type, relationship?, property?) ->
+Matrix` (row and column element ids, each cell the relationships between the pair of that type,
+or the named property's value when `property` is given, which is how a RACI reads); both
+deterministic, capped at 10 000 rows. `cmd/table.rs`: `table.list` and `table.matrix` return the
+rows; `table.set {id, key, value}` is an edit in a table and delegates to `element.rename`,
+`element.retag`, `element.setProperty` or `relationship.setProperty` by key; `table.toggle {row,
+col, relationship}` creates the relationship with `relationship.create` or deletes it with
+`model.delete`; `table.export` takes a view's params plus `format` and `path` and writes the file
+or returns `content` without a path. `formats/src/tables.rs`: `write_csv` (RFC 4180 quoting;
+`cmd/report.rs` switches to it), `write_markdown` (a pipe table with escaped pipes) and
+`write_xlsx`; `formats/src/xlsx.rs`: a workbook from the smallest SpreadsheetML parts of ECMA-376
+(`[Content_Types].xml`, `_rels/.rels`, `xl/workbook.xml`, `xl/_rels/workbook.xml.rels`,
+`xl/worksheets/sheet1.xml` with inline strings and numbers typed from the column kinds) in a
+stored-entry ZIP written by the module itself (local headers, central directory, CRC-32 table),
+no new dependency, so the web build writes it too; `report.run` gains `format: xlsx` and
+`markdown`. `dock/tables.rs`: a toolbar with a View menu (one list per element type in use, a
+Relationship Matrix entry with row and column type menus and a RACI entry when a relationship
+type declares a text property), a filter field and an Export menu (CSV, XLSX, Markdown through
+`pick_save`); the grid is an `egui::Grid` in a `ScrollArea` with `show_rows`, a click on a row
+selects the element's shapes (`element.show`), a double-click on a cell edits it in place and
+commits with `table.set`, a click on a matrix cell runs `table.toggle`; `ui.tables` sets the
+view and `ui.inspect` gains `tables: {view, type, rows, cols, count}`. Done when: tests that the
+sample's list has one row per Flowchart element with its properties, that the matrix of Process
+by Process over Flow marks the sample's flows, that `table.set` renames through the model and is
+one undo step, that `table.toggle` creates and removes a relationship, that the CSV and Markdown
+goldens match, that an XLSX written from a table reads back equal through `table::read` (off
+wasm), that `report.run {format: xlsx}` writes a file; kittest tests that a cell edit reaches the
+model and that Export writes the picked path; snapshots of a list and a matrix; `cargo xtask ci`
+green.
+
+`b5-glyphs` (Opus). Goal: the notation-drawing foundation: even-odd freeform fills, path glyphs,
+the BPMN flow end and per-end labels, ports drawn on shapes, the kinds cache and notation
+rendering variants. Holes: `canvas/draw/shapes.rs` fills a freeform's closed rings even-odd (a
+ring inside another is a hole: `tess.rs` triangulates a polygon with holes, bridging each hole to
+the outer ring, and falls back to the fan as today), the `FillCache` key covers `Shape.path`, and
+`hit::shape_contains` counts closed rings even-odd and tests open rings by distance only; the
+same function skips a shape with `locks.select` so a select-locked shape is not clicked (by id
+still works); `svg.rs` writes the closed subpaths in the filled `<path>` with `fill-rule="evenodd"`
+and the open subpaths in a second `fill="none"` path, so an open freeform exports with no fill.
+Path glyphs: `Glyph.outline: "path"` with `Glyph.path` (and optional `Glyph.detail`, unfilled
+lines) in a unit box, parsed by `glyph_path.rs` (M, L, C, Q, Z; capped length; loader errors,
+never panics); a `Freeform` may mix subpaths, closed ones fill and open ones stroke (`closed`
+means any subpath fills); `Master.path` carries it and `Master::instantiate` scales it to the
+shape's size, so a placed glyph is a `Freeform` shape the canvas, hit testing and the exports
+already draw; the palette previews a freeform master from its path. Ends: `Arrow::Slash` (a short
+stroke across the line near the end, BPMN's default-flow marker; the message, association and
+conditional flows are recipes over existing ends and dashes), in `ALL`, `outline` and the end
+pickers. End labels: `Connector.start_label` and `end_label` (capped like `text`, serde defaults,
+sanitised), `connector.setEndLabels {ids?, start?, end?}`, drawn by `canvas/draw/connectors.rs`
+and `svg.rs` a little outside the line beside each end on the side away from the shape, with a
+white box like the main label; Connector tab gets End Labels fields. Ports: `stencils/src/ports.rs`
+gives `port_marks(shape, type) -> Vec<PortMark {rect, label, direction}>` at the shape's
+connection points for the type's ports; `place_shape` and `insert_master` set a typed shape's
+`connection_points` from the type's `ports` (x, y) when it declares any, so port `i` is point `i`
+as `bind` assumes; `canvas/draw/ports.rs` and `svg/ports.rs` draw a filled square for `in`, a
+hollow one for `out` and a half-filled one for `inOut`, sized by the line width, with the label
+beside it from 100 percent zoom (one call line each in `canvas/mod.rs` and `svg.rs`). Kinds
+cache: `connectors.rs` rebuilds its kinds by `catalog_stamp` as `sets()` does, so a pack loaded
+at run time draws its kinds. Variants: `Pack.variants: Vec<Variant {id, label, description,
+glyphs: type id to glyph id, connectors: relationship type id to connector type id}>` checked by
+the loader; `View.variant` on the page (empty is the pack's default drawing);
+`Catalog::master_for_type_in(type, variant)` and the connector kind lookup take the variant, used
+by `place_shape`, `insert.next`'s placement, the palette and the notation tab's Insert menus;
+`variant.list {page?}` lists the active pack's variants with the current one; `variant.set
+{page?, variant}` redraws every element shape on the page with the variant's glyph (kind, path,
+default size and style from the master, position, text and glue kept) and every relationship
+connector with the variant's kind, in one undo step; `notation.describe` lists variants; the
+notation tab gets a Variant menu with check marks. Done when: tests (a freeform with a hole hits
+only the ring, a snapshot shows the hole, the SVG golden has `evenodd` and a second unfilled path;
+a path glyph in a test pack places as a freeform of the right size and exports; `slash` draws at
+both ends in a golden SVG; end labels round-trip natively and through draw.io `ext` and appear in
+the SVG; a typed shape's connection points follow its ports and a connector glued to point 1
+binds to port 1; a pack loaded in the test draws its kind; `variant.set` on a two-variant test
+pack changes the glyph of every element shape and the kind of every relationship connector and
+undoes in one step; a select-locked shape is not hit); snapshots of ports and end labels;
+`hostile_params_never_panic` green with junk paths; `cargo xtask ci` green.
+
+`b5-patterns` (Opus; starts after `b5-fixes` and `b5-layout` are merged). Goal: the pattern
+framework, its commands, provenance, the Patterns pane and the starter workflow patterns.
+`crates/patterns` depends on `model`, `notation` and `layout`. `schema.rs`: `Pattern {id, name,
+description, pack, audience, params: Vec<Param {key, label, kind, default}>}` with `ParamKind`
+`Count {min, max}`, `Text`, `Labels` (a list of texts), `Choice {values}`, `TagPrefix` and `Table
+{columns}`, and `Args` as a JSON object checked against the schema (unknown keys, bad kinds and
+counts outside the range refused with a message). `emit.rs`: `generate(&Pattern, &Args, &Catalog)
+-> Emission` with elements keyed by role (`split`, `branch.3`, `join`), relationships between
+roles, containment, the layout primitive and roles to lay out with, and the name generated for
+each element; pure, no document. `cmd/pattern.rs`: `pattern.list` returns patterns with their
+schemas, filtered by pack or audience; `pattern.insert` resolves the pack's types, creates the
+elements with `Document::next_id` (tags from `Registry::next_tag` with the prefix when the pack
+has a scope), places their shapes with `place_shape` at `x, y` (else the frame's centre), creates
+the relationships and glued connectors, lays the shapes out with the emission's primitive
+(`vizcraft_layout::primitives`) offset to the insertion point and clear of existing shapes the way
+`layout.incremental` places, groups the shapes, and records a `PatternInstance {id, pattern,
+args, members: role to element id, generated: role to name}` in `Model.patterns`
+(`crates/model/src/pattern.rs`, capped, sanitised, round-tripping natively); all in one command,
+so one undo step. `pattern.reparameterize` regenerates the instance with the new args: roles in
+both emissions keep their element (and a name that differs from the generated one at insert time,
+a manual edit, is kept), new roles are created, gone roles are deleted with their views, the
+primitive runs again on the instance's shapes, the record updates; `pattern.instances` lists the
+document's instances with their members; `pattern.forget` drops the record and leaves the
+elements. `workflow.rs`: the starter patterns over the Flowchart pack, listed in `flowchart.json`'s
+`patterns`: `workflow.parallelSplit` (a step fans out to N branches that join at a step, the
+pipeline primitive's parallel band), `workflow.exclusiveChoice` (a Decision with N labelled
+branches to steps that rejoin), `workflow.nOfMJoin` (M branches into one join step named "N of
+M"), `workflow.multipleInstances` (one step repeated N times between a split and a join) and
+`workflow.cancelRegion` (a container of steps with a cancelling Decision whose flow leaves the
+region). `suggest.rs` gains `HitKind::Pattern` so `suggest.search` finds patterns by name and the
+command palette inserts one at the canvas centre with defaults (the pattern arm in
+`command_palette.rs`). `panes/patterns.rs` (key `patterns`, title "Patterns", left side, closed
+by default): the patterns of the active page's pack first, then the others under their pack
+names, filtered by audience and a search field; a click opens `pattern_dialog.rs`, a typed form
+from the schema (a count spinner, text fields, a label list, a choice menu, a small table editor)
+whose Insert runs `pattern.insert`; when the selection belongs to an instance the pane shows that
+instance's form with its current args and an Apply button running `pattern.reparameterize`.
+Insert > Patterns: the pane toggle and a gallery of the active pack's patterns. `ui.patterns
+{query?, pattern?}` sets the filter or opens the form; `ui.inspect` gains `patterns: {query,
+instance?}`. Done when: engine tests that each starter pattern inserts as bound Flowchart elements
+whose flows validate clean and whose shapes do not overlap, in one undo step; that a parallel
+split of four reparameterized to six keeps a hand-edited branch name and gains two branches, and
+back to three deletes the extra elements and their shapes; that a bad arg is refused; that
+`pattern.list` carries the schemas and `suggest.search` finds a pattern; kittest tests that the
+form inserts and that the pane shows an instance's args; snapshots of the pane and the form;
+`hostile_params_never_panic` green; `cargo xtask ci` green.
+
+`b5-reimport` (Opus; starts after `b5-patterns` and `b5-tables` are merged). Goal: the re-import
+contract and table-driven pattern sync. Contract: `file.import {.., merge: true, source?}`
+matches every imported element to an existing one by id (kept when plain and free, the
+`Document::adopt` rule, so the importers must carry ids: `csv.rs` reads an `id` column and a
+`tag` column when present, `mermaid.rs` keeps node ids as element ids and `%% tag:` or a label
+suffix as the tag; report what `drawio` needs if its cell ids are not enough), then by tag, then
+by name within the type; a matched element updates its name and properties and keeps its shapes
+where they are, a new element is placed with `layout_incremental` beside the matched ones,
+connectors follow the relationships; `crates/model/src/sync.rs` holds the pure diff
+(`Changes {added, updated, removed, kept}`) and apply over two models. The document records each
+import in `Document.imports: Vec<ImportRecord {source, format, time, elements}>`
+(`diagram/src/import_record.rs`, capped and sanitised); an element recorded from that source and
+absent from the new import is not deleted but flagged with an issue `import.removed` carrying a
+`Fix` that runs `model.delete`; `file.reimport {source?}` rereads the recorded source path and
+runs the merge; the result lists the four counts and the id map; all in one undo step. Sync: the
+patterns in `crates/patterns/src/tables.rs` take a `Table` param: `table.raciLanes` (one lane
+per role column from `lane.addSet`, one step per activity row placed in the lane marked R, A, C
+and I as relationship properties to role elements where the pack has a role type, else as shape
+data), `table.tree` (a parent-id table to a tree of elements joined by the pack's containment or
+the named relationship, laid out with the tree algorithm; the type and relationship are params
+with defaults from the active pack) and `table.matrix` (a two-column table to elements of two
+types and the relationships between them, which the Tables tab's matrix shows); `pattern.sync
+{instance, direction, table?}` with `fromTable` reparameterizes with the new rows and `toTable`
+reads the model back into rows (lane membership to the R column, relationships to A, C and I,
+owner to parent id, matrix cells to pairs) and returns them, refusing with an issue when the
+mapping is ambiguous (a step in two lanes, a cell with two relationships); the Patterns pane gets
+a Sync button on instances with a table param. Done when: tests that a Mermaid flowchart imported
+twice with a renamed node, a new node and a removed node keeps the kept nodes' ids and geometry,
+places the new one beside them, renames in the model and raises one `import.removed` issue whose
+fix deletes it, in one undo step; that a CSV with `id` and `tag` columns round-trips ids; that
+`file.reimport` rereads the recorded path; that a RACI table inserts lanes with the steps in
+their R lanes and `toTable` returns the same rows; that a parent-id table builds a tree and a
+reparented element syncs back; that an ambiguous model refuses; a kittest test for Sync;
+`hostile_params_never_panic` green with junk tables; `cargo xtask ci` green.
 
 ## Block 7: first deep packs (ROADMAP Cascade 6, three tracks)
 
