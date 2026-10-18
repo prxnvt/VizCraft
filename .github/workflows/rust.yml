@@ -21,6 +21,10 @@ env:
   CARGO_TERM_COLOR: always
   # Fresh runners gain nothing from incremental artifacts, and the cache is smaller without them.
   CARGO_INCREMENTAL: 0
+  # The runner has about 14 GB free; a debug build of the workspace with tests and debug info
+  # filled it (rustc: "No space left on device", the linker died with a bus error). Debug info is
+  # most of that and nothing in the gate reads it.
+  CARGO_PROFILE_DEV_DEBUG: 0
   # Pixel snapshot tests need a wgpu adapter and references for the runner's OS; docs/testing.md
   # keeps them out of the gate, so skip them explicitly rather than depend on the runner's GPU.
   VIZCRAFT_SKIP_SNAPSHOTS: 1
@@ -32,6 +36,13 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Preinstalled toolchains this gate never uses (.NET, Android, Haskell, CodeQL) take about
+      # 25 GB; removing them leaves room for the target directory.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
 
       # eframe's winit backends (x11, wayland), xkbcommon and the glutin/wgpu GL loaders link
       # against these. rfd talks to the desktop portal over D-Bus (no GTK) and muda is macOS-only,
