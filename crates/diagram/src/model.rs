@@ -1012,6 +1012,10 @@ pub struct Document {
     /// The image store shapes draw pictures from (see [`ImageAsset`] for the caps).
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub images: Vec<ImageAsset>,
+    /// Id of the page the canvas shows and commands act on ([`Document::page`]). Empty, or an id
+    /// that names no page, means the first page; loading clears an unknown id.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub active_page: String,
 }
 
 /// The on-disk form; turned into a [`Document`] by fixing up anything a file got wrong.
@@ -1032,6 +1036,8 @@ struct DocumentRepr {
     comments: Vec<Comment>,
     #[serde(deserialize_with = "lenient_vec")]
     images: Vec<ImageAsset>,
+    #[serde(deserialize_with = "lenient")]
+    active_page: String,
 }
 
 impl From<DocumentRepr> for Document {
@@ -1045,6 +1051,7 @@ impl From<DocumentRepr> for Document {
             properties: r.properties,
             comments: r.comments,
             images: r.images,
+            active_page: r.active_page,
         };
         // Pages only: the model is a separate section the caller sets afterwards, so checking view
         // references here would clear every one of them. The caller runs `sanitize` once the
@@ -1072,6 +1079,7 @@ impl Document {
             properties: DocProperties::default(),
             comments: Vec::new(),
             images: Vec::new(),
+            active_page: String::new(),
         }
     }
     /// Make the document safe to work on: at least one page, every number in range, a sane model,
@@ -1093,6 +1101,9 @@ impl Document {
         self.properties.sanitize();
         sanitize_comments(&mut self.comments);
         sanitize_images(&mut self.images);
+        if !self.pages.iter().any(|p| p.id == self.active_page) {
+            self.active_page.clear();
+        }
         self.sanitize_doc_refs();
     }
     /// Clear references that name nothing: a background that is not another background page, a
@@ -1167,13 +1178,24 @@ impl Document {
     pub fn contains_id(&self, id: &str) -> bool {
         self.pages.iter().any(|p| p.id == id || p.contains_id(id)) || self.model.contains_id(id)
     }
-    /// The active page. Cascade 1 has one page per document, so this is the first.
+    /// The index of the active page: the page [`Document::active_page`] names, else the first.
+    pub fn active_index(&self) -> usize {
+        self.pages.iter().position(|p| p.id == self.active_page).unwrap_or(0)
+    }
+    /// Make page `index` the active page; false (and no change) when there is no such page.
+    pub fn set_active_index(&mut self, index: usize) -> bool {
+        let Some(p) = self.pages.get(index) else { return false };
+        self.active_page = p.id.clone();
+        true
+    }
+    /// The active page (see [`Document::active_page`]); every page-scoped command acts on it.
     pub fn page(&self) -> Option<&Page> {
-        self.pages.first()
+        self.pages.get(self.active_index())
     }
     /// The active page, mutably.
     pub fn page_mut(&mut self) -> Option<&mut Page> {
-        self.pages.first_mut()
+        let i = self.active_index();
+        self.pages.get_mut(i)
     }
     /// The shape with this id on any page.
     pub fn shape(&self, id: &str) -> Option<&Shape> {

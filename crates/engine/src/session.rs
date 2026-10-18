@@ -407,6 +407,7 @@ impl Session {
                 // undo step, so a moved shape never leaves a route running through another.
                 let changed = self.doc != before_doc;
                 if !manages_undo && changed {
+                    crate::cmd::page::auto_size(&mut self.doc);
                     vizcraft_diagram::autoroute::refresh(&mut self.doc);
                 }
                 let manages_history = manages_undo || self.no_undo;
