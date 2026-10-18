@@ -37,6 +37,7 @@ fn registry_ids_are_unique_and_prefixed() {
                 "layout",
                 "model",
                 "element",
+                "inspector",
                 "relationship",
                 "validate",
                 "notation",
