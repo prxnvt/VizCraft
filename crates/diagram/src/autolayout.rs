@@ -25,18 +25,22 @@ pub const PAGE_MARGIN: f64 = 40.0;
 const MAX_PUSHES: usize = 64;
 
 /// Grow the page so every shape fits with [`PAGE_MARGIN`] to spare on the right and bottom. The
-/// page never shrinks, and never grows past [`MAX_EXTENT`].
+/// page never shrinks, and never grows past [`MAX_EXTENT`]. An infinite board has no sheet to grow.
 pub fn grow_page(page: &mut Page) {
+    if page.board != crate::board::Board::Fixed {
+        return;
+    }
     let Some(b) =
         page.shapes.iter().map(|s| s.bounds()).filter(|r| [r.x0, r.y0, r.x1, r.y1].iter().all(|v| v.is_finite())).reduce(|a, b| a.union(&b))
     else {
         return;
     };
     let (w, h) = ((b.x1 + PAGE_MARGIN).min(MAX_EXTENT), (b.y1 + PAGE_MARGIN).min(MAX_EXTENT));
-    if w > page.width {
+    let sheet = page.rect();
+    if w > sheet.width() {
         page.width = w;
     }
-    if h > page.height {
+    if h > sheet.height() {
         page.height = h;
     }
 }
@@ -565,6 +569,7 @@ mod tests {
     #[test]
     fn the_page_grows_to_fit_but_never_shrinks() {
         let mut page = tree_page();
+        page.board = crate::board::Board::Fixed;
         page.width = 100.0;
         page.height = 100.0;
         layout_items(&mut page, None, &Options::default()).unwrap();
@@ -572,12 +577,22 @@ mod tests {
         assert!((page.width - (right + PAGE_MARGIN)).abs() < 1e-9);
         assert!(page.height > 100.0);
         let mut big = tree_page();
+        big.board = crate::board::Board::Fixed;
         big.width = 5000.0;
         layout_items(&mut big, None, &Options::default()).unwrap();
         assert_eq!(big.width, 5000.0);
         big.shapes.push(Shape::new("far", ShapeKind::Rectangle, MAX_EXTENT * 3.0, 0.0, 10.0, 10.0));
         grow_page(&mut big);
         assert!(big.width <= MAX_EXTENT);
+    }
+
+    #[test]
+    fn an_infinite_board_has_no_sheet_to_grow() {
+        let mut page = tree_page();
+        page.width = 100.0;
+        page.height = 100.0;
+        layout_items(&mut page, None, &Options::default()).unwrap();
+        assert_eq!((page.width, page.height), (100.0, 100.0));
     }
 
     /// A pinned parent at (500, 400) with a new child glued below it, and a new loose shape.

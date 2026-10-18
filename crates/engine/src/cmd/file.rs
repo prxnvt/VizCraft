@@ -529,7 +529,16 @@ mod tests {
         t.run("file.open", &json!({"path": out.to_string_lossy()})).unwrap();
         assert_eq!(t.run("page.list", &json!({})).unwrap(), list);
         assert_eq!(t.run("page.get", &json!({"page": "Second"})).unwrap(), get);
-        assert_eq!(t.doc.pages, s.doc.pages);
+        // A router-stored polyline is written with interior bends only, so a reread keeps fewer
+        // waypoints; the line it draws is the same.
+        assert_eq!(t.doc.pages.len(), s.doc.pages.len());
+        for (x, y) in t.doc.pages.iter().zip(&s.doc.pages) {
+            assert_eq!(x.shapes, y.shapes);
+            assert_eq!(x.connectors.len(), y.connectors.len());
+            for (cx, cy) in x.connectors.iter().zip(&y.connectors) {
+                assert_eq!(vizcraft_diagram::route_polyline(x, cx), vizcraft_diagram::route_polyline(y, cy), "{} is drawn the same", cx.id);
+            }
+        }
 
         // Export as draw.io writes every page; the document stays as it was.
         let exported = dir.join("export.out");

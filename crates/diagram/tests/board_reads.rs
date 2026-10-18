@@ -15,8 +15,6 @@ use std::path::{Path, PathBuf};
 const ALLOWED: &[(&str, &str)] = &[
     ("crates/diagram/src/model.rs", "the field itself, `Page::rect` and `Page::sanitize`"),
     ("crates/diagram/src/board.rs", "`Page::frame`"),
-    ("crates/diagram/src/autolayout.rs", "`grow_page` grows the sheet of a fixed board"),
-    ("crates/diagram/src/decor.rs", "generated background pages copy the sheet they decorate"),
     ("crates/engine/src/cmd/page.rs", "`page.setup`, `page.list`, auto size and `page.fitToDrawing` set and report the sheet"),
     ("crates/engine/src/cmd/file.rs", "an import carries its sheet size over"),
     ("crates/formats/src/drawio.rs", "a draw.io page carries its sheet size over"),

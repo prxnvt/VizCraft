@@ -576,6 +576,23 @@ fn straight_pair(field: &Field, ctx: &Ctx, starts: &[Point], ends: &[Point]) -> 
     })
 }
 
+/// Whether the first segment of `pts` is shorter than `trim.0` or the last shorter than `trim.1`.
+fn short_stub(pts: &[RPoint], trim: (f64, f64)) -> bool {
+    let len = |a: Option<&RPoint>, b: Option<&RPoint>| match (a, b) {
+        (Some(a), Some(b)) => ((a.x - b.x).powi(2) + (a.y - b.y).powi(2)).sqrt(),
+        _ => f64::INFINITY,
+    };
+    let n = pts.len();
+    pts.len() >= 3
+        && (len(pts.first(), pts.get(1)) + 1e-6 < trim.0
+            || len(n.checked_sub(1).and_then(|i| pts.get(i)), n.checked_sub(2).and_then(|i| pts.get(i))) + 1e-6 < trim.1)
+}
+
+/// How far an arrowhead of `arrow` at `line_width` cuts the line back from its tip.
+pub fn head_trim(arrow: crate::arrows::Arrow, line_width: f64) -> f64 {
+    crate::arrows::outline(arrow, Point::ZERO, Vec2::new(1.0, 0.0), line_width).map_or(0.0, |g| g.trim)
+}
+
 /// Route the named connectors. A connector in `keep` whose bends were put there by a person or a
 /// file (not by the router) keeps them while the line through them stays clear.
 fn route_with(page: &mut Page, ids: Option<&[String]>, opts: &Options, keep: &HashSet<String>) -> Vec<String> {
@@ -586,12 +603,22 @@ fn route_with(page: &mut Page, ids: Option<&[String]>, opts: &Options, keep: &Ha
         return Vec::new();
     }
     let keep_straight = page.routing.straight_fallback == StraightFallback::Keep;
+    // The router's stub (the last segment, leaving a side) is one margin long. An arrowhead trims
+    // the line back from its tip, so a stub shorter than that would leave the head over the bend;
+    // the margin is raised to the longest trim among the connectors being routed.
+    let longest_trim = chosen
+        .iter()
+        .filter_map(|&i| page.connectors.get(i))
+        .map(|c| head_trim(c.start_arrow, c.style.line_width).max(head_trim(c.end_arrow, c.style.line_width)))
+        .fold(0.0, f64::max);
+    let opts = &Options { margin: opts.margin.max(longest_trim), ..*opts };
     let (results, failed) = {
         let view: &Page = page;
         let lazy = LazyField::new(view);
         let field = lazy.get();
         let mut plans: Vec<Plan> = Vec::with_capacity(chosen.len());
         let mut requests: Vec<Request> = Vec::with_capacity(chosen.len());
+        let mut trims: Vec<(f64, f64)> = Vec::with_capacity(chosen.len());
         for c in chosen.iter().filter_map(|&i| view.connectors.get(i)) {
             let ctx = field.context(c);
             let ends = resolve_through(view, c, &[]);
@@ -613,6 +640,7 @@ fn route_with(page: &mut Page, ids: Option<&[String]>, opts: &Options, keep: &Ha
                 Plan::Search
             };
             plans.push(plan);
+            trims.push((head_trim(c.start_arrow, c.style.line_width), head_trim(c.end_arrow, c.style.line_width)));
             let start = router_end(view, &c.start, &ends.start, ctx.start_own);
             let end = router_end(view, &c.end, &ends.end, ctx.end_own);
             requests.push(Request::new(start, end).ignoring(ctx.ignore));
@@ -644,7 +672,11 @@ fn route_with(page: &mut Page, ids: Option<&[String]>, opts: &Options, keep: &Ha
             .iter()
             .zip(&routes)
             .zip(&nudged)
-            .map(|((plan, before), after)| {
+            .zip(&trims)
+            .map(|(((plan, before), after), &trim)| {
+                // Nudging centres a segment in its channel, which can leave the last one shorter than
+                // its arrowhead; the stubs of the search result are one margin long, so it stands then.
+                let after = if short_stub(&after.points, trim) && !short_stub(&before.points, trim) { before } else { after };
                 let pts = || after.points.iter().map(|p| Point::new(p.x, p.y)).collect::<Vec<_>>();
                 match plan {
                     // A plain route nudging left alone needs no bends: it is drawn from the glue.
