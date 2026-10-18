@@ -110,6 +110,16 @@ pub const NAMES: &[&str] = &[
     "noteNew",
     "noteDelete",
     "commands",
+    // Links, comments and subprocesses
+    "link",
+    "comment",
+    "commentNew",
+    "commentDelete",
+    "commentPrev",
+    "commentNext",
+    "subprocess",
+    "subprocessNew",
+    "subprocessLink",
     // Containers, swimlanes and callouts
     "container",
     "callout",
@@ -771,6 +781,58 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
             pen.arc(10.0, 8.0, 2.5, PI, PI * 1.25, a);
             pen.line_c(&[(10.0, 10.5), (10.0, 12.0)], a);
             pen.fcircle(10.0, 14.5, 1.0, a);
+        }
+        "link" => {
+            // Two chain links, joined by a bar.
+            pen.rect(2.5, 7.0, 10.0, 13.0, c);
+            pen.rect(10.0, 7.0, 17.5, 13.0, c);
+            pen.line_c(&[(7.0, 10.0), (13.0, 10.0)], a);
+        }
+        "comment" => {
+            pen.closed(&[(3.0, 4.0), (17.0, 4.0), (17.0, 13.0), (9.5, 13.0), (5.5, 17.0), (5.5, 13.0), (3.0, 13.0)], c);
+            pen.lines(6.5, 13.5, &[7.5, 10.0]);
+        }
+        "commentNew" => {
+            pen.closed(&[(2.5, 3.5), (15.5, 3.5), (15.5, 11.5), (8.5, 11.5), (5.0, 15.0), (5.0, 11.5), (2.5, 11.5)], c);
+            pen.fcircle(15.0, 15.0, 4.0, a);
+            let w = Color32::WHITE;
+            pen.line_c(&[(15.0, 12.8), (15.0, 17.2)], w);
+            pen.line_c(&[(12.8, 15.0), (17.2, 15.0)], w);
+        }
+        "commentDelete" => {
+            pen.closed(&[(2.5, 3.5), (15.5, 3.5), (15.5, 11.5), (8.5, 11.5), (5.0, 15.0), (5.0, 11.5), (2.5, 11.5)], c);
+            pen.fcircle(15.0, 15.0, 4.0, a);
+            pen.line_c(&[(12.9, 15.0), (17.1, 15.0)], Color32::WHITE);
+        }
+        "commentPrev" => {
+            pen.closed(&[(6.0, 3.5), (17.5, 3.5), (17.5, 11.5), (11.5, 11.5), (8.5, 14.5), (8.5, 11.5), (6.0, 11.5)], c);
+            pen.line_c(&[(4.5, 14.5), (1.5, 11.0), (4.5, 7.5)], a);
+        }
+        "commentNext" => {
+            pen.closed(&[(2.5, 3.5), (14.0, 3.5), (14.0, 11.5), (8.0, 11.5), (5.0, 14.5), (5.0, 11.5), (2.5, 11.5)], c);
+            pen.line_c(&[(15.5, 7.5), (18.5, 11.0), (15.5, 14.5)], a);
+        }
+        "subprocess" => {
+            // A predefined process box (side bars) with a tick marking where it leads.
+            pen.rect(3.0, 5.0, 17.0, 15.0, c);
+            pen.line(&[(5.5, 5.0), (5.5, 15.0)]);
+            pen.line(&[(14.5, 5.0), (14.5, 15.0)]);
+            pen.line_c(&[(8.0, 10.0), (12.0, 10.0)], a);
+        }
+        "subprocessNew" => {
+            pen.rect(3.0, 4.0, 15.0, 14.0, c);
+            pen.line(&[(5.5, 4.0), (5.5, 14.0)]);
+            pen.line(&[(12.5, 4.0), (12.5, 14.0)]);
+            pen.fcircle(15.0, 15.0, 4.0, a);
+            let w = Color32::WHITE;
+            pen.line_c(&[(15.0, 12.8), (15.0, 17.2)], w);
+            pen.line_c(&[(12.8, 15.0), (17.2, 15.0)], w);
+        }
+        "subprocessLink" => {
+            pen.rect(3.0, 4.0, 15.0, 14.0, c);
+            pen.line(&[(5.5, 4.0), (5.5, 14.0)]);
+            pen.line(&[(12.5, 4.0), (12.5, 14.0)]);
+            pen.line_c(&[(10.0, 17.5), (14.0, 17.5), (17.5, 14.0)], a);
         }
         "note" => {
             pen.page(4.0, 2.5, 16.0, 17.5);

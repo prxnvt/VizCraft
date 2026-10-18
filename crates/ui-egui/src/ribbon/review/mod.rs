@@ -1,8 +1,10 @@
-//! The Review tab: no groups yet, so it is hidden.
+//! The Review tab: comments.
 
 use super::Tab;
 
-groups! {}
+groups! {
+    comments,
+}
 
 /// The Review tab.
 pub(super) fn tab() -> Tab {

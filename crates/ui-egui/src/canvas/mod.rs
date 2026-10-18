@@ -372,6 +372,7 @@ fn paint(app: &mut CraftApp, ui: &Ui, vp: &Viewport2D, t: &Tokens) {
     }
     let _t = vizcraft_engine::trace::span("paint.overlays");
     draw::overlays::overlay(app, &painter, vp, page, real, t);
+    draw::links::draw(app, &painter, vp, page, t);
 }
 
 #[cfg(test)]

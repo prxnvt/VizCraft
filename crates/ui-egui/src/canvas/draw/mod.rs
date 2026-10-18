@@ -8,6 +8,7 @@
 
 pub mod connectors;
 pub mod containers;
+pub mod links;
 pub mod overlays;
 pub mod shapes;
 pub mod text;

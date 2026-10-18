@@ -16,6 +16,7 @@ pub mod connect;
 pub mod drag;
 pub mod edit_text;
 pub mod keys;
+pub mod links;
 pub mod membership;
 pub mod painter;
 pub mod select;
@@ -103,6 +104,10 @@ pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D
         let w = point(vp.screen_to_world(hp));
         app.canvas.hover = dg::hit(page, w, f64::from(HIT / zoom));
         app.canvas.hover_shape = dg::shape_at(page, w, f64::from(GRAB / zoom)).map(|s| s.id.clone());
+    }
+
+    if links::pointer(app, ui, response, vp) {
+        return;
     }
 
     if response.drag_started_by(egui::PointerButton::Primary) && !pan_modifier(ui) {

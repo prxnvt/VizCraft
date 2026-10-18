@@ -4,6 +4,7 @@ use super::Tab;
 
 groups! {
     diagram_validation,
+    subprocess,
 }
 
 /// The Process tab.

@@ -4,6 +4,7 @@ use super::Tab;
 
 groups! {
     pages,
+    links,
     basic_shapes,
     flowchart,
     diagram_parts,
