@@ -1,0 +1,198 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "document": {
+      "title": "",
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "width": 1100.0,
+          "height": 850.0,
+          "shapes": [
+            {
+              "id": "a",
+              "stencil": "basic.rectangle",
+              "kind": "rectangle",
+              "x": 100.0,
+              "y": 100.0,
+              "w": 120.0,
+              "h": 70.0,
+              "angleDeg": 0.0,
+              "text": "A",
+              "style": {
+                "fill": "#e9f0f8",
+                "line": "#345b84",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ]
+            },
+            {
+              "id": "b",
+              "stencil": "basic.rectangle",
+              "kind": "rectangle",
+              "x": 300.0,
+              "y": 100.0,
+              "w": 120.0,
+              "h": 70.0,
+              "angleDeg": 0.0,
+              "text": "B",
+              "style": {
+                "fill": "#e9f0f8",
+                "line": "#345b84",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ]
+            },
+            {
+              "id": "c",
+              "stencil": "basic.rectangle",
+              "kind": "rectangle",
+              "x": 500.0,
+              "y": 100.0,
+              "w": 120.0,
+              "h": 70.0,
+              "angleDeg": 0.0,
+              "text": "C",
+              "style": {
+                "fill": "#e9f0f8",
+                "line": "#345b84",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ]
+            }
+          ],
+          "connectors": [
+            {
+              "id": "ac",
+              "start": {
+                "shape": "a",
+                "point": 1
+              },
+              "end": {
+                "shape": "c",
+                "point": 3
+              },
+              "route": "straight",
+              "startArrow": "none",
+              "endArrow": "triangle",
+              "text": "",
+              "style": {
+                "fill": "#00000000",
+                "line": "#3a4a5c",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              }
+            },
+            {
+              "id": "ab",
+              "start": {
+                "shape": "a",
+                "point": 2
+              },
+              "end": {
+                "shape": "b",
+                "point": 2
+              },
+              "route": "orthogonal",
+              "startArrow": "none",
+              "endArrow": "triangle",
+              "text": "",
+              "style": {
+                "fill": "#00000000",
+                "line": "#3a4a5c",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              }
+            }
+          ]
+        }
+      ],
+      "idSeq": 1
+    }
+  },
+  "profile": {
+    "enabled": true,
+    "rulesets": [
+      "drawing.tidy"
+    ]
+  },
+  "expect": [
+    {
+      "rule": "drawing.connectorCrossesShape",
+      "items": [
+        "ac"
+      ]
+    }
+  ]
+}

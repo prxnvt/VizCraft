@@ -477,6 +477,7 @@
       "description": "Flows follow the connection table: data does not flow straight from one data symbol to another.",
       "severity": "error",
       "mode": "live",
+      "reference": "ISO 5807:1985, data flowcharts: process symbols stand between data symbols",
       "check": {
         "kind": "illegalRelationship"
       }
@@ -486,6 +487,7 @@
       "description": "A step other than a decision continues to only one next step.",
       "severity": "warning",
       "mode": "live",
+      "reference": "ISO 5807:1985, flow lines: only the decision symbol has more than one exit",
       "check": {
         "kind": "multiplicity"
       }
@@ -495,6 +497,7 @@
       "description": "A terminator either starts the flow or ends it, not both.",
       "severity": "error",
       "mode": "live",
+      "reference": "ISO 5807:1985, terminator symbol: the start or the end of a flow",
       "check": {
         "kind": "exclusiveDirections",
         "types": [
@@ -508,6 +511,7 @@
       "description": "Step tags are unique.",
       "severity": "error",
       "mode": "live",
+      "reference": "VizCraft house rule: step tags identify steps",
       "check": {
         "kind": "duplicateIdentifier",
         "scope": "flowchart.step"
@@ -518,6 +522,7 @@
       "description": "A predefined process names the procedure it calls.",
       "severity": "warning",
       "mode": "live",
+      "reference": "ISO 5807:1985, predefined process symbol: a process defined elsewhere",
       "check": {
         "kind": "requiredProperty",
         "types": [
@@ -530,6 +535,7 @@
       "description": "Property values fit their type.",
       "severity": "warning",
       "mode": "live",
+      "reference": "VizCraft house rule: values fit the Flowchart property schema",
       "check": {
         "kind": "propertyType",
         "types": []
@@ -540,6 +546,7 @@
       "description": "A flowchart page shows only flowchart symbols.",
       "severity": "warning",
       "mode": "live",
+      "reference": "VizCraft house rule: the Flowchart viewpoint",
       "check": {
         "kind": "viewpointType"
       }
@@ -549,6 +556,7 @@
       "description": "A decision has at least two outgoing flows.",
       "severity": "warning",
       "mode": "batch",
+      "reference": "ISO 5807:1985, decision symbol: one entry, alternative exits",
       "check": {
         "kind": "minOutgoing",
         "types": [
@@ -563,6 +571,7 @@
       "description": "Every connector is glued at both ends.",
       "severity": "warning",
       "mode": "batch",
+      "reference": "ISO 5807:1985, flow lines join symbols",
       "check": {
         "kind": "danglingConnector"
       }
@@ -572,6 +581,7 @@
       "description": "Every off-page reference has a partner with the same tag.",
       "severity": "warning",
       "mode": "batch",
+      "reference": "ISO 5807:1985, connector symbol: off-page connectors come in pairs",
       "check": {
         "kind": "unmatchedPair",
         "scope": "flowchart.offPage"
@@ -582,6 +592,7 @@
       "description": "Every on-page reference has a partner with the same tag.",
       "severity": "warning",
       "mode": "batch",
+      "reference": "ISO 5807:1985, connector symbol: connectors come in pairs",
       "check": {
         "kind": "unmatchedPair",
         "scope": "flowchart.onPage"
@@ -592,6 +603,7 @@
       "description": "Every symbol can be reached from a start terminator.",
       "severity": "info",
       "mode": "batch",
+      "reference": "ISO 5807:1985, terminator symbol: every path begins at a start",
       "check": {
         "kind": "unreachable",
         "from": [
@@ -599,6 +611,27 @@
         ],
         "relationship": "flowchart.Flow"
       }
+    }
+  ],
+  "rulesets": [
+    {
+      "id": "flowchart.iso5807",
+      "label": "ISO 5807 flowchart",
+      "description": "The conventions of ISO 5807 for program and data flowcharts, plus the house rules that keep Flowchart properties and tags consistent.",
+      "rules": [
+        "flowchart.illegalFlow",
+        "flowchart.singleExit",
+        "flowchart.terminatorDirection",
+        "flowchart.duplicateStep",
+        "flowchart.missingReference",
+        "flowchart.propertyValue",
+        "flowchart.viewpoint",
+        "flowchart.danglingDecision",
+        "flowchart.unconnectedConnector",
+        "flowchart.unmatchedOffPage",
+        "flowchart.unmatchedOnPage",
+        "flowchart.unreachable"
+      ]
     }
   ]
 }

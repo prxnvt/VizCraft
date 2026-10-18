@@ -670,3 +670,29 @@ fn hostile_shape_data_is_sanitised() {
     assert!(doc.pages[0].shapes[1].data.rows.is_empty());
     assert!(vizcraft_diagram::data::page_keys(&doc.pages[0]).is_empty(), "unreadable page keys are none");
 }
+
+#[test]
+fn conformance_profile_round_trips_as_a_document_field() {
+    use vizcraft_diagram::vizcraft_model::Severity;
+    use vizcraft_diagram::{Conformance, RuleOverride};
+    let mut doc = modelled();
+    doc.conformance = Conformance {
+        enabled: true,
+        user_set: true,
+        rulesets: vec!["flowchart.iso5807".into(), "drawing.tidy".into()],
+        overrides: vec![RuleOverride { rule: "flowchart.singleExit".into(), severity: Some(Severity::Info), disabled: false }],
+        ..Conformance::default()
+    };
+    doc.conformance.suppress("flowchart.illegalFlow|r1,e1,e2|c1,s1,s2|p1", "an archive copy");
+    let bytes = save(&doc).unwrap();
+    let v = parse(&bytes);
+    assert_eq!(v["document"]["conformance"]["rulesets"], json!(["flowchart.iso5807", "drawing.tidy"]));
+    assert_eq!(v["document"]["conformance"]["suppressions"][0]["reason"], "an archive copy");
+    assert_eq!(load(&bytes).unwrap().conformance, doc.conformance);
+    // The default profile is left out, and a junk one reads as the default.
+    let free = save(&Document::new()).unwrap();
+    assert!(parse(&free)["document"].get("conformance").is_none());
+    let mut junk = parse(&free);
+    junk["document"]["conformance"] = json!(["not", "a", "profile"]);
+    assert!(load(&serde_json::to_vec(&junk).unwrap()).unwrap().conformance.is_default());
+}

@@ -1,0 +1,179 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "document": {
+      "title": "",
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "width": 1100.0,
+          "height": 850.0,
+          "shapes": [
+            {
+              "id": "src",
+              "stencil": "basic.rectangle",
+              "kind": "rectangle",
+              "x": 100.0,
+              "y": 100.0,
+              "w": 120.0,
+              "h": 70.0,
+              "angleDeg": 0.0,
+              "text": "Source",
+              "style": {
+                "fill": "#e9f0f8",
+                "line": "#345b84",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ]
+            },
+            {
+              "id": "tgt",
+              "stencil": "basic.rectangle",
+              "kind": "rectangle",
+              "x": 440.0,
+              "y": 100.0,
+              "w": 120.0,
+              "h": 70.0,
+              "angleDeg": 0.0,
+              "text": "Target",
+              "style": {
+                "fill": "#e9f0f8",
+                "line": "#345b84",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ]
+            },
+            {
+              "id": "edge",
+              "stencil": "basic.ellipse",
+              "kind": "ellipse",
+              "x": 1040.0,
+              "y": 400.0,
+              "w": 110.0,
+              "h": 80.0,
+              "angleDeg": 0.0,
+              "text": "Edge",
+              "style": {
+                "fill": "#e9f0f8",
+                "line": "#345b84",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ]
+            }
+          ],
+          "connectors": [
+            {
+              "id": "loose",
+              "start": {
+                "shape": "src"
+              },
+              "end": {
+                "x": 420.0,
+                "y": 135.0
+              },
+              "route": "straight",
+              "startArrow": "none",
+              "endArrow": "triangle",
+              "text": "",
+              "style": {
+                "fill": "#00000000",
+                "line": "#3a4a5c",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              }
+            }
+          ]
+        }
+      ],
+      "idSeq": 1
+    }
+  },
+  "profile": {
+    "enabled": true,
+    "rulesets": [
+      "drawing.tidy"
+    ]
+  },
+  "expect": [
+    {
+      "rule": "drawing.ungluedEnd",
+      "items": [
+        "loose"
+      ]
+    },
+    {
+      "rule": "drawing.offBoard",
+      "items": [
+        "edge"
+      ]
+    }
+  ]
+}

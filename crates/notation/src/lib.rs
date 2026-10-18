@@ -8,17 +8,27 @@
 //! - [`schema`]: the pack types ([`Pack`] and its parts), version [`schema::SCHEMA_VERSION`].
 //! - [`loader`]: JSON and TOML packs to [`Pack`], with size caps and errors, never panics.
 //! - [`validate`]: consistency checks on a loaded pack (ids, references, colours, outlines).
-//! - [`catalog`]: the built-in packs (Basic and Flowchart) and lookups across packs.
+//! - [`catalog`]: the built-in packs (Basic, Flowchart and Drawing), packs loaded from disk, and
+//!   lookups across packs.
 //! - [`legal`]: connection-table queries: which relationships may join which types.
 //! - [`rules`]: the rules engine: live rules after every command, batch rules on request,
-//!   producing structured [`vizcraft_model::Issue`]s.
+//!   producing structured [`vizcraft_model::Issue`]s, as the document's conformance profile says.
+//! - [`infer`]: the reasoner: type hierarchy, containment, inverses and reachability, built once
+//!   per rules run.
+//! - [`drawing`]: the drawing checks of the built-in Drawing pack.
+//! - [`glob`]: the name patterns of the `nameFormat` check.
+//! - [`cases`]: pack test cases (a document, a profile and the issues expected).
 //! - [`bind`]: the sync pass that keeps model and views in step after every command.
 //!
 //! No egui and no engine; wasm safe.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
 pub mod bind;
+pub mod cases;
 pub mod catalog;
+pub mod drawing;
+pub mod glob;
+pub mod infer;
 pub mod legal;
 pub mod loader;
 pub mod rules;
@@ -28,6 +38,6 @@ pub mod validate;
 pub use catalog::{Catalog, catalog};
 pub use loader::NotationError;
 pub use schema::{
-    Check, ConditionalStyle, Connection, ElementType, Glyph, Pack, PaletteGroup, Port, PropKind, PropertySchema, RelationshipType, RuleDecl,
-    RuleMode, Viewpoint,
+    Check, CompareOp, ConditionalStyle, Connection, ElementType, Glyph, Pack, PaletteGroup, Port, PortDirection, PropKind, PropertySchema,
+    RelationshipType, RuleDecl, RuleMode, Ruleset, Viewpoint,
 };

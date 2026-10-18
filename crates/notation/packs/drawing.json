@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "drawing",
+  "version": "1.0.0",
+  "name": "Drawing",
+  "description": "Rules for a tidy drawing that any page can be held to, with or without a notation: connectors that cross shapes or hang loose, shapes that overlap or leave the page, and text that does not fit its block.",
+  "audience": [
+    "general"
+  ],
+  "rules": [
+    {
+      "id": "drawing.connectorCrossesShape",
+      "description": "Connectors go around shapes they are not glued to.",
+      "severity": "warning",
+      "mode": "batch",
+      "reference": "VizCraft drawing rule: connector routing",
+      "check": {
+        "kind": "crossesShape"
+      }
+    },
+    {
+      "id": "drawing.ungluedEnd",
+      "description": "Both ends of a connector are glued to shapes.",
+      "severity": "warning",
+      "mode": "live",
+      "reference": "VizCraft drawing rule: glue",
+      "check": {
+        "kind": "ungluedEnd"
+      }
+    },
+    {
+      "id": "drawing.overlap",
+      "description": "Shapes do not overlap unless one holds the other.",
+      "severity": "info",
+      "mode": "batch",
+      "reference": "VizCraft drawing rule: layout",
+      "check": {
+        "kind": "overlap"
+      }
+    },
+    {
+      "id": "drawing.offBoard",
+      "description": "Shapes stay on the page.",
+      "severity": "warning",
+      "mode": "live",
+      "reference": "VizCraft drawing rule: page",
+      "check": {
+        "kind": "offBoard"
+      }
+    },
+    {
+      "id": "drawing.textOverflow",
+      "description": "Text fits its block.",
+      "severity": "info",
+      "mode": "live",
+      "reference": "VizCraft drawing rule: text",
+      "check": {
+        "kind": "textOverflow"
+      }
+    }
+  ],
+  "rulesets": [
+    {
+      "id": "drawing.tidy",
+      "label": "Tidy drawing",
+      "description": "Every drawing rule: no crossings, no loose ends, no overlaps, nothing off the page, no overflowing text.",
+      "rules": [
+        "drawing.connectorCrossesShape",
+        "drawing.ungluedEnd",
+        "drawing.overlap",
+        "drawing.offBoard",
+        "drawing.textOverflow"
+      ]
+    }
+  ]
+}
