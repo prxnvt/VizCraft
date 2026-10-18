@@ -1,12 +1,21 @@
 //! The native `.vizcraft` file: pretty-printed JSON
-//! `{"format": "vizcraft", "version": 3, "model": {...}, "document": {...}}`.
+//! `{"format": "vizcraft", "version": 4, "model": {...}, "document": {...}}`.
+//!
+//! Version 4 has the same layout as version 3 and adds optional document fields, each left out
+//! when it has its default value: richer style (font family, underline, strikethrough, text case,
+//! highlight, alignment, bullets, indent, text direction, margins, dash, line cap, corner radius,
+//! gradient, transparency, shadow, soft edges, glow), shape data (layers, parent, text block,
+//! links, screen tip, locks, behaviour, image), page setup (orientation, units, drawing scale,
+//! auto size, background pages, header and footer, guides, layers) and document data
+//! (properties, comments, a base64 image store). Files without them load as before.
 //!
 //! Version 3 holds the semantic model (`vizcraft_model::Model`: elements, relationships, packs,
 //! with its own `schemaVersion`) and the diagram document (pages, shapes, connectors). Shapes and
 //! connectors name the model items they draw; the model section is left out when the model is
 //! empty, so free-drawing documents stay as small as before.
 //!
-//! Older files load as free drawing with an empty model: version 2 held the diagram document
+//! Version 3 files load unchanged (they simply have none of the version 4 fields). Older files
+//! load as free drawing with an empty model: version 2 held the diagram document
 //! only; version 1 was the placeholder of Cascade 0 (title and metadata only, saved as
 //! `.craft.json`), which loads as a document with that title and metadata and one blank page,
 //! because the loader fills missing fields with defaults. A bare document without the wrapper
@@ -23,7 +32,7 @@ use crate::FormatError;
 pub const FORMAT_TAG: &str = "vizcraft";
 
 /// The version this build writes, and the newest it reads.
-pub const VERSION: u32 = 3;
+pub const VERSION: u32 = 4;
 
 /// Largest input [`load`] accepts. Far above any real diagram, low enough that a hostile file
 /// cannot make the parser allocate without bound.
@@ -40,7 +49,7 @@ struct FileOut<'a> {
     document: &'a Document,
 }
 
-/// Encode `doc` as a version 3 native file. The model section is written only when the model
+/// Encode `doc` as a version 4 native file. The model section is written only when the model
 /// has packs, elements or relationships.
 pub fn save(doc: &Document) -> Result<Vec<u8>, FormatError> {
     let model = (!doc.model.is_empty()).then_some(&doc.model);
@@ -50,11 +59,11 @@ pub fn save(doc: &Document) -> Result<Vec<u8>, FormatError> {
     Ok(bytes)
 }
 
-/// Decode a native file: a version 1, 2 or 3 wrapper, or a bare document.
+/// Decode a native file: a version 1, 2, 3 or 4 wrapper, or a bare document.
 ///
 /// A wrapper is any JSON object with a `format` key. Its tag must be `vizcraft`, its `version`
 /// a number no newer than [`VERSION`] (a missing version reads as 1) and its `document` an
-/// object. In a version 3 wrapper an object `model` section is read by the model's tolerant
+/// object. In a version 3 or 4 wrapper an object `model` section is read by the model's tolerant
 /// loader, after checking that its `schemaVersion` is no newer than
 /// [`vizcraft_model::SCHEMA_VERSION`]; a `model` that is not an object reads as an empty model.
 /// Everything inside the document is checked by the diagram's tolerant loader, which clamps
@@ -102,7 +111,7 @@ pub fn load(bytes: &[u8]) -> Result<Document, FormatError> {
     Ok(doc)
 }
 
-/// Read the version 3 `model` section. Missing or not an object: an empty model. A
+/// Read the `model` section of a version 3 or 4 file. Missing or not an object: an empty model. A
 /// `schemaVersion` newer than this build reads is refused, so a newer model is never silently
 /// half-read and then overwritten on save.
 fn read_model(section: Option<Value>) -> Result<Model, FormatError> {

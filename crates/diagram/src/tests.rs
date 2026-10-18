@@ -458,3 +458,166 @@ fn new_connector_fields_round_trip_and_stay_off_disk_when_empty() {
     let junk: Connector = serde_json::from_str(r#"{"waypoints": 5, "avoid": "yes", "ext": [1]}"#).unwrap();
     assert!(junk.waypoints.is_empty() && !junk.avoid && junk.ext.is_empty());
 }
+
+#[test]
+fn non_finite_new_style_and_shape_numbers_are_sanitised() {
+    let mut s = Shape::new("s1", ShapeKind::Rectangle, 0.0, 0.0, 10.0, 10.0);
+    let st = &mut s.style;
+    st.indent = f64::NAN;
+    st.corner_radius = f64::INFINITY;
+    st.fill_transparency = f64::NAN;
+    st.line_transparency = f64::NEG_INFINITY;
+    st.soft_edges = f64::NAN;
+    st.text_margins = Margins { left: f64::NAN, top: f64::INFINITY, right: -1.0, bottom: 2.0 };
+    st.gradient =
+        Some(Gradient { kind: GradientKind::Linear, angle_deg: f64::NAN, stops: vec![GradientStop { offset: f64::NAN, color: Color::WHITE }] });
+    st.shadow = Some(Shadow { dx: f64::NAN, dy: f64::INFINITY, blur: f64::NAN, color: Color::BLACK });
+    st.glow = Some(Glow { radius: f64::NAN, color: Color::BLACK });
+    s.text_block = Some(TextBlock { dx: f64::NAN, dy: f64::NEG_INFINITY, w: f64::NAN, h: f64::INFINITY, angle_deg: f64::NAN });
+    s.image = Some(ImageRef { asset: "i".repeat(500), crop: CropRect { x: f64::NAN, y: 0.5, w: f64::INFINITY, h: 2.0 } });
+    s.sanitize();
+    let st = &s.style;
+    assert_eq!((st.indent, st.corner_radius, st.fill_transparency, st.line_transparency, st.soft_edges), (0.0, 0.0, 0.0, 0.0, 0.0));
+    assert_eq!((st.text_margins.left, st.text_margins.top, st.text_margins.right, st.text_margins.bottom), (4.0, 4.0, 0.0, 2.0));
+    let g = st.gradient.as_ref().unwrap();
+    assert_eq!((g.angle_deg, g.stops[0].offset), (0.0, 0.0));
+    assert!(!g.is_drawable());
+    let sh = st.shadow.unwrap();
+    assert_eq!((sh.dx, sh.dy, sh.blur), (0.0, 0.0, 0.0));
+    assert_eq!(st.glow.unwrap().radius, 0.0);
+    let tb = s.text_block.unwrap();
+    assert_eq!((tb.dx, tb.dy, tb.w, tb.h, tb.angle_deg), (0.0, 0.0, 0.0, 0.0, 0.0));
+    let img = s.image.as_ref().unwrap();
+    assert_eq!(img.asset.len(), model::MAX_ID);
+    assert_eq!((img.crop.x, img.crop.y, img.crop.w, img.crop.h), (0.0, 0.5, 1.0, 0.5));
+
+    let mut page = Page::new("p1", "Page-1");
+    page.drawing_scale = DrawingScale { page: f64::NAN, drawing: 0.0, units: Units::Feet };
+    page.guides = vec![Guide { orientation: GuideOrientation::Vertical, position: f64::NAN }];
+    page.sanitize();
+    assert_eq!((page.drawing_scale.page, page.drawing_scale.drawing), (1.0, 1.0));
+    assert_eq!(page.guides[0].position, 0.0);
+}
+
+#[test]
+fn transparency_scales_alpha() {
+    let st = Style { fill: Color { r: 1, g: 2, b: 3, a: 200 }, fill_transparency: 0.5, line_transparency: 1.0, ..Style::DEFAULT };
+    assert_eq!(st.effective_fill(), Color { r: 1, g: 2, b: 3, a: 100 });
+    assert_eq!(st.effective_line().a, 0);
+    assert_eq!(Style::DEFAULT.effective_fill(), Style::DEFAULT.fill);
+}
+
+#[test]
+fn text_case_and_bullets() {
+    assert_eq!(TextCase::Title.apply("mix the  batch-two"), "Mix The  Batch-two");
+    assert_eq!(TextCase::Upper.apply("ab"), "AB");
+    assert_eq!(TextCase::Lower.apply("AB"), "ab");
+    assert_eq!(TextCase::Normal.apply("aB"), "aB");
+    assert_eq!(Bullets::Number.marker(1), "2. ");
+    assert_eq!(Bullets::None.marker(0), "");
+    assert_eq!(Bullets::Number.marker(usize::MAX), format!("{}. ", usize::MAX));
+}
+
+#[test]
+fn text_rect_is_the_frame_or_the_text_block() {
+    let mut s = Shape::new("s1", ShapeKind::Rectangle, 10.0, 20.0, 100.0, 60.0);
+    assert_eq!(s.text_rect(), (Rect::from_xywh(0.0, 0.0, 100.0, 60.0), 0.0));
+    s.text_block = Some(TextBlock { dx: 10.0, dy: -5.0, w: 40.0, h: 20.0, angle_deg: 90.0 });
+    assert_eq!(s.text_rect(), (Rect::from_xywh(40.0, 15.0, 40.0, 20.0), 90.0));
+}
+
+#[test]
+fn layers_and_hidden_flag_decide_visibility() {
+    let mut page = Page::new("p1", "Page-1");
+    page.layers = vec![Layer { id: "a".into(), ..Layer::default() }, Layer { id: "b".into(), visible: false, ..Layer::default() }];
+    let mut s = Shape::new("s1", ShapeKind::Rectangle, 0.0, 0.0, 10.0, 10.0);
+    assert!(page.shape_visible(&s));
+    s.layers = vec!["b".into()];
+    assert!(!page.shape_visible(&s));
+    s.layers = vec!["b".into(), "a".into()];
+    assert!(page.shape_visible(&s), "visible when any of its layers is");
+    s.layers.clear();
+    s.behavior.hidden = true;
+    assert!(!page.shape_visible(&s));
+}
+
+#[test]
+fn background_chain_is_deepest_first_and_bounded() {
+    let mut doc = Document::new();
+    for i in 2..=12 {
+        let mut p = Page::new(format!("p{i}"), format!("B{i}"));
+        p.is_background = true;
+        doc.pages.push(p);
+    }
+    // p1 -> p2 -> ... -> p12, then p12 -> p2 makes a cycle.
+    for i in 0..doc.pages.len() {
+        let next = if i + 1 < doc.pages.len() { format!("p{}", i + 2) } else { "p2".into() };
+        doc.pages[i].background = Some(next);
+    }
+    doc.sanitize();
+    let chain: Vec<&str> = doc.background_chain(0).iter().map(|p| p.id.as_str()).collect();
+    assert_eq!(chain.len(), model::MAX_BACKGROUND_DEPTH);
+    assert_eq!(chain.last(), Some(&"p2"), "the nearest background is drawn last, just under the page");
+    // p11 -> p12 -> p2 -> ... runs through the cycle without repeating a page or itself.
+    let chain: Vec<&str> = doc.background_chain(10).iter().map(|p| p.id.as_str()).collect();
+    let unique: std::collections::HashSet<&&str> = chain.iter().collect();
+    assert_eq!(unique.len(), chain.len(), "{chain:?}");
+    assert!(!chain.contains(&"p11") && chain.last() == Some(&"p12"), "{chain:?}");
+    // A short cycle stops at the repeat.
+    doc.pages[2].background = Some("p2".into());
+    let chain: Vec<&str> = doc.background_chain(1).iter().map(|p| p.id.as_str()).collect();
+    assert_eq!(chain, ["p3"]);
+    assert!(doc.background_chain(99).is_empty());
+}
+
+#[test]
+fn rounded_corners_round_straight_outlines_only() {
+    let square = Path::polygon(&[Point::new(0.0, 0.0), Point::new(100.0, 0.0), Point::new(100.0, 100.0), Point::new(0.0, 100.0)]);
+    let r = square.rounded_corners(10.0);
+    assert_eq!(r.els.iter().filter(|e| matches!(e, PathEl::CubicTo(..))).count(), 4);
+    assert_eq!(r.els.first(), Some(&PathEl::MoveTo(Point::new(0.0, 10.0))));
+    assert_eq!(r.bounds(), square.bounds());
+    // The radius shrinks to half the shorter side.
+    let thin = Path::polygon(&[Point::new(0.0, 0.0), Point::new(100.0, 0.0), Point::new(100.0, 4.0), Point::new(0.0, 4.0)]);
+    let r = thin.rounded_corners(50.0);
+    assert_eq!(
+        r.els.get(1),
+        Some(&PathEl::CubicTo(Point::new(0.0, 2.0 - 2.0 * 0.552_284_75), Point::new(2.0 - 2.0 * 0.552_284_75, 0.0), Point::new(2.0, 0.0)))
+    );
+    // An open polyline keeps its ends; curves and bad radii change nothing.
+    let open = Path::polyline(&[Point::new(0.0, 0.0), Point::new(50.0, 0.0), Point::new(50.0, 50.0)]);
+    let r = open.rounded_corners(5.0);
+    assert_eq!(r.els.first(), Some(&PathEl::MoveTo(Point::new(0.0, 0.0))));
+    assert_eq!(r.els.last(), Some(&PathEl::LineTo(Point::new(50.0, 50.0))));
+    let curve = ShapeKind::Ellipse.outline(50.0, 30.0);
+    assert_eq!(curve.rounded_corners(5.0), curve);
+    for bad in [0.0, -1.0, f64::NAN, f64::INFINITY] {
+        assert_eq!(square.rounded_corners(bad), square);
+    }
+}
+
+#[test]
+fn base64_round_trips_and_rejects_junk() {
+    use crate::serde_util::base64::{decode, encode};
+    for bytes in [&b""[..], b"f", b"fo", b"foo", b"foob", b"fooba", b"foobar", &[0, 255, 128, 7]] {
+        assert_eq!(decode(&encode(bytes)).as_deref(), Some(bytes));
+    }
+    assert_eq!(encode(b"foobar"), "Zm9vYmFy");
+    assert_eq!(encode(b"fo"), "Zm8=");
+    assert_eq!(decode("Zm9v\nYmFy").as_deref(), Some(&b"foobar"[..]));
+    assert_eq!(decode("Zm9v*"), None);
+}
+
+proptest! {
+    #[test]
+    fn rounded_corners_never_panic(pts in proptest::collection::vec((-1e6f64..1e6, -1e6f64..1e6), 0..12), r in -10.0f64..1e7) {
+        let pts: Vec<Point> = pts.into_iter().map(|(x, y)| Point::new(x, y)).collect();
+        let _ = Path::polygon(&pts).rounded_corners(r);
+        let _ = Path::polyline(&pts).rounded_corners(r);
+    }
+
+    #[test]
+    fn base64_decode_never_panics(s in ".{0,64}") {
+        let _ = crate::serde_util::base64::decode(&s);
+    }
+}

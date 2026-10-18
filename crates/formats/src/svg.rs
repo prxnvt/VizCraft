@@ -5,11 +5,26 @@
 //!   the page edge, the canvas grows to their bounds plus [`MARGIN`], so nothing is cut off; the
 //!   page origin stays where it was, so coordinates in the file are world coordinates.
 //! - **Background.** The whole canvas is filled white, like a printed page.
-//! - **Shapes.** One `<path>` per shape from its world outline (rotation already applied), with
-//!   fill, stroke and stroke width; interior detail lines (cylinder rim, process bars) are a
-//!   second unfilled path in the same group.
-//! - **Text.** Centred `<text>` with one `<tspan>` per line, rotated with the shape, in Inter
-//!   with a sans-serif fallback; the font is named, not embedded.
+//! - **Background pages.** The page's background chain (`Document::background_chain`) is drawn
+//!   first, deepest first, each in a `<g class="background">`; then the page's own items.
+//! - **Shapes.** One `<path>` per shape from its world outline (rotation already applied, corners
+//!   rounded by `cornerRadius`), with fill, stroke, stroke width, dash pattern (scaled by the
+//!   line width), line cap, and fill and line transparency folded into the opacities; interior
+//!   detail lines (cylinder rim, process bars) are a second unfilled path in the same group.
+//!   Hidden shapes, and shapes whose layers are all hidden, are left out.
+//! - **Effects.** Gradients and blur filters go in one `<defs>` with numbered ids (`vc-g1`,
+//!   `vc-f2`). A gradient is drawn in the shape's bounding box (it does not turn with a rotated
+//!   shape). A shadow is a copy of the outline offset by `dx, dy` and blurred. Glow and soft edges
+//!   are approximations: glow is a wide blurred stroke under the shape, soft edges blur the shape.
+//! - **Text.** `<text>` with one `<tspan>` per line in the shape's text block (the frame, or the
+//!   stored text block with its offset and angle), inset by the margins and indent, aligned left,
+//!   centre or right and top, middle or bottom (justify draws left aligned), rotated with the
+//!   shape. Letter case and bullets are applied to the drawn lines; underline and strikethrough
+//!   are `text-decoration`; a highlight is a box behind each line, its width estimated from the
+//!   character count. The font is the style's family, then Inter, then sans-serif; named, not
+//!   embedded. Text direction is not drawn yet.
+//! - **Header and footer.** Drawn last, a quarter inch in from the page edges, one line per
+//!   slot, at 10 points.
 //! - **Connectors.** One `<path>` from the page-level geometry ([`page_geometry`]: the line stops
 //!   where a filled head begins, and connectors with line jumps carry their hops as arcs), heads as filled or open paths, the label centred on a white box at the label
 //!   position. The box width is estimated from the character count, since there is no font
@@ -19,7 +34,10 @@
 use std::fmt::Write as _;
 
 use vizcraft_diagram::jumps::page_geometry;
-use vizcraft_diagram::{Color, Connector, ConnectorGeometry, Document, Page, Path, PathEl, Point, Rect, Shape, Style, connector_geometry};
+use vizcraft_diagram::{
+    Color, Connector, ConnectorGeometry, Document, Gradient, GradientKind, HAlign, LineCap, Page, Path, PathEl, Rect, Shape, Style, VAlign,
+    connector_geometry,
+};
 
 use crate::FormatError;
 
@@ -38,7 +56,7 @@ const CHAR_WIDTH: f64 = 0.6;
 /// Export page `page_index` (0 based) of `doc` as SVG bytes.
 pub fn export_page(doc: &Document, page_index: usize) -> Result<Vec<u8>, FormatError> {
     let page = doc.pages.get(page_index).ok_or(FormatError::NoPage(page_index))?;
-    Ok(page_svg(doc, page).into_bytes())
+    Ok(page_svg(doc, page_index, page).into_bytes())
 }
 
 /// The canvas: the page rectangle, grown to the content bounds plus a margin when needed.
@@ -52,7 +70,7 @@ pub fn canvas_rect(page: &Page) -> Rect {
 
 /// Bounds of every shape and connector on the page, or `None` for an empty page.
 fn content_bounds(page: &Page) -> Option<Rect> {
-    let shapes = page.shapes.iter().map(Shape::bounds);
+    let shapes = page.shapes.iter().filter(|s| page.shape_visible(s)).map(effect_bounds);
     let connectors = page.connectors.iter().filter_map(|c| {
         let g = connector_geometry(page, c);
         let heads = g.start_head.iter().chain(g.end_head.iter()).filter_map(|h| h.path.bounds());
@@ -61,7 +79,21 @@ fn content_bounds(page: &Page) -> Option<Rect> {
     shapes.chain(connectors).filter(|r| [r.x0, r.y0, r.x1, r.y1].iter().all(|v| v.is_finite())).reduce(|a, b| a.union(&b))
 }
 
-fn page_svg(doc: &Document, page: &Page) -> String {
+/// A shape's bounds grown to take in its shadow and glow.
+fn effect_bounds(s: &Shape) -> Rect {
+    let b = s.bounds();
+    let mut r = b;
+    if let Some(sh) = s.style.shadow {
+        let moved = Rect::new(b.x0 + sh.dx, b.y0 + sh.dy, b.x1 + sh.dx, b.y1 + sh.dy).inflate(sh.blur);
+        r = r.union(&moved);
+    }
+    if let Some(g) = s.style.glow {
+        r = r.union(&b.inflate(g.radius));
+    }
+    r
+}
+
+fn page_svg(doc: &Document, page_index: usize, page: &Page) -> String {
     let r = canvas_rect(page);
     let (w, h) = (r.width().max(1.0), r.height().max(1.0));
     let mut out = String::new();
@@ -81,38 +113,147 @@ fn page_svg(doc: &Document, page: &Page) -> String {
         let _ = writeln!(out, "  <title>{}</title>", escape(title));
     }
     let _ = writeln!(out, "  <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" fill=\"#ffffff\"/>", num(r.x0), num(r.y0), num(w), num(h));
-    for s in &page.shapes {
-        shape_svg(&mut out, s);
+    let mut cx = Ctx::default();
+    let mut body = String::new();
+    for bg in doc.background_chain(page_index) {
+        let _ = writeln!(body, "  <g class=\"background\" data-page=\"{}\">", escape(&bg.id));
+        page_items_svg(&mut body, &mut cx, bg);
+        body.push_str("  </g>\n");
     }
-    for (c, g) in page.connectors.iter().zip(page_geometry(page)) {
-        connector_svg(&mut out, c, &g);
+    page_items_svg(&mut body, &mut cx, page);
+    header_footer_svg(&mut body, page);
+    if !cx.defs.is_empty() {
+        out.push_str("  <defs>\n");
+        out.push_str(&cx.defs);
+        out.push_str("  </defs>\n");
     }
+    out.push_str(&body);
     out.push_str("</svg>\n");
     out
 }
 
-fn shape_svg(out: &mut String, s: &Shape) {
+/// Gradients and filters collected while drawing, written once in `<defs>` with numbered ids.
+#[derive(Default)]
+struct Ctx {
+    defs: String,
+    next: usize,
+}
+
+impl Ctx {
+    fn id(&mut self, prefix: &str) -> String {
+        self.next = self.next.saturating_add(1);
+        format!("vc-{prefix}{}", self.next)
+    }
+    /// A Gaussian blur filter of `std_dev`; returns its id.
+    fn blur(&mut self, std_dev: f64) -> String {
+        let id = self.id("f");
+        let _ = writeln!(
+            self.defs,
+            "    <filter id=\"{id}\" x=\"-50%\" y=\"-50%\" width=\"200%\" height=\"200%\"><feGaussianBlur stdDeviation=\"{}\"/></filter>",
+            num(std_dev)
+        );
+        id
+    }
+    /// A gradient definition; returns its id.
+    fn gradient(&mut self, g: &Gradient) -> String {
+        let id = self.id("g");
+        match g.kind {
+            GradientKind::Linear => {
+                let (sin, cos) = g.angle_deg.to_radians().sin_cos();
+                let _ = write!(
+                    self.defs,
+                    "    <linearGradient id=\"{id}\" x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\">",
+                    num(0.5 - cos / 2.0),
+                    num(0.5 - sin / 2.0),
+                    num(0.5 + cos / 2.0),
+                    num(0.5 + sin / 2.0)
+                );
+            }
+            GradientKind::Radial => {
+                let _ = write!(self.defs, "    <radialGradient id=\"{id}\" cx=\"0.5\" cy=\"0.5\" r=\"0.5\">");
+            }
+        }
+        for s in &g.stops {
+            let c = s.color;
+            let _ = write!(self.defs, "<stop offset=\"{}\" stop-color=\"#{:02x}{:02x}{:02x}\"", num(s.offset), c.r, c.g, c.b);
+            if c.a != 255 {
+                let _ = write!(self.defs, " stop-opacity=\"{}\"", num(f64::from(c.a) / 255.0));
+            }
+            self.defs.push_str("/>");
+        }
+        self.defs.push_str(match g.kind {
+            GradientKind::Linear => "</linearGradient>\n",
+            GradientKind::Radial => "</radialGradient>\n",
+        });
+        id
+    }
+}
+
+/// The visible shapes, then the connectors, of one page.
+fn page_items_svg(out: &mut String, cx: &mut Ctx, page: &Page) {
+    for s in page.shapes.iter().filter(|s| page.shape_visible(s)) {
+        shape_svg(out, cx, s);
+    }
+    for (c, g) in page.connectors.iter().zip(page_geometry(page)) {
+        connector_svg(out, c, &g);
+    }
+}
+
+fn shape_svg(out: &mut String, cx: &mut Ctx, s: &Shape) {
     let _ = writeln!(out, "  <g id=\"{}\">", escape(&s.id));
     let st = &s.style;
-    let _ = writeln!(out, "    <path d=\"{}\"{}{}/>", path_data(&s.outline_world()), paint("fill", st.fill), stroke(st));
+    let outline = s.outline_world().rounded_corners(st.corner_radius);
+    let d = path_data(&outline);
+    let fill = st.effective_fill();
+    let gradient = st.gradient.as_ref().filter(|g| g.is_drawable());
+    if let Some(glow) = st.glow.filter(|g| g.radius > 0.0 && g.color.a > 0) {
+        // Approximation: a blurred, wide stroke of the outline in the glow colour.
+        let f = cx.blur(glow.radius / 2.0);
+        let _ = writeln!(
+            out,
+            "    <path d=\"{d}\" fill=\"none\"{} stroke-width=\"{}\" stroke-linejoin=\"round\" filter=\"url(#{f})\"/>",
+            paint("stroke", glow.color),
+            num(glow.radius * 2.0)
+        );
+    }
+    if let Some(sh) = st.shadow.filter(|sh| sh.color.a > 0) {
+        let filter = if sh.blur > 0.0 { format!(" filter=\"url(#{})\"", cx.blur(sh.blur / 2.0)) } else { String::new() };
+        let filled = fill.a > 0 || gradient.is_some();
+        let paint_attrs = if filled {
+            paint("fill", sh.color)
+        } else {
+            format!(" fill=\"none\"{} stroke-width=\"{}\"", paint("stroke", sh.color), num(st.line_width.max(1.0)))
+        };
+        let _ = writeln!(out, "    <path d=\"{d}\"{paint_attrs} transform=\"translate({} {})\"{filter}/>", num(sh.dx), num(sh.dy));
+    }
+    let fill_attrs = match gradient {
+        Some(g) => {
+            let id = cx.gradient(g);
+            let opacity = 1.0 - st.fill_transparency;
+            if opacity < 1.0 { format!(" fill=\"url(#{id})\" fill-opacity=\"{}\"", num(opacity)) } else { format!(" fill=\"url(#{id})\"") }
+        }
+        None => paint("fill", fill),
+    };
+    // Approximation of soft edges: the shape itself blurred by a fraction of the distance.
+    let soft = if st.soft_edges > 0.0 { format!(" filter=\"url(#{})\"", cx.blur(st.soft_edges / 4.0)) } else { String::new() };
+    let _ = writeln!(out, "    <path d=\"{d}\"{fill_attrs}{}{soft}/>", stroke(st));
     if let Some(detail) = s.detail_world() {
         let _ = writeln!(out, "    <path d=\"{}\" fill=\"none\"{}/>", path_data(&detail), stroke(st));
     }
     if !s.text.trim().is_empty() {
-        let c = s.center();
-        let rotate =
-            if s.angle_deg != 0.0 { format!(" transform=\"rotate({} {} {})\"", num(s.angle_deg), num(c.x), num(c.y)) } else { String::new() };
-        text_svg(out, &s.text, c, st, &rotate);
+        shape_text_svg(out, s);
     }
     out.push_str("  </g>\n");
 }
 
 fn connector_svg(out: &mut String, c: &Connector, g: &ConnectorGeometry) {
     let st = &c.style;
+    let line_color = st.effective_line();
     let _ = writeln!(out, "  <g id=\"{}\">", escape(&c.id));
-    let _ = writeln!(out, "    <path d=\"{}\" fill=\"none\"{} stroke-linejoin=\"round\"/>", path_data(&g.line), stroke(st));
+    let line = g.line.rounded_corners(st.corner_radius);
+    let _ = writeln!(out, "    <path d=\"{}\" fill=\"none\"{} stroke-linejoin=\"round\"/>", path_data(&line), stroke(st));
     for head in g.start_head.iter().chain(g.end_head.iter()) {
-        let fill = if head.filled { paint("fill", st.line) } else { " fill=\"none\"".to_string() };
+        let fill = if head.filled { paint("fill", line_color) } else { " fill=\"none\"".to_string() };
         // Heads keep a visible outline even on a zero-width line, so they never vanish.
         let width = st.line_width.max(1.0);
         let _ = writeln!(
@@ -120,12 +261,12 @@ fn connector_svg(out: &mut String, c: &Connector, g: &ConnectorGeometry) {
             "    <path d=\"{}\"{}{} stroke-width=\"{}\" stroke-linejoin=\"round\"/>",
             path_data(&head.path),
             fill,
-            paint("stroke", st.line),
+            paint("stroke", line_color),
             num(width)
         );
     }
     if !c.text.trim().is_empty() {
-        let lines: Vec<&str> = c.text.lines().collect();
+        let lines = styled_lines(&c.text, st);
         let longest = lines.iter().map(|l| l.chars().count()).max().unwrap_or(0) as f64;
         let bw = longest * st.font_size * CHAR_WIDTH + st.font_size * 0.6;
         let bh = lines.len().max(1) as f64 * st.font_size * LINE_HEIGHT + st.font_size * 0.3;
@@ -138,38 +279,146 @@ fn connector_svg(out: &mut String, c: &Connector, g: &ConnectorGeometry) {
             num(bw),
             num(bh)
         );
-        text_svg(out, &c.text, p, st, "");
+        let lh = st.font_size * LINE_HEIGHT;
+        let first = p.y - (lines.len().max(1) as f64 - 1.0) * lh / 2.0 + st.font_size * 0.35;
+        text_svg(out, &lines, p.x, first, Anchor::Middle, st, "");
     }
     out.push_str("  </g>\n");
 }
 
-/// Centred, possibly multi-line text around `center`.
-fn text_svg(out: &mut String, text: &str, center: Point, st: &Style, transform: &str) {
-    let lines: Vec<&str> = text.lines().collect();
+/// Where text lines hang from their x position.
+#[derive(Clone, Copy, PartialEq)]
+enum Anchor {
+    Start,
+    Middle,
+    End,
+}
+
+impl Anchor {
+    fn name(self) -> &'static str {
+        match self {
+            Anchor::Start => "start",
+            Anchor::Middle => "middle",
+            Anchor::End => "end",
+        }
+    }
+}
+
+/// The text's lines with the style's letter case and bullets applied.
+fn styled_lines(text: &str, st: &Style) -> Vec<String> {
+    text.lines().enumerate().map(|(i, l)| format!("{}{}", st.bullets.marker(i), st.text_case.apply(l))).collect()
+}
+
+/// A shape's text laid out in its text block: margins, indent and alignment applied, rotated
+/// with the shape (and with the text block's own angle).
+fn shape_text_svg(out: &mut String, s: &Shape) {
+    let st = &s.style;
+    let (local, block_angle) = s.text_rect();
+    // The block in unrotated world coordinates; the shape's rotation is a transform on the text.
+    let block = Rect::from_xywh(local.x0 + s.x, local.y0 + s.y, local.width(), local.height());
+    let m = st.text_margins;
+    let inner = Rect::new(block.x0 + m.left + st.indent, block.y0 + m.top, block.x1 - m.right, block.y1 - m.bottom);
+    let (x, anchor) = match st.h_align {
+        HAlign::Left | HAlign::Justify => (inner.x0, Anchor::Start),
+        HAlign::Center => ((inner.x0 + inner.x1) / 2.0, Anchor::Middle),
+        HAlign::Right => (inner.x1, Anchor::End),
+    };
+    let lines = styled_lines(&s.text, st);
     let n = lines.len().max(1) as f64;
     let lh = st.font_size * LINE_HEIGHT;
-    // Baselines sit about 0.35 em below each line's centre, which centres Latin text optically
-    // without relying on dominant-baseline (unevenly supported by SVG 1.1 renderers).
-    let first = center.y - (n - 1.0) * lh / 2.0 + st.font_size * 0.35;
+    // Centre of the first line; baselines sit about 0.35 em below each line's centre, which
+    // centres Latin text optically without relying on dominant-baseline (unevenly supported by
+    // SVG 1.1 renderers).
+    let first_centre = match st.v_align {
+        VAlign::Top => inner.y0 + lh / 2.0,
+        VAlign::Middle => (inner.y0 + inner.y1) / 2.0 - (n - 1.0) * lh / 2.0,
+        VAlign::Bottom => inner.y1 - lh / 2.0 - (n - 1.0) * lh,
+    };
+    let c = s.center();
+    let mut transform = String::new();
+    if s.angle_deg != 0.0 {
+        let _ = write!(transform, "rotate({} {} {})", num(s.angle_deg), num(c.x), num(c.y));
+    }
+    if block_angle != 0.0 {
+        let bc = block.center();
+        if !transform.is_empty() {
+            transform.push(' ');
+        }
+        let _ = write!(transform, "rotate({} {} {})", num(block_angle), num(bc.x), num(bc.y));
+    }
+    let transform = if transform.is_empty() { transform } else { format!(" transform=\"{transform}\"") };
+    text_svg(out, &lines, x, first_centre + st.font_size * 0.35, anchor, st, &transform);
+}
+
+/// Lines of text from the first baseline down, hung from `x` by `anchor`, with highlight boxes
+/// behind them when the style has a highlight colour.
+fn text_svg(out: &mut String, lines: &[String], x: f64, first_baseline: f64, anchor: Anchor, st: &Style, transform: &str) {
+    let lh = st.font_size * LINE_HEIGHT;
+    if st.highlight.a > 0 {
+        for (i, line) in lines.iter().enumerate() {
+            // Widths are estimated from the character count; there is no font metrics source here.
+            let w = line.chars().count() as f64 * st.font_size * CHAR_WIDTH;
+            let x0 = match anchor {
+                Anchor::Start => x,
+                Anchor::Middle => x - w / 2.0,
+                Anchor::End => x - w,
+            };
+            let top = first_baseline + i as f64 * lh - st.font_size * 0.35 - lh / 2.0;
+            let _ = writeln!(
+                out,
+                "    <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\"{}{transform}/>",
+                num(x0),
+                num(top),
+                num(w),
+                num(lh),
+                paint("fill", st.highlight)
+            );
+        }
+    }
+    let family = if st.font_family.trim().is_empty() { FONT_FAMILY.to_string() } else { format!("{}, {FONT_FAMILY}", escape(st.font_family.trim())) };
     let weight = if st.bold { " font-weight=\"bold\"" } else { "" };
     let style = if st.italic { " font-style=\"italic\"" } else { "" };
+    let decoration = match (st.underline, st.strikethrough) {
+        (true, true) => " text-decoration=\"underline line-through\"",
+        (true, false) => " text-decoration=\"underline\"",
+        (false, true) => " text-decoration=\"line-through\"",
+        (false, false) => "",
+    };
     // No whitespace between the tags: under xml:space="preserve" it would render as text and
     // shift the centring.
     let _ = write!(
         out,
-        "    <text text-anchor=\"middle\" font-family=\"{}\" font-size=\"{}\"{}{}{}{} xml:space=\"preserve\">",
-        FONT_FAMILY,
+        "    <text text-anchor=\"{}\" font-family=\"{family}\" font-size=\"{}\"{weight}{style}{decoration}{}{transform} xml:space=\"preserve\">",
+        anchor.name(),
         num(st.font_size),
-        weight,
-        style,
         paint("fill", st.font_color),
-        transform
     );
     for (i, line) in lines.iter().enumerate() {
-        let y = first + i as f64 * lh;
-        let _ = write!(out, "<tspan x=\"{}\" y=\"{}\">{}</tspan>", num(center.x), num(y), escape(line));
+        let y = first_baseline + i as f64 * lh;
+        let _ = write!(out, "<tspan x=\"{}\" y=\"{}\">{}</tspan>", num(x), num(y), escape(line));
     }
     out.push_str("</text>\n");
+}
+
+/// Header and footer text, a quarter inch in from the page edges, in the default text style at
+/// a small size.
+fn header_footer_svg(out: &mut String, page: &Page) {
+    const INSET: f64 = 25.0;
+    let st = Style { font_size: 10.0, ..Style::DEFAULT };
+    for (hf, baseline) in [(&page.header, INSET + 7.0), (&page.footer, page.height - INSET)] {
+        if hf.is_empty() {
+            continue;
+        }
+        for (text, x, anchor) in
+            [(&hf.left, INSET, Anchor::Start), (&hf.center, page.width / 2.0, Anchor::Middle), (&hf.right, page.width - INSET, Anchor::End)]
+        {
+            if !text.trim().is_empty() {
+                // One line only: a header slot is a single line of text.
+                let line = text.lines().next().unwrap_or_default().to_string();
+                text_svg(out, &[line], x, baseline, anchor, &st, "");
+            }
+        }
+    }
 }
 
 /// ` name="#rrggbb"`, plus an opacity attribute when the colour is translucent, or `none`.
@@ -181,12 +430,24 @@ fn paint(name: &str, c: Color) -> String {
     if c.a == 255 { format!(" {name}=\"{hex}\"") } else { format!(" {name}=\"{hex}\" {name}-opacity=\"{}\"", num(f64::from(c.a) / 255.0)) }
 }
 
-/// The stroke attributes for a style; no stroke when the width is zero.
+/// The stroke attributes for a style (colour with line transparency, width, dash pattern, cap);
+/// no stroke when the width is zero.
 fn stroke(st: &Style) -> String {
-    if st.line_width <= 0.0 || !st.line_width.is_finite() || st.line.a == 0 {
+    let line = st.effective_line();
+    if st.line_width <= 0.0 || !st.line_width.is_finite() || line.a == 0 {
         return " stroke=\"none\"".into();
     }
-    format!("{} stroke-width=\"{}\"", paint("stroke", st.line), num(st.line_width))
+    let mut s = format!("{} stroke-width=\"{}\"", paint("stroke", line), num(st.line_width));
+    let pattern = st.dash.pattern();
+    if !pattern.is_empty() {
+        let unit = st.line_width.max(1.0);
+        let dashes: Vec<String> = pattern.iter().map(|v| num(v * unit)).collect();
+        let _ = write!(s, " stroke-dasharray=\"{}\"", dashes.join(" "));
+    }
+    if st.line_cap != LineCap::Butt {
+        let _ = write!(s, " stroke-linecap=\"{}\"", st.line_cap.name());
+    }
+    s
 }
 
 /// SVG path data for a path.
@@ -242,7 +503,7 @@ pub fn escape(s: &str) -> String {
 
 #[cfg(test)]
 mod jump_tests {
-    use vizcraft_diagram::{End, Route};
+    use vizcraft_diagram::{End, Point, Route};
 
     use super::*;
 
@@ -277,5 +538,215 @@ mod jump_tests {
         assert!(v.ends_with("100 105") || v.contains("100 105"), "{v}");
         let plain = crossing(false);
         assert!(!line_of(&plain, "v").contains('C'));
+    }
+}
+
+#[cfg(test)]
+mod style_tests {
+    use vizcraft_diagram::{
+        Bullets, Dash, Gradient, GradientKind, GradientStop, HeaderFooter, LineCap, Margins, Point, Shadow, ShapeKind, TextBlock, VAlign,
+    };
+
+    use super::*;
+
+    fn one_shape(edit: impl FnOnce(&mut Shape)) -> String {
+        let mut doc = Document::new();
+        let mut s = Shape::new("s1", ShapeKind::Rectangle, 10.0, 20.0, 100.0, 60.0);
+        edit(&mut s);
+        if let Some(p) = doc.page_mut() {
+            p.width = 200.0;
+            p.height = 120.0;
+            p.shapes.push(s);
+        }
+        export_page(&doc, 0).map(|b| String::from_utf8_lossy(&b).into_owned()).unwrap_or_default()
+    }
+
+    /// The lines after the declaration, root, title and white canvas rectangle: defs and drawing.
+    fn body(svg: &str) -> String {
+        svg.lines().skip(4).collect::<Vec<_>>().join("\n")
+    }
+
+    #[test]
+    fn golden_gradient_fill() {
+        let svg = one_shape(|s| {
+            let stops =
+                vec![GradientStop { offset: 0.0, color: Color::WHITE }, GradientStop { offset: 1.0, color: Color { r: 0, g: 0, b: 255, a: 128 } }];
+            s.style.gradient = Some(Gradient { kind: GradientKind::Linear, angle_deg: 90.0, stops });
+            s.style.fill_transparency = 0.5;
+        });
+        let want = r##"  <defs>
+    <linearGradient id="vc-g1" x1="0.5" y1="0" x2="0.5" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#0000ff" stop-opacity="0.502"/></linearGradient>
+  </defs>
+  <g id="s1">
+    <path d="M10 20 L110 20 L110 80 L10 80 Z" fill="url(#vc-g1)" fill-opacity="0.5" stroke="#3a4a5c" stroke-width="1.5"/>
+  </g>
+</svg>"##;
+        assert_eq!(body(&svg), want);
+        let radial = one_shape(|s| {
+            let stops = vec![GradientStop { offset: 0.0, color: Color::WHITE }, GradientStop { offset: 1.0, color: Color::BLACK }];
+            s.style.gradient = Some(Gradient { kind: GradientKind::Radial, angle_deg: 0.0, stops });
+        });
+        assert!(radial.contains(r##"<radialGradient id="vc-g1" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#000000"/></radialGradient>"##), "{radial}");
+        // One stop is not a gradient: the solid fill is drawn.
+        let single = one_shape(|s| s.style.gradient = Some(Gradient { stops: vec![GradientStop::default()], ..Gradient::default() }));
+        assert!(!single.contains("<defs>") && single.contains("fill=\"#ffffff\" stroke"), "{single}");
+    }
+
+    #[test]
+    fn golden_dash_cap_rounding_and_line_transparency() {
+        let svg = one_shape(|s| {
+            s.style.dash = Dash::Dashed;
+            s.style.line_width = 2.0;
+            s.style.line_cap = LineCap::Round;
+            s.style.corner_radius = 10.0;
+            s.style.line_transparency = 0.5;
+        });
+        let want = r##"  <g id="s1">
+    <path d="M10 30 C10 24.477 14.477 20 20 20 L100 20 C105.523 20 110 24.477 110 30 L110 70 C110 75.523 105.523 80 100 80 L20 80 C14.477 80 10 75.523 10 70 Z" fill="#ffffff" stroke="#3a4a5c" stroke-opacity="0.502" stroke-width="2" stroke-dasharray="8 6" stroke-linecap="round"/>
+  </g>
+</svg>"##;
+        assert_eq!(body(&svg), want);
+        for (dash, array) in [(Dash::Dotted, "1.5 3"), (Dash::DashDot, "6 3 1.5 3"), (Dash::LongDash, "12 4.5")] {
+            let svg = one_shape(|s| s.style.dash = dash);
+            assert!(svg.contains(&format!("stroke-dasharray=\"{array}\"")), "{dash:?}: {svg}");
+        }
+    }
+
+    #[test]
+    fn golden_shadow_glow_and_soft_edges() {
+        let svg = one_shape(|s| {
+            s.style.shadow = Some(Shadow::default());
+            s.style.glow = Some(vizcraft_diagram::Glow::default());
+            s.style.soft_edges = 4.0;
+        });
+        let want = r##"  <defs>
+    <filter id="vc-f1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+    <filter id="vc-f2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1"/></filter>
+    <filter id="vc-f3" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1"/></filter>
+  </defs>
+  <g id="s1">
+    <path d="M10 20 L110 20 L110 80 L10 80 Z" fill="none" stroke="#ffc000" stroke-opacity="0.6" stroke-width="12" stroke-linejoin="round" filter="url(#vc-f1)"/>
+    <path d="M10 20 L110 20 L110 80 L10 80 Z" fill="#000000" fill-opacity="0.333" transform="translate(3 3)" filter="url(#vc-f2)"/>
+    <path d="M10 20 L110 20 L110 80 L10 80 Z" fill="#ffffff" stroke="#3a4a5c" stroke-width="1.5" filter="url(#vc-f3)"/>
+  </g>
+</svg>"##;
+        assert_eq!(body(&svg), want);
+        // A hard shadow needs no filter.
+        let hard = one_shape(|s| s.style.shadow = Some(Shadow { blur: 0.0, ..Shadow::default() }));
+        assert!(!hard.contains("<filter") && hard.contains("transform=\"translate(3 3)\"/>"), "{hard}");
+    }
+
+    #[test]
+    fn golden_text_alignment_bullets_decoration_and_highlight() {
+        let svg = one_shape(|s| {
+            s.text = "one\ntwo".into();
+            s.style.h_align = HAlign::Left;
+            s.style.v_align = VAlign::Top;
+            s.style.text_margins = Margins { left: 5.0, top: 5.0, right: 5.0, bottom: 5.0 };
+            s.style.bullets = Bullets::Disc;
+            s.style.underline = true;
+            s.style.strikethrough = true;
+            s.style.highlight = Color::rgb(255, 255, 0);
+        });
+        let want = "  <g id=\"s1\">
+    <path d=\"M10 20 L110 20 L110 80 L10 80 Z\" fill=\"#ffffff\" stroke=\"#3a4a5c\" stroke-width=\"1.5\"/>
+    <rect x=\"15\" y=\"25\" width=\"36\" height=\"14.4\" fill=\"#ffff00\"/>
+    <rect x=\"15\" y=\"39.4\" width=\"36\" height=\"14.4\" fill=\"#ffff00\"/>
+    <text text-anchor=\"start\" font-family=\"Inter, sans-serif\" font-size=\"12\" text-decoration=\"underline line-through\" fill=\"#1e2630\" xml:space=\"preserve\"><tspan x=\"15\" y=\"36.4\">\u{2022} one</tspan><tspan x=\"15\" y=\"50.8\">\u{2022} two</tspan></text>
+  </g>
+</svg>";
+        assert_eq!(body(&svg), want);
+    }
+
+    #[test]
+    fn golden_text_block_right_bottom_and_rotation() {
+        let svg = one_shape(|s| {
+            s.text = "r".into();
+            s.angle_deg = 90.0;
+            s.style.h_align = HAlign::Right;
+            s.style.v_align = VAlign::Bottom;
+            s.text_block = Some(TextBlock { dx: 0.0, dy: 0.0, w: 50.0, h: 40.0, angle_deg: 45.0 });
+        });
+        let want = r##"  <g id="s1">
+    <path d="M90 0 L90 100 L30 100 L30 0 Z" fill="#ffffff" stroke="#3a4a5c" stroke-width="1.5"/>
+    <text text-anchor="end" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" transform="rotate(90 60 50) rotate(45 60 50)" xml:space="preserve"><tspan x="81" y="63">r</tspan></text>
+  </g>
+</svg>"##;
+        assert_eq!(body(&svg), want);
+        // Defaults keep the centred layout of earlier versions.
+        let centred = one_shape(|s| s.text = "c".into());
+        assert!(centred.contains(r##"<text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="60" y="54.2">c</tspan></text>"##), "{centred}");
+    }
+
+    #[test]
+    fn text_case_family_and_connector_dash() {
+        let svg = one_shape(|s| {
+            s.text = "mixed Case".into();
+            s.style.text_case = vizcraft_diagram::TextCase::Upper;
+            s.style.font_family = "Mono \"x\"".into();
+        });
+        assert!(svg.contains(">MIXED CASE</tspan>"), "{svg}");
+        assert!(svg.contains("font-family=\"Mono &quot;x&quot;, Inter, sans-serif\""), "{svg}");
+        let mut doc = Document::new();
+        let mut c = Connector::new("c1", vizcraft_diagram::End::free(Point::new(0.0, 0.0)), vizcraft_diagram::End::free(Point::new(100.0, 50.0)));
+        c.style.dash = Dash::Dotted;
+        c.style.line_cap = LineCap::Square;
+        if let Some(p) = doc.page_mut() {
+            p.connectors.push(c);
+        }
+        let svg = String::from_utf8(export_page(&doc, 0).unwrap_or_default()).unwrap_or_default();
+        assert!(svg.contains("stroke-dasharray=\"1.5 3\" stroke-linecap=\"square\" stroke-linejoin=\"round\""), "{svg}");
+    }
+
+    #[test]
+    fn background_pages_draw_under_and_header_footer_on_top() {
+        let mut doc = Document::new();
+        let mut bg = Page::new("bg", "Background");
+        bg.is_background = true;
+        bg.shapes.push(Shape::new("logo", ShapeKind::Ellipse, 0.0, 0.0, 50.0, 20.0));
+        doc.pages.push(bg);
+        if let Some(p) = doc.page_mut() {
+            p.background = Some("bg".into());
+            p.header = HeaderFooter { left: "Plant".into(), center: String::new(), right: "Rev A\nignored".into() };
+            p.footer = HeaderFooter { left: String::new(), center: "Page 1".into(), right: String::new() };
+            p.shapes.push(Shape::new("s1", ShapeKind::Rectangle, 100.0, 100.0, 50.0, 50.0));
+        }
+        doc.sanitize();
+        let svg = String::from_utf8(export_page(&doc, 0).unwrap_or_default()).unwrap_or_default();
+        let at = |needle: &str| svg.find(needle).unwrap_or_else(|| panic!("no {needle} in {svg}"));
+        assert!(at("<g class=\"background\" data-page=\"bg\">") < at("<g id=\"logo\">"));
+        assert!(at("<g id=\"logo\">") < at("<g id=\"s1\">"), "the background is drawn first");
+        assert!(at("<g id=\"s1\">") < at(">Plant</tspan>"), "the header is drawn last");
+        assert!(svg.contains(r##"<text text-anchor="start" font-family="Inter, sans-serif" font-size="10" fill="#1e2630" xml:space="preserve"><tspan x="25" y="32">Plant</tspan></text>"##), "{svg}");
+        assert!(svg.contains(r##"<tspan x="1075" y="32">Rev A</tspan>"##) && !svg.contains("ignored"), "{svg}");
+        assert!(svg.contains(r##"<text text-anchor="middle" font-family="Inter, sans-serif" font-size="10" fill="#1e2630" xml:space="preserve"><tspan x="550" y="825">Page 1</tspan></text>"##), "{svg}");
+        // The background page itself exports without anything under it.
+        let own = String::from_utf8(export_page(&doc, 1).unwrap_or_default()).unwrap_or_default();
+        assert!(!own.contains("class=\"background\""));
+    }
+
+    #[test]
+    fn hidden_shapes_and_hidden_layers_are_not_drawn() {
+        let mut doc = Document::new();
+        if let Some(p) = doc.page_mut() {
+            p.layers = vec![vizcraft_diagram::Layer { id: "off".into(), visible: false, ..vizcraft_diagram::Layer::default() }];
+            let mut a = Shape::new("a", ShapeKind::Rectangle, 0.0, 0.0, 10.0, 10.0);
+            a.layers = vec!["off".into()];
+            let mut b = Shape::new("b", ShapeKind::Rectangle, 0.0, 0.0, 10.0, 10.0);
+            b.behavior.hidden = true;
+            p.shapes.extend([a, b, Shape::new("c", ShapeKind::Rectangle, 0.0, 0.0, 10.0, 10.0)]);
+        }
+        let svg = String::from_utf8(export_page(&doc, 0).unwrap_or_default()).unwrap_or_default();
+        assert!(!svg.contains("<g id=\"a\">") && !svg.contains("<g id=\"b\">") && svg.contains("<g id=\"c\">"), "{svg}");
+    }
+
+    #[test]
+    fn shadows_grow_the_canvas() {
+        let svg = one_shape(|s| {
+            s.x = 150.0;
+            s.style.shadow = Some(Shadow { dx: 30.0, dy: 0.0, blur: 0.0, ..Shadow::default() });
+        });
+        // Shape right edge 250 plus a 30 unit shadow plus the margin.
+        assert!(svg.contains("width=\"300\""), "{}", &svg[..200]);
     }
 }

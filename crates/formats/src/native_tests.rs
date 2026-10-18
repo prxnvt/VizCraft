@@ -91,7 +91,7 @@ fn version_3_layout_and_key_order() {
     let at = |key: &str| text.find(&format!("\n  \"{key}\":")).unwrap_or_else(|| panic!("no top-level {key} in {text}"));
     assert!(at("format") < at("version") && at("version") < at("model") && at("model") < at("document"), "{text}");
     let v = parse(&bytes);
-    assert_eq!(v["version"], json!(3));
+    assert_eq!(v["version"], json!(VERSION));
     assert_eq!(v["model"]["schemaVersion"], json!(SCHEMA_VERSION));
     assert_eq!(v["model"]["packs"], json!([{"id": "flowchart", "version": "1.0.0"}]));
     assert_eq!(v["model"]["elements"][1]["properties"], json!({"duration": 4.5, "manual": true, "owner": "Line 2"}));
@@ -155,9 +155,9 @@ fn version_2_file_loads_as_free_drawing_with_identical_shapes() {
     assert!(page.shapes.iter().all(|s| s.element.is_none()));
     assert_eq!(page.connectors.len(), 1);
     assert!(page.view.is_none());
-    // Saved again it becomes a version 3 file with no model section.
+    // Saved again it becomes a current-version file with no model section.
     let v = parse(&save(&doc).unwrap());
-    assert_eq!(v["version"], json!(3));
+    assert_eq!(v["version"], json!(VERSION));
     assert!(v.get("model").is_none());
 }
 
@@ -268,4 +268,313 @@ fn wrapper_errors_are_unchanged() {
     for cut in (0..good.len()).step_by(97) {
         assert!(load(&good[..cut]).is_err(), "truncated at {cut}");
     }
+}
+
+/// A document with every version 4 field set to something other than its default.
+fn rich() -> Document {
+    use vizcraft_diagram::{
+        Behavior, Bullets, Color, Comment, CommentAnchor, CropRect, Dash, DocProperties, DrawingScale, Glow, Gradient, GradientKind, GradientStop,
+        Guide, GuideOrientation, HAlign, HeaderFooter, Hyperlink, ImageAsset, ImageRef, Layer, LineCap, LinkKind, Locks, Margins, Orientation, Reply,
+        Shadow, TextBlock, TextCase, TextDirection, Units, VAlign,
+    };
+    let mut doc = modelled();
+    doc.properties = DocProperties {
+        title: "Mixing line".into(),
+        author: "Ada".into(),
+        subject: "Batch plant".into(),
+        keywords: "mix; heat".into(),
+        description: "How a batch is mixed.\nSecond line.".into(),
+    };
+    doc.images.push(ImageAsset { id: "img1".into(), media_type: "image/png".into(), bytes: vec![0x89, b'P', b'N', b'G', 0, 1, 2, 255] });
+    doc.comments.push(Comment {
+        id: "k1".into(),
+        anchor: CommentAnchor { page: "p1".into(), shape: Some("s2".into()) },
+        author: "Bo".into(),
+        time: "2026-10-01T09:00:00Z".into(),
+        text: "Check the heat time".into(),
+        replies: vec![Reply { author: "Ada".into(), time: "2026-10-02T10:00:00Z".into(), text: "Done".into() }],
+    });
+    doc.comments.push(Comment { id: "k2".into(), anchor: CommentAnchor { page: "p2".into(), shape: None }, ..Comment::default() });
+
+    let page = &mut doc.pages[0];
+    page.orientation = Orientation::Portrait;
+    page.units = Units::Millimeters;
+    page.drawing_scale = DrawingScale { page: 1.0, drawing: 50.0, units: Units::Meters };
+    page.auto_size = true;
+    page.background = Some("p3".into());
+    page.header = HeaderFooter { left: "Left".into(), center: "Centre".into(), right: "Right".into() };
+    page.footer = HeaderFooter { left: String::new(), center: "Page 1".into(), right: String::new() };
+    page.guides = vec![
+        Guide { orientation: GuideOrientation::Vertical, position: 250.0 },
+        Guide { orientation: GuideOrientation::Horizontal, position: -10.5 },
+    ];
+    page.layers = vec![
+        Layer { id: "L1".into(), name: "Equipment".into(), color: Some(Color::rgb(200, 0, 0)), ..Layer::default() },
+        Layer { id: "L2".into(), name: "Notes".into(), visible: false, locked: true, print: false, snap: false, glue: false, color: None },
+    ];
+
+    let s = &mut page.shapes[1];
+    s.layers = vec!["L1".into(), "L2".into()];
+    s.parent = Some("s1".into());
+    s.text_block = Some(TextBlock { dx: 5.0, dy: -4.0, w: 80.0, h: 30.0, angle_deg: 90.0 });
+    s.links = vec![
+        Hyperlink { kind: LinkKind::Url, target: "https://example.com/sop".into(), label: "SOP".into() },
+        Hyperlink { kind: LinkKind::File, target: "docs/mix.pdf".into(), label: String::new() },
+        Hyperlink { kind: LinkKind::Page, target: "p2".into(), label: "Detail".into() },
+        Hyperlink { kind: LinkKind::Shape, target: "s4".into(), label: String::new() },
+        Hyperlink { kind: LinkKind::Element, target: "e3".into(), label: String::new() },
+    ];
+    s.screen_tip = "Mixes the batch".into();
+    s.locks = Locks { width: true, height: true, aspect: true, position: true, rotation: true, delete: true, select: true, text: true };
+    s.behavior = Behavior { container: true, non_printing: true, hidden: false, no_glue: true, no_snap: true };
+    s.image = Some(ImageRef { asset: "img1".into(), crop: CropRect { x: 0.1, y: 0.2, w: 0.5, h: 0.25 } });
+    let st = &mut s.style;
+    st.font_family = "JetBrains Mono".into();
+    st.underline = true;
+    st.strikethrough = true;
+    st.text_case = TextCase::Title;
+    st.highlight = Color::rgb(255, 255, 0);
+    st.h_align = HAlign::Right;
+    st.v_align = VAlign::Bottom;
+    st.bullets = Bullets::Number;
+    st.indent = 12.0;
+    st.text_direction = TextDirection::RightToLeft;
+    st.text_margins = Margins { left: 1.0, top: 2.0, right: 3.0, bottom: 4.5 };
+    st.dash = Dash::DashDot;
+    st.line_cap = LineCap::Round;
+    st.corner_radius = 8.0;
+    st.gradient = Some(Gradient {
+        kind: GradientKind::Radial,
+        angle_deg: 45.0,
+        stops: vec![GradientStop { offset: 0.0, color: Color::WHITE }, GradientStop { offset: 1.0, color: Color { r: 0, g: 0, b: 128, a: 200 } }],
+    });
+    st.fill_transparency = 0.25;
+    st.line_transparency = 0.5;
+    st.shadow = Some(Shadow { dx: 4.0, dy: 6.0, blur: 3.0, color: Color { r: 0, g: 0, b: 0, a: 100 } });
+    st.soft_edges = 5.0;
+    st.glow = Some(Glow { radius: 7.0, color: Color::rgb(0, 200, 0) });
+
+    let mut bg = Page::new("p3", "Background");
+    bg.is_background = true;
+    bg.shapes.push(Shape::new("s30", ShapeKind::Rectangle, 0.0, 0.0, 1100.0, 40.0));
+    doc.pages.push(bg);
+    doc
+}
+
+#[test]
+fn version_4_round_trip_keeps_every_new_field() {
+    let doc = rich();
+    let bytes = save(&doc).unwrap();
+    let loaded = load(&bytes).unwrap();
+    assert_eq!(loaded, doc);
+    assert_eq!(save(&loaded).unwrap(), bytes);
+
+    // The names on disk, so other tools can rely on them.
+    let v = parse(&bytes);
+    assert_eq!(v["version"], json!(4));
+    let d = &v["document"];
+    assert_eq!(d["properties"]["keywords"], json!("mix; heat"));
+    assert_eq!(d["images"][0], json!({"id": "img1", "mediaType": "image/png", "bytes": "iVBORwABAv8="}));
+    assert_eq!(d["comments"][0]["anchor"], json!({"page": "p1", "shape": "s2"}));
+    assert_eq!(d["comments"][0]["replies"][0]["text"], json!("Done"));
+    let p = &d["pages"][0];
+    assert_eq!(p["orientation"], json!("portrait"));
+    assert_eq!(p["units"], json!("mm"));
+    assert_eq!(p["drawingScale"], json!({"page": 1.0, "drawing": 50.0, "units": "m"}));
+    assert_eq!(p["autoSize"], json!(true));
+    assert_eq!(p["background"], json!("p3"));
+    assert_eq!(p["header"], json!({"left": "Left", "center": "Centre", "right": "Right"}));
+    assert_eq!(p["footer"], json!({"center": "Page 1"}));
+    assert_eq!(p["guides"][0], json!({"orientation": "vertical", "position": 250.0}));
+    assert_eq!(p["layers"][0]["color"], json!("#c80000"));
+    assert_eq!(p["layers"][1], json!({"id": "L2", "name": "Notes", "visible": false, "locked": true, "print": false, "snap": false, "glue": false}));
+    assert_eq!(d["pages"][2]["isBackground"], json!(true));
+    let s = &p["shapes"][1];
+    assert_eq!(s["layers"], json!(["L1", "L2"]));
+    assert_eq!(s["parent"], json!("s1"));
+    assert_eq!(s["textBlock"], json!({"dx": 5.0, "dy": -4.0, "w": 80.0, "h": 30.0, "angleDeg": 90.0}));
+    assert_eq!(s["links"][1], json!({"kind": "file", "target": "docs/mix.pdf"}));
+    assert_eq!(s["links"][4]["kind"], json!("element"));
+    assert_eq!(s["screenTip"], json!("Mixes the batch"));
+    assert_eq!(s["locks"]["aspect"], json!(true));
+    assert_eq!(s["behavior"], json!({"container": true, "nonPrinting": true, "hidden": false, "noGlue": true, "noSnap": true}));
+    assert_eq!(s["image"], json!({"asset": "img1", "crop": {"x": 0.1, "y": 0.2, "w": 0.5, "h": 0.25}}));
+    let st = &s["style"];
+    for (key, want) in [
+        ("fontFamily", json!("JetBrains Mono")),
+        ("underline", json!(true)),
+        ("strikethrough", json!(true)),
+        ("textCase", json!("title")),
+        ("highlight", json!("#ffff00")),
+        ("hAlign", json!("right")),
+        ("vAlign", json!("bottom")),
+        ("bullets", json!("number")),
+        ("indent", json!(12.0)),
+        ("textDirection", json!("rtl")),
+        ("textMargins", json!({"left": 1.0, "top": 2.0, "right": 3.0, "bottom": 4.5})),
+        ("dash", json!("dashDot")),
+        ("lineCap", json!("round")),
+        ("cornerRadius", json!(8.0)),
+        ("fillTransparency", json!(0.25)),
+        ("lineTransparency", json!(0.5)),
+        ("shadow", json!({"dx": 4.0, "dy": 6.0, "blur": 3.0, "color": "#00000064"})),
+        ("softEdges", json!(5.0)),
+        ("glow", json!({"radius": 7.0, "color": "#00c800"})),
+    ] {
+        assert_eq!(st[key], want, "{key}");
+    }
+    assert_eq!(st["gradient"]["kind"], json!("radial"));
+    assert_eq!(st["gradient"]["stops"][1], json!({"offset": 1.0, "color": "#000080c8"}));
+}
+
+#[test]
+fn default_fields_are_left_out_of_the_file() {
+    let v = parse(&save(&modelled()).unwrap());
+    let d = &v["document"];
+    for key in ["properties", "comments", "images"] {
+        assert!(d.get(key).is_none(), "{key}");
+    }
+    let p = &d["pages"][0];
+    for key in ["orientation", "units", "drawingScale", "autoSize", "background", "isBackground", "header", "footer", "guides", "layers"] {
+        assert!(p.get(key).is_none(), "{key}");
+    }
+    let s = &p["shapes"][0];
+    for key in ["layers", "parent", "textBlock", "links", "screenTip", "locks", "behavior", "image"] {
+        assert!(s.get(key).is_none(), "{key}");
+    }
+    let keys: Vec<&String> = s["style"].as_object().unwrap().keys().collect();
+    assert_eq!(keys, ["bold", "fill", "fontColor", "fontSize", "italic", "line", "lineWidth"], "only the version 3 style keys");
+}
+
+#[test]
+fn version_3_file_loads_unchanged() {
+    let doc = modelled();
+    let v4 = save(&doc).unwrap();
+    let mut v3 = parse(&v4);
+    v3["version"] = json!(3);
+    let v3_bytes = serde_json::to_vec_pretty(&v3).unwrap();
+    let loaded = load(&v3_bytes).unwrap();
+    assert_eq!(loaded, doc);
+    // Saved again, only the version number differs from what version 3 held.
+    let resaved = save(&loaded).unwrap();
+    assert_eq!(resaved, v4);
+    let mut back = parse(&resaved);
+    back["version"] = json!(3);
+    assert_eq!(back, v3);
+}
+
+#[test]
+fn hostile_new_fields_are_sanitised() {
+    let long = "x".repeat(100_000);
+    let stops: Vec<Value> = (0..100).map(|i| json!({"offset": 5 - i, "color": "#ff0000"})).collect();
+    let links: Vec<Value> = (0..100).map(|_| json!({"kind": "nope", "target": long, "label": long})).collect();
+    let layers: Vec<Value> = (0..300).map(|i| json!({"id": format!("L{}", i % 280), "name": long, "visible": "yes"})).collect();
+    let guides: Vec<Value> = (0..2000).map(|_| json!({"orientation": 3, "position": 1e300})).collect();
+    let style = json!({"fontFamily": long, "indent": -5, "cornerRadius": 1e300, "fillTransparency": 9, "lineTransparency": -3,
+                                   "softEdges": 1e9, "textMargins": {"left": -1, "top": 1e300, "right": "x", "bottom": 2},
+                                   "gradient": {"kind": "spiral", "angleDeg": 720.5, "stops": stops},
+                                   "shadow": {"dx": 1e300, "dy": -1e300, "blur": -2, "color": 5},
+                                   "glow": {"radius": 1e300}, "dash": "zigzag", "lineCap": false, "hAlign": 4, "textCase": "shout"});
+    let shapes = json!([
+        {"id": "s1", "parent": "s2", "layers": ["L1", "L1", "missing", long], "screenTip": long,
+         "textBlock": {"dx": 1e300, "dy": "a", "w": -5, "h": 1e300, "angleDeg": -90},
+         "links": links, "image": {"asset": "ok", "crop": {"x": 2, "y": -1, "w": 5, "h": 0.5}},
+         "locks": "all", "behavior": {"hidden": 1},
+         "style": style},
+        {"id": "s2", "parent": "s3", "image": {"asset": "html"}},
+        {"id": "s3", "parent": "s1"},
+        {"id": "s4", "parent": "s4"}
+    ]);
+    let file = json!({
+        "format": "vizcraft",
+        "version": 4,
+        "document": {
+            "properties": {"title": long, "author": 7, "description": long.repeat(2)},
+            "comments": [
+                {"id": long, "anchor": {"page": "nowhere", "shape": "s1"}, "text": long.repeat(2), "replies": [{"text": long.repeat(2)}, 5]},
+                {"id": "k2", "anchor": {"page": "p1", "shape": "ghost"}},
+                "junk"
+            ],
+            "images": [
+                {"id": "ok", "mediaType": "image/png", "bytes": "AAEC"},
+                {"id": "ok", "mediaType": "image/png", "bytes": "AAEC"},
+                {"id": "bad64", "mediaType": "image/png", "bytes": "!!!!"},
+                {"id": "html", "mediaType": "text/html", "bytes": "AAEC"},
+                {"id": "a b", "mediaType": "image/png", "bytes": "AAEC"},
+                {"id": "weird", "mediaType": "image/<svg>", "bytes": "AAEC"}
+            ],
+            "pages": [
+                {
+                    "id": "p1",
+                    "background": "p1",
+                    "drawingScale": {"page": -1, "drawing": 1e300, "units": "parsecs"},
+                    "orientation": ["portrait"],
+                    "header": {"left": long},
+                    "guides": guides,
+                    "layers": layers,
+                    "shapes": shapes
+                },
+                {"id": "p2", "background": "p1"}
+            ]
+        }
+    });
+    let doc = load(file.to_string().as_bytes()).unwrap();
+
+    assert!(doc.properties.title.len() <= 1024 && doc.properties.author.is_empty());
+    assert!(doc.properties.description.len() <= vizcraft_diagram::MAX_TEXT);
+    assert_eq!(doc.comments.len(), 2);
+    assert!(doc.comments[0].id.len() <= 64 && doc.comments[0].text.len() <= vizcraft_diagram::MAX_TEXT);
+    assert_eq!(doc.comments[0].anchor.page, "p1", "an unknown page moves the comment to the first page");
+    assert_eq!(doc.comments[0].anchor.shape, None);
+    assert_eq!(doc.comments[0].replies.len(), 1);
+    assert_eq!(doc.comments[1].anchor.shape, None, "an unknown shape anchors the comment to its page");
+    let ids: Vec<&str> = doc.images.iter().map(|a| a.id.as_str()).collect();
+    assert_eq!(ids, ["ok"]);
+    assert_eq!(doc.images[0].bytes, [0, 1, 2]);
+
+    let page = &doc.pages[0];
+    assert_eq!(page.background, None, "a page cannot be its own background");
+    assert_eq!(doc.pages[1].background, None, "p1 is not a background page");
+    assert_eq!(page.drawing_scale.page, 1.0);
+    assert_eq!(page.drawing_scale.drawing, 1.0e6);
+    assert_eq!(page.drawing_scale.units, vizcraft_diagram::Units::Inches);
+    assert!(page.header.left.len() <= 1024);
+    assert_eq!(page.guides.len(), 1000);
+    assert!(page.guides.iter().all(|g| g.position == vizcraft_diagram::MAX_EXTENT));
+    assert_eq!(page.layers.len(), 256);
+    assert!(page.layers.iter().all(|l| l.name.len() <= 256 && l.visible));
+
+    let s1 = &page.shapes[0];
+    assert_eq!(s1.layers, ["L1"]);
+    assert!(s1.screen_tip.len() <= 4096);
+    let tb = s1.text_block.unwrap();
+    assert_eq!((tb.dx, tb.dy, tb.w, tb.h, tb.angle_deg), (vizcraft_diagram::MAX_EXTENT, 0.0, 0.0, vizcraft_diagram::MAX_EXTENT, 270.0));
+    assert_eq!(s1.links.len(), 32);
+    assert!(s1.links.iter().all(|l| l.target.len() <= 4096 && l.label.len() <= 1024));
+    let crop = s1.image.as_ref().unwrap().crop;
+    assert_eq!((crop.x, crop.y, crop.w, crop.h), (1.0, 0.0, 0.0, 0.5));
+    assert!(!s1.behavior.hidden && !s1.locks.delete);
+    let st = &s1.style;
+    assert!(st.font_family.len() <= 128);
+    assert_eq!((st.indent, st.corner_radius, st.fill_transparency, st.line_transparency), (0.0, 10_000.0, 1.0, 0.0));
+    assert_eq!(st.soft_edges, 500.0);
+    assert_eq!((st.text_margins.left, st.text_margins.top, st.text_margins.right, st.text_margins.bottom), (0.0, 1000.0, 0.0, 2.0));
+    let g = st.gradient.as_ref().unwrap();
+    assert_eq!(g.kind, vizcraft_diagram::GradientKind::Linear);
+    assert_eq!(g.angle_deg, 0.5);
+    assert_eq!(g.stops.len(), 16);
+    assert!(g.stops.iter().all(|s| (0.0..=1.0).contains(&s.offset)));
+    assert!(g.stops.windows(2).all(|w| w[0].offset <= w[1].offset));
+    let sh = st.shadow.unwrap();
+    assert_eq!((sh.dx, sh.dy, sh.blur), (1000.0, -1000.0, 0.0));
+    assert_eq!(st.glow.unwrap().radius, 500.0);
+    assert_eq!(st.dash, vizcraft_diagram::Dash::Solid);
+
+    // The parent cycle s1 -> s2 -> s3 -> s1 is broken at one link; self-parents are cleared.
+    let parents: Vec<Option<&str>> = page.shapes.iter().map(|s| s.parent.as_deref()).collect();
+    assert_eq!(parents.iter().filter(|p| p.is_none()).count(), 2, "{parents:?}");
+    assert_eq!(parents[3], None);
+    assert_eq!(page.shapes[1].image, None, "the asset was dropped, so the reference is cleared");
+    // Sanitising is stable: saving and loading again changes nothing.
+    assert_eq!(load(&save(&doc).unwrap()).unwrap(), doc);
 }
