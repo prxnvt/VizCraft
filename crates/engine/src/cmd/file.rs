@@ -34,7 +34,7 @@ pub fn specs() -> Vec<CommandSpec> {
         })
         .key("Mod+W"),
         CommandSpec::new("file.export", "Export...", "File", export).key("Mod+Shift+E").params(
-            r#"{"path"?: string, "format"?: "svg"|"png"|"drawio", "page"?: id|name|index, "scale"?: number} -> {exported, path, format, page} (svg and png: one page, the first unless `page` names another; png: `scale` pixels per unit, 0.25 to 4, default 1; drawio: every page; format from the extension when omitted)"#,
+            r#"{"path"?: string, "format"?: "svg"|"png"|"drawio", "page"?: id|name|index, "scale"?: number} -> {exported, path, format, page} (svg and png: one page, the active one unless `page` names another; png: `scale` pixels per unit, 0.25 to 4, default 1; drawio: every page; format from the extension when omitted)"#,
         ),
         CommandSpec::new("file.import", "Import...", "File", import).key("Mod+Shift+I").params(IMPORT_PARAMS),
         CommandSpec::new("file.setAuthor", "User Name", "File > Options", |s, v| {
@@ -110,7 +110,7 @@ fn export(s: &mut Session, v: &Value) -> CmdResult {
     let format = crate::io::export_format(path, p::str(v, "format"))?;
     // Read every param before writing anything, so a bad page or scale leaves no file behind.
     let page = match v.get("page") {
-        None | Some(Value::Null) => 0,
+        None | Some(Value::Null) => s.doc.active_index(),
         Some(Value::String(r)) => s.doc.find_page(r).ok_or_else(|| EngineError::Params(format!("no page `{}`", short(r))))?,
         Some(Value::Number(n)) => n
             .as_u64()
@@ -271,7 +271,7 @@ pub(crate) fn place(doc: &mut Document, imported: Imported, opts: &ImportOpts) -
     let mut pages = pages.into_iter();
     let Some(mut first) = pages.next() else { return Err(EngineError::Failed("the source holds no page to import".into())) };
     let index = match &opts.page {
-        None => 0,
+        None => doc.active_index(),
         Some(r) => match doc.find_page(r) {
             Some(i) => i,
             None => doc.add_page(r),
@@ -436,6 +436,13 @@ mod tests {
             assert_eq!(r["page"], json!(second_id), "{page}");
         }
         let svg = dir.join("second.svg");
+        let r = s.run("file.export", &json!({"path": svg.to_string_lossy(), "page": "Second"})).unwrap();
+        assert_eq!(r["page"].as_str(), Some(second_id.as_str()));
+        // With no `page`, export follows the active page.
+        s.run("page.setActive", &json!({"page": "Second"})).unwrap();
+        let r = s.run("file.export", &json!({"path": svg.to_string_lossy()})).unwrap();
+        assert_eq!(r["page"].as_str(), Some(second_id.as_str()), "export defaults to the active page");
+        s.run("page.setActive", &json!({"page": 0})).unwrap();
         let r = s.run("file.export", &json!({"path": svg.to_string_lossy(), "page": "Second"})).unwrap();
         assert_eq!((r["format"].as_str(), r["page"].as_str()), (Some("svg"), Some(second_id.as_str())));
 

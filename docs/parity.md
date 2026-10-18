@@ -71,10 +71,10 @@ When a feature lands, change its State in the same commit as the code. States:
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| Multiple pages and page tabs | 2 | partly done (3) | Multi-page documents with `page.list`, `page.get`, `page.set`; page tabs and editing commands planned |
-| Background pages | 2 | planned | A page shown behind others |
-| Page setup | 2 | planned | Size, orientation, units |
-| Auto-size page to content | 2 | planned | Page grows with the drawing |
+| Multiple pages and page tabs | 2 | done (B2) | Active page edited on the canvas; page tab strip; `page.add`, `page.delete`, `page.duplicate`, `page.rename`, `page.move`, `page.setActive`, with `page.list`, `page.get`, `page.set` |
+| Background pages | 2 | done (B2) | `page.add {background}`, `page.setBackground`; drawn beneath the page on the canvas and in export, not selectable |
+| Page setup | 2 | done (B2) | `page.setup` (size, orientation, units, drawing scale, auto-size); Page Setup dialog; Design > Page Setup group |
+| Auto-size page to content | 2 | done (B2) | Page grows right and down after any change past the edge; `page.fitToDrawing {margin?}` |
 
 ## Layers
 

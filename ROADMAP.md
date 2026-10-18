@@ -68,7 +68,7 @@ patterns; the Shape Data pane is the first form of the typed Inspector.
 
 | Piece | Contents | Lands in | State |
 |---|---|---|---|
-| Pages | Multiple pages, page tabs, background pages, page setup (size, orientation, units); `page.*` editing commands | `crates/diagram`, `crates/engine/src/cmd/page.rs`, `crates/ui-egui/src/canvas.rs` | planned (Cascade 3 added multi-page documents and `page.list`, `page.get`, `page.set`; the canvas shows the first page) |
+| Pages | Multiple pages, page tabs, background pages, page setup (size, orientation, units); `page.*` editing commands | `crates/diagram`, `crates/engine/src/cmd/page.rs`, `crates/ui-egui/src/canvas.rs` | done (Block 2A `b2-pages`: active page, page tabs, background pages, page setup, auto-size, `page.*` editing commands) |
 | Layers | Layers with visible, lock and print flags, assign shapes; Layers pane; `layer.*` commands | `crates/diagram`, `crates/engine/src/cmd/layer.rs`, `crates/ui-egui/src/panes.rs` | planned |
 | Groups, containers and swimlanes | Group and ungroup, containers that hold members and fit them, swimlanes; the substrate for statechart composites, zones, lanes and nested-container patterns | `crates/diagram`, `crates/engine/src/cmd/arrange.rs` | planned |
 | Arrange | Align, distribute, bring forward and send backward, flip, rotate, size and position; Arrange ribbon tab | `crates/engine/src/cmd/arrange.rs`, `crates/ui-egui/src/ribbon.rs` | planned |

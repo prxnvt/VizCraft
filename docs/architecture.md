@@ -212,7 +212,7 @@ pub mod fragment { pub struct Fragment { shapes, connectors, elements, relations
 Documents are `.vizcraft` files (`io::EXTENSION`), versioned JSON read and written by
 `vizcraft-formats` (a model-class crate beside `diagram`); `io` dispatches by file name and
 still reads `.craft.json` and `.json`; `.drawio` and `.drawio.xml` names open and save as draw.io.
-`file.export {path, format?}` writes the first page as SVG, or the document as draw.io, through
+`file.export {path, format?, page?}` writes the active page (or `page`) as SVG, or the document as draw.io, through
 `io::export_bytes`; `file.import` brings in draw.io, Mermaid and CSV.
 `ViewState::canvas` is the canvas size in points as the UI last laid it out (`None` headless,
 never serialized); the UI writes it every frame so `view.zoomFit {page?}` computes zoom and pan in

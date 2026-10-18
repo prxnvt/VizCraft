@@ -65,7 +65,8 @@ versions can read older files.
   `behavior`, `image`); pages (`orientation`, `units`, `drawingScale`, `autoSize`, `background`,
   `isBackground`, `header`, `footer`, `guides`, `layers`); and the document (`properties`,
   `comments`, `images` with base64 `bytes`, capped at 16 MiB each, 48 MiB in all and 1024
-  assets).
+  assets), plus `activePage` (the page id shown on open; a missing or unknown id opens the first
+  page).
 - **Read:** version 4; version 3 loads unchanged; version 2 and version 1 (the Cascade 0 placeholder: title and metadata
   only, which loads with that title and metadata and one blank page) load as free drawing with an
   empty model, ignoring any `model` key; a wrapper without a `version` (read as 1); and a bare
