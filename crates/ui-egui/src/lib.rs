@@ -21,6 +21,7 @@ pub mod find_dialog;
 pub mod icons;
 pub mod insert_picker;
 pub mod keys;
+pub mod link_dialog;
 pub mod menus;
 pub mod page_setup;
 pub mod page_tabs;
@@ -99,6 +100,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.pane.layers", "Layers Pane", "", r#"{"value"?: bool}"#),
     ("ui.pane.shapeData", "Inspector Pane", "", r#"{"value"?: bool}"#),
     ("ui.inspector", "Inspector Mode", "", r#"{"mode"?: "standard|expert", "tab"?: "properties|format"} -> {"mode", "tab"}"#),
+    ("ui.pane.comments", "Show Comments", "", r#"{"value"?: bool}"#),
     ("ui.paneSide", "Move Pane to Side", "", r#"{"name": "shapes|navigation|properties|history|layers|shapeData", "side": "left|right"}"#),
     ("ui.collapsePanes", "Collapse Side Panes", "", r#"{"side": "left|right", "value"?: bool}"#),
     ("ui.panesReset", "Reset Panes", "", "{}"),
@@ -211,6 +213,9 @@ pub struct Services {
     /// Desktop: hand a print-ready PDF (`file.print`) to the operating system; returns what was
     /// done, for the status bar, or why it failed.
     pub print: Option<Box<dyn Fn(&str) -> Result<String, String>>>,
+    /// Desktop: open a web address or a file with the system's default program (`link.follow` on
+    /// a url or file link); returns why it failed.
+    pub open_external: Option<Box<dyn Fn(&str) -> Result<(), String>>>,
 }
 
 /// Files delivered asynchronously.
@@ -491,6 +496,15 @@ impl CraftApp {
         // `view.shapeDataPane` and the like: open, close or toggle (no value) a pane.
         if let Some(name) = req.get("pane").and_then(Value::as_str) {
             let _ = panes::ui_command(self, "ui.pane", &json!({"name": name, "value": req.get("value")}));
+        }
+        if req.get("request").and_then(Value::as_str) == Some("openExternal")
+            && let Some(target) = req.get("target").and_then(Value::as_str)
+        {
+            let msg = match &self.services.open_external {
+                Some(open) => open(target).map(|()| format!("Opened {target}")).unwrap_or_else(|e| format!("Could not open {target}: {e}")),
+                None => format!("This front end cannot open {target}"),
+            };
+            self.status(msg);
         }
         if let Some(path) = req.get("print").and_then(Value::as_str) {
             let msg = match &self.services.print {

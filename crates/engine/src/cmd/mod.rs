@@ -3,6 +3,7 @@
 pub mod arrange;
 pub mod batch;
 pub mod callout;
+pub mod comment;
 pub mod compartment;
 pub mod connector;
 pub mod connector_kind;
@@ -21,10 +22,12 @@ pub mod inspector;
 pub mod lane;
 pub mod layer;
 pub mod layout;
+pub mod link;
 pub mod model;
 pub mod notation;
 pub mod page;
 pub mod print;
+pub mod process;
 pub mod relationship;
 pub mod routing;
 pub mod script;
@@ -75,6 +78,9 @@ pub fn registry() -> Registry {
     v.extend(insert::specs());
     v.extend(suggest::specs());
     v.extend(script::specs());
+    v.extend(link::specs());
+    v.extend(comment::specs());
+    v.extend(process::specs());
     v.extend(help::specs());
     Registry::new(v)
 }

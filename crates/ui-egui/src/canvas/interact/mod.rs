@@ -17,6 +17,7 @@ pub mod drag;
 pub mod edit_text;
 pub mod insertion;
 pub mod keys;
+pub mod links;
 pub mod membership;
 pub mod painter;
 pub mod select;
@@ -106,6 +107,10 @@ pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D
         app.canvas.hover_shape = dg::shape_at(page, w, f64::from(GRAB / zoom)).map(|s| s.id.clone());
     }
     if insertion::pointer(app, ui, response, vp) {
+        return;
+    }
+
+    if links::pointer(app, ui, response, vp) {
         return;
     }
 
