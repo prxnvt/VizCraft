@@ -3975,6 +3975,7 @@ dependencies = [
  "serde_json",
  "vizcraft-engine",
  "vizcraft-mcp",
+ "vizcraft-notation",
 ]
 
 [[package]]
