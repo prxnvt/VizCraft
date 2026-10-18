@@ -27,21 +27,16 @@ pub(crate) const INTERNAL_ERROR: i64 = -32603;
 /// Most messages answered from one JSON-RPC batch array (older clients only).
 const MAX_RPC_BATCH: usize = 64;
 
-const INSTRUCTIONS: &str = "VizCraft is a diagram editor. Every action in it is a command with an id \
-(`shape.add`, `connector.add`, `edit.undo`, `file.saveAs`): find commands and their params with \
-command_list, run one with command_run or several in order with command_batch. Check the result with \
-doc_inspect (JSON) or screenshot (PNG of the window, or of a page rendered with no window). Coordinates are pixels at 100% zoom with y \
-pointing down. For whole \
-diagrams, open_xml, open_mermaid and open_csv fill a page from draw.io XML, Mermaid or CSV (with \
-optional automatic layout and shape-avoiding routing); list_pages, get_page and set_page read and \
-replace pages as draw.io XML; search_shapes finds stencil masters and their style strings; \
-get_reference explains the accepted XML, styles, layouts, Mermaid and CSV. Resources (JSON, read-only): \
-vizcraft://commands is the same catalog as command_list, vizcraft://stencils every stencil set and master, \
-vizcraft://page/{id} one page with its shapes and connectors, and vizcraft://shape/{id} one shape with its \
-geometry, text, style, shape data and the connectors glued to it; resources/list names every page. Model-backed diagrams \
-(element.create, relationship.create) follow notation packs: read vizcraft://notation and \
-vizcraft://notation/{pack} for their schemas, and look at `issues` in command_run and command_batch \
-results for the rule problems a call raised (get_reference topic `model`).";
+const INSTRUCTIONS: &str = "VizCraft is a diagram editor. To see what a diagram contains, call `describe` first: it lists ids, \
+stencils, texts, connections and containment without colours or coordinates, and `format: text` is the cheapest form. Ask for \
+`detail: layout` when you need positions and sizes, and `detail: full` only when you are styling (it adds every colour, font and \
+line setting). The page and shape resources (vizcraft://page/{id}, vizcraft://shape/{id}) follow the same ladder with \
+`?detail=layout|full`. Every action is a command with an id (`shape.add`, `connector.add`, `edit.undo`): command_list {brief: true} \
+names them, command_list {prefix} shows params, command_run and command_batch run them; every write command still accepts style. \
+To build whole diagrams use open_mermaid, open_csv or open_xml (draw.io XML; get_reference explains it), and search_shapes for \
+stencil masters. Check results with describe or doc_inspect, or screenshot for a picture. Coordinates are pixels at 100% zoom, y down. \
+Model-backed diagrams (element.create, relationship.create) follow the notation packs in vizcraft://notation; command_run and \
+command_batch results list the rule `issues` a call raised (get_reference topic `model`).";
 
 /// An MCP server bound to one backend.
 pub struct Server {

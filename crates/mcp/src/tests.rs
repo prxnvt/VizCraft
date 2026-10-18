@@ -219,7 +219,8 @@ fn tools_list_names_every_tool_with_schemas() {
             "get_page",
             "set_page",
             "search_shapes",
-            "get_reference"
+            "get_reference",
+            "describe"
         ]
     );
     for t in &tools {
@@ -950,3 +951,6 @@ fn issue_diff_compares_keys_not_messages() {
     let no_page = json!({"rule": "r.a", "subjects": ["e1"], "items": []});
     assert_eq!(raised(vec![no_page.clone()], vec![a.clone()]), [a], "the page is part of the key");
 }
+
+#[path = "describe_tests.rs"]
+mod describe_tests;

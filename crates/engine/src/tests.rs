@@ -20,6 +20,7 @@ fn registry_ids_are_unique_and_prefixed() {
         assert!(
             [
                 "file",
+                "doc",
                 "edit",
                 "view",
                 "shape",

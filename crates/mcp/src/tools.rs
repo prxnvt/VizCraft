@@ -97,21 +97,20 @@ fn generic_definitions() -> Vec<Value> {
         tool(
             "command_list",
             "List commands",
-            "Every VizCraft action is a command with an id. This returns the catalog: id, label, menu \
-             location, shortcut, a short description of the params it takes, and whether it can run \
-             right now (with the reason when it cannot). Give `prefix` (for example `shape.` or \
-             `connector.`) to narrow the list.",
-            object(json!({"prefix": {"type": "string", "description": "Only commands whose id starts with this"}}), &[]),
+            "List commands as `{id, label, location, shortcut, params, enabled}`. `prefix` keeps ids that start with it; `brief` returns only `{id, label}`.",
+            object(
+                json!({
+                    "prefix": {"type": "string", "description": "Only commands whose id starts with this, such as `shape.`"},
+                    "brief": {"type": "boolean", "description": "true: return only `{id, label}` per command"},
+                }),
+                &[],
+            ),
             true,
         ),
         tool(
             "command_run",
             "Run a command",
-            "Run one command by id with optional params, exactly as the menu or ribbon would, and \
-             return its result (commands that create something return the new id). Each run is one \
-             undo step. Commands never open dialogs when called this way; ones that need a path take \
-             it as a param. When the app checks a notation model, the result also carries `issues` \
-             (the rule problems this run raised) and `openIssues` (how many are open in all).",
+            "Run one command by id with optional params, as one undo step; it never opens a dialog. With a notation model the result also carries `issues` and `openIssues`.",
             object(
                 json!({
                     "id": {"type": "string", "description": "Command id from command_list"},
@@ -124,35 +123,27 @@ fn generic_definitions() -> Vec<Value> {
         tool(
             "command_batch",
             "Run several commands",
-            "Run a list of commands in order as one undo step (edit.batch): when one fails, the whole \
-             batch is rolled back, nothing changes, and the result reports its index, id and error. A \
-             batch with edit.undo, edit.redo, ui.* or app.* commands, or an app without edit.batch, \
-             runs each command as its own step instead and stops at the first failure with the earlier \
-             commands applied. At most 256 commands per call. When the \
-             app checks a notation model, the result also carries `issues` (the rule problems the \
-             commands that ran raised) and `openIssues` (how many are open in all).",
+            "Run up to 256 commands in order as one undo step; a failure rolls the whole batch back and names its index. Batches with ui.*, app.* or undo and redo entries run step by step instead.",
             object(json!({"commands": {"type": "array", "items": command_item, "minItems": 1, "maxItems": MAX_BATCH}}), &["commands"]),
             false,
         ),
         tool(
             "doc_inspect",
             "Inspect the document",
-            "Return the app's state as JSON: document title and path, unsaved changes, revision, \
-             selection, undo and redo labels, zoom, and with a window the open panes and dialogs \
-             (the headless backend says `headless: true`). Give `page` to add that page's entry \
-             `{index, id, name, width, height, shapes, connectors}` as `page`. Use it to check the \
-             effect of a command without a screenshot.",
-            object(json!({"page": page_prop("A page to report on, by id, name or zero-based index")}), &[]),
+            "Return the app state: title, path, revision, selection, undo labels, zoom. `page` adds that page's entry; `detail` adds `pages` with the structure, layout or full description of the pages (see describe).",
+            object(
+                json!({
+                    "page": page_prop("A page to report on, by id, name or zero-based index"),
+                    "detail": detail_prop(),
+                }),
+                &[],
+            ),
             true,
         ),
         tool(
             "screenshot",
             "Take a screenshot",
-            "Return a PNG image inline with its size in pixels. With a running app and no arguments \
-             it captures the VizCraft window after any queued input has been processed. Given \
-             `page` or `scale`, with `window: false`, or on the headless backend, it renders one \
-             page of the document instead (white background, the first page unless `page` names \
-             another), which needs no window.",
+            "Return a PNG with its size in pixels: the app window, or with `page`, `scale`, `window: false` or on the headless backend, one page rendered offscreen.",
             object(
                 json!({
                     "page": page_prop("The page to render, by id, name or zero-based index (default: the first page)"),
@@ -169,6 +160,15 @@ fn generic_definitions() -> Vec<Value> {
             true,
         ),
     ]
+}
+
+/// The `detail` schema shared by `doc_inspect` and `describe`.
+pub(crate) fn detail_prop() -> Value {
+    json!({
+        "type": "string",
+        "enum": crate::resources::DETAILS,
+        "description": "`structure` (default): ids, stencils, texts, connections, containment, data rows. `layout` adds positions and sizes. `full` adds style and everything else",
+    })
 }
 
 /// Whether `name` is one of ours.
@@ -224,8 +224,20 @@ fn command_list(backend: &mut dyn Backend, args: &Map<String, Value>) -> Result<
         Some(Value::String(p)) => p.as_str(),
         Some(_) => return Err("`prefix` must be a string".into()),
     };
+    let brief = match args.get("brief") {
+        None | Some(Value::Null) => false,
+        Some(Value::Bool(b)) => *b,
+        Some(_) => return Err("`brief` must be true or false".into()),
+    };
     let list: Vec<Value> =
         commands(backend)?.into_iter().filter(|c| c.get("id").and_then(Value::as_str).is_some_and(|id| id.starts_with(prefix))).collect();
+    let list: Vec<Value> = if brief {
+        list.iter()
+            .map(|c| json!({"id": c.get("id").cloned().unwrap_or(Value::Null), "label": c.get("label").cloned().unwrap_or(Value::Null)}))
+            .collect()
+    } else {
+        list
+    };
     Ok(ToolResult::json(&json!({"count": list.len(), "commands": list})))
 }
 
@@ -427,11 +439,17 @@ fn page_arg(args: &Map<String, Value>) -> Result<Option<Value>, String> {
     }
 }
 
-/// `doc_inspect {page?}`: `ui.inspect`, plus the `page.list` entry for `page` when given.
+/// `doc_inspect {page?, detail?}`: `ui.inspect`, plus the `page.list` entry for `page` when given,
+/// plus the `doc.describe` pages at `detail` when given.
 fn doc_inspect(backend: &mut dyn Backend, args: &Map<String, Value>) -> Result<ToolResult, String> {
     let page = page_arg(args)?;
+    let detail = match args.get("detail") {
+        None | Some(Value::Null) => None,
+        Some(Value::String(d)) if crate::resources::DETAILS.contains(&d.as_str()) => Some(d.clone()),
+        Some(_) => return Err(format!("`detail` must be one of {}", crate::resources::DETAILS.join(", "))),
+    };
     let mut report = backend.call("ui.inspect", json!({}))?;
-    if let Some(r) = page {
+    if let Some(r) = page.clone() {
         let listed = backend.call("engine.execute", json!({"command": "page.list", "params": {}}))?;
         let pages = listed.get("pages").and_then(Value::as_array).cloned().unwrap_or_default();
         // The same order the engine resolves page references in: id, then name, then index.
@@ -447,6 +465,21 @@ fn doc_inspect(backend: &mut dyn Backend, args: &Map<String, Value>) -> Result<T
                 obj.insert("page".into(), entry);
             }
             None => report = json!({"inspect": report, "page": entry}),
+        }
+    }
+    if let Some(detail) = detail {
+        let mut params = json!({"detail": detail});
+        if let (Some(o), Some(p)) = (params.as_object_mut(), &page) {
+            o.insert("pages".into(), json!([p]));
+        }
+        let described =
+            backend.call("engine.execute", json!({"command": "doc.describe", "params": params})).map_err(|e| format!("doc.describe failed: {e}"))?;
+        let pages = described.get("pages").cloned().unwrap_or(Value::Null);
+        match report.as_object_mut() {
+            Some(obj) => {
+                obj.insert("pages".into(), pages);
+            }
+            None => report = json!({"inspect": report, "pages": pages}),
         }
     }
     Ok(ToolResult::json(&report))
