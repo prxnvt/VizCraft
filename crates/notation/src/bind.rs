@@ -138,7 +138,7 @@ struct Glue {
 }
 
 fn glue_of(shape_el: &HashMap<&str, &str>, c: &Connector) -> Option<Glue> {
-    let (End::Glued { shape: s, point: sp }, End::Glued { shape: t, point: tp }) = (&c.start, &c.end) else { return None };
+    let (End::Glued { shape: s, point: sp, .. }, End::Glued { shape: t, point: tp, .. }) = (&c.start, &c.end) else { return None };
     Some(Glue {
         source: (*shape_el.get(s.as_str())?).to_string(),
         target: (*shape_el.get(t.as_str())?).to_string(),

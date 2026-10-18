@@ -24,8 +24,8 @@ pub fn target_end(page: &Page, p: Point, zoom: f32) -> End {
 /// shape it started from.
 pub(super) fn connect_ok(from: &End, to: &End) -> bool {
     match (from, to) {
-        (End::Glued { shape: a, .. }, End::Glued { shape: b, point: None }) => a != b,
-        (End::Glued { shape: a, point: Some(i) }, End::Glued { shape: b, point: Some(j) }) => a != b || i != j,
+        (End::Glued { shape: a, .. }, End::Glued { shape: b, point: None, .. }) => a != b,
+        (End::Glued { shape: a, point: Some(i), .. }, End::Glued { shape: b, point: Some(j), .. }) => a != b || i != j,
         _ => true,
     }
 }

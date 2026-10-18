@@ -52,6 +52,8 @@ use vizcraft_diagram::{
 
 use crate::FormatError;
 
+mod compartments;
+
 /// Space added around content that reaches past the page edge.
 pub const MARGIN: f64 = 20.0;
 
@@ -285,6 +287,7 @@ fn shape_svg(out: &mut String, cx: &mut Ctx, s: &Shape) {
     if s.container.is_some() {
         decor_svg(out, &vizcraft_diagram::container::decor(s));
     }
+    compartments::compartments_svg(out, s);
     if !s.text.trim().is_empty() {
         shape_text_svg(out, s);
     }

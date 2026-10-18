@@ -1,5 +1,6 @@
 //! Hit testing in world space: which shape or connector is under a point, what a marquee holds,
-//! and which connection point a drag is near.
+//! which band (compartment and row) of a shape is under a point, and which connection point a drag
+//! is near.
 //!
 //! Layers decide what can be hit (see [`crate::layer`]): clicks and marquees find only shapes
 //! that are visible and not locked, and a connector end finds only shapes it may glue to. A
@@ -83,6 +84,36 @@ pub fn connectors_in_rect(page: &Page, rect: Rect) -> Vec<&Connector> {
     page.connectors.iter().filter(|c| Rect::bounding(route_polyline(page, c)).is_some_and(|b| rect.contains_rect(&b))).collect()
 }
 
+/// Which band of a shape [`band_at`] found.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BandHit {
+    /// The shape's id.
+    pub shape: String,
+    /// The compartment's id; `None` is the shape's main text.
+    pub compartment: Option<String>,
+    /// The list row under the point, by index.
+    pub row: Option<usize>,
+}
+
+/// The band under `p` of `shape` (see [`crate::compartment::layout`]): its compartment and, in a
+/// list, its row. A shape without compartments, or a point outside its frame, reports the main
+/// text when `p` is on the shape and `None` otherwise.
+pub fn band_of(shape: &Shape, p: Point, tolerance: f64) -> Option<BandHit> {
+    let main = || BandHit { shape: shape.id.clone(), compartment: None, row: None };
+    match crate::compartment::band_at(shape, p) {
+        Some((i, row)) => {
+            let compartment = i.and_then(|i| shape.compartments.get(i)).map(|c| c.id.clone());
+            Some(BandHit { row: row.filter(|_| compartment.is_some()), compartment, ..main() })
+        }
+        None => shape_contains(shape, p, tolerance).then(main),
+    }
+}
+
+/// The band under `p` of the topmost selectable shape there (see [`shape_at`] and [`band_of`]).
+pub fn band_at(page: &Page, p: Point, tolerance: f64) -> Option<BandHit> {
+    band_of(shape_at(page, p, tolerance)?, p, tolerance)
+}
+
 /// The index of `shape`'s connection point nearest `p`, if within `tolerance`.
 pub fn connection_point_at(shape: &Shape, p: Point, tolerance: f64) -> Option<usize> {
     let t = tol(tolerance);
@@ -127,6 +158,29 @@ mod tests {
             assert_eq!(shape_at(&p, at, 1.0).map(|s| s.id.as_str()), Some("under"));
             assert_eq!(ids(shapes_in_rect(&p, all())), vec!["under"], "the marquee skips it");
         }
+    }
+
+    #[test]
+    fn band_at_reports_the_compartment_and_row_under_the_point() {
+        use crate::compartment::{Compartment, CompartmentKind, layout};
+        let mut p = Page::new("p1", "Page-1");
+        let mut s = Shape::new("k", ShapeKind::Rectangle, 10.0, 10.0, 160.0, 120.0);
+        s.text = "Order".into();
+        let mut attrs = Compartment::new("attrs", CompartmentKind::List);
+        attrs.rows = vec!["+ id".into(), "+ total".into()];
+        s.compartments = vec![attrs, Compartment::new("notes", CompartmentKind::Paragraph)];
+        s.sanitize();
+        let bands = layout(&s);
+        let world = |q: Point| Point::new(q.x + 10.0, q.y + 10.0);
+        p.shapes.push(s);
+        let at = |q: Point| band_at(&p, q, 1.0).map(|b| (b.compartment, b.row));
+        assert_eq!(at(world(bands[1].rows[1].center())), Some((Some("attrs".into()), Some(1))));
+        assert_eq!(at(world(bands[2].rect.center())), Some((Some("notes".into()), None)));
+        assert_eq!(at(world(Point::new(80.0, 4.0))), Some((None, None)));
+        assert_eq!(at(Point::new(-50.0, -50.0)), None);
+        // No compartments: the main text.
+        let plain = stacked(Layer::default());
+        assert_eq!(band_at(&plain, Point::new(50.0, 50.0), 1.0).map(|b| (b.shape, b.compartment)), Some(("top".into(), None)));
     }
 
     #[test]

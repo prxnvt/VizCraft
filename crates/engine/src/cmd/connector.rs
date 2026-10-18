@@ -16,7 +16,7 @@ use crate::{CmdResult, CommandSpec, EngineError, Session, p};
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("connector.add", "Add Connector", "Insert > Connector", add).params(
-            r#"{"from": end, "to": end, "route"?: "straight"|"orthogonal"|"curved", "text"?: string, "startArrow"?: arrow, "endArrow"?: arrow, "id"?: string} -> {"id"}; end = {"shape": id, "point"?: index} or {"x": n, "y": n}"#,
+            r#"{"from": end, "to": end, "route"?: "straight"|"orthogonal"|"curved", "text"?: string, "startArrow"?: arrow, "endArrow"?: arrow, "id"?: string} -> {"id"}; end = {"shape": id, "point"?: index, "port"?: "<compartment>.left"|"<compartment>.right"} or {"x": n, "y": n}"#,
         ),
         CommandSpec::new("connector.glue", "Glue Connector", "Canvas", glue)
             .params(r#"{"id": string, "end": "start"|"end", "shape"?: id, "point"?: index, "x"?: n, "y"?: n}"#)
@@ -59,7 +59,16 @@ fn parse_end(page: &Page, v: &Value, what: &str) -> Result<End, EngineError> {
                 }
             }
         };
-        return Ok(End::Glued { shape: sh.id.clone(), point });
+        // A compartment's point is glued by its port, so the end follows the band.
+        let port = match opt_str(v, "port")? {
+            Some(p) => match vizcraft_diagram::compartment::port_index(sh, p) {
+                Some(_) => Some(p.to_string()),
+                None => return Err(EngineError::Params(format!("{what}: `{}` is not a port of `{}`", short(p), sh.id))),
+            },
+            None => point.and_then(|i| vizcraft_diagram::compartment::port_for_index(sh, i)),
+        };
+        let point = if port.is_some() { None } else { point };
+        return Ok(End::Glued { shape: sh.id.clone(), point, port });
     }
     match (num(v, "x")?, num(v, "y")?) {
         (Some(x), Some(y)) => Ok(End::Free { x: x.clamp(-MAX_COORD, MAX_COORD), y: y.clamp(-MAX_COORD, MAX_COORD) }),

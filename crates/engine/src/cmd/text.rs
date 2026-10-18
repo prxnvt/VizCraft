@@ -8,11 +8,16 @@
 //! field placeholders (see `vizcraft_diagram::text_fields`) are kept intact by it. Text changes go
 //! through the same path as `shape.setText` and `connector.setText`: a view of a model element or
 //! relationship renames it.
+//!
+//! Given a `compartment` id, the character, size, case, alignment and insert commands act on that
+//! compartment of each target shape instead (see `cmd::compartment`): its text or rows, and its
+//! size, bold, colour and alignment overrides.
 
 use serde_json::{Value, json};
 use vizcraft_diagram::text_fields::{CaseChange, FIELDS, Field, TEXT_BOX_STENCIL, change_case};
 use vizcraft_diagram::{Bullets, Color, HAlign, Margins, Shape, ShapeKind, Style, TextBlock, TextCase, TextDirection, VAlign};
 
+use super::compartment as band;
 use super::{Kinds, MAX_DELTA, has_shapes, num, opt_bool, opt_str, page_mut, req_num, select, short, targets, with_sel};
 use crate::{CmdResult, CommandSpec, EngineError, Session, p};
 
@@ -20,25 +25,25 @@ use crate::{CmdResult, CommandSpec, EngineError, Session, p};
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("text.setFormat", "Font", "Home > Font", set_format)
-            .params(r##"{"ids"?: [string], "fontFamily"?: string ("" = default), "size"?: n, "bold"?: bool, "italic"?: bool, "underline"?: bool, "strikethrough"?: bool, "color"?: "#rrggbb", "highlight"?: "#rrggbb"|false|"none"}; shapes and connectors"##)
+            .params(r##"{"ids"?: [string], "fontFamily"?: string ("" = default), "size"?: n, "bold"?: bool, "italic"?: bool, "underline"?: bool, "strikethrough"?: bool, "color"?: "#rrggbb", "highlight"?: "#rrggbb"|false|"none", "compartment"?: id}; shapes and connectors; with compartment, that band of each shape (size, bold, color only)"##)
             .when(has_shapes),
         CommandSpec::new("text.grow", "Font Size Step", "Home > Font", grow)
-            .params(r#"{"ids"?: [string], "step": 1|-1} -> {"sizes"}; to the next standard size up or down"#)
+            .params(r#"{"ids"?: [string], "step": 1|-1, "compartment"?: id} -> {"sizes"}; to the next standard size up or down"#)
             .when(has_shapes),
         CommandSpec::new("text.setCase", "Change Case", "Home > Font", set_case)
-            .params(r#"{"ids"?: [string], "case": "sentence"|"lower"|"upper"|"toggle"|"title"}; rewrites the stored text, field placeholders kept"#)
+            .params(r#"{"ids"?: [string], "case": "sentence"|"lower"|"upper"|"toggle"|"title", "compartment"?: id}; rewrites the stored text (a compartment's text or rows), field placeholders kept"#)
             .when(has_shapes),
         CommandSpec::new("text.setParagraph", "Paragraph", "Home > Paragraph", set_paragraph)
-            .params(r#"{"ids"?: [string], "hAlign"?: "left"|"center"|"right"|"justify", "vAlign"?: "top"|"middle"|"bottom", "bullets"?: "none"|"disc"|"dash"|"number"|bool, "indent"?: n, "direction"?: "ltr"|"rtl"|"vertical", "margins"?: n|{"left"?, "top"?, "right"?, "bottom"?}}"#)
+            .params(r#"{"ids"?: [string], "hAlign"?: "left"|"center"|"right"|"justify", "vAlign"?: "top"|"middle"|"bottom", "bullets"?: "none"|"disc"|"dash"|"number"|bool, "indent"?: n, "direction"?: "ltr"|"rtl"|"vertical", "margins"?: n|{"left"?, "top"?, "right"?, "bottom"?}, "compartment"?: id}; with compartment, hAlign only"#)
             .when(has_shapes),
         CommandSpec::new("text.setBlock", "Text Block", "Home > Tools", set_block)
             .params(r#"{"id": string, "dx"?: n, "dy"?: n, "w"?: n, "h"?: n, "angle"?: degrees, "reset"?: bool} -> {"id", "textBlock"}; dx, dy offset the block centre from the frame centre; reset puts the text back in the frame"#)
             .when(has_shapes),
         CommandSpec::new("text.insertSymbol", "Symbol", "Insert > Text", insert_symbol)
-            .params(r#"{"ids"?: [string], "symbol"?: string, "at"?: n} -> {"ids"}; appended, or inserted at character `at`; no symbol opens the Symbol dialog"#)
+            .params(r#"{"ids"?: [string], "symbol"?: string, "at"?: n, "compartment"?: id} -> {"ids"}; appended, or inserted at character `at`; no symbol opens the Symbol dialog"#)
             .when(has_shapes),
         CommandSpec::new("text.insertField", "Field", "Insert > Text", insert_field)
-            .params(r#"{"ids"?: [string], "field": "date"|"time"|"pageName"|"pageNumber"|"pageCount"|"title"|"width"|"height"|"data", "key"?: string, "at"?: n} -> {"ids", "placeholder"}; data needs key"#)
+            .params(r#"{"ids"?: [string], "field": "date"|"time"|"pageName"|"pageNumber"|"pageCount"|"title"|"width"|"height"|"data", "key"?: string, "at"?: n, "compartment"?: id} -> {"ids", "placeholder"}; data needs key"#)
             .when(has_shapes),
         CommandSpec::new("shape.addTextBox", "Text Box", "Insert > Text", add_text_box)
             .params(r#"{"x": n, "y": n, "w"?: n, "h"?: n, "text"?: string, "id"?: string} -> {"id"}; a shape with no fill and no line; x, y is the top-left"#),
@@ -168,6 +173,19 @@ fn restyle(s: &mut Session, ids: &[String], f: impl Fn(&mut Style)) -> Result<()
 
 fn set_format(s: &mut Session, v: &Value) -> CmdResult {
     let patch = FormatPatch::parse(v)?;
+    if let Some(cid) = band::param(v)? {
+        if patch.family.is_some() || patch.italic.is_some() || patch.underline.is_some() || patch.strikethrough.is_some() || patch.highlight.is_some()
+        {
+            return Err(EngineError::Params("with `compartment`, give size, bold or color".into()));
+        }
+        let ids = targets(s, v, Kinds::Shapes)?;
+        let ids = band::each(s, &ids, &cid, |c, _| {
+            c.font_size = patch.size.or(c.font_size);
+            c.bold = patch.bold.or(c.bold);
+            c.font_color = patch.color.or(c.font_color);
+        })?;
+        return with_sel(s, json!({"styled": ids}));
+    }
     let ids = targets(s, v, Kinds::Both)?;
     restyle(s, &ids, |st| patch.apply(st))?;
     with_sel(s, json!({"styled": ids}))
@@ -187,6 +205,16 @@ fn grow(s: &mut Session, v: &Value) -> CmdResult {
         return Err(bad("step", "1 or -1"));
     }
     let up = step > 0.0;
+    if let Some(cid) = band::param(v)? {
+        let ids = targets(s, v, Kinds::Shapes)?;
+        let mut sizes = Vec::new();
+        let ids = band::each(s, &ids, &cid, |c, base| {
+            let next = step_size(c.font_size.unwrap_or(base.font_size), up);
+            c.font_size = Some(next);
+            sizes.push(next);
+        })?;
+        return with_sel(s, json!({"styled": ids, "sizes": sizes}));
+    }
     let ids = targets(s, v, Kinds::Both)?;
     restyle(s, &ids, |st| st.font_size = step_size(st.font_size, up))?;
     let page = page_mut(s)?;
@@ -234,6 +262,14 @@ fn text_of(s: &Session, id: &str) -> Option<String> {
 fn set_case(s: &mut Session, v: &Value) -> CmdResult {
     let name = p::req_str(v, "case")?;
     let change = CaseChange::parse(name).ok_or_else(|| bad("case", "one of sentence, lower, upper, toggle, title"))?;
+    if let Some(cid) = band::param(v)? {
+        let ids = targets(s, v, Kinds::Shapes)?;
+        let ids = band::each(s, &ids, &cid, |c, _| {
+            c.text = change_case(&c.text, change);
+            c.rows.iter_mut().for_each(|r| *r = change_case(r, change));
+        })?;
+        return with_sel(s, json!({"changed": ids}));
+    }
     let ids = targets(s, v, Kinds::Both)?;
     super::layer::ensure_unlocked(s, &ids)?;
     for id in &ids {
@@ -333,6 +369,15 @@ impl ParagraphPatch {
 
 fn set_paragraph(s: &mut Session, v: &Value) -> CmdResult {
     let patch = ParagraphPatch::parse(v)?;
+    if let Some(cid) = band::param(v)? {
+        let Some(align) = patch.h_align else { return Err(EngineError::Params("with `compartment`, give hAlign".into())) };
+        if patch.v_align.is_some() || patch.bullets.is_some() || patch.indent.is_some() || patch.direction.is_some() || patch.margins.is_some() {
+            return Err(EngineError::Params("with `compartment`, give hAlign only".into()));
+        }
+        let ids = targets(s, v, Kinds::Shapes)?;
+        let ids = band::each(s, &ids, &cid, |c, _| c.align = align)?;
+        return with_sel(s, json!({"styled": ids}));
+    }
     let ids = targets(s, v, Kinds::Both)?;
     restyle(s, &ids, |st| patch.apply(st))?;
     with_sel(s, json!({"styled": ids}))
@@ -382,6 +427,13 @@ fn insert_at(text: &str, insert: &str, at: Option<usize>) -> String {
 /// Insert `piece` into the text of every target.
 fn insert_text(s: &mut Session, v: &Value, piece: &str) -> Result<Vec<String>, EngineError> {
     let at = at_param(v)?;
+    if let Some(cid) = band::param(v)? {
+        let ids = targets(s, v, Kinds::Shapes)?;
+        return band::each(s, &ids, &cid, |c, _| {
+            let text = insert_at(&c.body_text(), piece, at);
+            c.set_body_text(&text);
+        });
+    }
     let ids = targets(s, v, Kinds::Both)?;
     super::layer::ensure_unlocked(s, &ids)?;
     for id in &ids {
@@ -626,5 +678,30 @@ mod tests {
         assert!(s.run("text.setFormat", &json!({"ids": ["a"], "bold": true})).is_err());
         assert!(s.run("text.setCase", &json!({"ids": ["a"], "case": "upper"})).is_err());
         assert!(s.run("text.setBlock", &json!({"id": "a", "dx": 3})).is_err());
+    }
+
+    #[test]
+    fn text_commands_act_on_a_compartment_when_given_one() {
+        let mut s = session();
+        s.run("compartment.add", &json!({"id": "a", "kind": "list", "compartmentId": "attrs", "rows": ["id: int", "total"]})).unwrap();
+        s.run("text.setFormat", &json!({"ids": ["a"], "compartment": "attrs", "size": 9, "bold": true, "color": "#112233"})).unwrap();
+        let c = shape(&s, "a").compartments[0].clone();
+        assert_eq!((c.font_size, c.bold, c.font_color), (Some(9.0), Some(true), Some(Color::rgb(0x11, 0x22, 0x33))));
+        assert_eq!(shape(&s, "a").style.font_size, 12.0, "the main text keeps its size");
+        assert!(s.run("text.setFormat", &json!({"ids": ["a"], "compartment": "attrs", "italic": true})).is_err());
+        let r = s.run("text.grow", &json!({"ids": ["a"], "compartment": "attrs", "step": 1})).unwrap();
+        assert_eq!(r["sizes"], json!([10.0]));
+        s.run("text.setCase", &json!({"ids": ["a"], "compartment": "attrs", "case": "upper"})).unwrap();
+        assert_eq!(shape(&s, "a").compartments[0].rows, vec!["ID: INT".to_string(), "TOTAL".to_string()]);
+        assert_eq!(shape(&s, "a").text, "hello World", "the main text is untouched");
+        s.run("text.setParagraph", &json!({"ids": ["a"], "compartment": "attrs", "hAlign": "right"})).unwrap();
+        assert_eq!(shape(&s, "a").compartments[0].align, HAlign::Right);
+        assert!(s.run("text.setParagraph", &json!({"ids": ["a"], "compartment": "attrs", "vAlign": "top"})).is_err());
+        s.run("text.insertSymbol", &json!({"ids": ["a"], "compartment": "attrs", "symbol": "\u{3a9}", "at": 0})).unwrap();
+        assert_eq!(shape(&s, "a").compartments[0].rows[0], "\u{3a9}ID: INT");
+        s.run("text.insertField", &json!({"ids": ["a"], "compartment": "attrs", "field": "pageName"})).unwrap();
+        assert!(shape(&s, "a").compartments[0].rows[1].ends_with("{{pageName}}"));
+        assert!(s.run("text.setCase", &json!({"ids": ["a"], "compartment": "nope", "case": "lower"})).is_err());
+        assert!(s.run("text.setCase", &json!({"ids": ["c"], "compartment": "attrs", "case": "lower"})).is_err(), "connectors have none");
     }
 }

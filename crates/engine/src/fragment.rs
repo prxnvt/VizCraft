@@ -189,7 +189,7 @@ impl Fragment {
             let mut c = c.clone();
             for e in [&mut c.start, &mut c.end] {
                 match e {
-                    End::Glued { shape, point } => {
+                    End::Glued { shape, point, .. } => {
                         let target = match map.get(shape.as_str()) {
                             Some(new) => new_shapes.iter().find(|x| &x.id == new),
                             None => page.shape(shape),

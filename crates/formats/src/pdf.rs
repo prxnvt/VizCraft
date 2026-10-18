@@ -227,4 +227,6 @@ fn finish(pdf: PdfDocument) -> Result<Vec<u8>, FormatError> {
 }
 
 #[cfg(test)]
+mod compartments;
+#[cfg(test)]
 mod tests;

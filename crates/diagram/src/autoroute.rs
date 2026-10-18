@@ -130,7 +130,7 @@ mod tests {
     fn walled() -> Page {
         let mut page = Page::new("p", "p");
         page.shapes = vec![rect("a", 0.0, 100.0, 60.0, 40.0), rect("wall", 150.0, 0.0, 40.0, 260.0), rect("b", 300.0, 100.0, 60.0, 40.0)];
-        let mut c = Connector::new("c", End::Glued { shape: "a".into(), point: None }, End::Glued { shape: "b".into(), point: None });
+        let mut c = Connector::new("c", End::dynamic("a"), End::dynamic("b"));
         c.route = Route::Orthogonal;
         c.avoid = true;
         page.connectors = vec![c];
@@ -193,7 +193,7 @@ mod tests {
         let mut page = walled();
         page.shapes.push(rect("huge", -1e7, -1e7, 1e6, 1e6));
         page.shapes.push(Shape { id: "nan".into(), x: f64::NAN, y: f64::INFINITY, ..Shape::default() });
-        page.connectors.push(Connector::new("ghost", End::Glued { shape: "gone".into(), point: Some(99) }, End::free(Point::new(f64::NAN, 0.0))));
+        page.connectors.push(Connector::new("ghost", End::point("gone", 99), End::free(Point::new(f64::NAN, 0.0))));
         reroute(&mut page, None);
         for c in &page.connectors {
             let _ = connector_geometry(&page, c);
@@ -210,11 +210,7 @@ mod tests {
         }
         for i in 0..200usize {
             let j = (i * 37 + 11) % 200;
-            let mut c = Connector::new(
-                format!("c{i}"),
-                End::Glued { shape: format!("s{i}"), point: None },
-                End::Glued { shape: format!("s{j}"), point: None },
-            );
+            let mut c = Connector::new(format!("c{i}"), End::dynamic(format!("s{i}")), End::dynamic(format!("s{j}")));
             c.route = Route::Orthogonal;
             c.avoid = true;
             page.connectors.push(c);

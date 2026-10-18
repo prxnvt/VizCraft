@@ -388,7 +388,7 @@ fn change_shape(s: &mut Session, v: &Value) -> CmdResult {
     }
     for c in &mut page.connectors {
         for end in [&mut c.start, &mut c.end] {
-            if let End::Glued { shape, point } = end
+            if let End::Glued { shape, point, .. } = end
                 && let Some(i) = *point
                 && let Some((_, old, new)) = remap.iter().find(|(id, ..)| id == shape)
             {

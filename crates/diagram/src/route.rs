@@ -39,8 +39,8 @@ pub struct Ends {
 fn anchor(page: &Page, e: &End) -> Point {
     match e {
         End::Free { x, y } => Point::new(*x, *y),
-        End::Glued { shape, point } => match page.shape(shape) {
-            Some(s) => point.and_then(|i| s.connection_point_world(i)).unwrap_or_else(|| s.center()),
+        End::Glued { shape, .. } => match page.shape(shape) {
+            Some(s) => e.resolve_port(s).and_then(|i| s.connection_point_world(i)).unwrap_or_else(|| s.center()),
             None => Point::ZERO,
         },
     }
@@ -50,13 +50,13 @@ fn anchor(page: &Page, e: &End) -> Point {
 fn resolve(page: &Page, e: &End, toward: Point) -> EndPoint {
     match e {
         End::Free { x, y } => EndPoint { pos: Point::new(*x, *y).sanitized(), dir: None, shape: None, point: None },
-        End::Glued { shape, point } => {
+        End::Glued { shape, .. } => {
             let Some(s) = page.shape(shape) else {
                 // Glue to a shape that is gone: the commands detach ends before deleting, so this
                 // only happens with a damaged file. Park the end at the origin rather than fail.
                 return EndPoint { pos: Point::ZERO, dir: None, shape: None, point: None };
             };
-            let fixed = point.filter(|i| s.connection_point_world(*i).is_some());
+            let fixed = e.resolve_port(s).filter(|i| s.connection_point_world(*i).is_some());
             let chosen = fixed.or_else(|| nearest_point(&s.connection_points_world(), toward));
             match chosen.and_then(|i| Some((i, s.connection_point_world(i)?))) {
                 Some((i, pos)) => EndPoint { pos, dir: s.connection_direction(i), shape: Some(s.id.clone()), point: Some(i) },
@@ -400,7 +400,7 @@ mod waypoint_tests {
             Shape { id: "a".into(), x: 0.0, y: 0.0, w: 60.0, h: 40.0, ..Shape::default() },
             Shape { id: "b".into(), x: 300.0, y: 200.0, w: 60.0, h: 40.0, ..Shape::default() },
         ];
-        let mut c = Connector::new("c", End::Glued { shape: "a".into(), point: None }, End::Glued { shape: "b".into(), point: None });
+        let mut c = Connector::new("c", End::dynamic("a"), End::dynamic("b"));
         c.route = route;
         c.waypoints = waypoints;
         (page, c)

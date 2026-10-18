@@ -25,6 +25,7 @@
 pub mod arrange;
 pub mod autolayout;
 pub mod autoroute;
+pub mod compartment;
 pub mod container;
 pub mod data;
 pub mod decor;
@@ -46,9 +47,10 @@ pub mod text_fields;
 pub mod theme;
 pub mod views;
 
+pub use compartment::{Band, Compartment, CompartmentKind, Height};
 pub use doc_fields::{Comment, CommentAnchor, DocProperties, ImageAsset, Reply};
 pub use geom::{Path, PathEl, Point, Polyline, Rect, Transform, Vec2};
-pub use hit::{Hit, connection_point_at, connector_at, connectors_in_rect, glue_shape_at, hit, shape_at, shapes_in_rect};
+pub use hit::{BandHit, Hit, band_at, connection_point_at, connector_at, connectors_in_rect, glue_shape_at, hit, shape_at, shapes_in_rect};
 pub use kind::ShapeKind;
 pub use model::{Arrow, Color, Connector, CoreProps, Document, End, Page, Route, Shape, Style};
 pub use model::{MAX_WAYPOINTS, is_plain_id};
