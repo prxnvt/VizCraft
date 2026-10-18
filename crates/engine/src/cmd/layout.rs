@@ -25,7 +25,7 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("layout.incremental", "Place New Shapes", "Design > Layout", incremental)
             .params(concat!(
                 r#"{"ids": [string], "algorithm"?: "layered"|"tree"|"radial"|"force", "direction"?: "TB"|"BT"|"LR"|"RL" (also "TD"), "nodeSpacing"?: n, "layerSpacing"?: n} -> {"ids", "notes"}"#,
-                r#"; places only the shapes in `ids` next to the shapes they connect to; every other shape stays where it is"#
+                r#"; places only the shapes in `ids` (with everything inside them) next to the shapes they connect to; every other shape stays where it is; new groups, containers and lane sets are placed whole, new members of an existing container or lane stay inside it, callouts follow their target, locked shapes stay"#
             ))
             .when(can_lay_out),
         CommandSpec::new("layout.route", "Route Connectors", "Design > Layout", route)
@@ -296,6 +296,62 @@ mod tests {
             }
             // The sample page was not touched, and one undo puts the page back.
             assert_eq!(s.doc.pages[0], fresh.doc.pages[0]);
+            s.run("edit.undo", &json!({})).unwrap();
+            assert_eq!(s.doc.page().unwrap(), &before, "{algorithm}: one undo step");
+        }
+    }
+
+    #[test]
+    fn place_new_shapes_keeps_groups_lane_members_and_callouts_by_the_unit_rules_in_every_mode() {
+        for algorithm in ["layered", "tree", "radial", "force"] {
+            let mut s = parts();
+            let run = |s: &mut Session, id: &str, v: serde_json::Value| s.run(id, &v).unwrap();
+            let lane1 = vizcraft_diagram::container::lanes(s.doc.page().unwrap(), "set")[1].clone();
+            // New: a group downstream of n2, a step added to the middle lane (still outside it),
+            // and a shape with a callout, all far off to the right.
+            for (id, x, y) in [("na", 2000.0, 60.0), ("nb", 2160.0, 60.0), ("nm", 2000.0, 400.0), ("nc", 2000.0, 800.0)] {
+                run(&mut s, "shape.add", json!({"stencil": "flowchart.process", "x": x, "y": y, "id": id, "text": id}));
+            }
+            run(&mut s, "arrange.group", json!({"ids": ["na", "nb"], "id": "ng"}));
+            run(&mut s, "container.addMember", json!({"container": lane1, "ids": ["nm"]}));
+            run(&mut s, "callout.add", json!({"target": "nc", "text": "New note", "id": "nco"}));
+            for (a, b) in [("n2", "na"), ("l11", "nm"), ("l01", "nm"), ("nb", "nc")] {
+                run(&mut s, "connector.add", json!({"from": {"shape": a}, "to": {"shape": b}}));
+            }
+            let before = s.doc.page().unwrap().clone();
+            let new = ["na", "nb", "ng", "nm", "nc", "nco"];
+            s.run("layout.incremental", &json!({"ids": ["ng", "nm", "nc", "nco"], "algorithm": algorithm})).unwrap();
+            assert_eq!(s.undo_label(), Some("Place New Shapes"), "{algorithm}");
+            let page = s.doc.page().unwrap();
+            for old in before.shapes.iter().filter(|sh| !new.contains(&sh.id.as_str())) {
+                assert_eq!(page.shape(&old.id), Some(old), "{algorithm}: {} moved", old.id);
+            }
+            assert_eq!(rel(page, "nb", "na"), rel(&before, "nb", "na"), "{algorithm}: the new group stays whole");
+            let nm = page.shape("nm").unwrap();
+            assert_eq!(nm.parent.as_ref(), Some(&lane1), "{algorithm}");
+            assert!(page.shape(&lane1).unwrap().bounds().contains_rect(&nm.bounds()), "{algorithm}: the new step left its lane");
+            let overlap = |a: &str, b: &str| {
+                let (x, y) = (page.shape(a).unwrap().bounds(), page.shape(b).unwrap().bounds());
+                x.x0 < y.x1 && y.x0 < x.x1 && x.y0 < y.y1 && y.y0 < x.y1
+            };
+            for other in ["l10", "l11"] {
+                assert!(!overlap("nm", other), "{algorithm}: the new step covers {other}");
+            }
+            let units = ["g", "n1", "n2", "set", "ng", "nc"];
+            for (i, a) in units.iter().enumerate() {
+                for b in units.iter().skip(i + 1) {
+                    assert!(!overlap(a, b), "{algorithm}: {a} and {b} overlap");
+                }
+            }
+            // The new callout was not placed: it followed its target and covers nothing.
+            let gap = |p: &Page| {
+                let (c, t) = (p.shape("nco").unwrap().bounds().center(), p.shape("nc").unwrap().bounds().center());
+                (((c.x - t.x).abs() * 1000.0).round() as i64, ((c.y - t.y).abs() * 1000.0).round() as i64)
+            };
+            assert_eq!(gap(page), gap(&before), "{algorithm}");
+            for other in page.shapes.iter().filter(|sh| !["nco", "g", "ng"].contains(&sh.id.as_str())) {
+                assert!(!overlap("nco", &other.id), "{algorithm}: the new callout covers {}", other.id);
+            }
             s.run("edit.undo", &json!({})).unwrap();
             assert_eq!(s.doc.page().unwrap(), &before, "{algorithm}: one undo step");
         }

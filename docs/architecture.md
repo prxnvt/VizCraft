@@ -222,7 +222,7 @@ grows each auto-size page whose drawing reaches past its right or bottom edge
 | `page.setup` | `{page?, width?, height?, orientation?, units?, drawingScale?: {page, drawing, units?}, autoSize?}`; orientation swaps width and height to match; with no params the UI opens the Page Setup dialog |
 | `page.setBackground`, `page.fitToDrawing` | `{page?, background: page or null}` (a background page only, no loops); `{page?, margin?}` (moves the drawing to the margin and sizes the page around it) |
 | `layout.full` | `{algorithm?: "layered" \| "tree" \| "radial" \| "force", direction?, nodeSpacing?, layerSpacing?, ids?}`: the named shapes, else a selection of two or more, else the page; groups, containers and lane sets move as one node with their members, callouts follow their target, position-locked shapes and locked layers stay put, connectors between moved shapes get dynamic glue; refused on a generated decoration page; the page grows to fit |
-| `layout.incremental` | `{ids, algorithm?, direction?, nodeSpacing?, layerSpacing?}`: places only `ids`, every other shape stays |
+| `layout.incremental` | `{ids, algorithm?, direction?, nodeSpacing?, layerSpacing?}`: places only `ids` and what is inside them, every other shape stays; the same unit rules as `layout.full`, and a new member of an existing container or lane lands inside it (an auto-fit container grows from its corner); refused on a generated decoration page |
 | `layout.route` | `{ids?}`: routes connectors around shapes, never moves a shape |
 
 Model commands (Cascade 4A). Element ids in params may also be the id of a shape that draws the
@@ -557,7 +557,8 @@ no extra bookkeeping. Bends of `avoid` connectors come from `autoroute::{reroute
 SVG export draw through `jumps::page_geometry` for line jumps. `autolayout::{layout_items,
 layout_incremental}` place shapes with `vizcraft-layout`; `layout_items` lays out units (a group,
 container or lane set with everything inside it is one node) so a layout never splits a group or
-pulls members out of their lanes. `Document::{find_page, add_page, adopt}`
+pulls members out of their lanes; `layout_incremental` places new units by the same rules, and new
+members of a box that stays are placed among its other members and kept inside it. `Document::{find_page, add_page, adopt}`
 serve the importers and page commands. Hit
 testing (`shape_at`, `connector_at`, `shapes_in_rect`, `connection_point_at`) uses the real
 outline and rotation. Loading is tolerant: missing or wrong-typed fields take defaults, and
