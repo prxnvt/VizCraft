@@ -43,15 +43,16 @@ pub fn reroute(page: &mut Page, ids: Option<&[String]>) {
     if chosen.is_empty() {
         return;
     }
-    let obstacles: Vec<Obstacle> = page
-        .shapes
+    // Groups draw nothing and enclose their members, so they are not obstacles.
+    let solid: Vec<&crate::model::Shape> = page.shapes.iter().filter(|s| !crate::arrange::is_group(s)).collect();
+    let obstacles: Vec<Obstacle> = solid
         .iter()
         .map(|s| {
             let b = s.bounds();
             Obstacle::new(b.x0, b.y0, b.x1, b.y1)
         })
         .collect();
-    let index_of: HashMap<&str, usize> = page.shapes.iter().enumerate().map(|(i, s)| (s.id.as_str(), i)).collect();
+    let index_of: HashMap<&str, usize> = solid.iter().enumerate().map(|(i, s)| (s.id.as_str(), i)).collect();
     let requests: Vec<Request> = chosen
         .iter()
         .filter_map(|&i| page.connectors.get(i))
@@ -79,15 +80,15 @@ pub fn reroute(page: &mut Page, ids: Option<&[String]>) {
 /// Whether the drawn route of `c` stays out of every shape on the page except the ones its ends
 /// are glued to (touching an edge is allowed). For tests and checks of rerouted connectors.
 pub fn clear_of_shapes(page: &Page, c: &crate::model::Connector) -> bool {
-    let obstacles: Vec<Obstacle> = page
-        .shapes
+    let solid: Vec<&crate::model::Shape> = page.shapes.iter().filter(|s| !crate::arrange::is_group(s)).collect();
+    let obstacles: Vec<Obstacle> = solid
         .iter()
         .map(|s| {
             let b = s.bounds();
             Obstacle::new(b.x0, b.y0, b.x1, b.y1)
         })
         .collect();
-    let ignore: Vec<usize> = page.shapes.iter().enumerate().filter(|(_, s)| c.touches(&s.id)).map(|(i, _)| i).collect();
+    let ignore: Vec<usize> = solid.iter().enumerate().filter(|(_, s)| c.touches(&s.id)).map(|(i, _)| i).collect();
     let points = crate::route::route_polyline(page, c).into_iter().map(|p| RPoint::new(p.x, p.y)).collect();
     vizcraft_routing::clear_of_obstacles(&vizcraft_routing::Route { points, fallback: false }, &obstacles, &ignore, 0.0)
 }

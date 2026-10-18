@@ -51,7 +51,8 @@ pub(super) fn decide(app: &CraftApp, page: &Page, vp: &Viewport2D, at: Pos2, m: 
                 return Some(Start::Drag(Drag::Connect { from: End::point(s.id.clone(), i), to: w }));
             }
             match dg::hit(page, w, f64::from(HIT / zoom)) {
-                Some(Hit::Shape(id) | Hit::Connector(id)) => Some(Start::SelectAndMove(id, m.shift)),
+                Some(Hit::Shape(id)) => Some(Start::SelectAndMove(super::select::press_target(page, &id, &app.session.sel.items), m.shift)),
+                Some(Hit::Connector(id)) => Some(Start::SelectAndMove(id, m.shift)),
                 None => Some(Start::Drag(Drag::Marquee { from: w, to: w, add: m.shift })),
             }
         }

@@ -75,7 +75,9 @@ impl Fragment {
 
     /// The fragment of the session's selection.
     pub fn of_selection(s: &Session) -> Fragment {
-        Fragment::extract(&s.doc, |id| s.sel.contains(id))
+        // A selected group brings its members.
+        let ids = s.doc.page().map(|p| vizcraft_diagram::arrange::with_descendants(p, &s.sel.items)).unwrap_or_default();
+        Fragment::extract(&s.doc, |id| ids.iter().any(|i| i == id))
     }
 
     /// True when there is nothing to insert.

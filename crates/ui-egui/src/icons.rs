@@ -59,6 +59,12 @@ pub const NAMES: &[&str] = &[
     "layout",
     "routeAround",
     "lineJumps",
+    // Arrange
+    "align",
+    "position",
+    "bringFront",
+    "sendBack",
+    "group",
     // App
     "settings",
     "info",
@@ -451,6 +457,40 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
             pen.line_c(&[(10.0, 17.5), (10.0, 15.0)], a);
             pen.arc(10.0, 12.0, 3.0, FRAC_PI_2, PI, a);
             pen.line_c(&[(10.0, 9.0), (10.0, 2.5)], a);
+        }
+        // Arrange
+        "align" => {
+            // Three bars of different lengths flush against a left edge.
+            pen.line(&[(3.0, 2.5), (3.0, 17.5)]);
+            pen.rect(5.0, 4.0, 15.0, 7.5, c);
+            pen.frect(5.0, 9.5, 11.0, 12.5, a);
+            pen.rect(5.0, 14.0, 17.0, 16.5, c);
+        }
+        "position" => {
+            // Three boxes with equal gaps, the gaps marked.
+            pen.rect(2.0, 6.5, 6.0, 13.5, c);
+            pen.rect(8.0, 6.5, 12.0, 13.5, c);
+            pen.rect(14.0, 6.5, 18.0, 13.5, c);
+            pen.line_c(&[(6.5, 16.5), (7.5, 16.5)], a);
+            pen.line_c(&[(12.5, 16.5), (13.5, 16.5)], a);
+        }
+        "bringFront" => {
+            // A filled square overlapping an outlined one from the front.
+            pen.rect(2.5, 2.5, 11.5, 11.5, c);
+            pen.frect(8.5, 8.5, 17.5, 17.5, a);
+        }
+        "sendBack" => {
+            // An outlined square in front of a filled one behind it.
+            pen.frect(2.5, 2.5, 11.5, 11.5, a);
+            pen.rect(8.5, 8.5, 17.5, 17.5, c);
+        }
+        "group" => {
+            // Two shapes inside a dashed-looking frame with corner marks.
+            for (x, y) in [(2.5, 2.5), (17.5, 2.5), (17.5, 17.5), (2.5, 17.5)] {
+                pen.frect(x - 1.2, y - 1.2, x + 1.2, y + 1.2, c);
+            }
+            pen.rect(5.0, 5.0, 11.0, 10.0, c);
+            pen.circle(12.5, 12.5, 3.0, a);
         }
         // App
         "settings" => {

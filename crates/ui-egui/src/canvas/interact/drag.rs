@@ -84,10 +84,7 @@ pub fn preview_page(page: &Page, drag: &Drag, zoom: f32) -> Option<Page> {
         Drag::Marquee { .. } => return None,
         Drag::Move { ids, from, to } => {
             let d = move_delta(*from, *to);
-            for s in p.shapes.iter_mut().filter(|s| ids.contains(&s.id)) {
-                s.x += d.x;
-                s.y += d.y;
-            }
+            dg::arrange::translate(&mut p, ids, d.x, d.y);
             for c in p.connectors.iter_mut().filter(|c| ids.contains(&c.id)) {
                 offset_end(&mut c.start, d);
                 offset_end(&mut c.end, d);
@@ -95,13 +92,13 @@ pub fn preview_page(page: &Page, drag: &Drag, zoom: f32) -> Option<Page> {
         }
         Drag::Resize { id, handle, to, keep_aspect } => {
             let frame = page.shape(id).and_then(|s| resize_frame(s, *handle, *to, *keep_aspect));
-            if let (Some(s), Some((x, y, w, h))) = (p.shape_mut(id), frame) {
-                (s.x, s.y, s.w, s.h) = (x, y, w, h);
+            if let Some((x, y, w, h)) = frame {
+                dg::arrange::set_frame(&mut p, id, x, y, w, h);
             }
         }
         Drag::Rotate { id, to, snap } => {
-            if let Some(s) = p.shape_mut(id) {
-                s.angle_deg = rotate_angle(s, *to, *snap);
+            if let Some(a) = page.shape(id).map(|s| rotate_angle(s, *to, *snap)) {
+                dg::arrange::set_angle(&mut p, id, a);
             }
         }
         Drag::Connect { from, to } => {

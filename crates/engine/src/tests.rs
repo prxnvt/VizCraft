@@ -23,6 +23,7 @@ fn registry_ids_are_unique_and_prefixed() {
                 "edit",
                 "view",
                 "shape",
+                "arrange",
                 "connector",
                 "page",
                 "layout",
