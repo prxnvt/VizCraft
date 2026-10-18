@@ -71,7 +71,7 @@ pub struct Entry {
 
 /// Commands that are listed (so every front sees them) but have nothing behind them yet: menus
 /// show them disabled. A craft removes an id from here when it implements the command.
-pub const PLACEHOLDERS: &[&str] = &["ui.print", "ui.find", "window.minimize", "window.zoom"];
+pub const PLACEHOLDERS: &[&str] = &["ui.print", "window.minimize", "window.zoom"];
 
 /// The label of the Exit item on platforms whose File menu has one.
 const EXIT_LABEL: &str = if cfg!(target_os = "windows") { "Exit" } else { "Quit" };

@@ -44,6 +44,10 @@ pub enum Dialog {
     PageSetup(crate::page_setup::PageSetup),
     /// Snap and Glue: what dragged items snap to, and how strongly.
     SnapSettings(crate::snap_dialog::State),
+    /// Find and Replace (`crate::find_dialog`).
+    Find(crate::find_dialog::State),
+    /// Paste Special (`crate::paste_special`).
+    PasteSpecial(crate::paste_special::State),
 }
 
 impl Dialog {
@@ -59,6 +63,8 @@ impl Dialog {
             Dialog::Message { .. } => "message",
             Dialog::PageSetup(_) => "pageSetup",
             Dialog::SnapSettings(_) => "snapSettings",
+            Dialog::Find(_) => "find",
+            Dialog::PasteSpecial(_) => "pasteSpecial",
         }
     }
 
@@ -74,6 +80,8 @@ impl Dialog {
             "shortcuts" => Dialog::Shortcuts { filter: String::new() },
             "pageSetup" => Dialog::PageSetup(crate::page_setup::PageSetup::new(app)),
             "snapSettings" => Dialog::SnapSettings(crate::snap_dialog::open(app)),
+            "find" => Dialog::Find(crate::find_dialog::open(app)),
+            "pasteSpecial" => Dialog::PasteSpecial(crate::paste_special::open(app)),
             _ => return None,
         })
     }
@@ -89,6 +97,8 @@ impl Dialog {
             Dialog::Message { title, .. } => title.clone(),
             Dialog::PageSetup(_) => "Page Setup".into(),
             Dialog::SnapSettings(_) => "Snap and Glue".into(),
+            Dialog::Find(_) => "Find and Replace".into(),
+            Dialog::PasteSpecial(_) => "Paste Special".into(),
         }
     }
 
@@ -97,6 +107,7 @@ impl Dialog {
             Dialog::Commands { .. } => 520.0,
             Dialog::Shortcuts { .. } => 460.0,
             Dialog::About => 400.0,
+            Dialog::Find(_) => 420.0,
             _ => 360.0,
         }
     }
@@ -282,6 +293,12 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
             crate::snap_dialog::body(ui, s);
             let (ok, cancel) = buttons(ui, "OK", Some("Cancel"), keys);
             crate::snap_dialog::finish(app, s, ok, cancel)
+        }
+        Dialog::Find(f) => crate::find_dialog::body(app, ui, f, keys.enter),
+        Dialog::PasteSpecial(p) => {
+            crate::paste_special::body(ui, app, p);
+            let (ok, cancel) = buttons(ui, "OK", Some("Cancel"), keys);
+            crate::paste_special::finish(app, p, ok, cancel)
         }
         Dialog::Shortcuts { filter } => {
             let r = ui.add(egui::TextEdit::singleline(filter).hint_text("Filter").desired_width(f32::INFINITY));

@@ -31,7 +31,11 @@ pub fn keys(app: &mut CraftApp, ctx: &egui::Context) {
         match key {
             Key::Escape => {
                 ctx.input_mut(|i| i.consume_key(m, key));
-                if app.canvas.drag.take().is_none() && !app.session.sel.items.is_empty() {
+                // Escape first disarms the format painter (kept armed by a double-click).
+                if let crate::Tool::FormatPainter { .. } = app.tool {
+                    app.tool = crate::Tool::Pointer;
+                    app.canvas.painter_from = None;
+                } else if app.canvas.drag.take().is_none() && !app.session.sel.items.is_empty() {
                     run(app, "edit.selectNone", json!({}));
                 }
             }

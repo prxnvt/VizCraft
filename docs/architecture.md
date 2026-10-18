@@ -80,6 +80,12 @@ must name existing items or nothing changes. Each document change is one undo st
 | `connector.setRoute`, `connector.setArrows`, `connector.setText` | `{ids?, route}`; `{ids?, start?, end?}`; `{id, text}` |
 | `edit.select`, `edit.selectNone`, `edit.selectAll`, `edit.delete` | `{ids, add?}`; `{}` |
 | `edit.cut`, `edit.copy`, `edit.paste` | copy returns `{text}` holding a selection fragment `{"vizcraft": "clip", "shapes", "connectors"}`; paste takes `{text?}` and inserts it with fresh ids and the internal glue kept |
+| `edit.duplicate` | `{ids?, dx?, dy?}` -> `{duplicated}`: a fragment copy 20 right and down (Mod+D), selected |
+| `edit.pasteSpecial` | `{as?: "shapes" \| "text" \| "style", text?}`: the clip's shapes, its text into the selection, or its first item's style onto it; without `as` the UI opens the Paste Special dialog |
+| `edit.formatPainter` | `{from?, to?}` -> `{painted}`: fill, line and effects (arrowheads between connectors) from one item to others; not text or geometry |
+| `edit.changeShape` | `{stencil, ids?}` -> `{changed}`: new outline and connection points; frame, text, data, layers, parent and glue kept (point glue moves to the nearest new point); style fields that differ from the old master's are kept, the rest follow the new master |
+| `edit.selectByType` | `{kind: "shapes" \| "connectors" \| "groups" \| "text" \| "layer", layer?}` |
+| `edit.find`, `edit.replace` | `{text, matchCase?, wholeWord?, scope?: "page" \| "document", inData?}` -> `{hits: [{page, id, field, value}]}`; replace adds `{with, all?, at?}` -> `{replaced, changed, skipped, hits}` (`cmd/find.rs`; shapes on locked layers are skipped; `fields` is the one place that says what is searched) |
 | `connector.reroute`, `connector.setJumps` | `{ids?, avoid?}` (true: route around shapes and keep clear; false: clear bends); `{ids?, on}` |
 | `shape.search` | `{query, limit?}` -> `{masters: [{id, label, category, keywords, w, h, style}]}` (`style` is the draw.io style string) |
 
@@ -106,7 +112,7 @@ transform its members (`arrange::{translate, set_frame, set_angle}`); deleting a
 members, a group left empty is deleted, and copying a group copies its members. Groups nest.
 Auto routing does not treat groups as obstacles. On the canvas, a click on a member selects its
 outermost group, the next click one level down, and once inside a group a click picks a sibling
-directly; a marquee selects whole groups.
+directly; a marquee or a lasso selects whole groups.
 
 Design commands (Block 2, `cmd/design.rs`). Each document change is one undo step; a page is
 named by id, name or zero-based index and defaults to the active page.
@@ -244,8 +250,8 @@ Engine infrastructure that later features build on (`crates/engine/src/session.r
   connectors from the current page with the model elements and relationships they draw; glue to
   shapes outside the fragment becomes a free end. `Fragment::insert(doc, dx, dy)` adds a copy with
   fresh ids, glue between fragment items remapped and model items copied once each, and returns the
-  new ids. `to_json` and `from_json` are the clipboard form. Copy, cut and paste use it; duplicate,
-  paste special, format painter and change shape are meant to.
+  new ids. `to_json` and `from_json` are the clipboard form. Copy, cut, paste, duplicate and paste
+  special use it (`Fragment::of_items` for a list of ids).
 - **Scripts.** While recording, each command run directly (not inside a transaction) that
   succeeds is appended as `{command, params}`, except `view.*`, `ui.*`, `app.*`, `help.*`,
   `file.*` and `script.*` (`session::recordable`). Undo drops the recorded commands of the step
@@ -284,7 +290,7 @@ impl Session {
 pub mod io { pub fn save_bytes(name: &str, doc: &Document) -> Result<Vec<u8>, EngineError>; pub fn load_bytes(name: &str, bytes: &[u8]) -> Result<Document, EngineError>;
              pub fn export_bytes(name: &str, format: Option<&str>, doc: &Document) -> Result<Vec<u8>, EngineError>; }
 pub mod sample { pub fn sample_document() -> Document; }
-pub mod fragment { pub struct Fragment { shapes, connectors, elements, relationships } // extract, of_selection, insert, to_json, from_json
+pub mod fragment { pub struct Fragment { shapes, connectors, elements, relationships } // extract, of_selection, of_items, insert, to_json, from_json
 }
 ```
 
@@ -345,12 +351,16 @@ Files are cut so that parallel work touches separate files:
 | `panes/layout.rs`, `panes/manager.rs` | `PaneLayout`; drawing of the sides, headers and splitters | |
 | `panes/<pane>.rs` | One file per pane with its `SPEC` | Pane: a file plus one line in `default_panes!` and a `ui.pane.<key>` row in `UI_COMMANDS` |
 | `canvas/mod.rs` | Viewport, `CanvasState`, pan and zoom, insertion, per-frame `show` | |
-| `canvas/draw/` | `mod.rs` conversions and sheet; `shapes.rs` (background pages, then per shape glow, shadow, solid or gradient fill with soft edges, dashed and capped outline, as SVG export draws them; gradients turn with a rotated shape), `text.rs`, `connectors.rs`, `overlays.rs` (selection chrome) | |
+| `canvas/draw/` | `mod.rs` conversions and sheet; `shapes.rs` (background pages, then per shape glow, shadow, solid or gradient fill with soft edges, dashed and capped outline, as SVG export draws them; gradients turn with a rotated shape), `text.rs`, `connectors.rs` (dashed, capped, faded and rounded lines through the same outline helper), `overlays.rs` (selection chrome, marquee and lasso) | |
 | `canvas/tess.rs` | Ear-clipping triangulation, gradient meshes (linear cut into exact bands, radial subdivided), dash patterns, ring offsets and fading strips for blur, glow and soft edges | |
-| `canvas/interact/` | `mod.rs` `Drag` and pointer dispatch; `select.rs`, `drag.rs`, `connect.rs`, `tools.rs`, `edit_text.rs`, `keys.rs` | |
+| `canvas/interact/` | `mod.rs` `Drag` and pointer dispatch; `select.rs` (clicks, marquee, lasso), `drag.rs`, `connect.rs`, `tools.rs`, `painter.rs` (format painter), `edit_text.rs`, `keys.rs` | |
 
 A canvas drag previews in UI state and commits one command on release, so every drag is one undo
-step. The canvas tool (`CraftApp.tool`: pointer, connector, text) is set by `ui.tool`.
+step. The canvas tool (`CraftApp.tool`: pointer, lasso, connector, text, format painter) is set by
+`ui.tool`; `area` names the pointer (its rectangle marquee), `lasso` drags a freehand selection,
+and `formatPainter {from?, keep?}` paints the next clicked item (every one until Escape with
+`keep`). Find and Replace (`find_dialog.rs`, from `ui.find`) and Paste Special
+(`paste_special.rs`) are dialogs over `edit.find`, `edit.replace` and `edit.pasteSpecial`.
 
 ```rust
 pub struct Services {        // host-injected platform services; all optional
@@ -372,7 +382,7 @@ pub struct CraftApp {
     pub new_window_request: Option<String>, pub quit_all_request: bool,
     pub quit_requested: bool, pub quit_confirmed: bool,
     pub frame_ms: f64,
-    pub tool: Tool,                      // canvas tool: Pointer | Connector | Text, set by ui.tool
+    pub tool: Tool,                      // canvas tool: Pointer | Lasso | Connector | Text | FormatPainter, set by ui.tool
     // private: control_rx, screenshot queues, synthetic events, style flags
 }
 impl CraftApp {

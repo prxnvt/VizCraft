@@ -81,7 +81,7 @@ pub(super) fn offset_end(e: &mut End, d: Point) {
 pub fn preview_page(page: &Page, drag: &Drag, zoom: f32) -> Option<Page> {
     let mut p = page.clone();
     match drag {
-        Drag::Marquee { .. } => return None,
+        Drag::Marquee { .. } | Drag::Lasso { .. } => return None,
         Drag::Move { ids, from, to } => {
             let d = move_delta(*from, *to);
             dg::arrange::translate(&mut p, ids, d.x, d.y);
@@ -133,6 +133,16 @@ pub(super) fn finish(app: &mut CraftApp, drag: Drag, zoom: f32) {
     match drag {
         Drag::Marquee { from, to, add } => {
             let ids = marquee_ids(page, &dg::Rect::from_points(from, to));
+            if ids.is_empty() {
+                if !add && !app.session.sel.items.is_empty() {
+                    run(app, "edit.selectNone", json!({}));
+                }
+            } else {
+                run(app, "edit.select", json!({"ids": ids, "add": add}));
+            }
+        }
+        Drag::Lasso { points, add } => {
+            let ids = super::lasso_ids(page, &points);
             if ids.is_empty() {
                 if !add && !app.session.sel.items.is_empty() {
                     run(app, "edit.selectNone", json!({}));

@@ -15,6 +15,7 @@ pub mod connect;
 pub mod drag;
 pub mod edit_text;
 pub mod keys;
+pub mod painter;
 pub mod select;
 pub mod tools;
 
@@ -32,7 +33,7 @@ pub use drag::{drag_target, handle_world, preview_page, resize_frame, rotate_ang
 pub use edit_text::{TextEditing, commit_editing, start_editing};
 pub use keys::keys;
 use select::click;
-pub use select::{marquee_ids, marquee_rect, single_connector, single_shape};
+pub use select::{lasso_ids, marquee_ids, marquee_rect, single_connector, single_shape};
 use tools::{Start, decide, near};
 
 /// Screen distance (points) within which a handle or connection point is grabbed.
@@ -56,6 +57,8 @@ pub const HANDLES: [(f64, f64); 8] = [(0.0, 0.0), (0.5, 0.0), (1.0, 0.0), (1.0, 
 pub enum Drag {
     /// Rubber-band selection; `add` keeps the current selection (Shift).
     Marquee { from: Point, to: Point, add: bool },
+    /// Freehand lasso selection through `points`; `add` keeps the current selection (Shift).
+    Lasso { points: Vec<Point>, add: bool },
     /// Moving the selected items.
     Move { ids: Vec<String>, from: Point, to: Point },
     /// Dragging resize handle `handle` (index into [`HANDLES`]) of a shape.
@@ -128,6 +131,7 @@ pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D
                 *to = w;
                 *snap = m.shift;
             }
+            Some(Drag::Lasso { points, .. }) => select::extend_lasso(points, w, zoom),
             None => {}
         }
     }
@@ -136,7 +140,7 @@ pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D
     {
         finish(app, d, zoom);
     }
-    if response.double_clicked_by(egui::PointerButton::Primary) && app.tool == Tool::Pointer {
+    if response.double_clicked_by(egui::PointerButton::Primary) && matches!(app.tool, Tool::Pointer | Tool::Lasso) {
         if let (Some(p), Some(page)) = (response.interact_pointer_pos(), app.session.doc.page())
             && let Some(h) = dg::hit(page, point(vp.screen_to_world(p)), f64::from(HIT / zoom))
         {
@@ -161,7 +165,8 @@ fn cursor(app: &CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D) {
         (Some(_), _) => return,
         (None, Tool::Connector) => egui::CursorIcon::Crosshair,
         (None, Tool::Text) => egui::CursorIcon::Text,
-        (None, Tool::Pointer) => {
+        (None, Tool::FormatPainter { .. }) => egui::CursorIcon::Copy,
+        (None, Tool::Pointer | Tool::Lasso) => {
             let (Some(hp), Some(page)) = (response.hover_pos(), app.session.doc.page()) else { return };
             let w = point(vp.screen_to_world(hp));
             let tol = f64::from(GRAB / vp.zoom);

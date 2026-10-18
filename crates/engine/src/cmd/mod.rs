@@ -8,6 +8,7 @@ pub mod edit;
 pub mod effects;
 pub mod element;
 pub mod file;
+pub mod find;
 pub mod help;
 pub mod insert;
 pub mod layer;
@@ -33,6 +34,7 @@ pub fn registry() -> Registry {
     let mut v = Vec::new();
     v.extend(file::specs());
     v.extend(edit::specs());
+    v.extend(find::specs());
     v.extend(batch::specs());
     v.extend(view::specs());
     v.extend(shape::specs());

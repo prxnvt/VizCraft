@@ -5,8 +5,8 @@
 //! The clipboard is a fragment in JSON form, `{"vizcraft": "clip", "shapes": [...], "connectors":
 //! [...], "elements"?: [...], "relationships"?: [...]}`, with shapes and connectors in the
 //! document's own form and the model items in the model's form (left out when there are none).
-//! `edit.copy`, `edit.cut` and `edit.paste` are built on it, and so will be duplicate, paste
-//! special, format painter and change shape.
+//! `edit.copy`, `edit.cut`, `edit.paste`, `edit.duplicate` and `edit.pasteSpecial` are built on
+//! it.
 
 use std::collections::HashMap;
 
@@ -75,9 +75,15 @@ impl Fragment {
 
     /// The fragment of the session's selection.
     pub fn of_selection(s: &Session) -> Fragment {
-        // A selected group brings its members.
-        let ids = s.doc.page().map(|p| vizcraft_diagram::arrange::with_descendants(p, &s.sel.items)).unwrap_or_default();
-        Fragment::extract(&s.doc, |id| ids.iter().any(|i| i == id))
+        Fragment::of_items(&s.doc, &s.sel.items)
+    }
+
+    /// The fragment of these shapes and connectors on the current page; a group brings its
+    /// members.
+    pub fn of_items(doc: &Document, ids: &[String]) -> Fragment {
+        let ids: std::collections::HashSet<String> =
+            doc.page().map(|p| vizcraft_diagram::arrange::with_descendants(p, ids)).unwrap_or_default().into_iter().collect();
+        Fragment::extract(doc, |id| ids.contains(id))
     }
 
     /// True when there is nothing to insert.
