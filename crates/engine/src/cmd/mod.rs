@@ -20,14 +20,17 @@ pub mod insert;
 pub mod lane;
 pub mod layer;
 pub mod layout;
+pub mod master;
 pub mod model;
 pub mod notation;
 pub mod page;
 pub mod print;
+pub mod protect;
 pub mod relationship;
 pub mod routing;
 pub mod script;
 pub mod shape;
+pub mod shapeop;
 pub mod text;
 pub mod validate;
 pub mod view;
@@ -70,6 +73,9 @@ pub fn registry() -> Registry {
     v.extend(validate::specs());
     v.extend(notation::specs());
     v.extend(insert::specs());
+    v.extend(protect::specs());
+    v.extend(shapeop::specs());
+    v.extend(master::specs());
     v.extend(script::specs());
     v.extend(help::specs());
     Registry::new(v)
@@ -361,6 +367,7 @@ pub fn drop_undrawn_relationships(doc: &mut vizcraft_diagram::Document, relation
 /// the selection.
 pub fn delete_items(s: &mut Session, ids: &[String]) -> CmdResult {
     layer::ensure_unlocked(s, ids)?;
+    protect::check(s, ids, protect::Lock::Delete)?;
     let page = page_mut(s)?;
     let d = delete_on_page(page, ids);
     drop_undrawn_relationships(&mut s.doc, &d.relationships);

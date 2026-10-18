@@ -122,6 +122,7 @@ fn add(s: &mut Session, v: &Value) -> CmdResult {
 
 fn delete(s: &mut Session, v: &Value) -> CmdResult {
     let ids = targets(s, v, Kinds::Shapes)?;
+    super::protect::check(s, &ids, super::protect::Lock::Delete)?;
     delete_items(s, &ids)
 }
 
@@ -133,6 +134,7 @@ fn move_shapes(s: &mut Session, v: &Value) -> CmdResult {
         let x = coord(req_num(v, "x")?);
         let y = coord(req_num(v, "y")?);
         super::layer::ensure_unlocked(s, [id])?;
+        super::protect::check(s, [id], super::protect::Lock::Position)?;
         let page = page_mut(s)?;
         let sh = page.shape(id).ok_or_else(|| not_a_shape(id))?;
         let (dx, dy) = (x - sh.x, y - sh.y);
@@ -150,6 +152,7 @@ fn move_shapes(s: &mut Session, v: &Value) -> CmdResult {
     let dy = dy.unwrap_or(0.0).clamp(-MAX_DELTA, MAX_DELTA);
     let ids = targets(s, v, Kinds::Both)?;
     super::layer::ensure_unlocked(s, &ids)?;
+    super::protect::check(s, &ids, super::protect::Lock::Position)?;
     let page = page_mut(s)?;
     // Shapes move through the arrange code so a group carries its members.
     let shape_ids: Vec<String> = ids.iter().filter(|id| page.shape(id).is_some()).cloned().collect();
@@ -175,6 +178,7 @@ fn resize(s: &mut Session, v: &Value) -> CmdResult {
     let x = num(v, "x")?.map(coord);
     let y = num(v, "y")?.map(coord);
     super::layer::ensure_unlocked(s, [id])?;
+    super::protect::check(s, [id], super::protect::Lock::Size { w, h })?;
     let page = page_mut(s)?;
     let sh = page.shape(id).ok_or_else(|| not_a_shape(id))?;
     let (x, y) = (x.unwrap_or(sh.x), y.unwrap_or(sh.y));
@@ -189,6 +193,7 @@ fn rotate(s: &mut Session, v: &Value) -> CmdResult {
     let angle = req_num(v, "angle")?;
     let ids = targets(s, v, Kinds::Shapes)?;
     super::layer::ensure_unlocked(s, &ids)?;
+    super::protect::check(s, &ids, super::protect::Lock::Rotation)?;
     let page = page_mut(s)?;
     let mut out = 0.0;
     for id in &ids {

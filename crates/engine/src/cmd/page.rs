@@ -543,6 +543,7 @@ fn setup(s: &mut Session, v: &Value) -> CmdResult {
 }
 
 fn set_background(s: &mut Session, v: &Value) -> CmdResult {
+    super::protect::backgrounds(s)?;
     let i = target(s, v)?;
     if v.get("background").is_none() {
         return Err(EngineError::Params("`background` (a background page, or null) is required".into()));
