@@ -43,8 +43,10 @@ fn load_mini_pack() {
     ONCE.call_once(|| {
         let dir = std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join("palette-mini");
         std::fs::create_dir_all(&dir).unwrap();
-        let glyph = |n: &str| json!({"id": format!("mini.{n}"), "label": n.to_uppercase(), "category": "Things", "outline": "rectangle", "w": 80.0, "h": 40.0,
-            "fill": "#ffffff", "line": "#000000", "elementType": format!("mini.{}", n.to_uppercase())});
+        let glyph = |n: &str| {
+            json!({"id": format!("mini.{n}"), "label": n.to_uppercase(), "category": "Things", "outline": "rectangle", "w": 80.0, "h": 40.0,
+            "fill": "#ffffff", "line": "#000000", "elementType": format!("mini.{}", n.to_uppercase())})
+        };
         let pack = json!({
             "id": "mini", "version": "1.0.0", "name": "Mini pack", "description": "Two things.", "audience": ["research"],
             "glyphs": [glyph("a"), glyph("b")],
@@ -181,7 +183,9 @@ fn a_connector_kind_row_arms_the_tool_and_the_drag_draws_that_kind() {
 #[test]
 fn the_notation_and_model_tabs_are_built_from_data() {
     let mut h = harness(vizcraft_engine::Document::new());
-    let tabs = |h: &Harness<'static, CraftApp>| vizcraft_ui_egui::ribbon::tabs(h.state()).iter().filter(|t| t.visible(h.state())).map(|t| t.name).collect::<Vec<_>>();
+    let tabs = |h: &Harness<'static, CraftApp>| {
+        vizcraft_ui_egui::ribbon::tabs(h.state()).iter().filter(|t| t.visible(h.state())).map(|t| t.name).collect::<Vec<_>>()
+    };
     assert!(tabs(&h).contains(&"Model") && !tabs(&h).contains(&"Flowchart"));
     run(&mut h, "model.setViewpoint", json!({"viewpoint": "flowchart.Flowchart"}));
     assert!(tabs(&h).contains(&"Flowchart"));

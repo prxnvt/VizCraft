@@ -195,7 +195,11 @@ pub(super) fn finish(app: &mut CraftApp, drag: Drag, zoom: f32) {
         Drag::Connect { from, to } => {
             let end = target_end(page, to, zoom);
             if connect_ok(&from, &end) {
-                run(app, "connector.add", json!({"from": end_json(&from), "to": end_json(&end), "kind": (!app.connector_kind.is_empty()).then(|| app.connector_kind.clone())}));
+                run(
+                    app,
+                    "connector.add",
+                    json!({"from": end_json(&from), "to": end_json(&end), "kind": (!app.connector_kind.is_empty()).then(|| app.connector_kind.clone())}),
+                );
             }
         }
         Drag::TextBox { from, to } => super::tools::add_text_box(app, from, Some(dg::Rect::from_points(from, to))),

@@ -180,14 +180,14 @@ fn new_from_notation(app: &mut CraftApp, ui: &mut Ui) {
             }
         }
     });
-    if let Some(viewpoint) = chosen {
-        if app.run("file.new", json!({})).is_ok() {
-            if let Some(v) = viewpoint {
-                let _ = app.run("model.setViewpoint", json!({"viewpoint": v}));
-            }
-            set_new_page(ui.ctx(), false);
-            let _ = app.run("ui.backstage", json!({"value": false}));
+    if let Some(viewpoint) = chosen
+        && app.run("file.new", json!({})).is_ok()
+    {
+        if let Some(v) = viewpoint {
+            let _ = app.run("model.setViewpoint", json!({"viewpoint": v}));
         }
+        set_new_page(ui.ctx(), false);
+        let _ = app.run("ui.backstage", json!({"value": false}));
     }
 }
 
