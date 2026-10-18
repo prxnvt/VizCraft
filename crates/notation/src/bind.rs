@@ -39,6 +39,9 @@ use crate::{Catalog, legal};
 /// 6. Style fields named by conditional styles (see `ConditionalStyle`) are set on bound shapes
 ///    when the element's match changes, or once on a new element or view.
 /// 7. Packs of every element and relationship type in use are recorded in `doc.model.packs`.
+/// 8. A bound shape whose element type declares compartments (`ElementType::compartments`)
+///    gets each one it lacks (appended in declaration order), and a declared list's rows (a
+///    paragraph's lines) become the element's named properties as `name: value`.
 ///
 /// Details of each step:
 ///
@@ -65,6 +68,11 @@ use crate::{Catalog, legal};
 ///   style where nothing matches. A style matches when the element's property (or the property's
 ///   schema default) equals `equals`; a style with no `equals` matches when the property has any
 ///   value.
+/// - Step 8: the name is the property schema's label (its key when it has none) and the value
+///   the element's, else the schema default; a property with neither is left out. Rows change
+///   only when the text differs, so the pass stays idempotent; the shape grows to fit when its
+///   content no longer does. A declaration with no `fromProperties` only ensures the compartment
+///   exists, and the user's own compartments are left alone.
 pub fn sync(doc: &mut Document, before: &Document, cat: &Catalog) {
     vizcraft_diagram::views::sanitize_refs(doc);
     conformance(doc, cat);
@@ -79,6 +87,7 @@ pub fn sync(doc: &mut Document, before: &Document, cat: &Catalog) {
     names(doc, before);
     styles(doc, before, cat);
     record_packs(doc, cat);
+    compartments(doc, cat);
 }
 
 /// Element index by id; the model is appended to only during the pass, so indexes stay valid.
@@ -146,7 +155,7 @@ struct Glue {
 }
 
 fn glue_of(shape_el: &HashMap<&str, &str>, c: &Connector) -> Option<Glue> {
-    let (End::Glued { shape: s, point: sp }, End::Glued { shape: t, point: tp }) = (&c.start, &c.end) else { return None };
+    let (End::Glued { shape: s, point: sp, .. }, End::Glued { shape: t, point: tp, .. }) = (&c.start, &c.end) else { return None };
     Some(Glue {
         source: (*shape_el.get(s.as_str())?).to_string(),
         target: (*shape_el.get(t.as_str())?).to_string(),
@@ -556,6 +565,74 @@ fn styles(doc: &mut Document, before: &Document, cat: &Catalog) {
             }
             if let Some(v) = f.line_width {
                 set_if_changed(&mut s.style.line_width, v);
+            }
+        }
+    }
+}
+
+/// Step 8: declared compartments on bound shapes, filled from the element's properties.
+fn compartments(doc: &mut Document, cat: &Catalog) {
+    use vizcraft_diagram::compartment::{self as cp, Compartment, CompartmentKind};
+    if cat.packs().iter().all(|p| p.element_types.iter().all(|t| t.compartments.is_empty())) {
+        return;
+    }
+    // Per element: the declarations of its type with their filled lines.
+    let mut plans: HashMap<&str, Vec<(&crate::schema::CompartmentDecl, Option<Vec<String>>)>> = HashMap::new();
+    for e in &doc.model.elements {
+        let Some((_, t)) = cat.element_type(&e.type_id) else { continue };
+        if t.compartments.is_empty() {
+            continue;
+        }
+        let decls = t
+            .compartments
+            .iter()
+            .filter(|d| cp::is_valid_id(&d.id))
+            .take(cp::MAX_COMPARTMENTS)
+            .map(|d| {
+                let lines = (!d.from_properties.is_empty()).then(|| {
+                    d.from_properties
+                        .iter()
+                        .take(cp::MAX_ROWS)
+                        .filter_map(|key| {
+                            let schema = t.property(key);
+                            let value = e.properties.get(key).or_else(|| schema.and_then(|p| p.default.as_ref()))?;
+                            let name = schema.map(|p| p.label.trim()).filter(|l| !l.is_empty()).unwrap_or(key);
+                            Some(format!("{name}: {}", value.display()))
+                        })
+                        .collect()
+                });
+                (d, lines)
+            })
+            .collect();
+        plans.insert(e.id.as_str(), decls);
+    }
+    if plans.is_empty() {
+        return;
+    }
+    for page in &mut doc.pages {
+        for s in &mut page.shapes {
+            let Some(decls) = s.element.as_deref().and_then(|e| plans.get(e)) else { continue };
+            for (d, lines) in decls {
+                if !s.compartments.iter().any(|c| c.id == d.id) {
+                    if s.compartments.len() >= cp::MAX_COMPARTMENTS {
+                        continue;
+                    }
+                    let mut c = Compartment::new(d.id.clone(), d.kind);
+                    c.title = d.title.clone();
+                    s.compartments.push(c);
+                }
+                let (Some(lines), Some(c)) = (lines, s.compartments.iter_mut().find(|c| c.id == d.id)) else { continue };
+                match c.kind {
+                    CompartmentKind::List => set_if_changed(&mut c.rows, lines.clone()),
+                    CompartmentKind::Paragraph => set_if_changed(&mut c.text, lines.join("\n")),
+                    CompartmentKind::Slot => {}
+                }
+                c.sanitize();
+            }
+            let need = cp::fit_height(s);
+            if need > s.h {
+                s.h = need;
+                s.sanitize();
             }
         }
     }

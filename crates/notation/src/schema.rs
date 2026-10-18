@@ -269,6 +269,25 @@ pub struct ElementType {
     /// properties and ports the type does not declare come from the supertype.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub extends: Option<String>,
+    /// Compartments every view of this type carries, filled from the element's properties by
+    /// the sync pass (see `crate::bind`); empty for none.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub compartments: Vec<CompartmentDecl>,
+}
+
+/// A compartment an element type declares for its views (`vizcraft_diagram::compartment`).
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CompartmentDecl {
+    /// The compartment id on the shape (`attrs`); ports name it.
+    pub id: String,
+    /// Paragraph, list or slot.
+    pub kind: vizcraft_diagram::CompartmentKind,
+    /// Heading drawn at the top of the band.
+    pub title: Option<String>,
+    /// Property keys whose values fill the compartment, one `name: value` row (or line) each,
+    /// in this order; a key the element has no value for (and no schema default) is left out.
+    pub from_properties: Vec<String>,
 }
 
 impl ElementType {

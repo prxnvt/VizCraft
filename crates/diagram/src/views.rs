@@ -122,8 +122,8 @@ mod tests {
     fn connector(id: &str, from: &str, to: &str, relationship: Option<&str>) -> Connector {
         Connector {
             id: id.into(),
-            start: End::Glued { shape: from.into(), point: None },
-            end: End::Glued { shape: to.into(), point: None },
+            start: End::dynamic(from),
+            end: End::dynamic(to),
             relationship: relationship.map(str::to_string),
             ..Connector::default()
         }

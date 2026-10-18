@@ -379,6 +379,9 @@ pub struct Shape {
     /// ordinary shape.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
     pub container: Option<crate::container::Container>,
+    /// Sections stacked below the main text (see [`crate::compartment`]).
+    #[serde(deserialize_with = "lenient_vec", skip_serializing_if = "Vec::is_empty")]
+    pub compartments: Vec<crate::compartment::Compartment>,
 }
 
 impl Default for Shape {
@@ -407,6 +410,7 @@ impl Default for Shape {
             image: None,
             data: ShapeData::default(),
             container: None,
+            compartments: Vec::new(),
         }
     }
 }
@@ -449,13 +453,16 @@ impl Shape {
         if let Some(c) = &mut self.container {
             c.sanitize();
         }
+        crate::compartment::sanitize_all(&mut self.compartments);
     }
     /// Longest screen tip kept, in bytes.
     pub const MAX_SCREEN_TIP: usize = 4096;
     /// The text block in the shape's unrotated local frame (`(0, 0)` to `(w, h)`) with its own
-    /// rotation relative to the shape: the stored [`TextBlock`], or the whole frame.
+    /// rotation relative to the shape: the stored [`TextBlock`], the main band above the
+    /// compartments, or the whole frame.
     pub fn text_rect(&self) -> (Rect, f64) {
         match &self.text_block {
+            None if !self.compartments.is_empty() => (crate::compartment::main_rect(self), 0.0),
             Some(t) => {
                 let c = Point::new(self.w / 2.0 + t.dx, self.h / 2.0 + t.dy);
                 (Rect::from_xywh(c.x - t.w / 2.0, c.y - t.h / 2.0, t.w, t.h), t.angle_deg)
@@ -487,9 +494,12 @@ impl Shape {
     pub fn bounds(&self) -> Rect {
         self.outline_world().bounds().unwrap_or_else(|| Rect::from_xywh(self.x, self.y, 0.0, 0.0))
     }
-    /// The connection points in use, normalized: the stored ones, else the kind's defaults.
+    /// The connection points in use, normalized: the stored ones, else the kind's defaults, then
+    /// two per compartment (see [`crate::compartment::points`]).
     pub fn connection_points(&self) -> Vec<Point> {
-        if self.connection_points.is_empty() { self.kind.connection_points() } else { self.connection_points.clone() }
+        let mut pts = if self.connection_points.is_empty() { self.kind.connection_points() } else { self.connection_points.clone() };
+        pts.extend(crate::compartment::points(self));
+        pts
     }
     /// Connection point `i` in world coordinates.
     pub fn connection_point_world(&self, i: usize) -> Option<Point> {
@@ -589,8 +599,9 @@ crate::serde_util::named_enum!(Route, Route::Orthogonal, {
 
 /// One end of a connector: glued to a shape or free on the page.
 ///
-/// On disk an end is `{"shape": "s1", "point": 2}` (point glue), `{"shape": "s1"}` (dynamic
-/// glue) or `{"x": 10, "y": 20}` (free), the same shape the `connector.*` commands take.
+/// On disk an end is `{"shape": "s1", "point": 2}` (point glue), `{"shape": "s1", "port":
+/// "attrs.left"}` (port glue to a compartment's point), `{"shape": "s1"}` (dynamic glue) or
+/// `{"x": 10, "y": 20}` (free), the same shape the `connector.*` commands take.
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum End {
@@ -602,6 +613,10 @@ pub enum End {
         /// The connection point index, or `None` for dynamic glue.
         #[serde(skip_serializing_if = "Option::is_none")]
         point: Option<usize>,
+        /// A compartment port (`"attrs.left"`); when it names a point on the shape it wins over
+        /// `point` (see [`End::resolve_port`]).
+        #[serde(skip_serializing_if = "Option::is_none")]
+        port: Option<String>,
     },
     /// A free point on the page.
     Free {
@@ -621,11 +636,11 @@ impl Default for End {
 impl End {
     /// Point glue to connection point `point` of `shape`.
     pub fn point(shape: impl Into<String>, point: usize) -> Self {
-        End::Glued { shape: shape.into(), point: Some(point) }
+        End::Glued { shape: shape.into(), point: Some(point), port: None }
     }
     /// Dynamic glue to `shape`.
     pub fn dynamic(shape: impl Into<String>) -> Self {
-        End::Glued { shape: shape.into(), point: None }
+        End::Glued { shape: shape.into(), point: None, port: None }
     }
     /// A free end at `p`.
     pub fn free(p: Point) -> Self {
@@ -650,6 +665,8 @@ impl<'de> Deserialize<'de> for End {
             shape: Option<String>,
             #[serde(deserialize_with = "lenient")]
             point: Option<usize>,
+            #[serde(deserialize_with = "lenient")]
+            port: Option<String>,
             #[serde(deserialize_with = "num")]
             x: f64,
             #[serde(deserialize_with = "num")]
@@ -657,7 +674,10 @@ impl<'de> Deserialize<'de> for End {
         }
         let raw: Raw = lenient(d)?;
         Ok(match raw.shape {
-            Some(shape) if !shape.is_empty() => End::Glued { shape, point: raw.point },
+            Some(shape) if !shape.is_empty() => {
+                let port = raw.port.filter(|p| !p.is_empty() && p.len() <= crate::compartment::MAX_PORT);
+                End::Glued { shape, point: raw.point, port }
+            }
             _ => End::Free { x: raw.x, y: raw.y },
         })
     }

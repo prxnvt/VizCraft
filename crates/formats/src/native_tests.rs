@@ -820,3 +820,47 @@ fn conformance_profile_round_trips_as_a_document_field() {
     junk["document"]["conformance"] = json!(["not", "a", "profile"]);
     assert!(load(&serde_json::to_vec(&junk).unwrap()).unwrap().conformance.is_default());
 }
+
+#[test]
+fn compartments_and_port_glue_round_trip() {
+    use vizcraft_diagram::compartment::{Compartment, CompartmentKind, Height};
+    let mut doc = Document::new();
+    let page = doc.page_mut().unwrap();
+    // A UML-style class: name, attributes, operations.
+    let mut class = Shape::new("k", ShapeKind::Rectangle, 10.0, 20.0, 160.0, 100.0);
+    class.text = "Order".into();
+    let mut attrs = Compartment::new("attrs", CompartmentKind::List);
+    attrs.rows = vec!["+ id: int".into(), "+ total: \"money\"".into()];
+    let mut ops = Compartment::new("ops", CompartmentKind::List);
+    ops.title = Some("Operations".into());
+    ops.rows = vec!["+ pay()".into()];
+    ops.fill = Some(vizcraft_diagram::Color::rgb(0xee, 0xf2, 0xf7));
+    ops.font_size = Some(10.0);
+    ops.bold = Some(false);
+    class.compartments = vec![attrs, ops];
+    // An equipment tag: a paragraph and a list of fields, plus a slot holding a pin.
+    let mut tag = Shape::new("t", ShapeKind::Rectangle, 300.0, 20.0, 120.0, 140.0);
+    tag.text = "P-101".into();
+    let mut desc = Compartment::new("desc", CompartmentKind::Paragraph);
+    desc.text = "Feed pump\nduty".into();
+    desc.align = vizcraft_diagram::HAlign::Center;
+    let mut fields = Compartment::new("fields", CompartmentKind::List);
+    fields.rows = vec!["Flow: 12 m3/h".into()];
+    fields.height = Height::Fixed(30.0);
+    let mut pins = Compartment::new("pins", CompartmentKind::Slot);
+    pins.members = vec!["pin".into()];
+    tag.compartments = vec![desc, fields, pins];
+    let mut pin = Shape::new("pin", ShapeKind::Ellipse, 310.0, 120.0, 10.0, 10.0);
+    pin.parent = Some("t".into());
+    page.shapes.extend([class, tag, pin]);
+    page.connectors.push(Connector::new("c", End::port("k", "attrs.right"), End::port("t", "fields.left")));
+    doc.sanitize();
+    let bytes = save(&doc).unwrap();
+    let text = String::from_utf8_lossy(&bytes);
+    assert!(text.contains(r#""port": "attrs.right""#) && !text.contains(r#""point""#), "{text}");
+    let back = load(&bytes).unwrap();
+    assert_eq!(back.pages, doc.pages);
+    // Files without compartments stay as they were: the field is left out.
+    let plain = save(&Document::new()).unwrap();
+    assert!(!String::from_utf8_lossy(&plain).contains("compartments"));
+}

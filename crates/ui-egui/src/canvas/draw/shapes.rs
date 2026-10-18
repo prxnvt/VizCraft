@@ -7,15 +7,20 @@
 //! for SVG's Gaussian blur. One difference: a gradient here turns with a rotated shape (it is laid
 //! out in the shape's own frame), where SVG export lays it out in the page's bounding box; the two
 //! agree for unrotated shapes.
+//!
+//! Compartments (see `vizcraft_diagram::compartment`) follow the SVG export too: a band's fill
+//! override over the shape's fill, inset by half the line width so the outline stays whole, a
+//! separator in the outline's line and dash along the top of each band, then the band text.
 
 use std::collections::HashMap;
 
 use egui::epaint::{Mesh, PathShape};
 use egui::{Color32, Painter, Pos2, Stroke};
+use vizcraft_diagram::compartment::layout as band_layout;
 use vizcraft_diagram::text_fields::{FieldCtx, expand_shape};
 use vizcraft_diagram::{Color, GradientKind, LineCap, Point, Shape, Style};
 
-use super::text::shape_text;
+use super::text::{compartment_text, shape_text};
 use super::{color, fill_rings, flatten, line_px, pos, stroke_lines, tolerance};
 use crate::canvas::Viewport2D;
 use crate::canvas::tess::{self, triangulate};
@@ -75,7 +80,8 @@ impl FillCache {
     }
 }
 
-/// Draw one shape. `show_text` is false while the text is being edited in place.
+/// Draw one shape. `show_text` is false while its main text is being edited in place; a
+/// compartment being edited is covered by the editor.
 pub fn shape(painter: &Painter, vp: &Viewport2D, s: &Shape, cache: &mut FillCache, show_text: bool) {
     let tol = tolerance(vp.zoom);
     let st = &s.style;
@@ -87,15 +93,40 @@ pub fn shape(painter: &Painter, vp: &Viewport2D, s: &Shape, cache: &mut FillCach
     glow(painter, vp, st, &fill.rings);
     shadow(painter, vp, st, fill, filled);
     paint_fill(painter, vp, s, fill, fill_c);
+    let bands = band_layout(s);
+    band_fills(painter, vp, s, &bands);
     // Soft edges blur the outline too (SVG blurs the whole shape): draw it lighter.
     let line_c = if st.soft_edges > 0.0 { line_c.gamma_multiply(0.5) } else { line_c };
     outline(painter, vp, st, &fill.rings, line_c);
     if let Some(detail) = s.detail_world() {
         outline(painter, vp, st, &flatten(&detail, tol), line_c);
     }
+    let t = s.transform();
+    let at = |x: f64, y: f64| pos(t.apply(Point::new(x, y)));
+    let separators: Vec<(Vec<Pos2>, bool)> =
+        bands.iter().filter(|b| b.compartment.is_some()).map(|b| (vec![at(b.rect.x0, b.rect.y0), at(b.rect.x1, b.rect.y0)], false)).collect();
+    outline(painter, vp, st, &separators, line_c);
     super::containers::decor(painter, vp, s);
     if show_text && !s.text.trim().is_empty() {
         shape_text(painter, vp, s);
+    }
+    if !bands.is_empty() {
+        compartment_text(painter, vp, s, None);
+    }
+}
+
+/// Fill overrides of compartment bands, inset by half the line width at the frame's sides and
+/// bottom.
+fn band_fills(painter: &Painter, vp: &Viewport2D, s: &Shape, bands: &[vizcraft_diagram::Band]) {
+    let half = (s.style.line_width / 2.0).max(0.0);
+    let t = s.transform();
+    for b in bands {
+        let Some(fill) = b.compartment.and_then(|i| s.compartments.get(i)).and_then(|c| c.fill).filter(|f| f.a > 0) else { continue };
+        let bottom = if b.rect.y1 >= s.h - 1e-9 { b.rect.y1 - half } else { b.rect.y1 };
+        let (x0, x1, y0, y1) = (b.rect.x0 + half, b.rect.x1 - half, b.rect.y0, bottom.max(b.rect.y0));
+        let quad: Vec<Pos2> =
+            [(x0, y0), (x1, y0), (x1, y1), (x0, y1)].iter().map(|&(x, y)| vp.world_to_screen(pos(t.apply(Point::new(x, y))))).collect();
+        painter.add(egui::Shape::convex_polygon(quad, color(fill), Stroke::NONE));
     }
 }
 

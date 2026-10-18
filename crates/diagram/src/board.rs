@@ -120,7 +120,7 @@ mod tests {
         assert_eq!(p.frame(), b.inflate(FIT_MARGIN));
         p.shapes.push(shape("b", -300.0, 50.0));
         p.shapes.push(shape("c", 900.0, 700.0));
-        let glued = |id: &str| End::Glued { shape: id.into(), point: None };
+        let glued = |id: &str| End::Glued { shape: id.into(), point: None, port: None };
         p.connectors.push(Connector::new("c1", End::Free { x: -500.0, y: 40.0 }, glued("c")));
         let f = p.frame();
         assert!(f.x0 <= -500.0 - FIT_MARGIN + 1e-6, "{f:?}");

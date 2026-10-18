@@ -149,7 +149,7 @@ fn orthogonal_routes_are_axis_aligned() {
     let a = Shape::new("a", ShapeKind::Rectangle, 0.0, 0.0, 100.0, 60.0);
     let b = Shape::new("b", ShapeKind::Diamond, 250.0, 200.0, 80.0, 80.0);
     for (sp, ep) in [(Some(1), Some(0)), (Some(2), Some(3)), (Some(0), Some(2)), (None, None), (Some(3), Some(1))] {
-        let mk = |s: &str, p: Option<usize>| End::Glued { shape: s.into(), point: p };
+        let mk = |s: &str, p: Option<usize>| End::Glued { shape: s.into(), point: p, port: None };
         let c = Connector::new("c", mk("a", sp), mk("b", ep));
         let page = page_with(vec![a.clone(), b.clone()], vec![c.clone()]);
         let pts = route_polyline(&page, &c);
@@ -324,7 +324,7 @@ proptest! {
         s.angle_deg = a;
         let t = Shape::new("t", other, y, x, h, w);
         let route = [Route::Straight, Route::Orthogonal, Route::Curved][route as usize];
-        let mut c = Connector::new("c", End::Glued { shape: "s".into(), point: sp }, End::Glued { shape: "t".into(), point: ep });
+        let mut c = Connector::new("c", End::Glued { shape: "s".into(), point: sp, port: None }, End::Glued { shape: "t".into(), point: ep, port: None });
         c.route = route;
         c.start_arrow = Arrow::Circle;
         let free = Connector::new("f", End::dynamic("s"), End::free(Point::new(px, py)));

@@ -172,6 +172,29 @@ fn shape_json(sh: &Shape, d: Detail, lk: &Lookup) -> Value {
     if let Some(c) = &sh.container {
         o.insert("role".into(), serde_json::to_value(c.role).unwrap_or(Value::Null));
     }
+    if !sh.compartments.is_empty() {
+        // Sections are structure: an agent needs the rows of a class box or a tag, not its bands.
+        let bands: Vec<Value> = sh
+            .compartments
+            .iter()
+            .map(|c| {
+                let mut b = Map::new();
+                b.insert("id".into(), json!(c.id));
+                b.insert("kind".into(), serde_json::to_value(c.kind).unwrap_or(Value::Null));
+                if let Some(t) = &c.title {
+                    b.insert("title".into(), json!(t));
+                }
+                if !c.text.is_empty() {
+                    b.insert("text".into(), json!(c.text));
+                }
+                if !c.rows.is_empty() {
+                    b.insert("rows".into(), json!(c.rows));
+                }
+                Value::Object(b)
+            })
+            .collect();
+        o.insert("compartments".into(), Value::Array(bands));
+    }
     if !sh.data.rows.is_empty() {
         let rows: Vec<Value> = if d == Detail::Full {
             sh.data.rows.iter().map(|r| serde_json::to_value(r).unwrap_or(Value::Null)).collect()
@@ -196,7 +219,7 @@ fn shape_json(sh: &Shape, d: Detail, lk: &Lookup) -> Value {
             o.insert("dataPageKeys".into(), json!(true));
         }
         let all = serde_json::to_value(sh).unwrap_or(Value::Null);
-        add_rest(&mut o, &all, &["angleDeg", "data"]);
+        add_rest(&mut o, &all, &["angleDeg", "data", "compartments"]);
     }
     Value::Object(o)
 }
@@ -204,12 +227,14 @@ fn shape_json(sh: &Shape, d: Detail, lk: &Lookup) -> Value {
 fn end_json(e: &End, port: Option<&str>, d: Detail) -> Value {
     let mut o = Map::new();
     match e {
-        End::Glued { shape, point, .. } => {
+        End::Glued { shape, point, port: glue_port } => {
             o.insert("shape".into(), json!(shape));
             if let Some(i) = point {
                 o.insert("point".into(), json!(i));
             }
-            if let Some(port) = port {
+            // A compartment port on the glue names the band; the relationship's port is the
+            // model's name for the same thing when there is no glue port.
+            if let Some(port) = glue_port.as_deref().or(port) {
                 o.insert("port".into(), json!(port));
             }
         }
@@ -232,6 +257,9 @@ fn connector_json(c: &Connector, d: Detail, lk: &Lookup) -> Value {
     o.insert("to".into(), end_json(&c.end, rel.and_then(|r| r.target_port), d));
     if d == Detail::Full || !c.text.is_empty() {
         o.insert("text".into(), json!(c.text));
+    }
+    if d == Detail::Full || !c.kind.is_empty() {
+        o.insert("kind".into(), json!(c.kind));
     }
     if let Some(id) = &c.relationship {
         o.insert("relationship".into(), json!(id));
@@ -316,6 +344,7 @@ const WRITTEN: &[&str] = &[
     "elementType",
     "parent",
     "role",
+    "compartments",
     "data",
     "x",
     "y",
@@ -328,6 +357,7 @@ const WRITTEN: &[&str] = &[
     "relationship",
     "relationshipType",
 ];
+// `kind` on a connector is written by `connector_line`; on a shape it is the outline kind.
 
 /// ` +{...}`: the keys of a `full` item that the outline does not write, as compact JSON.
 fn extras(item: &Value, skip: &[&str]) -> String {
@@ -370,6 +400,20 @@ fn shape_line(s: &Value, d: Detail, indent: usize) -> String {
         let cells: Vec<String> =
             rows.iter().map(|r| format!("{}={}", bare_or_quoted(text_of(r, "key")), bare_or_quoted(text_of(r, "value")))).collect();
         line.push_str(&format!(" {{{}}}", cells.join(", ")));
+    }
+    if let Some(bands) = s.get("compartments").and_then(Value::as_array) {
+        // One `id: text` or `id: [row, row]` per section, in band order.
+        let parts: Vec<String> = bands
+            .iter()
+            .map(|b| {
+                let body = match b.get("rows").and_then(Value::as_array) {
+                    Some(rows) => format!("[{}]", rows.iter().filter_map(Value::as_str).map(quoted).collect::<Vec<_>>().join(", ")),
+                    None => quoted(text_of(b, "text")),
+                };
+                format!("{}: {body}", text_of(b, "id"))
+            })
+            .collect();
+        line.push_str(&format!(" sections {{{}}}", parts.join("; ")));
     }
     if d >= Detail::Layout {
         line.push_str(&format!(" @ {},{} {}x{}", num_text(s.get("x")), num_text(s.get("y")), num_text(s.get("w")), num_text(s.get("h"))));
@@ -414,6 +458,10 @@ fn connector_line(c: &Value, d: Detail, indent: usize) -> String {
     if !text.is_empty() {
         line.push(' ');
         line.push_str(&quoted(text));
+    }
+    let kind = text_of(c, "kind");
+    if !kind.is_empty() {
+        line.push_str(&format!(" kind {kind}"));
     }
     if d >= Detail::Layout {
         line.push_str(&format!(" [{}]", text_of(c, "route")));
@@ -657,6 +705,31 @@ mod tests {
         let ids: Vec<&str> = page["shapes"].as_array().unwrap().iter().map(|x| x["id"].as_str().unwrap()).collect();
         let doc_ids: Vec<&str> = s.doc.page().unwrap().shapes.iter().map(|x| x.id.as_str()).collect();
         assert_eq!(ids, doc_ids);
+    }
+
+    #[test]
+    fn structure_lists_compartments_connector_kinds_and_ports() {
+        let mut s = session();
+        s.run("shape.add", &json!({"stencil": "basic.rectangle", "x": 600, "y": 40, "text": "Tank", "id": "tank"})).unwrap();
+        s.run(
+            "compartment.add",
+            &json!({"id": "tank", "kind": "list", "title": "Fields", "rows": ["tag: T-101", "volume: 40 m3"], "compartmentId": "fields"}),
+        )
+        .unwrap();
+        let first = s.doc.page().unwrap().shapes[0].id.clone();
+        s.run("connector.add", &json!({"from": {"shape": first}, "to": {"shape": "tank", "port": "fields.left"}, "kind": "basic.bus", "id": "feed"}))
+            .unwrap();
+        let v = s.run("page.describe", &json!({})).unwrap();
+        let tank = v["page"]["shapes"].as_array().unwrap().iter().find(|sh| sh["id"] == "tank").unwrap().clone();
+        assert_eq!(tank["compartments"][0]["id"], "fields");
+        assert_eq!(tank["compartments"][0]["rows"][1], "volume: 40 m3");
+        assert!(tank["compartments"][0].get("style").is_none(), "no style at structure: {tank}");
+        let feed = v["page"]["connectors"].as_array().unwrap().iter().find(|c| c["id"] == "feed").unwrap().clone();
+        assert_eq!((feed["kind"].as_str(), feed["to"]["port"].as_str()), (Some("basic.bus"), Some("fields.left")));
+        let text = s.run("page.describe", &json!({"format": "text"})).unwrap();
+        let text = text["text"].as_str().unwrap();
+        assert!(text.contains("sections {fields: [\"tag: T-101\", \"volume: 40 m3\"]}"), "{text}");
+        assert!(text.contains("kind basic.bus"), "{text}");
     }
 
     #[test]

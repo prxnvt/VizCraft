@@ -366,6 +366,7 @@ fn get(s: &mut Session, v: &Value) -> CmdResult {
         "style": sh.style,
         "data": sh.ext,
         "connectionPoints": sh.connection_points(),
+        "compartments": sh.compartments,
     });
     Ok(json!({"page": page.id, "shape": shape, "connections": connections}))
 }

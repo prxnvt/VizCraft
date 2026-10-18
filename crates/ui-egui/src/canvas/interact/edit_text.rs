@@ -1,6 +1,11 @@
 //! In-place text editing of a shape or connector label: starting, the editor drawn over the
 //! item, and the commit that runs `shape.setText` or `connector.setText`.
 //!
+//! A shape with compartments edits per band: a double-click on a compartment edits that band
+//! (a paragraph's text, or a list's rows one per line) in the band's own area, style and
+//! alignment, and the commit runs `compartment.set`; a double-click on the main band, a slot or
+//! a title edits the shape's text as usual.
+//!
 //! A shape's editor sits in its text block, in the shape's font, size, format and alignment, and
 //! shows the stored text: field placeholders stay raw (`{{pageName}}`), and drawn letter case and
 //! bullets are left off so the caret matches the characters typed. On a rotated shape (or a
@@ -14,12 +19,13 @@ use egui::epaint::TextShape;
 use egui::text::{CCursor, CCursorRange};
 use egui::{Align, Color32, Key, KeyboardShortcut, Modifiers, Pos2, Rect, Stroke, Ui, UiBuilder, vec2};
 use serde_json::json;
+use vizcraft_diagram::compartment::{self as cp, CompartmentKind};
 use vizcraft_diagram::{self as dg, Hit, Style};
 
 use super::run;
 use crate::CraftApp;
 use crate::canvas::Viewport2D;
-use crate::canvas::draw::text::{Block, block, block_job};
+use crate::canvas::draw::text::{Block, band_block, block, block_job};
 use crate::canvas::draw::{self, color, pos};
 use crate::theme::Tokens;
 
@@ -40,6 +46,9 @@ pub struct TextEditing {
     pub(crate) place_caret: Option<usize>,
     /// The item was made for this edit (a text box clicked onto the page): left empty, it goes.
     pub created: bool,
+    /// The compartment of the shape being edited (its text, or its rows one per line); `None`
+    /// is the shape's own text.
+    pub compartment: Option<String>,
 }
 
 impl TextEditing {
@@ -60,7 +69,33 @@ pub fn start_editing(app: &mut CraftApp, target: Hit) {
     };
     let Some(text) = text else { return };
     app.canvas.drag = None;
-    app.canvas.editing = Some(TextEditing { target, original: text.clone(), text, focus: true, caret: None, place_caret: None, created: false });
+    app.canvas.editing =
+        Some(TextEditing { target, original: text.clone(), text, focus: true, caret: None, place_caret: None, created: false, compartment: None });
+}
+
+/// Start editing `target` where it was double-clicked (`at`, world space): a shape's compartment
+/// band under the point edits that compartment (see the module doc), anything else the item's
+/// own text.
+pub fn start_editing_at(app: &mut CraftApp, target: Hit, at: dg::Point) {
+    let band = match (&target, app.session.doc.page()) {
+        (Hit::Shape(id), Some(page)) => page.shape(id).and_then(|s| {
+            let hit = dg::hit::band_of(s, at, 0.0)?;
+            let c = s.compartments.iter().find(|c| Some(&c.id) == hit.compartment.as_ref())?;
+            // A title or a slot has no body text here: those edit the shape's own text.
+            let on_title = cp::layout(s).iter().any(|b| {
+                b.compartment.and_then(|i| s.compartments.get(i)).is_some_and(|x| x.id == c.id)
+                    && b.title.is_some_and(|r| s.transform().inverse().is_some_and(|inv| r.contains(inv.apply(at))))
+            });
+            (c.kind != CompartmentKind::Slot && !on_title).then(|| (c.id.clone(), c.body_text()))
+        }),
+        _ => None,
+    };
+    start_editing(app, target);
+    if let (Some((cid, text)), Some(ed)) = (band, app.canvas.editing.as_mut()) {
+        ed.compartment = Some(cid);
+        ed.original = text.clone();
+        ed.text = text;
+    }
 }
 
 /// Start editing shape `id`, which was just made for it (a new text box): left empty, the commit
@@ -83,6 +118,23 @@ pub fn commit_editing(app: &mut CraftApp) {
         return;
     }
     if ed.text == ed.original {
+        return;
+    }
+    if let Some(cid) = &ed.compartment {
+        let list = app
+            .session
+            .doc
+            .page()
+            .and_then(|p| p.shape(ed.id()))
+            .and_then(|s| s.compartments.iter().find(|c| &c.id == cid))
+            .map(|c| c.kind == CompartmentKind::List);
+        let params = match list {
+            Some(true) => json!({"id": ed.id(), "compartment": cid, "rows": ed.text.lines().collect::<Vec<_>>()}),
+            Some(false) => json!({"id": ed.id(), "compartment": cid, "text": ed.text}),
+            // The compartment went away under the editor: nothing to set.
+            None => return,
+        };
+        run(app, "compartment.set", params);
         return;
     }
     let cmd = match ed.target {
@@ -122,6 +174,13 @@ fn placement(app: &CraftApp, vp: &Viewport2D) -> Option<Placement> {
     match &ed.target {
         Hit::Shape(id) => {
             let s = page.shape(id)?;
+            if let Some(cid) = &ed.compartment {
+                let bands = cp::layout(s);
+                let (band, c) = bands.iter().find_map(|b| Some((b, s.compartments.get(b.compartment?).filter(|c| &c.id == cid)?)))?;
+                let style = c.text_style(&s.style);
+                let font = draw::style_font(&style, zoom).unwrap_or_else(|| crate::theme::regular(12.0));
+                return Some(Placement { block: band_block(vp, s, band.body, c.align, dg::VAlign::Top), style, font });
+            }
             let font = draw::style_font(&s.style, zoom).unwrap_or_else(|| crate::theme::regular(12.0));
             Some(Placement { block: block(vp, s), style: s.style.clone(), font })
         }
@@ -145,7 +204,13 @@ fn placement(app: &CraftApp, vp: &Viewport2D) -> Option<Placement> {
 /// The in-place text editor over the edited shape or connector label. Enter commits,
 /// Shift+Enter starts a new line, Escape cancels, clicking elsewhere commits.
 pub(in crate::canvas) fn text_overlay(app: &mut CraftApp, ui: &mut Ui, vp: &Viewport2D, t: &Tokens) {
-    let Some(Placement { block: b, style, font }) = placement(app, vp) else { return };
+    let Some(Placement { block: b, style, font }) = placement(app, vp) else {
+        // The edited compartment went away (undo, an agent): the edit ends.
+        if app.canvas.editing.as_ref().is_some_and(|e| e.compartment.is_some()) {
+            app.canvas.editing = None;
+        }
+        return;
+    };
     // A dialog over the canvas (Insert Symbol) takes the keys and the focus; the edit waits.
     let dialog_open = app.dialog.is_some();
     if !dialog_open {
@@ -320,6 +385,37 @@ mod tests {
         assert_eq!(app.canvas.editing.as_ref().unwrap().text, "a\u{3a9}b!");
         app.canvas.editing = None;
         assert!(!insert_at_caret(&mut app, "x"));
+    }
+
+    #[test]
+    fn a_double_click_on_a_band_edits_that_compartment() {
+        let mut app = CraftApp::new(vizcraft_engine::Session::new(vizcraft_engine::sample::sample_document()), crate::Services::default());
+        let id = app.session.doc.page().unwrap().shapes[0].id.clone();
+        app.run("compartment.add", json!({"id": id, "kind": "list", "compartmentId": "attrs", "rows": ["a", "b"]})).unwrap();
+        let s = app.session.doc.page().unwrap().shape(&id).unwrap().clone();
+        let bands = cp::layout(&s);
+        let row = s.transform().apply(bands[1].rows[1].center());
+        start_editing_at(&mut app, Hit::Shape(id.clone()), row);
+        let ed = app.canvas.editing.as_mut().unwrap();
+        assert_eq!((ed.compartment.as_deref(), ed.text.as_str()), (Some("attrs"), "a\nb"));
+        ed.text = "a\nb\nc".into();
+        commit_editing(&mut app);
+        let s = app.session.doc.page().unwrap().shape(&id).unwrap();
+        assert_eq!(s.compartments[0].rows, vec!["a".to_string(), "b".to_string(), "c".to_string()]);
+        let text = s.text.clone();
+        // The main band edits the shape's own text.
+        let main = s.transform().apply(cp::layout(s)[0].rect.center());
+        start_editing_at(&mut app, Hit::Shape(id.clone()), main);
+        let ed = app.canvas.editing.as_ref().unwrap();
+        assert_eq!((ed.compartment.as_deref(), ed.text.as_str()), (None, text.as_str()));
+        // Placement follows the band; a compartment removed under the editor ends the edit.
+        app.canvas.editing = None;
+        start_editing_at(&mut app, Hit::Shape(id.clone()), row);
+        let vp = Viewport2D::new(Rect::from_min_size(egui::pos2(0.0, 0.0), vec2(800.0, 600.0)), [0.0, 0.0], 1.0);
+        assert!(placement(&app, &vp).is_some());
+        app.run("compartment.remove", json!({"id": id, "compartment": "attrs"})).unwrap();
+        assert!(placement(&app, &vp).is_none());
+        commit_editing(&mut app);
     }
 
     #[test]

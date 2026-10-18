@@ -503,3 +503,63 @@ fn a_full_document_syncs_idempotently() {
         assert!(out.model.element(&r.source).is_some() && out.model.element(&r.target).is_some());
     }
 }
+
+/// A test pack whose `test.Tag` views carry a list of fields filled from properties.
+fn tag_catalog() -> crate::Catalog {
+    use crate::schema::{CompartmentDecl, ElementType, Pack, PropertySchema};
+    use vizcraft_diagram::CompartmentKind;
+    let fields = CompartmentDecl {
+        id: "fields".into(),
+        kind: CompartmentKind::List,
+        title: Some("Fields".into()),
+        from_properties: vec!["flow".into(), "service".into(), "head".into(), "missing".into()],
+    };
+    let tag = ElementType {
+        id: "test.Tag".into(),
+        properties: vec![
+            PropertySchema { key: "flow".into(), label: "Flow".into(), ..PropertySchema::default() },
+            PropertySchema { key: "head".into(), default: Some(PropValue::Number(30.0)), ..PropertySchema::default() },
+        ],
+        compartments: vec![fields, CompartmentDecl { id: "notes".into(), ..CompartmentDecl::default() }],
+        ..ElementType::default()
+    };
+    crate::Catalog::new(vec![Pack { id: "test".into(), element_types: vec![tag], ..Pack::default() }])
+}
+
+#[test]
+fn declared_list_compartments_fill_rows_from_properties() {
+    let cat = tag_catalog();
+    let mut doc = Document::new();
+    let mut e = Element::new("e1", "test.Tag");
+    e.name = "P-101".into();
+    e.properties.insert("flow".into(), PropValue::Text("12 m3/h".into()));
+    e.properties.insert("service".into(), PropValue::Text("feed".into()));
+    doc.model.add_element(e).unwrap();
+    let mut s = free_shape("s1", 0.0);
+    s.element = Some("e1".into());
+    s.h = 20.0;
+    doc.pages[0].shapes.push(s);
+    let before = doc.clone();
+    sync(&mut doc, &before, &cat);
+    let once = doc.clone();
+    sync(&mut doc, &before, &cat);
+    assert_eq!(doc, once, "sync is not idempotent");
+    let s = &doc.pages[0].shapes[0];
+    let ids: Vec<&str> = s.compartments.iter().map(|c| c.id.as_str()).collect();
+    assert_eq!(ids, vec!["fields", "notes"]);
+    let fields = &s.compartments[0];
+    assert_eq!(fields.title.as_deref(), Some("Fields"));
+    // Label when the schema has one, else the key; the schema default fills a missing value.
+    assert_eq!(fields.rows, vec!["Flow: 12 m3/h".to_string(), "service: feed".to_string(), "head: 30".to_string()]);
+    assert!(s.h >= vizcraft_diagram::compartment::fit_height(s), "the shape grew to fit");
+    // A property change refills the rows; a user's own compartment is left alone.
+    let before = doc.clone();
+    doc.model.element_mut("e1").unwrap().properties.insert("flow".into(), PropValue::Text("15 m3/h".into()));
+    doc.pages[0].shapes[0].compartments.push(vizcraft_diagram::Compartment::new("mine", vizcraft_diagram::CompartmentKind::Paragraph));
+    sync(&mut doc, &before, &cat);
+    let s = &doc.pages[0].shapes[0];
+    assert_eq!(s.compartments[0].rows[0], "Flow: 15 m3/h");
+    assert_eq!(s.compartments.len(), 3);
+    // The built-in packs declare none: a flowchart view gets no compartments.
+    assert!(catalog().packs().iter().all(|p| p.element_types.iter().all(|t| t.compartments.is_empty())));
+}

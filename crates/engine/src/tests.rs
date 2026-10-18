@@ -28,6 +28,7 @@ fn registry_ids_are_unique_and_prefixed() {
                 "container",
                 "lane",
                 "callout",
+                "compartment",
                 "connector",
                 "page",
                 "layer",

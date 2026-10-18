@@ -158,6 +158,7 @@ pub fn refit_groups(page: &mut Page) {
             s.sanitize();
         }
     }
+    crate::compartment::refit(page);
     crate::container::refit(page);
 }
 

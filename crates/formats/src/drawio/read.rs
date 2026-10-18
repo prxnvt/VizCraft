@@ -17,6 +17,10 @@ pub(crate) const EXT_ATTR: &str = "drawio.attr.";
 pub(crate) const EXT_FONT_STYLE: &str = "drawio.fontStyle";
 /// Prefix of the page `ext` keys holding `mxGraphModel` attributes.
 pub(crate) const EXT_MODEL: &str = "drawio.model.";
+/// The wrapper attribute carrying a shape's compartments as JSON. draw.io keeps it untouched;
+/// on import it lands in `ext` as `drawio.attr.vizcraftCompartments` and is read back into
+/// `Shape::compartments` ([`take_compartments`]).
+pub(crate) const COMPARTMENTS_ATTR: &str = "vizcraftCompartments";
 
 /// What draw.io draws when a vertex style leaves a key out: white fill, black line.
 pub(crate) const DRAWIO_SHAPE: Style = Style::basic(Color::WHITE, Color::BLACK, 1.0, 12.0, Color::BLACK);
@@ -368,6 +372,36 @@ fn wrapper_ext(cell: &Cell, ext: &mut BTreeMap<String, String>) {
     }
 }
 
+/// Move the compartments a VizCraft export carried in the wrapper attribute
+/// [`COMPARTMENTS_ATTR`] out of `ext` into `Shape::compartments` (entries that do not parse are
+/// dropped). A plain `object` wrapper that held nothing else was only their carrier and goes too,
+/// so a round trip leaves `ext` as it was.
+fn take_compartments(shape: &mut Shape) {
+    let Some(json) = shape.ext.remove(&format!("{EXT_ATTR}{COMPARTMENTS_ATTR}")) else { return };
+    let items: Vec<serde_json::Value> = serde_json::from_str(&json).unwrap_or_default();
+    shape.compartments =
+        items.into_iter().take(vizcraft_diagram::compartment::MAX_COMPARTMENTS).filter_map(|v| serde_json::from_value(v).ok()).collect();
+    if shape.ext.get(EXT_WRAPPER).is_some_and(|w| w == "object") && !shape.ext.keys().any(|k| k.starts_with(EXT_ATTR)) {
+        shape.ext.remove(EXT_WRAPPER);
+    }
+}
+
+/// draw.io flattens nesting on export, so a slot's members come back without their parent: give
+/// it back to the members a slot lists that have none.
+fn restore_slot_parents(page: &mut Page) {
+    let owners: Vec<(String, Vec<String>)> = page
+        .shapes
+        .iter()
+        .filter(|s| !s.compartments.is_empty())
+        .map(|s| (s.id.clone(), s.compartments.iter().flat_map(|c| c.members.iter().cloned()).collect()))
+        .collect();
+    for (owner, members) in owners {
+        for m in page.shapes.iter_mut().filter(|m| m.parent.is_none() && m.id != owner && members.contains(&m.id)) {
+            m.parent = Some(owner.clone());
+        }
+    }
+}
+
 /// Where a cell sits in the page's tree.
 enum Place {
     /// On the page, with its coordinates offset by the containing vertices' positions.
@@ -491,9 +525,11 @@ pub(crate) fn page_from_model(model: &GraphModel, id: String, name: String, warn
         shape.text = c.plain_label();
         shape.ext = look.ext;
         wrapper_ext(c, &mut shape.ext);
+        take_compartments(&mut shape);
         shape.sanitize();
         page.shapes.push(shape);
     }
+    restore_slot_parents(&mut page);
     if nested_any {
         warnings.push("groups and containers were flattened: their members are placed on the page directly");
     }
@@ -521,7 +557,10 @@ pub(crate) fn page_from_model(model: &GraphModel, id: String, name: String, warn
                     Some(h) => {
                         let pts = shape.connection_points();
                         match vizcraft_diagram::route::nearest_point(&pts, h) {
-                            Some(i) => End::point(shape.id.clone(), i),
+                            Some(i) => match vizcraft_diagram::compartment::port_for_index(shape, i) {
+                                Some(port) => End::port(shape.id.clone(), port),
+                                None => End::point(shape.id.clone(), i),
+                            },
                             None => End::dynamic(shape.id.clone()),
                         }
                     }

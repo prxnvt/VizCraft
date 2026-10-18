@@ -176,7 +176,7 @@ fn change_shape_keeps_text_glue_data_and_hand_formatting() {
     assert_eq!(sh.style.line, ellipse.style.line, "untouched fields follow the new master");
     // The connector stays glued, now to the point of the ellipse nearest the old one.
     let conn = page.connector(&c).unwrap();
-    let End::Glued { shape, point: Some(i) } = &conn.start else { panic!("still glued to a point: {:?}", conn.start) };
+    let End::Glued { shape, point: Some(i), .. } = &conn.start else { panic!("still glued to a point: {:?}", conn.start) };
     assert_eq!(shape, &a);
     let new_point = sh.connection_point_world(*i).unwrap();
     let best = sh.connection_points_world().into_iter().map(|p| (p - old_point).length()).fold(f64::INFINITY, f64::min);
