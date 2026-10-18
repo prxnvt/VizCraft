@@ -653,8 +653,9 @@ green; `cargo xtask ci` green.
 
 ## Block 4: Visio extras (7 branches, 5 agents at a time, alongside Block 3)
 
-State: planned. Briefs written on 2026-10-18 against main at c291529. Branches start as Block 3
-branches report, in the order of the table below; `b4-pictures` starts only after `b4-shapeops`
+State: done. All eight branches merged into main on 2026-10-18 with `cargo xtask ci` green; the
+follow-ups are recorded in the main session's notes for the Block 5 briefs. Briefs written on 2026-10-18 against main at c291529. Branches started as Block 3
+branches reported, in the order of the table below; `b4-pictures` starts only after `b4-shapeops`
 is merged, because ink strokes and boolean results are both freeform path shapes, which
 `b4-shapeops` adds. `b4-fixes` is new in this block: it holds the Block 2C follow-ups that no
 other branch owns.
