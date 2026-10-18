@@ -559,6 +559,8 @@ mod tests {
     fn next_and_previous_select_each_issue_on_its_page() {
         let mut s = free_drawing();
         s.run("page.add", &json!({"name": "Two"})).unwrap();
+        // A fixed sheet, so a shape far to the right is off it (an infinite board has no edge).
+        s.run("page.setup", &json!({"board": "fixed"})).unwrap();
         s.run("shape.add", &json!({"stencil": "basic.rectangle", "x": 2000, "y": 100, "text": "Far", "id": "far"})).unwrap();
         s.run("page.setActive", &json!({"page": 0})).unwrap();
         s.run("validate.setProfile", &json!({"rulesets": ["drawing.tidy"]})).unwrap();
