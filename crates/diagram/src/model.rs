@@ -1144,6 +1144,7 @@ struct DocumentRepr {
     language: String,
     #[serde(deserialize_with = "lenient_vec")]
     ignored_words: Vec<String>,
+    #[serde(deserialize_with = "lenient_vec")]
     data_graphics: Vec<crate::data_graphic::DataGraphic>,
     #[serde(deserialize_with = "lenient_vec")]
     data_links: Vec<crate::data_graphic::DataLink>,
