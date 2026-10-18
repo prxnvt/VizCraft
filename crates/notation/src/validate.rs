@@ -23,6 +23,9 @@ pub const MAX_PROBLEMS: usize = 100;
 /// Longest id accepted (pack id, qualified type id, glyph id, property key), in bytes.
 pub const MAX_ID_LEN: usize = 128;
 
+/// Longest rule reference (the standard and clause), in bytes.
+pub const MAX_REFERENCE: usize = 1_000;
+
 /// Problems with `pack`, in plain words; empty when it is consistent. Checks that every id is
 /// qualified with the pack's own prefix (or another pack's, for references), that ids are unique,
 /// that every reference (glyph, type, relationship, scope, viewpoint) resolves, that colours parse,
@@ -218,6 +221,7 @@ impl<'a> Checker<'a> {
         self.viewpoints();
         self.identifiers();
         self.rules();
+        self.rulesets();
     }
 
     fn glyphs(&mut self) {
@@ -313,6 +317,13 @@ impl<'a> Checker<'a> {
             if !t.glyph.is_empty() {
                 self.reference(&ctx, Kind::Glyph, &t.glyph);
             }
+            if let Some(sup) = &t.extends {
+                if sup == &t.id {
+                    self.problem(format!("{ctx}: a type cannot extend itself"));
+                } else {
+                    self.reference(&ctx, Kind::ElementType, sup);
+                }
+            }
             self.properties(&ctx, &t.properties);
             let mut ports = HashSet::new();
             for p in self.list(&ctx, &t.ports) {
@@ -334,6 +345,13 @@ impl<'a> Checker<'a> {
             let ctx = format!("relationship type `{}`", short(&t.id));
             if Arrow::from_name(&t.end_arrow).is_none() {
                 self.problem(format!("{ctx}: unknown end arrow `{}`", short(&t.end_arrow)));
+            }
+            if let Some(inv) = &t.inverse_of {
+                if inv == &t.id {
+                    self.problem(format!("{ctx}: a relationship type cannot be its own inverse"));
+                } else {
+                    self.reference(&ctx, Kind::Relationship, inv);
+                }
             }
             self.properties(&ctx, &t.properties);
         }
@@ -425,6 +443,9 @@ impl<'a> Checker<'a> {
         for r in self.list("rules", &pack.rules) {
             self.declared("rule", &r.id, &mut seen);
             let ctx = format!("rule `{}`", short(&r.id));
+            if r.reference.len() > MAX_REFERENCE {
+                self.problem(format!("{ctx}: the reference is longer than {MAX_REFERENCE} bytes"));
+            }
             match &r.check {
                 Check::IllegalRelationship | Check::Multiplicity | Check::ViewpointType | Check::DanglingConnector => {}
                 Check::RequiredProperty { types } | Check::PropertyType { types } => self.type_list(&ctx, types),
@@ -439,7 +460,77 @@ impl<'a> Checker<'a> {
                     self.type_list(&ctx, from);
                     self.reference(&ctx, Kind::Relationship, relationship);
                 }
+                Check::ForbiddenCycle { relationship } | Check::PortDirection { relationship } | Check::PortFanIn { relationship, .. } => {
+                    self.any_relationship(&ctx, relationship)
+                }
+                Check::RequiredPath { from, to, relationship } => {
+                    self.type_list(&ctx, from);
+                    self.type_list(&ctx, to);
+                    self.any_relationship(&ctx, relationship);
+                }
+                Check::Connected { types, relationship } => {
+                    self.type_list(&ctx, types);
+                    self.any_relationship(&ctx, relationship);
+                }
+                Check::Containment { owners, children } => {
+                    self.type_list(&ctx, owners);
+                    self.type_list(&ctx, children);
+                }
+                Check::UniqueProperty { types, property, within } => {
+                    self.type_list(&ctx, types);
+                    self.type_list(&ctx, within);
+                    self.key(&ctx, property);
+                }
+                Check::PropertyCompare { types, property, other, .. } => {
+                    self.type_list(&ctx, types);
+                    self.key(&ctx, property);
+                    if other.is_none() {
+                        self.problem(format!("{ctx}: a comparison needs `other`, a property key or a constant"));
+                    }
+                }
+                Check::NameFormat { types, pattern } => {
+                    self.type_list(&ctx, types);
+                    if crate::glob::Glob::parse(pattern).is_none() {
+                        self.problem(format!("{ctx}: `{}` is not a usable name pattern", short(pattern)));
+                    }
+                }
+                Check::CrossesShape | Check::UngluedEnd | Check::Overlap | Check::OffBoard | Check::TextOverflow => {}
                 Check::Unknown => self.problem(format!("{ctx}: unknown check kind (the pack needs a newer VizCraft)")),
+            }
+        }
+    }
+
+    /// A relationship type a check follows; empty means every relationship.
+    fn any_relationship(&mut self, ctx: &str, id: &str) {
+        if !id.is_empty() {
+            self.reference(ctx, Kind::Relationship, id);
+        }
+    }
+
+    fn key(&mut self, ctx: &str, key: &str) {
+        if !is_key(key) {
+            self.problem(format!("{ctx}: property key `{}` must be letters, digits and `_`", short(key)));
+        }
+    }
+
+    /// Ruleset ids are declared like rules; each listed rule of this pack must exist, and a rule
+    /// of another pack must at least be well formed.
+    fn rulesets(&mut self) {
+        let pack = self.pack;
+        let rules: HashSet<&str> = capped(&pack.rules).iter().map(|r| r.id.as_str()).collect();
+        let mut seen = HashSet::new();
+        for rs in self.list("rulesets", &pack.rulesets) {
+            self.declared("ruleset", &rs.id, &mut seen);
+            let ctx = format!("ruleset `{}`", short(&rs.id));
+            for r in self.list(&ctx, &rs.rules) {
+                if rules.contains(r.as_str()) {
+                    continue;
+                }
+                if !is_qualified(r) {
+                    self.problem(format!("{ctx}: rule `{}` is not `<pack>.<name>`", short(r)));
+                } else if self.own_prefix(r) {
+                    self.problem(format!("{ctx}: unknown rule `{}`", short(r)));
+                }
             }
         }
     }
@@ -536,6 +627,62 @@ mod tests {
         assert!(has(&probs, "unknown identifier scope `flowchart.none`"), "{probs:?}");
         assert!(has(&probs, "flowchart.Ghost") && has(&probs, "flowchart.Wire"));
         assert!(has(&probs, "rule `flowchart.z`: unknown check kind"));
+    }
+
+    #[test]
+    fn new_fields_and_checks_are_checked() {
+        let mut p = flowchart();
+        p.element_types[0].extends = Some("flowchart.Nope".into());
+        p.element_types[1].extends = Some(p.element_types[1].id.clone());
+        p.relationship_types[0].inverse_of = Some("flowchart.Flow".into());
+        p.rulesets[0].rules.push("flowchart.missingRule".into());
+        p.rulesets[0].rules.push("not qualified".into());
+        p.rulesets.push(p.rulesets[0].clone());
+        p.rules[0].reference = "x".repeat(MAX_REFERENCE + 1);
+        p.rules.push(RuleDecl {
+            id: "flowchart.n1".into(),
+            check: Check::NameFormat { types: vec![], pattern: "[abc".into() },
+            ..RuleDecl::default()
+        });
+        p.rules.push(RuleDecl {
+            id: "flowchart.n2".into(),
+            check: Check::PropertyCompare {
+                types: vec!["flowchart.Ghost".into()],
+                property: "bad key".into(),
+                op: crate::CompareOp::Ge,
+                other: None,
+            },
+            ..RuleDecl::default()
+        });
+        p.rules.push(RuleDecl {
+            id: "flowchart.n3".into(),
+            check: Check::ForbiddenCycle { relationship: "flowchart.Wire".into() },
+            ..RuleDecl::default()
+        });
+        // An empty relationship means every relationship.
+        p.rules.push(RuleDecl {
+            id: "flowchart.n4".into(),
+            check: Check::Connected { types: vec![], relationship: String::new() },
+            ..RuleDecl::default()
+        });
+        let probs = check(&p);
+        for needle in [
+            "unknown element type `flowchart.Nope`",
+            "cannot extend itself",
+            "its own inverse",
+            "unknown rule `flowchart.missingRule`",
+            "`not qualified` is not",
+            "ruleset id `flowchart.iso5807` is declared twice",
+            "reference is longer",
+            "not a usable name pattern",
+            "flowchart.Ghost",
+            "property key `bad key`",
+            "needs `other`",
+            "flowchart.Wire",
+        ] {
+            assert!(has(&probs, needle), "{needle}: {probs:?}");
+        }
+        assert!(!has(&probs, "flowchart.n4"), "{probs:?}");
     }
 
     #[test]

@@ -67,6 +67,7 @@ use crate::{Catalog, legal};
 ///   value.
 pub fn sync(doc: &mut Document, before: &Document, cat: &Catalog) {
     vizcraft_diagram::views::sanitize_refs(doc);
+    conformance(doc, cat);
     // Nothing can be bound in a model with no items, and nothing drawn in `before` can need
     // removing: free drawing leaves here untouched.
     if doc.model.elements.is_empty() && doc.model.relationships.is_empty() {
@@ -81,6 +82,12 @@ pub fn sync(doc: &mut Document, before: &Document, cat: &Catalog) {
 }
 
 /// Element index by id; the model is appended to only during the pass, so indexes stay valid.
+/// Turn the conformance profile on when the document starts using a notation with rules (a
+/// page gets a viewpoint, the model gains an element of a pack); see `rules::auto_enable`.
+fn conformance(doc: &mut Document, cat: &Catalog) {
+    crate::rules::auto_enable(doc, cat);
+}
+
 fn element_index(doc: &Document) -> HashMap<String, usize> {
     let mut m = HashMap::with_capacity(doc.model.elements.len());
     for (i, e) in doc.model.elements.iter().enumerate() {

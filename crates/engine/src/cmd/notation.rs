@@ -1,16 +1,22 @@
-//! Notation commands: list packs, describe a pack or type, legal relationships from an element or type. They read the catalog only.
+//! Notation commands: list packs, describe a pack or type, legal relationships from an element or
+//! type, the rulesets packs declare, and loading a pack from disk.
 //!
 //! These are how an agent discovers what it may build: which packs exist, what types and
 //! properties a pack defines, and which relationships may join two things. They never change the
-//! document, so they are always enabled and never add an undo step.
+//! document, so they are always enabled and never add an undo step. `notation.load` adds a pack
+//! to the catalog every session reads (see `vizcraft_notation::catalog`), so a new notation can
+//! be dropped in and tried without a rebuild.
+
+use std::path::Path;
 
 use serde_json::{Value, json};
-use vizcraft_notation::{Catalog, legal};
+use vizcraft_notation::{Catalog, NotationError, cases, legal};
 
 use super::{opt_str, short};
 use crate::{CmdResult, CommandSpec, EngineError, Session, p};
 
-/// Return all notation commands: `notation.list`, `notation.describe`, `notation.legal`.
+/// Return all notation commands: `notation.list`, `notation.describe`, `notation.legal`,
+/// `notation.rulesets`, `notation.load`.
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("notation.list", "Notation Packs", "Model > Notation", list)
@@ -20,6 +26,12 @@ pub fn specs() -> Vec<CommandSpec> {
         ),
         CommandSpec::new("notation.legal", "Legal Relationships", "Model > Notation", legal_cmd).params(
             r#"{"from": string, "to"?: string} -> {"from": type, "relationships": [{"relationship", "targets"}], "to"?: type, "legal"?: bool}; from and to are element ids, shape ids of element views, or element type ids; with to, only relationships reaching its type are listed"#,
+        ),
+        CommandSpec::new("notation.rulesets", "Rulesets", "Process > Validate", rulesets).params(
+            r#"{} -> {"rulesets": [{"id", "label", "description", "pack", "rules", "active"}]}; every named ruleset of every pack; active: the document's profile holds it"#,
+        ),
+        CommandSpec::new("notation.load", "Load Notation Pack", "Model > Notation", load).params(
+            r#"{"path": pack file (.json or .toml)} -> {"pack": {"id", "version", "name", "rules", "rulesets"} | null, "errors": [string], "cases": [{"name", "passed", "problems"}]}; checks the pack with the built-in limits and adds it to the catalog (a later load of the same id replaces it; built-in packs cannot be replaced), then runs its test cases from tests/<pack id>/ beside the file"#,
         ),
     ]
 }
@@ -39,6 +51,64 @@ fn check_len<'a>(k: &str, t: &'a str) -> Result<&'a str, EngineError> {
         return Err(EngineError::Params(format!("`{k}` is longer than {MAX_PARAM} bytes")));
     }
     Ok(t)
+}
+
+/// Longest path param accepted, in bytes.
+const MAX_PATH: usize = 4096;
+
+/// Every ruleset in the catalog, with whether the document's profile holds it.
+fn rulesets(s: &mut Session, _v: &Value) -> CmdResult {
+    let profile = vizcraft_notation::rules::profile(&s.doc, cat());
+    let list: Vec<Value> = cat()
+        .rulesets()
+        .into_iter()
+        .map(|(pack, r)| {
+            json!({
+                "id": r.id,
+                "label": r.label,
+                "description": r.description,
+                "pack": pack.id,
+                "rules": r.rules,
+                "active": profile.enabled && profile.rulesets.contains(&r.id),
+            })
+        })
+        .collect();
+    Ok(json!({"rulesets": list}))
+}
+
+/// Load a pack file into the catalog and run its test cases.
+fn load(s: &mut Session, v: &Value) -> CmdResult {
+    let path = p::req_str(v, "path")?;
+    if path.is_empty() || path.len() > MAX_PATH {
+        return Err(EngineError::Params(format!("`path` must be 1 to {MAX_PATH} bytes")));
+    }
+    let path = Path::new(path);
+    if !path.is_file() {
+        return Err(EngineError::Failed(format!("no pack file at {}", short(&path.display().to_string()))));
+    }
+    let pack = match vizcraft_notation::catalog::read_pack(path) {
+        Ok(p) => p,
+        Err(NotationError::Invalid(problems)) => return Ok(json!({"pack": null, "errors": problems, "cases": []})),
+        Err(e) => return Ok(json!({"pack": null, "errors": [e.to_string()], "cases": []})),
+    };
+    let summary = json!({
+        "id": pack.id,
+        "version": pack.version,
+        "name": pack.name,
+        "rules": pack.rules.len(),
+        "rulesets": pack.rulesets.iter().map(|r| r.id.clone()).collect::<Vec<_>>(),
+    });
+    let id = pack.id.clone();
+    let cat = match vizcraft_notation::catalog::add_pack(pack) {
+        Ok(c) => c,
+        Err(e) => return Ok(json!({"pack": null, "errors": [e], "cases": []})),
+    };
+    // Its rules may apply to the open document now.
+    s.refresh_issues();
+    let dir = path.parent().map(|d| cases::cases_dir(d, &id));
+    let outcomes = dir.map(|d| cases::run_dir(&d, cat)).unwrap_or_default();
+    let cases: Vec<Value> = outcomes.iter().map(|o| json!({"name": o.name, "passed": o.passed(), "problems": o.problems})).collect();
+    Ok(json!({"pack": summary, "errors": [], "cases": cases}))
 }
 
 fn cat() -> &'static Catalog {
@@ -140,7 +210,7 @@ mod tests {
         let r = s.run("notation.list", &json!({})).unwrap();
         let packs = r["packs"].as_array().unwrap();
         let ids: Vec<_> = packs.iter().map(|p| p["id"].as_str().unwrap()).collect();
-        assert_eq!(ids, ["basic", "flowchart"]);
+        assert_eq!(ids.get(..3), Some(&["basic", "flowchart", "drawing"][..]), "built-in packs first; packs loaded by other tests follow");
         let f = &packs[1];
         assert_eq!(
             (f["name"].as_str(), f["version"].as_str(), f["types"].as_u64(), f["glyphs"].as_u64()),
@@ -206,6 +276,51 @@ mod tests {
         s.doc.pages[0].shapes.push(vizcraft_stencils::new_shape("basic.rectangle", "s2", 0.0, 0.0, None, None).unwrap());
         assert!(s.run("notation.legal", &json!({"from": "s2"})).is_err());
         assert!(!s.can_undo());
+    }
+
+    #[test]
+    fn a_pack_loads_from_disk_and_runs_its_cases() {
+        let dir = std::env::temp_dir().join(format!("vizcraft-notation-load-{}", std::process::id()));
+        let cases = dir.join("tests").join("engtest");
+        std::fs::create_dir_all(&cases).unwrap();
+        let pack = json!({
+            "id": "engtest", "version": "1.0.0", "name": "Engine test",
+            "elementTypes": [{"id": "engtest.Node"}],
+            "rules": [{"id": "engtest.named", "severity": "error", "reference": "Test clause 1", "check": {"kind": "nameFormat", "types": ["engtest.Node"], "pattern": "N*"}}],
+            "rulesets": [{"id": "engtest.strict", "label": "Strict", "rules": ["engtest.named"]}]
+        });
+        std::fs::write(dir.join("engtest.json"), pack.to_string()).unwrap();
+        let model = json!({"schemaVersion": 1, "elements": [{"id": "e1", "type": "engtest.Node", "name": "bad"}, {"id": "e2", "type": "engtest.Node", "name": "N2"}]});
+        let document = json!({"format": "vizcraft", "version": 4, "model": model, "document": {"pages": [{"id": "p1", "name": "P"}]}});
+        std::fs::write(cases.join("names.json"), json!({"document": document, "expect": [{"rule": "engtest.named"}]}).to_string()).unwrap();
+        std::fs::write(cases.join("wrong.json"), json!({"document": document, "expect": []}).to_string()).unwrap();
+        std::fs::write(dir.join("broken.json"), "{\"id\": \"Broken Pack\"}").unwrap();
+
+        let mut s = session();
+        let r = s.run("notation.load", &json!({"path": dir.join("engtest.json")})).unwrap();
+        assert_eq!(r["errors"], json!([]));
+        assert_eq!((r["pack"]["id"].as_str(), r["pack"]["rules"].as_u64()), (Some("engtest"), Some(1)));
+        let results: Vec<(String, bool)> =
+            r["cases"].as_array().unwrap().iter().map(|c| (c["name"].as_str().unwrap().to_string(), c["passed"].as_bool().unwrap())).collect();
+        assert_eq!(results, [("names.json".to_string(), true), ("wrong.json".to_string(), false)]);
+        // The pack is in the catalog now: its rule explains and its ruleset lists.
+        let e = s.run("validate.explain", &json!({"rule": "engtest.named"})).unwrap();
+        assert_eq!((e["reference"].as_str(), e["ruleset"].as_str()), (Some("Test clause 1"), Some("engtest.strict")));
+        let rs = s.run("notation.rulesets", &json!({})).unwrap();
+        assert!(rs["rulesets"].as_array().unwrap().iter().any(|r| r["id"] == "engtest.strict" && r["pack"] == "engtest"));
+        // A broken pack reports why; a missing file and a built-in id are refused.
+        let r = s.run("notation.load", &json!({"path": dir.join("broken.json")})).unwrap();
+        assert!(r["pack"].is_null() && !r["errors"].as_array().unwrap().is_empty(), "{r}");
+        assert!(s.run("notation.load", &json!({"path": dir.join("missing.json")})).is_err());
+        let fake = dir.join("flowchart.json");
+        std::fs::write(&fake, json!({"id": "flowchart", "version": "9.0.0"}).to_string()).unwrap();
+        let r = s.run("notation.load", &json!({"path": fake})).unwrap();
+        assert!(r["errors"][0].as_str().unwrap().contains("built in"), "{r}");
+        for bad in [json!({}), json!({"path": 3}), json!({"path": ""}), json!({"path": "p".repeat(10_000)})] {
+            assert!(s.run("notation.load", &bad).is_err(), "{bad}");
+        }
+        assert!(!s.can_undo());
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]

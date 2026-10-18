@@ -1,14 +1,39 @@
-//! The built-in packs and lookups across every loaded pack.
+//! The built-in packs, packs loaded from disk, and lookups across every loaded pack.
+//!
+//! [`catalog`] is the catalog every session reads. It starts as the built-in packs plus every
+//! pack file in the folder named by [`PACKS_DIR_ENV`] (or set with [`use_packs_dir`], which the
+//! app points at the `packs` folder next to its preferences), and is replaced when a pack is
+//! loaded with [`add_pack`] (the `notation.load` command). Each replacement is a new catalog
+//! that lives for the rest of the process, so references handed out earlier stay valid; the
+//! number of replacements is capped by [`MAX_INSTALLS`] so the memory this keeps is bounded.
 
-use std::sync::OnceLock;
+use std::io::Read;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{PoisonError, RwLock};
 
 use vizcraft_model::{IdScope, PackRef};
 
-use crate::schema::{ElementType, Glyph, Pack, RelationshipType};
+use crate::loader::{MAX_PACK, NotationError};
+use crate::schema::{ElementType, Glyph, Pack, RelationshipType, Ruleset};
 
-/// The built-in packs as shipped: file name and text, in Shapes pane order.
-pub const BUILTIN: &[(&str, &str)] =
-    &[("basic.json", include_str!("../packs/basic.json")), ("flowchart.json", include_str!("../packs/flowchart.json"))];
+/// The built-in packs as shipped: file name and text, in Shapes pane order. `drawing` has no
+/// glyphs, only rules any page can be held to.
+pub const BUILTIN: &[(&str, &str)] = &[
+    ("basic.json", include_str!("../packs/basic.json")),
+    ("flowchart.json", include_str!("../packs/flowchart.json")),
+    ("drawing.json", include_str!("../packs/drawing.json")),
+];
+
+/// The environment variable naming a folder of pack files (`*.json`, `*.toml`) loaded with the
+/// built-in packs when the catalog is first built.
+pub const PACKS_DIR_ENV: &str = "VIZCRAFT_PACKS_DIR";
+
+/// Most packs loaded from disk into one catalog.
+pub const MAX_DISK_PACKS: usize = 64;
+
+/// Most times the catalog can be replaced in one process (pack loads and folder changes).
+pub const MAX_INSTALLS: usize = 256;
 
 /// A set of loaded packs.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -88,12 +113,144 @@ impl Catalog {
     pub fn scopes(&self) -> Vec<IdScope> {
         self.packs.iter().flat_map(|p| p.identifiers.iter().cloned()).collect()
     }
+    /// The ruleset with this qualified id, from the pack its prefix names.
+    pub fn ruleset(&self, id: &str) -> Option<&Ruleset> {
+        self.pack(vizcraft_model::pack_of(id))?.ruleset(id)
+    }
+    /// Every ruleset of every pack, with its pack, in catalog order.
+    pub fn rulesets(&self) -> Vec<(&Pack, &Ruleset)> {
+        self.packs.iter().flat_map(|p| p.rulesets.iter().map(move |r| (p, r))).collect()
+    }
+    /// The rule with this qualified id, with its pack.
+    pub fn rule(&self, id: &str) -> Option<(&Pack, &crate::schema::RuleDecl)> {
+        let pack = self.pack(vizcraft_model::pack_of(id))?;
+        pack.rule(id).map(|r| (pack, r))
+    }
+    /// Whether `id` is the id of a built-in pack.
+    pub fn is_builtin(id: &str) -> bool {
+        BUILTIN.iter().any(|(name, _)| name.strip_suffix(".json") == Some(id))
+    }
+    /// This catalog with `pack` added, or replacing an earlier disk pack with the same id. A
+    /// built-in pack cannot be replaced, and at most [`MAX_DISK_PACKS`] disk packs are held.
+    pub fn with_pack(&self, pack: Pack) -> Result<Catalog, String> {
+        if Catalog::is_builtin(&pack.id) {
+            return Err(format!("pack `{}` is built in and cannot be replaced", pack.id));
+        }
+        let mut c = self.clone();
+        if let Some(slot) = c.packs.iter_mut().find(|p| p.id == pack.id) {
+            *slot = pack;
+            return Ok(c);
+        }
+        let disk = c.packs.iter().filter(|p| !Catalog::is_builtin(&p.id)).count();
+        if disk >= MAX_DISK_PACKS {
+            return Err(format!("at most {MAX_DISK_PACKS} packs can be loaded from disk"));
+        }
+        c.packs.push(pack);
+        Ok(c)
+    }
+    /// Load every `*.json` and `*.toml` pack file directly in `dir`, in file name order, at most
+    /// [`MAX_DISK_PACKS`]; a file that fails to load is noted in [`Catalog::errors`] and skipped.
+    pub fn scan_dir(&mut self, dir: &Path) {
+        let entries = match std::fs::read_dir(dir) {
+            Ok(e) => e,
+            Err(e) => {
+                self.errors.push(format!("{}: {e}", dir.display()));
+                return;
+            }
+        };
+        let mut files: Vec<PathBuf> = entries
+            .filter_map(Result::ok)
+            .map(|e| e.path())
+            .filter(|p| {
+                p.is_file() && p.extension().and_then(|x| x.to_str()).is_some_and(|x| matches!(x.to_ascii_lowercase().as_str(), "json" | "toml"))
+            })
+            .collect();
+        files.sort();
+        for path in files.into_iter().take(MAX_DISK_PACKS) {
+            let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+            match read_pack(&path).map_err(|e| e.to_string()).and_then(|p| self.with_pack(p)) {
+                Ok(c) => *self = Catalog { errors: std::mem::take(&mut self.errors), ..c },
+                Err(e) => self.errors.push(format!("{name}: {e}")),
+            }
+        }
+    }
 }
 
-/// The catalog every session uses: the built-in packs, loaded once.
+/// Read and check one pack file, refusing files larger than the loader's cap before reading
+/// them whole.
+pub fn read_pack(path: &Path) -> Result<Pack, NotationError> {
+    let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    let file = std::fs::File::open(path).map_err(|e| NotationError::Parse(format!("cannot read {}: {e}", path.display())))?;
+    let mut bytes = Vec::new();
+    file.take(u64::try_from(MAX_PACK).unwrap_or(u64::MAX).saturating_add(1))
+        .read_to_end(&mut bytes)
+        .map_err(|e| NotationError::Parse(format!("cannot read {}: {e}", path.display())))?;
+    crate::loader::load(&name, &bytes)
+}
+
+/// The current catalog; `None` until first asked for.
+static CURRENT: RwLock<Option<&'static Catalog>> = RwLock::new(None);
+
+/// Catalogs installed so far.
+static INSTALLS: AtomicUsize = AtomicUsize::new(0);
+
+/// The catalog when the process starts: the built-in packs and the packs in [`PACKS_DIR_ENV`].
+fn initial() -> Catalog {
+    let mut c = Catalog::builtin();
+    if let Some(dir) = std::env::var_os(PACKS_DIR_ENV).filter(|d| !d.is_empty()) {
+        c.scan_dir(Path::new(&dir));
+    }
+    c
+}
+
+/// The catalog every session uses: the built-in packs, the packs of the packs folder, and packs
+/// loaded since (see the module docs).
 pub fn catalog() -> &'static Catalog {
-    static CATALOG: OnceLock<Catalog> = OnceLock::new();
-    CATALOG.get_or_init(Catalog::builtin)
+    if let Some(c) = *CURRENT.read().unwrap_or_else(PoisonError::into_inner) {
+        return c;
+    }
+    let mut slot = CURRENT.write().unwrap_or_else(PoisonError::into_inner);
+    match *slot {
+        Some(c) => c,
+        None => {
+            let c: &'static Catalog = Box::leak(Box::new(initial()));
+            *slot = Some(c);
+            c
+        }
+    }
+}
+
+/// Replace the current catalog with the result of `f` on it, holding the lock so two loads
+/// cannot lose each other's packs.
+fn replace(f: impl FnOnce(&Catalog) -> Result<Catalog, String>) -> Result<&'static Catalog, String> {
+    let now = catalog();
+    let mut slot = CURRENT.write().unwrap_or_else(PoisonError::into_inner);
+    let base = slot.unwrap_or(now);
+    if INSTALLS.load(Ordering::Relaxed) >= MAX_INSTALLS {
+        return Err(format!("the catalog was replaced {MAX_INSTALLS} times in this run; restart to load more packs"));
+    }
+    let next = f(base)?;
+    INSTALLS.fetch_add(1, Ordering::Relaxed);
+    let c: &'static Catalog = Box::leak(Box::new(next));
+    *slot = Some(c);
+    Ok(c)
+}
+
+/// Add `pack` to the catalog every session uses (or replace the disk pack with its id).
+pub fn add_pack(pack: Pack) -> Result<&'static Catalog, String> {
+    replace(|c| c.with_pack(pack))
+}
+
+/// Rebuild the catalog from the built-in packs and the pack files in `dir` (the app's packs
+/// folder), dropping packs loaded since. Problems are in the new catalog's [`Catalog::errors`].
+pub fn use_packs_dir(dir: &Path) -> Result<&'static Catalog, String> {
+    replace(|_| {
+        let mut c = Catalog::builtin();
+        if dir.is_dir() {
+            c.scan_dir(dir);
+        }
+        Ok(c)
+    })
 }
 
 #[cfg(test)]
@@ -106,7 +263,7 @@ mod tests {
         let c = Catalog::builtin();
         assert!(c.errors().is_empty(), "{:?}", c.errors());
         let ids: Vec<_> = c.packs().iter().map(|p| p.id.as_str()).collect();
-        assert_eq!(ids, ["basic", "flowchart"]);
+        assert_eq!(ids, ["basic", "flowchart", "drawing"]);
         let basic = c.pack("basic").unwrap();
         assert_eq!((basic.glyphs.len(), basic.element_types.len()), (10, 0));
         let f = c.pack("flowchart").unwrap();
@@ -117,5 +274,52 @@ mod tests {
         assert_eq!(c.master_for_type("flowchart.Terminator"), Some("flowchart.terminator"));
         assert_eq!(c.type_for_master("basic.rectangle"), None);
         assert_eq!(c.scopes().len(), 3);
+        let d = c.pack("drawing").unwrap();
+        assert_eq!((d.glyphs.len(), d.element_types.len(), d.rules.len()), (0, 0, 5));
+        assert_eq!(c.ruleset("drawing.tidy").unwrap().rules.len(), 5);
+        let iso = c.ruleset("flowchart.iso5807").unwrap();
+        assert_eq!(iso.rules.len(), f.rules.len(), "the ISO ruleset lists every Flowchart rule");
+        assert!(f.rules.iter().all(|r| !r.reference.is_empty()), "every Flowchart rule names its clause");
+        assert_eq!(c.rule("flowchart.singleExit").map(|(p, _)| p.id.as_str()), Some("flowchart"));
+        assert!(Catalog::is_builtin("drawing") && !Catalog::is_builtin("mine"));
+    }
+
+    fn tiny(id: &str) -> Pack {
+        serde_json::from_value(serde_json::json!({"id": id, "version": "1.0.0", "name": id})).unwrap()
+    }
+
+    #[test]
+    fn disk_packs_add_replace_and_never_shadow_builtin_ones() {
+        let c = Catalog::builtin();
+        assert!(c.with_pack(tiny("flowchart")).is_err());
+        let c2 = c.with_pack(tiny("mine")).unwrap();
+        assert_eq!(c2.packs().len(), c.packs().len() + 1);
+        let mut again = tiny("mine");
+        again.name = "Mine two".into();
+        let c3 = c2.with_pack(again).unwrap();
+        assert_eq!((c3.packs().len(), c3.pack("mine").unwrap().name.as_str()), (c2.packs().len(), "Mine two"));
+        let mut full = c.clone();
+        for i in 0..MAX_DISK_PACKS {
+            full = full.with_pack(tiny(&format!("p{i}"))).unwrap();
+        }
+        assert!(full.with_pack(tiny("one_more")).is_err());
+    }
+
+    #[test]
+    fn a_folder_of_packs_loads_with_errors_noted() {
+        let dir = std::env::temp_dir().join(format!("vizcraft-packs-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("b_mine.json"), serde_json::to_string(&tiny("mine")).unwrap()).unwrap();
+        std::fs::write(dir.join("a_bad.json"), "{ not json").unwrap();
+        std::fs::write(dir.join("notes.txt"), "ignored").unwrap();
+        let mut c = Catalog::builtin();
+        c.scan_dir(&dir);
+        assert!(c.pack("mine").is_some());
+        assert_eq!(c.errors().len(), 1, "{:?}", c.errors());
+        assert!(c.errors()[0].starts_with("a_bad.json"));
+        let mut missing = Catalog::builtin();
+        missing.scan_dir(&dir.join("nope"));
+        assert_eq!(missing.errors().len(), 1);
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 }

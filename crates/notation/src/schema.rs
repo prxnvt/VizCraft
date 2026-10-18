@@ -52,6 +52,9 @@ pub struct Pack {
     pub identifiers: Vec<IdScope>,
     /// Validation rules.
     pub rules: Vec<RuleDecl>,
+    /// Named sets of rules a document can be held to (`flowchart.iso5807`); the first is the one
+    /// a document gets when it starts using the pack.
+    pub rulesets: Vec<Ruleset>,
     /// Template ids the pack supports (none yet).
     pub templates: Vec<String>,
     /// Pattern ids the pack supports (none yet).
@@ -76,6 +79,14 @@ impl Pack {
     /// The connector type with this qualified id.
     pub fn connector_type(&self, id: &str) -> Option<&ConnectorType> {
         self.connector_types.iter().find(|t| t.id == id)
+    }
+    /// The rule with this qualified id.
+    pub fn rule(&self, id: &str) -> Option<&RuleDecl> {
+        self.rules.iter().find(|r| r.id == id)
+    }
+    /// The ruleset with this qualified id.
+    pub fn ruleset(&self, id: &str) -> Option<&Ruleset> {
+        self.rulesets.iter().find(|r| r.id == id)
     }
     /// The viewpoint with this qualified id.
     pub fn viewpoint(&self, id: &str) -> Option<&Viewpoint> {
@@ -253,6 +264,11 @@ pub struct ElementType {
     pub ports: Vec<Port>,
     /// Elements of this type may own other elements in the containment tree.
     pub container: bool,
+    /// The supertype (`process.Equipment` for `process.Pump`), possibly in another pack. A type
+    /// list in a rule or the connection table that names the supertype covers this type too, and
+    /// properties and ports the type does not declare come from the supertype.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub extends: Option<String>,
 }
 
 impl ElementType {
@@ -276,11 +292,23 @@ pub struct RelationshipType {
     pub properties: Vec<PropertySchema>,
     /// Arrowhead drawn at the target end: an `Arrow` name from `vizcraft-diagram`.
     pub end_arrow: String,
+    /// The relationship type this one is the inverse of (`partOf` for `hasPart`): a relationship
+    /// of this type from A to B also counts as one of that type from B to A wherever rules follow
+    /// relationships (reachability, paths, cycles, islands).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub inverse_of: Option<String>,
 }
 
 impl Default for RelationshipType {
     fn default() -> Self {
-        RelationshipType { id: String::new(), label: String::new(), description: String::new(), properties: Vec::new(), end_arrow: "triangle".into() }
+        RelationshipType {
+            id: String::new(),
+            label: String::new(),
+            description: String::new(),
+            properties: Vec::new(),
+            end_arrow: "triangle".into(),
+            inverse_of: None,
+        }
     }
 }
 
@@ -394,11 +422,70 @@ pub struct RuleDecl {
     pub mode: RuleMode,
     /// The check and its parameters.
     pub check: Check,
+    /// The standard and clause the rule comes from (`ISO 5807:1985, 9.2`), empty when it is a
+    /// house rule; `validate.explain` returns it.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub reference: String,
 }
 
 impl Default for RuleDecl {
     fn default() -> Self {
-        RuleDecl { id: String::new(), description: String::new(), severity: Severity::Warning, mode: RuleMode::Live, check: Check::Unknown }
+        RuleDecl {
+            id: String::new(),
+            description: String::new(),
+            severity: Severity::Warning,
+            mode: RuleMode::Live,
+            check: Check::Unknown,
+            reference: String::new(),
+        }
+    }
+}
+
+/// A named set of rules a document can be held to. A document's conformance profile lists
+/// ruleset ids; only the rules they list run.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct Ruleset {
+    /// Qualified id (`flowchart.iso5807`).
+    pub id: String,
+    /// Display name (`ISO 5807 flowchart`).
+    pub label: String,
+    /// What holding a document to it means.
+    pub description: String,
+    /// Rule ids, pack-qualified; a rule of another pack may be listed.
+    pub rules: Vec<String>,
+}
+
+/// How [`Check::PropertyCompare`] compares.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum CompareOp {
+    /// Less than.
+    Lt,
+    /// Less than or equal.
+    Le,
+    /// Equal.
+    #[default]
+    Eq,
+    /// Greater than or equal.
+    Ge,
+    /// Greater than.
+    Gt,
+    /// Not equal.
+    Ne,
+}
+
+impl CompareOp {
+    /// The operator as a message shows it.
+    pub fn symbol(self) -> &'static str {
+        match self {
+            CompareOp::Lt => "less than",
+            CompareOp::Le => "at most",
+            CompareOp::Eq => "equal to",
+            CompareOp::Ge => "at least",
+            CompareOp::Gt => "greater than",
+            CompareOp::Ne => "different from",
+        }
     }
 }
 
@@ -482,6 +569,114 @@ pub enum Check {
         #[serde(default)]
         relationship: String,
     },
+    /// A cycle along `relationship` (one issue per cycle, with every element and relationship in
+    /// it). Inverse relationship types count, reversed.
+    ForbiddenCycle {
+        /// Relationship type followed (empty: every relationship).
+        #[serde(default)]
+        relationship: String,
+    },
+    /// An element of a `from` type from which no walk along `relationship` reaches an element of
+    /// a `to` type.
+    RequiredPath {
+        /// Types the path starts at.
+        #[serde(default)]
+        from: Vec<String>,
+        /// Types the path must reach.
+        #[serde(default)]
+        to: Vec<String>,
+        /// Relationship type followed (empty: every relationship).
+        #[serde(default)]
+        relationship: String,
+    },
+    /// Elements of these types fall apart into islands along `relationship` (either direction):
+    /// one issue per island other than the largest.
+    Connected {
+        /// Types checked.
+        #[serde(default)]
+        types: Vec<String>,
+        /// Relationship type followed (empty: every relationship).
+        #[serde(default)]
+        relationship: String,
+    },
+    /// An element owned (in the containment tree) by an element of an `owners` type whose own
+    /// type is not in `children`.
+    Containment {
+        /// Owner types the rule is about.
+        #[serde(default)]
+        owners: Vec<String>,
+        /// Types those owners may own.
+        #[serde(default)]
+        children: Vec<String>,
+    },
+    /// A relationship of this type that starts at a port that is not an `out` port or ends at
+    /// one that is not an `in` port (`inOut` ports allow both).
+    PortDirection {
+        /// Relationship type checked (empty: every relationship).
+        #[serde(default)]
+        relationship: String,
+    },
+    /// A port that more than `max` relationships of this type end at (at most n drivers).
+    PortFanIn {
+        /// Relationship type counted (empty: every relationship).
+        #[serde(default)]
+        relationship: String,
+        /// Most allowed.
+        #[serde(default)]
+        max: u32,
+    },
+    /// Two elements of these types with the same value of `property` under one owner: the
+    /// nearest ancestor whose type is in `within`, or the direct owner when `within` is empty.
+    UniqueProperty {
+        /// Types checked.
+        #[serde(default)]
+        types: Vec<String>,
+        /// Property key compared.
+        #[serde(default)]
+        property: String,
+        /// Owner types that bound the uniqueness (empty: the direct owner).
+        #[serde(default)]
+        within: Vec<String>,
+    },
+    /// An element of these types whose `property` does not compare as `op` against `other`:
+    /// text naming a property the element's type declares compares the two properties
+    /// (design pressure at least operating pressure); anything else is a constant. Elements
+    /// missing either value are skipped (`requiredProperty` reports those).
+    PropertyCompare {
+        /// Types checked.
+        #[serde(default)]
+        types: Vec<String>,
+        /// Property key on the left.
+        #[serde(default)]
+        property: String,
+        /// The comparison.
+        #[serde(default)]
+        op: CompareOp,
+        /// A property key or a constant on the right.
+        #[serde(default)]
+        other: Option<PropValue>,
+    },
+    /// An element of these types whose name does not match `pattern`, a glob: `*` any run, `?`
+    /// one character, `[a-z]` or `[!0-9]` a class, `\` escapes. Unnamed elements are skipped.
+    NameFormat {
+        /// Types checked.
+        #[serde(default)]
+        types: Vec<String>,
+        /// The glob.
+        #[serde(default)]
+        pattern: String,
+    },
+    /// Drawing: a connector whose drawn route runs through a shape it is not glued to.
+    CrossesShape,
+    /// Drawing: a connector with an end that is not glued to a shape.
+    UngluedEnd,
+    /// Drawing: two solid shapes whose frames overlap, neither inside the other as its group,
+    /// container or lane.
+    Overlap,
+    /// Drawing: a shape not wholly on the page.
+    OffBoard,
+    /// Drawing: text taller than its block at the shape's font size.
+    TextOverflow,
     /// A check this build does not know (from a newer pack); skipped, and reported by the loader.
     #[default]
     #[serde(other)]

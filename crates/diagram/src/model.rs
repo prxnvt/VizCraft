@@ -1024,6 +1024,10 @@ pub struct Document {
     /// The document theme and variant (see [`crate::theme`]); the default is no theme.
     #[serde(skip_serializing_if = "is_default")]
     pub theme: DocTheme,
+    /// Which well-formedness rules the document is held to (see [`crate::conformance`]); off
+    /// for free drawing.
+    #[serde(skip_serializing_if = "is_default")]
+    pub conformance: crate::conformance::Conformance,
 }
 
 /// The on-disk form; turned into a [`Document`] by fixing up anything a file got wrong.
@@ -1047,6 +1051,8 @@ struct DocumentRepr {
     #[serde(deserialize_with = "lenient")]
     active_page: String,
     theme: DocTheme,
+    #[serde(deserialize_with = "lenient")]
+    conformance: crate::conformance::Conformance,
 }
 
 impl From<DocumentRepr> for Document {
@@ -1062,6 +1068,7 @@ impl From<DocumentRepr> for Document {
             images: r.images,
             active_page: r.active_page,
             theme: r.theme,
+            conformance: r.conformance,
         };
         // Pages only: the model is a separate section the caller sets afterwards, so checking view
         // references here would clear every one of them. The caller runs `sanitize` once the
@@ -1091,6 +1098,7 @@ impl Document {
             images: Vec::new(),
             active_page: String::new(),
             theme: DocTheme::default(),
+            conformance: crate::conformance::Conformance::default(),
         }
     }
     /// Make the document safe to work on: at least one page, every number in range, a sane model,

@@ -1,0 +1,261 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "document": {
+      "title": "",
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "width": 1100.0,
+          "height": 850.0,
+          "shapes": [
+            {
+              "id": "one",
+              "stencil": "basic.rectangle",
+              "kind": "rectangle",
+              "x": 100.0,
+              "y": 100.0,
+              "w": 120.0,
+              "h": 70.0,
+              "angleDeg": 0.0,
+              "text": "One",
+              "style": {
+                "fill": "#e9f0f8",
+                "line": "#345b84",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ]
+            },
+            {
+              "id": "two",
+              "stencil": "basic.rectangle",
+              "kind": "rectangle",
+              "x": 160.0,
+              "y": 130.0,
+              "w": 120.0,
+              "h": 70.0,
+              "angleDeg": 0.0,
+              "text": "Two",
+              "style": {
+                "fill": "#e9f0f8",
+                "line": "#345b84",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ]
+            },
+            {
+              "id": "tiny",
+              "stencil": "basic.rectangle",
+              "kind": "rectangle",
+              "x": 100.0,
+              "y": 400.0,
+              "w": 60.0,
+              "h": 30.0,
+              "angleDeg": 0.0,
+              "text": "This label is far too long for so small a box",
+              "style": {
+                "fill": "#e9f0f8",
+                "line": "#345b84",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ]
+            },
+            {
+              "id": "holder",
+              "stencil": "vizcraft.container",
+              "kind": "rectangle",
+              "x": 480.0,
+              "y": 352.0,
+              "w": 160.0,
+              "h": 138.0,
+              "angleDeg": 0.0,
+              "text": "Holder",
+              "style": {
+                "fill": "#f7f9fc",
+                "line": "#5b6b7d",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "textBlock": {
+                "dx": 0.0,
+                "dy": -55.0,
+                "w": 160.0,
+                "h": 28.0,
+                "angleDeg": 0.0
+              },
+              "behavior": {
+                "container": true,
+                "nonPrinting": false,
+                "hidden": false,
+                "noGlue": false,
+                "noSnap": false
+              },
+              "container": {
+                "role": "container",
+                "margin": 20.0,
+                "headingPosition": "top",
+                "headingStyle": "band",
+                "headingSize": 28.0,
+                "band": "#dfe6ee",
+                "style": "classic",
+                "autoFit": false,
+                "locked": false,
+                "vertical": false,
+                "leader": true,
+                "side": "auto"
+              }
+            },
+            {
+              "id": "member",
+              "stencil": "basic.rectangle",
+              "kind": "rectangle",
+              "x": 500.0,
+              "y": 400.0,
+              "w": 120.0,
+              "h": 70.0,
+              "angleDeg": 0.0,
+              "text": "Member",
+              "style": {
+                "fill": "#e9f0f8",
+                "line": "#345b84",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "parent": "holder"
+            }
+          ],
+          "connectors": []
+        }
+      ],
+      "idSeq": 1
+    }
+  },
+  "profile": {
+    "enabled": true,
+    "rulesets": [
+      "drawing.tidy"
+    ]
+  },
+  "expect": [
+    {
+      "rule": "drawing.overlap",
+      "items": [
+        "one",
+        "two"
+      ]
+    },
+    {
+      "rule": "drawing.textOverflow",
+      "items": [
+        "tiny"
+      ]
+    }
+  ]
+}

@@ -765,6 +765,7 @@ fn drawio_hollow_and_er_ends_map_onto_the_notation_ends() {
     assert_eq!(ends("endArrow=ERzeroToOne;"), (Arrow::None, Arrow::BarCircle));
     assert_eq!(ends("endArrow=ERone;endFill=0;"), (Arrow::None, Arrow::Bar), "an ER end has no hollow form");
 }
+
 #[test]
 fn a_new_document_is_infinite_and_a_file_without_the_board_key_loads_fixed() {
     use vizcraft_diagram::Board;
@@ -792,4 +793,30 @@ fn a_new_document_is_infinite_and_a_file_without_the_board_key_loads_fixed() {
         v["document"]["pages"][0]["board"] = junk.clone();
         assert_eq!(load(&serde_json::to_vec_pretty(&v).unwrap()).unwrap().pages[0].board, Board::Fixed, "{junk}");
     }
+}
+
+#[test]
+fn conformance_profile_round_trips_as_a_document_field() {
+    use vizcraft_diagram::vizcraft_model::Severity;
+    use vizcraft_diagram::{Conformance, RuleOverride};
+    let mut doc = modelled();
+    doc.conformance = Conformance {
+        enabled: true,
+        user_set: true,
+        rulesets: vec!["flowchart.iso5807".into(), "drawing.tidy".into()],
+        overrides: vec![RuleOverride { rule: "flowchart.singleExit".into(), severity: Some(Severity::Info), disabled: false }],
+        ..Conformance::default()
+    };
+    doc.conformance.suppress("flowchart.illegalFlow|r1,e1,e2|c1,s1,s2|p1", "an archive copy");
+    let bytes = save(&doc).unwrap();
+    let v = parse(&bytes);
+    assert_eq!(v["document"]["conformance"]["rulesets"], json!(["flowchart.iso5807", "drawing.tidy"]));
+    assert_eq!(v["document"]["conformance"]["suppressions"][0]["reason"], "an archive copy");
+    assert_eq!(load(&bytes).unwrap().conformance, doc.conformance);
+    // The default profile is left out, and a junk one reads as the default.
+    let free = save(&Document::new()).unwrap();
+    assert!(parse(&free)["document"].get("conformance").is_none());
+    let mut junk = parse(&free);
+    junk["document"]["conformance"] = json!(["not", "a", "profile"]);
+    assert!(load(&serde_json::to_vec(&junk).unwrap()).unwrap().conformance.is_default());
 }

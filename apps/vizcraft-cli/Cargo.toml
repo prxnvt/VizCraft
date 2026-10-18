@@ -12,4 +12,5 @@ workspace = true
 [dependencies]
 vizcraft-engine = { workspace = true }
 vizcraft-mcp = { workspace = true }
+vizcraft-notation = { workspace = true }
 serde_json = { workspace = true }

@@ -1,0 +1,455 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "model": {
+      "schemaVersion": 1,
+      "packs": [
+        {
+          "id": "flowchart",
+          "version": "1.0.0"
+        }
+      ],
+      "elements": [
+        {
+          "id": "e2",
+          "type": "flowchart.Terminator",
+          "name": "Start"
+        },
+        {
+          "id": "e3",
+          "type": "flowchart.Decision",
+          "name": "In stock?",
+          "tag": "S1"
+        },
+        {
+          "id": "e4",
+          "type": "flowchart.Process",
+          "name": "Ship",
+          "tag": "S2",
+          "properties": {
+            "automated": false
+          }
+        },
+        {
+          "id": "e5",
+          "type": "flowchart.Terminator",
+          "name": "End"
+        },
+        {
+          "id": "e6",
+          "type": "flowchart.Database",
+          "name": "Orders"
+        },
+        {
+          "id": "e7",
+          "type": "flowchart.Database",
+          "name": "Archive"
+        }
+      ],
+      "relationships": [
+        {
+          "id": "r8",
+          "type": "flowchart.Flow",
+          "source": "e2",
+          "target": "e3"
+        },
+        {
+          "id": "r9",
+          "type": "flowchart.Flow",
+          "source": "e3",
+          "target": "e4",
+          "name": "yes"
+        },
+        {
+          "id": "r10",
+          "type": "flowchart.Flow",
+          "source": "e4",
+          "target": "e5"
+        },
+        {
+          "id": "r11",
+          "type": "flowchart.Flow",
+          "source": "e6",
+          "target": "e7"
+        }
+      ]
+    },
+    "document": {
+      "title": "",
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "width": 1100.0,
+          "height": 850.0,
+          "shapes": [
+            {
+              "id": "start",
+              "stencil": "flowchart.terminator",
+              "kind": "terminator",
+              "x": 100.0,
+              "y": 40.0,
+              "w": 140.0,
+              "h": 50.0,
+              "angleDeg": 0.0,
+              "text": "Start",
+              "style": {
+                "fill": "#ece7f6",
+                "line": "#5a4b8c",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "e2"
+            },
+            {
+              "id": "check",
+              "stencil": "flowchart.decision",
+              "kind": "diamond",
+              "x": 100.0,
+              "y": 160.0,
+              "w": 140.0,
+              "h": 90.0,
+              "angleDeg": 0.0,
+              "text": "In stock?",
+              "style": {
+                "fill": "#fcf0d6",
+                "line": "#956a1a",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "e3"
+            },
+            {
+              "id": "ship",
+              "stencil": "flowchart.process",
+              "kind": "rectangle",
+              "x": 100.0,
+              "y": 300.0,
+              "w": 140.0,
+              "h": 60.0,
+              "angleDeg": 0.0,
+              "text": "Ship",
+              "style": {
+                "fill": "#e4f2ec",
+                "line": "#2d6e58",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "e4"
+            },
+            {
+              "id": "end",
+              "stencil": "flowchart.terminator",
+              "kind": "terminator",
+              "x": 100.0,
+              "y": 420.0,
+              "w": 140.0,
+              "h": 50.0,
+              "angleDeg": 0.0,
+              "text": "End",
+              "style": {
+                "fill": "#ece7f6",
+                "line": "#5a4b8c",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "e5"
+            },
+            {
+              "id": "orders",
+              "stencil": "flowchart.database",
+              "kind": "cylinder",
+              "x": 500.0,
+              "y": 160.0,
+              "w": 90.0,
+              "h": 100.0,
+              "angleDeg": 0.0,
+              "text": "Orders",
+              "style": {
+                "fill": "#f3e9e4",
+                "line": "#84523c",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "e6"
+            },
+            {
+              "id": "archive",
+              "stencil": "flowchart.database",
+              "kind": "cylinder",
+              "x": 500.0,
+              "y": 320.0,
+              "w": 90.0,
+              "h": 100.0,
+              "angleDeg": 0.0,
+              "text": "Archive",
+              "style": {
+                "fill": "#f3e9e4",
+                "line": "#84523c",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "e7"
+            }
+          ],
+          "connectors": [
+            {
+              "id": "f1",
+              "start": {
+                "shape": "start"
+              },
+              "end": {
+                "shape": "check"
+              },
+              "route": "orthogonal",
+              "startArrow": "none",
+              "endArrow": "triangle",
+              "text": "",
+              "style": {
+                "fill": "#00000000",
+                "line": "#3a4a5c",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "relationship": "r8"
+            },
+            {
+              "id": "f2",
+              "start": {
+                "shape": "check"
+              },
+              "end": {
+                "shape": "ship"
+              },
+              "route": "orthogonal",
+              "startArrow": "none",
+              "endArrow": "triangle",
+              "text": "yes",
+              "style": {
+                "fill": "#00000000",
+                "line": "#3a4a5c",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "relationship": "r9"
+            },
+            {
+              "id": "f3",
+              "start": {
+                "shape": "ship"
+              },
+              "end": {
+                "shape": "end"
+              },
+              "route": "orthogonal",
+              "startArrow": "none",
+              "endArrow": "triangle",
+              "text": "",
+              "style": {
+                "fill": "#00000000",
+                "line": "#3a4a5c",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "relationship": "r10"
+            },
+            {
+              "id": "f4",
+              "start": {
+                "shape": "orders"
+              },
+              "end": {
+                "shape": "archive"
+              },
+              "route": "orthogonal",
+              "startArrow": "none",
+              "endArrow": "triangle",
+              "text": "",
+              "style": {
+                "fill": "#00000000",
+                "line": "#3a4a5c",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "relationship": "r11"
+            }
+          ]
+        }
+      ],
+      "idSeq": 11,
+      "conformance": {
+        "enabled": true,
+        "rulesets": [
+          "flowchart.iso5807"
+        ]
+      }
+    }
+  },
+  "expect": [
+    {
+      "rule": "flowchart.illegalFlow",
+      "items": [
+        "f4",
+        "orders",
+        "archive"
+      ]
+    },
+    {
+      "rule": "flowchart.danglingDecision",
+      "items": [
+        "check"
+      ]
+    },
+    {
+      "rule": "flowchart.unreachable",
+      "items": [
+        "orders"
+      ]
+    },
+    {
+      "rule": "flowchart.unreachable",
+      "items": [
+        "archive"
+      ]
+    }
+  ]
+}

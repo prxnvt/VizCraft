@@ -6,6 +6,9 @@
 //! vizcraft-cli run [--open FILE | --sample] --cmd ID[=JSON] ... [--save OUT] [--json]
 //!                                                            run commands headless, in order, then save
 //! vizcraft-cli inspect FILE [--json]                       document summary (or the document as JSON)
+//! vizcraft-cli validate FILE|DIR [--ruleset ID]... [--format text|json] [--packs DIR]
+//!                                                            run the rules headless on a document, a pack
+//!                                                            test case or a folder of cases
 //! vizcraft-cli control HOST:PORT METHOD [JSON]             one request to a running app, reply on stdout
 //! vizcraft-cli control HOST:PORT -                         forward request lines from stdin, one reply each
 //! vizcraft-cli mcp [--connect ADDR | --headless]           MCP server on stdio, driving the running app or,
@@ -26,6 +29,8 @@ use std::time::Duration;
 use serde_json::{Value, json};
 use vizcraft_engine::{Document, Session};
 
+mod validate;
+
 const USAGE: &str = "\
 vizcraft-cli: VizCraft from the command line
 
@@ -34,6 +39,11 @@ USAGE:
   vizcraft-cli run [--open FILE | --sample] --cmd ID[=JSON] ... [--save OUT] [--json]
                                                          run commands headless, in order, then save
   vizcraft-cli inspect FILE [--json]                   document summary (or the whole document as JSON)
+  vizcraft-cli validate FILE|DIR [--ruleset ID]... [--format text|json] [--packs DIR]
+                                                         run the rules headless: a document (exit 1 on an
+                                                         error issue), a pack test case or a folder of cases
+                                                         (exit 1 when one fails); packs also load from the
+                                                         folder in VIZCRAFT_PACKS_DIR
   vizcraft-cli control HOST:PORT METHOD [JSON]         one request to a running app (started with --control PORT)
   vizcraft-cli control HOST:PORT -                     forward request lines from stdin, one reply line each
   vizcraft-cli mcp [--connect ADDR | --headless]      MCP server (JSON-RPC on stdin and stdout). --connect drives
@@ -66,6 +76,7 @@ fn main() -> ExitCode {
         Some("commands") => commands(&args[1..]),
         Some("run") => run(&args[1..]),
         Some("inspect") => inspect(&args[1..]),
+        Some("validate") => validate::validate(&args[1..]),
         Some("control") => control(&args[1..]),
         Some("mcp") => mcp(&args[1..]),
         Some("--version" | "-V") => {
