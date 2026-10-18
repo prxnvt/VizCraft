@@ -33,9 +33,11 @@ pub(super) fn decide(app: &CraftApp, page: &Page, vp: &Viewport2D, at: Pos2, m: 
             None => Some(Start::Drag(Drag::TextBox { from: w, to: w })),
         },
         // Decided in `text_block::decide`, which may select the shape first.
-        Tool::TextBlock => None,
+        // Handled in `ink::pointer` before this is asked.
+        Tool::TextBlock | Tool::Pen | Tool::Highlighter | Tool::Eraser => None,
         Tool::Connector => Some(Start::Drag(Drag::Connect { from: target_end(page, w, zoom), to: w })),
-        Tool::Pointer | Tool::Lasso => {
+        // Away from a picture's crop handles the Crop tool is the pointer.
+        Tool::Pointer | Tool::Lasso | Tool::Crop => {
             if let Some(s) = single_shape(app, page) {
                 if near(vp, rotate_handle_world(s, zoom), at) {
                     return Some(Start::Drag(Drag::Rotate { id: s.id.clone(), to: w, snap: m.shift }));

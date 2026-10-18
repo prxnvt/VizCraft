@@ -44,9 +44,11 @@ mod design;
 mod developer;
 mod help;
 mod home;
+mod ink;
 mod insert;
 mod model;
 mod notation;
+mod picture;
 mod process;
 mod review;
 mod view;
@@ -404,6 +406,8 @@ pub fn tabs(app: &CraftApp) -> Vec<Tab> {
         connector::tab(),
         container::tab(),
         callout::tab(),
+        picture::tab(),
+        ink::tab(),
         notation::tab(app),
     ]
     .into_iter()

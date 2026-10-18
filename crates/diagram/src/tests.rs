@@ -474,7 +474,7 @@ fn non_finite_new_style_and_shape_numbers_are_sanitised() {
     st.shadow = Some(Shadow { dx: f64::NAN, dy: f64::INFINITY, blur: f64::NAN, color: Color::BLACK });
     st.glow = Some(Glow { radius: f64::NAN, color: Color::BLACK });
     s.text_block = Some(TextBlock { dx: f64::NAN, dy: f64::NEG_INFINITY, w: f64::NAN, h: f64::INFINITY, angle_deg: f64::NAN });
-    s.image = Some(ImageRef { asset: "i".repeat(500), crop: CropRect { x: f64::NAN, y: 0.5, w: f64::INFINITY, h: 2.0 } });
+    s.image = Some(ImageRef { asset: "i".repeat(500), crop: CropRect { x: f64::NAN, y: 0.5, w: f64::INFINITY, h: 2.0 }, ..Default::default() });
     s.sanitize();
     let st = &s.style;
     assert_eq!((st.indent, st.corner_radius, st.fill_transparency, st.line_transparency, st.soft_edges), (0.0, 0.0, 0.0, 0.0, 0.0));

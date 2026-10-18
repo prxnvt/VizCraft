@@ -182,6 +182,23 @@ pub const NAMES: &[&str] = &[
     "externalData",
     "dataGraphic",
     "legend",
+    // Picture and Ink
+    "picture",
+    "crop",
+    "brightness",
+    "contrast",
+    "recolor",
+    "pictureTransparency",
+    "compress",
+    "changePicture",
+    "resetPicture",
+    "pen",
+    "highlighter",
+    "eraser",
+    "inkToShapes",
+    "inkColor",
+    "inkThickness",
+    "lasso",
 ];
 
 /// Reference size of the design grid, in points. At this size the stroke is `BASE_STROKE`.
@@ -1183,6 +1200,104 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
                 }
                 pen.line(&[(9.0, y), (17.5, y)]);
             }
+        }
+        "picture" => {
+            pen.rect(2.5, 4.0, 17.5, 16.0, c);
+            pen.fill(&[(4.5, 14.0), (9.0, 8.5), (13.5, 14.0)], a);
+            pen.fcircle(13.5, 7.5, 1.6, a);
+        }
+        "crop" => {
+            pen.line(&[(5.5, 2.0), (5.5, 14.5), (18.0, 14.5)]);
+            pen.line_c(&[(2.0, 5.5), (14.5, 5.5), (14.5, 18.0)], a);
+        }
+        "brightness" => {
+            pen.fcircle(10.0, 10.0, 3.2, a);
+            for k in 0..8 {
+                let t = k as f32 * std::f32::consts::FRAC_PI_4;
+                let (sn, cs) = t.sin_cos();
+                pen.line(&[(10.0 + 5.2 * cs, 10.0 + 5.2 * sn), (10.0 + 7.5 * cs, 10.0 + 7.5 * sn)]);
+            }
+        }
+        "contrast" => {
+            let half: Vec<(f32, f32)> = (0..=12)
+                .map(|i| {
+                    let t = -std::f32::consts::FRAC_PI_2 + std::f32::consts::PI * i as f32 / 12.0;
+                    (10.0 + 6.5 * t.cos(), 10.0 + 6.5 * t.sin())
+                })
+                .collect();
+            pen.fill(&half, a);
+            pen.circle(10.0, 10.0, 6.5, c);
+        }
+        "recolor" => {
+            pen.fcircle(7.5, 8.0, 3.6, a);
+            pen.circle(12.5, 8.0, 3.6, c);
+            pen.circle(10.0, 12.5, 3.6, c);
+        }
+        "pictureTransparency" => {
+            pen.rect(3.0, 3.0, 17.0, 17.0, c);
+            for (x, y) in [(3.0, 3.0), (10.0, 10.0)] {
+                pen.frect(x, y, x + 7.0, y + 7.0, a);
+            }
+        }
+        "compress" => {
+            pen.rect(2.5, 2.5, 17.5, 17.5, c);
+            pen.line_c(&[(5.0, 5.0), (8.5, 8.5)], a);
+            pen.line_c(&[(15.0, 15.0), (11.5, 11.5)], a);
+            pen.line_c(&[(8.5, 5.5), (8.5, 8.5), (5.5, 8.5)], a);
+            pen.line_c(&[(11.5, 14.5), (11.5, 11.5), (14.5, 11.5)], a);
+        }
+        "changePicture" => {
+            pen.rect(2.5, 2.5, 13.0, 11.5, c);
+            pen.fill(&[(4.0, 10.0), (7.0, 6.0), (10.0, 10.0)], c);
+            pen.arc(13.0, 13.0, 4.5, 0.0, std::f32::consts::PI * 1.4, a);
+            pen.fill(&[(16.0, 12.0), (19.0, 12.0), (17.5, 14.5)], a);
+        }
+        "resetPicture" => {
+            pen.rect(6.5, 6.5, 17.5, 16.5, c);
+            pen.fill(&[(8.0, 15.0), (11.5, 10.5), (15.0, 15.0)], c);
+            pen.arc(6.5, 6.5, 4.0, std::f32::consts::PI, std::f32::consts::PI * 1.3, a);
+            pen.fill(&[(1.0, 6.0), (4.5, 6.0), (2.75, 8.5)], a);
+        }
+        "pen" => {
+            pen.closed(&[(13.5, 2.5), (17.5, 6.5), (7.5, 16.5), (3.5, 12.5)], c);
+            pen.fill(&[(3.5, 12.5), (7.5, 16.5), (2.0, 18.0)], a);
+        }
+        "highlighter" => {
+            pen.closed(&[(12.5, 2.0), (18.0, 7.5), (10.0, 15.5), (4.5, 10.0)], c);
+            pen.fill(&[(4.5, 10.0), (10.0, 15.5), (7.0, 17.0), (3.0, 13.0)], a);
+            pen.frect(2.0, 17.5, 18.0, 19.0, a);
+        }
+        "eraser" => {
+            pen.closed(&[(11.0, 3.0), (18.0, 10.0), (11.0, 17.0), (4.0, 10.0)], c);
+            pen.fill(&[(4.0, 10.0), (7.5, 6.5), (14.5, 13.5), (11.0, 17.0)], a);
+            pen.line(&[(11.0, 17.5), (18.0, 17.5)]);
+        }
+        "inkToShapes" => {
+            pen.line(&[(2.0, 8.0), (4.0, 4.0), (6.0, 9.0), (8.0, 5.0), (9.5, 8.0)]);
+            pen.line_c(&[(9.0, 14.0), (12.0, 14.0)], a);
+            pen.fill(&[(12.0, 12.5), (14.0, 14.0), (12.0, 15.5)], a);
+            pen.rect(13.5, 2.5, 18.0, 7.0, c);
+            pen.rect(14.5, 11.0, 18.0, 17.0, a);
+        }
+        "inkColor" => {
+            pen.closed(&[(13.0, 2.0), (16.5, 5.5), (8.0, 14.0), (4.5, 10.5)], c);
+            pen.fill(&[(4.5, 10.5), (8.0, 14.0), (3.0, 15.0)], c);
+            pen.frect(2.5, 16.5, 17.5, 19.0, a);
+        }
+        "inkThickness" => {
+            pen.frect(3.0, 4.0, 17.0, 4.8, c);
+            pen.frect(3.0, 8.0, 17.0, 9.6, c);
+            pen.frect(3.0, 12.5, 17.0, 15.5, a);
+        }
+        "lasso" => {
+            let loop_pts: Vec<(f32, f32)> = (0..=16)
+                .map(|i| {
+                    let t = std::f32::consts::TAU * i as f32 / 16.0;
+                    (10.5 + 7.0 * t.cos(), 7.5 + 4.5 * t.sin())
+                })
+                .collect();
+            pen.line(&loop_pts);
+            pen.line_c(&[(6.5, 11.0), (5.5, 14.5), (7.5, 18.0)], a);
         }
         _ => {
             // Fallback: a rounded tile with the first letter.

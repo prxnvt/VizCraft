@@ -194,6 +194,9 @@ pub struct ImageRef {
     /// The visible part of the picture.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "is_full")]
     pub crop: CropRect,
+    /// Brightness, contrast, transparency and recolouring, applied when the picture is drawn.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Adjust::is_neutral")]
+    pub adjust: Adjust,
 }
 
 fn is_full(c: &CropRect) -> bool {
@@ -201,10 +204,128 @@ fn is_full(c: &CropRect) -> bool {
 }
 
 impl ImageRef {
-    /// Cap the id length and keep the crop inside the picture.
+    /// Cap the id length, keep the crop inside the picture and the adjustments in range.
     pub fn sanitize(&mut self) {
         truncate(&mut self.asset, MAX_ID);
         self.crop.sanitize();
+        self.adjust.sanitize();
+    }
+}
+
+/// How a picture's colours are changed before it is drawn (Picture > Adjust). The neutral value
+/// (all zero, no recolour) draws the picture as stored.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct Adjust {
+    /// Added to every colour channel, from -1 (black) to 1 (white); 0 leaves it.
+    #[serde(deserialize_with = "num")]
+    pub brightness: f64,
+    /// From -1 (flat grey) to 1 (twice the contrast); 0 leaves it. Channels are stretched about
+    /// the middle grey by `1 + contrast`.
+    #[serde(deserialize_with = "num")]
+    pub contrast: f64,
+    /// From 0 (opaque) to 1 (invisible).
+    #[serde(deserialize_with = "num")]
+    pub transparency: f64,
+    /// The colour mapping applied first.
+    #[serde(deserialize_with = "lenient")]
+    pub recolor: Recolor,
+}
+
+impl Adjust {
+    /// Whether the adjustments leave the picture as stored.
+    pub fn is_neutral(&self) -> bool {
+        *self == Adjust::default()
+    }
+
+    /// Keep every number finite and in range.
+    pub fn sanitize(&mut self) {
+        self.brightness = finite(self.brightness, 0.0).clamp(-1.0, 1.0);
+        self.contrast = finite(self.contrast, 0.0).clamp(-1.0, 1.0);
+        self.transparency = finite(self.transparency, 0.0).clamp(0.0, 1.0);
+        if let Recolor::Tint(c) = &mut self.recolor {
+            c.a = 255;
+        }
+    }
+
+    /// The colour matrix the adjustments make, as SVG's `feColorMatrix type="matrix"` reads it:
+    /// four rows of five numbers (red, green, blue, alpha, offset) on channels in `0..=1`. The
+    /// recolour comes first, then the contrast, then the brightness; the transparency scales alpha.
+    pub fn matrix(&self) -> [[f64; 5]; 4] {
+        const L: [f64; 3] = [0.2126, 0.7152, 0.0722];
+        let mut rgb: [[f64; 4]; 3] = match self.recolor {
+            Recolor::None => [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0]],
+            Recolor::Grayscale => [[L[0], L[1], L[2], 0.0]; 3],
+            Recolor::Sepia => [[0.393, 0.769, 0.189, 0.0], [0.349, 0.686, 0.168, 0.0], [0.272, 0.534, 0.131, 0.0]],
+            // Black takes the tint, white stays white: `tint + (1 - tint) * luminance`.
+            Recolor::Tint(c) => {
+                let row = |v: u8| {
+                    let t = f64::from(v) / 255.0;
+                    [L[0] * (1.0 - t), L[1] * (1.0 - t), L[2] * (1.0 - t), t]
+                };
+                [row(c.r), row(c.g), row(c.b)]
+            }
+        };
+        let k = 1.0 + self.contrast;
+        for row in &mut rgb {
+            for v in row.iter_mut().take(3) {
+                *v *= k;
+            }
+            row[3] = row[3] * k + 0.5 * (1.0 - k) + self.brightness;
+        }
+        let r = |i: usize| rgb.get(i).copied().unwrap_or_default();
+        let (a, b, c) = (r(0), r(1), r(2));
+        [[a[0], a[1], a[2], 0.0, a[3]], [b[0], b[1], b[2], 0.0, b[3]], [c[0], c[1], c[2], 0.0, c[3]], [0.0, 0.0, 0.0, 1.0 - self.transparency, 0.0]]
+    }
+}
+
+/// A colour mapping for a picture. On disk `none`, `grayscale`, `sepia` or a `#rrggbb` tint;
+/// anything else loads as `none`.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub enum Recolor {
+    /// The picture's own colours.
+    #[default]
+    None,
+    /// Shades of grey by luminance.
+    Grayscale,
+    /// Warm brown tones.
+    Sepia,
+    /// Black becomes this colour and white stays white, through the luminance in between.
+    Tint(crate::Color),
+}
+
+impl Recolor {
+    /// The name used on disk and in `picture.adjust`.
+    pub fn name(&self) -> String {
+        match self {
+            Recolor::None => "none".into(),
+            Recolor::Grayscale => "grayscale".into(),
+            Recolor::Sepia => "sepia".into(),
+            Recolor::Tint(c) => crate::Color::rgb(c.r, c.g, c.b).to_hex(),
+        }
+    }
+
+    /// The recolour `s` names: `none`, `grayscale` (or `greyscale`), `sepia` or a colour.
+    pub fn parse(s: &str) -> Option<Recolor> {
+        match s.trim() {
+            "none" | "" => Some(Recolor::None),
+            "grayscale" | "greyscale" => Some(Recolor::Grayscale),
+            "sepia" => Some(Recolor::Sepia),
+            other => crate::Color::parse(other).map(|c| Recolor::Tint(crate::Color::rgb(c.r, c.g, c.b))),
+        }
+    }
+}
+
+impl Serialize for Recolor {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        s.serialize_str(&self.name())
+    }
+}
+
+impl<'de> Deserialize<'de> for Recolor {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        let s: String = lenient(d)?;
+        Ok(Recolor::parse(&s).unwrap_or_default())
     }
 }
 

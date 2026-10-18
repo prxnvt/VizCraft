@@ -13,8 +13,10 @@
 //! moves and drops.
 
 pub mod connect;
+pub mod crop;
 pub mod drag;
 pub mod edit_text;
+pub mod ink;
 pub mod insertion;
 pub mod keys;
 pub mod links;
@@ -113,6 +115,9 @@ pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D
     if links::pointer(app, ui, response, vp) {
         return;
     }
+    if crop::pointer(app, ui, response, vp) || ink::pointer(app, ui, response, vp) {
+        return;
+    }
 
     if response.drag_started_by(egui::PointerButton::Primary) && !pan_modifier(ui) {
         commit_editing(app);
@@ -194,7 +199,8 @@ fn cursor(app: &CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D) {
         (None, Tool::Text) => egui::CursorIcon::Text,
         (None, Tool::FormatPainter { .. }) => egui::CursorIcon::Copy,
         (None, Tool::TextBlock) => egui::CursorIcon::Move,
-        (None, Tool::Pointer | Tool::Lasso) => {
+        (None, Tool::Pen | Tool::Highlighter | Tool::Eraser) => egui::CursorIcon::Crosshair,
+        (None, Tool::Pointer | Tool::Lasso | Tool::Crop) => {
             let (Some(hp), Some(page)) = (response.hover_pos(), app.session.doc.page()) else { return };
             let w = point(vp.screen_to_world(hp));
             let tol = f64::from(GRAB / vp.zoom);

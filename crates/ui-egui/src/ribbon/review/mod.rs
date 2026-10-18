@@ -4,6 +4,7 @@ use super::Tab;
 
 groups! {
     comments,
+    ink,
     proofing,
     language,
     reporting,

@@ -12,6 +12,7 @@ pub mod data_graphics;
 pub mod insertion;
 pub mod links;
 pub mod overlays;
+pub mod pictures;
 pub mod shapes;
 pub mod text;
 

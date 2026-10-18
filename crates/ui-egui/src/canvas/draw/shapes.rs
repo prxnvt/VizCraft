@@ -138,6 +138,7 @@ pub fn background_pages(painter: &Painter, vp: &Viewport2D, fields: &FieldCtx<'_
     for bg in fields.doc.background_chain(fields.page_index) {
         for s in bg.shapes.iter().filter(|s| bg.shape_visible(s)) {
             if s.bounds().intersects(&visible) {
+                super::pictures::picture(painter, vp, fields.doc, s);
                 shape(painter, vp, &expand_shape(s, fields), cache, true);
             }
         }
