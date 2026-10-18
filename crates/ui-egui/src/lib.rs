@@ -262,6 +262,15 @@ impl CraftApp {
     }
 
     /// Run a command; UI-level commands (`ui.*`, `app.*`) are handled here, the rest by the engine.
+    /// [`CraftApp::run`] on behalf of `origin`, so the engine's transaction log records who made
+    /// each step (the control channel passes `Origin::Control`).
+    pub fn run_as(&mut self, origin: vizcraft_engine::Origin, id: &str, params: Value) -> Result<Value, String> {
+        let before = self.session.set_origin(origin);
+        let r = self.run(id, params);
+        self.session.set_origin(before);
+        r
+    }
+
     pub fn run(&mut self, id: &str, params: Value) -> Result<Value, String> {
         if let Some(r) = self.ui_command(id, &params) {
             return r;

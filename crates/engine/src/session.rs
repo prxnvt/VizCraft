@@ -354,6 +354,12 @@ impl Session {
         self.origin
     }
 
+    /// Sets who the next commands run for and returns the previous origin, for callers such as
+    /// the UI's control channel that wrap more than [`Session::run`] and must restore it after.
+    pub fn set_origin(&mut self, origin: Origin) -> Origin {
+        std::mem::replace(&mut self.origin, origin)
+    }
+
     /// [`Session::run`] on behalf of `origin` (the control channel, the MCP server), so the
     /// transaction log says who made the step. Commands it runs in turn (a batch's) share it.
     pub fn run_as(&mut self, origin: Origin, id: &str, params: &Value) -> Result<Value, EngineError> {

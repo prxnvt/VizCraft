@@ -24,6 +24,7 @@
 use std::sync::mpsc::Sender;
 
 use serde_json::{Value, json};
+use vizcraft_engine::Origin;
 
 use crate::{CraftApp, UiState, menus};
 
@@ -230,7 +231,7 @@ pub fn handle(app: &mut CraftApp, ctx: &egui::Context, req: &ControlRequest) -> 
         "engine.execute" | "command" => {
             let Some(id) = s("command").or(s("id")) else { return err("missing `command`") };
             let params = p.get("params").cloned().filter(|v| !v.is_null()).unwrap_or(json!({}));
-            match app.run(id, params) {
+            match app.run_as(Origin::Control, id, params) {
                 Ok(v) => ok(v),
                 Err(e) => err(e),
             }
@@ -332,7 +333,7 @@ pub fn handle(app: &mut CraftApp, ctx: &egui::Context, req: &ControlRequest) -> 
             ok(json!({}))
         }
         "" => err("missing `method`"),
-        other if is_command(app, other) => match app.run(other, p.clone()) {
+        other if is_command(app, other) => match app.run_as(Origin::Control, other, p.clone()) {
             Ok(v) => ok(v),
             Err(e) => err(e),
         },
@@ -511,6 +512,16 @@ mod tests {
         let file = r["result"].as_array().unwrap().iter().find(|m| m["title"] == "File").unwrap();
         let recent = file["items"].as_array().unwrap().iter().find(|i| i["label"] == "Open Recent").unwrap();
         assert_eq!(recent["items"][0]["recent"], "/tmp/Plans.craft.json");
+    }
+
+    #[test]
+    fn control_channel_steps_are_logged_as_control() {
+        let mut app = app();
+        let r = call(&mut app, "engine.execute", json!({"command": "edit.setTitle", "params": {"title": "From control"}}));
+        assert_eq!(r["ok"], true, "{r}");
+        let last = app.session.transactions().back().map(|t| t.origin);
+        assert_eq!(last, Some(Origin::Control));
+        assert_eq!(app.session.origin(), Origin::Ui, "the origin is restored after the call");
     }
 
     #[test]
