@@ -172,6 +172,10 @@ pub const NAMES: &[&str] = &[
     "behavior",
     "stencilPane",
     "drawingExplorer",
+    // Review
+    "spelling",
+    "language",
+    "report",
 ];
 
 /// Reference size of the design grid, in points. At this size the stroke is `BASE_STROKE`.
@@ -807,11 +811,6 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
             }
             pen.circle(10.0, 10.0, 5.5, c);
         }
-        "info" => {
-            pen.circle(10.0, 10.0, 7.0, c);
-            pen.line_c(&[(10.0, 9.0), (10.0, 14.5)], a);
-            pen.fcircle(10.0, 6.3, 1.0, a);
-        }
         "help" => {
             pen.circle(10.0, 10.0, 7.0, c);
             pen.arc(10.0, 8.0, 2.5, PI, PI * 1.25, a);
@@ -994,6 +993,31 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
         "chevronLeft" => pen.chevron(7.0, 10.0, -1.0, 0.0),
         "chevronRight" => pen.chevron(13.0, 10.0, 1.0, 0.0),
         "dropdown" => pen.fill(&[(5.5, 7.5), (14.5, 7.5), (10.0, 12.5)], c),
+        // Review
+        "spelling" => {
+            // Two letter strokes over a check mark.
+            pen.line(&[(2.5, 11.0), (5.0, 3.5), (7.5, 11.0)]);
+            pen.line(&[(3.4, 8.5), (6.6, 8.5)]);
+            pen.line(&[(10.0, 3.5), (10.0, 11.0), (13.0, 11.0), (13.0, 3.5)]);
+            pen.line_c(&[(4.0, 15.0), (8.0, 18.0), (16.5, 9.5)], a);
+        }
+        "language" => {
+            pen.circle(10.0, 10.0, 7.0, c);
+            pen.line(&[(3.0, 10.0), (17.0, 10.0)]);
+            pen.closed(&[(10.0, 3.0), (13.0, 7.0), (13.0, 13.0), (10.0, 17.0), (7.0, 13.0), (7.0, 7.0)], a);
+        }
+        "report" => {
+            pen.page(4.0, 2.5, 16.0, 17.5);
+            pen.line(&[(7.0, 9.0), (13.0, 9.0)]);
+            pen.line(&[(7.0, 12.0), (13.0, 12.0)]);
+            pen.line_c(&[(7.0, 15.0), (13.0, 15.0)], a);
+            pen.line_c(&[(9.5, 7.0), (9.5, 16.0)], a);
+        }
+        "info" => {
+            pen.circle(10.0, 10.0, 7.0, c);
+            pen.line_c(&[(10.0, 9.0), (10.0, 14.5)], a);
+            pen.fcircle(10.0, 6.3, 1.1, a);
+        }
         "more" => {
             for x in [5.0, 10.0, 15.0] {
                 pen.fcircle(x, 10.0, 1.3, c);

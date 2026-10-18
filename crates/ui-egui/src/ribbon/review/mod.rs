@@ -1,9 +1,12 @@
-//! The Review tab: comments.
+//! The Review tab: comments, proofing, language and shape reports.
 
 use super::Tab;
 
 groups! {
     comments,
+    proofing,
+    language,
+    reporting,
 }
 
 /// The Review tab.

@@ -201,3 +201,86 @@ pub struct Protection {
     #[serde(deserialize_with = "lenient")]
     pub backgrounds: bool,
 }
+
+/// Longest language tag kept, in bytes (the BCP 47 limit for practical tags).
+pub const MAX_LANGUAGE: usize = 35;
+/// The language tag that turns spelling checks off for a shape.
+pub const LANGUAGE_NONE: &str = "none";
+/// Most ignored words one document keeps.
+pub const MAX_IGNORED_WORDS: usize = 5000;
+/// Longest ignored word kept, in bytes.
+pub const MAX_IGNORED_WORD: usize = 64;
+
+/// A BCP 47 tag in its usual case (`en-us` becomes `en-US`, `zh-hant` becomes `zh-Hant`), or
+/// [`LANGUAGE_NONE`]. `None` when the text is not a plain tag: empty, too long, or with a
+/// segment that is empty, longer than eight characters or not ASCII letters and digits.
+pub fn normalize_language(tag: &str) -> Option<String> {
+    let tag = tag.trim().replace('_', "-");
+    if tag.eq_ignore_ascii_case(LANGUAGE_NONE) {
+        return Some(LANGUAGE_NONE.to_string());
+    }
+    if tag.is_empty() || tag.len() > MAX_LANGUAGE {
+        return None;
+    }
+    let mut out = Vec::new();
+    for (i, seg) in tag.split('-').enumerate() {
+        if seg.is_empty() || seg.len() > 8 || !seg.chars().all(|c| c.is_ascii_alphanumeric()) {
+            return None;
+        }
+        if i == 0 && (!(2..=3).contains(&seg.len()) || !seg.chars().all(|c| c.is_ascii_alphabetic())) {
+            return None;
+        }
+        let alpha = seg.chars().all(|c| c.is_ascii_alphabetic());
+        out.push(match (i, seg.len(), alpha) {
+            (0, ..) => seg.to_ascii_lowercase(),
+            (_, 4, true) => {
+                let lower = seg.to_ascii_lowercase();
+                let mut cs = lower.chars();
+                cs.next().map(|f| f.to_ascii_uppercase().to_string() + cs.as_str()).unwrap_or_default()
+            }
+            (_, 2, true) => seg.to_ascii_uppercase(),
+            _ => seg.to_ascii_lowercase(),
+        });
+    }
+    Some(out.join("-"))
+}
+
+/// Replace a language tag by its normal form, or clear it when it is not a tag.
+pub(crate) fn sanitize_language(tag: &mut String) {
+    *tag = normalize_language(tag).unwrap_or_default();
+}
+
+/// Keep the ignored words bounded, lower case and unique; words with no letter are dropped.
+pub(crate) fn sanitize_ignored_words(words: &mut Vec<String>) {
+    let mut seen = HashSet::new();
+    for w in words.iter_mut() {
+        *w = w.trim().to_lowercase();
+        truncate(w, MAX_IGNORED_WORD);
+    }
+    words.retain(|w| w.chars().any(char::is_alphabetic) && seen.insert(w.clone()));
+    words.truncate(MAX_IGNORED_WORDS);
+}
+
+#[cfg(test)]
+mod language_tests {
+    use super::*;
+
+    #[test]
+    fn tags_take_their_usual_case_and_junk_is_refused() {
+        assert_eq!(normalize_language("en-us").as_deref(), Some("en-US"));
+        assert_eq!(normalize_language("zh_hant_tw").as_deref(), Some("zh-Hant-TW"));
+        assert_eq!(normalize_language(" NONE ").as_deref(), Some("none"));
+        for bad in ["", "e", "en--US", "en-US-", "1n", "en us", "toolonglanguage", "en-\u{e9}"] {
+            assert_eq!(normalize_language(bad), None, "{bad}");
+        }
+    }
+
+    #[test]
+    fn ignored_words_are_lowered_deduplicated_and_capped() {
+        let mut w: Vec<String> = ["Teh", "teh", "  ", "123", "x".repeat(200).as_str()].iter().map(|s| s.to_string()).collect();
+        sanitize_ignored_words(&mut w);
+        assert_eq!(w.len(), 2);
+        assert_eq!(w[0], "teh");
+        assert_eq!(w[1].len(), MAX_IGNORED_WORD);
+    }
+}

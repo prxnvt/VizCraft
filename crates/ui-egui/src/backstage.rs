@@ -33,6 +33,7 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
             ui.spacing_mut().item_spacing = vec2(0.0, 2.0);
             if back_button(ui) {
                 set_new_page(ui.ctx(), false);
+                crate::info_page::set_open(ui.ctx(), false);
                 let _ = app.run("ui.backstage", json!({"value": false}));
             }
             ui.add_space(14.0);
@@ -47,6 +48,7 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
                 ("Close", "file.close"),
             ] {
                 if nav_item(ui, label, crate::widgets::enabled(app, id)) {
+                    crate::info_page::set_open(ui.ctx(), false);
                     if id == "file.new" {
                         set_new_page(ui.ctx(), true);
                         continue;
@@ -59,6 +61,10 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
                 }
             }
             ui.add_space(14.0);
+            if nav_item(ui, "Info", true) {
+                set_new_page(ui.ctx(), false);
+                crate::info_page::set_open(ui.ctx(), true);
+            }
             if nav_item(ui, "Preferences", true) {
                 let _ = app.run("app.preferences", json!({}));
             }
@@ -70,6 +76,9 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
         if new_page(ui.ctx()) {
             new_from_notation(app, ui);
             return;
+        }
+        if crate::info_page::is_open(ui.ctx()) {
+            return crate::info_page::show(app, ui);
         }
         ui.label(egui::RichText::new(app.title_stem()).font(semibold(24.0)).color(t.text));
         let where_ = app.session.path.as_ref().map(|p| p.to_string_lossy().to_string()).unwrap_or_else(|| "Not saved yet".into());

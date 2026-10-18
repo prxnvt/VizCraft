@@ -21,6 +21,7 @@ pub mod dock;
 pub mod find_dialog;
 pub mod icons;
 pub mod insert_picker;
+pub mod info_page;
 pub mod keys;
 pub mod link_dialog;
 pub mod menus;
@@ -34,6 +35,7 @@ pub mod print_preview;
 pub mod ribbon;
 pub mod shape_name_dialog;
 pub mod snap_dialog;
+pub mod spelling_dialog;
 pub mod symbol_dialog;
 pub mod theme;
 pub mod widgets;
@@ -87,7 +89,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "ui.dialog",
         "Open Dialog",
         "",
-        r#"{"name": "commands|zoom|about|preferences|quit|shortcuts|message|pageSetup|snapSettings|find|pasteSpecial|numberShapes|arrayShapes|moveShapes|saveMacro", "title"?: string, "text"?: string}"#,
+        r#"{"name": "commands|zoom|about|preferences|quit|shortcuts|message|pageSetup|snapSettings|find|pasteSpecial|numberShapes|arrayShapes|moveShapes|saveMacro|spelling", "title"?: string, "text"?: string}"#,
     ),
     ("ui.closeDialog", "Close Dialog", "", "{}"),
     ("ui.backstage", "File Page", "", r#"{"value"?: bool}"#),
@@ -161,6 +163,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.window.cascade", "Cascade", "", "{} (stack every window, each a little right and down of the last)"),
     ("ui.window.switch", "Switch Windows", "", r#"{"index": n} (0 is the first window)"#),
     ("ui.macroRecord", "Record Macro", "", r#"{"value"?: bool} (start or stop recording a script; stopping keeps it for Save Macro)"#),
+    ("ui.spelling", "Spelling", "", "{}"),
     ("window.minimize", "Minimize", "", "{}"),
     ("window.zoom", "Zoom Window", "", "{}"),
     ("app.about", "About VizCraft", "", "{}"),
@@ -714,6 +717,10 @@ impl CraftApp {
             "ui.find" => {
                 self.dialog = dialogs::Dialog::open("find", self);
                 json!({"dialog": "find"})
+            }
+            "ui.spelling" => {
+                self.dialog = dialogs::Dialog::open("spelling", self);
+                json!({"dialog": "spelling"})
             }
             // Placeholders (`menus::PLACEHOLDERS`): listed so every front sees them, shown
             // disabled in menus; running one by id only reports that it is not there yet.

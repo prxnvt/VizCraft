@@ -10,7 +10,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::board::Board;
 use crate::data::ShapeData;
-use crate::doc_fields::{Comment, DocProperties, ImageAsset, sanitize_comments, sanitize_images};
+use crate::doc_fields::{Comment, DocProperties, ImageAsset, sanitize_comments, sanitize_ignored_words, sanitize_images, sanitize_language};
 use crate::geom::{Path, Point, Rect, Transform, finite};
 use crate::kind::ShapeKind;
 use crate::page_fields::{DrawingScale, Guide, HeaderFooter, Layer, MAX_LAYERS, Orientation, Units, sanitize_guides, sanitize_layers};
@@ -389,6 +389,10 @@ pub struct Shape {
     /// [`Shape::MAX_NAME`] bytes; empty is unnamed (the id stands in).
     #[serde(deserialize_with = "lenient", skip_serializing_if = "String::is_empty")]
     pub name: String,
+    /// The proofing language of the shape's text as a BCP 47 tag (`en-US`), `none` to skip it in
+    /// spelling checks; empty follows [`Document::language`].
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "String::is_empty")]
+    pub language: String,
 }
 
 impl Default for Shape {
@@ -420,6 +424,7 @@ impl Default for Shape {
             compartments: Vec::new(),
             path: None,
             name: String::new(),
+            language: String::new(),
         }
     }
 }
@@ -471,6 +476,7 @@ impl Shape {
             self.path = None;
         }
         truncate(&mut self.name, Self::MAX_NAME);
+        sanitize_language(&mut self.language);
     }
     /// Longest screen tip kept, in bytes.
     pub const MAX_SCREEN_TIP: usize = 4096;
@@ -1088,6 +1094,13 @@ pub struct Document {
     /// Document protection (see [`crate::doc_fields::Protection`]).
     #[serde(skip_serializing_if = "is_default")]
     pub protection: crate::doc_fields::Protection,
+    /// The default proofing language, a BCP 47 tag; empty means `en-US`.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub language: String,
+    /// Words spelling checks accept in this document (Ignore All), lower case, at most
+    /// [`crate::doc_fields::MAX_IGNORED_WORDS`].
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub ignored_words: Vec<String>,
 }
 
 /// The on-disk form; turned into a [`Document`] by fixing up anything a file got wrong.
@@ -1117,6 +1130,10 @@ struct DocumentRepr {
     masters: Vec<crate::master::CustomMaster>,
     #[serde(deserialize_with = "lenient")]
     protection: crate::doc_fields::Protection,
+    #[serde(deserialize_with = "lenient")]
+    language: String,
+    #[serde(deserialize_with = "lenient_vec")]
+    ignored_words: Vec<String>,
 }
 
 impl From<DocumentRepr> for Document {
@@ -1135,6 +1152,8 @@ impl From<DocumentRepr> for Document {
             conformance: r.conformance,
             masters: r.masters,
             protection: r.protection,
+            language: r.language,
+            ignored_words: r.ignored_words,
         };
         // Pages only: the model is a separate section the caller sets afterwards, so checking view
         // references here would clear every one of them. The caller runs `sanitize` once the
@@ -1167,6 +1186,8 @@ impl Document {
             conformance: crate::conformance::Conformance::default(),
             masters: Vec::new(),
             protection: crate::doc_fields::Protection::default(),
+            language: String::new(),
+            ignored_words: Vec::new(),
         }
     }
     /// Make the document safe to work on: at least one page, every number in range, a sane model,
@@ -1188,6 +1209,8 @@ impl Document {
         self.properties.sanitize();
         sanitize_comments(&mut self.comments);
         sanitize_images(&mut self.images);
+        sanitize_language(&mut self.language);
+        sanitize_ignored_words(&mut self.ignored_words);
         if !self.pages.iter().any(|p| p.id == self.active_page) {
             self.active_page.clear();
         }
