@@ -107,8 +107,8 @@ channel).
 
 ## Block 2C: diagramming correctness (8 branches in two waves)
 
-State: wave 1 (seven branches) merged into main on 2026-10-18 with `cargo xtask ci` green;
-wave 2 (`b2c-ribbon`) running. Integration notes: every clash between branches was a read of
+State: done. Wave 1 (seven branches) merged into main on 2026-10-18 with `cargo xtask ci` green;
+wave 2 (`b2c-ribbon`) merged the same day. Worktrees removed. Integration notes: every clash between branches was a read of
 the stored sheet size that the board branch's guard test caught (describe, the drawing pack's
 off-board check, three tests planting off-board shapes or crossings); fixed by reading
 `Page::frame()` or pinning a test page to a fixed board or to `page.setRouting {avoid: never}`.

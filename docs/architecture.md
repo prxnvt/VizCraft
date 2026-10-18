@@ -431,7 +431,7 @@ Files are cut so that parallel work touches separate files:
 
 | Path under `crates/ui-egui/src` | Holds | To add one |
 | --- | --- | --- |
-| `ribbon/mod.rs` | `Tab`, `Group`, `Control`, `MenuEntry` (label, id, params and an optional `checked` state that `widgets::menu_item` draws as a right-aligned check mark), shared helpers, `tabs()` in Visio order | |
+| `ribbon/mod.rs` | `Tab`, `Group`, `Control`, `MenuEntry` (label, id, params and an optional `checked` state that `widgets::menu_item` draws as a right-aligned check mark), shared helpers, `tabs()` in Visio order; `widgets::menu_button_if` is a dimmable menu button (the Compartment menu); the effective conformance profile for the Rules menu is cached on the app by document revision (`profile_cache`), which is why `ui-egui` depends on `vizcraft-notation` | |
 | `ribbon/draw.rs`, `ribbon/controls.rs` | Tab strip, body, collapsed popup; colour, gallery and caption controls | |
 | `ribbon/<tab>/mod.rs`, `ribbon/<tab>/<group>.rs` | One directory per tab, one file per group | Group: a file with `fn group() -> Group` plus one line in the tab's `groups!` list |
 | `panes/mod.rs` | `PaneSpec`, the pane list, `ui.pane*` commands | |

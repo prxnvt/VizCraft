@@ -30,6 +30,7 @@ When a feature lands, change its State in the same commit as the code. States:
 | Side panes | 0 | done (chrome) | Left and right panes, resizable and reorderable; diagram panes are added per cascade |
 | Ribbon | 0 | done (chrome) | Tabs, groups, contextual tabs; diagram tabs are added per cascade |
 | Dropdowns show their current choice | 2C | done | Every ribbon menu, combo list and gallery with a current value marks it with a right-aligned check mark; `ui.inspect` lists the open menu's rows with `checked` |
+| Settings organised in the ribbon | 2C | done | Design > Page Setup is a stack of small Orientation, Board and Size menus beside Auto Size; Design > Connectors holds Connector Style, Avoid Shapes (Always, Never), Straight Lines (Detour, Keep Straight), Line Jumps and Default Kind; the Connector tab has a Kind menu and Start and End Arrow menus of all thirteen ends; Insert > Diagram Parts has Compartment (Paragraph, List, Slot); Process > Diagram Validation has Validate, Rules (Off and one entry per ruleset), Live Checking, Next Issue and Previous Issue; Home's Undo group is an icon stack and Delete sits by Cut and Copy so the tab fits 1280 px |
 | Command palette | 0 | done (chrome) | Search over every command id and label |
 | Control channel | 0 | done (chrome) | JSON lines over localhost; see [docs/control-protocol.md](control-protocol.md) |
 
