@@ -2,7 +2,7 @@
 //! command a finished drag commits.
 
 use serde_json::json;
-use vizcraft_diagram::{self as dg, Connector, End, Page, Point, Shape};
+use vizcraft_diagram::{self as dg, Connector, End, Page, Point, Shape, snap};
 
 use super::{Drag, HANDLES, MIN_SIZE, PREVIEW_ID, ROTATE_GAP, SNAP_DEG, connect_ok, end_json, marquee_ids, round, run, target_end};
 use crate::CraftApp;
@@ -65,7 +65,7 @@ pub fn rotate_angle(s: &Shape, to: Point, snap: bool) -> f64 {
 }
 
 /// The movement of a move drag, in whole world units.
-pub(super) fn move_delta(from: Point, to: Point) -> Point {
+pub fn move_delta(from: Point, to: Point) -> Point {
     Point::new(round(to.x - from.x), round(to.y - from.y))
 }
 
@@ -189,6 +189,78 @@ pub(super) fn finish(app: &mut CraftApp, drag: Drag, zoom: f32) {
             }
             run(app, "connector.glue", p);
         }
+    }
+}
+
+// Snapping a move drag. Kept apart from the drag preview and commit above: the canvas calls
+// `snap_move` once a frame after the pointer has updated the drag, and it shifts the drag's
+// end so the preview, the overlay's alignment lines and the committed `shape.move` all agree.
+
+/// The targets a move of `moving` snaps to on `page` at `zoom`, per the view's snap settings:
+/// the grid, guides, and the bounds and connection points of the other visible shapes that
+/// allow snapping.
+pub fn snap_targets(page: &Page, moving: &[String], aids: &vizcraft_engine::cmd::view::Aids, zoom: f32) -> snap::Targets {
+    let mut t = snap::Targets::default();
+    if aids.snap_grid {
+        t.grid = Some(snap::grid_step(page.units, f64::from(zoom), crate::canvas::draw::overlays::GRID_MIN_PX));
+    }
+    if aids.guides && aids.snap_guides {
+        t.guides = page.guides.clone();
+    }
+    if aids.snap_shapes || aids.snap_points {
+        let layer_snaps = |s: &Shape| s.layers.is_empty() || s.layers.iter().any(|l| page.layer(l).is_none_or(|l| l.snap));
+        let others = page.shapes.iter().filter(|s| {
+            !moving.contains(&s.id)
+                && !s.parent.as_ref().is_some_and(|p| moving.contains(p))
+                && !s.behavior.no_snap
+                && page.shape_visible(s)
+                && layer_snaps(s)
+        });
+        for s in others {
+            if aids.snap_shapes {
+                t.rects.push(s.bounds());
+            }
+            if aids.snap_points {
+                t.points.extend(s.connection_points_world());
+            }
+        }
+    }
+    t
+}
+
+/// Bounds of the shapes a move drag carries, `None` when it carries none (connectors only).
+pub fn moving_bounds(page: &Page, ids: &[String]) -> Option<dg::Rect> {
+    page.shapes.iter().filter(|s| ids.contains(&s.id)).map(Shape::bounds).reduce(|a, b| a.union(&b))
+}
+
+/// The snap for moving `ids` by `delta`, or `None` with snapping off or nothing to snap.
+/// `tol` overrides the view's reach (the overlay asks with a tiny one to find the lines a
+/// position already sits on).
+pub fn move_snap(
+    page: &Page,
+    ids: &[String],
+    delta: Point,
+    aids: &vizcraft_engine::cmd::view::Aids,
+    zoom: f32,
+    tol: Option<f64>,
+) -> Option<snap::Snapped> {
+    let reach = aids.snap_tolerance(zoom)?;
+    let b = moving_bounds(page, ids)?;
+    let moved = dg::Rect::new(b.x0 + delta.x, b.y0 + delta.y, b.x1 + delta.x, b.y1 + delta.y);
+    Some(snap::snap_rect(moved, &snap_targets(page, ids, aids, zoom), tol.unwrap_or(reach)))
+}
+
+/// Shift the end of a move drag in progress so the items land snapped. Alt (Option) held turns
+/// snapping off for the drag, as in other diagramming tools.
+pub fn snap_move(app: &mut CraftApp, zoom: f32, alt: bool) {
+    if alt {
+        return;
+    }
+    let Some(page) = app.session.doc.page() else { return };
+    let Some(Drag::Move { ids, from, to }) = &app.canvas.drag else { return };
+    let Some(s) = move_snap(page, ids, *to - *from, &app.session.view.aids, zoom, None) else { return };
+    if let Some(Drag::Move { to, .. }) = &mut app.canvas.drag {
+        *to += s.offset;
     }
 }
 

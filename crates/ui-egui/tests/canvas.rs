@@ -153,6 +153,8 @@ fn marquee_selects_what_it_touches() {
 #[test]
 fn dragging_a_shape_moves_it_in_one_undo_step() {
     let mut h = harness();
+    // Exact distances: snapping (tests/visual_aids.rs covers it) would round the move.
+    h.state_mut().run("view.snap", json!({"value": false})).unwrap();
     let before = shape(&h, "s7");
     let route_before = {
         let page = h.state().session.doc.page().unwrap();

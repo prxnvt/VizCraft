@@ -13,6 +13,7 @@
 
 pub mod draw;
 pub mod interact;
+pub mod rulers;
 pub mod tess;
 
 use egui::{Pos2, Rect, Response, Ui, Vec2};
@@ -237,7 +238,9 @@ pub fn insert_point(app: &CraftApp) -> dg::Point {
 /// Draw the central canvas area and handle its input.
 pub fn show(app: &mut CraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
-    let (rect, response) = ui.allocate_exact_size(ui.available_size(), egui::Sense::click_and_drag());
+    let (full, _) = ui.allocate_exact_size(ui.available_size(), egui::Sense::hover());
+    let rect = rulers::canvas_rect(app, full);
+    let response = ui.interact(rect, ui.id().with("canvas"), egui::Sense::click_and_drag());
     app.canvas.rect = Some(rect);
     if rect.width() > 1.0 && rect.height() > 1.0 {
         // Only a real size: a fit into a collapsed canvas would drop to the smallest zoom.
@@ -259,6 +262,7 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
 
     interact::keys(app, ui.ctx());
     interact::pointer(app, ui, &response, &vp);
+    interact::drag::snap_move(app, vp.zoom, ui.input(|i| i.modifiers.alt));
     if let Some(payload) = response.dnd_release_payload::<crate::panes::MasterDrag>()
         && let Some(p) = ui.ctx().pointer_interact_pos().or(response.hover_pos())
     {
@@ -272,6 +276,7 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
     }
 
     paint(app, ui, &vp, &t);
+    rulers::show(app, ui, full, &vp, &t);
     interact::edit_text::text_overlay(app, ui, &vp, &t);
 }
 
@@ -281,6 +286,7 @@ fn paint(app: &mut CraftApp, ui: &Ui, vp: &Viewport2D, t: &Tokens) {
     let preview = app.canvas.drag.as_ref().and_then(|d| interact::preview_page(real, d, vp.zoom));
     let page = preview.as_ref().unwrap_or(real);
     draw::sheet(&painter, vp, page, t);
+    draw::overlays::underlay(app, &painter, vp, page, t);
     let visible = vp.visible_world_rect().inflate(4.0);
     let editing = app.canvas.editing.as_ref().map(|e| e.id().to_string());
     for s in &page.shapes {
