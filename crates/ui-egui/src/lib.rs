@@ -16,6 +16,7 @@ pub mod data_dialog;
 pub mod dialogs;
 pub mod find_dialog;
 pub mod icons;
+pub mod info_page;
 pub mod keys;
 pub mod menus;
 pub mod page_setup;
@@ -25,6 +26,7 @@ pub mod paste_special;
 pub mod print_preview;
 pub mod ribbon;
 pub mod snap_dialog;
+pub mod spelling_dialog;
 pub mod symbol_dialog;
 pub mod theme;
 pub mod widgets;
@@ -78,7 +80,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "ui.dialog",
         "Open Dialog",
         "",
-        r#"{"name": "commands|zoom|about|preferences|quit|shortcuts|message|pageSetup|snapSettings|find|pasteSpecial", "title"?: string, "text"?: string}"#,
+        r#"{"name": "commands|zoom|about|preferences|quit|shortcuts|message|pageSetup|snapSettings|find|pasteSpecial|spelling", "title"?: string, "text"?: string}"#,
     ),
     ("ui.closeDialog", "Close Dialog", "", "{}"),
     ("ui.backstage", "File Page", "", r#"{"value"?: bool}"#),
@@ -107,6 +109,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         r#"{"tool": "pointer|area|lasso|connector|text|textBlock|formatPainter", "from"?: id, "keep"?: bool}; area is the pointer's marquee; formatPainter copies from "from" (default: the primary selection), once unless "keep""#,
     ),
     ("ui.find", "Find", "Mod+F", "{}"),
+    ("ui.spelling", "Spelling", "", "{}"),
     ("window.minimize", "Minimize", "", "{}"),
     ("window.zoom", "Zoom Window", "", "{}"),
     ("app.about", "About VizCraft", "", "{}"),
@@ -554,6 +557,10 @@ impl CraftApp {
             "ui.find" => {
                 self.dialog = dialogs::Dialog::open("find", self);
                 json!({"dialog": "find"})
+            }
+            "ui.spelling" => {
+                self.dialog = dialogs::Dialog::open("spelling", self);
+                json!({"dialog": "spelling"})
             }
             // Placeholders (`menus::PLACEHOLDERS`): listed so every front sees them, shown
             // disabled in menus; running one by id only reports that it is not there yet.

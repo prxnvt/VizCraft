@@ -21,8 +21,7 @@ pub const MAX_MISSES: usize = 2000;
 /// Return the proofing commands.
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("proof.check", "Spelling", "Review > Proofing", check)
-            .key("F7")
+        CommandSpec::new("proof.check", "Check Spelling", "Review > Proofing", check)
             .params(r#"{"ids"?: [string], "page"?: id|name|index, "all"?: bool} -> {"checked": n, "misspellings": [{"page", "id", "kind": "shape"|"connector", "field", "word", "start", "end", "language", "suggestions": [string]}], "skipped": [{"id", "language"}], "notes": [string], "truncated": bool}; default is the active page; field is text, title:<compartment>, body:<compartment> or row:<compartment>:<n>; offsets are in chars of that field; read-only"#),
         CommandSpec::new("proof.suggest", "Suggest Spelling", "Review > Proofing", suggest)
             .params(r#"{"word": string} -> {"word", "known": bool, "suggestions": [string]}; at most eight words one edit away, or two when none; read-only"#),

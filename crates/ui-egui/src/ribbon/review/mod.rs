@@ -1,8 +1,12 @@
-//! The Review tab: no groups yet, so it is hidden.
+//! The Review tab: proofing, language and shape reports.
 
 use super::Tab;
 
-groups! {}
+groups! {
+    proofing,
+    language,
+    reporting,
+}
 
 /// The Review tab.
 pub(super) fn tab() -> Tab {

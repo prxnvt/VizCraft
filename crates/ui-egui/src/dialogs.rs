@@ -54,6 +54,8 @@ pub enum Dialog {
     PasteSpecial(crate::paste_special::State),
     /// Insert Symbol (`crate::symbol_dialog`).
     Symbol(crate::symbol_dialog::State),
+    /// Spelling (`crate::spelling_dialog`).
+    Spelling(crate::spelling_dialog::State),
 }
 
 impl Dialog {
@@ -74,6 +76,7 @@ impl Dialog {
             Dialog::Find(_) => "find",
             Dialog::PasteSpecial(_) => "pasteSpecial",
             Dialog::Symbol(_) => "symbol",
+            Dialog::Spelling(_) => "spelling",
         }
     }
 
@@ -94,6 +97,7 @@ impl Dialog {
             "find" => Dialog::Find(crate::find_dialog::open(app)),
             "pasteSpecial" => Dialog::PasteSpecial(crate::paste_special::open(app)),
             "symbol" => Dialog::Symbol(crate::symbol_dialog::State::default()),
+            "spelling" => Dialog::Spelling(crate::spelling_dialog::open(app)),
             _ => return None,
         })
     }
@@ -114,6 +118,7 @@ impl Dialog {
             Dialog::Find(_) => "Find and Replace".into(),
             Dialog::PasteSpecial(_) => "Paste Special".into(),
             Dialog::Symbol(_) => "Symbol".into(),
+            Dialog::Spelling(_) => "Spelling".into(),
         }
     }
 
@@ -125,6 +130,7 @@ impl Dialog {
             Dialog::PrintPreview(_) => 560.0,
             Dialog::Find(_) => 420.0,
             Dialog::Symbol(_) => 400.0,
+            Dialog::Spelling(_) => 440.0,
             _ => 360.0,
         }
     }
@@ -312,6 +318,7 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
             crate::print_preview::finish(app, s, print, cancel)
         }
         Dialog::Symbol(s) => crate::symbol_dialog::body(app, ui, s),
+        Dialog::Spelling(s) => crate::spelling_dialog::body(app, ui, s),
         Dialog::SnapSettings(s) => {
             crate::snap_dialog::body(ui, s);
             let (ok, cancel) = buttons(ui, "OK", Some("Cancel"), keys);
