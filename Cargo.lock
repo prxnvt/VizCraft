@@ -3964,6 +3964,7 @@ dependencies = [
  "serde_json",
  "vizcraft-engine",
  "vizcraft-macos-open",
+ "vizcraft-notation",
  "vizcraft-ui-egui",
  "winresource",
 ]

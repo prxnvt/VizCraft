@@ -292,6 +292,26 @@ fn no_prefs() -> bool {
     std::env::var_os("VIZCRAFT_NO_PREFS").is_some()
 }
 
+/// Rebuild the notation catalog from the built-in packs plus the pack files in the `packs`
+/// folder beside the preferences file, before anything reads the catalog (the stencil sets are
+/// built from it once). Skipped with `VIZCRAFT_NO_PREFS`, so test runs see only the built-in
+/// packs, and when `VIZCRAFT_PACKS_DIR` names a folder, which the catalog reads by itself. A
+/// folder that fails to load keeps the built-in catalog; the reason goes to stderr.
+fn load_packs() {
+    if no_prefs() || std::env::var_os(vizcraft_notation::catalog::PACKS_DIR_ENV).is_some_and(|d| !d.is_empty()) {
+        return;
+    }
+    let Some(dir) = prefs_path().and_then(|p| p.parent().map(|d| d.join("packs"))) else { return };
+    match vizcraft_notation::catalog::use_packs_dir(&dir) {
+        Ok(c) => {
+            for e in c.errors() {
+                eprintln!("vizcraft: pack in {}: {e}", dir.display());
+            }
+        }
+        Err(e) => eprintln!("vizcraft: packs folder {}: {e}", dir.display()),
+    }
+}
+
 fn load_prefs(app: &mut CraftApp) {
     if no_prefs() {
         return;
@@ -406,6 +426,7 @@ fn start_trace() {
 }
 
 fn main() -> eframe::Result {
+    load_packs();
     let mut control_port: Option<u16> = std::env::var("VIZCRAFT_CONTROL_PORT").ok().and_then(|p| p.parse().ok());
     let mut files = Vec::new();
     let mut sample = false;

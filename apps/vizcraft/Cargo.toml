@@ -13,6 +13,7 @@ workspace = true
 [dependencies]
 vizcraft-engine = { workspace = true }
 vizcraft-ui-egui = { workspace = true }
+vizcraft-notation = { workspace = true }
 vizcraft-macos-open = { workspace = true }
 eframe = { workspace = true, features = ["default_fonts", "wgpu", "accesskit", "wayland", "x11", "links"] }
 egui = { workspace = true }
