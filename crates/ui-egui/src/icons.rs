@@ -96,6 +96,8 @@ pub const NAMES: &[&str] = &[
     "liveChecking",
     "nextIssue",
     "prevIssue",
+    "problems",
+    "dock",
     // Arrange
     "align",
     "position",
@@ -702,6 +704,17 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
                 let (sx, sy) = (t.cos(), t.sin());
                 pen.line_c(&[(10.0 + 7.2 * sx, 10.0 + 7.2 * sy), (10.0 + 8.8 * sx, 10.0 + 8.8 * sy)], a);
             }
+        }
+        "problems" => {
+            // A warning triangle with a mark.
+            pen.closed(&[(10.0, 3.0), (17.0, 16.0), (3.0, 16.0)], c);
+            pen.line_c(&[(10.0, 8.0), (10.0, 12.0)], a);
+            pen.fcircle(10.0, 14.0, 0.8, a);
+        }
+        "dock" => {
+            // A window with a bottom band.
+            pen.rect(3.0, 4.0, 17.0, 16.0, c);
+            pen.line_c(&[(3.0, 11.5), (17.0, 11.5)], a);
         }
         "nextIssue" => {
             // An issue marker with a chevron leading on.
