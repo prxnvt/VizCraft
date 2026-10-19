@@ -246,7 +246,11 @@ impl Session {
     pub fn refresh_issues(&mut self) {
         let doc = &self.doc;
         match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| vizcraft_notation::rules::live(doc, vizcraft_notation::catalog()))) {
-            Ok(issues) => self.issues = issues,
+            Ok(mut issues) => {
+                // Elements a re-import no longer found are flagged by the import record, not a rule.
+                issues.extend(vizcraft_diagram::import_record::removed_issues(doc));
+                self.issues = issues;
+            }
             Err(_) => {
                 self.issues = Vec::new();
                 self.status = "the live checks failed; issues are not shown".into();

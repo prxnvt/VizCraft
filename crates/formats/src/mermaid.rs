@@ -10,12 +10,19 @@
 //! Node shapes map onto the closest Basic or Flowchart master; anything the model cannot show
 //! exactly (a dotted line, a crow's foot, the original Mermaid shape name) is kept in the item's
 //! `ext` map under `mermaid.*` keys, and anything dropped comes back as a warning.
+//!
+//! Identity for re-import: node ids are kept as shape ids (a merging import makes them the
+//! element ids), and a node's tag comes from a comment line `%% tag: <node id> <tag>` or from a
+//! label that ends in ` #<tag>` where the tag holds a digit (`Pump #P-101`); the suffix is taken
+//! off the label. The tag is kept in the shape's `ext` under [`crate::csv::TAG_KEY`].
 
 mod common;
 mod graph;
 mod sequence;
 #[cfg(test)]
 mod tests;
+
+use std::collections::HashMap;
 
 use vizcraft_mermaid::Diagram;
 
@@ -28,9 +35,81 @@ pub fn import(text: &str) -> Result<Imported, FormatError> {
     for w in &parsed.warnings {
         warnings.push(w.to_string());
     }
-    let page = match &parsed.diagram {
+    let mut page = match &parsed.diagram {
         Diagram::Sequence(seq) => sequence::build(seq, &mut warnings),
         other => graph::build(&other.to_graph(), &mut warnings)?,
     };
+    carry_tags(text, &mut page);
     Ok(Imported { pages: vec![page], warnings: warnings.finish() })
+}
+
+/// Longest tag read from a comment or a label suffix, in bytes.
+const MAX_TAG: usize = 256;
+
+/// Whether `t` reads as a tag: 1 to [`MAX_TAG`] letters, digits, `-`, `_` and `.`, with a digit.
+fn is_tag(t: &str) -> bool {
+    !t.is_empty()
+        && t.len() <= MAX_TAG
+        && t.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'))
+        && t.chars().any(|c| c.is_ascii_digit())
+}
+
+/// The `%% tag: <id> <tag>` comments of `text`, node id to tag (a later line wins).
+fn tag_comments(text: &str) -> HashMap<String, String> {
+    let mut out = HashMap::new();
+    for line in text.lines() {
+        let Some(rest) = line.trim().strip_prefix("%%").map(str::trim_start) else { continue };
+        let Some(rest) = rest.strip_prefix("tag:") else { continue };
+        let mut words = rest.split_whitespace().filter(|w| *w != "=");
+        if let (Some(id), Some(tag)) = (words.next(), words.next())
+            && tag.len() <= MAX_TAG
+        {
+            out.insert(id.to_string(), tag.to_string());
+        }
+    }
+    out
+}
+
+/// Put each shape's tag in its `ext`: from a `%% tag:` comment naming its id, else from a ` #tag`
+/// suffix on its label's last line (taken off the label).
+fn carry_tags(text: &str, page: &mut vizcraft_diagram::Page) {
+    let comments = tag_comments(text);
+    for s in &mut page.shapes {
+        let mut tag = comments.get(&s.id).cloned();
+        let last = s.text.rsplit('\n').next().unwrap_or_default();
+        if let Some((head, t)) = last.rsplit_once(" #")
+            && is_tag(t.trim_end())
+            && !head.trim().is_empty()
+        {
+            tag.get_or_insert_with(|| t.trim_end().to_string());
+            let keep = s.text.len().saturating_sub(last.len()).saturating_add(head.trim_end().len());
+            if s.text.is_char_boundary(keep) {
+                s.text.truncate(keep);
+            }
+        }
+        if let Some(t) = tag {
+            s.ext.insert(crate::csv::TAG_KEY.into(), t);
+            s.sanitize();
+        }
+    }
+}
+
+#[cfg(test)]
+mod tag_tests {
+    use super::import;
+    use crate::csv::TAG_KEY;
+
+    #[test]
+    fn node_ids_stay_and_tags_come_from_comments_or_label_suffixes() {
+        let src = "flowchart TD\n%% tag: A = T-100\n%% tag: B T-200\nA[Start] --> B[Pump #P-101]\nB --> C[Step #1a]\nC --> D[Release #notatag]\nD --> E[#9]\n";
+        let page = import(src).unwrap().pages.remove(0);
+        let get = |id: &str| page.shapes.iter().find(|s| s.id == id).unwrap();
+        assert_eq!(get("A").ext.get(TAG_KEY).map(String::as_str), Some("T-100"));
+        assert_eq!(get("B").ext.get(TAG_KEY).map(String::as_str), Some("T-200"), "a comment wins over the suffix");
+        assert_eq!(get("B").text, "Pump");
+        assert_eq!((get("C").text.as_str(), get("C").ext.get(TAG_KEY).map(String::as_str)), ("Step", Some("1a")));
+        assert_eq!(get("D").text, "Release #notatag", "a suffix with no digit is part of the label");
+        assert!(!get("D").ext.contains_key(TAG_KEY));
+        assert_eq!(get("E").text, "#9", "a label that is only a suffix stays");
+    }
 }

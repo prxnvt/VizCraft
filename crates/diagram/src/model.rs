@@ -1122,6 +1122,9 @@ pub struct Document {
     /// Links from shape data to external tables (see [`crate::data_graphic::DataLink`]).
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub data_links: Vec<crate::data_graphic::DataLink>,
+    /// What each merging import brought in, by source (see [`crate::import_record`]).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub imports: Vec<crate::import_record::ImportRecord>,
 }
 
 /// The on-disk form; turned into a [`Document`] by fixing up anything a file got wrong.
@@ -1159,6 +1162,8 @@ struct DocumentRepr {
     data_graphics: Vec<crate::data_graphic::DataGraphic>,
     #[serde(deserialize_with = "lenient_vec")]
     data_links: Vec<crate::data_graphic::DataLink>,
+    #[serde(deserialize_with = "lenient_vec")]
+    imports: Vec<crate::import_record::ImportRecord>,
 }
 
 impl From<DocumentRepr> for Document {
@@ -1181,6 +1186,7 @@ impl From<DocumentRepr> for Document {
             ignored_words: r.ignored_words,
             data_graphics: r.data_graphics,
             data_links: r.data_links,
+            imports: r.imports,
         };
         // Pages only: the model is a separate section the caller sets afterwards, so checking view
         // references here would clear every one of them. The caller runs `sanitize` once the
@@ -1217,6 +1223,7 @@ impl Document {
             ignored_words: Vec::new(),
             data_graphics: Vec::new(),
             data_links: Vec::new(),
+            imports: Vec::new(),
         }
     }
     /// Make the document safe to work on: at least one page, every number in range, a sane model,
@@ -1225,6 +1232,7 @@ impl Document {
         self.sanitize_pages();
         self.model.sanitize();
         crate::views::sanitize_refs(self);
+        crate::import_record::prune(&mut self.imports, &self.model);
     }
     /// At least one page, every page, shape and connector in range, the properties, comments and
     /// image store bounded, and references between them repaired; the model and view references
@@ -1246,6 +1254,7 @@ impl Document {
         self.theme.sanitize();
         crate::master::sanitize_masters(&mut self.masters);
         crate::data_graphic::sanitize_doc(self);
+        crate::import_record::sanitize(&mut self.imports);
         self.sanitize_doc_refs();
     }
     /// Clear references that name nothing: a background that is not another background page, a

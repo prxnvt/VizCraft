@@ -40,6 +40,7 @@ pub mod decor;
 pub mod doc_fields;
 pub mod geom;
 pub mod hit;
+pub mod import_record;
 pub mod ink;
 pub mod jumps;
 pub mod kind;
