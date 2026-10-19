@@ -12,6 +12,7 @@
 //! in-place text editing, [`keys`] the canvas keys, [`membership`] container membership on
 //! moves and drops, and [`wire`] the Wire and Pipe tools.
 
+pub mod bands;
 pub mod connect;
 pub mod crop;
 pub mod drag;

@@ -263,3 +263,32 @@ fn layout_primitive_er_puts_satellites_back_on_their_ring() {
     assert!(back.center().distance(c.center()) < 300.0, "the satellite is next to its entity again");
     assert!(s.run("layout.primitive", &json!({"primitive": "er", "roles": {"satellites": 5}})).is_err());
 }
+
+#[test]
+fn table_row_ids_line_up_with_the_rows_the_canvas_draws() {
+    let s = schema();
+    let cat = vizcraft_notation::catalog();
+    for table in TABLES {
+        let owner = s.doc.model.elements.iter().find(|e| e.name == table && e.owner.is_none()).unwrap();
+        let mut checked = 0;
+        for d in cat.compartments_in(&owner.type_id, "") {
+            let Some(q) = d.query.as_ref() else { continue };
+            let rows = vizcraft_notation::sheet_pass::table_rows(&s.doc, cat, owner, q);
+            let ids = vizcraft_notation::sheet_pass::table_row_ids(&s.doc, cat, owner, q);
+            assert_eq!(rows.len(), ids.len(), "{table}/{}", d.id);
+            // The shape draws those very rows, in that order.
+            let shape = shape_of(&s, table);
+            let drawn = &shape.compartments.iter().find(|c| c.id == d.id).unwrap().rows;
+            assert_eq!(&rows, drawn, "{table}/{}", d.id);
+            // The first cell of an owned table is the attribute's name.
+            for (row, id) in rows.iter().zip(&ids) {
+                if q.owned && q.columns.contains(&"name".to_string()) {
+                    let at = q.columns.iter().position(|c| c == "name").unwrap();
+                    assert_eq!(row.split('\t').nth(at), Some(s.doc.model.element(id).unwrap().name.as_str()));
+                }
+            }
+            checked += rows.len();
+        }
+        assert!(checked > 0, "{table} has table rows");
+    }
+}

@@ -99,9 +99,20 @@ pub fn table_rows(doc: &Document, cat: &Catalog, owner: &Element, q: &TableQuery
     rows_of(doc.model.elements.iter(), cat, owner, q)
 }
 
+/// The element ids behind [`table_rows`], one per row in the same order: what a canvas edit of a
+/// cell writes to (an ER column's attribute).
+pub fn table_row_ids(doc: &Document, cat: &Catalog, owner: &Element, q: &TableQuery) -> Vec<String> {
+    rows_with_ids(doc.model.elements.iter(), cat, owner, q).into_iter().map(|(_, id)| id).collect()
+}
+
 /// [`table_rows`] over `candidates` (every element, or the owner's children when the query is
 /// `owned`).
 fn rows_of<'a>(candidates: impl Iterator<Item = &'a Element>, cat: &Catalog, owner: &Element, q: &TableQuery) -> Vec<String> {
+    rows_with_ids(candidates, cat, owner, q).into_iter().map(|(row, _)| row).collect()
+}
+
+/// The rows of [`rows_of`], each with the id of the element it shows.
+fn rows_with_ids<'a>(candidates: impl Iterator<Item = &'a Element>, cat: &Catalog, owner: &Element, q: &TableQuery) -> Vec<(String, String)> {
     let override_types: Vec<String> = owner
         .prop("types")
         .and_then(|v| v.as_str().map(str::to_string))
@@ -119,7 +130,7 @@ fn rows_of<'a>(candidates: impl Iterator<Item = &'a Element>, cat: &Catalog, own
             None => raw,
         }
     };
-    let mut rows: Vec<(Vec<String>, String)> = candidates
+    let mut rows: Vec<(Vec<String>, String, String)> = candidates
         .filter(|e| e.id != owner.id && crate::infer::chain_of(cat, &e.type_id).iter().any(|t| types.iter().any(|x| x == t)))
         .filter(|e| !q.owned || e.owner.as_deref() == Some(owner.id.as_str()))
         .filter(|e| match &q.filter {
@@ -134,13 +145,13 @@ fn rows_of<'a>(candidates: impl Iterator<Item = &'a Element>, cat: &Catalog, own
         .map(|e| {
             let cells: Vec<String> = cols.iter().map(|c| shown(c, e).replace(['\t', '\n', '\r'], " ")).collect();
             let key = if q.sort_by.is_empty() { String::new() } else { cell(e, &q.sort_by) };
-            (cells, key)
+            (cells, key, e.id.clone())
         })
         .collect();
     if !q.sort_by.is_empty() {
-        rows.sort_by_key(|(_, k)| sort_key(k));
+        rows.sort_by_key(|(_, k, _)| sort_key(k));
     }
-    rows.into_iter().map(|(c, _)| c.join("\t")).collect()
+    rows.into_iter().map(|(c, _, id)| (c.join("\t"), id)).collect()
 }
 
 /// The columns of a table query's compartment.

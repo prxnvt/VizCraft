@@ -61,6 +61,9 @@ pub struct TextEditing {
     /// The end label of the connector being edited (a role and multiplicity beside an end);
     /// `None` is the connector's main label or a shape's text.
     pub label: Option<LabelEnd>,
+    /// What the commit writes when the edited band is drawn from the model (see [`super::bands`]);
+    /// `None` commits `compartment.set` (or the shape's own text).
+    pub model: Option<super::bands::ModelEdit>,
 }
 
 impl TextEditing {
@@ -99,6 +102,7 @@ pub fn start_editing(app: &mut CraftApp, target: Hit) {
         created: false,
         compartment: None,
         label: None,
+        model: None,
     });
 }
 
@@ -119,11 +123,25 @@ pub fn start_editing_at(app: &mut CraftApp, target: Hit, at: dg::Point) {
         }),
         _ => None,
     };
+    // A band drawn from the model is edited through the model, or the sync would undo the edit.
+    let mut model = None;
+    let mut band = band;
+    if let (Some((cid, _)), Hit::Shape(id)) = (&band, &target) {
+        match super::bands::plan(app, id, cid, at) {
+            Some(super::bands::Plan::Edit { edit, text }) => {
+                model = Some(edit);
+                band = Some((cid.clone(), text));
+            }
+            Some(_) => return,
+            None => {}
+        }
+    }
     start_editing(app, target);
     if let (Some((cid, text)), Some(ed)) = (band, app.canvas.editing.as_mut()) {
         ed.compartment = Some(cid);
         ed.original = text.clone();
         ed.text = text;
+        ed.model = model;
     }
 }
 
@@ -147,6 +165,7 @@ pub fn start_editing_label(app: &mut CraftApp, id: &str, end: LabelEnd) {
         created: false,
         compartment: None,
         label: Some(end),
+        model: None,
     });
 }
 
@@ -178,6 +197,10 @@ pub fn commit_editing(app: &mut CraftApp) {
             LabelEnd::End => "end",
         };
         run(app, "connector.setEndLabels", json!({"ids": [ed.id()], key: ed.text.trim()}));
+        return;
+    }
+    if let Some(edit) = &ed.model {
+        super::bands::commit(app, edit, &ed.text);
         return;
     }
     if let Some(cid) = &ed.compartment {
@@ -239,6 +262,12 @@ fn placement(app: &CraftApp, vp: &Viewport2D) -> Option<Placement> {
                 let (band, c) = bands.iter().find_map(|b| Some((b, s.compartments.get(b.compartment?).filter(|c| &c.id == cid)?)))?;
                 let style = c.text_style(&s.style);
                 let font = draw::style_font(&style, zoom).unwrap_or_else(|| crate::theme::regular(12.0));
+                // A table cell edits in its own rectangle, not over the whole band.
+                if let Some(super::bands::ModelEdit::Cell { row, col, .. }) = &ed.model
+                    && let Some(cell) = super::bands::cell_rect(s, cid, *row, *col)
+                {
+                    return Some(Placement { block: band_block(vp, s, cell, dg::HAlign::Left, dg::VAlign::Middle), style, font });
+                }
                 return Some(Placement { block: band_block(vp, s, band.body, c.align, dg::VAlign::Top), style, font });
             }
             let font = draw::style_font(&s.style, zoom).unwrap_or_else(|| crate::theme::regular(12.0));

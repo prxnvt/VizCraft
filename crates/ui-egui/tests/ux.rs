@@ -337,6 +337,8 @@ fn a_connector_drawn_between_two_actions_is_a_control_flow() {
 }
 
 fn double_click(h: &mut Harness<'_, CraftApp>, p: Pos2) {
+    // Let any earlier click age out, or egui counts these presses as part of it.
+    h.run_steps(30);
     h.event(Event::PointerMoved(p));
     h.run_steps(1);
     for _ in 0..2 {
@@ -410,4 +412,118 @@ fn double_clicking_near_an_association_end_edits_the_multiplicity() {
     let app = h.state();
     let rel = app.session.doc.model.relationship(&rid).unwrap();
     assert_eq!(rel.properties.get("targetMultiplicity").and_then(|v| v.as_str()), Some("0..*"), "{:?}", rel.properties);
+}
+
+/// The screen point at the middle of row `row` (or of the whole body) of compartment `cid`, at
+/// table column `col` when given, of shape `shape`.
+fn band_point(h: &Harness<'_, CraftApp>, shape: &str, cid: &str, row: Option<usize>, col: Option<usize>) -> Pos2 {
+    let s = h.state().session.doc.page().unwrap().shape(shape).unwrap().clone();
+    let band = vizcraft_diagram::compartment::layout(&s)
+        .into_iter()
+        .find(|b| b.compartment.and_then(|i| s.compartments.get(i)).is_some_and(|c| c.id == cid))
+        .expect("the compartment is laid out");
+    let r = match row {
+        Some(i) => band.rows[i],
+        None => band.body,
+    };
+    let x = match col {
+        Some(c) => (band.columns[c] + band.columns[c + 1]) / 2.0,
+        None => r.center().x,
+    };
+    to_screen(h, s.transform().apply(vizcraft_diagram::Point::new(x, r.center().y)))
+}
+
+fn centre_view_on(h: &mut Harness<'_, CraftApp>, shape: &str) {
+    let c = h.state().session.doc.page().unwrap().shape(shape).unwrap().center();
+    run(h, "view.pan", json!({"x": c.x, "y": c.y}));
+    run(h, "edit.selectNone", json!({}));
+}
+
+fn element_of(h: &Harness<'_, CraftApp>, shape: &str) -> String {
+    h.state().session.doc.page().unwrap().shape(shape).unwrap().element.clone().unwrap()
+}
+
+#[test]
+fn a_canvas_edit_of_the_attributes_band_writes_the_model_and_survives_the_next_command() {
+    let mut h = from_template("uml.classDiagram");
+    let class = shapes_of(&h, "uml.Class")[0].clone();
+    let el = element_of(&h, &class);
+    centre_view_on(&mut h, &class);
+    let at = band_point(&h, &class, "attrs", None, None);
+    double_click(&mut h, at);
+    let ed = h.state().canvas.editing.clone().expect("the attributes band opens for editing");
+    assert!(ed.model.is_some(), "it writes the model property");
+    type_text(&mut h, "- total: Money [0..1]\n+ id: int");
+    key(&mut h, Key::Enter);
+    let attrs = h.state().session.doc.model.element(&el).unwrap().prop("attributes").and_then(|v| v.as_str().map(str::to_string)).unwrap_or_default();
+    assert!(attrs.contains("total: Money"), "{attrs:?}");
+    // The next command re-syncs from the model; the edit is still there.
+    run(&mut h, "shape.move", json!({"ids": [class.clone()], "dx": 10, "dy": 0}));
+    let s = h.state().session.doc.page().unwrap().shape(&class).unwrap();
+    let rows = &s.compartments.iter().find(|c| c.id == "attrs").unwrap().rows;
+    assert!(rows.iter().any(|r| r.contains("total")), "{rows:?}");
+    assert_eq!(h.state().session.undo_label(), Some("Move"), "the edit was its own undo step");
+}
+
+#[test]
+fn er_cells_edit_the_columns_in_place() {
+    let mut h = from_template("er.schema");
+    let table = shapes_of(&h, "er.Entity")[0].clone();
+    centre_view_on(&mut h, &table);
+    let s = h.state().session.doc.page().unwrap().shape(&table).unwrap().clone();
+    let attrs_rows = s.compartments.iter().find(|c| c.id == "attrs").unwrap().rows.len();
+    let keys_rows = s.compartments.iter().find(|c| c.id == "keys").unwrap().rows.len();
+    assert!(attrs_rows > 0 && keys_rows > 0);
+    // Type cell (third column) of the first plain column.
+    let owner = element_of(&h, &table);
+    let attr_ids = {
+        let doc = &h.state().session.doc;
+        let cat = vizcraft_notation::catalog();
+        let el = doc.model.element(&owner).unwrap();
+        let d = cat.compartments_in(&el.type_id, "").iter().find(|d| d.id == "attrs").unwrap();
+        vizcraft_notation::sheet_pass::table_row_ids(doc, cat, el, d.query.as_ref().unwrap())
+    };
+    let at = band_point(&h, &table, "attrs", Some(0), Some(2));
+    double_click(&mut h, at);
+    assert!(h.state().canvas.editing.is_some(), "a cell opens an editor");
+    type_text(&mut h, "uuid");
+    key(&mut h, Key::Enter);
+    let data_type = h.state().session.doc.model.element(&attr_ids[0]).unwrap().prop("dataType").and_then(|v| v.as_str().map(str::to_string));
+    assert_eq!(data_type.as_deref(), Some("uuid"));
+    // Name cell renames.
+    let at = band_point(&h, &table, "attrs", Some(0), Some(1));
+    double_click(&mut h, at);
+    type_text(&mut h, "renamed_col");
+    key(&mut h, Key::Enter);
+    assert_eq!(h.state().session.doc.model.element(&attr_ids[0]).unwrap().name, "renamed_col");
+    // A flag cell (the FK column of a plain column) toggles on the double-click; PK moves the row up.
+    let at = band_point(&h, &table, "attrs", Some(0), Some(0));
+    double_click(&mut h, at);
+    assert!(h.state().canvas.editing.is_none(), "a flag cell opens no editor");
+    let fk = h.state().session.doc.model.element(&attr_ids[0]).unwrap().prop("fk").and_then(|v| v.as_bool());
+    assert_eq!(fk, Some(true));
+    // PK: run the same gesture on the keys band's first row, which clears PK and moves it down.
+    let keys_before = h.state().session.doc.page().unwrap().shape(&table).unwrap().compartments.iter().find(|c| c.id == "keys").unwrap().rows.len();
+    let at = band_point(&h, &table, "keys", Some(0), Some(0));
+    double_click(&mut h, at);
+    let s = h.state().session.doc.page().unwrap().shape(&table).unwrap();
+    let keys_after = s.compartments.iter().find(|c| c.id == "keys").unwrap().rows.len();
+    assert_eq!(keys_after, keys_before - 1, "the row left the keys band");
+}
+
+#[test]
+fn a_band_filled_from_properties_opens_the_inspector_instead_of_an_editor() {
+    let mut h = from_template("uml.stateMachine");
+    let state = shapes_of(&h, "uml.State").into_iter().find(|id| {
+        let s = h.state().session.doc.page().unwrap().shape(id).unwrap();
+        s.compartments.iter().any(|c| c.id == "behaviors")
+    });
+    let Some(state) = state else { panic!("a state with a behaviors band") };
+    centre_view_on(&mut h, &state);
+    run(&mut h, "ui.pane", json!({"name": "shapeData", "value": false}));
+    let at = band_point(&h, &state, "behaviors", None, None);
+    double_click(&mut h, at);
+    assert!(h.state().canvas.editing.is_none(), "no editor that the next sync would overwrite");
+    assert!(h.state().ui.panes.is_open("shapeData"), "the Inspector is open");
+    assert_eq!(h.state().ui.inspector.tab, vizcraft_ui_egui::panes::InspectorTab::Properties);
 }
