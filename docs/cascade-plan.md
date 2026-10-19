@@ -1514,6 +1514,28 @@ At most three builds from this session at once. Merge order: uml, topology, er, 
 full suite after each; snapshots regenerated after the last merge and again after the
 `b6e-frontend` merge.
 
+## Block 6 wave 3: software frontend
+
+State: briefs written on 2026-10-19 against the integration branch at f11c203 for the engine and
+the `b6e-frontend` worktree for `crates/ui-egui`, one per branch in
+[docs/briefs/b6-wave3/](briefs/b6-wave3/), each a planning agent's draft headed by resolutions.
+The branches start after `b6e-frontend` (the engineering drawing UI, the frontend half of wave 1's
+6E branches) is merged into the integration branch, since all five work in `crates/ui-egui`.
+
+| Branch (port) | Model | Scope |
+|---|---|---|
+| `b6-gallery` (8061) | Opus | The New page as a template gallery with previews, search, audience chips and Recent; the standards bar (symbols IEC by default, ANSI, JIC and the rest; sheet ISO A3 by default, ASME sizes) written to `Document.standards` through a new `standards` param on `template.new`; Add Page from template; the engineering workspace preset `ui.preset` and its Home tab; real outlines for path and builder glyphs in the picker, popover and ribbon galleries |
+| `b6-analyze-ui` (8062) | Opus | Analyze and Compare groups on the Model tab over `analyze.*` and `model.diff`; canvas highlights with level chips, dimming and staleness; the Analysis dock tab with Go to, Select, Re-run and Clear; the model diff as an overlay with ghosts of removed items (`model.diff` returns `ghosts`) |
+| `b6-sequence-ui` (8064) | Opus | Sequence pages edited on the canvas: stem hits, column drags, drag to reorder, drawing messages stem to stem, lifeline and note insertion, fragment wrap and guard editing, the Sequence contextual tab, the Inspector Sequence group, Alt+arrow moves, and message labels above the line in the canvas and every export |
+| `b6-ux` (8069) | Sonnet | Tab and Enter insertion, the `/` picker with next, connect and pattern rows, double-click connector and end label editing, compartment edits that write the model, Model Tree relationship rows, Inspector relationship ends, UML member rows (`uml.*Member`) and ER columns, the notation-aware Re-Layout menu and insert direction, the Process tab trim, the Steps tool and the Key and Steps groups |
+| `b6-polish` (8068) | Sonnet | The wave 1 and 2 drawing follow-ups: ER cells that fit with an ellipsis and one header row, step badges clear of labels and drawn on the canvas, names below actor and User figures (`textPlace`), Inter Italic for PNG and PDF, the `dfd.threat` layout, `uml.Decision` back in the palette, the ASME zone check, and the ER double outlines, halves, label frames and arrow ends on the canvas |
+
+Merge order: sequence-ui, polish, analyze-ui, ux, gallery; the full suite after each; snapshots
+regenerated after the last merge. At most three builds at once: gallery, analyze-ui and
+sequence-ui start first, ux and polish as each of those finishes. The user's checkpoint after the
+wave is a walkthrough in the app: a template from the New page with a chosen standard, Tab and `/`
+insertion, member and column editing, a sequence reorder, Downstream and Compare.
+
 ## Block 7: first deep packs (ROADMAP Cascade 6, three tracks)
 
 One agent per track at a time, three to five concurrent. ROADMAP 6 scope, plus TODO items that
