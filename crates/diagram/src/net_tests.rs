@@ -152,7 +152,7 @@ fn pins_and_junction_lookups_ignore_dynamic_and_missing_glue() {
     assert_eq!(pin_of(&page, &End::point("j1", 0)), None, "a junction is not a pin");
     assert!(junction_of(&page, &End::dynamic("j1")).is_some());
     let j = page.shape("j1").unwrap();
-    assert_eq!((j.w, j.style.fill), (4.5, Color::BLACK));
+    assert_eq!((j.w, j.style.fill), (9.0, Color::BLACK));
     assert_eq!(ends_on(&page, "r1"), Vec::<(String, bool)>::new());
     let mut junk = junction("j2", Point::new(f64::NAN, f64::INFINITY), true, f64::NAN, Color::BLACK);
     junk.sanitize();

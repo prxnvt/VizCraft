@@ -26,8 +26,12 @@ use crate::route::route_polyline;
 /// The stencil that marks a shape as a junction.
 pub const JUNCTION_STENCIL: &str = "vizcraft.junction";
 
-/// Diameter of a junction dot, in line widths.
-pub const JUNCTION_WIDTHS: f64 = 3.0;
+/// Diameter of a junction dot, in line widths. Six widths (9 page units on a 1.5 wide wire,
+/// about 2.3 mm) reads as a dot at 100 percent and stays clearly wider than a crossing, where
+/// three widths looked like a thickening of the line; drafting practice draws the dot at about
+/// five times the line width or more. Every renderer draws the junction as an ordinary shape of
+/// this size, so the canvas, SVG and PDF stay in step.
+pub const JUNCTION_WIDTHS: f64 = 6.0;
 
 /// Whether `s` is a junction.
 pub fn is_junction(s: &Shape) -> bool {

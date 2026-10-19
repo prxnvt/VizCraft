@@ -1,5 +1,6 @@
 //! Parametric glyph commands (`glyph.*`): list the builders, build a symbol without touching
-//! the document, read and set a shape's builder parameters, and redraw builder shapes.
+//! the document, place a free symbol drawn by a builder, read and set a shape's builder
+//! parameters, and redraw builder shapes.
 //!
 //! A builder shape redraws itself after every command whose inputs changed (see
 //! `vizcraft_stencils::builders::sync`), so `glyph.setParams` and `element.setProperty` only set
@@ -16,7 +17,7 @@ use super::model::{cat, check_len, page_param};
 use super::{Kinds, num, opt_str, short, targets};
 use crate::{CmdResult, CommandSpec, EngineError, Session};
 
-/// Return the glyph commands: `glyph.builders`, `glyph.build`, `glyph.params`,
+/// Return the glyph commands: `glyph.builders`, `glyph.build`, `glyph.insert`, `glyph.params`,
 /// `glyph.setParams`, `glyph.rebuild`.
 pub fn specs() -> Vec<CommandSpec> {
     vec![
@@ -25,6 +26,9 @@ pub fn specs() -> Vec<CommandSpec> {
         ),
         CommandSpec::new("glyph.build", "Build Glyph", "Insert > Symbols", build_cmd).params(
             r#"{"builder": name | "glyph": pack glyph id, "params"?: {key: value}, "module"?: page units} -> {"builder", "d", "lines", "svg", "w", "h", "module", "standard", "ports": [{"id", "label", "x", "y", "dir"}], "labels": [{"id", "text", "x", "y", "size", "anchor"}], "warnings"}; page units, origin top left; d is the filled outline, lines the stroked lines; a glyph's params are the defaults under the given ones; changes no document"#,
+        ),
+        CommandSpec::new("glyph.insert", "Insert Symbol", "Insert > Symbols", insert).params(
+            r#"{"builder": name, "params"?: {key: value}, "x"?: n, "y"?: n, "page"?: page id, name or index} -> {"id", "builder", "shapes": [id], "primary", "items"}; places a free shape drawn by the builder (no element), its own parameter overrides from params, top left at x, y (default: the page frame's centre); on a page with a symbol grid module the first pin lands on the grid; selects it on the active page; one undo step. glyph.params and glyph.setParams work on it"#,
         ),
         CommandSpec::new("glyph.params", "Symbol Parameters", "Home > Symbol", params_cmd).params(
             r#"{"id": shape id on the active page} -> {"id", "builder", "glyph": pack glyph id or null, "params": [{"key", "value", "from": "default"|"glyph"|"shape"|"element", "spec"}]}; the value each parameter is drawn with and the layer it came from"#,
@@ -169,6 +173,47 @@ fn build_cmd(_s: &mut Session, v: &Value) -> CmdResult {
     }
     let b = builders::build(name, &raw, module).map_err(|e| EngineError::Params(e.to_string()))?;
     Ok(built_json(name, &b))
+}
+
+/// Place a free builder shape (see the `glyph.insert` params doc).
+fn insert(s: &mut Session, v: &Value) -> CmdResult {
+    let name = crate::p::req_str(v, "builder")?;
+    let spec = builders::spec(name).ok_or_else(|| unknown(name))?;
+    // The shape's own overrides, each checked against the builder's spec before anything changes.
+    let mut own: BTreeMap<String, PropValue> = BTreeMap::new();
+    if let Some(m) = params_obj(v)? {
+        for (k, val) in m {
+            let p = spec.param(k).ok_or_else(|| EngineError::Params(format!("`{}` is not a parameter of `{}`", short(k), spec.name)))?;
+            if let Some(value) = prop_of(k, val)? {
+                if let (_, Some(why)) = p.check(&value) {
+                    return Err(EngineError::Params(why));
+                }
+                own.insert(k.clone(), value);
+            }
+        }
+    }
+    let index = page_param(&s.doc, v)?;
+    let page = s.doc.pages.get(index).ok_or_else(|| EngineError::Params("no such page".into()))?;
+    let module = sync::page_module(page);
+    let built = builders::build(spec.name, &own, module).map_err(|e| EngineError::Params(e.to_string()))?;
+    let (w, h) = (built.width(), built.height());
+    let centre = page.frame().center();
+    let x = super::shape::coord(num(v, "x")?.unwrap_or(centre.x - w / 2.0));
+    let y = super::shape::coord(num(v, "y")?.unwrap_or(centre.y - h / 2.0));
+    let id = s.doc.next_id("s");
+    let mut shape = vizcraft_diagram::Shape::new(id.clone(), vizcraft_diagram::ShapeKind::Freeform, x, y, w.max(1.0), h.max(1.0));
+    shape.glyph = Some(GlyphState { builder: spec.name.to_string(), params: own, ..GlyphState::default() });
+    apply::apply(&mut shape, spec.name, &built);
+    if let Some(m) = module {
+        apply::snap_first_port(&mut shape, m);
+    }
+    shape.sanitize();
+    let page = s.doc.pages.get_mut(index).ok_or_else(|| EngineError::Params("no such page".into()))?;
+    page.shapes.push(shape);
+    if index == s.doc.active_index() {
+        super::select(s, vec![id.clone()]);
+    }
+    super::with_sel(s, json!({"id": id, "builder": spec.name, "shapes": [id]}))
 }
 
 fn params_cmd(s: &mut Session, v: &Value) -> CmdResult {
@@ -397,6 +442,61 @@ mod tests {
         let svg = String::from_utf8(vizcraft_formats::svg::export_page(&s.doc, 0).unwrap()).unwrap();
         assert!(svg.contains(">TI</tspan>") && svg.contains(">100</tspan>"), "the bubble's slots");
         assert!(svg.contains(">13</tspan>"), "the contact's terminal numbers");
+    }
+
+    #[test]
+    fn insert_places_a_free_builder_shape_that_params_and_set_params_edit() {
+        let mut s = Session::new(Document::new());
+        let before = s.doc.clone();
+        let r = run(&mut s, "glyph.insert", json!({"builder": "contact", "x": 100, "y": 120}));
+        let id = r["id"].as_str().unwrap().to_string();
+        assert_eq!((r["primary"].as_str(), r["shapes"].clone()), (Some(id.as_str()), json!([id])));
+        assert_eq!(s.sel.items, [id.clone()], "the new shape is selected");
+        let shape = s.doc.pages[0].shape(&id).unwrap().clone();
+        assert_eq!(shape.kind, ShapeKind::Freeform);
+        assert!(shape.element.is_none(), "a free symbol, no element");
+        assert_eq!((shape.x, shape.y), (100.0, 120.0));
+        assert_eq!(shape.glyph.as_ref().unwrap().builder, "contact");
+        assert_eq!(shape.glyph.as_ref().unwrap().ports, ["13", "14"]);
+        assert_eq!(shape.connection_points.len(), 2);
+        // glyph.params reads it; glyph.setParams redraws it.
+        let p = run(&mut s, "glyph.params", json!({"id": id}));
+        assert_eq!(p["builder"], "contact");
+        assert!(p["params"].as_array().unwrap().iter().any(|x| x["key"] == "poles"), "{p}");
+        run(&mut s, "glyph.setParams", json!({"ids": [id], "params": {"poles": 2}}));
+        let shape = s.doc.pages[0].shape(&id).unwrap();
+        assert_eq!(shape.glyph.as_ref().unwrap().ports, ["13", "14", "23", "24"]);
+        assert_eq!(shape.connection_points.len(), 4);
+        // One undo step each.
+        run(&mut s, "edit.undo", json!({}));
+        run(&mut s, "edit.undo", json!({}));
+        assert_eq!(s.doc, before);
+    }
+
+    #[test]
+    fn insert_takes_params_snaps_to_the_module_and_refuses_junk() {
+        let mut s = Session::new(Document::new());
+        let r = run(&mut s, "glyph.insert", json!({"builder": "contact", "params": {"poles": 3}}));
+        let id = r["id"].as_str().unwrap().to_string();
+        assert_eq!(s.doc.pages[0].shape(&id).unwrap().glyph.as_ref().unwrap().ports.len(), 6);
+        run(&mut s, "page.setModule", json!({"module": "inch0_1"}));
+        let r = run(&mut s, "glyph.insert", json!({"builder": "coil", "x": 33.3, "y": 71.7}));
+        let shape = s.doc.pages[0].shape(r["id"].as_str().unwrap()).unwrap();
+        let p = shape.connection_point_world(0).unwrap();
+        let on_grid = |v: f64| ((v / 10.0).round() * 10.0 - v).abs() < 1e-6;
+        assert!(on_grid(p.x) && on_grid(p.y), "the first pin is on the 0.1 inch grid: {p:?}");
+        for b in vizcraft_stencils::builders::specs() {
+            run(&mut s, "glyph.insert", json!({"builder": b.name}));
+        }
+        for bad in [
+            json!({}),
+            json!({"builder": "nope"}),
+            json!({"builder": "contact", "params": {"poles": "many"}}),
+            json!({"builder": "contact", "params": {"zzz": 1}}),
+            json!({"builder": "contact", "page": "nope"}),
+        ] {
+            assert!(s.run("glyph.insert", &bad).is_err(), "{bad}");
+        }
     }
 
     #[test]

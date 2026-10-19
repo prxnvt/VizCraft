@@ -88,6 +88,21 @@ fn splice_refuses_pins_on_different_runs_and_heal_refuses_two_named_nets() {
 }
 
 #[test]
+fn rotate_and_mirror_report_the_shapes_they_turned_as_primary() {
+    let (mut s, w, dev) = wire_and_device();
+    // Something else is selected; the command names the device by id.
+    run(&mut s, "edit.select", json!({"ids": [w]}));
+    let r = run(&mut s, "shape.rotate", json!({"ids": [dev], "turns": 1}));
+    assert_eq!(r["primary"], json!(dev), "{r}");
+    assert_eq!(r["shapes"], json!([dev]));
+    let r = run(&mut s, "shape.mirror", json!({"ids": [dev], "axis": "x"}));
+    assert_eq!(r["primary"], json!(dev), "{r}");
+    assert_eq!(r["shapes"], json!([dev]));
+    let r = run(&mut s, "shape.rotate", json!({"ids": [dev], "angle": 90}));
+    assert_eq!(r["primary"], json!(dev), "{r}");
+}
+
+#[test]
 fn rotate_by_turns_and_mirror_change_the_orientation_in_one_step() {
     let (mut s, _, dev) = wire_and_device();
     let r = one_step(&mut s, "shape.rotate", json!({"ids": [dev], "turns": 1}));
