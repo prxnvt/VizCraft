@@ -62,7 +62,12 @@ impl State {
 
 /// The dialog seeded from the selected valve (its drawn values) or the builder's defaults.
 pub fn open(app: &mut CraftApp) -> State {
-    let specs = app.session.run("glyph.builders", &json!({"builder": BUILDER})).ok().and_then(|r| r["builders"][0]["params"].as_array().cloned()).unwrap_or_default();
+    let specs = app
+        .session
+        .run("glyph.builders", &json!({"builder": BUILDER}))
+        .ok()
+        .and_then(|r| r["builders"][0]["params"].as_array().cloned())
+        .unwrap_or_default();
     let mut s = State { specs, loaded: true, ..State::default() };
     for p in &s.specs {
         if let Some(k) = p["key"].as_str() {
@@ -156,12 +161,20 @@ fn draw_preview(ui: &mut Ui, t: &Tokens, built: &Value, rect: Rect) {
     let map = |q: Pos2| origin + vec2(q.x * k, q.y * k);
     let ink = Color32::from_rgb(0x1e, 0x26, 0x30);
     let stroke = Stroke::new(1.4, ink);
+    // The outline is filled even-odd in the exports (a box is an outer and an inner contour);
+    // the preview fills only small closed contours (arrow heads, pilot triangles) and traces the
+    // rest, which draws a box's two contours as its line.
+    let small = 0.2 * w.min(h);
     for (pts, closed) in parse_path(built["d"].as_str().unwrap_or_default()) {
-        let pts: Vec<Pos2> = pts.into_iter().map(map).collect();
-        if closed && pts.len() >= 3 {
+        let r = Rect::from_points(&pts);
+        let mut pts: Vec<Pos2> = pts.into_iter().map(map).collect();
+        if closed && pts.len() >= 3 && r.width() <= small && r.height() <= small {
             p.add(egui::Shape::convex_polygon(pts, ink, Stroke::NONE));
         } else {
-            p.add(egui::Shape::line(pts, stroke));
+            if closed && let Some(first) = pts.first().copied() {
+                pts.push(first);
+            }
+            p.add(egui::Shape::line(pts, Stroke::new(1.0, ink)));
         }
     }
     for (pts, closed) in parse_path(built["lines"].as_str().unwrap_or_default()) {

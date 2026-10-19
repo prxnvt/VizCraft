@@ -178,7 +178,12 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "",
         r#"{"net"?: net id, "goto"?: bool} -> {"selected", "editing", "nets": [{"id", "number", "name", "kind", "pins", "segments"}], "members"}; opens the dock on the Nets tab, selects the net there and with goto selects its wires on its page"#,
     ),
-    ("ui.valve", "Valve...", "", r#"{} (the Valve builder dialog over glyph.builders and glyph.build: updates the selected valve with glyph.setParams or places one with glyph.insert)"#),
+    (
+        "ui.valve",
+        "Valve...",
+        "",
+        r#"{} (the Valve builder dialog over glyph.builders and glyph.build: updates the selected valve with glyph.setParams or places one with glyph.insert)"#,
+    ),
     (
         "ui.patterns",
         "Patterns",

@@ -261,15 +261,16 @@ fn properties_tab(app: &CraftApp, ui: &mut Ui, t: &Tokens, st: &InspectorState, 
         if d.get("element").is_some_and(|e| !e.is_null()) {
             section(ui, "identity", "Identity", false, |ui| identity(app, ui, t, d, expert, runs));
         }
+        // A symbol's parameters are what an engineer edits most, so they come first.
+        if let Some(sym) = &extra.symbol {
+            section(ui, "symbol", "Symbol", false, |ui| symbol_section(ui, t, d, sym, runs));
+        }
         section(ui, "properties", "Properties", false, |ui| properties(app, ui, t, d, ids, rows, expert, runs));
         if d["element"].is_object() {
             let rels = d["relationships"].as_array().map(Vec::as_slice).unwrap_or_default();
             section(ui, "relationships", format!("Relationships ({})", rels.len()), false, |ui| relationships(app, ui, t, rels, expert, runs));
             let views = d["views"].as_array().map(Vec::as_slice).unwrap_or_default();
             section(ui, "views", "Views", false, |ui| views_section(app, ui, t, views, runs));
-        }
-        if let Some(sym) = &extra.symbol {
-            section(ui, "symbol", "Symbol", false, |ui| symbol_section(ui, t, d, sym, runs));
         }
         if d["shape"].is_object() {
             section(ui, "shape", "Shape", false, |ui| shape_section(app, ui, t, &d["shape"], expert, runs));
@@ -871,7 +872,11 @@ fn sheet_section(app: &CraftApp, ui: &mut Ui, t: &Tokens, ids: &[String]) {
             ui.label(format!("{} of {}", vizcraft_diagram::sheet::sheet_number(doc, i), vizcraft_diagram::sheet::sheet_count(doc)));
         });
         field(ui, t, "Title block", |ui| {
-            ui.label(sh.title_block.name());
+            ui.label(match sh.title_block {
+                vizcraft_diagram::sheet::TitleBlockKind::Iso7200 => "ISO 7200",
+                vizcraft_diagram::sheet::TitleBlockKind::Asme => "ASME Y14.1",
+                vizcraft_diagram::sheet::TitleBlockKind::None => "None",
+            });
         });
         if let Some(s) = ids.first().and_then(|id| page.shape(id)) {
             let c = vizcraft_diagram::geom::Point::new(s.x + s.w / 2.0, s.y + s.h / 2.0);
