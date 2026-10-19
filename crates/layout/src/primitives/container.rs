@@ -77,8 +77,12 @@ pub(super) fn nested(graph: &Graph, containers: &[Nest], opt: &Options) -> Resul
             b = up(b).unwrap_or(b);
             guard += 1;
         }
-        if a != b && up(a) == up(b) {
-            lifted.push((parent.get(a).copied().flatten(), a, b));
+        // A two-way pair (a flow there and one back) is one relationship to the layout: the first
+        // direction lifted sets the order, so the pair cannot tie the cycle breaker and put both
+        // partners on one side.
+        let scope = parent.get(a).copied().flatten();
+        if a != b && up(a) == up(b) && !lifted.iter().any(|&(s, x, y)| s == scope && (x, y) == (b, a)) {
+            lifted.push((scope, a, b));
         }
     }
 

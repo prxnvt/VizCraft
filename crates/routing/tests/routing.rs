@@ -3,7 +3,8 @@
 use std::time::{Duration, Instant};
 
 use vizcraft_routing::{
-    End, JumpOrder, Obstacle, Options, Point, Rect, Request, Route, Side, clear_of_obstacles, jumps, route_all, route_orthogonal,
+    End, JumpOrder, Obstacle, Options, Point, Rect, Request, Route, Side, clear_of_obstacles, jumps, nudge_routes, route_all, route_all_around,
+    route_orthogonal,
 };
 
 fn p(x: f64, y: f64) -> Point {
@@ -260,6 +261,43 @@ fn crossing_penalty_is_accepted() {
 }
 
 #[test]
+fn an_overlap_penalty_keeps_a_route_off_an_earlier_run() {
+    // Two connectors from just above each other on a box's right side to one point on another
+    // box's left side: the second may join the first's line early or late at the same cost, and
+    // the penalty makes it late (only the last stub is shared).
+    let obstacles = [Obstacle::new(0.0, 0.0, 100.0, 100.0), Obstacle::new(300.0, 0.0, 400.0, 100.0)];
+    let end = |x: f64, y: f64, side: Side, k: usize| End::at(p(x, y)).with_side(side).glued_to(k);
+    let reqs = [
+        Request::new(end(100.0, 50.0, Side::Right, 0), end(300.0, 50.0, Side::Left, 1)),
+        Request::new(end(100.0, 40.0, Side::Right, 0), end(300.0, 50.0, Side::Left, 1)),
+    ];
+    let shares = |r: &Route| r.points.windows(2).any(|w| w[0].y == 50.0 && w[1].y == 50.0 && w[0].x.min(w[1].x) < 280.0);
+    let opts = Options { segment_spacing: 0.0, overlap_penalty: Some(2.0), ..Options::default() };
+    let apart = route_all(&obstacles, &reqs, &opts);
+    assert!(!shares(&apart[1]), "{:?}", apart[1].points);
+    // A line drawn elsewhere counts as an earlier run too.
+    let one = route_all_around(&obstacles, &reqs[1..], &opts, &[apart[0].points.clone()]);
+    assert!(!shares(&one[0]), "{:?}", one[0].points);
+}
+
+#[test]
+fn labels_spread_parallel_runs_further_apart() {
+    // Two parallel runs on one line, each with a label on it: nudging parts them by more than the
+    // label's height, not just the run spacing.
+    let reqs = [
+        Request::new(End::at(p(0.0, 0.0)), End::at(p(300.0, 200.0))).labelled(60.0, 18.0),
+        Request::new(End::at(p(0.0, 10.0)), End::at(p(300.0, 210.0))).labelled(60.0, 18.0),
+    ];
+    let mut routes = vec![
+        Route { points: vec![p(0.0, 0.0), p(150.0, 0.0), p(150.0, 200.0), p(300.0, 200.0)], ..Route::default() },
+        Route { points: vec![p(0.0, 10.0), p(150.0, 10.0), p(150.0, 210.0), p(300.0, 210.0)], ..Route::default() },
+    ];
+    nudge_routes(&[], &reqs, &mut routes, &Options::default());
+    let xs: Vec<f64> = routes.iter().map(|r| r.points[1].x).collect();
+    assert!((xs[0] - xs[1]).abs() >= 60.0, "{xs:?}");
+}
+
+#[test]
 fn jumps_for_crossing_l_shapes() {
     let polys = vec![vec![p(0.0, 0.0), p(100.0, 0.0), p(100.0, 100.0)], vec![p(50.0, -50.0), p(50.0, 50.0), p(150.0, 50.0)]];
     let later = jumps(&polys, JumpOrder::LaterOverEarlier);
@@ -411,7 +449,8 @@ fn hostile_inputs_never_panic() {
             assert!(r.points.iter().all(Point::is_finite));
             let _ = route_all(&obstacles, &[req.clone(), req.clone()], &opts);
         }
-        let weird = Options { margin: v, bend_penalty: v, crossing_penalty: Some(v), segment_spacing: v, max_grid: usize::MAX };
+        let weird =
+            Options { margin: v, bend_penalty: v, crossing_penalty: Some(v), overlap_penalty: Some(v), segment_spacing: v, max_grid: usize::MAX };
         let req = Request::new(End::at(p(-20.0, 5.0)), End::at(p(50.0, 5.0)));
         let _ = route_all(&obstacles, &[req.clone(), req.clone()], &weird);
         let _ = jumps(&[vec![p(v, 0.0), p(0.0, v)], vec![p(0.0, 0.0), p(v, v)]], JumpOrder::LaterOverEarlier);

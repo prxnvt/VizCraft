@@ -60,7 +60,19 @@ fn resolve(page: &Page, e: &End, toward: Point, slide: bool) -> EndPoint {
                 return EndPoint { pos: Point::ZERO, dir: None, shape: None, point: None };
             };
             let fixed = e.resolve_port(s).filter(|i| s.connection_point_world(*i).is_some());
-            let chosen = fixed.or_else(|| nearest_point(&s.connection_points_world(), toward));
+            // A routed end slid along a side belongs to the connection point of that side, even
+            // where another side's point is nearer (a long bar's end, say).
+            let on_side = || {
+                (0..s.connection_points().len()).find(|&i| {
+                    let (Some(p), Some(d)) = (s.connection_point_world(i), axis(s.connection_direction(i))) else { return false };
+                    let off = toward - p;
+                    off.is_finite() && off.length() > 1e-6 && off.length() <= crate::autoroute::slide_limit(s, d) + 1e-6 && off.dot(d).abs() <= 1e-6
+                })
+            };
+            let exact = nearest_point(&s.connection_points_world(), toward)
+                .filter(|&i| s.connection_point_world(i).is_some_and(|p| p.distance(toward) < 1e-6));
+            let chosen =
+                fixed.or(exact).or_else(|| if slide { on_side() } else { None }).or_else(|| nearest_point(&s.connection_points_world(), toward));
             match chosen.and_then(|i| Some((i, s.connection_point_world(i)?))) {
                 Some((i, pos)) => {
                     let dir = s.connection_direction(i);
@@ -69,7 +81,7 @@ fn resolve(page: &Page, e: &End, toward: Point, slide: bool) -> EndPoint {
                         .flatten()
                         .filter(|d| {
                             let off = toward - pos;
-                            off.is_finite() && off.length() <= crate::autoroute::FAN_MAX + 1e-6 && off.dot(*d).abs() <= 1e-6
+                            off.is_finite() && off.length() <= crate::autoroute::slide_limit(s, *d) + 1e-6 && off.dot(*d).abs() <= 1e-6
                         })
                         .map(|_| toward);
                     EndPoint { pos: slid.unwrap_or(pos), dir, shape: Some(s.id.clone()), point: Some(i) }
@@ -115,8 +127,8 @@ fn router_end(page: &Page, e: &End, w: Point) -> bool {
                 let off = w - p;
                 off.length() < 1e-6
                     || (point.is_none()
-                        && off.length() <= crate::autoroute::FAN_MAX + 1e-6
-                        && axis(s.connection_direction(i)).is_some_and(|d| off.dot(d).abs() <= 1e-6))
+                        && axis(s.connection_direction(i))
+                            .is_some_and(|d| off.length() <= crate::autoroute::slide_limit(s, d) + 1e-6 && off.dot(d).abs() <= 1e-6))
             })
         }
     }
@@ -261,7 +273,27 @@ fn rounded(c: &Connector, pts: &[Point], lazy: &LazyField) -> Path {
     let ctx = field.context(c);
     let ignore = field.rounding_ignore(&ctx, pts);
     let rpts: Vec<vizcraft_routing::Point> = pts.iter().map(|p| vizcraft_routing::Point::new(p.x, p.y)).collect();
-    let bends = vizcraft_routing::round_bends(&rpts, &field.obstacles, &ignore, crate::autoroute::ARC_CLEARANCE);
+    // Arcs keep the page's clearance from other shapes, and only the drawing tolerance from the
+    // connector's own end shapes, which its first and last bends sit one stub away from.
+    let own: Vec<usize> = [ctx.start_own, ctx.end_own].into_iter().flatten().collect();
+    let mut others = ignore.clone();
+    others.extend(own.iter().copied());
+    let clear = lazy.clearance().max(crate::autoroute::ARC_CLEARANCE);
+    let wide = vizcraft_routing::round_bends(&rpts, &field.obstacles, &others, clear);
+    let not_own: Vec<usize> = (0..field.obstacles.len()).filter(|k| !own.contains(k) || ignore.contains(k)).collect();
+    let near = vizcraft_routing::round_bends(&rpts, &field.obstacles, &not_own, crate::autoroute::ARC_CLEARANCE);
+    let reach = |b: &vizcraft_routing::Bend, i: usize| {
+        rpts.get(i + 1).map_or(f64::INFINITY, |p| ((b.from.x - p.x).powi(2) + (b.from.y - p.y).powi(2)).sqrt())
+    };
+    let bends: Vec<Option<vizcraft_routing::Bend>> = wide
+        .iter()
+        .zip(&near)
+        .enumerate()
+        .map(|(i, (a, b))| match (a, b) {
+            (Some(a), Some(b)) => Some(if reach(a, i) <= reach(b, i) { *a } else { *b }),
+            _ => None,
+        })
+        .collect();
     let q = |p: vizcraft_routing::Point| Point::new(p.x, p.y);
     let mut path = Path::new();
     let Some(&first) = pts.first() else { return path };

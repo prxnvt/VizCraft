@@ -57,6 +57,7 @@ pub mod net;
 pub mod page_fields;
 pub mod print_fields;
 pub mod route;
+pub mod route_quality;
 pub mod routing_policy;
 pub mod sequence;
 mod serde_util;

@@ -139,6 +139,11 @@ pub struct End {
     /// side apart; zero (the default) keeps the end where the route put it. The slide never takes
     /// the end past the glued obstacle's side.
     pub spread: f64,
+    /// How far the end may slide along each side (left, right, top, bottom), for a shape whose
+    /// sides allow different slides (a long bar, an outline straight on some sides only); `None`
+    /// uses [`End::spread`] on every side. The side is the one the route leaves (or enters)
+    /// through.
+    pub side_spread: Option<[f64; 4]>,
     /// The length of the segment that leaves (or enters) the shape, for an end whose arrowhead
     /// needs more room than [`Options::margin`] gives; `None` uses the margin. A value below the
     /// margin is raised to it, so the search still starts outside the expanded obstacles.
@@ -177,6 +182,30 @@ impl End {
         self.spread = by;
         self
     }
+
+    /// Returns this end allowed to slide a different amount along each side (left, right, top,
+    /// bottom).
+    pub fn with_side_spread(mut self, by: [f64; 4]) -> Self {
+        self.side_spread = Some(by);
+        self
+    }
+
+    /// How far the end may slide along `side` (see [`End::side_spread`]).
+    pub fn spread_on(&self, side: Option<Side>) -> f64 {
+        match (self.side_spread, side) {
+            (Some(by), Some(side)) => {
+                let i = match side {
+                    Side::Left => 0,
+                    Side::Right => 1,
+                    Side::Top => 2,
+                    Side::Bottom => 3,
+                };
+                by.get(i).copied().unwrap_or(0.0)
+            }
+            (Some(_), None) => 0.0,
+            (None, _) => self.spread,
+        }
+    }
 }
 
 /// A connector to route, from `start` to `end`.
@@ -190,17 +219,27 @@ pub struct Request {
     /// Indices of obstacles this connector may pass through, such as a container that encloses
     /// one of its ends. Out-of-range indices are ignored.
     pub ignore: Vec<usize>,
+    /// Width and height of the label drawn at the middle of the route (half its length along
+    /// it), if any. Nudging keeps the parallel neighbours of the segment holding it far enough
+    /// apart that the label does not lie on them, nor on a label of theirs.
+    pub label: Option<(f64, f64)>,
 }
 
 impl Request {
     /// Creates a request between two ends.
     pub fn new(start: End, end: End) -> Self {
-        Self { start, end, ignore: Vec::new() }
+        Self { start, end, ignore: Vec::new(), label: None }
     }
 
     /// Returns this request allowed to pass through the obstacles in `ignore`.
     pub fn ignoring(mut self, ignore: Vec<usize>) -> Self {
         self.ignore = ignore;
+        self
+    }
+
+    /// Returns this request with a label of `width` by `height` at the middle of its route.
+    pub fn labelled(mut self, width: f64, height: f64) -> Self {
+        self.label = Some((width, height));
         self
     }
 }
@@ -216,6 +255,11 @@ pub struct Options {
     /// Extra cost per crossing with a connector routed earlier by [`route_all`]; `None` ignores
     /// crossings while searching.
     pub crossing_penalty: Option<f64>,
+    /// Extra cost per unit of length a route runs on top of a connector routed earlier by
+    /// [`route_all`] (on the same line, overlapping); `None` lets routes share runs, leaving
+    /// them to nudging.
+    #[serde(default)]
+    pub overlap_penalty: Option<f64>,
     /// Distance between parallel segments that [`route_all`] pushes apart.
     pub segment_spacing: f64,
     /// Largest number of grid points one search may use; bigger problems fall back.
@@ -224,7 +268,7 @@ pub struct Options {
 
 impl Default for Options {
     fn default() -> Self {
-        Self { margin: 10.0, bend_penalty: 20.0, crossing_penalty: None, segment_spacing: 6.0, max_grid: 200_000 }
+        Self { margin: 10.0, bend_penalty: 20.0, crossing_penalty: None, overlap_penalty: None, segment_spacing: 6.0, max_grid: 200_000 }
     }
 }
 
@@ -288,13 +332,28 @@ pub fn route_orthogonal(obstacles: &[Obstacle], request: &Request, options: &Opt
 /// before it where that is cheap. Afterwards segments of different connectors that lie on the
 /// same line and overlap are spread `segment_spacing` apart (see [`nudge_routes`]).
 pub fn route_all(obstacles: &[Obstacle], requests: &[Request], options: &Options) -> Vec<Route> {
+    route_all_around(obstacles, requests, options, &[])
+}
+
+/// [`route_all`] with `fixed` lines already drawn (connectors routed elsewhere, kept as they
+/// are): with `crossing_penalty` or `overlap_penalty` set, the routes avoid crossing or running
+/// on them as they avoid each other. Non-finite points in `fixed` are skipped.
+pub fn route_all_around(obstacles: &[Obstacle], requests: &[Request], options: &Options, fixed: &[Vec<Point>]) -> Vec<Route> {
     let opts = geom::Opts::from(options);
     let obs = geom::prepare(obstacles);
     let mut routed: Vec<route::Routed> = Vec::with_capacity(requests.len());
     let mut existing: Vec<(Point, Point)> = Vec::new();
+    if opts.crossing > 0.0 || opts.overlap > 0.0 {
+        for line in fixed {
+            existing.extend(line.windows(2).filter_map(|w| match w {
+                [a, b] if geom::point_ok(*a) && geom::point_ok(*b) => Some((*a, *b)),
+                _ => None,
+            }));
+        }
+    }
     for req in requests {
         let r = route::route_one(&obs, req, &opts, &existing);
-        if opts.crossing > 0.0 && !r.route.fallback {
+        if (opts.crossing > 0.0 || opts.overlap > 0.0) && !r.route.fallback {
             existing.extend(r.route.points.windows(2).filter_map(|w| match w {
                 [a, b] => Some((*a, *b)),
                 _ => None,

@@ -399,7 +399,11 @@ mod tests {
         let n = s.doc.page().unwrap().connectors.len();
         let r = s.run("design.setConnectorStyle", &json!({"style": "curved"})).unwrap();
         assert_eq!(r["ids"].as_array().unwrap().len(), n);
-        assert!(s.doc.page().unwrap().connectors.iter().all(|c| c.route == Route::Curved && c.waypoints.is_empty()));
+        // Old bends are dropped; a curve the page routes may store a fresh route around shapes.
+        let page = s.doc.page().unwrap();
+        assert!(page.connectors.iter().all(|c| c.route == Route::Curved));
+        assert!(page.connectors.iter().all(|c| c.waypoints.is_empty() || vizcraft_diagram::route::stored_route(page, c)));
+        assert!(vizcraft_diagram::autoroute::crossings(page).is_empty());
         s.run("connector.reroute", &json!({"avoid": true})).unwrap();
         s.run("design.setConnectorStyle", &json!({"style": "straight", "page": 0})).unwrap();
         assert!(s.doc.page().unwrap().connectors.iter().all(|c| c.route == Route::Straight && !c.avoid));

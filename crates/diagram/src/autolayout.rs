@@ -168,6 +168,7 @@ pub fn layout_items_ordered(
         return Ok(Vec::new());
     }
     let (graph, _) = page_graph(page, &units, order);
+    let opts = &with_label_room(page, &units, opts);
     let origin = if ids.is_some() { units.iter().map(|u| corner(&u.bounds)).reduce(|p, q| Point::new(p.x.min(q.x), p.y.min(q.y))) } else { None }
         .unwrap_or(Point::new(PAGE_MARGIN, PAGE_MARGIN));
     let out = vizcraft_layout::layout(&graph, opts).map_err(|e| e.to_string())?;
@@ -179,7 +180,83 @@ pub fn layout_items_ordered(
         }
     }
     apply_moves(page, delta);
+    if opts.algorithm == Algorithm::Layered {
+        let bars: Vec<String> = units.iter().filter(|u| u.ids.len() == 1).flat_map(|u| u.ids.iter().cloned()).collect();
+        widen_bars(page, &bars);
+    }
     Ok(out.notes)
+}
+
+/// Widen each bar among `ids` (a fork or join: a shape much longer than deep, see
+/// [`crate::autoroute`]) that joins two or more shapes on one of its long sides, so every shape it
+/// joins lies across from the stretch of the bar a connector may meet: the flows then run
+/// straight into the bar instead of jogging to its middle. The bar keeps its depth and is centred
+/// on the shapes it joins; a bar that would cover another shape, or is turned, stays as it is.
+fn widen_bars(page: &mut Page, ids: &[String]) {
+    let clear = crate::routing_policy::clearance(page);
+    for id in ids {
+        let Some(bar) = page.shape(id) else { continue };
+        let Some(horizontal) = crate::autoroute::bar_axis(bar) else { continue };
+        if bar.angle_deg != 0.0 || bar.locks.position || bar.locks.width || bar.locks.height {
+            continue;
+        }
+        let b = bar.bounds();
+        let along = |p: Point| if horizontal { p.x } else { p.y };
+        let across = |p: Point| if horizontal { p.y } else { p.x };
+        let mid_across = across(b.center());
+        let mut sides: [Vec<f64>; 2] = [Vec::new(), Vec::new()];
+        for c in &page.connectors {
+            let other = match (c.start.shape(), c.end.shape()) {
+                (Some(a), Some(o)) if a == id && o != id => o,
+                (Some(o), Some(a)) if a == id && o != id => o,
+                _ => continue,
+            };
+            let Some(o) = page.shape(other) else { continue };
+            let oc = o.bounds().center();
+            if !oc.is_finite() {
+                continue;
+            }
+            let slot = usize::from(across(oc) > mid_across);
+            if let Some(v) = sides.get_mut(slot) {
+                v.push(along(oc));
+            }
+        }
+        let spans: Vec<(f64, f64)> = sides
+            .iter()
+            .filter(|v| v.len() >= 2)
+            .map(|v| (v.iter().copied().fold(f64::INFINITY, f64::min), v.iter().copied().fold(f64::NEG_INFINITY, f64::max)))
+            .collect();
+        let Some((lo, hi)) = spans.into_iter().reduce(|x, y| (x.0.min(y.0), x.1.max(y.1))) else { continue };
+        let len = if horizontal { b.width() } else { b.height() };
+        let need = ((hi - lo) / 2.0 + clear) / crate::autoroute::BAR_SHARE;
+        if !(need.is_finite() && need > len && need < MAX_EXTENT) {
+            continue;
+        }
+        let centre = (lo + hi) / 2.0;
+        let grown = if horizontal {
+            Rect::new(centre - need / 2.0, b.y0, centre + need / 2.0, b.y1)
+        } else {
+            Rect::new(b.x0, centre - need / 2.0, b.x1, centre + need / 2.0)
+        };
+        let blocked = page.shapes.iter().any(|o| {
+            o.id != *id && !arrange::is_group(o) && !container::is_container(o) && layer::visible(page, o) && {
+                let ob = o.bounds();
+                let g = grown.inflate(clear);
+                ob.x0 < g.x1 && g.x0 < ob.x1 && ob.y0 < g.y1 && g.y0 < ob.y1
+            }
+        });
+        if blocked {
+            continue;
+        }
+        if let Some(s) = page.shape_mut(id) {
+            if horizontal {
+                (s.x, s.w) = (grown.x0, grown.width());
+            } else {
+                (s.y, s.h) = (grown.y0, grown.height());
+            }
+            s.sanitize();
+        }
+    }
 }
 
 /// What [`layout_primitive`] did: the units it moved (their head shapes), the layout's notes and
@@ -238,6 +315,7 @@ pub fn layout_primitive(page: &mut Page, ids: Option<&[String]>, primitive: Prim
         None => Err(format!("{id} is not a shape on this page")),
         Some(_) => unit_of.get(id.as_str()).copied().ok_or_else(|| format!("{id} cannot be laid out (a callout follows its target)")),
     })?;
+    let opts = &with_label_room(page, &units, opts);
     let out = vizcraft_layout::layout_primitive(&graph, &roles, opts).map_err(|e| name_nodes(&e.to_string(), &units))?;
     let origin = if ids.is_some() { units.iter().map(|u| corner(&u.bounds)).reduce(|p, q| Point::new(p.x.min(q.x), p.y.min(q.y))) } else { None }
         .unwrap_or(Point::new(PAGE_MARGIN, PAGE_MARGIN));
@@ -265,6 +343,34 @@ pub fn layout_primitive(page: &mut Page, ids: Option<&[String]>, primitive: Prim
         grow_page(page);
     }
     Ok(PrimitiveOutcome { ids: heads, notes: out.notes, bounds: arrange::bounds_of(page, &moved) })
+}
+
+/// Room each arrow end takes beside a label between two layers: a head and a little line.
+const END_ROOM: f64 = 16.0;
+
+/// `opts` with the gap between layers raised, where needed, to hold the longest middle label of a
+/// connector between two of the `units` along the flow, its arrow ends and the page's clearance
+/// on both sides: so a label sits between the shapes it joins, not on them. A larger spacing the
+/// caller asked for is kept.
+fn with_label_room(page: &Page, units: &[Unit], opts: &Options) -> Options {
+    let unit_of: HashMap<&str, usize> = units.iter().enumerate().flat_map(|(i, u)| u.ids.iter().map(move |id| (id.as_str(), i))).collect();
+    let along = |(w, h): (f64, f64)| if opts.direction.is_horizontal() { w } else { h };
+    let longest = page
+        .connectors
+        .iter()
+        .filter(|c| {
+            let at = |e: &End| e.shape().and_then(|s| unit_of.get(s)).copied();
+            matches!((at(&c.start), at(&c.end)), (Some(a), Some(b)) if a != b)
+        })
+        .filter_map(crate::route_quality::label_size)
+        .map(along)
+        .filter(|v| v.is_finite())
+        .fold(0.0, f64::max);
+    if longest <= 0.0 {
+        return *opts;
+    }
+    let need = (longest + 2.0 * (END_ROOM + crate::routing_policy::clearance(page))).min(MAX_EXTENT);
+    Options { layer_spacing: opts.layer_spacing.max(need), ..*opts }
 }
 
 /// The units of `named` for a primitive, refusing one that holds a shape that must not move.
@@ -766,6 +872,37 @@ mod tests {
             page.connectors.push(Connector::new(format!("{a}{b}"), End::dynamic(a), End::dynamic(b)));
         }
         page
+    }
+
+    #[test]
+    fn a_fork_and_its_join_span_the_actions_between_them() {
+        // An activity: receive, fork into pack and bill, join, ship. The bars grow so each
+        // action stands over or under the stretch of bar a flow may meet straight.
+        let mut page = Page::new("p", "p");
+        for (id, w, h) in
+            [("receive", 150.0, 60.0), ("fork", 90.0, 8.0), ("pack", 150.0, 60.0), ("bill", 150.0, 60.0), ("join", 90.0, 8.0), ("ship", 150.0, 60.0)]
+        {
+            page.shapes.push(Shape::new(id, ShapeKind::Rectangle, 0.0, 0.0, w, h));
+        }
+        for (a, b) in [("receive", "fork"), ("fork", "pack"), ("fork", "bill"), ("pack", "join"), ("bill", "join"), ("join", "ship")] {
+            page.connectors.push(Connector::new(format!("{a}-{b}"), End::dynamic(a), End::dynamic(b)));
+        }
+        layout_items(&mut page, None, &Options::default()).unwrap();
+        no_overlaps(&page);
+        let b = |id: &str| page.shape(id).unwrap().bounds();
+        for bar in ["fork", "join"] {
+            let reach = b(bar).width() * crate::autoroute::BAR_SHARE;
+            assert!(b(bar).height() == 8.0, "{bar} keeps its depth");
+            for action in ["pack", "bill"] {
+                let off = (b(action).center().x - b(bar).center().x).abs();
+                assert!(off + crate::autoroute::MARGIN <= reach + 1e-6, "{action} is {off} off the middle of {bar}, which reaches {reach}");
+            }
+        }
+        // A plain box with one shape on each side is left alone.
+        let mut page = tree_page();
+        let before: Vec<(f64, f64)> = page.shapes.iter().map(|s| (s.w, s.h)).collect();
+        layout_items(&mut page, None, &Options::default()).unwrap();
+        assert_eq!(page.shapes.iter().map(|s| (s.w, s.h)).collect::<Vec<_>>(), before);
     }
 
     #[test]

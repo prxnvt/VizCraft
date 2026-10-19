@@ -129,8 +129,11 @@ fn default_direction(primitive: &str) -> Direction {
 
 /// The default roles of the er primitive: none, after every satellite on the page (a shape
 /// marked `vizcraft.satelliteOf`, whose parent is its entity, so it moves with it) is put back on
-/// the ring around its entity that the er primitive draws.
-fn ring_satellites(page: &mut vizcraft_diagram::Page) {
+/// the ring around its entity that the er primitive draws, kept off the sides the entity's
+/// relationships use. Before the layout (`placed` false) those are the sides toward the layers
+/// before and after it in `direction` (a relationship's start comes first); after it, the sides
+/// facing each related entity.
+fn ring_satellites(page: &mut vizcraft_diagram::Page, direction: Direction, placed: bool) {
     let key = vizcraft_notation::satellites::EXT_SATELLITE_OF;
     let mut by_owner: Vec<(String, Vec<String>)> = Vec::new();
     for s in page.shapes.iter().filter(|s| s.parent.is_some()) {
@@ -140,15 +143,56 @@ fn ring_satellites(page: &mut vizcraft_diagram::Page) {
             None => by_owner.push((owner.clone(), vec![s.id.clone()])),
         }
     }
+    // Sides are (top, right, bottom, left).
+    let (before, after) = match direction {
+        Direction::TopBottom => (0, 2),
+        Direction::BottomTop => (2, 0),
+        Direction::LeftRight => (3, 1),
+        Direction::RightLeft => (1, 3),
+    };
+    let entity = |id: &str| page.shape(id).filter(|s| !s.ext.contains_key(key));
+    let mut blocked: std::collections::HashMap<String, [bool; 4]> = std::collections::HashMap::new();
+    for c in &page.connectors {
+        let (Some(a), Some(b)) = (c.start.shape().and_then(entity), c.end.shape().and_then(entity)) else { continue };
+        if a.id == b.id {
+            continue;
+        }
+        let (sa, sb) = if placed {
+            let (ca, cb) = (a.bounds().center(), b.bounds().center());
+            let (dx, dy) = (cb.x - ca.x, cb.y - ca.y);
+            let side = if dx.abs() >= dy.abs() {
+                if dx >= 0.0 { 1 } else { 3 }
+            } else if dy >= 0.0 {
+                2
+            } else {
+                0
+            };
+            (side, (side + 2) % 4)
+        } else {
+            (after, before)
+        };
+        for (id, side) in [(a.id.clone(), sa), (b.id.clone(), sb)] {
+            if let Some(slot) = blocked.entry(id).or_default().get_mut(side) {
+                *slot = true;
+            }
+        }
+    }
     for (owner, members) in by_owner {
         let Some(o) = page.shape(&owner).map(|o| (o.x, o.y, o.w, o.h)) else { continue };
         let sizes: Vec<(f64, f64)> = members.iter().filter_map(|m| page.shape(m)).map(|m| (m.w, m.h)).collect();
-        let (offsets, _) = vizcraft_layout::er_ring((o.2, o.3), &sizes);
+        let sides = blocked.get(&owner).copied().unwrap_or_default();
+        let (offsets, _) = vizcraft_layout::er_ring_around((o.2, o.3), &sizes, sides);
         for (m, p) in members.iter().zip(offsets) {
             if let Some(s) = page.shape_mut(m) {
                 s.x = o.0 + p.x;
                 s.y = o.1 + p.y;
                 s.sanitize();
+            }
+        }
+        // A satellite moved round its entity: the bends of its lines belonged to the old place.
+        for c in page.connectors.iter_mut() {
+            if [c.start.shape(), c.end.shape()].into_iter().flatten().any(|id| members.iter().any(|m| m == id)) {
+                c.waypoints.clear();
             }
         }
     }
@@ -192,11 +236,15 @@ fn primitive(s: &mut Session, v: &Value) -> CmdResult {
         (selected.len() >= 2).then_some(selected)
     };
     let page = page_mut(s)?;
-    if matches!(&parsed, Primitive::Er { satellites } if satellites.is_empty()) {
-        ring_satellites(page);
+    let ring = matches!(&parsed, Primitive::Er { satellites } if satellites.is_empty());
+    if ring {
+        ring_satellites(page, opts.direction, false);
     }
     let ids = without_keys(page, ids);
     let out = autolayout::layout_primitive(page, ids.as_deref(), parsed, &opts).map_err(EngineError::Failed)?;
+    if ring {
+        ring_satellites(page, opts.direction, true);
+    }
     let bounds = out.bounds.map(|b| json!({"x": b.x0, "y": b.y0, "width": b.width(), "height": b.height()}));
     with_sel(s, json!({"ids": out.ids, "notes": out.notes, "bounds": bounds}))
 }

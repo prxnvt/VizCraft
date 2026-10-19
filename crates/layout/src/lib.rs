@@ -32,7 +32,7 @@ mod primitives;
 pub mod sequence;
 mod tree;
 
-pub use primitives::er::{MIN_GAP as ER_MIN_GAP, ring as er_ring};
+pub use primitives::er::{MIN_GAP as ER_MIN_GAP, ring as er_ring, ring_around as er_ring_around};
 pub use primitives::{Nest, Parallel, Primitive, Satellite, layout_primitive};
 
 use serde::{Deserialize, Serialize};
