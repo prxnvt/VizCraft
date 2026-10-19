@@ -216,3 +216,122 @@ fn f2_edits_the_selection_and_a_multiple_selection_gets_a_status_hint() {
     key(&mut h, Key::Tab);
     assert_eq!(h.state().status_msg.as_ref().map(|s| s.0.as_str()), Some("Select one shape to continue from"));
 }
+
+/// Ids of the shapes bound to elements of `type_id`, in page order.
+fn shapes_of(h: &Harness<'_, CraftApp>, type_id: &str) -> Vec<String> {
+    let app = h.state();
+    let doc = &app.session.doc;
+    doc.page()
+        .unwrap()
+        .shapes
+        .iter()
+        .filter(|s| s.element.as_deref().and_then(|e| doc.model.element(e)).is_some_and(|e| e.type_id == type_id))
+        .map(|s| s.id.clone())
+        .collect()
+}
+
+fn picker_rows(h: &mut Harness<'_, CraftApp>, query: &str) -> Vec<Value> {
+    let r = h.state_mut().run("ui.insertPicker", json!({"query": query})).unwrap();
+    h.run_steps(2);
+    r["rows"].as_array().unwrap().clone()
+}
+
+#[test]
+fn slash_opens_the_picker_without_a_slash_in_the_query() {
+    let mut h = from_template("flowchart.decision");
+    first_shape(&mut h);
+    h.event(Event::Key { key: Key::Slash, physical_key: None, pressed: true, repeat: false, modifiers: Modifiers::NONE });
+    h.event(Event::Text("/".into()));
+    h.event(Event::Key { key: Key::Slash, physical_key: None, pressed: false, repeat: false, modifiers: Modifiers::NONE });
+    h.run_steps(3);
+    let pk = h.state().insertion.picker.clone().expect("/ opens the picker");
+    assert_eq!(pk.query, "", "the slash that opened it is not typed into it");
+    // While open, / is typed into the query.
+    type_text(&mut h, "a/b");
+    assert_eq!(h.state().insertion.picker.as_ref().unwrap().query, "a/b");
+}
+
+#[test]
+fn the_picker_leads_with_next_steps_for_one_class_and_connect_rows_for_two() {
+    let mut h = from_template("uml.classDiagram");
+    let classes = shapes_of(&h, "uml.Class");
+    assert!(classes.len() >= 2, "the template draws classes: {classes:?}");
+    select(&mut h, &[&classes[0]]);
+    let rows = picker_rows(&mut h, "");
+    assert_eq!(rows[0]["kind"], "next", "{rows:?}");
+    assert!(rows[0]["group"].as_str().unwrap().starts_with("From "), "{rows:?}");
+    assert!(rows.iter().any(|r| r["kind"] == "shape"), "{rows:?}");
+    key(&mut h, Key::Escape);
+    let rows = picker_rows(&mut h, "pattern");
+    assert!(rows.iter().any(|r| r["kind"] == "pattern" && r["group"] == "Pattern"), "{rows:?}");
+    key(&mut h, Key::Escape);
+    select(&mut h, &[&classes[0], &classes[1]]);
+    let rows = picker_rows(&mut h, "");
+    let connects: Vec<&Value> = rows.iter().filter(|r| r["kind"] == "connect").collect();
+    assert!(!connects.is_empty(), "{rows:?}");
+    assert!(rows.iter().position(|r| r["kind"] == "connect") < rows.iter().position(|r| r["kind"] == "shape"));
+    // Enter on the first Connect row draws that relationship.
+    let before = h.state().session.doc.model.relationships.len();
+    key(&mut h, Key::Enter);
+    assert_eq!(h.state().session.doc.model.relationships.len(), before + 1);
+}
+
+#[test]
+fn a_next_row_inserts_the_step_and_starts_naming_it() {
+    let mut h = from_template("uml.classDiagram");
+    let classes = shapes_of(&h, "uml.Class");
+    select(&mut h, &[&classes[0]]);
+    let rows = picker_rows(&mut h, "");
+    let first = rows[0]["label"].as_str().unwrap().to_string();
+    assert!(first.contains(" to "), "relationship rows read `<relationship> to <type>`: {first}");
+    let n = shape_count(&h);
+    key(&mut h, Key::Enter);
+    assert_eq!(shape_count(&h), n + 1);
+    assert!(h.state().canvas.editing.is_some(), "the new element is ready to be named");
+}
+
+#[test]
+fn a_pattern_row_inserts_a_pattern() {
+    let mut h = from_template("flowchart.decision");
+    let rows = picker_rows(&mut h, "");
+    let pattern = rows.iter().find(|r| r["kind"] == "pattern").expect("patterns are listed")["label"].as_str().unwrap().to_string();
+    key(&mut h, Key::Escape);
+    let n = shape_count(&h);
+    h.state_mut().run("ui.insertPicker", json!({"query": pattern})).unwrap();
+    h.run_steps(2);
+    key(&mut h, Key::Enter);
+    assert!(shape_count(&h) > n, "the pattern drew shapes");
+}
+
+fn drag(h: &mut Harness<'_, CraftApp>, from: Pos2, to: Pos2) {
+    h.event(Event::PointerMoved(from));
+    h.run_steps(1);
+    h.event(Event::PointerButton { pos: from, button: PointerButton::Primary, pressed: true, modifiers: Modifiers::NONE });
+    h.run_steps(1);
+    for i in 1..=8 {
+        h.event(Event::PointerMoved(from + (to - from) * (i as f32 / 8.0)));
+        h.run_steps(1);
+    }
+    h.event(Event::PointerButton { pos: to, button: PointerButton::Primary, pressed: false, modifiers: Modifiers::NONE });
+    h.run_steps(2);
+}
+
+#[test]
+fn a_connector_drawn_between_two_actions_is_a_control_flow() {
+    let mut h = from_template("uml.activity");
+    let a = run(&mut h, "element.create", json!({"type": "uml.Action", "name": "Pack", "x": 3000, "y": 3000}));
+    let b = run(&mut h, "element.create", json!({"type": "uml.Action", "name": "Ship", "x": 3400, "y": 3000}));
+    let (a, b) = (a["shape"].as_str().unwrap().to_string(), b["shape"].as_str().unwrap().to_string());
+    run(&mut h, "view.pan", json!({"x": 3300, "y": 3030}));
+    run(&mut h, "edit.selectNone", json!({}));
+    run(&mut h, "ui.tool", json!({"tool": "connector"}));
+    let n = h.state().session.doc.model.relationships.len();
+    let (pa, pb) = (centre(&h, &a), centre(&h, &b));
+    drag(&mut h, pa, pb);
+    let app = h.state();
+    assert_eq!(app.session.doc.model.relationships.len(), n + 1, "the drawn connector is a model relationship");
+    let c = app.session.doc.page().unwrap().connectors.last().unwrap();
+    let rel = app.session.doc.model.relationship(c.relationship.as_deref().expect("bound")).unwrap();
+    assert_eq!(rel.type_id, "uml.ControlFlow");
+    assert_eq!(app.session.undo_label(), Some("Add Connector"));
+}

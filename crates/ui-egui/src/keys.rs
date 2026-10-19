@@ -183,15 +183,18 @@ pub fn shortcuts(app: &mut CraftApp, ctx: &egui::Context) {
             continue;
         }
         ctx.input_mut(|i| i.consume_key(m, key));
-        // The `/` that opens the picker must not land in its query as typed text.
-        if key == Key::Slash {
-            ctx.input_mut(|i| i.events.retain(|e| !matches!(e, egui::Event::Text(t) if t == "/")));
-        }
         // Rule 4: a disabled command swallows its key and does nothing.
         if !menus::entry(app, id).enabled {
             continue;
         }
         menus::run_item(app, ctx, id, serde_json::json!({}));
+        // The `/` that opened the picker also arrives as typed text, in this frame or the next;
+        // it must not land in the query.
+        if key == Key::Slash
+            && let Some(pk) = app.insertion.picker.as_mut()
+        {
+            pk.skip_slash = 2;
+        }
     }
 }
 

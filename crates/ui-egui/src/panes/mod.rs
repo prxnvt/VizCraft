@@ -60,7 +60,7 @@ pub use inspector::{InspectorMode, InspectorState, InspectorTab, inspect_fields 
 pub use layout::{DEFAULT_HEIGHT, GAP, HEADER_H, MAX_HEIGHT, MAX_WIDTH, MIN_HEIGHT, MIN_WIDTH, PaneLayout, STRIP_W};
 pub use manager::show;
 pub use model_tree::{TreeState, inspect as tree_inspect};
-pub use patterns::{PatternsState, inspect as patterns_inspect};
+pub use patterns::{PatternsState, all as all_patterns, inspect as patterns_inspect};
 pub use shapes::MasterDrag;
 use shapes::{palette_command, shapes_search};
 

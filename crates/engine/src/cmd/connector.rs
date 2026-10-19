@@ -16,7 +16,7 @@ use crate::{CmdResult, CommandSpec, EngineError, Session, p};
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("connector.add", "Add Connector", "Insert > Connector", add).params(
-            r#"{"from": end, "to": end, "route"?: "straight"|"orthogonal"|"curved", "text"?: string, "startArrow"?: arrow, "endArrow"?: arrow, "kind"?: string (a connector kind id, see connector.kinds), "id"?: string} -> {"id"}; end = {"shape": id, "point"?: index, "port"?: "<compartment>.left"|"<compartment>.right"} or {"x": n, "y": n}"#,
+            r#"{"from": end, "to": end, "route"?: "straight"|"orthogonal"|"curved", "text"?: string, "startArrow"?: arrow, "endArrow"?: arrow, "kind"?: string (a connector kind id, see connector.kinds), "relationship"?: "auto"|relationship type, "id"?: string} -> {"id", "relationship"?}; end = {"shape": id, "point"?: index, "port"?: "<compartment>.left"|"<compartment>.right"} or {"x": n, "y": n}; relationship binds the connector to a new model relationship when both ends are glued to shapes of elements: a type, or auto for the first legal type of suggest.connect (an unbindable pair stays a plain connector); the connector then takes that type's look unless kind is given"#,
         ),
         CommandSpec::new("connector.glue", "Glue Connector", "Canvas", glue)
             .params(r#"{"id": string, "end": "start"|"end", "shape"?: id, "point"?: index, "x"?: n, "y"?: n}"#)
@@ -120,10 +120,57 @@ fn add(s: &mut Session, v: &Value) -> CmdResult {
     if let Some(t) = text {
         c.text = t.to_string();
     }
+    let relationship = match opt_str(v, "relationship")? {
+        Some(r) => bind_relationship(s, &mut c, r, kind.is_none())?,
+        None => None,
+    };
     c.sanitize();
     page_mut(s)?.connectors.push(c);
     select(s, vec![id.clone()]);
-    with_sel(s, json!({"id": id}))
+    let mut out = json!({"id": id});
+    if let (Some(r), Some(o)) = (relationship, out.as_object_mut()) {
+        o.insert("relationship".into(), json!(r));
+    }
+    with_sel(s, out)
+}
+
+/// Make `c` the view of a new model relationship when both its ends are glued to shapes that show
+/// elements. `rel` is a relationship type, or `auto` for the first legal choice of
+/// `suggest.connect`; with `look`, the connector is drawn as the type's connector kind. Returns the
+/// new relationship's id, or `None` when the pair cannot be bound (the connector stays plain).
+fn bind_relationship(s: &mut Session, c: &mut Connector, rel: &str, look: bool) -> Result<Option<String>, EngineError> {
+    let cat = super::model::cat();
+    if rel != "auto" && cat.relationship_type(rel).is_none() {
+        return Err(EngineError::Params(format!("unknown relationship type `{}`", short(rel))));
+    }
+    let (Some(a), Some(b)) = (c.start.shape(), c.end.shape()) else { return Ok(None) };
+    let page = s.doc.page().ok_or_else(|| EngineError::Failed("the document has no page".into()))?;
+    let element = |shape: &str| page.shape(shape).and_then(|sh| sh.element.clone()).filter(|e| s.doc.model.element(e).is_some());
+    let (Some(ea), Some(eb)) = (element(a), element(b)) else { return Ok(None) };
+    let ty = if rel == "auto" {
+        match crate::suggest::connect(&s.doc, a, b).into_iter().find(|ch| ch.legal && !ch.id.is_empty()) {
+            Some(ch) => ch.id,
+            None => return Ok(None),
+        }
+    } else {
+        rel.to_string()
+    };
+    let variant = page.view.as_ref().map(|v| v.variant.clone()).unwrap_or_default();
+    let id = s.doc.next_id("r");
+    let mut r = vizcraft_model::Relationship::new(id.clone(), ty.clone(), ea, eb);
+    if let Some((_, rt)) = cat.relationship_type(&ty) {
+        super::model::fill_defaults(&mut r.properties, &rt.properties);
+    }
+    let pack = cat.pack_ref(r.pack());
+    s.doc.model.add_relationship(r).map_err(super::model::model_err)?;
+    if let Some(p) = pack {
+        s.doc.model.use_pack(p);
+    }
+    if look && let Some(k) = vizcraft_stencils::connector_kind_for_relationship(&ty, &variant) {
+        k.apply(c);
+    }
+    c.relationship = Some(id.clone());
+    Ok(Some(id))
 }
 
 fn glue(s: &mut Session, v: &Value) -> CmdResult {
@@ -296,6 +343,29 @@ mod tests {
     use vizcraft_diagram::{Document, Shape, ShapeKind};
 
     use crate::Session;
+
+    #[test]
+    fn add_with_relationship_binds_the_pair_to_the_first_legal_type_in_one_undo_step() {
+        let mut s = Session::new(Document::new());
+        s.run("template.new", &json!({"template": "uml.activity"})).unwrap();
+        let a = s.run("element.create", &json!({"type": "uml.Action", "name": "A", "x": 0, "y": 0})).unwrap()["shape"].as_str().unwrap().to_string();
+        let b =
+            s.run("element.create", &json!({"type": "uml.Action", "name": "B", "x": 300, "y": 0})).unwrap()["shape"].as_str().unwrap().to_string();
+        let n = s.doc.model.relationships.len();
+        let r = s.run("connector.add", &json!({"from": {"shape": a}, "to": {"shape": b}, "relationship": "auto"})).unwrap();
+        let rid = r["relationship"].as_str().expect("an action to an action is a model relationship").to_string();
+        assert_eq!(s.doc.model.relationships.len(), n + 1);
+        assert_eq!(s.doc.model.relationship(&rid).unwrap().type_id, "uml.ControlFlow");
+        let cid = r["id"].as_str().unwrap();
+        assert_eq!(s.doc.page().unwrap().connector(cid).unwrap().relationship.as_deref(), Some(rid.as_str()));
+        s.run("edit.undo", &json!({})).unwrap();
+        assert_eq!(s.doc.model.relationships.len(), n, "one undo step removes both");
+        assert!(s.doc.page().unwrap().connector(cid).is_none());
+        // Free ends and unknown types: a plain connector, or a refusal.
+        let free = s.run("connector.add", &json!({"from": {"x": 0, "y": 0}, "to": {"shape": b}, "relationship": "auto"})).unwrap();
+        assert!(free.get("relationship").is_none());
+        assert!(s.run("connector.add", &json!({"from": {"shape": a}, "to": {"shape": b}, "relationship": "nope.Type"})).is_err());
+    }
 
     #[test]
     fn set_end_labels_sets_clears_and_refuses_junk() {
