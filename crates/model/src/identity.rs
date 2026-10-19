@@ -10,6 +10,15 @@
 //! number zero-padded to three digits, `{key}` for the element's property `key` (letters, digits
 //! and `_`), and `{{` or `}}` for a literal brace. So `S{n}` gives `S1`, `S2`; `{letters}-{n:3}`
 //! gives `FIC-101` for an element whose `letters` property is `FIC`.
+//!
+//! Composed parts read the element's context: `{owner.tag}` is the direct owner's tag and
+//! `{owner:TYPE.tag}` the tag of the nearest ancestor of type `TYPE` (both through the model the
+//! [`Registry`] reads); `{page}` (or `{page:W}`, zero-padded) is the sheet number of the element's
+//! first view, `{zone}` the zone of that view and `{rung}` (or `{rung:W}`) its rung, all from a
+//! [`ComposeCtx`] the caller supplies. So `{owner.tag}-K{n}` under an owner tagged `=F1+A2` gives
+//! `=F1+A2-K3`, and `{page}{rung:3}` on sheet 2, rung 3 gives `2003`. Context parts change only
+//! when tags are recomposed on request (`sheet.renumber`); an [`IdScope::per_owner`] scope numbers
+//! and checks uniqueness within each owner.
 
 use std::collections::{BTreeMap, HashSet};
 
@@ -46,13 +55,36 @@ pub struct IdScope {
     /// New elements of these types get the next number in the format.
     #[serde(deserialize_with = "lenient")]
     pub auto_number: bool,
+    /// Numbers and uniqueness count within each owner (the element's direct owner in the
+    /// containment tree), so every owner has its own K1.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_false")]
+    pub per_owner: bool,
+}
+
+fn is_false(b: &bool) -> bool {
+    !*b
 }
 
 impl Default for IdScope {
     fn default() -> Self {
-        IdScope { id: String::new(), types: Vec::new(), format: "{n}".into(), unique: true, paired: false, auto_number: false }
+        IdScope { id: String::new(), types: Vec::new(), format: "{n}".into(), unique: true, paired: false, auto_number: false, per_owner: false }
     }
 }
+
+/// What the context parts of a format read for one element; empty text composes as nothing.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct ComposeCtx {
+    /// The sheet number of the element's first view (`{page}`).
+    pub page: String,
+    /// The zone of that view (`{zone}`, `B4`).
+    pub zone: String,
+    /// The element's rung (`{rung}`).
+    pub rung: String,
+}
+
+/// Most matching steps one tag is given when a format has parts that match any text, so a
+/// hostile format cannot make reading a number slow.
+const MATCH_BUDGET: u32 = 20_000;
 
 /// One piece of a parsed format.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -63,6 +95,90 @@ enum Part {
     Number(usize),
     /// An element property, by key.
     Prop(String),
+    /// The owner's tag: the direct owner (`None`) or the nearest ancestor of this type.
+    Owner(Option<String>),
+    /// The sheet number, zero-padded to this width.
+    Page(usize),
+    /// The zone.
+    Zone,
+    /// The rung, zero-padded to this width.
+    Rung(usize),
+}
+
+/// A format part resolved for matching a tag.
+enum Tok {
+    /// Exact text.
+    Fixed(String),
+    /// The auto number: at least this many digits.
+    Num(usize),
+    /// Any text (an owner tag not resolved).
+    Any,
+    /// A run of digits (a page or rung not resolved).
+    Digits,
+    /// One or two capitals then digits (a zone not resolved).
+    Zone,
+}
+
+/// Match `toks` against `s` from `pos`: `Some(number)` when the whole rest matches, with the auto
+/// number when the format has one.
+fn match_toks(toks: &[Tok], s: &[u8], pos: usize, budget: &mut u32) -> Option<Option<u64>> {
+    *budget = budget.checked_sub(1)?;
+    let Some((tok, rest)) = toks.split_first() else { return (pos == s.len()).then_some(None) };
+    let tail = s.get(pos..)?;
+    let digit_run = tail.iter().take_while(|b| b.is_ascii_digit()).count();
+    match tok {
+        Tok::Fixed(t) => {
+            if tail.starts_with(t.as_bytes()) {
+                match_toks(rest, s, pos + t.len(), budget)
+            } else {
+                None
+            }
+        }
+        Tok::Num(w) => {
+            for l in ((*w).max(1)..=digit_run).rev() {
+                if let Some(found) = match_toks(rest, s, pos + l, budget) {
+                    let n = tail.get(..l)?.iter().fold(0u64, |n, b| n.saturating_mul(10).saturating_add(u64::from(b - b'0')));
+                    return Some(found.or(Some(n)));
+                }
+            }
+            None
+        }
+        Tok::Digits => (1..=digit_run).rev().find_map(|l| match_toks(rest, s, pos + l, budget)),
+        Tok::Any => (0..=tail.len()).find_map(|l| match_toks(rest, s, pos + l, budget)),
+        Tok::Zone => {
+            let letters = tail.iter().take(2).take_while(|b| b.is_ascii_uppercase()).count();
+            (1..=letters).find_map(|la| {
+                let digits = tail.get(la..)?.iter().take_while(|b| b.is_ascii_digit()).count();
+                (1..=digits).rev().find_map(|ld| match_toks(rest, s, pos + la + ld, budget))
+            })
+        }
+    }
+}
+
+/// The tag of `element`'s owner for an owner part: the direct owner, or the nearest ancestor of
+/// type `ty`. Empty when there is none.
+fn owner_tag(model: &Model, element: &Element, ty: Option<&str>) -> String {
+    match ty {
+        None => element.owner.as_deref().and_then(|o| model.element(o)).map(|o| o.tag.clone()).unwrap_or_default(),
+        Some(t) => {
+            let own = element.owner.as_deref().and_then(|o| model.element(o));
+            if let Some(o) = own.filter(|o| o.type_id == t) {
+                return o.tag.clone();
+            }
+            let Some(start) = own else { return String::new() };
+            model.ancestors(&start.id).iter().filter_map(|a| model.element(a)).find(|a| a.type_id == t).map(|a| a.tag.clone()).unwrap_or_default()
+        }
+    }
+}
+
+/// The rung a composed tag shows: the context's, else the element's `rung` property.
+fn rung_of(element: &Element, ctx: &ComposeCtx) -> String {
+    if ctx.rung.is_empty() { element.prop("rung").map(|v| v.display()).unwrap_or_default() } else { ctx.rung.clone() }
+}
+
+/// `v` zero-padded to `w` when it is all digits; other text as it is.
+fn pad(v: &str, w: usize) -> String {
+    if w > 0 && !v.is_empty() && v.bytes().all(|b| b.is_ascii_digit()) { format!("{v:0>w$}") } else { v.to_string() }
 }
 
 /// A parsed identifier format.
@@ -118,17 +234,37 @@ impl IdFormat {
         }
         Ok(IdFormat { source: source.to_string(), parts })
     }
-    /// One `{...}` part: `n`, `n:W` or a property key.
+    /// One `{...}` part: `n`, `n:W`, a context part or a property key.
     fn placeholder(name: &str, source: &str) -> Result<Part, ModelError> {
-        if name == "n" {
-            return Ok(Part::Number(0));
-        }
-        if let Some(w) = name.strip_prefix("n:") {
+        let width = |w: &str| -> Result<usize, ModelError> {
             let w: usize = w.parse().map_err(|_| ModelError::Format(format!("bad pad `{name}` in `{source}`")))?;
             if w > MAX_PAD {
                 return Err(ModelError::Format(format!("pad wider than {MAX_PAD} in `{source}`")));
             }
-            return Ok(Part::Number(w));
+            Ok(w)
+        };
+        match name {
+            "n" => return Ok(Part::Number(0)),
+            "page" => return Ok(Part::Page(0)),
+            "zone" => return Ok(Part::Zone),
+            "rung" => return Ok(Part::Rung(0)),
+            "owner.tag" => return Ok(Part::Owner(None)),
+            _ => {}
+        }
+        if let Some(w) = name.strip_prefix("n:") {
+            return Ok(Part::Number(width(w)?));
+        }
+        if let Some(w) = name.strip_prefix("page:") {
+            return Ok(Part::Page(width(w)?));
+        }
+        if let Some(w) = name.strip_prefix("rung:") {
+            return Ok(Part::Rung(width(w)?));
+        }
+        if let Some(ty) = name.strip_prefix("owner:").and_then(|t| t.strip_suffix(".tag")) {
+            if ty.is_empty() || !ty.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '.')) {
+                return Err(ModelError::Format(format!("bad owner type in `{{{name}}}` in `{source}`")));
+            }
+            return Ok(Part::Owner(Some(ty.to_string())));
         }
         if name.is_empty() || !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
             return Err(ModelError::Format(format!("bad part `{{{name}}}` in `{source}`")));
@@ -143,14 +279,62 @@ impl IdFormat {
     pub fn has_number(&self) -> bool {
         self.parts.iter().any(|p| matches!(p, Part::Number(_)))
     }
-    /// The tag for `element` with auto number `n`; a missing property composes as empty text.
+    /// Whether the format reads the element's context (owner, page, zone or rung), so its tags
+    /// can go stale and are recomposed on request.
+    pub fn has_context(&self) -> bool {
+        self.parts.iter().any(|p| matches!(p, Part::Owner(_) | Part::Page(_) | Part::Zone | Part::Rung(_)))
+    }
+    /// The tag for `element` with auto number `n`; a missing property, and every context part,
+    /// composes as empty text (see [`IdFormat::compose_in`]).
     pub fn compose(&self, element: &Element, n: u64) -> String {
+        self.compose_with(None, element, n, &ComposeCtx::default())
+    }
+    /// The tag for `element` with auto number `n`, owner parts read from `model` and the page,
+    /// zone and rung from `ctx`.
+    pub fn compose_in(&self, model: &Model, element: &Element, n: u64, ctx: &ComposeCtx) -> String {
+        self.compose_with(Some(model), element, n, ctx)
+    }
+    fn compose_with(&self, model: Option<&Model>, element: &Element, n: u64, ctx: &ComposeCtx) -> String {
         self.parts
             .iter()
             .map(|p| match p {
                 Part::Lit(t) => t.clone(),
                 Part::Number(w) => format!("{n:0w$}", w = *w),
                 Part::Prop(k) => element.prop(k).map(|v| v.display()).unwrap_or_default(),
+                Part::Owner(ty) => model.map(|m| owner_tag(m, element, ty.as_deref())).unwrap_or_default(),
+                Part::Page(w) => pad(&ctx.page, *w),
+                Part::Zone => ctx.zone.clone(),
+                Part::Rung(w) => pad(&rung_of(element, ctx), *w),
+            })
+            .collect()
+    }
+    /// The auto number inside `tag` when it matches this format for `element` with its owner
+    /// parts read from `model` and its context from `ctx` exactly.
+    pub fn number_in_ctx(&self, tag: &str, model: &Model, element: &Element, ctx: &ComposeCtx) -> Option<u64> {
+        if !self.has_number() {
+            return None;
+        }
+        let toks = self.toks(Some(model), element, Some(ctx));
+        let mut budget = MATCH_BUDGET;
+        match_toks(&toks, tag.as_bytes(), 0, &mut budget).flatten()
+    }
+    /// The parts as matching tokens; context parts not given match loosely.
+    fn toks(&self, model: Option<&Model>, element: &Element, ctx: Option<&ComposeCtx>) -> Vec<Tok> {
+        self.parts
+            .iter()
+            .map(|p| match (p, ctx) {
+                (Part::Lit(t), _) => Tok::Fixed(t.clone()),
+                (Part::Number(w), _) => Tok::Num(*w),
+                (Part::Prop(k), _) => Tok::Fixed(element.prop(k).map(|v| v.display()).unwrap_or_default()),
+                (Part::Owner(ty), _) => match model {
+                    Some(m) => Tok::Fixed(owner_tag(m, element, ty.as_deref())),
+                    None => Tok::Any,
+                },
+                (Part::Page(w), Some(c)) => Tok::Fixed(pad(&c.page, *w)),
+                (Part::Zone, Some(c)) => Tok::Fixed(c.zone.clone()),
+                (Part::Rung(w), Some(c)) => Tok::Fixed(pad(&rung_of(element, c), *w)),
+                (Part::Page(_) | Part::Rung(_), None) => Tok::Digits,
+                (Part::Zone, None) => Tok::Zone,
             })
             .collect()
     }
@@ -158,7 +342,18 @@ impl IdFormat {
     /// property parts equal, a run of digits where `{n}` is), else `None`. A `{n:W}` pad is a
     /// minimum: a run of at least W digits matches, so `S{n:3}` reads `S1000` as 1000 but not
     /// `S7`. A format without `{n}` never yields a number. Numbers too large for `u64` saturate.
+    ///
+    /// Context parts match loosely here (an owner tag any text, a page or rung digits, a zone
+    /// capitals then digits), so the number survives a move to another sheet or zone.
     pub fn number_in(&self, tag: &str, element: &Element) -> Option<u64> {
+        if self.has_context() {
+            if !self.has_number() {
+                return None;
+            }
+            let toks = self.toks(None, element, None);
+            let mut budget = MATCH_BUDGET;
+            return match_toks(&toks, tag.as_bytes(), 0, &mut budget).flatten();
+        }
         let at = self.parts.iter().position(|p| matches!(p, Part::Number(_)))?;
         let width = match self.parts.get(at) {
             Some(Part::Number(w)) => *w,
@@ -172,7 +367,7 @@ impl IdFormat {
                 .map(|p| match p {
                     Part::Lit(t) => t.clone(),
                     Part::Prop(k) => element.prop(k).map(|v| v.display()).unwrap_or_default(),
-                    Part::Number(_) => String::new(),
+                    Part::Number(_) | Part::Owner(_) | Part::Page(_) | Part::Zone | Part::Rung(_) => String::new(),
                 })
                 .collect()
         };
@@ -212,12 +407,29 @@ pub struct Unmatched {
 pub struct Registry<'a> {
     model: &'a Model,
     scopes: &'a [IdScope],
+    /// The context new tags compose with; `None` composes context parts as empty text.
+    ctx: Option<&'a dyn Fn(&Element) -> ComposeCtx>,
 }
 
 impl<'a> Registry<'a> {
     /// A registry over `model` with these scopes (from every pack the model uses).
     pub fn new(model: &'a Model, scopes: &'a [IdScope]) -> Self {
-        Registry { model, scopes }
+        Registry { model, scopes, ctx: None }
+    }
+    /// The same registry composing context parts (`{page}`, `{zone}`, `{rung}`) with `ctx`.
+    pub fn with_context(mut self, ctx: &'a dyn Fn(&Element) -> ComposeCtx) -> Self {
+        self.ctx = Some(ctx);
+        self
+    }
+    /// The model the registry reads.
+    pub fn model(&self) -> &'a Model {
+        self.model
+    }
+    /// The members of `scope` that share a numbering and uniqueness space with an element owned by
+    /// `owner`: every member, or with [`IdScope::per_owner`] those with the same owner.
+    fn peers(&self, scope: &IdScope, owner: Option<&str>) -> Vec<&'a Element> {
+        let all = self.members(scope);
+        if scope.per_owner { all.into_iter().filter(|m| m.owner.as_deref() == owner).collect() } else { all }
     }
     /// The first scope that lists `type_id`.
     pub fn scope_for(&self, type_id: &str) -> Option<&'a IdScope> {
@@ -246,7 +458,9 @@ impl<'a> Registry<'a> {
         if !format.has_number() {
             return Err(ModelError::Format(format!("auto-numbered scope `{}` has no `{{n}}` in `{}`", scope.id, scope.format)));
         }
-        let others: Vec<&Element> = self.members(scope).into_iter().filter(|m| m.id != element.id || element.id.is_empty()).collect();
+        let others: Vec<&Element> =
+            self.peers(scope, element.owner.as_deref()).into_iter().filter(|m| m.id != element.id || element.id.is_empty()).collect();
+        let ctx = self.ctx.map(|f| f(element)).unwrap_or_default();
         let highest = others.iter().filter_map(|m| format.number_in(&m.tag, m)).max().unwrap_or(0);
         let taken: HashSet<&str> = others.iter().map(|m| m.tag.as_str()).filter(|t| !t.is_empty()).collect();
         // At most `taken.len()` candidates can be taken, so this many tries always finds a free
@@ -254,7 +468,7 @@ impl<'a> Registry<'a> {
         let mut n = highest;
         for _ in 0..=taken.len() {
             n = n.checked_add(1).ok_or(ModelError::TooMany("tag numbers"))?;
-            let tag = format.compose(element, n);
+            let tag = format.compose_in(self.model, element, n, &ctx);
             if !taken.contains(tag.as_str()) {
                 return Ok(Some(tag));
             }
@@ -271,7 +485,9 @@ impl<'a> Registry<'a> {
             return true;
         }
         let Some(limit) = Self::limit(scope) else { return true };
-        let users = self.members(scope).into_iter().filter(|m| m.tag == tag && Some(m.id.as_str()) != except).count();
+        let owner = except.and_then(|e| self.model.element(e)).and_then(|e| e.owner.as_deref());
+        let peers = self.peers(scope, owner);
+        let users = peers.into_iter().filter(|m| m.tag == tag && Some(m.id.as_str()) != except).count();
         users < limit
     }
     /// How many members of `scope` may share one tag, or `None` when there is no limit.
@@ -284,12 +500,14 @@ impl<'a> Registry<'a> {
             None
         }
     }
-    /// Member element ids of `scope` grouped by non-empty tag, tags sorted, ids in model order.
-    fn by_tag(&self, scope: &IdScope) -> BTreeMap<&'a str, Vec<String>> {
-        let mut map: BTreeMap<&'a str, Vec<String>> = BTreeMap::new();
+    /// Member element ids of `scope` grouped by non-empty tag (and by owner in a per-owner
+    /// scope), tags sorted, ids in model order.
+    fn by_tag(&self, scope: &IdScope) -> BTreeMap<(&'a str, &'a str), Vec<String>> {
+        let mut map: BTreeMap<(&'a str, &'a str), Vec<String>> = BTreeMap::new();
         for m in self.members(scope) {
             if !m.tag.is_empty() {
-                map.entry(m.tag.as_str()).or_default().push(m.id.clone());
+                let owner = if scope.per_owner { m.owner.as_deref().unwrap_or_default() } else { "" };
+                map.entry((m.tag.as_str(), owner)).or_default().push(m.id.clone());
             }
         }
         map
@@ -306,7 +524,7 @@ impl<'a> Registry<'a> {
         let mut out = Vec::new();
         for scope in self.sorted_scopes() {
             let Some(limit) = Self::limit(scope) else { continue };
-            for (tag, elements) in self.by_tag(scope) {
+            for ((tag, _), elements) in self.by_tag(scope) {
                 if elements.len() > limit {
                     out.push(Duplicate { scope: scope.id.clone(), tag: tag.to_string(), elements });
                 }
@@ -318,7 +536,7 @@ impl<'a> Registry<'a> {
     pub fn unmatched(&self) -> Vec<Unmatched> {
         let mut out = Vec::new();
         for scope in self.sorted_scopes().into_iter().filter(|s| s.paired) {
-            for (tag, mut elements) in self.by_tag(scope) {
+            for ((tag, _), mut elements) in self.by_tag(scope) {
                 if elements.len() == 1
                     && let Some(element) = elements.pop()
                 {

@@ -64,7 +64,7 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("page.setActive", "Go to Page", "Page", set_active)
             .params(r#"{"page": id|name|index} -> {page, index} (not an undo step)"#),
         CommandSpec::new("page.setup", "Page Setup", "Design > Page Setup", setup).params(
-            r#"{"page"?: id|name|index, "width"?: number, "height"?: number, "orientation"?: "portrait"|"landscape", "units"?: "in"|"ft"|"mm"|"cm"|"m"|"pt"|"px", "drawingScale"?: {page, drawing, units?}, "autoSize"?: bool, "board"?: "infinite"|"fixed"} -> {page, board, width, height, orientation, units, drawingScale, autoSize} (board is infinite for new pages; width, height, orientation and autoSize apply to a fixed board only and are kept while it is infinite; orientation swaps width and height to match; with no params the UI opens the Page Setup dialog)"#,
+            r#"{"page"?: id|name|index, "width"?: number, "height"?: number, "size"?: "A0".."A4"|"ANSI A".."ANSI E" (a paper size, instead of width and height), "orientation"?: "portrait"|"landscape", "units"?: "in"|"ft"|"mm"|"cm"|"m"|"pt"|"px", "drawingScale"?: {page, drawing, units?}, "autoSize"?: bool, "board"?: "infinite"|"fixed"} -> {page, board, width, height, orientation, units, drawingScale, autoSize} (board is infinite for new pages; width, height, orientation and autoSize apply to a fixed board only and are kept while it is infinite; orientation swaps width and height to match; with no params the UI opens the Page Setup dialog)"#,
         ),
         CommandSpec::new("page.setBackground", "Background Page", "Page", set_background).params(
             r#"{"page"?: id|name|index, "background": id|name|index|null} -> {page, background} (only a background page may be assigned, never one that would make a cycle)"#,
@@ -479,8 +479,22 @@ pub fn setup_json(p: &Page) -> Value {
 
 fn setup(s: &mut Session, v: &Value) -> CmdResult {
     let i = target(s, v)?;
-    let width = size_param(v, "width")?;
-    let height = size_param(v, "height")?;
+    let mut width = size_param(v, "width")?;
+    let mut height = size_param(v, "height")?;
+    if let Some(name) = opt_str(v, "size")? {
+        // A paper size: its sides in world units, landscape unless an orientation or the page
+        // says otherwise (the orientation step below swaps them).
+        let size = vizcraft_diagram::sheet::SheetSize::parse(name)
+            .ok_or_else(|| EngineError::Params(format!("`size`: `{}` is not a paper size (A0 to A4, ANSI A to E)", super::short(name))))?;
+        if width.is_some() || height.is_some() {
+            return Err(EngineError::Params("give `size` or `width` and `height`, not both".into()));
+        }
+        let (long, short) = size.paper().world();
+        let portrait = s.doc.pages.get(i).is_some_and(|p| p.height > p.width);
+        let (w, h) = if portrait { (short, long) } else { (long, short) };
+        width = Some(w);
+        height = Some(h);
+    }
     let orientation = match opt_str(v, "orientation")?.map(|t| t.trim().to_ascii_lowercase()) {
         None => None,
         Some(t) if t == "portrait" => Some(Orientation::Portrait),

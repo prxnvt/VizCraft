@@ -1,0 +1,113 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "model": {
+      "schemaVersion": 1,
+      "packs": [
+        {
+          "id": "sheet",
+          "version": "1.0.0"
+        }
+      ],
+      "elements": [
+        {
+          "id": "o1",
+          "type": "sheet.OffSheet",
+          "tag": "7"
+        },
+        {
+          "id": "o2",
+          "type": "sheet.OffSheet",
+          "tag": "7"
+        },
+        {
+          "id": "b1",
+          "type": "sheet.Balloon",
+          "name": "1"
+        },
+        {
+          "id": "p1e",
+          "type": "sheet.Part",
+          "tag": "1"
+        },
+        {
+          "id": "pl",
+          "type": "sheet.PartsList"
+        }
+      ],
+      "relationships": [
+        {
+          "id": "r1",
+          "type": "sheet.CallsOut",
+          "source": "b1",
+          "target": "p1e"
+        }
+      ]
+    },
+    "document": {
+      "title": "",
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "width": 1100.0,
+          "height": 850.0,
+          "shapes": [
+            {
+              "id": "so1",
+              "kind": "rectangle",
+              "x": 100,
+              "y": 100,
+              "w": 50,
+              "h": 50,
+              "text": "",
+              "element": "o1"
+            },
+            {
+              "id": "so2",
+              "kind": "rectangle",
+              "x": 300,
+              "y": 100,
+              "w": 50,
+              "h": 50,
+              "text": "",
+              "element": "o2"
+            },
+            {
+              "id": "sb1",
+              "kind": "rectangle",
+              "x": 500,
+              "y": 100,
+              "w": 50,
+              "h": 50,
+              "text": "",
+              "element": "b1"
+            },
+            {
+              "id": "sp1",
+              "kind": "rectangle",
+              "x": 700,
+              "y": 100,
+              "w": 50,
+              "h": 50,
+              "text": "",
+              "element": "p1e"
+            },
+            {
+              "id": "spl",
+              "kind": "rectangle",
+              "x": 100,
+              "y": 400,
+              "w": 300,
+              "h": 100,
+              "text": "",
+              "element": "pl"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "expect": []
+}

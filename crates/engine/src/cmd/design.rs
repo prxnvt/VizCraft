@@ -35,7 +35,7 @@ pub fn specs() -> Vec<CommandSpec> {
             r##"{"kind": "none"|"solid"|"gradient"|"pattern", "color"?: "#rrggbb", "page"?: id|name|index (default: active)}; drawn on a generated background page"##,
         ),
         CommandSpec::new("design.setBorderTitle", "Borders and Titles", "Design > Backgrounds", set_border_title).params(
-            r#"{"kind": "none"|"frame"|"banner"|"margin", "page"?: id|name|index (default: active)}; the title block shows the document title and the page name"#,
+            r#"{"kind": "none"|"frame"|"banner"|"margin", "page"?: id|name|index (default: active)}; the title block shows the document title and the page name; on a page with a sheet (sheet.set) the sheet frame and title block are drawn instead"#,
         ),
         CommandSpec::new("design.setConnectorStyle", "Connector Style", "Design > Connectors", set_connector_style).params(
             r#"{"style": "rightAngle"|"straight"|"curved", "page"?: id|name|index (default: active)} -> {"page", "ids", "style"}; re-routes every connector on the page"#,

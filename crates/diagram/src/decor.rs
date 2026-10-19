@@ -11,9 +11,15 @@
 //!
 //! SVG and PNG export and the canvas draw background pages already, so decorations need nothing
 //! of their own there.
+//!
+//! A page with a drawing sheet (`Page::sheet`, see [`crate::sheet`]) keeps its generated page
+//! while the sheet is set, even with no decoration chosen: the page then carries the sheet frame,
+//! zones, centring marks and title block in place of the border, over the chosen background. A
+//! page without a sheet is decorated exactly as before.
 
 use crate::kind::ShapeKind;
 use crate::model::{Color, Document, Page, Shape, Style};
+use crate::sheet::Sheet;
 use crate::style_fields::{Gradient, GradientKind, GradientStop, HAlign, VAlign};
 use crate::theme::{accents, background_color, mix, shade, tint};
 
@@ -145,7 +151,9 @@ pub fn set(doc: &mut Document, index: usize, deco: Decoration) -> Result<(), Dec
         return Err(DecorError::BackgroundPage);
     }
     let page_id = page.id.clone();
-    match (generated_page(doc, &page_id), deco.is_none()) {
+    // A sheet keeps the generated page: it carries the frame.
+    let none = deco.is_none() && page.sheet.is_none();
+    match (generated_page(doc, &page_id), none) {
         (None, true) => {}
         (Some(g), true) => remove(doc, g),
         (Some(g), false) => {
@@ -202,11 +210,23 @@ pub fn refresh(doc: &mut Document) {
             remove(doc, i);
             continue;
         };
-        // A fixed board is decorated at its sheet; an infinite board at the frame of its drawing, which
-        // grows when a shape moves out.
-        let frame = fg.frame();
-        let (w, h, name) = (frame.width(), frame.height(), fg.name.clone());
-        let shapes = build(doc, deco_page, (frame.x0, frame.y0), w, h, &name);
+        // With neither a decoration nor a sheet (the sheet was turned off) the page has nothing
+        // left to carry.
+        if fg.sheet.is_none() && Decoration::of(deco_page).is_none() {
+            remove(doc, i);
+            continue;
+        }
+        // A sheet is decorated at its trimmed size; a fixed board at its sheet; an infinite board
+        // at the frame of its drawing, which grows when a shape moves out.
+        let frame = match &fg.sheet {
+            Some(sh) => {
+                let (w, h) = sh.world_size();
+                crate::geom::Rect::from_xywh(0.0, 0.0, w, h)
+            }
+            None => fg.frame(),
+        };
+        let (w, h, name, sheet) = (frame.width(), frame.height(), fg.name.clone(), fg.sheet);
+        let shapes = build(doc, deco_page, (frame.x0, frame.y0), w, h, &name, sheet.as_ref());
         if let Some(deco_page) = doc.pages.get_mut(i) {
             if deco_page.rect() != crate::geom::Rect::from_xywh(0.0, 0.0, w, h) {
                 deco_page.width = w;
@@ -286,7 +306,7 @@ impl Builder<'_> {
 /// Most grid lines a pattern background draws each way.
 const MAX_GRID_LINES: f64 = 200.0;
 
-fn build(doc: &Document, deco_page: &Page, origin: (f64, f64), w: f64, h: f64, page_name: &str) -> Vec<Shape> {
+fn build(doc: &Document, deco_page: &Page, origin: (f64, f64), w: f64, h: f64, page_name: &str, sheet: Option<&Sheet>) -> Vec<Shape> {
     let deco = Decoration::of(deco_page);
     let mut b = Builder { doc, gen_id: &deco_page.id, shapes: Vec::new(), origin };
     let bg = deco.color.unwrap_or_else(|| background_color(&doc.theme));
@@ -325,6 +345,12 @@ fn build(doc: &Document, deco_page: &Page, origin: (f64, f64), w: f64, h: f64, p
                 n += 1;
             }
         }
+    }
+    if let Some(sheet) = sheet {
+        // The sheet frame replaces the border; its title block carries the titles.
+        let frame = crate::sheet::frame_shapes(sheet, &|role| b.id(role));
+        b.shapes.extend(frame);
+        return b.shapes;
     }
     let (acc, ink) = accents(&doc.theme);
     let accent = acc.first().copied().unwrap_or(ink);

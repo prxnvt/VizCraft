@@ -553,6 +553,7 @@ fn scope(id: &str, types: &[&str], format: &str) -> IdScope {
         unique: true,
         paired: false,
         auto_number: true,
+        per_owner: false,
     }
 }
 

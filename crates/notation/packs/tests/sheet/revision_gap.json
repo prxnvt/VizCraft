@@ -1,0 +1,51 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "model": {
+      "schemaVersion": 1,
+      "packs": [
+        {
+          "id": "sheet",
+          "version": "1.0.0"
+        }
+      ],
+      "elements": [
+        {
+          "id": "ra",
+          "type": "sheet.Revision",
+          "tag": "A",
+          "properties": {
+            "rev": "A"
+          }
+        },
+        {
+          "id": "rc",
+          "type": "sheet.Revision",
+          "tag": "C",
+          "properties": {
+            "rev": "C"
+          }
+        }
+      ],
+      "relationships": []
+    },
+    "document": {
+      "title": "",
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "width": 1100.0,
+          "height": 850.0,
+          "shapes": []
+        }
+      ]
+    }
+  },
+  "expect": [
+    {
+      "rule": "sheet.revisionSequence"
+    }
+  ]
+}

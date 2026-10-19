@@ -495,6 +495,7 @@ impl<'a> Checker<'a> {
                     }
                 }
                 Check::CrossesShape | Check::UngluedEnd | Check::Overlap | Check::OffBoard | Check::TextOverflow => {}
+                Check::DocumentFields { .. } | Check::RevisionSequence | Check::BalloonRows | Check::CrossReferences | Check::StaleTag => {}
                 Check::Unknown => self.problem(format!("{ctx}: unknown check kind (the pack needs a newer VizCraft)")),
             }
         }

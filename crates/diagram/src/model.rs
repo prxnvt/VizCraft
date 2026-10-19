@@ -895,6 +895,10 @@ pub struct Page {
     /// load with every connector avoiding shapes.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
     pub routing: crate::routing_policy::RoutingPolicy,
+    /// The drawing sheet (standard, size, zones, title block; see [`crate::sheet`]); `None` for a
+    /// plain page.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub sheet: Option<crate::sheet::Sheet>,
 }
 
 impl Default for Page {
@@ -932,6 +936,7 @@ impl Page {
             guides: Vec::new(),
             layers: Vec::new(),
             routing: crate::routing_policy::RoutingPolicy::default(),
+            sheet: None,
         }
     }
     /// The page sheet as a rectangle at the origin.
@@ -955,6 +960,9 @@ impl Page {
         sanitize_guides(&mut self.guides);
         sanitize_layers(&mut self.layers);
         self.routing.sanitize();
+        if let Some(sheet) = &mut self.sheet {
+            sheet.sanitize();
+        }
         self.sanitize_shape_refs();
     }
     /// Drop shape layer ids that name no layer on this page (and repeats), and parents that are

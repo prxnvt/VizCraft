@@ -284,6 +284,7 @@ fn rich() -> Document {
         subject: "Batch plant".into(),
         keywords: "mix; heat".into(),
         description: "How a batch is mixed.\nSecond line.".into(),
+        ..DocProperties::default()
     };
     doc.images.push(ImageAsset { id: "img1".into(), media_type: "image/png".into(), bytes: vec![0x89, b'P', b'N', b'G', 0, 1, 2, 255] });
     doc.comments.push(Comment {
@@ -1232,4 +1233,36 @@ fn import_records_round_trip_and_hostile_ones_are_sanitised() {
     assert_eq!(r.elements.len(), 1, "ids the model lacks are dropped");
     assert_eq!(r.removed, vec!["e1".to_string()]);
     assert_eq!(r.time, 0);
+}
+
+#[test]
+fn sheets_document_fields_table_columns_and_per_owner_round_trip() {
+    use vizcraft_diagram::compartment::{Column, Compartment, CompartmentKind};
+    use vizcraft_diagram::sheet::{Sheet, SheetSize, SheetStandard};
+    let mut doc = Document::new();
+    let mut sh = Sheet::preset(SheetStandard::AsmeY14_1, SheetSize::AnsiD, vizcraft_diagram::Orientation::Landscape);
+    sh.number = Some(3);
+    doc.pages[0].sheet = Some(sh);
+    doc.properties.fields.insert("legalOwner".into(), "Works Ltd".into());
+    let mut s = Shape::new("t", ShapeKind::Rectangle, 0.0, 0.0, 200.0, 80.0);
+    let mut c = Compartment::new("rows", CompartmentKind::List);
+    c.columns = vec![Column { title: "ITEM".into(), width: 40.0 }, Column { title: "QTY".into(), width: 30.0 }];
+    c.rows = vec!["1\t2".into()];
+    s.compartments.push(c);
+    doc.pages[0].shapes.push(s);
+    doc.sanitize();
+    let bytes = save(&doc).unwrap();
+    let loaded = load(&bytes).unwrap();
+    assert_eq!(loaded, doc);
+    let text = String::from_utf8(bytes).unwrap();
+    assert!(text.contains("\"sheet\"") && text.contains("\"asmeY14_1\"") && text.contains("\"columns\"") && text.contains("\"fields\""), "{text}");
+    // perOwner is pack data; it survives a serde round trip and is left out when false.
+    let scope = vizcraft_diagram::vizcraft_model::IdScope { per_owner: true, ..Default::default() };
+    let v = serde_json::to_value(&scope).unwrap();
+    assert_eq!(v["perOwner"], true);
+    assert_eq!(serde_json::from_value::<vizcraft_diagram::vizcraft_model::IdScope>(v).unwrap(), scope);
+    assert!(serde_json::to_value(vizcraft_diagram::vizcraft_model::IdScope::default()).unwrap().get("perOwner").is_none());
+    // A document from before sheets opens unchanged: no sheet, no fields.
+    let old = load(&save(&Document::new()).unwrap()).unwrap();
+    assert!(old.pages[0].sheet.is_none() && old.properties.fields.is_empty());
 }

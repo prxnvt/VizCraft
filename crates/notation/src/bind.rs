@@ -88,6 +88,7 @@ pub fn sync(doc: &mut Document, before: &Document, cat: &Catalog) {
     styles(doc, before, cat);
     record_packs(doc, cat);
     compartments(doc, cat);
+    crate::sheet_pass::run(doc, cat);
 }
 
 /// Element index by id; the model is appended to only during the pass, so indexes stay valid.
