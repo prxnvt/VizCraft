@@ -107,6 +107,8 @@ fn shape_style_with(shape: &Shape, html: bool) -> DStyle {
         ShapeKind::ManualInput => pair(&mut s, "shape", "manualInput"),
         ShapeKind::Trapezoid => pair(&mut s, "shape", "trapezoid"),
         ShapeKind::OffPageReference => pair(&mut s, "shape", "offPageConnector"),
+        // A plain box carrying the `vizcraft` master key; the interaction itself is not written.
+        ShapeKind::Lifeline | ShapeKind::ActorLifeline => {}
     }
     pair(&mut s, "whiteSpace", "wrap");
     // The stencil is written only when it agrees with the kind, so reading it back (where it

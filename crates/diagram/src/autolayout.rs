@@ -205,6 +205,9 @@ pub struct PrimitiveOutcome {
 /// top-left corner; a whole page starts at [`PAGE_MARGIN`]. Returns the reason the roles were
 /// refused (nothing moves then).
 pub fn layout_primitive(page: &mut Page, ids: Option<&[String]>, primitive: Primitive<String>, opts: &Options) -> Result<PrimitiveOutcome, String> {
+    if matches!(primitive, Primitive::Sequence { .. }) && page.sequence.is_some() {
+        return crate::sequence::relayout(page);
+    }
     let nested = matches!(primitive, Primitive::Nested { .. });
     let primitive = match primitive {
         Primitive::Nested { containers } => {

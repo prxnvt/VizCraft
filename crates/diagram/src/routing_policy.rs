@@ -68,7 +68,7 @@ impl RoutingPolicy {
 /// and pipes keep the bends they were drawn with, as in every schematic editor, even on a page
 /// whose policy is to always avoid.
 pub fn routes(page: &Page, c: &Connector) -> bool {
-    if c.net.is_some() {
+    if c.net.is_some() || c.message.is_some() {
         return c.avoid;
     }
     page.routing.routes(c.avoid)

@@ -404,6 +404,10 @@ pub struct Shape {
     /// overrides, its port ids and its text slots (see [`crate::glyph_state`]).
     #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
     pub glyph: Option<crate::glyph_state::GlyphState>,
+    /// What the shape is in a sequence page's interaction (see [`crate::sequence`]); `None` for
+    /// every other shape.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub sequence: Option<crate::sequence::Part>,
 }
 
 impl Default for Shape {
@@ -439,6 +443,7 @@ impl Default for Shape {
             data_graphic: None,
             orient: crate::shape_fields::Orient::NONE,
             glyph: None,
+            sequence: None,
         }
     }
 }
@@ -494,6 +499,9 @@ impl Shape {
         self.orient.sanitize();
         if let Some(g) = &mut self.glyph {
             g.sanitize();
+        }
+        if let Some(p) = &mut self.sequence {
+            p.sanitize();
         }
     }
     /// Longest screen tip kept, in bytes.
@@ -829,6 +837,10 @@ pub struct Connector {
     /// [`crate::step_badge::MAX_STEP`]; 0 for none.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
     pub step: u16,
+    /// The message this connector is on a sequence page (see [`crate::sequence`]); `None` for
+    /// every other connector.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub message: Option<crate::sequence::Message>,
 }
 
 impl Default for Connector {
@@ -853,6 +865,7 @@ impl Default for Connector {
             net: None,
             marker: crate::line_marks::LineMarker::None,
             step: 0,
+            message: None,
         }
     }
 }
@@ -964,6 +977,10 @@ pub struct Page {
     /// plain page.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
     pub sheet: Option<crate::sheet::Sheet>,
+    /// The ordered events of a sequence page (see [`crate::sequence`]); `None` for every other
+    /// page.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub sequence: Option<crate::sequence::Interaction>,
 }
 
 impl Default for Page {
@@ -1002,6 +1019,7 @@ impl Page {
             layers: Vec::new(),
             routing: crate::routing_policy::RoutingPolicy::default(),
             sheet: None,
+            sequence: None,
         }
     }
     /// The page sheet as a rectangle at the origin.
@@ -1027,6 +1045,9 @@ impl Page {
         self.routing.sanitize();
         if let Some(sheet) = &mut self.sheet {
             sheet.sanitize();
+        }
+        if let Some(seq) = &mut self.sequence {
+            seq.sanitize();
         }
         self.sanitize_shape_refs();
     }

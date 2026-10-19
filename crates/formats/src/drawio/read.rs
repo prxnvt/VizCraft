@@ -69,6 +69,8 @@ pub(crate) fn master_for_kind(kind: ShapeKind) -> &'static str {
         ShapeKind::Preparation => "flowchart.preparation",
         ShapeKind::Trapezoid => "flowchart.manualOperation",
         ShapeKind::OffPageReference => "flowchart.offPageReference",
+        ShapeKind::Lifeline => "uml.lifeline",
+        ShapeKind::ActorLifeline => "uml.actorLifeline",
     }
 }
 
@@ -290,6 +292,7 @@ pub(crate) fn vertex_look(style: Option<&DStyle>, warnings: &mut Warnings) -> Ve
                 ShapeKind::ManualInput => shape_key(&mut s, "manualInput"),
                 ShapeKind::Trapezoid => shape_key(&mut s, "trapezoid"),
                 ShapeKind::OffPageReference => shape_key(&mut s, "offPageConnector"),
+                ShapeKind::Lifeline | ShapeKind::ActorLifeline => {}
             }
             m.kind
         }
