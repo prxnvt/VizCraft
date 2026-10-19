@@ -32,6 +32,10 @@ For this branch:
   row), as the draft proposes. Nothing makes engineering the silent default.
 - Fix the follow-up the draft names: `template.new` without `standards` writes into
   `Document.standards.symbols` only a family in `SYMBOL_CHOICES` (not `ie`, `chen`), with a test.
+- Found by the user: `vizcraft a.vizcraft b.vizcraft c.vizcraft` shows only the first file
+  (`apps/vizcraft/src/main.rs` runs `file.open` for each into the one root window). Open every
+  file given on the command line, each in its own window as File > Open does in the multi-window
+  host, with a test where the host allows one; an `apps/vizcraft` hunk is allowed for this.
 - The `paint_master` swaps in `insert_picker.rs` and `canvas/interact/insertion.rs` are one call each
   in `b6-ux` and `b6-sequence-ui` files; keep them to that line.
 
