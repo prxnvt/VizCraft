@@ -66,6 +66,28 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("sequence.write", "Copy Sequence as Text", "Sequence > Code", write)
             .params(r#"{"page"?: page, "grammar": "mermaid"|"plantuml"} -> {"text", "warnings"}; read only"#)
             .when(has_interaction),
+        CommandSpec::new("sequence.moveUp", "Move Up", "Sequence > Order", move_up)
+            .key("Alt+Up")
+            .params(r#"{"id"?: message, note or fragment id (default: the selection), "page"?: page} -> {"id", "order"}; one step earlier: past the block before it, into the operand before at an operand's start, out of the fragment at its first operand's start"#)
+            .when(has_interaction),
+        CommandSpec::new("sequence.moveDown", "Move Down", "Sequence > Order", move_down)
+            .key("Alt+Down")
+            .params(r#"{"id"?: message, note or fragment id (default: the selection), "page"?: page} -> {"id", "order"}; one step later: past the block after it, into the next operand at an operand's end, out of the fragment at its last operand's end"#)
+            .when(has_interaction),
+        CommandSpec::new("sequence.moveLeft", "Move Left", "Sequence > Order", move_left)
+            .key("Alt+Left")
+            .params(r#"{"id"?: lifeline id (default: the selection), "page"?: page} -> {"id", "column"}; swaps the lifeline's column with its left neighbour's"#)
+            .when(has_interaction),
+        CommandSpec::new("sequence.moveRight", "Move Right", "Sequence > Order", move_right)
+            .key("Alt+Right")
+            .params(r#"{"id"?: lifeline id (default: the selection), "page"?: page} -> {"id", "column"}; swaps the lifeline's column with its right neighbour's"#)
+            .when(has_interaction),
+        CommandSpec::new("sequence.setActivations", "Activations", "Sequence > Activations", set_activations)
+            .params(r#"{"mode": "auto"|"explicit", "page"?: page} -> {"mode"}; auto: a synchronous call opens a bar on its receiver and its reply closes it; explicit: only activate and deactivate events draw bars"#)
+            .when(has_interaction),
+        CommandSpec::new("sequence.setActivation", "Activate or Deactivate", "Sequence > Activations", set_activation)
+            .params(r#"{"id"?: message id (default: the selection), "activate"?: bool, "deactivate"?: bool, "page"?: page} -> {"id", "activate", "deactivate"}; activate starts a bar on the receiver directly after the message, deactivate ends the sender's (Mermaid's + and -); false removes it"#)
+            .when(has_interaction),
     ]
 }
 
@@ -653,6 +675,121 @@ fn order(s: &mut Session, v: &Value) -> CmdResult {
     }
     let findings: Vec<String> = seq::check_order(page).into_iter().chain(seq::check_replies(page, false)).map(|f| f.what).collect();
     Ok(json!({"events": out, "findings": findings}))
+}
+
+/// The `id` param, else the selection's primary item.
+fn id_or_selection(s: &Session, v: &Value) -> Result<String, EngineError> {
+    match opt_str(v, "id")? {
+        Some(id) => Ok(check_len("id", id)?.to_string()),
+        None => s.sel.primary.clone().ok_or_else(|| err("`id` is required (nothing is selected)")),
+    }
+}
+
+fn move_step(s: &mut Session, v: &Value, down: bool) -> CmdResult {
+    let i = seq_page(s, v)?;
+    let id = id_or_selection(s, v)?;
+    let page = page_at(s, i)?;
+    let events = events_mut(page)?;
+    let pos = seq::step(events, &id, down).map_err(err)?;
+    seq::move_block(events, &id, &pos).map_err(err)?;
+    let order = order_of(page, &id);
+    Ok(json!({"id": id, "order": order}))
+}
+
+fn move_up(s: &mut Session, v: &Value) -> CmdResult {
+    move_step(s, v, false)
+}
+
+fn move_down(s: &mut Session, v: &Value) -> CmdResult {
+    move_step(s, v, true)
+}
+
+/// Swap lifeline `id`'s column with its neighbour's: their centres trade places, and settle
+/// pushes the columns apart where they need room.
+fn move_column(s: &mut Session, v: &Value, right: bool) -> CmdResult {
+    let i = seq_page(s, v)?;
+    let id = id_or_selection(s, v)?;
+    let page = page_at(s, i)?;
+    let id = lifeline(page, "id", &id)?;
+    let mut cols: Vec<(String, f64, f64)> =
+        page.shapes.iter().filter(|x| matches!(x.sequence, Some(Part::Lifeline { .. }))).map(|x| (x.id.clone(), x.x + x.w / 2.0, x.w)).collect();
+    cols.sort_by(|a, b| a.1.total_cmp(&b.1));
+    let k = cols.iter().position(|c| c.0 == id).ok_or_else(|| err("the lifeline went missing"))?;
+    let n = if right { k + 1 } else { k.checked_sub(1).ok_or_else(|| err(format!("`{}` is already the leftmost lifeline", short(&id))))? };
+    let (Some(a), Some(b)) = (cols.get(k).cloned(), cols.get(n).cloned()) else {
+        return Err(err(format!("`{}` is already the rightmost lifeline", short(&id))));
+    };
+    if let Some(x) = page.shape_mut(&a.0) {
+        x.x = b.1 - a.2 / 2.0;
+    }
+    if let Some(x) = page.shape_mut(&b.0) {
+        x.x = a.1 - b.2 / 2.0;
+    }
+    Ok(json!({"id": id, "column": n}))
+}
+
+fn move_left(s: &mut Session, v: &Value) -> CmdResult {
+    move_column(s, v, false)
+}
+
+fn move_right(s: &mut Session, v: &Value) -> CmdResult {
+    move_column(s, v, true)
+}
+
+fn set_activations(s: &mut Session, v: &Value) -> CmdResult {
+    let i = seq_page(s, v)?;
+    let mode = req_str(v, "mode")?;
+    let m = seq::Activations::from_name(mode).ok_or_else(|| err(format!("`mode` must be auto or explicit (not `{}`)", short(mode))))?;
+    let page = page_at(s, i)?;
+    if let Some(q) = page.sequence.as_mut() {
+        q.activations = m;
+    }
+    Ok(json!({"mode": m.name()}))
+}
+
+fn set_activation(s: &mut Session, v: &Value) -> CmdResult {
+    let i = seq_page(s, v)?;
+    let id = id_or_selection(s, v)?;
+    let activate = opt_bool(v, "activate")?;
+    let deactivate = opt_bool(v, "deactivate")?;
+    if activate.is_none() && deactivate.is_none() {
+        return Err(err("give `activate` or `deactivate` (true adds it, false removes it)"));
+    }
+    let page = page_at(s, i)?;
+    let c =
+        page.connector(&id).filter(|c| c.message.is_some()).ok_or_else(|| err(format!("`id`: `{}` is not a message on this page", short(&id))))?;
+    let receiver = c.end.shape().filter(|x| page.shape(x).is_some_and(|x| matches!(x.sequence, Some(Part::Lifeline { .. })))).map(str::to_string);
+    let sender = c.start.shape().filter(|x| page.shape(x).is_some_and(|x| matches!(x.sequence, Some(Part::Lifeline { .. })))).map(str::to_string);
+    let events = events_mut(page)?;
+    let at =
+        events.iter().position(|e| matches!(e, Event::Message(m) if *m == id)).ok_or_else(|| err(format!("`{}` is not in the order", short(&id))))?;
+    // The run of activation events directly after the message.
+    let run_end =
+        events.iter().skip(at + 1).position(|e| !matches!(e, Event::Activate(_) | Event::Deactivate(_))).map_or(events.len(), |k| at + 1 + k);
+    let mut run: Vec<Event> = events.drain(at + 1..run_end).collect();
+    let mut apply = |want: Option<bool>, who: &Option<String>, what: &str, make: fn(String) -> Event| -> Result<(), EngineError> {
+        let Some(want) = want else { return Ok(()) };
+        let Some(l) = who else { return Err(err(format!("`{}` has no {what} lifeline", short(&id)))) };
+        let ev = make(l.clone());
+        let has = run.contains(&ev);
+        if want && !has {
+            run.push(ev);
+        } else if !want && has {
+            run.retain(|e| *e != ev);
+        }
+        Ok(())
+    };
+    let res = apply(activate, &receiver, "receiving", Event::Activate).and_then(|_| apply(deactivate, &sender, "sending", Event::Deactivate));
+    if events.len() + run.len() > seq::MAX_EVENTS {
+        run.truncate(seq::MAX_EVENTS.saturating_sub(events.len()));
+    }
+    let a = receiver.as_ref().is_some_and(|l| run.contains(&Event::Activate(l.clone())));
+    let d = sender.as_ref().is_some_and(|l| run.contains(&Event::Deactivate(l.clone())));
+    let tail = events.split_off(at + 1);
+    events.extend(run);
+    events.extend(tail);
+    res?;
+    Ok(json!({"id": id, "activate": a, "deactivate": d}))
 }
 
 fn write(s: &mut Session, v: &Value) -> CmdResult {

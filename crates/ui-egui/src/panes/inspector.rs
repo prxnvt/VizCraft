@@ -252,9 +252,9 @@ fn properties_tab(app: &CraftApp, ui: &mut Ui, t: &Tokens, st: &InspectorState, 
         [one] => describe(&app.session, one).ok(),
         _ => None,
     };
-    if let Some((id, net)) = &extra.connector {
+    if let Some((id, net)) = extra.connector.as_ref().filter(|_| !super::sequence_section::is_message(app)) {
         section(ui, "connector-net", "Net", false, |ui| net_section(ui, t, id, net.as_ref(), runs));
-    } else if ids.is_empty() {
+    } else if ids.is_empty() && !super::sequence_section::is_message(app) {
         ui.label(RichText::new("Select a shape to inspect it.").color(t.text_dim));
     }
     if let Some(d) = &desc {
@@ -265,6 +265,11 @@ fn properties_tab(app: &CraftApp, ui: &mut Ui, t: &Tokens, st: &InspectorState, 
         if let Some(sym) = &extra.symbol {
             section(ui, "symbol", "Symbol", false, |ui| symbol_section(ui, t, d, sym, runs));
         }
+    }
+    if super::sequence_section::shown(app) {
+        section(ui, "sequence", "Sequence", false, |ui| super::sequence_section::show(app, ui, t, runs));
+    }
+    if let Some(d) = &desc {
         section(ui, "properties", "Properties", false, |ui| properties(app, ui, t, d, ids, rows, expert, runs));
         if d["element"].is_object() {
             let rels = d["relationships"].as_array().map(Vec::as_slice).unwrap_or_default();
@@ -730,7 +735,7 @@ pub fn inspect_fields(app: &CraftApp) -> Value {
         .zip(page)
         .and_then(|(s, p)| vizcraft_diagram::sheet::zone_of(p, vizcraft_diagram::geom::Point::new(s.x + s.w / 2.0, s.y + s.h / 2.0)))
         .map(|z| z.to_string());
-    json!({"symbol": symbol, "sheet": sheet, "zone": zone})
+    json!({"symbol": symbol, "sheet": sheet, "zone": zone, "sequence": super::sequence_section::inspect(app)})
 }
 
 /// The selected connector's net: its number and name edited in place through `net.set`, its

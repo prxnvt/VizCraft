@@ -220,6 +220,17 @@ pub const NAMES: &[&str] = &[
     "path",
     "compare",
     "analysisResults",
+    // Sequence
+    "lifeline",
+    "actorLifeline",
+    "msgSync",
+    "msgAsync",
+    "msgReply",
+    "msgCreate",
+    "msgDestroy",
+    "fragment",
+    "operand",
+    "activation",
 ];
 
 /// Reference size of the design grid, in points. At this size the stroke is `BASE_STROKE`.
@@ -309,6 +320,14 @@ impl Pen<'_> {
     fn window(&self) {
         self.rect(3.0, 3.5, 17.0, 16.5, self.c);
         self.line(&[(3.0, 6.5), (17.0, 6.5)]);
+    }
+    /// A dashed vertical line at `x` from `y0` to `y1` (a lifeline's stem).
+    fn dashes(&self, x: f32, y0: f32, y1: f32, c: Color32) {
+        let mut y = y0;
+        while y < y1 {
+            self.line_c(&[(x, y), (x, (y + 2.0).min(y1))], c);
+            y += 3.5;
+        }
     }
     /// A chevron pointing in direction (dx, dy) with its tip at (x, y).
     fn chevron(&self, x: f32, y: f32, dx: f32, dy: f32) {
@@ -1447,6 +1466,68 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
             pen.line(&[(8.0, 10.5), (15.5, 10.5)]);
             pen.fcircle(5.5, 14.0, 1.4, a);
             pen.line(&[(8.0, 14.0), (13.5, 14.0)]);
+        }
+        // Sequence
+        "lifeline" => {
+            pen.rect(5.0, 2.0, 15.0, 7.0, c);
+            pen.dashes(10.0, 8.5, 18.0, a);
+        }
+        "actorLifeline" => {
+            pen.circle(10.0, 3.5, 2.0, c);
+            pen.line(&[(10.0, 5.5), (10.0, 9.0)]);
+            pen.line(&[(7.5, 7.0), (12.5, 7.0)]);
+            pen.line(&[(8.0, 12.0), (10.0, 9.0), (12.0, 12.0)]);
+            pen.dashes(10.0, 13.5, 18.0, a);
+        }
+        "msgSync" => {
+            pen.line(&[(2.5, 10.0), (13.0, 10.0)]);
+            pen.fill(&[(13.0, 6.5), (17.5, 10.0), (13.0, 13.5)], a);
+        }
+        "msgAsync" => {
+            pen.line(&[(2.5, 10.0), (17.0, 10.0)]);
+            pen.line_c(&[(13.0, 6.5), (17.0, 10.0), (13.0, 13.5)], a);
+        }
+        "msgReply" => {
+            for k in 0..4 {
+                let x = 4.0 + k as f32 * 3.5;
+                pen.line(&[(x, 10.0), (x + 2.0, 10.0)]);
+            }
+            pen.line_c(&[(7.0, 6.5), (3.0, 10.0), (7.0, 13.5)], a);
+        }
+        "msgCreate" => {
+            for k in 0..2 {
+                let x = 2.0 + k as f32 * 3.5;
+                pen.line(&[(x, 10.0), (x + 2.0, 10.0)]);
+            }
+            pen.line_c(&[(7.0, 7.5), (10.0, 10.0), (7.0, 12.5)], a);
+            pen.rect(11.0, 6.0, 18.0, 14.0, c);
+        }
+        "msgDestroy" => {
+            pen.line(&[(2.0, 10.0), (9.5, 10.0)]);
+            pen.fill(&[(9.5, 7.5), (12.5, 10.0), (9.5, 12.5)], c);
+            pen.line_c(&[(13.5, 6.0), (18.0, 14.0)], a);
+            pen.line_c(&[(18.0, 6.0), (13.5, 14.0)], a);
+        }
+        "fragment" => {
+            pen.rect(2.0, 3.0, 18.0, 17.0, c);
+            pen.line(&[(2.0, 7.5), (8.0, 7.5), (9.5, 6.0), (9.5, 3.0)]);
+            for k in 0..4 {
+                let x = 3.0 + k as f32 * 4.0;
+                pen.line_c(&[(x, 12.0), (x + 2.5, 12.0)], a);
+            }
+        }
+        "operand" => {
+            pen.rect(2.0, 3.0, 18.0, 17.0, c);
+            for k in 0..4 {
+                let x = 3.0 + k as f32 * 4.0;
+                pen.line_c(&[(x, 10.0), (x + 2.5, 10.0)], a);
+            }
+            pen.line_c(&[(13.0, 13.5), (17.0, 13.5)], a);
+            pen.line_c(&[(15.0, 11.5), (15.0, 15.5)], a);
+        }
+        "activation" => {
+            pen.dashes(10.0, 1.5, 18.5, c);
+            pen.frect(8.0, 5.0, 12.0, 15.0, a);
         }
         _ => {
             // Fallback: a rounded tile with the first letter.

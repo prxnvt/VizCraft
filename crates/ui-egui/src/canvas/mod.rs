@@ -115,6 +115,8 @@ pub struct CanvasState {
     /// The cross-reference label under the pointer and its tooltip text (from `xref.list`),
     /// worked out once when the pointer reaches the label.
     pub xref_tip: Option<(String, String)>,
+    /// Sequence pages: the guard being edited in place.
+    pub sequence: interact::sequence::SeqState,
     /// The view has been centred on the page once.
     centered: bool,
     /// A diagram was opened before the canvas was laid out; fit it once the size is known.
@@ -229,7 +231,9 @@ pub fn summary(app: &CraftApp) -> Value {
             Drag::TextBox { .. } => "textBox",
             Drag::TextBlock { .. } => "textBlock",
             Drag::Wire { .. } => "wire",
+            Drag::Sequence(d) => d.name(),
         }),
+        "sequence": interact::sequence::summary(app),
         "canvas": app.canvas.rect.map(|r| [r.min.x, r.min.y, r.width(), r.height()]),
         "net": net_summary(app),
         "zone": status_items(app).into_iter().find_map(|s| s.strip_prefix("Zone ").map(str::to_string)),
@@ -261,6 +265,9 @@ fn net_summary(app: &CraftApp) -> Value {
 
 /// Insert master `stencil` centred on world point `at`.
 pub fn insert_master(app: &mut CraftApp, stencil: &str, at: dg::Point) {
+    if interact::sequence::insert_master(app, stencil, at) {
+        return;
+    }
     let Some(m) = vizcraft_stencils::master(stencil) else { return };
     let (mut x, mut y) = ((at.x - m.w / 2.0).round(), (at.y - m.h / 2.0).round());
     // Repeated clicks would stack copies exactly on top of each other; step each one down-right.
@@ -370,6 +377,7 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
     }
     let _t = vizcraft_engine::trace::span("canvas.textOverlay");
     interact::edit_text::text_overlay(app, ui, &vp, &t);
+    interact::sequence::guard_editor(app, ui, &vp);
 }
 
 fn paint(app: &mut CraftApp, ui: &Ui, vp: &Viewport2D, t: &Tokens) {

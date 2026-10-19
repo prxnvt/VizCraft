@@ -436,7 +436,7 @@ pub struct ConnectorGeometry {
     pub start_head: Option<Arrowhead>,
     /// Arrowhead at the end, if any.
     pub end_head: Option<Arrowhead>,
-    /// Where the label goes: halfway along the route.
+    /// Where the label goes: halfway along the route (above it for a sequence message).
     pub label_pos: Point,
 }
 
@@ -462,7 +462,12 @@ pub(crate) fn geometry_in(page: &Page, c: &Connector, field: &LazyField) -> Conn
     let start_head = arrival(&reversed).and_then(|d| arrowhead(c.start_arrow, ends.start.pos, d, lw));
     let mut line = path.clone();
     shorten(&mut line, start_head.as_ref().map(|h| h.line_end), end_head.as_ref().map(|h| h.line_end));
-    let label_pos = point_along(&polyline, 0.5).unwrap_or(ends.start.pos);
+    let label_pos = c
+        .message
+        .as_ref()
+        .and_then(|_| crate::sequence::label_anchor_on(page, &polyline, &c.text, &c.style))
+        .or_else(|| point_along(&polyline, 0.5))
+        .unwrap_or(ends.start.pos);
     ConnectorGeometry { ends, path, polyline, line, start_head, end_head, label_pos }
 }
 

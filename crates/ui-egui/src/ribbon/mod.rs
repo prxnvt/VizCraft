@@ -52,6 +52,7 @@ mod notation;
 mod picture;
 mod process;
 mod review;
+mod sequence;
 mod sheet;
 mod view;
 
@@ -410,6 +411,7 @@ pub fn tabs(app: &CraftApp) -> Vec<Tab> {
         container::tab(),
         callout::tab(),
         sheet::tab(),
+        sequence::tab(),
         picture::tab(),
         ink::tab(),
         notation::tab(app),

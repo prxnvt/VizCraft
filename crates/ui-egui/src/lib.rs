@@ -263,6 +263,19 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "",
         r#"{"name"?: "engineering"|"office"} -> {"preset", "applied": [setting]}; with no name reads the workspace preset; engineering turns rulers off, puts the Model Tree first on the left, opens the Inspector and arranges the Home tab for engineering; office restores today's look; each setting stays changeable"#,
     ),
+    // Sequence pages.
+    (
+        "ui.sequenceLifeline",
+        "Lifeline",
+        "",
+        r#"{"actor"?: bool} -> the sequence.addLifeline result; a lifeline (an actor with actor) right of the selected lifeline, else at the end, named Lifeline N and then edited in place"#,
+    ),
+    (
+        "ui.sequenceNote",
+        "Note",
+        "",
+        r#"{} -> the sequence.addNote result; a note over the selected lifeline, or over the selected message's receiver right after it, then edited in place"#,
+    ),
 ];
 
 /// What a window command asks of the host that owns all the windows (taken by the host, which
@@ -758,6 +771,9 @@ impl CraftApp {
             return Some(r);
         }
         if let Some(r) = preset::ui_command(self, id, p) {
+            return Some(r);
+        }
+        if let Some(r) = canvas::interact::sequence::ui_command(self, id, p) {
             return Some(r);
         }
         // The engine's search cannot see the `ui.*` commands; this one can, from every origin.

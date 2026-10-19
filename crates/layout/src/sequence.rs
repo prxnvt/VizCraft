@@ -9,8 +9,10 @@
 //! Columns are packed left to right with `column_gap` between heads, then pushed apart where a
 //! message label, a self message or a side note needs the room; with `keep_columns` the given
 //! centres stay and are only pushed apart. Rows: a message takes one row (taller for a tall
-//! label), a self message two, a fragment start a tab row, an operand separator a guard row, a
-//! fragment end half a row; activate and deactivate take none. Activation bars in `auto` mode:
+//! label), a self message two. A fragment's top, each operand separator and the fragment's
+//! bottom sit half a row below the row before them, and the first row of an operand one row below
+//! its top or separator, so rows stay evenly spaced and nothing touches a separator; activate
+//! and deactivate take none. Activation bars in `auto` mode:
 //! a synchronous call pushes a bar on its receiver one level deeper than the receiver's open
 //! bars, and a reply pops the innermost bar opened by a call from the replying lifeline's
 //! caller. The operands of forking operators start from the bars open at the fragment's start,
@@ -36,6 +38,11 @@ pub const FRAGMENT_PAD: f64 = 24.0;
 pub const NEST_PAD: f64 = 8.0;
 /// Gap between a note and its lifeline.
 pub const NOTE_GAP: f64 = 12.0;
+/// Height of a fragment's operator tab and of the guard band under a separator: what follows a
+/// fragment's top or a separator keeps clear of it.
+pub const TAB_H: f64 = 20.0;
+/// Clear space between a fragment's tab or guard and the nearest stem or activation bar.
+pub const GUARD_GAP: f64 = 6.0;
 
 /// What a message is.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -107,8 +114,14 @@ pub enum SeqEvent {
         forks: bool,
         /// Lifelines it spans; empty spans the lifelines its content touches.
         covers: Vec<usize>,
-        /// Width of the operator tab and first guard.
+        /// Narrowest frame, less 40.
         label: f64,
+        /// Width of the operator tab (0 for none); the tab sits left of the first covered stem.
+        #[serde(default)]
+        tab: f64,
+        /// Width of the first operand's guard text; guards sit right of the first covered stem.
+        #[serde(default)]
+        guard: f64,
     },
     /// The innermost fragment's next operand starts.
     Else {
@@ -195,6 +208,9 @@ pub struct SeqLayout {
     pub fragments: Vec<Rect>,
     /// Per `Open` event in order, the y of each operand separator.
     pub separators: Vec<Vec<f64>>,
+    /// Per `Open` event in order, the x its guards start at: clear of the first covered stem and
+    /// its activation bars, so no stem crosses a guard.
+    pub guards: Vec<f64>,
     /// Per `Note` event in order, the note's frame.
     pub notes: Vec<Rect>,
     /// Everything drawn.
@@ -225,8 +241,14 @@ struct OpenFrag {
     top: f64,
     /// The bars at the start, for forking operands.
     snapshot: Vec<Vec<usize>>,
-    /// Narrowest frame that holds the operator tab and the guards.
+    /// Narrowest frame.
     min_w: f64,
+    /// Width of the operator tab.
+    tab: f64,
+    /// Widest guard text.
+    guard_w: f64,
+    /// Leftmost and rightmost x of the fragments nested in it.
+    children: (f64, f64),
 }
 
 /// Lay out a sequence diagram. Errors: more than [`MAX_EVENTS`] events or
@@ -310,7 +332,39 @@ pub fn layout(input: &SeqInput, options: &SeqOptions) -> Result<SeqLayout, Layou
             }
         }
     };
+    // Per open fragment while columns are widened: its first covered column and widest guard.
+    let mut guard_room: Vec<(Option<usize>, f64)> = Vec::new();
+    let first_of = |stack: &mut Vec<(Option<usize>, f64)>, ls: &[usize]| {
+        for f in stack.iter_mut() {
+            for &l in ls {
+                f.0 = Some(f.0.map_or(l, |c| c.min(l)));
+            }
+        }
+    };
     for e in &input.events {
+        match e {
+            SeqEvent::Open { covers, guard, .. } => guard_room.push((covers.iter().copied().min(), lab(*guard))),
+            SeqEvent::Else { label } => {
+                if let Some(f) = guard_room.last_mut() {
+                    f.1 = f.1.max(lab(*label));
+                }
+            }
+            SeqEvent::Close => {
+                // A guard sits right of the first covered stem and its bars; the next stem stays
+                // clear of it.
+                if let Some((Some(first), gw)) = guard_room.pop()
+                    && gw > 0.0
+                {
+                    widen(&mut col, first, first.saturating_add(1), gw + 2.0 * GUARD_GAP + 2.0 * aw);
+                }
+            }
+            _ => {}
+        }
+        match e {
+            SeqEvent::Message { from, to, .. } => first_of(&mut guard_room, &[*from, *to]),
+            SeqEvent::Note { over, .. } => first_of(&mut guard_room, over.get(..over.len().min(2)).unwrap_or_default()),
+            _ => {}
+        }
         match e {
             SeqEvent::Message { from, to, sort, label } => {
                 let lw = lab(label.0);
@@ -318,7 +372,14 @@ pub fn layout(input: &SeqInput, options: &SeqOptions) -> Result<SeqLayout, Layou
                     let next = from.saturating_add(1);
                     widen(&mut col, *from, next, SELF_W + aw * 2.0 + lw + w(next) / 2.0 + 10.0);
                 } else {
-                    widen(&mut col, (*from).min(*to), (*from).max(*to), lw + 20.0 + aw * 2.0);
+                    let need = lw + 20.0 + aw * 2.0;
+                    widen(&mut col, (*from).min(*to), (*from).max(*to), need);
+                    // A message passing other lifelines puts its label in a clear stretch between
+                    // stems; the one by the sender is kept wide enough for it.
+                    if from.abs_diff(*to) > 1 {
+                        let (l, r) = if from < to { (*from, from.saturating_add(1)) } else { (from.saturating_sub(1), *from) };
+                        widen(&mut col, l, r, need);
+                    }
                 }
             }
             SeqEvent::Note { over, side, size } => {
@@ -351,6 +412,10 @@ pub fn layout(input: &SeqInput, options: &SeqOptions) -> Result<SeqLayout, Layou
     let mut callers: Vec<Option<usize>> = Vec::new();
     let mut stacks: Vec<Vec<usize>> = vec![Vec::new(); n];
     let mut frags: Vec<OpenFrag> = Vec::new();
+    // The last row was a fragment's top or a separator: what follows keeps clear of its tab and
+    // guard band.
+    let mut after_guard = false;
+    let half = |after: bool| if after { (row / 2.0).max(TAB_H + GUARD_GAP) } else { row / 2.0 };
     let edge = |stacks: &Vec<Vec<usize>>, acts: &Vec<SeqActivation>, l: usize, right: bool| -> f64 {
         let c = cx(l);
         match stacks.get(l).and_then(|s| s.last()).and_then(|&b| acts.get(b)) {
@@ -374,6 +439,10 @@ pub fn layout(input: &SeqInput, options: &SeqOptions) -> Result<SeqLayout, Layou
     for e in &input.events {
         let mut route = Vec::new();
         let at;
+        let guard_before = after_guard;
+        if !matches!(e, SeqEvent::Activate(_) | SeqEvent::Deactivate(_)) {
+            after_guard = false;
+        }
         match e {
             SeqEvent::Message { from, to, sort, label } => {
                 let (a, b) = (*from, *to);
@@ -449,13 +518,16 @@ pub fn layout(input: &SeqInput, options: &SeqOptions) -> Result<SeqLayout, Layou
                 let hi = if self_msg { hi + lw } else { hi };
                 touch(&mut frags, &[a, b], (lo, hi));
             }
-            SeqEvent::Open { forks, covers, label } => {
-                let top = y + 8.0;
+            SeqEvent::Open { forks, covers, label, tab, guard } => {
+                // Half a row below the last row; the first row inside comes one row below the top.
+                let top = y + half(guard_before);
                 at = top;
-                y = top + row * 0.8;
+                y = top;
+                after_guard = true;
                 let index = out.fragments.len();
                 out.fragments.push(Rect::new(0.0, top, 0.0, 0.0));
                 out.separators.push(Vec::new());
+                out.guards.push(0.0);
                 let snapshot = if *forks { stacks.clone() } else { Vec::new() };
                 let lw = lab(*label);
                 frags.push(OpenFrag {
@@ -468,14 +540,20 @@ pub fn layout(input: &SeqInput, options: &SeqOptions) -> Result<SeqLayout, Layou
                     top,
                     snapshot,
                     min_w: lw + 40.0,
+                    tab: lab(*tab),
+                    guard_w: lab(*guard),
+                    children: (f64::INFINITY, f64::NEG_INFINITY),
                 });
             }
             SeqEvent::Else { label } => {
-                let sep = y + 8.0;
+                // Half a row below the operand's last row; the next operand's first row comes one
+                // row below it.
+                let sep = y + half(guard_before);
                 at = sep;
-                y = sep + row * 0.8;
+                y = sep;
+                after_guard = true;
                 if let Some(f) = frags.last_mut() {
-                    f.min_w = f.min_w.max(lab(*label) + 20.0);
+                    f.guard_w = f.guard_w.max(lab(*label));
                 }
                 if let Some(f) = frags.last() {
                     if let Some(s) = out.separators.get_mut(f.index) {
@@ -499,7 +577,8 @@ pub fn layout(input: &SeqInput, options: &SeqOptions) -> Result<SeqLayout, Layou
                 }
             }
             SeqEvent::Close => {
-                let bottom = y + row / 2.0;
+                // Half a row below the last operand's last row.
+                let bottom = y + half(guard_before);
                 at = bottom;
                 y = bottom;
                 if let Some(f) = frags.pop() {
@@ -509,17 +588,12 @@ pub fn layout(input: &SeqInput, options: &SeqOptions) -> Result<SeqLayout, Layou
                             ls.push(c);
                         }
                     }
-                    let pad = FRAGMENT_PAD + NEST_PAD * f.levels as f64;
-                    let mut x0 = ls.iter().map(|&l| cx(l)).fold(f.extra.0, f64::min);
-                    let mut x1 = ls.iter().map(|&l| cx(l)).fold(f.extra.1, f64::max);
-                    if !x0.is_finite() || !x1.is_finite() {
-                        x0 = cx(0);
-                        x1 = cx(0);
+                    let r = frame(&f, &ls, bottom, &FrameCtx { cx: &cx, acts: &out.activations, stacks: &stacks, aw, gap });
+                    if let Some(slot) = out.fragments.get_mut(f.index) {
+                        *slot = r.rect;
                     }
-                    x0 -= pad;
-                    x1 = (x1 + pad).max(x0 + f.min_w);
-                    if let Some(r) = out.fragments.get_mut(f.index) {
-                        *r = Rect::new(x0, f.top, (x1 - x0).max(0.0), (bottom - f.top).max(0.0));
+                    if let Some(slot) = out.guards.get_mut(f.index) {
+                        *slot = r.guard_x;
                     }
                     if let Some(parent) = frags.last_mut() {
                         parent.levels = parent.levels.max(f.levels + 1);
@@ -529,12 +603,13 @@ pub fn layout(input: &SeqInput, options: &SeqOptions) -> Result<SeqLayout, Layou
                             }
                         }
                         parent.extra = (parent.extra.0.min(f.extra.0), parent.extra.1.max(f.extra.1));
+                        parent.children = (parent.children.0.min(r.rect.x), parent.children.1.max(r.rect.right()));
                     }
                 }
             }
             SeqEvent::Note { over, side, size } => {
                 let (nw, nh) = (lab(size.0).max(1.0), lab(size.1).max(1.0));
-                let top = y + 8.0;
+                let top = y + if guard_before { TAB_H + GUARD_GAP } else { 8.0 };
                 at = top;
                 let a = over.first().copied().unwrap_or(0);
                 let b = over.get(1).copied().unwrap_or(a);
@@ -632,11 +707,77 @@ pub fn layout(input: &SeqInput, options: &SeqOptions) -> Result<SeqLayout, Layou
         for p in out.routes.iter_mut().flatten() {
             p.x += dx;
         }
+        out.guards.iter_mut().for_each(|g| *g += dx);
         x1 += dx;
         x0 = 0.0;
     }
     out.bounds = Rect::new(x0, 0.0, (x1 - x0).max(0.0), y1.max(bottom));
     Ok(out)
+}
+
+/// What [`frame`] reads besides the fragment.
+struct FrameCtx<'a, F: Fn(usize) -> f64> {
+    cx: &'a F,
+    acts: &'a [SeqActivation],
+    stacks: &'a [Vec<usize>],
+    aw: f64,
+    gap: f64,
+}
+
+/// A closed fragment's frame and where its guards start.
+struct Frame {
+    rect: Rect,
+    guard_x: f64,
+}
+
+/// The frame of fragment `f` over lifelines `ls`, from its top to `bottom`: at least half a column
+/// gap past its outermost stems (more per level of nesting inside it), clear of their activation
+/// bars and of the fragments nested in it, with the operator tab left of the first covered stem
+/// and the guards right of that stem and its bars, so no stem or bar crosses either.
+fn frame<F: Fn(usize) -> f64>(f: &OpenFrag, ls: &[usize], bottom: f64, c: &FrameCtx<'_, F>) -> Frame {
+    let cx = c.cx;
+    let pad = FRAGMENT_PAD.max(c.gap / 2.0) + NEST_PAD * f.levels as f64;
+    // Bars on the covered lifelines that overlap the frame (still open ones count from their top).
+    let bar_x = |l: usize, a: &SeqActivation| {
+        let shift = (a.depth.saturating_sub(1)) as f64 * c.aw / 2.0;
+        (cx(l) - c.aw / 2.0 + shift, cx(l) + c.aw / 2.0 + shift)
+    };
+    let mut bars = (f64::INFINITY, f64::NEG_INFINITY);
+    let first = ls.iter().copied().min_by(|a, b| cx(*a).total_cmp(&cx(*b)));
+    let mut first_bars = (f64::INFINITY, f64::NEG_INFINITY);
+    for (bi, a) in c.acts.iter().enumerate() {
+        if !ls.contains(&a.lifeline) {
+            continue;
+        }
+        let open = c.stacks.get(a.lifeline).is_some_and(|s| s.contains(&bi));
+        if a.y0 > bottom || (a.y1 < f.top && !open) {
+            continue;
+        }
+        let (l, r) = bar_x(a.lifeline, a);
+        bars = (bars.0.min(l), bars.1.max(r));
+        if Some(a.lifeline) == first {
+            first_bars = (first_bars.0.min(l), first_bars.1.max(r));
+        }
+    }
+    let stems = ls.iter().map(|&l| cx(l));
+    let (mut lo, mut hi) = (stems.clone().fold(f.extra.0, f64::min), stems.fold(f.extra.1, f64::max));
+    if !lo.is_finite() || !hi.is_finite() {
+        lo = cx(0);
+        hi = cx(0);
+    }
+    let first_x = first.map_or(lo, cx);
+    let mut x0 = lo - pad;
+    x0 = x0.min(bars.0 - NEST_PAD).min(f.children.0 - NEST_PAD);
+    // The tab ends left of the first stem and its bars.
+    if f.tab > 0.0 {
+        x0 = x0.min(first_x.min(first_bars.0) - GUARD_GAP - f.tab);
+    }
+    let guard_x = first_x.max(first_bars.1) + GUARD_GAP;
+    let mut x1 = (hi + pad).max(bars.1 + NEST_PAD).max(f.children.1 + NEST_PAD).max(x0 + f.min_w).max(x0 + f.tab + 8.0);
+    if f.guard_w > 0.0 {
+        x1 = x1.max(guard_x + f.guard_w + 8.0);
+    }
+    Frame { rect: Rect::new(x0, f.top, (x1 - x0).max(0.0), (bottom - f.top).max(0.0)), guard_x }
 }
 
 /// Open a bar on `l`, one level deeper than its open bars.

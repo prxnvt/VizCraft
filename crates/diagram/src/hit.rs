@@ -36,6 +36,11 @@ pub fn shape_contains(shape: &Shape, p: Point, tolerance: f64) -> bool {
         return false;
     }
     let t = tol(tolerance);
+    // A lifeline's head box and stem, tested before the outline's bounds: an actor's outline is
+    // only its head circle, narrower than the figure and its name.
+    if crate::sequence::stem_hit(shape, p, t) {
+        return true;
+    }
     if !shape.bounds().inflate(t).contains(p) {
         return false;
     }
@@ -124,7 +129,11 @@ pub fn band_at(page: &Page, p: Point, tolerance: f64) -> Option<BandHit> {
 }
 
 /// The index of `shape`'s connection point nearest `p`, if within `tolerance`.
+/// A lifeline offers none: glue to it is always dynamic, and settle places the message ends.
 pub fn connection_point_at(shape: &Shape, p: Point, tolerance: f64) -> Option<usize> {
+    if matches!(shape.kind, crate::kind::ShapeKind::Lifeline | crate::kind::ShapeKind::ActorLifeline) {
+        return None;
+    }
     let t = tol(tolerance);
     let pts = shape.connection_points_world();
     crate::route::nearest_point(&pts, p).filter(|i| pts.get(*i).is_some_and(|q| q.distance(p) <= t))
@@ -219,6 +228,22 @@ mod tests {
         assert_eq!(ids(shapes_in_rect(&p, all())), vec!["under"]);
         assert!(p.shape("top").is_some(), "still there by id");
         assert_eq!(glue_shape_at(&p, at, 1.0).map(|s| s.id.as_str()), Some("top"), "glue is not a click");
+    }
+
+    #[test]
+    fn a_lifeline_is_hit_on_its_stem_and_offers_no_points() {
+        let mut s = Shape::new("l", ShapeKind::Lifeline, 0.0, 0.0, 100.0, 300.0);
+        s.connection_points = crate::sequence::frame_points();
+        s.sanitize();
+        assert!(shape_contains(&s, Point::new(20.0, 20.0), 0.0), "the head");
+        assert!(shape_contains(&s, Point::new(52.0, 200.0), 3.0), "the stem");
+        assert!(!shape_contains(&s, Point::new(20.0, 200.0), 3.0), "beside the stem");
+        assert_eq!(connection_point_at(&s, Point::new(50.0, 0.0), 5.0), None);
+        let mut actor = Shape::new("a", ShapeKind::ActorLifeline, 0.0, 0.0, 100.0, 300.0);
+        actor.sanitize();
+        assert!(shape_contains(&actor, Point::new(2.0, 60.0), 0.0), "an actor's name band, outside its head circle");
+        let r = Shape::new("r", ShapeKind::Rectangle, 0.0, 0.0, 100.0, 300.0);
+        assert!(!shape_contains(&s, Point::new(52.0, 400.0), 3.0) && shape_contains(&r, Point::new(52.0, 200.0), 0.0));
     }
 
     #[test]

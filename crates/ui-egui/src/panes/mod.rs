@@ -24,6 +24,7 @@
 
 mod layout;
 mod manager;
+mod sequence_section;
 
 /// Declares the default panes' modules and [`panes`]'s default list, in Window menu order. Each
 /// pane module has a `SPEC` constant.

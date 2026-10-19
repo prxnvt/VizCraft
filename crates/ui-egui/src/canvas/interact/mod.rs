@@ -24,6 +24,7 @@ pub mod membership;
 pub mod nets;
 pub mod painter;
 pub mod select;
+pub mod sequence;
 pub mod text_block;
 pub mod tools;
 pub mod wire;
@@ -85,6 +86,9 @@ pub enum Drag {
     TextBlock { id: String, grab: text_block::BlockGrab, to: Point, shift: bool },
     /// Drawing a wire (a pipe with `pipe`) from `from` with the Wire tool.
     Wire { from: wire::WireEnd, to: Point, pipe: bool },
+    /// A drag on a Sequence page: reordering, moving a column, drawing a message or moving a
+    /// separator.
+    Sequence(sequence::SeqDrag),
 }
 
 fn round(v: f64) -> f64 {
@@ -145,7 +149,7 @@ pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D
                 if !app.session.sel.items.contains(&id) {
                     run(app, "edit.select", json!({"ids": [id], "add": add}));
                 }
-                Some(Drag::Move { ids: app.session.sel.items.clone(), from: o, to: o })
+                Some(sequence::move_drag(app, o).unwrap_or(Drag::Move { ids: app.session.sel.items.clone(), from: o, to: o }))
             }
             None => None,
         };
@@ -176,6 +180,7 @@ pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D
                 *snap = m.shift;
             }
             Some(Drag::Lasso { points, .. }) => select::extend_lasso(points, w, zoom),
+            Some(Drag::Sequence(d)) => d.set_to(w),
             None => {}
         }
     }
@@ -189,7 +194,9 @@ pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D
             text_block::double_click(app, vp, p);
         }
     } else if response.double_clicked_by(egui::PointerButton::Primary) && matches!(app.tool, Tool::Pointer | Tool::Lasso) {
-        if let (Some(p), Some(page)) = (response.interact_pointer_pos(), app.session.doc.page())
+        let sequence_took = response.interact_pointer_pos().is_some_and(|p| sequence::double_click(app, vp, p));
+        if !sequence_took
+            && let (Some(p), Some(page)) = (response.interact_pointer_pos(), app.session.doc.page())
             && let Some(h) = dg::hit(page, point(vp.screen_to_world(p)), f64::from(HIT / zoom))
         {
             edit_text::start_editing_at(app, h, point(vp.screen_to_world(p)));

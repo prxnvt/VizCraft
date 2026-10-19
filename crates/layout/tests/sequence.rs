@@ -16,7 +16,7 @@ fn run(n: usize, events: Vec<SeqEvent>) -> SeqLayout {
 }
 
 fn open(forks: bool) -> SeqEvent {
-    SeqEvent::Open { forks, covers: Vec::new(), label: 40.0 }
+    SeqEvent::Open { forks, covers: Vec::new(), label: 40.0, tab: 30.0, guard: 40.0 }
 }
 
 #[test]
@@ -195,4 +195,36 @@ fn the_primitive_puts_heads_in_a_row() {
     assert!(l.nodes.iter().all(|p| p.y.abs() < 1e-9));
     assert!(layout_primitive(&graph, &Primitive::Sequence { lifelines: Some(vec![0, 0]) }, &Options::default()).is_err());
     assert!(layout_primitive(&graph, &Primitive::Sequence { lifelines: None }, &Options::default()).is_ok());
+}
+
+#[test]
+fn a_fragment_keeps_its_tab_and_guards_clear_of_stems_and_bars_and_spaces_operands_evenly() {
+    // A call into lifeline 1 opens a bar that runs through an alt over lifelines 1 and 2.
+    let events = vec![
+        msg(0, 1, MessageSort::Sync),
+        SeqEvent::Open { forks: true, covers: Vec::new(), label: 0.0, tab: 40.0, guard: 50.0 },
+        msg(1, 2, MessageSort::Async),
+        SeqEvent::Else { label: 200.0 },
+        msg(1, 2, MessageSort::Async),
+        SeqEvent::Close,
+        msg(1, 0, MessageSort::Reply),
+    ];
+    let l = run(3, events);
+    let (f, gx) = (l.fragments[0], l.guards[0]);
+    let bar = l.activations.iter().find(|a| a.lifeline == 1).unwrap();
+    let (bar_l, bar_r) = (l.columns[1] - 5.0, l.columns[1] + 5.0);
+    assert!(bar.y0 < f.y && bar.y1 > f.bottom(), "the bar runs through the frame");
+    assert!(f.x + 40.0 <= bar_l - 6.0 + 1e-9, "the tab ends left of the first stem's bar: {f:?}");
+    assert!(l.columns[1] - f.x >= 30.0 - 1e-9 && f.right() - l.columns[2] >= 30.0 - 1e-9, "half a column gap past the stems");
+    assert!(gx >= bar_r + 6.0 - 1e-9, "guards start right of the bar");
+    assert!(l.columns[2] >= gx + 200.0, "the next stem is pushed past the widest guard");
+    let (top, sep, bottom) = (f.y, l.separators[0][0], f.bottom());
+    let row = 36.0;
+    for (got, want) in [(l.rows[2] - top, row), (sep - l.rows[2], row / 2.0), (l.rows[4] - sep, row), (bottom - l.rows[4], row / 2.0)] {
+        assert!((got - want).abs() < 1e-9, "{got} != {want}");
+    }
+    // An empty operand and a nested fragment keep clear of the tab and guard band.
+    let l = run(2, vec![open(true), open(false), msg(0, 1, MessageSort::Async), SeqEvent::Close, SeqEvent::Else { label: 0.0 }, SeqEvent::Close]);
+    assert!(l.fragments[1].y - l.fragments[0].y >= 26.0 - 1e-9);
+    assert!(l.fragments[0].bottom() - l.separators[0][0] >= 26.0 - 1e-9);
 }
