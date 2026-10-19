@@ -27,6 +27,10 @@ const TILE: egui::Vec2 = egui::vec2(66.0, 66.0);
 /// ones are lines.
 fn master_preview(painter: &egui::Painter, m: &vizcraft_stencils::Master, r: Rect) {
     use crate::canvas::draw::{color, pos};
+    // The fork and join bars are one drawing; the palette shows their flows instead.
+    if let Some(join) = crate::icons::fork_join_master(m.id) {
+        return crate::icons::paint_fork_join(painter, r.expand2(vec2(-6.0, 0.0)), join, color(m.style.line));
+    }
     let (w, h) = (m.w.max(1.0), m.h.max(1.0));
     let k = (f64::from(r.width()) / w).min(f64::from(r.height()) / h);
     let (w, h) = (w * k, h * k);
@@ -233,7 +237,14 @@ fn item_row_in(app: &mut CraftApp, ui: &mut Ui, item: &Item, show_pack: bool) {
         ui.painter().with_clip_rect(r).text(pos2(r.right() - 6.0, r.center().y), egui::Align2::RIGHT_CENTER, &item.pack, regular(11.0), t.text_dim);
     }
     let tip = match what {
-        What::Master(m) => m.label,
+        // The type's description when the pack has one (Fork: splits one flow into concurrent
+        // flows), else the label.
+        What::Master(m) => item
+            .type_id
+            .and_then(|t| vizcraft_notation::catalog().element_type(t))
+            .map(|(_, et)| et.description.as_str())
+            .filter(|d| !d.is_empty())
+            .unwrap_or(m.label),
         What::Kind(_) => "Draw connectors of this kind",
         What::Builder(b) => b.description,
     };

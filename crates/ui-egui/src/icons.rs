@@ -1593,9 +1593,54 @@ pub fn master_rings(r: Rect, m: &vizcraft_stencils::Master) -> Vec<(Vec<Pos2>, b
         .collect()
 }
 
+/// Whether master `id` is the UML fork bar (`Some(false)`) or join bar (`Some(true)`). UML draws
+/// both as the same bar on the canvas, so their small icons show the flows instead.
+pub fn fork_join_master(id: &str) -> Option<bool> {
+    match id {
+        "uml.forkNode" => Some(false),
+        "uml.joinNode" => Some(true),
+        _ => None,
+    }
+}
+
+/// The fork and join icon fitted inside `r`: a bar across the middle with one line on one side
+/// and three on the other, arrowheads showing the way the flow goes. A fork has one line in
+/// (above the bar) and several out; a join has several in and one out. The picture shows the
+/// direction the two bars on the canvas share.
+pub fn paint_fork_join(p: &Painter, r: Rect, join: bool, c: Color32) {
+    let side = r.width().min(r.height());
+    let line = Stroke::new(stroke_width(side), c);
+    let (cx, cy) = (r.center().x, r.center().y);
+    let half_w = r.width() * 0.46;
+    let reach = r.height() * 0.46;
+    let bar = Rect::from_center_size(Pos2::new(cx, cy), vec2(half_w * 2.0, (r.height() * 0.14).max(1.5)));
+    p.rect_filled(bar, 0.0, c);
+    // The single line sits at the centre; the three are spread across the bar.
+    let single_x = [cx];
+    let three_x = [cx - half_w * 0.7, cx, cx + half_w * 0.7];
+    let (top_x, bottom_x): (&[f32], &[f32]) = if join { (&three_x, &single_x) } else { (&single_x, &three_x) };
+    let head = (side * 0.16).max(1.5);
+    for x in top_x {
+        // Flows arrive at the bar from above, with the head touching it.
+        let (y0, y1) = (cy - reach, bar.top());
+        p.line_segment([Pos2::new(*x, y0), Pos2::new(*x, y1)], line);
+        p.add(Shape::convex_polygon(vec![Pos2::new(*x, y1), Pos2::new(*x - head * 0.6, y1 - head), Pos2::new(*x + head * 0.6, y1 - head)], c, Stroke::NONE));
+    }
+    for x in bottom_x {
+        // Flows leave the bar below, ending in a head.
+        let (y0, y1) = (bar.bottom(), cy + reach);
+        p.line_segment([Pos2::new(*x, y0), Pos2::new(*x, y1)], line);
+        p.add(Shape::convex_polygon(vec![Pos2::new(*x, y1), Pos2::new(*x - head * 0.6, y1 - head), Pos2::new(*x + head * 0.6, y1 - head)], c, Stroke::NONE));
+    }
+}
+
 /// Paint master `m` fitted inside `r`: a path or builder glyph by its own outline (so it no
-/// longer shows as a generic box), any other master as [`paint_kind`] draws its kind.
+/// longer shows as a generic box), any other master as [`paint_kind`] draws its kind. The fork
+/// and join bars show their flows (see [`paint_fork_join`]).
 pub fn paint_master(p: &Painter, r: Rect, m: &vizcraft_stencils::Master, c: Color32, a: Color32) {
+    if let Some(join) = fork_join_master(m.id) {
+        return paint_fork_join(p, r, join, c);
+    }
     if m.path.is_none() {
         return paint_kind(p, r, m.kind, m.w as f32, m.h as f32, c, a);
     }
