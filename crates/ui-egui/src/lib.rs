@@ -146,7 +146,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "ui.tool",
         "Tool",
         "",
-        r#"{"tool": "pointer|area|lasso|connector|text|textBlock|formatPainter|crop|pen|highlighter|eraser|wire|pipe", "from"?: id, "keep"?: bool, "kind"?: connector kind id}; kind makes the connector tool draw that kind (any other tool or no kind clears it); area is the pointer's marquee; formatPainter copies from "from" (default: the primary selection), once unless "keep""#,
+        r#"{"tool": "pointer|area|lasso|connector|text|textBlock|formatPainter|crop|pen|highlighter|eraser|wire|pipe|steps", "from"?: id, "keep"?: bool, "kind"?: connector kind id}; kind makes the connector tool draw that kind (any other tool or no kind clears it); area is the pointer's marquee; steps numbers connectors (a click sets the next step, Shift-click clears it, Escape returns to the pointer); formatPainter copies from "from" (default: the primary selection), once unless "keep""#,
     ),
     ("ui.find", "Find", "Mod+F", "{}"),
     // Engineering keys: bare letters, as in electrical CAD; they fire only while the canvas has
@@ -333,6 +333,9 @@ pub enum Tool {
         /// Draw pipes (net kind `pipe`, tees without a dot) instead of wires.
         pipe: bool,
     },
+    /// Number connectors: a click on one runs `connector.setStep` with the next free number, a
+    /// Shift-click clears its step (`canvas/interact/steps.rs`).
+    Steps,
 }
 
 impl Tool {
@@ -351,6 +354,7 @@ impl Tool {
             Tool::Eraser => "eraser",
             Tool::Wire { pipe: false } => "wire",
             Tool::Wire { pipe: true } => "pipe",
+            Tool::Steps => "steps",
         }
     }
     /// The tool for a `ui.tool` name.
@@ -369,6 +373,7 @@ impl Tool {
             "eraser" => Some(Tool::Eraser),
             "wire" => Some(Tool::Wire { pipe: false }),
             "pipe" => Some(Tool::Wire { pipe: true }),
+            "steps" => Some(Tool::Steps),
             _ => None,
         }
     }

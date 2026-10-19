@@ -26,6 +26,7 @@ pub mod membership;
 pub mod nets;
 pub mod painter;
 pub mod select;
+pub mod steps;
 pub mod text_block;
 pub mod tools;
 pub mod wire;
@@ -128,6 +129,9 @@ pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D
     if links::pointer(app, ui, response, vp) {
         return;
     }
+    if steps::pointer(app, ui, response, vp) {
+        return;
+    }
     if crop::pointer(app, ui, response, vp) || ink::pointer(app, ui, response, vp) {
         return;
     }
@@ -222,7 +226,7 @@ fn cursor(app: &CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D) {
         (Some(Drag::Move { .. }), _) => egui::CursorIcon::Grabbing,
         (Some(Drag::Connect { .. } | Drag::Reglue { .. } | Drag::Wire { .. }), _) => egui::CursorIcon::Crosshair,
         (Some(_), _) => return,
-        (None, Tool::Connector | Tool::Wire { .. }) => egui::CursorIcon::Crosshair,
+        (None, Tool::Connector | Tool::Wire { .. } | Tool::Steps) => egui::CursorIcon::Crosshair,
         (None, Tool::Text) => egui::CursorIcon::Text,
         (None, Tool::FormatPainter { .. }) => egui::CursorIcon::Copy,
         (None, Tool::TextBlock) => egui::CursorIcon::Move,

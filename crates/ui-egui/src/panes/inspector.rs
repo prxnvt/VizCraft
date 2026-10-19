@@ -20,6 +20,8 @@ use vizcraft_diagram::data::{self, DataType};
 use vizcraft_engine::cmd::data::{RowView, rows_of};
 use vizcraft_engine::cmd::inspector::{check, describe};
 
+mod relationship;
+
 use super::{PaneSpec, Side};
 use crate::CraftApp;
 use crate::theme::Tokens;
@@ -256,6 +258,11 @@ fn properties_tab(app: &CraftApp, ui: &mut Ui, t: &Tokens, st: &InspectorState, 
         section(ui, "connector-net", "Net", false, |ui| net_section(ui, t, id, net.as_ref(), runs));
     } else if ids.is_empty() {
         ui.label(RichText::new("Select a shape to inspect it.").color(t.text_dim));
+    }
+    if extra.key.get("id").is_some_and(|k| !k.is_null())
+        && let Some(reference) = relationship::key_ref(app)
+    {
+        section(ui, "key", "Key", false, |ui| relationship::include_in_key(ui, t, &extra.key, &reference, runs));
     }
     if let Some(d) = &desc {
         if d.get("element").is_some_and(|e| !e.is_null()) {
@@ -639,6 +646,8 @@ pub struct Extra {
     pub connector: Option<(String, Option<Value>)>,
     /// `doc.properties`: the title block fields every loaded pack declares.
     pub doc_props: Value,
+    /// `key.get` of the active page: its key's id, rows and excluded ids (id null without a key).
+    pub key: Value,
 }
 
 impl Extra {
@@ -668,12 +677,13 @@ impl Extra {
         };
         let symbol = symbol_id.map(|one| read(format!("glyph|{one}"), "glyph.params", json!({"id": one}))).filter(|v| v.is_object());
         let doc_props = read("doc".into(), "doc.properties", json!({}));
+        let key = read("key".into(), "key.get", json!({}));
         let connector = sel_connector.map(|one| {
             let net = read(format!("net|{one}"), "net.of", json!({"connector": one}));
             let net = Some(net["net"].clone()).filter(Value::is_object);
             (one, net)
         });
-        Extra { symbol, connector, doc_props }
+        Extra { symbol, connector, doc_props, key }
     }
 }
 

@@ -242,6 +242,7 @@ pub fn status_items(app: &CraftApp) -> Vec<String> {
     let mut out = Vec::new();
     out.extend(interact::nets::status(app));
     out.extend(draw::highlights::status(app));
+    out.extend(interact::steps::status(app));
     if let (Some(page), Some(p)) = (app.session.doc.page(), app.canvas.pointer_world)
         && let Some(z) = dg::sheet::zone_of(page, p)
     {

@@ -12,6 +12,8 @@ groups! {
     viewpoint,
     variant,
     check,
+    key,
+    steps,
 }
 
 /// The pack of the active page's viewpoint.

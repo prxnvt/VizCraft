@@ -62,6 +62,8 @@ pub fn keys(app: &mut CraftApp, ctx: &egui::Context) {
                 if let crate::Tool::FormatPainter { .. } = app.tool {
                     app.tool = crate::Tool::Pointer;
                     app.canvas.painter_from = None;
+                } else if app.tool == crate::Tool::Steps {
+                    app.tool = crate::Tool::Pointer;
                 } else if let crate::Tool::Wire { .. } = app.tool {
                     app.canvas.drag = None;
                     app.tool = crate::Tool::Pointer;

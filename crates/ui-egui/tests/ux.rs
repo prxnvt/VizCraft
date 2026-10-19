@@ -527,3 +527,94 @@ fn a_band_filled_from_properties_opens_the_inspector_instead_of_an_editor() {
     assert!(h.state().ui.panes.is_open("shapeData"), "the Inspector is open");
     assert_eq!(h.state().ui.inspector.tab, vizcraft_ui_egui::panes::InspectorTab::Properties);
 }
+
+fn click_with(h: &mut Harness<'_, CraftApp>, p: Pos2, m: Modifiers) {
+    h.event(Event::PointerMoved(p));
+    h.run_steps(1);
+    h.event(Event::ModifiersChanged(m));
+    h.event(Event::PointerButton { pos: p, button: PointerButton::Primary, pressed: true, modifiers: m });
+    h.run_steps(1);
+    h.event(Event::PointerButton { pos: p, button: PointerButton::Primary, pressed: false, modifiers: m });
+    h.event(Event::ModifiersChanged(Modifiers::NONE));
+    h.run_steps(3);
+}
+
+/// The screen point at the middle of connector `id`'s route.
+fn connector_point(h: &Harness<'_, CraftApp>, id: &str) -> Pos2 {
+    let page = h.state().session.doc.page().unwrap();
+    let g = vizcraft_diagram::connector_geometry(page, page.connector(id).unwrap());
+    let n = g.polyline.len();
+    let (a, b) = (g.polyline[n / 2 - 1], g.polyline[n / 2]);
+    to_screen(h, vizcraft_diagram::Point::new((a.x + b.x) / 2.0, (a.y + b.y) / 2.0))
+}
+
+fn steps_of(h: &Harness<'_, CraftApp>) -> Vec<u16> {
+    h.state().session.doc.page().unwrap().connectors.iter().map(|c| c.step).collect()
+}
+
+#[test]
+fn the_steps_tool_numbers_connectors_and_shift_click_clears() {
+    let mut h = from_template("cloud.topology");
+    let ids: Vec<String> = h.state().session.doc.page().unwrap().connectors.iter().map(|c| c.id.clone()).collect();
+    assert!(ids.len() >= 3);
+    run(&mut h, "connector.renumberSteps", json!({}));
+    for id in &ids {
+        run(&mut h, "connector.setStep", json!({"id": id, "step": null}));
+    }
+    let first_shape = h.state().session.doc.page().unwrap().connectors[0].start.shape().unwrap().to_string();
+    centre_view_on(&mut h, &first_shape);
+    run(&mut h, "ui.tool", json!({"tool": "steps"}));
+    assert_eq!(h.state().tool.name(), "steps");
+    // Click three connectors in an order of our choosing.
+    for id in [&ids[2], &ids[0], &ids[1]] {
+        run(&mut h, "view.zoomFit", json!({}));
+        let p = connector_point(&h, id);
+        click_with(&mut h, p, Modifiers::NONE);
+    }
+    let steps = steps_of(&h);
+    assert_eq!((steps[2], steps[0], steps[1]), (1, 2, 3), "{steps:?}");
+    // Shift-click clears one.
+    run(&mut h, "view.zoomFit", json!({}));
+    let p = connector_point(&h, &ids[0]);
+    click_with(&mut h, p, Modifiers::SHIFT);
+    assert_eq!(steps_of(&h)[0], 0);
+    // Renumber closes the gap.
+    run(&mut h, "connector.renumberSteps", json!({}));
+    let steps = steps_of(&h);
+    assert_eq!((steps[2], steps[1]), (1, 2), "{steps:?}");
+    // Escape returns to the pointer.
+    key(&mut h, Key::Escape);
+    assert_eq!(h.state().tool.name(), "pointer");
+}
+
+#[test]
+fn the_notation_tab_has_key_and_steps_groups() {
+    let h = from_template("cloud.topology");
+    let tabs = vizcraft_ui_egui::ribbon::tabs(h.state());
+    let tab = tabs.iter().find(|t| t.name == "Cloud Topology").expect("a Cloud tab");
+    let ids = tab.ids();
+    for id in ["key.insert", "key.refresh", "key.remove", "ui.tool", "connector.renumberSteps", "connector.setStep"] {
+        assert!(ids.contains(&id), "{id} in {ids:?}");
+    }
+    assert!(tab.groups.iter().any(|g| g.label == "Key") && tab.groups.iter().any(|g| g.label == "Steps"));
+}
+
+#[test]
+fn include_in_key_shrinks_the_key_in_one_undo_step() {
+    use egui_kittest::kittest::Queryable;
+    let mut h = from_template("cloud.topology");
+    run(&mut h, "key.insert", json!({}));
+    run(&mut h, "ui.pane", json!({"name": "shapeData", "value": true}));
+    let kg = run(&mut h, "key.get", json!({}));
+    let before = kg["rows"].as_array().unwrap().len();
+    assert!(before > 1);
+    let ty = kg["rows"].as_array().unwrap().iter().find(|r| r["kind"] == "type").expect("a type row")["ref"].as_str().unwrap().to_string();
+    let shape = shapes_of(&h, &ty)[0].clone();
+    select(&mut h, &[&shape]);
+    h.run_steps(3);
+    h.get_by_role_and_label(egui::accesskit::Role::CheckBox, "Include in key").click();
+    h.run_steps(3);
+    let after = run(&mut h, "key.get", json!({}))["rows"].as_array().unwrap().len();
+    assert!(after < before, "{before} -> {after}");
+    assert_eq!(h.state().session.undo_label(), Some("Insert Key"));
+}
