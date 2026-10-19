@@ -165,6 +165,8 @@ pub struct Gallery {
     pub notice: Option<String>,
     /// Previews still waiting to be built, as of the last frame.
     pub pending: usize,
+    /// Templates whose preview failed to build ("No preview"), as of the last frame.
+    pub failed: Vec<String>,
     /// Preview textures, as of the last frame.
     pub textures: usize,
     focus: bool,
@@ -510,6 +512,7 @@ pub fn inspect(app: &CraftApp) -> Value {
         o.insert("workspace".into(), json!(app.ui.preset.is_empty().then(|| workspace_choice(g))));
         o.insert("recent".into(), json!(app.ui.recent_templates));
         o.insert("textures".into(), json!(g.textures));
+        o.insert("failed".into(), json!(g.failed));
         o.insert("chips".into(), json!(rows(&g.rects.chips, "label")));
         o.insert("cards".into(), json!(rows(&g.rects.cards, "id")));
         o.insert("recentCards".into(), json!(rows(&g.rects.recent, "id")));
@@ -731,7 +734,7 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
         .and_then(|s| cards.iter().find(|c| c.id == *s).cloned().or_else(|| cards_for(None, None).into_iter().find(|c| c.id == *s)));
     let list_rect =
         if selected.is_some() { Rect::from_min_max(area.min, pos2((area.max.x - DETAILS_W - 16.0).max(area.min.x), area.max.y)) } else { area };
-    let mut pending = 0;
+    let mut tally = Tally::default();
     let mut chosen: Option<(String, bool)> = None;
     ui.scope_builder(egui::UiBuilder::new().max_rect(list_rect), |ui| {
         egui::ScrollArea::vertical().id_salt("gallery_cards").auto_shrink([false, false]).show(ui, |ui| {
@@ -755,7 +758,7 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
                 ui.add_space(4.0);
                 grid(ui, |ui| {
                     for c in &recent {
-                        let (r, got) = card(app, ui, c, true, &mut pending);
+                        let (r, got) = card(app, ui, c, true, &mut tally);
                         rects.recent.push((c.id.clone(), r));
                         if got.is_some() {
                             chosen = got.map(|d| (c.id.clone(), d));
@@ -775,7 +778,7 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
                 }
                 grid(ui, |ui| {
                     for c in group {
-                        let (r, got) = card(app, ui, c, false, &mut pending);
+                        let (r, got) = card(app, ui, c, false, &mut tally);
                         rects.cards.push((c.id.clone(), r));
                         if got.is_some() {
                             chosen = got.map(|d| (c.id.clone(), d));
@@ -793,7 +796,7 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
     if let Some(c) = &selected {
         let r = Rect::from_min_max(pos2(area.max.x - DETAILS_W, area.min.y), area.max);
         ui.scope_builder(egui::UiBuilder::new().max_rect(r), |ui| {
-            details(app, ui, c, &mut rects, &mut pending);
+            details(app, ui, c, &mut rects, &mut tally);
         });
     }
     ui.allocate_rect(area, Sense::hover());
@@ -806,7 +809,8 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
             let _ = create(app, &id, false);
         }
     }
-    app.gallery.pending = pending;
+    app.gallery.pending = tally.pending;
+    app.gallery.failed = tally.failed;
     app.gallery.textures = previews::textures(&ctx);
     app.gallery.rects = rects;
 }
@@ -880,8 +884,25 @@ fn workspace_row(app: &mut CraftApp, ui: &mut Ui) {
     });
 }
 
+/// Previews drawn this frame that wait for a build, and templates whose build failed.
+#[derive(Default)]
+struct Tally {
+    pending: usize,
+    failed: Vec<String>,
+}
+
+impl Tally {
+    fn count(&mut self, id: &str, d: Drawn) {
+        match d {
+            Drawn::Pending => self.pending += 1,
+            Drawn::Failed if !self.failed.iter().any(|f| f == id) => self.failed.push(id.to_string()),
+            _ => {}
+        }
+    }
+}
+
 /// One card. Returns its rect and `Some(double)` when it was clicked (double-clicked).
-fn card(app: &mut CraftApp, ui: &mut Ui, c: &Card, recent: bool, pending: &mut usize) -> (Rect, Option<bool>) {
+fn card(app: &mut CraftApp, ui: &mut Ui, c: &Card, recent: bool, tally: &mut Tally) -> (Rect, Option<bool>) {
     let t = Tokens::get(ui.ctx());
     let (r, resp) = ui.allocate_exact_size(CARD, Sense::click());
     let spoken = if recent { format!("{} (recent)", c.label) } else { c.label.clone() };
@@ -892,8 +913,8 @@ fn card(app: &mut CraftApp, ui: &mut Ui, c: &Card, recent: bool, pending: &mut u
     let pr = Rect::from_min_size(r.min + vec2(8.0, 8.0), vec2(r.width() - 16.0, PREVIEW_H));
     if c.blank_viewpoint.is_some() {
         previews::placeholder(ui, pr, &c.pack_name, &t);
-    } else if previews::draw(ui, pr, &c.id, &Choices::default(), &bar(app), &c.pack_name) == Drawn::Pending {
-        *pending += 1;
+    } else {
+        tally.count(&c.id, previews::draw(ui, pr, &c.id, &Choices::default(), &bar(app), &c.pack_name));
     }
     let clip = ui.painter().with_clip_rect(r.shrink2(vec2(8.0, 0.0)));
     clip.text(pos2(r.min.x + 10.0, r.min.y + PREVIEW_H + 20.0), Align2::LEFT_CENTER, &c.label, medium(13.0), t.text);
@@ -942,20 +963,18 @@ fn code_form_name(id: &str) -> String {
 
 /// The details panel of the selected card: a larger preview, the description, keywords and code
 /// forms, the Notation and Sheet choices, the unsaved-changes notice and Create.
-fn details(app: &mut CraftApp, ui: &mut Ui, c: &Card, rects: &mut Rects, pending: &mut usize) {
+fn details(app: &mut CraftApp, ui: &mut Ui, c: &Card, rects: &mut Rects, tally: &mut Tally) {
     let t = Tokens::get(ui.ctx());
     egui::Frame::NONE.fill(t.panel).stroke(Stroke::new(1.0, t.border)).corner_radius(6.0).inner_margin(12.0).show(ui, |ui| {
         ui.set_width(DETAILS_W - 26.0);
         ui.label(egui::RichText::new(&c.label).font(semibold(16.0)).color(t.text));
         ui.add_space(6.0);
-        let (pr, _) = ui.allocate_exact_size(vec2(ui.available_width(), 190.0), Sense::hover());
+        let (pr, _) = ui.allocate_exact_size(vec2(DETAILS_W - 26.0, 190.0), Sense::hover());
         if c.blank_viewpoint.is_some() {
             previews::placeholder(ui, pr, &c.pack_name, &t);
         } else {
             let choices = Choices { variant: app.gallery.variant.clone(), sheet: app.gallery.sheet.clone() };
-            if previews::draw(ui, pr, &c.id, &choices, &bar(app), &c.pack_name) == Drawn::Pending {
-                *pending += 1;
-            }
+            tally.count(&c.id, previews::draw(ui, pr, &c.id, &choices, &bar(app), &c.pack_name));
         }
         ui.add_space(6.0);
         if !c.description.is_empty() {
@@ -1019,7 +1038,7 @@ fn choices(app: &mut CraftApp, ui: &mut Ui, c: &Card) {
             }
         };
         let mut picked: Option<String> = None;
-        egui::ComboBox::new("gallery_notation", "Notation").selected_text(name(&current)).width(170.0).show_ui(ui, |ui| {
+        labelled_combo(ui, "Notation", "gallery_notation", name(&current), |ui| {
             for (id, label) in &c.variants {
                 if ui.selectable_label(current == *id, label).clicked() {
                     picked = Some(id.clone());
@@ -1044,7 +1063,7 @@ fn choices(app: &mut CraftApp, ui: &mut Ui, c: &Card) {
         };
         let mut picked: Option<Option<String>> = None;
         let presets = app.gallery.presets.clone();
-        egui::ComboBox::new("gallery_template_sheet", "Sheet").selected_text(current).width(230.0).show_ui(ui, |ui| {
+        labelled_combo(ui, "Sheet", "gallery_template_sheet", current, |ui| {
             if ui.selectable_label(app.gallery.sheet.is_none(), &project).clicked() {
                 picked = Some(None);
             }
@@ -1061,4 +1080,15 @@ fn choices(app: &mut CraftApp, ui: &mut Ui, c: &Card) {
             app.gallery.sheet = s;
         }
     }
+}
+
+/// A combo the width of the details panel with its name above it (painted; the combo itself
+/// carries the name for screen readers and tests).
+fn labelled_combo(ui: &mut Ui, name: &str, salt: &str, text: String, add: impl FnOnce(&mut Ui)) {
+    let t = Tokens::get(ui.ctx());
+    let (r, _) = ui.allocate_exact_size(vec2(ui.available_width(), 16.0), Sense::hover());
+    ui.painter().text(r.left_center(), Align2::LEFT_CENTER, name, regular(11.5), t.text_dim);
+    let resp = egui::ComboBox::from_id_salt(salt).selected_text(text).width(ui.available_width() - 4.0).truncate().show_ui(ui, add);
+    resp.response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, true, name));
+    ui.add_space(4.0);
 }
