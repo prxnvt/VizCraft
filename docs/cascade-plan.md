@@ -1483,6 +1483,24 @@ the full suite runs after every merge and snapshots are regenerated at the end o
 wave's checkpoint for the user is a CLI and control-channel checklist, since nothing is drawn by
 the canvas yet.
 
+## Block 6 wave 2: software packs (engine)
+
+State: briefs written on 2026-10-19 against the integration branch at a979a97, one per branch in
+[docs/briefs/b6-wave2/](briefs/b6-wave2/), each a planning agent's draft headed by resolutions.
+Engine only; `b6e-frontend` (the engineering drawing UI, pulled forward by the user) runs in its
+own session in `crates/ui-egui` at the same time and the user merges it into this branch.
+
+| Branch (port) | Starts | Engine scope |
+|---|---|---|
+| `b6-uml` (8063) | now | `uml.json` with `Pack.sections` (class, component, package, deployment, use case, activity, state machine), member rows, keyword lines, end labels from properties, four checks, seven templates, PlantUML writer, Mermaid class and state read and write, the general merge import of owners and typed relationships |
+| `b6-topology` (8067) | now | `cloud.json`, `network.json`, `dfd.json`, `allowedParents` nesting with an owner-sync pass, per-type container looks, step badges, `key.*` over `title_block::Block`, Mermaid architecture-beta read and write, six templates |
+| `b6-er` (8065) | after `b6-uml` merges | `er.json` with IE, Chen, Barker and IDEF1X variants, new ends, per-half dash and double lines, double outlines, owned column elements, the ER layout primitive, DBML read and write, Mermaid ER, `er.*` |
+| `b6-sequence` (8064) | after `b6-uml` merges | the sequence substrate (`Page.sequence` event list, lifeline kinds, settle pass), sequence layout, `sequence.*` commands, two order checks, Mermaid sequence read and write, PlantUML sequence, the sequence section of `uml.json` |
+
+At most three builds from this session at once. Merge order: uml, topology, er, sequence; the
+full suite after each; snapshots regenerated after the last merge and again after the
+`b6e-frontend` merge.
+
 ## Block 7: first deep packs (ROADMAP Cascade 6, three tracks)
 
 One agent per track at a time, three to five concurrent. ROADMAP 6 scope, plus TODO items that
