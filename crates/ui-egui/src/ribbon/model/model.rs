@@ -9,7 +9,7 @@ use crate::ribbon::{Group, Size};
 use crate::widgets::{menu_button_if, menu_item};
 
 /// The model elements the selected shapes draw, once each, in selection order.
-fn selected_elements(app: &CraftApp) -> Vec<String> {
+pub(super) fn selected_elements(app: &CraftApp) -> Vec<String> {
     let Some(page) = app.session.doc.page() else { return Vec::new() };
     let mut out: Vec<String> = Vec::new();
     for id in &app.session.sel.items {

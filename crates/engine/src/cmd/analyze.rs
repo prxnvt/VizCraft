@@ -38,7 +38,7 @@ pub fn specs() -> Vec<CommandSpec> {
         ),
         CommandSpec::new("analyze.clear", "Clear Analysis", LOCATION, clear).params(r#"{} -> {"cleared": bool}; drops the stored result"#),
         CommandSpec::new("model.diff", "Compare Model", LOCATION, diff).params(
-            r#"{"against"?: "saved"|"file", "path"?: string} -> {"elements": {"added", "removed", "changed": [{"id", "fields": [{"field", "before", "after"}]}]}, "relationships": same, "truncated", "summary"}; compares the model saved on disk (default: the document's own file; a path implies against file) with the current one, keyed by id, and stores it as the result of kind diff; against head is not supported yet"#,
+            r#"{"against"?: "saved"|"file", "path"?: string} -> {"elements": {"added", "removed", "changed": [{"id", "fields": [{"field", "before", "after"}]}]}, "relationships": same, "truncated", "summary", "ghosts": [{"id", "page", "pageName", "item", "kind": "shape"|"connector", "name", "rect"?: [x, y, w, h], "points"?: [[x, y]]}]}; ghosts are how the compared file drew the removed items; compares the model saved on disk (default: the document's own file; a path implies against file) with the current one, keyed by id, and stores it as the result of kind diff; against head is not supported yet"#,
         ),
     ]
 }
@@ -149,8 +149,14 @@ fn result_json(s: &Session, r: &AnalysisResult) -> CmdResult {
     let mut v = serde_json::to_value(r).map_err(|e| EngineError::Failed(e.to_string()))?;
     if let Some(o) = v.as_object_mut() {
         if let Some(Value::Object(detail)) = o.remove("detail") {
+            // A kind whose own fields share a name with the result's (a compare's `elements`)
+            // would lose them in the merge, so then the whole detail is kept under `detail` too.
+            let whole = detail.keys().any(|k| o.contains_key(k)).then(|| Value::Object(detail.clone()));
             for (k, x) in detail {
                 o.entry(k).or_insert(x);
+            }
+            if let Some(d) = whole {
+                o.insert("detail".into(), d);
             }
         }
         o.insert("names".into(), names(s, r));
@@ -259,6 +265,46 @@ fn diff_path(s: &Session, v: &Value) -> Result<String, EngineError> {
     }
 }
 
+/// Most points one ghost's route keeps.
+const MAX_GHOST_POINTS: usize = 256;
+
+/// How the compared file drew the items the current model no longer has: every shape of a
+/// removed element and every connector of a removed relationship, on every page of `before`, so
+/// a view can draw them as ghosts where they were. At most `MAX_RESULT_IDS` in all.
+fn ghosts(before: &vizcraft_diagram::Document, d: &vizcraft_analysis::ModelDiff) -> Vec<Value> {
+    let gone_els: HashSet<&str> = d.elements.removed.iter().map(String::as_str).collect();
+    let gone_rels: HashSet<&str> = d.relationships.removed.iter().map(String::as_str).collect();
+    let name_of = |id: &str| {
+        let m = &before.model;
+        let n = m.element(id).map(|e| e.name.as_str()).or_else(|| m.relationship(id).map(|r| r.name.as_str()));
+        n.filter(|n| !n.is_empty()).unwrap_or(id).to_string()
+    };
+    let mut out = Vec::new();
+    for page in &before.pages {
+        for sh in &page.shapes {
+            let Some(id) = sh.element.as_deref().filter(|e| gone_els.contains(e)) else { continue };
+            let b = sh.bounds();
+            out.push(json!({
+                "id": id, "page": page.id, "pageName": page.name, "item": sh.id, "kind": "shape", "name": name_of(id),
+                "rect": [b.x0, b.y0, b.width(), b.height()],
+            }));
+        }
+        for c in &page.connectors {
+            let Some(id) = c.relationship.as_deref().filter(|r| gone_rels.contains(r)) else { continue };
+            let pts: Vec<[f64; 2]> = vizcraft_diagram::route_polyline(page, c).into_iter().take(MAX_GHOST_POINTS).map(|p| [p.x, p.y]).collect();
+            out.push(json!({
+                "id": id, "page": page.id, "pageName": page.name, "item": c.id, "kind": "connector", "name": name_of(id),
+                "points": pts,
+            }));
+        }
+        if out.len() >= vizcraft_analysis::MAX_RESULT_IDS {
+            break;
+        }
+    }
+    out.truncate(vizcraft_analysis::MAX_RESULT_IDS);
+    out
+}
+
 fn diff(s: &mut Session, v: &Value) -> CmdResult {
     if !(v.is_object() || v.is_null()) {
         return Err(EngineError::Params("params must be an object".into()));
@@ -270,9 +316,14 @@ fn diff(s: &mut Session, v: &Value) -> CmdResult {
     let d = vizcraft_analysis::diff(&before.model, &s.doc.model);
     let mut r = vizcraft_analysis::diff_result(&d);
     r.rev = s.rev();
+    let ghosts = Value::Array(ghosts(&before, &d));
+    if let Some(o) = r.detail.as_object_mut() {
+        o.insert("ghosts".into(), ghosts.clone());
+    }
     let mut out = serde_json::to_value(&d).map_err(|e| EngineError::Failed(e.to_string()))?;
     if let Some(o) = out.as_object_mut() {
         o.insert("summary".into(), Value::String(r.summary.clone()));
+        o.insert("ghosts".into(), ghosts);
     }
     s.analysis = Some(r);
     Ok(out)
@@ -421,6 +472,53 @@ mod tests {
         let r = run(&mut b, "model.diff", json!({"against": "file", "path": file.to_string_lossy()}));
         assert_eq!(strs(&r["elements"]["removed"]), ["start", "do", "ok"]);
         assert_eq!(b.analysis.as_ref().unwrap().groups[0].elements.len(), 3);
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn diff_draws_removed_items_as_ghosts_from_the_compared_file() {
+        let mut s = flow();
+        let dir = std::env::temp_dir().join(format!("vizcraft-ghosts-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("flow.vizcraft");
+        run(&mut s, "file.saveAs", json!({"path": file.to_string_lossy()}));
+        let page = s.doc.page().unwrap().id.clone();
+        let ok_shape = shapes_of(&s, "ok")[0].clone();
+        let saved = s.doc.page().unwrap().shape(&ok_shape).unwrap().bounds();
+        run(&mut s, "model.delete", json!({"ids": ["ok"]}));
+        let r = run(&mut s, "model.diff", json!({}));
+        let ghosts = r["ghosts"].as_array().unwrap();
+        let shape = ghosts.iter().find(|g| g["kind"] == "shape").unwrap();
+        assert_eq!(
+            (shape["id"].as_str(), shape["item"].as_str(), shape["page"].as_str()),
+            (Some("ok"), Some(ok_shape.as_str()), Some(page.as_str()))
+        );
+        assert_eq!(shape["rect"], json!([saved.x0, saved.y0, saved.width(), saved.height()]));
+        assert_eq!(shape["name"], "Ok?");
+        let wire = ghosts.iter().find(|g| g["kind"] == "connector").unwrap();
+        assert_eq!((wire["id"].as_str(), wire["page"].as_str()), (Some("f2"), Some(page.as_str())));
+        assert!(wire["points"].as_array().unwrap().len() >= 2);
+        // The stored result keeps them for the view, and `analyze.result` keeps the per-field
+        // changes under `detail` where the merge would lose them.
+        assert_eq!(s.analysis.as_ref().unwrap().detail["ghosts"].as_array().unwrap().len(), 2);
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn the_stored_compare_keeps_its_field_changes_under_detail() {
+        let mut s = flow();
+        let dir = std::env::temp_dir().join(format!("vizcraft-detail-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("flow.vizcraft");
+        run(&mut s, "file.saveAs", json!({"path": file.to_string_lossy()}));
+        run(&mut s, "element.rename", json!({"id": "do", "name": "Done"}));
+        run(&mut s, "model.diff", json!({}));
+        let r = run(&mut s, "analyze.result", json!({}));
+        assert_eq!(r["detail"]["elements"]["changed"][0]["id"], "do", "{r}");
+        assert_eq!(r["elements"], json!(["do"]), "the result's own list stays at the top");
+        // A kind with no colliding keys merges as before and adds no `detail`.
+        run(&mut s, "analyze.dependencies", json!({"id": "start"}));
+        assert!(run(&mut s, "analyze.result", json!({})).get("detail").is_none());
         std::fs::remove_dir_all(&dir).unwrap();
     }
 

@@ -4,6 +4,8 @@ use super::Tab;
 
 groups! {
     model,
+    analyze,
+    compare,
 }
 
 /// The Model tab.
