@@ -679,10 +679,10 @@ fn kinds_doc() -> Document {
     let page = doc.page_mut().unwrap();
     page.shapes.push(Shape::new("s1", ShapeKind::Rectangle, 0.0, 0.0, 100.0, 60.0));
     page.shapes.push(Shape::new("s2", ShapeKind::Rectangle, 400.0, 0.0, 100.0, 60.0));
-    for (i, a) in Arrow::ALL.into_iter().enumerate() {
+    for (i, a) in Arrow::EVERY.into_iter().enumerate() {
         let mut c = Connector::new(format!("c{i}"), End::dynamic("s1"), End::dynamic("s2"));
         c.start_arrow = a;
-        c.end_arrow = Arrow::ALL[(i + 5) % Arrow::ALL.len()];
+        c.end_arrow = Arrow::EVERY[(i + 5) % Arrow::EVERY.len()];
         c.kind = if i % 2 == 0 { "basic.arrow".into() } else { "flowchart.flow".into() };
         c.text = format!("link {i}");
         page.connectors.push(c);
@@ -735,8 +735,10 @@ fn connector_kinds_and_line_ends_round_trip_through_drawio() {
     let back = &imported.pages[0].connectors;
     let want = &doc.pages[0].connectors;
     assert_eq!(back.len(), want.len());
+    // draw.io has no dot end: it is written as the filled oval and reads back as the circle.
+    let drawn = |a: vizcraft_diagram::Arrow| if a == vizcraft_diagram::Arrow::Dot { vizcraft_diagram::Arrow::Circle } else { a };
     for (b, w) in back.iter().zip(want) {
-        assert_eq!((b.kind.as_str(), b.start_arrow, b.end_arrow), (w.kind.as_str(), w.start_arrow, w.end_arrow), "{}", w.id);
+        assert_eq!((b.kind.as_str(), b.start_arrow, b.end_arrow), (w.kind.as_str(), drawn(w.start_arrow), drawn(w.end_arrow)), "{}", w.id);
     }
 }
 
@@ -761,7 +763,7 @@ fn drawio_hollow_and_er_ends_map_onto_the_notation_ends() {
     assert_eq!(ends("startArrow=diamond;startFill=0;endArrow=none;"), (Arrow::HollowDiamond, Arrow::None));
     assert_eq!(ends("endArrow=oval;endFill=0;"), (Arrow::None, Arrow::OpenCircle));
     assert_eq!(ends("endArrow=block;endFill=1;"), (Arrow::None, Arrow::Triangle));
-    assert_eq!(ends("startArrow=ERmandOne;endArrow=ERzeroToMany;"), (Arrow::Bar, Arrow::CrowsFootCircle));
+    assert_eq!(ends("startArrow=ERmandOne;endArrow=ERzeroToMany;"), (Arrow::DoubleBar, Arrow::CrowsFootCircle));
     assert_eq!(ends("startArrow=ERmany;endArrow=ERoneToMany;"), (Arrow::CrowsFoot, Arrow::CrowsFootBar));
     assert_eq!(ends("endArrow=ERzeroToOne;"), (Arrow::None, Arrow::BarCircle));
     assert_eq!(ends("endArrow=ERone;endFill=0;"), (Arrow::None, Arrow::Bar), "an ER end has no hollow form");
@@ -1415,4 +1417,24 @@ fn connector_steps_round_trip_and_old_files_load_with_none() {
     assert_eq!(back.pages[0].connectors[1].step, 0);
     let old = text.replace("\"step\": 4", "\"text\": \"\"");
     assert_eq!(load(old.as_bytes()).unwrap().pages[0].connectors[0].step, 0);
+}
+
+#[test]
+fn double_outlines_connector_halves_and_label_frames_round_trip_and_old_files_load_plain() {
+    use vizcraft_diagram::connector_look::{Half, Halves, LabelFrame};
+    use vizcraft_diagram::{Compound, Dash};
+    let mut doc = kinds_doc();
+    doc.pages[0].shapes[0].style.compound = Compound::Double;
+    let c = &mut doc.pages[0].connectors[0];
+    c.halves = Halves { start: Half { dash: Some(Dash::Dashed), double: true }, end: Half::default() };
+    c.label_frame = LabelFrame::DoubleDiamond;
+    let bytes = save(&doc).unwrap();
+    let text = String::from_utf8_lossy(&bytes).into_owned();
+    assert!(text.contains("\"compound\"") && text.contains("\"labelFrame\"") && text.contains("\"halves\""));
+    assert_eq!(load(&bytes).unwrap(), doc);
+    // A file written before these fields existed loads with one outline, plain halves and the box.
+    let old = load(&save(&kinds_doc()).unwrap()).unwrap();
+    assert!(!String::from_utf8_lossy(&save(&kinds_doc()).unwrap()).contains("\"compound\""));
+    assert_eq!(old.pages[0].shapes[0].style.compound, Compound::Single);
+    assert!(old.pages[0].connectors.iter().all(|c| c.halves.is_plain() && c.label_frame == LabelFrame::Box));
 }

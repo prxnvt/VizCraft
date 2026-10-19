@@ -156,6 +156,9 @@ fn arrow(a: Arrow) -> (&'static str, bool) {
         Arrow::CrowsFootCircle => ("ERzeroToMany", false),
         Arrow::BarCircle => ("ERzeroToOne", false),
         Arrow::Slash => ("dash", false),
+        Arrow::DoubleBar => ("ERmandOne", false),
+        // draw.io has no small dot end; its filled oval is the nearest.
+        Arrow::Dot => ("oval", false),
     }
 }
 

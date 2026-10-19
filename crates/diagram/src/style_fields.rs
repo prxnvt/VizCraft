@@ -218,6 +218,23 @@ impl Dash {
     }
 }
 
+/// How many outlines a shape draws: one, or a second one inset inside the first (an ER weak
+/// entity, a Chen identifying relationship).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub enum Compound {
+    /// One outline. Unknown names load as this.
+    #[default]
+    Single,
+    /// The outline and a second one inset by `2.5 * line_width` (see
+    /// `crate::connector_look::inner_outline`).
+    Double,
+}
+
+crate::serde_util::named_enum!(Compound, Compound::Single, {
+    Compound::Single => "single",
+    Compound::Double => "double",
+});
+
 /// How open line ends are drawn.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub enum LineCap {

@@ -15,7 +15,7 @@ const ROW: f64 = 50.0;
 /// One straight connector per (end, width): the same end at the start and at the finish. The
 /// thin ones run down the left column and the heavy ones down the right.
 fn sheet() -> Document {
-    let ends: Vec<Arrow> = Arrow::ALL.into_iter().filter(|a| *a != Arrow::None).collect();
+    let ends: Vec<Arrow> = Arrow::EVERY.into_iter().filter(|a| *a != Arrow::None).collect();
     let mut doc = Document::new();
     let page = doc.pages.first_mut().expect("a new document has a page");
     page.width = 680.0;
@@ -54,8 +54,8 @@ fn every_end_is_drawn_and_never_leaves_the_page() {
     let doc = sheet();
     let svg = String::from_utf8(export_page(&doc, 0).expect("the sheet exports")).expect("SVG is UTF-8");
     // Per connector: the line, then one path for each head (both ends carry a head).
-    let heads: usize = Arrow::ALL.into_iter().filter(|a| *a != Arrow::None).count() * WIDTHS.len() * 2;
-    let connectors = (Arrow::ALL.len() - 1) * WIDTHS.len();
+    let heads: usize = Arrow::EVERY.into_iter().filter(|a| *a != Arrow::None).count() * WIDTHS.len() * 2;
+    let connectors = (Arrow::EVERY.len() - 1) * WIDTHS.len();
     assert_eq!(svg.matches("<path ").count(), connectors + heads);
     assert!(svg.contains("width=\"680\""), "the sheet fits its page, so the canvas is the page");
     assert!(!svg.contains("NaN") && !svg.contains("inf"));
