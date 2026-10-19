@@ -1,13 +1,16 @@
 //! Auto-layout commands (`layout.*`): rearrange a page or a selection with the layered, tree,
-//! radial or force-directed layout, place new shapes around ones that stay put, and route
-//! connectors around shapes without moving any shape.
+//! radial or force-directed layout (optionally in the model's creation order), place new shapes
+//! around ones that stay put (which are pinned), lay shapes out with a fixed primitive such as a
+//! pipeline, bands or a matrix, and route connectors around shapes without moving any shape.
+
+use std::collections::HashMap;
 
 use serde_json::{Value, json};
-use vizcraft_diagram::autolayout::{self, Algorithm, Direction, Options};
+use vizcraft_diagram::autolayout::{self, Algorithm, Direction, Options, Primitive};
 use vizcraft_diagram::{autoroute, decor};
 
 use super::connector::connector_targets;
-use super::{Kinds, has_connectors, has_shapes, ids_param, num, opt_str, page_mut, targets, with_sel};
+use super::{Kinds, has_connectors, has_shapes, ids_param, num, opt_bool, opt_str, page_mut, targets, with_sel};
 use crate::{CmdResult, CommandSpec, EngineError, Session};
 
 /// Largest spacing a caller may ask for, in world units.
@@ -18,14 +21,21 @@ pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("layout.full", "Re-Layout", "Design > Layout", full)
             .params(concat!(
-                r#"{"ids"?: [string], "algorithm"?: "layered"|"tree"|"radial"|"force" (default layered), "direction"?: "TB"|"BT"|"LR"|"RL" (also "TD"), "nodeSpacing"?: n, "layerSpacing"?: n} -> {"ids", "notes"}"#,
-                r#"; rearranges `ids`, else the selected shapes when two or more are selected, else the whole page; groups, containers and lane sets move whole, callouts follow their target, locked shapes stay"#
+                r#"{"ids"?: [string], "algorithm"?: "layered"|"tree"|"radial"|"force" (default layered), "direction"?: "TB"|"BT"|"LR"|"RL" (also "TD"), "nodeSpacing"?: n, "layerSpacing"?: n, "keepOrder"?: bool} -> {"ids", "notes"}"#,
+                r#"; rearranges `ids`, else the selected shapes when two or more are selected, else the whole page; groups, containers and lane sets move whole, callouts follow their target, locked shapes stay; `keepOrder` keeps siblings in the creation order of the model elements they draw (then page order) wherever crossing reduction would tie"#
             ))
             .when(can_lay_out),
         CommandSpec::new("layout.incremental", "Place New Shapes", "Design > Layout", incremental)
             .params(concat!(
                 r#"{"ids": [string], "algorithm"?: "layered"|"tree"|"radial"|"force", "direction"?: "TB"|"BT"|"LR"|"RL" (also "TD"), "nodeSpacing"?: n, "layerSpacing"?: n} -> {"ids", "notes"}"#,
-                r#"; places only the shapes in `ids` (with everything inside them) next to the shapes they connect to; every other shape stays where it is; new groups, containers and lane sets are placed whole, new members of an existing container or lane stay inside it, callouts follow their target, locked shapes stay"#
+                r#"; places only the shapes in `ids` (with everything inside them) next to the shapes they connect to; every other shape stays where it is (the layout pins it); new groups, containers and lane sets are placed whole, new members of an existing container or lane stay inside it, callouts follow their target, locked shapes stay"#
+            ))
+            .when(can_lay_out),
+        CommandSpec::new("layout.primitive", "Lay Out As", "Design > Layout", primitive)
+            .params(concat!(
+                r#"{"primitive": "pipeline"|"bands"|"chain"|"matrix"|"nested"|"hubSpoke"|"rings"|"timeline"|"voter", "ids"?: [string], "roles"?: {..}, "direction"?: "TB"|"BT"|"LR"|"RL", "nodeSpacing"?: n, "layerSpacing"?: n} -> {"ids", "notes", "bounds"}"#,
+                r#"; roles by primitive: pipeline {"parallel"?: {"from", "to", "members": [id]}} (steps are the other shapes in page order), bands {"bands": [[id]]}, chain {"forward": [id], "compensation"?: [id|null]}, matrix {"rows": [[id|null]]} or {"cols": [[id|null]]}, nested {"containers"?: [{"id", "members": [id], "padding"?, "header"?}]} (default: the containers on the page and their members), hubSpoke {"hub"}, rings {"center", "rings": [[id]]}, timeline {"events"?: [id], "labels"?: [id|null]}, voter {"channels": [[id]], "voter"}"#,
+                r#"; lays out `ids` and every shape the roles name (else the selection when two or more are selected, else the whole page) in one undo step with the unit rules of layout.full, refuses roles that are unknown, repeated or leave a shape without a role, and returns the bounds of what moved; direction defaults to LR, TB for voter"#
             ))
             .when(can_lay_out),
         CommandSpec::new("layout.route", "Route Connectors", "Design > Layout", route)
@@ -77,6 +87,7 @@ fn options(v: &Value) -> Result<Options, EngineError> {
 
 fn full(s: &mut Session, v: &Value) -> CmdResult {
     let opts = options(v)?;
+    let keep_order = opt_bool(v, "keepOrder")?.unwrap_or(false);
     let ids: Option<Vec<String>> = if ids_param(v)?.is_some() {
         Some(targets(s, v, Kinds::Shapes)?)
     } else {
@@ -84,10 +95,63 @@ fn full(s: &mut Session, v: &Value) -> CmdResult {
         let selected: Vec<String> = s.sel.items.iter().filter(|id| page.shape(id).is_some()).cloned().collect();
         (selected.len() >= 2).then_some(selected)
     };
+    let order = keep_order.then(|| creation_order(s)).transpose()?;
     let page = page_mut(s)?;
-    let notes = autolayout::layout_items(page, ids.as_deref(), &opts).map_err(EngineError::Failed)?;
+    let notes = autolayout::layout_items_ordered(page, ids.as_deref(), &opts, order.as_ref()).map_err(EngineError::Failed)?;
     let ids = ids.unwrap_or_else(|| page.shapes.iter().map(|sh| sh.id.clone()).collect());
     with_sel(s, json!({"ids": ids, "notes": notes}))
+}
+
+/// The creation order of the active page's shapes: a shape drawing a model element takes that
+/// element's place among the elements, every other shape comes after them in page order.
+fn creation_order(s: &Session) -> Result<HashMap<String, u32>, EngineError> {
+    let page = s.doc.page().ok_or_else(|| EngineError::Failed("the document has no page".into()))?;
+    let elements: HashMap<&str, usize> = s.doc.model.elements.iter().enumerate().map(|(i, e)| (e.id.as_str(), i)).collect();
+    let after = elements.len();
+    let rank = |i: usize| u32::try_from(i).unwrap_or(u32::MAX);
+    Ok(page
+        .shapes
+        .iter()
+        .enumerate()
+        .map(|(i, sh)| {
+            let at = sh.element.as_deref().and_then(|e| elements.get(e)).copied().unwrap_or_else(|| after.saturating_add(i));
+            (sh.id.clone(), rank(at))
+        })
+        .collect())
+}
+
+/// The default direction of a primitive: along a row for chains, bands and timelines, down for
+/// the voter (the direction does not matter to the others).
+fn default_direction(primitive: &str) -> Direction {
+    if primitive == "voter" { Direction::TopBottom } else { Direction::LeftRight }
+}
+
+fn primitive(s: &mut Session, v: &Value) -> CmdResult {
+    let name = opt_str(v, "primitive")?.ok_or_else(|| EngineError::Params("`primitive` is required".into()))?.to_string();
+    let roles = match v.get("roles") {
+        None | Some(Value::Null) => json!({}),
+        Some(r @ Value::Object(_)) => r.clone(),
+        Some(_) => return Err(EngineError::Params("`roles` must be an object".into())),
+    };
+    let parsed: Primitive<String> = serde_json::from_value(json!({"primitive": name, "roles": roles}))
+        .map_err(|e| EngineError::Params(format!("`primitive` or `roles` is not valid: {e}")))?;
+    let mut opts = options(v)?;
+    if opt_str(v, "direction")?.is_none() {
+        opts.direction = default_direction(parsed.name());
+    }
+    let ids: Option<Vec<String>> = if ids_param(v)?.is_some() {
+        Some(targets(s, v, Kinds::Shapes)?)
+    } else if !parsed.references().is_empty() {
+        // The roles name the shapes.
+        Some(Vec::new())
+    } else {
+        let page = s.doc.page().ok_or_else(|| EngineError::Failed("the document has no page".into()))?;
+        let selected: Vec<String> = s.sel.items.iter().filter(|id| page.shape(id).is_some()).cloned().collect();
+        (selected.len() >= 2).then_some(selected)
+    };
+    let out = autolayout::layout_primitive(page_mut(s)?, ids.as_deref(), parsed, &opts).map_err(EngineError::Failed)?;
+    let bounds = out.bounds.map(|b| json!({"x": b.x0, "y": b.y0, "width": b.width(), "height": b.height()}));
+    with_sel(s, json!({"ids": out.ids, "notes": out.notes, "bounds": bounds}))
 }
 
 fn incremental(s: &mut Session, v: &Value) -> CmdResult {
@@ -384,5 +448,147 @@ mod tests {
         assert!(!s.doc.page().unwrap().shapes.is_empty(), "the frame is drawn with shapes");
         assert!(matches!(s.run("layout.full", &json!({})), Err(crate::EngineError::Disabled(why)) if why.contains("decoration")));
         assert!(matches!(s.run("layout.incremental", &json!({"ids": ["x"]})), Err(crate::EngineError::Disabled(_))));
+    }
+
+    fn overlap_free(page: &Page) {
+        for (i, a) in page.shapes.iter().enumerate() {
+            for b in page.shapes.iter().skip(i + 1) {
+                let (x, y) = (a.bounds(), b.bounds());
+                assert!(!(x.x0 < y.x1 && y.x0 < x.x1 && x.y0 < y.y1 && y.y0 < x.y1), "{} and {} overlap", a.id, b.id);
+            }
+        }
+    }
+
+    #[test]
+    fn layout_primitive_on_the_sample_is_one_undo_step_and_reroutes() {
+        let mut s = Session::new(crate::sample::sample_document());
+        let before = s.doc.page().unwrap().clone();
+        let out = s.run("layout.primitive", &json!({"primitive": "pipeline"})).unwrap();
+        let page = s.doc.page().unwrap();
+        assert_eq!(out["ids"].as_array().unwrap().len(), page.shapes.len());
+        assert!(out["bounds"]["width"].as_f64().unwrap() > 0.0);
+        // Steps in page order along one row.
+        for pair in page.shapes.windows(2) {
+            assert!(pair[0].bounds().x1 < pair[1].bounds().x0, "{} before {}", pair[0].id, pair[1].id);
+            assert!((pair[0].bounds().center().y - pair[1].bounds().center().y).abs() < 1e-6);
+        }
+        overlap_free(page);
+        // Connectors between shapes that moved apart lost their fixed points and stored bends.
+        let rerouted = page.connectors.iter().filter(|c| matches!(&c.start, End::Glued { point: None, .. }) && c.waypoints.is_empty()).count();
+        assert!(rerouted > 0, "connectors follow the new arrangement");
+        assert_eq!(s.undo_label(), Some("Lay Out As"));
+        s.run("edit.undo", &json!({})).unwrap();
+        assert_eq!(s.doc.page().unwrap(), &before, "one undo puts the page back");
+        assert!(!s.can_undo());
+    }
+
+    #[test]
+    fn layout_primitive_follows_the_roles_and_refuses_bad_ones() {
+        let mut s = Session::new(crate::sample::sample_document());
+        let ids: Vec<String> = s.doc.page().unwrap().shapes.iter().map(|sh| sh.id.clone()).collect();
+        let hub = ids[2].clone();
+        s.run("layout.primitive", &json!({"primitive": "hubSpoke", "roles": {"hub": hub}, "ids": ids})).unwrap();
+        let page = s.doc.page().unwrap();
+        overlap_free(page);
+        let c = page.shape(&hub).unwrap().bounds().center();
+        let d: Vec<f64> =
+            page.shapes.iter().filter(|sh| sh.id != hub).map(|sh| (sh.bounds().center().x - c.x).hypot(sh.bounds().center().y - c.y)).collect();
+        assert!(d.iter().all(|r| (r - d[0]).abs() < 1e-6), "spokes on one circle");
+        let bands = json!({"primitive": "bands", "roles": {"bands": [[ids[0], ids[1], ids[2]], [ids[3], ids[4], ids[5]]]}});
+        s.run("layout.primitive", &bands).unwrap();
+        let page = s.doc.page().unwrap();
+        let bottom = ids[..3].iter().map(|id| page.shape(id).unwrap().bounds().y1).fold(f64::MIN, f64::max);
+        assert!(ids[3..].iter().all(|id| page.shape(id).unwrap().bounds().y0 > bottom), "two bands, the second below the first");
+        let snapshot = s.doc.page().unwrap().clone();
+        for bad in [
+            json!({"primitive": "spiral"}),
+            json!({}),
+            json!({"primitive": "hubSpoke", "roles": {"hub": "nope"}}),
+            json!({"primitive": "hubSpoke", "roles": {"hub": 5}}),
+            json!({"primitive": "rings", "roles": {"center": ids[0], "rings": [[ids[1]]]}, "ids": ids}),
+            json!({"primitive": "bands", "roles": {"bands": [[ids[0], ids[0]]]}}),
+            json!({"primitive": "matrix", "roles": {"rows": [[ids[0]]], "cols": [[ids[1]]]}}),
+            json!({"primitive": "pipeline", "roles": "x"}),
+            json!({"primitive": "chain", "roles": {"forward": [], "compensation": [null, 3, {}]}}),
+            json!({"primitive": "voter", "roles": {"channels": [[]], "voter": ids[0]}, "nodeSpacing": -1}),
+            json!({"primitive": "nested", "roles": {"containers": [{"id": ids[0], "members": [ids[0]]}]}}),
+            json!({"primitive": "nested", "roles": {"containers": [{"id": ids[0], "members": [ids[1]], "padding": 1e300}]}}),
+            json!({"primitive": "timeline", "roles": {"events": [ids[0]], "labels": [ids[1], ids[2]]}}),
+        ] {
+            assert!(s.run("layout.primitive", &bad).is_err(), "{bad}");
+            assert_eq!(s.doc.page().unwrap(), &snapshot, "a refused layout moves nothing: {bad}");
+        }
+        let err =
+            s.run("layout.primitive", &json!({"primitive": "rings", "roles": {"center": ids[0], "rings": [[ids[1]]]}, "ids": ids})).unwrap_err();
+        assert!(err.to_string().contains("shape "), "errors name shapes, not node indices: {err}");
+    }
+
+    #[test]
+    fn layout_primitive_nests_containers_around_their_members() {
+        let mut s = Session::new(Document::new());
+        let boxed = s.run("container.add", &json!({"x": 0, "y": 0, "w": 400, "h": 300})).unwrap()["id"].as_str().unwrap().to_string();
+        for (id, x) in [("m1", 600.0), ("m2", 800.0)] {
+            s.run("shape.add", &json!({"stencil": "basic.rectangle", "x": x, "y": 500, "id": id})).unwrap();
+        }
+        // Membership comes from the roles, so the members land inside the box with its padding.
+        let out =
+            s.run("layout.primitive", &json!({"primitive": "nested", "roles": {"containers": [{"id": boxed, "members": ["m1", "m2"]}]}})).unwrap();
+        assert_eq!(out["ids"].as_array().unwrap().len(), 3);
+        let page = s.doc.page().unwrap();
+        let frame = page.shape(&boxed).unwrap().frame();
+        for m in ["m1", "m2"] {
+            let b = page.shape(m).unwrap().bounds();
+            assert!(b.x0 > frame.x0 && b.y0 > frame.y0 && b.x1 < frame.x1 && b.y1 < frame.y1, "{m} inside the container");
+        }
+    }
+
+    #[test]
+    fn keep_order_draws_siblings_in_creation_order() {
+        let mut page = Page::new("p1", "Page-1");
+        for id in ["root", "c", "a", "b"] {
+            page.shapes.push(Shape::new(id, ShapeKind::Rectangle, 0.0, 0.0, 60.0, 40.0));
+        }
+        for (i, t) in ["a", "b", "c"].iter().enumerate() {
+            page.connectors.push(Connector::new(format!("e{i}"), End::dynamic("root"), End::dynamic(*t)));
+        }
+        let mut doc = Document::new();
+        doc.pages = vec![page];
+        let mut s = Session::new(doc);
+        let x = |s: &Session, id: &str| s.doc.page().unwrap().shape(id).unwrap().x;
+        s.run("layout.full", &json!({})).unwrap();
+        assert!(x(&s, "a") < x(&s, "b") && x(&s, "b") < x(&s, "c"), "edge order without keepOrder");
+        s.run("layout.full", &json!({"keepOrder": true})).unwrap();
+        assert!(x(&s, "c") < x(&s, "a") && x(&s, "a") < x(&s, "b"), "page (creation) order with keepOrder");
+        assert!(s.run("layout.full", &json!({"keepOrder": "yes"})).is_err());
+    }
+
+    #[test]
+    fn junk_roles_never_panic() {
+        let junk = [
+            json!({"primitive": "bands", "roles": {"bands": [[1e308, null, {}], "x", [[[]]]]}}),
+            json!({"primitive": "matrix", "roles": {"rows": [[null, null], []], "cols": null}}),
+            json!({"primitive": "matrix", "roles": {"rows": [[null]]}}),
+            json!({"primitive": "rings", "roles": {"center": null, "rings": "x"}}),
+            json!({"primitive": "pipeline", "roles": {"parallel": {"from": "s1", "to": "s1", "members": []}}}),
+            json!({"primitive": "pipeline", "roles": {"parallel": {"from": "s1", "to": "s2", "members": ["s3", "s3"]}}}),
+            json!({"primitive": "nested", "roles": {"containers": [{"id": "s1", "members": ["s2"]}, {"id": "s2", "members": ["s1"]}]}}),
+            json!({"primitive": "nested", "roles": {"containers": [{"id": "s1", "members": ["s2"], "header": -5}]}}),
+            json!({"primitive": "timeline", "roles": {"labels": [null, null, null, null, null, null, null, null, null]}}),
+            json!({"primitive": "voter", "roles": {"channels": [["s1"], ["s1"]], "voter": "s1"}}),
+            json!({"primitive": "hubSpoke", "roles": {"hub": "s1"}, "direction": "up", "layerSpacing": 1e308}),
+            json!({"primitive": "chain", "roles": {"forward": ["s1", "s2"], "compensation": ["s2"]}}),
+        ];
+        for j in &junk {
+            for select_all in [false, true] {
+                let mut s = Session::new(crate::sample::sample_document());
+                if select_all {
+                    s.run("edit.selectAll", &json!({})).unwrap();
+                }
+                let _ = s.run("layout.primitive", j);
+                for sh in &s.doc.page().unwrap().shapes {
+                    assert!(sh.x.is_finite() && sh.y.is_finite() && sh.w.is_finite() && sh.h.is_finite(), "{j}");
+                }
+            }
+        }
     }
 }

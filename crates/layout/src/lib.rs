@@ -27,7 +27,11 @@ mod force;
 mod geom;
 mod layered;
 mod overlap;
+mod pins;
+mod primitives;
 mod tree;
+
+pub use primitives::{Nest, Parallel, Primitive, layout_primitive};
 
 use serde::{Deserialize, Serialize};
 
@@ -47,6 +51,8 @@ pub const MAX_SPACING: f64 = 1.0e6;
 pub const MAX_WEIGHT: f64 = 1.0e6;
 /// Largest edge `min_len` accepted.
 pub const MAX_MIN_LEN: u32 = 100;
+/// Largest distance from the origin a pin coordinate may have.
+pub const MAX_COORD: f64 = 1.0e8;
 /// `Options::max_iterations` is clamped to this value.
 pub const MAX_ITERATIONS: u32 = 10_000;
 
@@ -108,19 +114,44 @@ impl Rect {
     }
 }
 
-/// A node to place: only its size matters to the layout.
+/// A node to place: its size, and optionally a position it must keep and its place in the
+/// model's order.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Node {
     /// Width, finite and in `0..=MAX_NODE_SIZE`.
     pub width: f64,
     /// Height, finite and in `0..=MAX_NODE_SIZE`.
     pub height: f64,
+    /// A top-left corner this node must keep, in the caller's coordinates (each coordinate finite
+    /// and within `MAX_COORD` of the origin). Every algorithm honours pins the same way: free
+    /// nodes are placed around the pinned ones and moved off them, a pinned node never moves,
+    /// and when any node is pinned the layout is not normalised (see [`Layout`]).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pin: Option<Point>,
+    /// The node's place in the model's order (for example its creation order). The layered layout
+    /// sorts each layer by it before crossing reduction and keeps that order wherever crossing
+    /// reduction would only tie; the tree layouts order siblings by it. Nodes without one come
+    /// after those with one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub order: Option<u32>,
 }
 
 impl Node {
-    /// A node of the given size.
+    /// A node of the given size, neither pinned nor ordered.
     pub const fn new(width: f64, height: f64) -> Self {
-        Self { width, height }
+        Self { width, height, pin: None, order: None }
+    }
+
+    /// This node pinned with its top-left corner at `at`.
+    pub const fn pinned(mut self, at: Point) -> Self {
+        self.pin = Some(at);
+        self
+    }
+
+    /// This node with model order `order`.
+    pub const fn ordered(mut self, order: u32) -> Self {
+        self.order = Some(order);
+        self
     }
 }
 
@@ -256,7 +287,9 @@ impl Default for Options {
     }
 }
 
-/// The result of [`layout`]. All coordinates are normalised so that `bounds` starts at the origin.
+/// The result of [`layout`] or [`layout_primitive`]. All coordinates are normalised so that
+/// `bounds` starts at the origin, except when a node is pinned: then they are the caller's own,
+/// every pinned node sits exactly at its pin, and `bounds` is the true bounding box.
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 pub struct Layout {
     /// Top-left corner of every node, in input order.
@@ -269,6 +302,21 @@ pub struct Layout {
     pub bounds: Rect,
     /// Human-readable remarks about fallbacks taken (for example a tree layout requested for a graph that is not a forest).
     pub notes: Vec<String>,
+    /// Nodes the layout gave a new size, with that size: the containers of the nested-container
+    /// primitive, sized to their content. Empty for [`layout`].
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub resized: Vec<Resize>,
+}
+
+/// A node a layout resized, and its new size.
+#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
+pub struct Resize {
+    /// Index of the node.
+    pub node: usize,
+    /// New width.
+    pub width: f64,
+    /// New height.
+    pub height: f64,
 }
 
 /// Why [`layout`] refused its input.
@@ -334,6 +382,21 @@ pub enum LayoutError {
         /// Name of the option.
         name: &'static str,
     },
+    /// A pin coordinate is not finite or further than [`MAX_COORD`] from the origin.
+    #[error("node {node} has an invalid pin")]
+    InvalidPin {
+        /// Index of the node.
+        node: usize,
+    },
+    /// A layout primitive's roles do not describe a drawing it can make: a missing, unknown or
+    /// repeated node, a node with no role, or roles that contradict each other.
+    #[error("{primitive}: {reason}")]
+    InvalidRoles {
+        /// The primitive.
+        primitive: &'static str,
+        /// What is wrong, in words.
+        reason: String,
+    },
 }
 
 /// Lay out `graph` with `options`.
@@ -354,7 +417,11 @@ fn spacing_ok(v: f64) -> bool {
     v.is_finite() && (0.0..=MAX_SPACING).contains(&v)
 }
 
-fn validate(graph: &Graph, options: &Options) -> Result<(), LayoutError> {
+fn coord_ok(v: f64) -> bool {
+    v.is_finite() && v.abs() <= MAX_COORD
+}
+
+pub(crate) fn validate(graph: &Graph, options: &Options) -> Result<(), LayoutError> {
     let n = graph.nodes.len();
     if n > MAX_NODES {
         return Err(LayoutError::TooManyNodes { count: n, max: MAX_NODES });
@@ -372,6 +439,11 @@ fn validate(graph: &Graph, options: &Options) -> Result<(), LayoutError> {
     for (i, node) in graph.nodes.iter().enumerate() {
         if !size_ok(node.width) || !size_ok(node.height) {
             return Err(LayoutError::InvalidNodeSize { node: i });
+        }
+        if let Some(p) = node.pin
+            && !(coord_ok(p.x) && coord_ok(p.y))
+        {
+            return Err(LayoutError::InvalidPin { node: i });
         }
     }
     for (i, e) in graph.edges.iter().enumerate() {
@@ -411,6 +483,20 @@ pub(crate) struct Sub {
     pub sizes: Vec<(f64, f64)>,
     /// Edges between local indices; never self-loops.
     pub edges: Vec<SubEdge>,
+    /// Each node's model order ([`Node::order`]); empty when no node has one.
+    pub order: Vec<Option<u32>>,
+}
+
+impl Sub {
+    /// The sort key of local node `v` by model order: ordered nodes first, by order.
+    pub fn order_key(&self, v: usize) -> u64 {
+        self.order.get(v).copied().flatten().map_or(u64::MAX, u64::from)
+    }
+
+    /// Whether any node has a model order.
+    pub fn has_order(&self) -> bool {
+        self.order.iter().any(Option::is_some)
+    }
 }
 
 /// An edge of a [`Sub`].
@@ -628,6 +714,9 @@ impl<'a> Orchestrator<'a> {
                 self.translate(piece_nodes.get(p).map(Vec::as_slice).unwrap_or(&[]), piece_edges.get(p).map(Vec::as_slice).unwrap_or(&[]), *off);
             }
         }
+        if graph.nodes.iter().any(|v| v.pin.is_some()) {
+            pins::apply(graph, self.opt, &mut self.pos, &mut self.routes, &mut self.notes);
+        }
         self.finish()
     }
 
@@ -669,8 +758,14 @@ impl<'a> Orchestrator<'a> {
         // Endpoints outside this piece cannot occur (pieces are unions of connected components);
         // the check keeps the algorithms' indexing safe regardless.
         let local = |v: usize| self.local.get(v).copied().filter(|&i| nodes.get(i) == Some(&v));
-        let mut sub =
-            Sub { sizes: nodes.iter().map(|&v| graph.nodes.get(v).map(|n| (n.width, n.height)).unwrap_or((0.0, 0.0))).collect(), edges: Vec::new() };
+        let mut sub = Sub {
+            sizes: nodes.iter().map(|&v| graph.nodes.get(v).map(|n| (n.width, n.height)).unwrap_or((0.0, 0.0))).collect(),
+            edges: Vec::new(),
+            order: Vec::new(),
+        };
+        if nodes.iter().any(|&v| graph.nodes.get(v).is_some_and(|n| n.order.is_some())) {
+            sub.order = nodes.iter().map(|&v| graph.nodes.get(v).and_then(|n| n.order)).collect();
+        }
         let mut ids: Vec<Option<usize>> = Vec::new();
         let mut loops: Vec<usize> = Vec::new();
         for &e in edges {
@@ -789,7 +884,9 @@ impl<'a> Orchestrator<'a> {
             groups.push(r);
         }
         let b = acc.rect();
-        let (dx, dy) = (-b.x, -b.y);
+        // Pinned nodes are in the caller's coordinates, so a pinned layout is not moved.
+        let pinned = self.graph.nodes.iter().any(|v| v.pin.is_some());
+        let (dx, dy) = if pinned { (0.0, 0.0) } else { (-b.x, -b.y) };
         for p in self.pos.iter_mut() {
             p.x += dx;
             p.y += dy;
@@ -807,7 +904,14 @@ impl<'a> Orchestrator<'a> {
                 None => Rect::default(),
             })
             .collect();
-        Layout { nodes: self.pos, edges: self.routes, groups, bounds: Rect::new(0.0, 0.0, b.width, b.height), notes: self.notes.0 }
+        Layout {
+            nodes: self.pos,
+            edges: self.routes,
+            groups,
+            bounds: Rect::new(b.x + dx, b.y + dy, b.width, b.height),
+            notes: self.notes.0,
+            resized: Vec::new(),
+        }
     }
 }
 
@@ -819,7 +923,7 @@ fn directed(sub: &Sub, opt: &Options, run: impl FnOnce(&Sub) -> Piece) -> Piece 
     let horizontal = opt.direction.is_horizontal();
     let frame;
     let input = if horizontal {
-        frame = Sub { sizes: sub.sizes.iter().map(|&(w, h)| (h, w)).collect(), edges: sub.edges.clone() };
+        frame = Sub { sizes: sub.sizes.iter().map(|&(w, h)| (h, w)).collect(), edges: sub.edges.clone(), order: sub.order.clone() };
         &frame
     } else {
         sub
