@@ -346,8 +346,10 @@ fn duplicate(s: &mut Session, v: &Value) -> CmdResult {
     for sh in &mut page.shapes {
         sh.parent = sh.parent.as_deref().and_then(|p| map.get(p)).cloned();
     }
+    let mut cmap: HashMap<String, String> = HashMap::new();
     for c in &mut page.connectors {
-        c.id = s.doc.next_id("c");
+        let cid = s.doc.next_id("c");
+        cmap.insert(std::mem::replace(&mut c.id, cid), c.id.clone());
         ids.push(c.id.clone());
         for end in [&mut c.start, &mut c.end] {
             if let End::Glued { shape, .. } = end
@@ -357,6 +359,8 @@ fn duplicate(s: &mut Session, v: &Value) -> CmdResult {
             }
         }
     }
+    // A sequence page's event order and parts name the items by id.
+    vizcraft_diagram::sequence::rename_ids(&mut page, &map, &cmap);
     let (id, name) = (page.id.clone(), page.name.clone());
     pin_active(&mut s.doc);
     let at = i.saturating_add(1).min(s.doc.pages.len());

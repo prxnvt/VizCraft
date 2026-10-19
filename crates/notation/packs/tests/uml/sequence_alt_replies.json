@@ -1,0 +1,433 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "model": {
+      "schemaVersion": 1,
+      "packs": [
+        {
+          "id": "uml",
+          "version": "1.0.0"
+        }
+      ],
+      "elements": [
+        {
+          "id": "e2",
+          "type": "uml.Lifeline",
+          "name": "Shop"
+        },
+        {
+          "id": "e4",
+          "type": "uml.Lifeline",
+          "name": "Stock"
+        }
+      ],
+      "relationships": [
+        {
+          "id": "r6",
+          "type": "uml.Message",
+          "source": "e2",
+          "target": "e4",
+          "name": "reserve",
+          "properties": {
+            "sort": "synchCall"
+          }
+        },
+        {
+          "id": "r8",
+          "type": "uml.Message",
+          "source": "e4",
+          "target": "e2",
+          "name": "reserved",
+          "properties": {
+            "sort": "reply"
+          }
+        },
+        {
+          "id": "r9",
+          "type": "uml.Message",
+          "source": "e4",
+          "target": "e2",
+          "name": "sold out",
+          "properties": {
+            "sort": "reply"
+          }
+        }
+      ]
+    },
+    "document": {
+      "title": "",
+      "core": {
+        "author": "VizCraft User",
+        "lastModifiedBy": "VizCraft User",
+        "created": "2026-10-19T18:40:17Z",
+        "modified": "2026-10-19T18:40:17Z",
+        "revision": 1
+      },
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "width": 1100.0,
+          "height": 850.0,
+          "board": "infinite",
+          "shapes": [
+            {
+              "id": "f1",
+              "stencil": "uml.fragment",
+              "kind": "rectangle",
+              "x": 66.0,
+              "y": 142.0,
+              "w": 198.0,
+              "h": 155.60000000000002,
+              "angleDeg": 0.0,
+              "text": "",
+              "style": {
+                "fill": "#00000000",
+                "line": "#2b3a4a",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "container": {
+                "role": "container",
+                "margin": 20.0,
+                "headingPosition": "top",
+                "headingStyle": "plain",
+                "headingSize": 0.0,
+                "band": "#00000000",
+                "style": "",
+                "autoFit": false,
+                "locked": true,
+                "vertical": false,
+                "leader": true,
+                "side": "auto"
+              },
+              "sequence": {
+                "part": "fragment",
+                "operator": "alt",
+                "operands": [
+                  {
+                    "guard": "in stock",
+                    "at": 0.0
+                  },
+                  {
+                    "guard": "else",
+                    "at": 72.80000000000001
+                  }
+                ]
+              }
+            },
+            {
+              "id": "shop",
+              "stencil": "uml.lifeline",
+              "kind": "lifeline",
+              "x": 50.0,
+              "y": 40.0,
+              "w": 80.0,
+              "h": 275.6,
+              "angleDeg": 0.0,
+              "text": "Shop",
+              "style": {
+                "fill": "#f2f6fb",
+                "line": "#2b3a4a",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 0.3410740203193033
+                },
+                {
+                  "x": 0.5,
+                  "y": 0.6052249637155297
+                },
+                {
+                  "x": 0.5,
+                  "y": 0.8693759071117562
+                }
+              ],
+              "element": "e2",
+              "textBlock": {
+                "dx": 0.0,
+                "dy": -117.80000000000001,
+                "w": 80.0,
+                "h": 40.0,
+                "angleDeg": 0.0
+              },
+              "sequence": {
+                "part": "lifeline",
+                "destroyed": false
+              }
+            },
+            {
+              "id": "stock",
+              "stencil": "uml.lifeline",
+              "kind": "lifeline",
+              "x": 200.0,
+              "y": 40.0,
+              "w": 80.0,
+              "h": 275.6,
+              "angleDeg": 0.0,
+              "text": "Stock",
+              "style": {
+                "fill": "#f2f6fb",
+                "line": "#2b3a4a",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.4375,
+                  "y": 0.3410740203193033
+                },
+                {
+                  "x": 0.4375,
+                  "y": 0.6052249637155297
+                },
+                {
+                  "x": 0.4375,
+                  "y": 0.8693759071117562
+                }
+              ],
+              "element": "e4",
+              "textBlock": {
+                "dx": 0.0,
+                "dy": -117.80000000000001,
+                "w": 80.0,
+                "h": 40.0,
+                "angleDeg": 0.0
+              },
+              "sequence": {
+                "part": "lifeline",
+                "destroyed": false
+              }
+            },
+            {
+              "id": "s7",
+              "stencil": "uml.activation",
+              "kind": "rectangle",
+              "x": 235.0,
+              "y": 134.0,
+              "w": 10.0,
+              "h": 145.60000000000002,
+              "angleDeg": 0.0,
+              "text": "",
+              "style": {
+                "fill": "#ffffff",
+                "line": "#2b3a4a",
+                "lineWidth": 1.0,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [],
+              "locks": {
+                "width": true,
+                "height": true,
+                "aspect": false,
+                "position": true,
+                "rotation": true,
+                "delete": true,
+                "select": false,
+                "text": false
+              },
+              "sequence": {
+                "part": "activation",
+                "lifeline": "stock",
+                "depth": 1
+              }
+            }
+          ],
+          "connectors": [
+            {
+              "id": "m1",
+              "start": {
+                "shape": "shop",
+                "point": 4
+              },
+              "end": {
+                "shape": "stock",
+                "point": 4
+              },
+              "route": "straight",
+              "startArrow": "none",
+              "endArrow": "triangle",
+              "text": "reserve",
+              "kind": "uml.syncMessage",
+              "style": {
+                "fill": "#00000000",
+                "line": "#34495e",
+                "lineWidth": 1.25,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "relationship": "r6",
+              "message": {
+                "sort": "sync"
+              }
+            },
+            {
+              "id": "m2",
+              "start": {
+                "shape": "stock",
+                "point": 5
+              },
+              "end": {
+                "shape": "shop",
+                "point": 5
+              },
+              "route": "straight",
+              "startArrow": "none",
+              "endArrow": "open",
+              "text": "reserved",
+              "kind": "uml.replyMessage",
+              "style": {
+                "fill": "#00000000",
+                "line": "#34495e",
+                "lineWidth": 1.25,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false,
+                "dash": "dashed"
+              },
+              "relationship": "r8",
+              "message": {
+                "sort": "reply"
+              }
+            },
+            {
+              "id": "m3",
+              "start": {
+                "shape": "stock",
+                "point": 6
+              },
+              "end": {
+                "shape": "shop",
+                "point": 6
+              },
+              "route": "straight",
+              "startArrow": "none",
+              "endArrow": "open",
+              "text": "sold out",
+              "kind": "uml.replyMessage",
+              "style": {
+                "fill": "#00000000",
+                "line": "#34495e",
+                "lineWidth": 1.25,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false,
+                "dash": "dashed"
+              },
+              "relationship": "r9",
+              "message": {
+                "sort": "reply"
+              }
+            }
+          ],
+          "view": {
+            "viewpoint": "uml.Sequence"
+          },
+          "sequence": {
+            "events": [
+              {
+                "message": "m1"
+              },
+              {
+                "open": "f1"
+              },
+              {
+                "message": "m2"
+              },
+              {
+                "else": "f1"
+              },
+              {
+                "message": "m3"
+              },
+              {
+                "close": "f1"
+              }
+            ],
+            "activations": "auto",
+            "row": 36.0,
+            "columnGap": 60.0
+          }
+        }
+      ],
+      "idSeq": 9,
+      "conformance": {
+        "enabled": true,
+        "rulesets": [
+          "uml.uml251"
+        ]
+      }
+    }
+  },
+  "expect": []
+}

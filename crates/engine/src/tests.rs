@@ -72,7 +72,8 @@ fn registry_ids_are_unique_and_prefixed() {
                 "glyph",
                 "template",
                 "key",
-                "topology"
+                "topology",
+                "sequence"
             ]
             .contains(&prefix),
             "{}: unexpected prefix",
@@ -145,6 +146,8 @@ fn hostile_params_never_panic() {
         json!({"id": "c8", "step": -1, "page": 5, "exclude": [1, null], "title": [], "x": "a", "y": 1e308, "steps": "yes", "all": 3}),
         json!({"id": "c8", "step": 1e9, "exclude": ["a,b", ""], "title": "x".repeat(5000), "x": 1e308, "y": -1e308}),
         json!({"id": {}, "step": {}, "exclude": "cloud.User", "steps": false, "all": true, "page": "\u{0}"}),
+        json!({"id": "x".repeat(1000), "before": 5, "after": [], "operator": "zz", "ids": [null]}),
+        json!({"from": "s1", "to": "s1", "sort": 9, "in": {"fragment": 3}}),
         nested_batches(40),
     ];
     for spec in reg.all() {

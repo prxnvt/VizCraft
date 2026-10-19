@@ -1,0 +1,625 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "model": {
+      "schemaVersion": 1,
+      "packs": [
+        {
+          "id": "uml",
+          "version": "1.0.0"
+        }
+      ],
+      "elements": [
+        {
+          "id": "e2",
+          "type": "uml.ActorLifeline",
+          "name": "Client"
+        },
+        {
+          "id": "e4",
+          "type": "uml.Lifeline",
+          "name": "Orders API"
+        },
+        {
+          "id": "e6",
+          "type": "uml.Lifeline",
+          "name": "Database"
+        }
+      ],
+      "relationships": [
+        {
+          "id": "r8",
+          "type": "uml.Message",
+          "source": "e2",
+          "target": "e4",
+          "name": "GET /orders/42",
+          "properties": {
+            "sort": "synchCall"
+          }
+        },
+        {
+          "id": "r10",
+          "type": "uml.Message",
+          "source": "e4",
+          "target": "e6",
+          "name": "query",
+          "properties": {
+            "sort": "synchCall"
+          }
+        },
+        {
+          "id": "r12",
+          "type": "uml.Message",
+          "source": "e6",
+          "target": "e4",
+          "name": "rows",
+          "properties": {
+            "sort": "reply"
+          }
+        },
+        {
+          "id": "r13",
+          "type": "uml.Message",
+          "source": "e4",
+          "target": "e2",
+          "name": "200 OK",
+          "properties": {
+            "sort": "reply"
+          }
+        },
+        {
+          "id": "r14",
+          "type": "uml.Message",
+          "source": "e4",
+          "target": "e2",
+          "name": "404 Not Found",
+          "properties": {
+            "sort": "reply"
+          }
+        }
+      ]
+    },
+    "document": {
+      "title": "",
+      "core": {
+        "author": "VizCraft User",
+        "lastModifiedBy": "VizCraft User",
+        "created": "2026-10-19T18:39:51Z",
+        "modified": "2026-10-19T18:39:51Z",
+        "revision": 1
+      },
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "width": 1100.0,
+          "height": 850.0,
+          "board": "infinite",
+          "shapes": [
+            {
+              "id": "f1",
+              "stencil": "uml.fragment",
+              "kind": "rectangle",
+              "x": 46.0,
+              "y": 238.0,
+              "w": 196.8,
+              "h": 155.60000000000002,
+              "angleDeg": 0.0,
+              "text": "",
+              "style": {
+                "fill": "#00000000",
+                "line": "#2b3a4a",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "container": {
+                "role": "container",
+                "margin": 20.0,
+                "headingPosition": "top",
+                "headingStyle": "plain",
+                "headingSize": 0.0,
+                "band": "#00000000",
+                "style": "",
+                "autoFit": false,
+                "locked": true,
+                "vertical": false,
+                "leader": true,
+                "side": "auto"
+              },
+              "sequence": {
+                "part": "fragment",
+                "operator": "alt",
+                "operands": [
+                  {
+                    "guard": "found",
+                    "at": 0.0
+                  },
+                  {
+                    "guard": "else",
+                    "at": 72.80000000000001
+                  }
+                ]
+              }
+            },
+            {
+              "id": "client",
+              "stencil": "uml.actorLifeline",
+              "kind": "actorLifeline",
+              "x": 40.0,
+              "y": 40.0,
+              "w": 60.0,
+              "h": 371.6,
+              "angleDeg": 0.0,
+              "text": "Client",
+              "style": {
+                "fill": "#ffffff",
+                "line": "#2b3a4a",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 0.317545748116254
+                },
+                {
+                  "x": 0.5,
+                  "y": 0.7072120559741658
+                },
+                {
+                  "x": 0.5,
+                  "y": 0.9031216361679225
+                }
+              ],
+              "element": "e2",
+              "textBlock": {
+                "dx": 0.0,
+                "dy": -131.8,
+                "w": 60.0,
+                "h": 20.0,
+                "angleDeg": 0.0
+              },
+              "sequence": {
+                "part": "lifeline",
+                "destroyed": false
+              }
+            },
+            {
+              "id": "api",
+              "stencil": "uml.lifeline",
+              "kind": "lifeline",
+              "x": 170.8,
+              "y": 40.0,
+              "w": 96.0,
+              "h": 371.6,
+              "angleDeg": 0.0,
+              "text": "Orders API",
+              "style": {
+                "fill": "#f2f6fb",
+                "line": "#2b3a4a",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.4479166666666667,
+                  "y": 0.317545748116254
+                },
+                {
+                  "x": 0.5520833333333334,
+                  "y": 0.4144241119483315
+                },
+                {
+                  "x": 0.5520833333333334,
+                  "y": 0.511302475780409
+                },
+                {
+                  "x": 0.4479166666666667,
+                  "y": 0.7072120559741658
+                },
+                {
+                  "x": 0.4479166666666667,
+                  "y": 0.9031216361679225
+                }
+              ],
+              "element": "e4",
+              "textBlock": {
+                "dx": 0.0,
+                "dy": -165.8,
+                "w": 96.0,
+                "h": 40.0,
+                "angleDeg": 0.0
+              },
+              "sequence": {
+                "part": "lifeline",
+                "destroyed": false
+              }
+            },
+            {
+              "id": "db",
+              "stencil": "uml.lifeline",
+              "kind": "lifeline",
+              "x": 326.8,
+              "y": 40.0,
+              "w": 81.6,
+              "h": 371.6,
+              "angleDeg": 0.0,
+              "text": "Database",
+              "style": {
+                "fill": "#f2f6fb",
+                "line": "#2b3a4a",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.43872549019607876,
+                  "y": 0.4144241119483315
+                },
+                {
+                  "x": 0.43872549019607876,
+                  "y": 0.511302475780409
+                }
+              ],
+              "element": "e6",
+              "textBlock": {
+                "dx": 0.0,
+                "dy": -165.8,
+                "w": 81.6,
+                "h": 40.0,
+                "angleDeg": 0.0
+              },
+              "sequence": {
+                "part": "lifeline",
+                "destroyed": false
+              }
+            },
+            {
+              "id": "s9",
+              "stencil": "uml.activation",
+              "kind": "rectangle",
+              "x": 213.8,
+              "y": 158.0,
+              "w": 10.0,
+              "h": 217.60000000000002,
+              "angleDeg": 0.0,
+              "text": "",
+              "style": {
+                "fill": "#ffffff",
+                "line": "#2b3a4a",
+                "lineWidth": 1.0,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [],
+              "locks": {
+                "width": true,
+                "height": true,
+                "aspect": false,
+                "position": true,
+                "rotation": true,
+                "delete": true,
+                "select": false,
+                "text": false
+              },
+              "sequence": {
+                "part": "activation",
+                "lifeline": "api",
+                "depth": 1
+              }
+            },
+            {
+              "id": "s11",
+              "stencil": "uml.activation",
+              "kind": "rectangle",
+              "x": 362.6,
+              "y": 194.0,
+              "w": 10.0,
+              "h": 36.0,
+              "angleDeg": 0.0,
+              "text": "",
+              "style": {
+                "fill": "#ffffff",
+                "line": "#2b3a4a",
+                "lineWidth": 1.0,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [],
+              "locks": {
+                "width": true,
+                "height": true,
+                "aspect": false,
+                "position": true,
+                "rotation": true,
+                "delete": true,
+                "select": false,
+                "text": false
+              },
+              "sequence": {
+                "part": "activation",
+                "lifeline": "db",
+                "depth": 1
+              }
+            }
+          ],
+          "connectors": [
+            {
+              "id": "m1",
+              "start": {
+                "shape": "client",
+                "point": 4
+              },
+              "end": {
+                "shape": "api",
+                "point": 4
+              },
+              "route": "straight",
+              "startArrow": "none",
+              "endArrow": "triangle",
+              "text": "GET /orders/42",
+              "kind": "uml.syncMessage",
+              "style": {
+                "fill": "#00000000",
+                "line": "#34495e",
+                "lineWidth": 1.25,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "relationship": "r8",
+              "message": {
+                "sort": "sync"
+              }
+            },
+            {
+              "id": "m2",
+              "start": {
+                "shape": "api",
+                "point": 5
+              },
+              "end": {
+                "shape": "db",
+                "point": 4
+              },
+              "route": "straight",
+              "startArrow": "none",
+              "endArrow": "triangle",
+              "text": "query",
+              "kind": "uml.syncMessage",
+              "style": {
+                "fill": "#00000000",
+                "line": "#34495e",
+                "lineWidth": 1.25,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "relationship": "r10",
+              "message": {
+                "sort": "sync"
+              }
+            },
+            {
+              "id": "m3",
+              "start": {
+                "shape": "db",
+                "point": 5
+              },
+              "end": {
+                "shape": "api",
+                "point": 6
+              },
+              "route": "straight",
+              "startArrow": "none",
+              "endArrow": "open",
+              "text": "rows",
+              "kind": "uml.replyMessage",
+              "style": {
+                "fill": "#00000000",
+                "line": "#34495e",
+                "lineWidth": 1.25,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false,
+                "dash": "dashed"
+              },
+              "relationship": "r12",
+              "message": {
+                "sort": "reply"
+              }
+            },
+            {
+              "id": "m4",
+              "start": {
+                "shape": "api",
+                "point": 7
+              },
+              "end": {
+                "shape": "client",
+                "point": 5
+              },
+              "route": "straight",
+              "startArrow": "none",
+              "endArrow": "open",
+              "text": "200 OK",
+              "kind": "uml.replyMessage",
+              "style": {
+                "fill": "#00000000",
+                "line": "#34495e",
+                "lineWidth": 1.25,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false,
+                "dash": "dashed"
+              },
+              "relationship": "r13",
+              "message": {
+                "sort": "reply"
+              }
+            },
+            {
+              "id": "m5",
+              "start": {
+                "shape": "api",
+                "point": 8
+              },
+              "end": {
+                "shape": "client",
+                "point": 6
+              },
+              "route": "straight",
+              "startArrow": "none",
+              "endArrow": "open",
+              "text": "404 Not Found",
+              "kind": "uml.replyMessage",
+              "style": {
+                "fill": "#00000000",
+                "line": "#34495e",
+                "lineWidth": 1.25,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false,
+                "dash": "dashed"
+              },
+              "relationship": "r14",
+              "message": {
+                "sort": "reply"
+              }
+            }
+          ],
+          "view": {
+            "viewpoint": "uml.Sequence"
+          },
+          "sequence": {
+            "events": [
+              {
+                "message": "m1"
+              },
+              {
+                "message": "m2"
+              },
+              {
+                "message": "m3"
+              },
+              {
+                "open": "f1"
+              },
+              {
+                "message": "m4"
+              },
+              {
+                "else": "f1"
+              },
+              {
+                "message": "m5"
+              },
+              {
+                "close": "f1"
+              }
+            ],
+            "activations": "auto",
+            "row": 36.0,
+            "columnGap": 60.0
+          }
+        }
+      ],
+      "idSeq": 14,
+      "conformance": {
+        "enabled": true,
+        "rulesets": [
+          "uml.uml251"
+        ]
+      }
+    }
+  },
+  "expect": []
+}

@@ -23,6 +23,7 @@ pub mod mermaid;
 pub mod native;
 pub mod pdf;
 pub mod plantuml;
+pub mod plantuml_sequence;
 pub mod png;
 pub mod svg;
 pub mod table;

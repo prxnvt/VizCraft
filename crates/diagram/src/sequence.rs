@@ -164,7 +164,7 @@ impl Interaction {
     }
 }
 
-/// A combined fragment's interaction operator (UML 2.5.1, 17.6.3).
+/// A combined fragment's interaction operator (UML 2.5.1, 17.12.15 InteractionOperatorKind).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub enum Operator {
     /// Alternatives: one operand runs. Unknown names load as this.
@@ -345,7 +345,7 @@ impl Part {
     }
 }
 
-/// The sort of a message (UML 2.5.1, 17.12.23 MessageSort, plus lost and found from 17.4.3).
+/// The sort of a message (UML 2.5.1, 17.12.22 MessageSort, plus lost and found from 17.12.20 MessageKind).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub enum Sort {
     /// A synchronous call. Unknown names load as this.
