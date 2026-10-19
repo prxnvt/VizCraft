@@ -141,6 +141,7 @@ fn chip(r: &AnalysisResult, id: &str, mark: Mark, lv: &std::collections::HashMap
         "path" => r.elements.iter().position(|e| e == id).map(|n| n.to_string()),
         // A metrics result marks its critical path; the table carries the numbers.
         "metrics" if connector => None,
+        "metrics" => Some("Critical".into()),
         _ => Some(mark_name(mark).to_string()),
     }
 }
@@ -259,8 +260,13 @@ pub fn draw(painter: &Painter, vp: &Viewport2D, session: &Session, page: &Page, 
     if opts.dim && !diff {
         let marked: std::collections::HashSet<&str> = list.iter().map(|x| x.item.as_str()).collect();
         let wash = t.page.gamma_multiply(0.55 * fade);
+        // A container around a marked item is not washed: its wash would fade what it holds.
+        let held: Vec<vizcraft_diagram::Rect> = page.shapes.iter().filter(|s| marked.contains(s.id.as_str())).map(|s| s.bounds()).collect();
         for s in page.shapes.iter().filter(|s| !marked.contains(s.id.as_str()) && s.bounds().intersects(&visible)) {
             let b = s.bounds();
+            if held.iter().any(|h| b.contains_rect(h)) {
+                continue;
+            }
             let sr = on_screen(vp, &b).expand(2.0);
             painter.rect_filled(sr, 0.0, wash);
         }
