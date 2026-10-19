@@ -1427,8 +1427,20 @@ re-placing anything.
 
 ## Block 6 and 6E wave 1 contracts
 
-State: briefs written on 2026-10-19 against the integration branch after it merged main at
-48d62ac (Block 5 done; `cargo xtask ci` green). Five backend branches, all Opus at medium effort,
+State: done. All five branches merged into the integration branch on 2026-10-19 in the order
+analysis, substrate, sheets, builders, templates, with `cargo xtask ci` green after each; worktrees
+and branches removed. Integration fixes at merge: builders read the substrate's page module and
+snap the first port through the shape's transform; `sheet.set` with no preset takes
+`Document.standards`; sheet ids accept `ansi.` for `asme.`; the template tests expect the real
+hooks. Follow-ups for the frontend wave, beyond each brief's section 4: the junction dot is small
+(3 line widths); the title block's Size and Sheet values crowd their labels; command results of
+`shape.rotate` and `shape.mirror` report the old selection as `primary`; the `sheet` pack needs its
+palette, viewpoints, ruleset and leader connector type (with snapshots retaken); the canvas path
+cache ignores `Freeform.frame`; table columns are not drawn on the canvas; ASME zone data and the
+ISO 7200 block width are to be checked against MIL-STD-100G and the standard.
+
+Briefs were written against the integration branch after it merged main at 48d62ac (Block 5
+done; `cargo xtask ci` green). Five backend branches, all Opus at medium effort,
 one brief each in [docs/briefs/b6-wave1/](briefs/b6-wave1/): each brief is a planning agent's
 draft written against the code, headed by the resolutions below that override it.
 
