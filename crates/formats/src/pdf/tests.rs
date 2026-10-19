@@ -142,3 +142,38 @@ fn hostile_layouts_and_pages_are_errors_or_capped() {
     let pdf = export_pages(&huge, &[0], &opts).unwrap();
     assert_eq!(page_count(&pdf), 1);
 }
+
+/// Every filled path's fill rule in the usvg tree, as krilla draws it into the PDF.
+fn fill_rules(group: &resvg::usvg::Group, out: &mut Vec<resvg::usvg::FillRule>) {
+    for node in group.children() {
+        match node {
+            resvg::usvg::Node::Group(g) => fill_rules(g, out),
+            resvg::usvg::Node::Path(p) => out.extend(p.fill().map(|f| f.rule())),
+            _ => {}
+        }
+    }
+}
+
+#[test]
+fn freeform_fills_reach_the_pdf_even_odd_even_for_one_ring() {
+    use vizcraft_diagram::geom::{Path, Point};
+    // A five-pointed star drawn as one ring crossing itself: even-odd leaves its centre empty.
+    let star: Vec<Point> = (0..5)
+        .map(|i| {
+            let a = (f64::from(i) * 144.0 - 90.0).to_radians();
+            Point::new(50.0 + 40.0 * a.cos(), 50.0 + 40.0 * a.sin())
+        })
+        .collect();
+    let mut doc = Document::new();
+    let mut s = Shape::new("star", ShapeKind::Freeform, 10.0, 10.0, 80.0, 80.0);
+    s.path = Some(vizcraft_diagram::Freeform::new(&Path::polygon(&star), true));
+    s.sanitize();
+    doc.page_mut().unwrap().shapes.push(s);
+    let svg = svg_text(&doc, 0, &SvgOptions::default());
+    assert!(svg.contains("fill-rule=\"evenodd\""), "{svg}");
+    let tree = crate::png::parse_svg(&export_page_with(&doc, 0, &SvgOptions::default()).unwrap()).unwrap();
+    let mut rules = Vec::new();
+    fill_rules(tree.root(), &mut rules);
+    assert!(rules.contains(&resvg::usvg::FillRule::EvenOdd), "{rules:?}");
+    assert!(page_count(&export_pages(&doc, &[0], &SvgOptions::default()).unwrap()) == 1);
+}

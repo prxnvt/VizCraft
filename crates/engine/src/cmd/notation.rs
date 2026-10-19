@@ -31,7 +31,7 @@ pub fn specs() -> Vec<CommandSpec> {
             r#"{} -> {"rulesets": [{"id", "label", "description", "pack", "rules", "active"}]}; every named ruleset of every pack; active: the document's profile holds it"#,
         ),
         CommandSpec::new("notation.load", "Load Notation Pack", "Model > Notation", load).params(
-            r#"{"path": pack file (.json or .toml)} -> {"pack": {"id", "version", "name", "rules", "rulesets"} | null, "errors": [string], "cases": [{"name", "passed", "problems"}]}; checks the pack with the built-in limits and adds it to the catalog (a later load of the same id replaces it; built-in packs cannot be replaced), then runs its test cases from tests/<pack id>/ beside the file"#,
+            r#"{"path": pack file (.json or .toml)} -> {"pack": {"id", "version", "name", "rules", "rulesets"} | null, "errors": [string], "warnings": [string], "cases": [{"name", "passed", "problems"}]}; checks the pack with the built-in limits (a glyph naming an unknown builder refuses it; a drawn glyph without a source only warns) and adds it to the catalog (a later load of the same id replaces it; built-in packs cannot be replaced), then runs its test cases from tests/<pack id>/ beside the file"#,
         ),
     ]
 }
@@ -91,6 +91,17 @@ fn load(s: &mut Session, v: &Value) -> CmdResult {
         Err(NotationError::Invalid(problems)) => return Ok(json!({"pack": null, "errors": problems, "cases": []})),
         Err(e) => return Ok(json!({"pack": null, "errors": [e.to_string()], "cases": []})),
     };
+    // Builders live above the notation crate, so their names are checked here.
+    let unknown: Vec<String> = pack
+        .glyphs
+        .iter()
+        .filter(|g| g.outline == vizcraft_notation::loader::BUILDER_OUTLINE && vizcraft_stencils::builders::spec(&g.builder).is_none())
+        .map(|g| format!("glyph `{}`: no glyph builder is named `{}`", short(&g.id), short(&g.builder)))
+        .collect();
+    if !unknown.is_empty() {
+        return Ok(json!({"pack": null, "errors": unknown, "cases": []}));
+    }
+    let warnings = vizcraft_notation::loader::provenance(&pack);
     let summary = json!({
         "id": pack.id,
         "version": pack.version,
@@ -108,7 +119,7 @@ fn load(s: &mut Session, v: &Value) -> CmdResult {
     let dir = path.parent().map(|d| cases::cases_dir(d, &id));
     let outcomes = dir.map(|d| cases::run_dir(&d, cat)).unwrap_or_default();
     let cases: Vec<Value> = outcomes.iter().map(|o| json!({"name": o.name, "passed": o.passed(), "problems": o.problems})).collect();
-    Ok(json!({"pack": summary, "errors": [], "cases": cases}))
+    Ok(json!({"pack": summary, "errors": [], "warnings": warnings, "cases": cases}))
 }
 
 fn cat() -> &'static Catalog {

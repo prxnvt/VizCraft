@@ -440,6 +440,11 @@ impl Session {
             };
             if changed {
                 {
+                    // Builder shapes redraw first, so binding sees their new ports.
+                    let _t = crate::trace::span("glyph.rebuild");
+                    vizcraft_stencils::builders::sync::rebuild(&mut self.doc, &before_doc, vizcraft_notation::catalog());
+                }
+                {
                     let _t = crate::trace::span("bind.sync");
                     vizcraft_notation::bind::sync(&mut self.doc, &before_doc, vizcraft_notation::catalog());
                 }

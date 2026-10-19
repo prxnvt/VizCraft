@@ -63,6 +63,7 @@ fn registry_ids_are_unique_and_prefixed() {
                 "picture",
                 "ink",
                 "variant",
+                "glyph",
                 "generate"
             ]
             .contains(&prefix),
@@ -122,6 +123,8 @@ fn hostile_params_never_panic() {
         json!({"script": "not json", "commands": []}),
         json!({"bytes": "!!not base64!!", "id": "s2", "crop": {"x": "a", "w": -1e308}, "points": [[1e308, "x"], {}], "mediaType": "image/gif", "maxDimension": -5, "quality": 1e300, "recolor": 7}),
         json!({"instance": "s2", "direction": "fromTable", "table": {"columns": [5, null], "rows": [[{}], "x", null]}, "path": "/nonexistent/\u{0}.csv", "source": "\u{0}", "merge": "yes", "type": 7}),
+        json!({"builder": "contact", "glyph": 7, "params": {"poles": 1e308, "form": [], "tag": "y".repeat(5000)}, "module": -1e308, "ids": ["s2"]}),
+        json!({"builder": "\u{0}", "params": {"standard": "jic", "poles": "NaN", "": 1, "paths": "P-Q;;;X|"}, "module": "a", "id": "s2", "page": "\u{0}"}),
         nested_batches(40),
     ];
     for spec in reg.all() {
