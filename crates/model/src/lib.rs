@@ -20,6 +20,7 @@
 
 pub mod identity;
 pub mod issue;
+pub mod query;
 mod repair;
 mod serde_util;
 #[cfg(test)]

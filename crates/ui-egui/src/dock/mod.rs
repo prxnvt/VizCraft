@@ -10,7 +10,7 @@ pub(crate) mod activity;
 mod generate;
 pub(crate) mod problems;
 pub(crate) mod search;
-mod tables;
+pub(crate) mod tables;
 
 use egui::{Id, Ui};
 use serde::{Deserialize, Deserializer, Serialize};
@@ -37,7 +37,7 @@ pub enum DockTab {
     Search,
     /// The transaction log, newest first.
     Activity,
-    /// Derived tables (filled by a later block).
+    /// Lists and relationship matrices over the model.
     Tables,
     /// Generator preview and run log (filled by a later block).
     Generate,
@@ -142,6 +142,8 @@ pub struct DockState {
     /// Activity: the undo and redo depths at a revision (counting them costs a pass over the
     /// history, so it is done once per revision).
     pub(crate) depths: Option<(u64, usize, usize)>,
+    /// Tables: the view, its parameters and the cell being edited.
+    pub tables: tables::TablesState,
 }
 
 /// Draw the dock when it is open. Call after the side panes and before the central panel.
@@ -213,7 +215,8 @@ pub fn inspect(app: &CraftApp) -> Value {
         DockTab::Problems => problems::rows(app).len(),
         DockTab::Search => d.state.hits.len(),
         DockTab::Activity => app.session.transactions().len(),
-        DockTab::Tables | DockTab::Generate => 0,
+        DockTab::Tables => tables::inspect(app)["count"].as_u64().unwrap_or(0) as usize,
+        DockTab::Generate => 0,
     };
     json!({"open": d.open, "height": d.height, "tab": d.tab.name(), "rows": rows})
 }
@@ -229,6 +232,7 @@ pub fn ui_command(app: &mut CraftApp, id: &str, p: &Value) -> Option<Result<Valu
     match id {
         "ui.dock" => Some(dock_command(app, p)),
         "ui.search" => Some(search::command(app, p)),
+        "ui.tables" => Some(tables::command(app, p)),
         "validate.run" => problems::on_run(app, p),
         _ => None,
     }

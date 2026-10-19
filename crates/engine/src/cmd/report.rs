@@ -3,8 +3,8 @@
 //! Three built-in reports: `inventory` (one row per shape), `data` (one row per shape that has
 //! shape data, one column per data key in use) and `connections` (one row per connector). A run
 //! returns the columns and rows, and by format also writes a CSV file, writes an HTML file with
-//! one table, or draws the table on the page as a shape with one list compartment. XLSX waits
-//! for the spreadsheet writer of a later block.
+//! one table, writes a Markdown pipe table or an XLSX workbook, or draws the table on the page as
+//! a shape with one list compartment. The writers are `vizcraft_formats::tables`.
 
 use serde_json::{Value, json};
 use vizcraft_diagram::{Connector, Document, End, Page, Rect, Shape, compartment as cp};
@@ -28,7 +28,7 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("report.list", "Shape Reports", "Review > Reporting", list)
             .params(r#"{} -> {"reports": [{"id", "name", "description"}]}; the built-in reports"#),
         CommandSpec::new("report.run", "Run Shape Report", "Review > Reporting", run).params(
-            r#"{"report": "inventory"|"data"|"connections", "scope"?: "page"|"document", "format"?: "csv"|"html"|"table", "path"?: string, "page"?: id|name|index} -> {"report", "scope", "format", "columns": [string], "rows": [[string]], "truncated": bool, "path"?, "bytes"?, "content"?, "id"?}; scope defaults to the page; csv and html write the file at path (or return it as content when there is no path); table draws a shape at the frame's right edge with one tab-separated row per record in a list compartment"#,
+            r#"{"report": "inventory"|"data"|"connections", "scope"?: "page"|"document", "format"?: "csv"|"html"|"markdown"|"xlsx"|"table", "path"?: string, "page"?: id|name|index} -> {"report", "scope", "format", "columns": [string], "rows": [[string]], "truncated": bool, "path"?, "bytes"?, "content"?, "id"?}; scope defaults to the page; csv, html and markdown write the file at path (or return it as content when there is no path); xlsx needs a path (a workbook is binary); table draws a shape at the frame's right edge with one tab-separated row per record in a list compartment"#,
         ),
     ]
 }
@@ -136,19 +136,9 @@ fn build(doc: &Document, report: &str, pages: &[usize]) -> Table {
     t
 }
 
-/// RFC 4180 quoting: a field with a comma, a quote or a line break is quoted, quotes doubled.
-fn csv_field(f: &str) -> String {
-    if f.contains([',', '"', '\n', '\r']) { format!("\"{}\"", f.replace('"', "\"\"")) } else { f.to_string() }
-}
-
-/// The table as CSV text: a header line, then one line per row, each ending in a line feed.
-fn to_csv(t: &Table) -> String {
-    let mut out = String::new();
-    for row in std::iter::once(&t.columns).chain(&t.rows) {
-        out.push_str(&row.iter().map(|f| csv_field(f)).collect::<Vec<_>>().join(","));
-        out.push('\n');
-    }
-    out
+/// The report as the shared table type the writers take, its columns typed from the cells.
+fn as_table(t: &Table) -> vizcraft_formats::table::Table {
+    vizcraft_formats::tables::from_text(&t.columns, t.rows.clone())
 }
 
 fn html_escape(t: &str) -> String {
@@ -219,12 +209,15 @@ fn run(s: &mut Session, v: &Value) -> CmdResult {
         Some(o) => return Err(EngineError::Params(format!("`scope` must be page or document, not `{}`", short(o)))),
     };
     let format = opt_str(v, "format")?.unwrap_or("csv");
-    if !matches!(format, "csv" | "html" | "table") {
-        return Err(EngineError::Params(format!("`format` must be csv, html or table, not `{}`", short(format))));
+    if !matches!(format, "csv" | "html" | "markdown" | "xlsx" | "table") {
+        return Err(EngineError::Params(format!("`format` must be csv, html, markdown, xlsx or table, not `{}`", short(format))));
     }
     let path = opt_str(v, "path")?;
     if path.is_some() && format == "table" {
-        return Err(EngineError::Params("`path` is for csv and html; a table is drawn on the page".into()));
+        return Err(EngineError::Params("`path` is for files; a table is drawn on the page".into()));
+    }
+    if format == "xlsx" && path.is_none() {
+        return Err(EngineError::Params("`path` is required for xlsx: a workbook is a binary file".into()));
     }
     let pages: Vec<usize> = if document {
         (0..s.doc.pages.len()).collect()
@@ -240,19 +233,26 @@ fn run(s: &mut Session, v: &Value) -> CmdResult {
         "columns": t.columns, "rows": t.rows, "truncated": t.truncated,
     });
     let text = match format {
-        "csv" => Some(to_csv(&t)),
+        "csv" => Some(vizcraft_formats::tables::write_csv(&as_table(&t))),
         "html" => Some(to_html(&doc_title(&s.doc), name, &t)),
+        "markdown" => Some(vizcraft_formats::tables::write_markdown(&as_table(&t))),
         _ => None,
     };
-    if let (Some(text), Some(o)) = (text.as_ref(), out.as_object_mut()) {
-        match path {
-            Some(path) => {
-                std::fs::write(path, text.as_bytes()).map_err(|e| EngineError::Failed(format!("{}: {e}", short(path))))?;
+    let bytes = match (format, path) {
+        ("xlsx", Some(_)) => Some(vizcraft_formats::tables::write_xlsx(&as_table(&t), name).map_err(|e| EngineError::Failed(e.to_string()))?),
+        _ => text.as_ref().map(|t| t.as_bytes().to_vec()),
+    };
+    if let Some(o) = out.as_object_mut() {
+        match (path, bytes) {
+            (Some(path), Some(bytes)) => {
+                std::fs::write(path, &bytes).map_err(|e| EngineError::Failed(format!("{}: {e}", short(path))))?;
                 o.insert("path".into(), json!(path));
-                o.insert("bytes".into(), json!(text.len()));
+                o.insert("bytes".into(), json!(bytes.len()));
             }
-            None => {
-                o.insert("content".into(), json!(text));
+            _ => {
+                if let Some(text) = text {
+                    o.insert("content".into(), json!(text));
+                }
             }
         }
     }
@@ -371,6 +371,29 @@ mod tests {
     }
 
     #[test]
+    fn markdown_and_xlsx_are_written() {
+        let mut s = small();
+        let r = run_ok(&mut s, json!({"report": "data", "format": "markdown"}));
+        assert_eq!(r["content"], "| id | page | cost |\n| --- | --- | --- |\n| a | Page-1 | 12 |\n");
+        let dir = std::env::temp_dir().join(format!("vizcraft-report-xlsx-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("inventory.xlsx");
+        let r = run_ok(&mut s, json!({"report": "inventory", "format": "xlsx", "path": path.to_string_lossy()}));
+        let bytes = std::fs::read(&path).unwrap();
+        assert_eq!(r["bytes"], bytes.len());
+        assert!(r.get("content").is_none());
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let t = vizcraft_formats::table::read(&bytes, vizcraft_diagram::data_graphic::TableFormat::Xlsx, "").unwrap();
+            let names: Vec<&str> = t.columns.iter().map(|c| c.name.as_str()).collect();
+            assert_eq!(names, ["id", "name", "type", "text", "page"]);
+            assert_eq!(t.rows.len(), 2);
+            assert_eq!(t.rows[0][3], "Pump, main");
+        }
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
     fn bad_params_are_refused() {
         let mut s = small();
         for bad in [
@@ -378,6 +401,7 @@ mod tests {
             json!({"report": "nope"}),
             json!({"report": "inventory", "scope": "all"}),
             json!({"report": "inventory", "format": "xlsx"}),
+            json!({"report": "inventory", "format": "pdf"}),
             json!({"report": "inventory", "format": "table", "path": "x"}),
             json!({"report": "inventory", "page": "missing"}),
         ] {
