@@ -369,7 +369,7 @@
       ],
       "elementType": "cloud.LoadBalancer",
       "path": "M 0.5 0 C 0.78 0 1 0.22 1 0.5 C 1 0.78 0.78 1 0.5 1 C 0.22 1 0 0.78 0 0.5 C 0 0.22 0.22 0 0.5 0 Z",
-      "detail": "M 0.2 0.5 L 0.45 0.5 M 0.45 0.5 L 0.75 0.28 M 0.45 0.5 L 0.75 0.5 M 0.45 0.5 L 0.75 0.72",
+      "detail": "M 0.36 0.2 L 0.48 0.2 M 0.48 0.2 L 0.64 0.1 M 0.48 0.2 L 0.64 0.2 M 0.48 0.2 L 0.64 0.3",
       "source": "own design"
     },
     {
@@ -429,7 +429,7 @@
       ],
       "elementType": "cloud.Internet",
       "path": "M 0.5 0 C 0.78 0 1 0.22 1 0.5 C 1 0.78 0.78 1 0.5 1 C 0.22 1 0 0.78 0 0.5 C 0 0.22 0.22 0 0.5 0 Z",
-      "detail": "M 0 0.5 L 1 0.5 M 0.5 0 C 0.3 0.25 0.3 0.75 0.5 1 M 0.5 0 C 0.7 0.25 0.7 0.75 0.5 1 M 0.1 0.25 L 0.9 0.25 M 0.1 0.75 L 0.9 0.75",
+      "detail": "M 0.5 0 C 0.3 0.25 0.3 0.75 0.5 1 M 0.5 0 C 0.7 0.25 0.7 0.75 0.5 1 M 0.1 0.25 L 0.9 0.25 M 0.1 0.75 L 0.9 0.75",
       "source": "own design"
     },
     {
@@ -1120,5 +1120,495 @@
       ]
     }
   ],
-  "templates": []
+  "templates": [
+    {
+      "id": "cloud.topology",
+      "label": "Cloud Topology",
+      "description": "A region with a network of public and private subnets, a gateway and balancer in front of two workloads, a database and managed services, with the request numbered step by step and a key.",
+      "keywords": [
+        "cloud",
+        "architecture",
+        "hosting",
+        "network",
+        "region",
+        "subnet"
+      ],
+      "viewpoint": "cloud.Topology",
+      "seed": [
+        {
+          "command": "element.create",
+          "as": "region",
+          "params": {
+            "type": "cloud.Region",
+            "name": "East",
+            "x": 0,
+            "y": 0,
+            "w": 900,
+            "h": 600
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "net",
+          "params": {
+            "type": "cloud.VirtualNetwork",
+            "name": "Main network",
+            "x": 20,
+            "y": 40,
+            "w": 600,
+            "h": 500
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "pub",
+          "params": {
+            "type": "cloud.PublicSubnet",
+            "name": "Public",
+            "x": 40,
+            "y": 80,
+            "w": 260,
+            "h": 400
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "priv",
+          "params": {
+            "type": "cloud.PrivateSubnet",
+            "name": "Private",
+            "x": 320,
+            "y": 80,
+            "w": 260,
+            "h": 400
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "user",
+          "params": {
+            "type": "cloud.User",
+            "name": "Visitor",
+            "x": -200,
+            "y": 0
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "gw",
+          "params": {
+            "type": "cloud.Gateway",
+            "name": "API gateway",
+            "x": 60,
+            "y": 120
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "lb",
+          "params": {
+            "type": "cloud.LoadBalancer",
+            "name": "Balancer",
+            "x": 60,
+            "y": 260
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "app1",
+          "params": {
+            "type": "cloud.Container",
+            "name": "Shop A",
+            "x": 340,
+            "y": 120
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "app2",
+          "params": {
+            "type": "cloud.Container",
+            "name": "Shop B",
+            "x": 340,
+            "y": 240
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "db",
+          "params": {
+            "type": "cloud.Database",
+            "name": "Orders",
+            "x": 340,
+            "y": 360
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "q",
+          "params": {
+            "type": "cloud.Queue",
+            "name": "Jobs",
+            "x": 700,
+            "y": 120
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "fn",
+          "params": {
+            "type": "cloud.Function",
+            "name": "Mailer",
+            "x": 700,
+            "y": 300
+          }
+        },
+        {
+          "command": "container.addMember",
+          "params": {
+            "container": "${region.shape}",
+            "ids": [
+              "${net.shape}",
+              "${q.shape}",
+              "${fn.shape}"
+            ]
+          }
+        },
+        {
+          "command": "container.addMember",
+          "params": {
+            "container": "${net.shape}",
+            "ids": [
+              "${pub.shape}",
+              "${priv.shape}"
+            ]
+          }
+        },
+        {
+          "command": "container.addMember",
+          "params": {
+            "container": "${pub.shape}",
+            "ids": [
+              "${gw.shape}",
+              "${lb.shape}"
+            ]
+          }
+        },
+        {
+          "command": "container.addMember",
+          "params": {
+            "container": "${priv.shape}",
+            "ids": [
+              "${app1.shape}",
+              "${app2.shape}",
+              "${db.shape}"
+            ]
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${user.id}",
+            "to": "${gw.id}",
+            "name": "HTTPS 443",
+            "properties": {
+              "protocol": "HTTPS"
+            }
+          },
+          "as": "r1"
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${gw.id}",
+            "to": "${lb.id}",
+            "name": "route"
+          },
+          "as": "r2"
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${lb.id}",
+            "to": "${app1.id}",
+            "name": "forward"
+          },
+          "as": "r3"
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${lb.id}",
+            "to": "${app2.id}",
+            "name": "forward"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${app1.id}",
+            "to": "${db.id}",
+            "name": "query"
+          },
+          "as": "r4"
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${app1.id}",
+            "to": "${q.id}",
+            "name": "enqueue",
+            "type": "cloud.Event"
+          },
+          "as": "r5"
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${q.id}",
+            "to": "${fn.id}",
+            "name": "trigger",
+            "type": "cloud.Event"
+          }
+        },
+        {
+          "command": "connector.setStep",
+          "params": {
+            "id": "${r1.id}",
+            "step": 1
+          }
+        },
+        {
+          "command": "connector.setStep",
+          "params": {
+            "id": "${r2.id}",
+            "step": 2
+          }
+        },
+        {
+          "command": "connector.setStep",
+          "params": {
+            "id": "${r3.id}",
+            "step": 3
+          }
+        },
+        {
+          "command": "connector.setStep",
+          "params": {
+            "id": "${r4.id}",
+            "step": 4
+          }
+        },
+        {
+          "command": "connector.setStep",
+          "params": {
+            "id": "${r5.id}",
+            "step": 5
+          }
+        }
+      ],
+      "layout": {
+        "primitive": "nested",
+        "direction": "LR",
+        "roles": {
+          "containers": []
+        }
+      },
+      "key": true,
+      "codeForms": [
+        "mermaid.architecture"
+      ]
+    },
+    {
+      "id": "cloud.cluster",
+      "label": "Cluster",
+      "description": "One container cluster with two namespaces, an ingress balancer and the workloads it reaches.",
+      "keywords": [
+        "cluster",
+        "namespace",
+        "container",
+        "workload",
+        "pod"
+      ],
+      "viewpoint": "cloud.Cluster",
+      "seed": [
+        {
+          "command": "element.create",
+          "as": "cl",
+          "params": {
+            "type": "cloud.Cluster",
+            "name": "Main cluster",
+            "x": 0,
+            "y": 0,
+            "w": 700,
+            "h": 500
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "shop",
+          "params": {
+            "type": "cloud.Namespace",
+            "name": "shop",
+            "x": 20,
+            "y": 40,
+            "w": 320,
+            "h": 400
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "ops",
+          "params": {
+            "type": "cloud.Namespace",
+            "name": "ops",
+            "x": 360,
+            "y": 40,
+            "w": 320,
+            "h": 400
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "user",
+          "params": {
+            "type": "cloud.User",
+            "name": "Visitor",
+            "x": -220,
+            "y": 0
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "lb",
+          "params": {
+            "type": "cloud.LoadBalancer",
+            "name": "Ingress",
+            "x": -220,
+            "y": 200
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "web",
+          "params": {
+            "type": "cloud.Container",
+            "name": "Web",
+            "x": 40,
+            "y": 80
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "api",
+          "params": {
+            "type": "cloud.Container",
+            "name": "API",
+            "x": 40,
+            "y": 220
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "metrics",
+          "params": {
+            "type": "cloud.Container",
+            "name": "Metrics",
+            "x": 380,
+            "y": 80
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "db",
+          "params": {
+            "type": "cloud.Database",
+            "name": "Orders",
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "command": "container.addMember",
+          "params": {
+            "container": "${cl.shape}",
+            "ids": [
+              "${shop.shape}",
+              "${ops.shape}"
+            ]
+          }
+        },
+        {
+          "command": "container.addMember",
+          "params": {
+            "container": "${shop.shape}",
+            "ids": [
+              "${web.shape}",
+              "${api.shape}"
+            ]
+          }
+        },
+        {
+          "command": "container.addMember",
+          "params": {
+            "container": "${ops.shape}",
+            "ids": [
+              "${metrics.shape}"
+            ]
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${user.id}",
+            "to": "${lb.id}",
+            "name": "HTTPS"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${lb.id}",
+            "to": "${web.id}",
+            "name": "route"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${web.id}",
+            "to": "${api.id}",
+            "name": "call"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${api.id}",
+            "to": "${db.id}",
+            "name": "query"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${metrics.id}",
+            "to": "${api.id}",
+            "name": "scrape"
+          }
+        }
+      ],
+      "layout": {
+        "primitive": "nested",
+        "direction": "LR",
+        "roles": {
+          "containers": []
+        }
+      },
+      "key": true,
+      "codeForms": [
+        "mermaid.architecture"
+      ]
+    }
+  ]
 }

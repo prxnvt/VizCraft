@@ -112,3 +112,65 @@ fn moving_the_key_carries_the_line_samples_and_layouts_leave_it_alone() {
     run(&mut s, "layout.primitive", json!({"primitive": "nested", "roles": {"containers": []}}));
     assert_eq!(frame(&s), at, "layout.primitive leaves the key alone");
 }
+
+const TOPOLOGY_TEMPLATES: [&str; 6] = ["cloud.topology", "cloud.cluster", "network.logical", "network.physical", "dfd.context", "dfd.threat"];
+
+#[test]
+fn the_topology_templates_build_in_one_step_with_no_error() {
+    for id in TOPOLOGY_TEMPLATES {
+        let mut s = Session::new(Document::new());
+        let r = run(&mut s, "template.new", json!({"template": id}));
+        assert_eq!(r["skipped"], json!([]), "{id}");
+        assert_eq!(s.undo_depth(), 1, "{id}");
+        let issues = run(&mut s, "validate.run", json!({}));
+        let errors: Vec<&Value> = issues["issues"].as_array().unwrap().iter().filter(|i| i["severity"] == "error").collect();
+        assert!(errors.is_empty(), "{id}: {errors:?}");
+    }
+}
+
+#[test]
+fn the_cloud_topology_has_steps_a_key_nested_nodes_and_a_balancer_spof() {
+    let mut s = Session::new(Document::new());
+    run(&mut s, "template.new", json!({"template": "cloud.topology"}));
+    let page = s.doc.page().unwrap();
+    let mut steps: Vec<u16> = page.connectors.iter().map(|c| c.step).filter(|n| *n > 0).collect();
+    steps.sort();
+    assert_eq!(steps, [1, 2, 3, 4, 5]);
+    assert!(page.shapes.iter().any(|sh| is_key(sh) && vizcraft_diagram::arrange::is_group(sh)), "a key");
+    // Every element but the visitor sits in its container, in the drawing and in the model.
+    for e in &s.doc.model.elements {
+        let sh = page.shapes.iter().find(|sh| sh.element.as_deref() == Some(e.id.as_str())).unwrap();
+        if e.type_id == "cloud.User" || e.type_id == "cloud.Region" {
+            assert!(sh.parent.is_none(), "{} at the top", e.name);
+            continue;
+        }
+        let parent = sh.parent.as_deref().and_then(|p| page.shape(p)).unwrap_or_else(|| panic!("{} has no container", e.name));
+        assert_eq!(parent.element.as_deref(), e.owner.as_deref(), "{} is owned by the container it is drawn in", e.name);
+    }
+    let lb = s.doc.model.elements.iter().find(|e| e.type_id == "cloud.LoadBalancer").unwrap().id.clone();
+    let spof = run(&mut s, "analyze.spof", json!({}));
+    assert!(spof["elements"].as_array().unwrap().iter().any(|x| x == &json!(lb)), "{spof}");
+    let text = run(&mut s, "topology.toMermaid", json!({}));
+    assert!(text["text"].as_str().unwrap().contains("[Balancer] in "), "{text}");
+}
+
+/// The preview SVG of `template` (in `variant`) against `goldens/<name>`; `VIZCRAFT_BLESS=1`
+/// rewrites it.
+fn golden(name: &str, template: &str, variant: &str) {
+    let mut s = Session::new(Document::new());
+    let r = run(&mut s, "template.preview", json!({"template": template, "variant": variant}));
+    let svg = r["svg"].as_str().unwrap();
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/cmd/key/goldens").join(name);
+    if std::env::var("VIZCRAFT_BLESS").is_ok() {
+        std::fs::write(&path, svg).unwrap();
+    }
+    let want = std::fs::read_to_string(&path).unwrap_or_default();
+    assert!(svg == want, "{name} differs from its golden; run with VIZCRAFT_BLESS=1 after checking it");
+    assert!(svg.contains(">Key</tspan>") || svg.contains(">Key<"), "{name} shows the key");
+}
+
+#[test]
+fn template_previews_match_their_goldens() {
+    golden("cloud-topology.svg", "cloud.topology", "");
+    golden("dfd-gane-sarson.svg", "dfd.threat", "dfd.gane_sarson");
+}

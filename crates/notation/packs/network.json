@@ -1047,5 +1047,378 @@
       ]
     }
   ],
-  "templates": []
+  "templates": [
+    {
+      "id": "network.logical",
+      "label": "Logical Network",
+      "description": "Subnets with their address ranges and VLANs, the router and firewall that route to them, and an address table.",
+      "keywords": [
+        "ip",
+        "subnet",
+        "vlan",
+        "routing",
+        "addressing",
+        "logical"
+      ],
+      "viewpoint": "network.Logical",
+      "seed": [
+        {
+          "command": "element.create",
+          "as": "rt",
+          "params": {
+            "type": "network.Router",
+            "name": "Edge router",
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "fw",
+          "params": {
+            "type": "network.Firewall",
+            "name": "Perimeter",
+            "x": 200,
+            "y": 0
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "office",
+          "params": {
+            "type": "network.Subnet",
+            "name": "Office LAN",
+            "x": 0,
+            "y": 200,
+            "properties": {
+              "cidr": "10.0.1.0/24",
+              "vlan": 10,
+              "gateway": "10.0.1.1"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "servers",
+          "params": {
+            "type": "network.Subnet",
+            "name": "Servers",
+            "x": 200,
+            "y": 200,
+            "properties": {
+              "cidr": "10.0.2.0/24",
+              "vlan": 20,
+              "gateway": "10.0.2.1"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "guest",
+          "params": {
+            "type": "network.Subnet",
+            "name": "Guest",
+            "x": 400,
+            "y": 200,
+            "properties": {
+              "cidr": "10.0.3.0/24",
+              "vlan": 30,
+              "gateway": "10.0.3.1"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "host",
+          "params": {
+            "type": "network.Server",
+            "name": "App host",
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "table",
+          "params": {
+            "type": "network.AddressTable",
+            "name": "Addresses",
+            "x": 600,
+            "y": 0
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${fw.id}",
+            "to": "${office.id}",
+            "name": "",
+            "type": "network.Routes"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${fw.id}",
+            "to": "${servers.id}",
+            "name": "",
+            "type": "network.Routes"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${rt.id}",
+            "to": "${guest.id}",
+            "name": "",
+            "type": "network.Routes"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${host.id}",
+            "to": "${servers.id}",
+            "name": "",
+            "type": "network.Attached",
+            "properties": {
+              "address": "10.0.2.10"
+            }
+          }
+        }
+      ],
+      "layout": {
+        "algorithm": "layered",
+        "direction": "TB"
+      },
+      "key": true
+    },
+    {
+      "id": "network.physical",
+      "label": "Physical Network",
+      "description": "A site with two racks of devices and the cables between their ports, on an A3 sheet with a title block.",
+      "keywords": [
+        "rack",
+        "cabling",
+        "physical",
+        "devices",
+        "ports",
+        "site"
+      ],
+      "viewpoint": "network.Physical",
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true,
+      "seed": [
+        {
+          "command": "element.create",
+          "as": "site",
+          "params": {
+            "type": "network.Site",
+            "name": "Head office",
+            "x": 0,
+            "y": 0,
+            "w": 800,
+            "h": 520
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "r1",
+          "params": {
+            "type": "network.Rack",
+            "name": "Rack 1",
+            "x": 20,
+            "y": 40,
+            "w": 300,
+            "h": 440
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "r2",
+          "params": {
+            "type": "network.Rack",
+            "name": "Rack 2",
+            "x": 360,
+            "y": 40,
+            "w": 300,
+            "h": 440
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "rt",
+          "params": {
+            "type": "network.Router",
+            "name": "Edge router",
+            "x": 40,
+            "y": 80
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "fw",
+          "params": {
+            "type": "network.Firewall",
+            "name": "Perimeter",
+            "x": 40,
+            "y": 200
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "sw",
+          "params": {
+            "type": "network.Switch",
+            "name": "Core switch",
+            "x": 40,
+            "y": 320,
+            "properties": {
+              "layer": "l3"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "srv",
+          "params": {
+            "type": "network.Server",
+            "name": "App host",
+            "x": 380,
+            "y": 80
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "san",
+          "params": {
+            "type": "network.Storage",
+            "name": "Array",
+            "x": 380,
+            "y": 220
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "pp",
+          "params": {
+            "type": "network.PatchPanel",
+            "name": "Patch A",
+            "x": 380,
+            "y": 360
+          }
+        },
+        {
+          "command": "container.addMember",
+          "params": {
+            "container": "${site.shape}",
+            "ids": [
+              "${r1.shape}",
+              "${r2.shape}"
+            ]
+          }
+        },
+        {
+          "command": "container.addMember",
+          "params": {
+            "container": "${r1.shape}",
+            "ids": [
+              "${rt.shape}",
+              "${fw.shape}",
+              "${sw.shape}"
+            ]
+          }
+        },
+        {
+          "command": "container.addMember",
+          "params": {
+            "container": "${r2.shape}",
+            "ids": [
+              "${srv.shape}",
+              "${san.shape}",
+              "${pp.shape}"
+            ]
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${rt.shape}",
+              "point": 3
+            },
+            "to": {
+              "shape": "${fw.shape}",
+              "point": 2
+            },
+            "kind": "network.cable"
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${fw.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${sw.shape}",
+              "point": 0
+            },
+            "kind": "network.cable"
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${sw.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${srv.shape}",
+              "point": 0
+            },
+            "kind": "network.cable"
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${sw.shape}",
+              "point": 3
+            },
+            "to": {
+              "shape": "${san.shape}",
+              "point": 0
+            },
+            "kind": "network.cable"
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${sw.shape}",
+              "point": 2
+            },
+            "to": {
+              "shape": "${pp.shape}",
+              "point": 0
+            },
+            "kind": "network.cable"
+          }
+        }
+      ],
+      "layout": {
+        "primitive": "nested",
+        "direction": "LR",
+        "roles": {
+          "containers": []
+        }
+      },
+      "key": true
+    }
+  ]
 }

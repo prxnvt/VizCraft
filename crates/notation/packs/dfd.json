@@ -420,7 +420,7 @@
       "description": "Circles for processes, parallel lines for stores."
     },
     {
-      "id": "dfd.ganeSarson",
+      "id": "dfd.gane_sarson",
       "label": "Gane and Sarson",
       "description": "Rounded processes with a number band, open stores with an id cell, shadowed entities.",
       "glyphs": {
@@ -433,5 +433,263 @@
       }
     }
   ],
-  "templates": []
+  "templates": [
+    {
+      "id": "dfd.context",
+      "label": "Context Diagram",
+      "description": "The system as one process with the external entities it exchanges data with.",
+      "keywords": [
+        "context",
+        "level 0",
+        "data flow",
+        "dfd"
+      ],
+      "viewpoint": "dfd.Context",
+      "seed": [
+        {
+          "command": "element.create",
+          "as": "sys",
+          "params": {
+            "type": "dfd.Process",
+            "name": "Order system",
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "cust",
+          "params": {
+            "type": "dfd.ExternalEntity",
+            "name": "Customer",
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "wh",
+          "params": {
+            "type": "dfd.ExternalEntity",
+            "name": "Warehouse",
+            "x": 600,
+            "y": 0
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "bank",
+          "params": {
+            "type": "dfd.ExternalEntity",
+            "name": "Bank",
+            "x": 300,
+            "y": 450
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${cust.id}",
+            "to": "${sys.id}",
+            "name": "order"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${sys.id}",
+            "to": "${cust.id}",
+            "name": "confirmation"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${sys.id}",
+            "to": "${wh.id}",
+            "name": "pick list"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${wh.id}",
+            "to": "${sys.id}",
+            "name": "dispatch note"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${sys.id}",
+            "to": "${bank.id}",
+            "name": "payment request"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${bank.id}",
+            "to": "${sys.id}",
+            "name": "payment result"
+          }
+        }
+      ],
+      "layout": {
+        "algorithm": "radial"
+      }
+    },
+    {
+      "id": "dfd.threat",
+      "label": "Threat Model",
+      "description": "A level one data flow with a trust boundary around the system, for finding flows that cross it.",
+      "keywords": [
+        "threat",
+        "security",
+        "trust boundary",
+        "data flow",
+        "dfd"
+      ],
+      "viewpoint": "dfd.Threat",
+      "seed": [
+        {
+          "command": "element.create",
+          "as": "tb",
+          "params": {
+            "type": "dfd.TrustBoundary",
+            "name": "Internal network",
+            "x": 200,
+            "y": -40,
+            "w": 560,
+            "h": 420
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "cust",
+          "params": {
+            "type": "dfd.ExternalEntity",
+            "name": "Customer",
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "card",
+          "params": {
+            "type": "dfd.ExternalEntity",
+            "name": "Card network",
+            "x": 900,
+            "y": 0
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "web",
+          "params": {
+            "type": "dfd.Process",
+            "name": "Web app",
+            "x": 240,
+            "y": 20
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "pay",
+          "params": {
+            "type": "dfd.Process",
+            "name": "Payments",
+            "x": 520,
+            "y": 20
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "orders",
+          "params": {
+            "type": "dfd.DataStore",
+            "name": "Orders",
+            "x": 380,
+            "y": 260
+          }
+        },
+        {
+          "command": "container.addMember",
+          "params": {
+            "container": "${tb.shape}",
+            "ids": [
+              "${web.shape}",
+              "${pay.shape}",
+              "${orders.shape}"
+            ]
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${cust.id}",
+            "to": "${web.id}",
+            "name": "order"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${web.id}",
+            "to": "${orders.id}",
+            "name": "order record"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${orders.id}",
+            "to": "${pay.id}",
+            "name": "amount due"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${pay.id}",
+            "to": "${card.id}",
+            "name": "charge"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${card.id}",
+            "to": "${pay.id}",
+            "name": "approval"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${pay.id}",
+            "to": "${web.id}",
+            "name": "receipt"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${web.id}",
+            "to": "${cust.id}",
+            "name": "confirmation"
+          }
+        }
+      ],
+      "layout": {
+        "primitive": "nested",
+        "direction": "LR",
+        "roles": {
+          "containers": []
+        }
+      },
+      "key": true
+    }
+  ]
 }
