@@ -618,3 +618,45 @@ fn include_in_key_shrinks_the_key_in_one_undo_step() {
     assert!(after < before, "{before} -> {after}");
     assert_eq!(h.state().session.undo_label(), Some("Insert Key"));
 }
+
+/// The Model Tree pane drawn alone in a narrow panel, so queries only see its rows.
+fn tree_pane(template: &str) -> Harness<'static, CraftApp> {
+    let mut s = Session::new(vizcraft_engine::Document::new());
+    s.run("template.new", &json!({"template": template})).unwrap();
+    s.run("edit.selectNone", &json!({})).unwrap();
+    let mut h = Harness::builder().with_size(vec2(360.0, 900.0)).with_max_steps(64).build_ui_state(
+        |ui, app: &mut CraftApp| {
+            app.logic(ui.ctx());
+            let spec = vizcraft_ui_egui::panes::spec("navigation").expect("the pane exists");
+            (spec.show)(app, ui);
+        },
+        CraftApp::new(s, Services::default()),
+    );
+    h.run_steps(4);
+    h
+}
+
+#[test]
+fn model_tree_lists_relationships_under_an_open_element_and_a_click_selects_the_connector() {
+    use egui_kittest::kittest::Queryable;
+    let mut h = tree_pane("uml.classDiagram");
+    let classes = shapes_of(&h, "uml.Class");
+    let el = element_of(&h, &classes[0]);
+    // Closed: no relationship rows. Open: the element's relationships follow, with arrows.
+    let r = run(&mut h, "ui.tree", json!({}));
+    assert!(r["relationships"].as_array().unwrap().is_empty(), "{r}");
+    let r = run(&mut h, "ui.tree", json!({"expand": [el]}));
+    let rows = r["relationships"].as_array().unwrap().clone();
+    assert!(!rows.is_empty(), "{r}");
+    assert!(rows.iter().all(|x| x["element"] == json!(el)));
+    h.run_steps(3);
+    let arrow = if rows[0]["direction"] == "out" { "-> " } else { "<- " };
+    h.get_all_by_label_contains(arrow).next().unwrap().click();
+    h.run_steps(3);
+    assert_eq!(selected(&h).len(), 1);
+    assert!(h.state().session.doc.page().unwrap().connector(&selected(&h)[0]).is_some(), "the click selects a connector");
+    // Context mode keeps the selected element's relationships showing.
+    run(&mut h, "edit.select", json!({"ids": [classes[0]]}));
+    let r = run(&mut h, "ui.tree", json!({"mode": "context"}));
+    assert!(!r["relationships"].as_array().unwrap().is_empty(), "{r}");
+}

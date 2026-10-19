@@ -6,6 +6,10 @@
 //! and the pages that draw it. Diagrams lists every page with its shapes and connectors. A
 //! document with no model shows only Diagrams.
 //!
+//! Under an open element, after what it owns, come its relationships ("-> Composition: LineItem"
+//! out, "<- Association: Customer" in); a click selects the relationship's connectors, the context
+//! menu changes its type or deletes it from the model.
+//!
 //! Mode: Model shows everything; Context follows the canvas selection and narrows the Model
 //! branch to the selected items' elements, their owners and their neighbours, opened up.
 //!
@@ -223,6 +227,8 @@ enum Kind<'a> {
     Branch { model: bool, count: usize },
     Group { ty: &'a str, count: usize },
     Element { e: El<'a>, kids: bool },
+    /// A relationship of the element above it: `element` is that element, `other` the far end.
+    Relationship { element: &'a str, rel: &'a str, type_id: &'a str, other: &'a str, outgoing: bool },
     Page { page: &'a Page, index: usize },
     Shape { page: usize, id: &'a str, text: &'a str, element: Option<&'a str> },
     Connector { page: usize, id: &'a str, text: &'a str, relationship: Option<&'a str> },
@@ -244,12 +250,22 @@ impl Row<'_> {
             Kind::Element { e, .. } => e.id.to_string(),
             Kind::Page { page, .. } => format!("page:{}", page.id),
             Kind::Shape { id, .. } | Kind::Connector { id, .. } => id.to_string(),
+            Kind::Relationship { element, rel, .. } => format!("rel:{element}:{rel}"),
         }
     }
 }
 
+/// Most relationship rows one element lists.
+const MAX_RELS: usize = 200;
+
+/// What is still to be listed under the Model branch.
+enum Todo<'a> {
+    Element(El<'a>, usize),
+    Row(Row<'a>),
+}
+
 /// The visible rows, top to bottom, given what is open.
-fn flatten<'a>(doc: &'a Document, st: &TreeState, filter: Option<&HashSet<&'a str>>) -> Vec<Row<'a>> {
+fn flatten<'a>(doc: &'a Document, st: &TreeState, filter: Option<&HashSet<&'a str>>, selected: &HashSet<&'a str>) -> Vec<Row<'a>> {
     let mut rows = Vec::new();
     let m = &doc.model;
     let has_model = !m.elements.is_empty();
@@ -270,13 +286,41 @@ fn flatten<'a>(doc: &'a Document, st: &TreeState, filter: Option<&HashSet<&'a st
                 }
             }
             let grouped = types.len() > 1;
+            // Relationships by element, in model order (an end of itself lists once).
+            let mut rels: HashMap<&str, Vec<Row<'a>>> = HashMap::new();
+            for r in &m.relationships {
+                for (el, other, outgoing) in [(r.source.as_str(), r.target.as_str(), true), (r.target.as_str(), r.source.as_str(), false)] {
+                    if !outgoing && r.source == r.target {
+                        continue;
+                    }
+                    let list = rels.entry(el).or_default();
+                    if list.len() < MAX_RELS {
+                        let kind = Kind::Relationship { element: el, rel: &r.id, type_id: &r.type_id, other, outgoing };
+                        list.push(Row { depth: 0, kind });
+                    }
+                }
+            }
+            let rels = &rels;
             let push_tree = |rows: &mut Vec<Row<'a>>, start: Vec<El<'a>>, depth0: usize| {
-                let mut stack: Vec<(El<'_>, usize)> = start.into_iter().rev().map(|e| (e, depth0)).collect();
-                while let Some((e, depth)) = stack.pop() {
+                let mut stack: Vec<Todo<'_>> = start.into_iter().rev().map(|e| Todo::Element(e, depth0)).collect();
+                while let Some(todo) = stack.pop() {
+                    let (e, depth) = match todo {
+                        Todo::Row(row) => {
+                            rows.push(row);
+                            continue;
+                        }
+                        Todo::Element(e, depth) => (e, depth),
+                    };
                     let below = kids.get(&Some(e.id)).map(Vec::as_slice).unwrap_or_default();
-                    rows.push(Row { depth, kind: Kind::Element { e, kids: !below.is_empty() } });
+                    let mine = rels.get(e.id).map(Vec::as_slice).unwrap_or_default();
+                    rows.push(Row { depth, kind: Kind::Element { e, kids: !below.is_empty() || !mine.is_empty() } });
                     if depth < MAX_DEPTH && st.is_open(e.id) {
-                        stack.extend(below.iter().rev().map(|k| (*k, depth + 1)));
+                        // Relationships come last, under what the element owns; in Context mode
+                        // only the selected elements list theirs unless opened by hand.
+                        if st.mode != Mode::Context || st.open.contains(e.id) || selected.contains(e.id) {
+                            stack.extend(mine.iter().rev().map(|r| Todo::Row(Row { depth: depth + 1, kind: r.kind })));
+                        }
+                        stack.extend(below.iter().rev().map(|k| Todo::Element(*k, depth + 1)));
                     }
                 }
             };
@@ -376,7 +420,7 @@ fn model_tree(app: &mut CraftApp, ui: &mut Ui) {
         let drawn = drawn_map(doc);
         let selected = selected_elements(doc, &app.session.sel.items);
         let filter = (st.mode == Mode::Context && !selected.is_empty()).then(|| context_set(doc, &selected));
-        let rows = flatten(doc, &st, filter.as_ref());
+        let rows = flatten(doc, &st, filter.as_ref(), &selected);
         let active = active_index(doc);
         let sel_items: HashSet<&str> = app.session.sel.items.iter().map(String::as_str).collect();
 
@@ -427,6 +471,7 @@ fn draw_row(
             Kind::Element { e, .. } => selected.contains(e.id),
             Kind::Shape { page, id, .. } | Kind::Connector { page, id, .. } => page == active && sel_items.contains(id),
             Kind::Page { index, .. } => index == active,
+            Kind::Relationship { rel, .. } => drawn.get(rel).is_some_and(|v| v.iter().any(|(p, i)| *p == active && sel_items.contains(i))),
             _ => false,
         };
     // A model item's element or relationship id when the row is bound to one.
@@ -434,6 +479,7 @@ fn draw_row(
         Kind::Element { e, .. } => Some(e.id),
         Kind::Shape { element, .. } => element,
         Kind::Connector { relationship, .. } => relationship,
+        Kind::Relationship { rel, .. } => Some(rel),
         _ => None,
     };
 
@@ -471,6 +517,7 @@ fn draw_row(
                 Kind::Element { e, .. } => (clip(if e.name.is_empty() { e.id } else { e.name }), false),
                 Kind::Page { page, .. } => (clip(&page.name), true),
                 Kind::Shape { id, text, .. } | Kind::Connector { id, text, .. } => (clip(if text.trim().is_empty() { id } else { text }), false),
+                Kind::Relationship { type_id, other, outgoing, .. } => (relationship_text(doc, type_id, other, outgoing), false),
             };
             let mut rt = egui::RichText::new(text).color(t.text);
             if strong {
@@ -520,6 +567,14 @@ fn draw_row(
     });
 }
 
+/// The label of a relationship row: its direction, the type and the element at the far end.
+fn relationship_text(doc: &Document, type_id: &str, other: &str, outgoing: bool) -> String {
+    let label = vizcraft_notation::catalog().relationship_type(type_id).map(|(_, t)| t.label.clone()).filter(|l| !l.is_empty());
+    let label = label.unwrap_or_else(|| type_name(type_id).to_string());
+    let name = doc.model.element(other).map(|e| if e.name.is_empty() { e.id.as_str() } else { e.name.as_str() }).unwrap_or(other);
+    clip(&format!("{} {label}: {name}", if outgoing { "->" } else { "<-" }))
+}
+
 /// Click, double-click, drag and drop, and the context menu of one row.
 #[allow(clippy::too_many_arguments)]
 fn row_input(
@@ -566,11 +621,16 @@ fn row_input(
             Kind::Branch { .. } | Kind::Group { .. } => st.toggle(&row.key()),
             Kind::Page { page, .. } => runs.push(("page.setActive", json!({"page": page.id}))),
             Kind::Element { e, .. } => runs.extend(select_runs(doc, drawn, e.id)),
+            Kind::Relationship { rel, .. } => runs.extend(select_runs(doc, drawn, rel)),
             Kind::Shape { page, id, .. } | Kind::Connector { page, id, .. } => runs.extend(select_items_runs(doc, page, &[id])),
         }
     }
 
     let Some(id) = item else { return };
+    if let Kind::Relationship { rel, type_id, element, other, outgoing } = row.kind {
+        r.context_menu(|ui| relationship_menu(ui, doc, (rel, type_id, element, other, outgoing), runs));
+        return;
+    }
     r.context_menu(|ui| {
         let views = drawn.get(id).map_or(0, Vec::len);
         if ui.add_enabled(views > 0, egui::Button::new("Show in All Views")).clicked() {
@@ -596,6 +656,37 @@ fn row_input(
             ui.close();
         }
     });
+}
+
+/// The context menu of a relationship row: change its type to one that may join the drawn pair
+/// (illegal ones last and marked, since the rules lint and never block), or delete it from the
+/// model.
+fn relationship_menu(ui: &mut Ui, doc: &Document, row: (&str, &str, &str, &str, bool), runs: &mut Runs) {
+    let (rel, type_id, element, other, outgoing) = row;
+    let (src, dst) = if outgoing { (element, other) } else { (other, element) };
+    let page = doc.page();
+    let shape_of = |el: &str| page.and_then(|p| p.shapes.iter().find(|s| s.element.as_deref() == Some(el))).map(|s| s.id.as_str());
+    let choices: Vec<vizcraft_engine::suggest::RelationshipChoice> = match (shape_of(src), shape_of(dst)) {
+        (Some(a), Some(b)) => vizcraft_engine::suggest::connect(doc, a, b),
+        _ => Vec::new(),
+    };
+    ui.menu_button("Change Type", |ui| {
+        if choices.is_empty() {
+            ui.label(egui::RichText::new("Draw both ends on this page to list the types.").small());
+        }
+        for c in choices.iter().filter(|c| !c.id.is_empty()) {
+            let label = if c.legal { c.label.clone() } else { format!("{} (not allowed)", c.label) };
+            if ui.selectable_label(c.id == type_id, label).clicked() {
+                runs.push(("relationship.retype", json!({"id": rel, "type": c.id})));
+                ui.close();
+            }
+        }
+    });
+    ui.separator();
+    if ui.button("Delete from Model").clicked() {
+        runs.push(("model.delete", json!({"ids": [rel]})));
+        ui.close();
+    }
 }
 
 /// The inline editor of a rename. Returns true when the edit ended (Enter, Escape or focus lost).
@@ -736,17 +827,30 @@ fn reveal_keys(doc: &Document, id: &str) -> Option<(Vec<String>, String)> {
     Some((vec![BRANCH_DIAGRAMS.into(), format!("page:{}", page.id)], id.to_string()))
 }
 
-/// The `tree` field of `ui.inspect`: `{mode, branch, expanded, collapsed, selected}`.
+/// The `tree` field of `ui.inspect`: `{mode, branch, expanded, collapsed, selected, relationships}`;
+/// `relationships` lists the relationship rows showing, `{element, id, direction}`.
 pub fn inspect(app: &CraftApp) -> Value {
     let st = &app.tree;
     let mut selected: Vec<&str> = selected_elements(&app.session.doc, &app.session.sel.items).into_iter().collect();
     selected.sort_unstable();
+    // The relationship rows showing, in order: `direction` is `out` or `in` for the element.
+    let doc = &app.session.doc;
+    let sel_set = selected_elements(doc, &app.session.sel.items);
+    let filter = (st.mode == Mode::Context && !sel_set.is_empty()).then(|| context_set(doc, &sel_set));
+    let relationships: Vec<Value> = flatten(doc, st, filter.as_ref(), &sel_set)
+        .iter()
+        .filter_map(|r| match r.kind {
+            Kind::Relationship { element, rel, outgoing, .. } => Some(json!({"element": element, "id": rel, "direction": if outgoing { "out" } else { "in" }})),
+            _ => None,
+        })
+        .collect();
     json!({
         "mode": st.mode.name(),
         "branch": branch_report(st),
         "expanded": st.open,
         "collapsed": st.closed,
         "selected": selected,
+        "relationships": relationships,
     })
 }
 
