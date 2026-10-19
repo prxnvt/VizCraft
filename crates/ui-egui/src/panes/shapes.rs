@@ -60,6 +60,35 @@ fn master_preview(painter: &egui::Painter, m: &vizcraft_stencils::Master, r: Rec
     }
 }
 
+/// A small drawing of a glyph builder's default symbol fitted into `r`, in the default shape
+/// colours (it previews what `glyph.insert` places): closed rings filled even-odd, open ones
+/// stroked.
+fn builder_preview(painter: &egui::Painter, name: &str, r: Rect) {
+    use crate::canvas::draw::{color, pos};
+    let Some(b) = palette::builder_preview(name) else { return };
+    let st = vizcraft_diagram::Style::DEFAULT;
+    let k = (f64::from(r.width()) / b.w.max(1.0)).min(f64::from(r.height()) / b.h.max(1.0));
+    let origin = r.center() - vec2((b.w * k) as f32, (b.h * k) as f32) / 2.0;
+    let place = |p: vizcraft_diagram::Point| origin + pos(p).to_vec2();
+    let outline = b.path.transformed(&vizcraft_diagram::Transform::scale(k, k));
+    let rings: Vec<(Vec<egui::Pos2>, bool)> = outline.flatten(0.3).into_iter().map(|pl| (pl.points.iter().map(|p| place(*p)).collect(), pl.closed)).collect();
+    let closed: Vec<Vec<egui::Pos2>> = rings.iter().filter(|(_, c)| *c).map(|(p, _)| p.clone()).collect();
+    for (pts, tris) in crate::canvas::tess::even_odd(&closed) {
+        let mut mesh = egui::epaint::Mesh::default();
+        for p in &pts {
+            mesh.colored_vertex(*p, color(st.fill));
+        }
+        for [a, b, c] in tris {
+            mesh.add_triangle(a, b, c);
+        }
+        painter.add(egui::Shape::mesh(mesh));
+    }
+    let stroke = Stroke::new(1.0, color(st.line));
+    for (pts, closed) in rings {
+        painter.add(if closed { egui::Shape::closed_line(pts, stroke) } else { egui::Shape::line(pts, stroke) });
+    }
+}
+
 /// The master the active page draws `m`'s element type with: its rendering variant's glyph when
 /// the variant maps the type, else `m`.
 fn shown(app: &CraftApp, m: &'static vizcraft_stencils::Master) -> &'static vizcraft_stencils::Master {
@@ -126,6 +155,20 @@ fn act(app: &mut CraftApp, ui: &mut Ui, resp: &egui::Response, what: What) {
                 let _ = app.run("ui.tool", json!({"tool": "connector", "kind": k.id}));
             }
         }
+        What::Builder(b) => {
+            if resp.dragged() {
+                egui::DragAndDrop::set_payload(ui.ctx(), MasterDrag(format!("{}{}", palette::BUILDER_DRAG, b.name)));
+                ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+                if let Some(p) = ui.ctx().pointer_interact_pos() {
+                    let layer = egui::LayerId::new(egui::Order::Tooltip, egui::Id::new("master-drag-ghost"));
+                    builder_preview(&ui.ctx().layer_painter(layer), b.name, Rect::from_center_size(p, vec2(48.0, 32.0)));
+                }
+            }
+            if resp.clicked() {
+                let at = crate::canvas::insert_point(app);
+                crate::canvas::insert_builder(app, b.name, at);
+            }
+        }
     }
 }
 
@@ -177,11 +220,13 @@ fn item_row(app: &mut CraftApp, ui: &mut Ui, item: &Item) {
     match what {
         What::Master(m) => master_preview(ui.painter(), m, art),
         What::Kind(k) => kind_preview(ui.painter(), k, art, t.text),
+        What::Builder(b) => builder_preview(ui.painter(), b.name, art),
     }
     ui.painter().with_clip_rect(r).text(pos2(r.left() + 40.0, r.center().y), egui::Align2::LEFT_CENTER, label, regular(12.0), t.text);
     let tip = match what {
         What::Master(m) => m.label,
         What::Kind(_) => "Draw connectors of this kind",
+        What::Builder(b) => b.description,
     };
     act(app, ui, &resp.on_hover_text(tip), what);
 }

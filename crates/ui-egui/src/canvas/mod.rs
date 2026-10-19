@@ -275,6 +275,13 @@ pub fn insert_master(app: &mut CraftApp, stencil: &str, at: dg::Point) {
     interact::membership::insert(app, stencil, x, y, m.w, m.h);
 }
 
+/// Place a free symbol drawn by glyph builder `name` centred on world point `at`
+/// (`glyph.insert`, which puts its first pin on the page's module grid).
+pub fn insert_builder(app: &mut CraftApp, name: &str, at: dg::Point) {
+    let (w, h) = crate::palette::builder_preview(name).map_or((0.0, 0.0), |b| (b.w, b.h));
+    let _ = app.run("glyph.insert", json!({"builder": name, "x": (at.x - w / 2.0).round(), "y": (at.y - h / 2.0).round()}));
+}
+
 /// Where a click in the Shapes pane inserts: the centre of the visible part of the page frame, or
 /// the frame centre when it is out of view or the canvas has not been laid out. On an infinite
 /// board it is the centre of what is visible.
@@ -335,7 +342,11 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
         && let Some(p) = ui.ctx().pointer_interact_pos().or(response.hover_pos())
     {
         let before = app.session.sel.primary.clone();
-        insert_master(app, &payload.0, point(vp.screen_to_world(p)));
+        let at = point(vp.screen_to_world(p));
+        match payload.0.strip_prefix(crate::palette::BUILDER_DRAG) {
+            Some(name) => insert_builder(app, name, at),
+            None => insert_master(app, &payload.0, at),
+        }
         // A device dropped on a wire is spliced into it.
         if let Some(id) = app.session.sel.primary.clone().filter(|id| Some(id) != before.as_ref()) {
             interact::wire::splice_if_on_wire(app, &id);
