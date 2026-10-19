@@ -64,6 +64,8 @@ pub enum Dialog {
     ShapeName(crate::shape_name_dialog::State),
     /// Spelling (`crate::spelling_dialog`).
     Spelling(crate::spelling_dialog::State),
+    /// A pattern's form (`crate::pattern_dialog`), opened by `ui.patterns {pattern}`.
+    Pattern(crate::pattern_dialog::State),
 }
 
 impl Dialog {
@@ -89,6 +91,7 @@ impl Dialog {
             Dialog::Addon(s) => s.name(),
             Dialog::ShapeName(_) => "shapeName",
             Dialog::Spelling(_) => "spelling",
+            Dialog::Pattern(_) => "pattern",
         }
     }
 
@@ -139,6 +142,7 @@ impl Dialog {
             Dialog::Addon(s) => s.title().into(),
             Dialog::ShapeName(_) => "Shape Name".into(),
             Dialog::Spelling(_) => "Spelling".into(),
+            Dialog::Pattern(s) => crate::pattern_dialog::title(s),
         }
     }
 
@@ -153,6 +157,7 @@ impl Dialog {
             Dialog::Links(_) => 560.0,
             Dialog::Spelling(_) => 440.0,
             Dialog::DataGraphic(_) => 520.0,
+            Dialog::Pattern(_) => 440.0,
             _ => 360.0,
         }
     }
@@ -358,6 +363,11 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
             crate::shape_name_dialog::finish(app, s, ok, cancel)
         }
         Dialog::Spelling(s) => crate::spelling_dialog::body(app, ui, s),
+        Dialog::Pattern(s) => {
+            crate::pattern_dialog::body(ui, s);
+            let (ok, cancel) = buttons(ui, "Insert", Some("Cancel"), keys);
+            crate::pattern_dialog::finish(app, s, ok, cancel)
+        }
         Dialog::SnapSettings(s) => {
             crate::snap_dialog::body(ui, s);
             let (ok, cancel) = buttons(ui, "OK", Some("Cancel"), keys);

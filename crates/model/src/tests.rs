@@ -770,7 +770,13 @@ fn any_model() -> impl Strategy<Value = Model> {
         proptest::collection::vec(element(), 0..24),
         proptest::collection::vec(relationship(), 0..24),
     )
-        .prop_map(|(schema_version, packs, elements, relationships)| Model { schema_version, packs, elements, relationships })
+        .prop_map(|(schema_version, packs, elements, relationships)| Model {
+            schema_version,
+            packs,
+            elements,
+            relationships,
+            patterns: Vec::new(),
+        })
 }
 
 proptest! {

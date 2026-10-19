@@ -26,6 +26,7 @@ vizcraft-routing = { path = "crates/routing" }
 vizcraft-model = { path = "crates/model" }
 vizcraft-notation = { path = "crates/notation" }
 vizcraft-codegen = { path = "crates/codegen" }
+vizcraft-patterns = { path = "crates/patterns" }
 
 # foundation
 thiserror = "2"

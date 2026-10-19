@@ -4261,6 +4261,7 @@ dependencies = [
  "vizcraft-formats",
  "vizcraft-model",
  "vizcraft-notation",
+ "vizcraft-patterns",
  "vizcraft-stencils",
 ]
 
@@ -4339,6 +4340,18 @@ dependencies = [
  "toml",
  "vizcraft-diagram",
  "vizcraft-model",
+]
+
+[[package]]
+name = "vizcraft-patterns"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "vizcraft-layout",
+ "vizcraft-model",
+ "vizcraft-notation",
 ]
 
 [[package]]

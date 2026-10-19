@@ -46,8 +46,9 @@ impl Default for PaneLayout {
         // Layers, Comments, Pan and Zoom, the Document Stencil and External Data start closed:
         // most pages have no layers or comments, the minimap opens from View > Show, the stencil
         // from Developer > Show/Hide and External Data has nothing to show until a table is
-        // linked. The Inspector starts open, as the Properties pane it replaced did.
-        for p in panes().into_iter().filter(|p| !matches!(p.key, "layers" | "comments" | "panZoom" | "documentStencil" | "externalData")) {
+        // linked; Patterns opens from Insert > Patterns. The Inspector starts open, as the Properties pane it replaced did.
+        for p in panes().into_iter().filter(|p| !matches!(p.key, "layers" | "comments" | "panZoom" | "documentStencil" | "externalData" | "patterns"))
+        {
             l.side_mut(p.default_side).push(p.key.to_string());
         }
         // Navigation has nothing to list until pages arrive; it starts folded to its header so

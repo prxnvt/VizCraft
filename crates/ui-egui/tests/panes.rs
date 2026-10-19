@@ -32,7 +32,10 @@ fn harness(app: CraftApp) -> Harness<'static, CraftApp> {
 #[test]
 fn registry_has_the_four_panes_and_commands() {
     let keys: Vec<&str> = panes::panes().iter().map(|p| p.key).collect();
-    assert_eq!(keys, ["shapes", "navigation", "history", "layers", "shapeData", "comments", "panZoom", "documentStencil", "externalData"]);
+    assert_eq!(
+        keys,
+        ["shapes", "navigation", "history", "layers", "shapeData", "comments", "panZoom", "documentStencil", "externalData", "patterns"]
+    );
     for p in panes::panes() {
         assert!(p.default_width >= MIN_WIDTH && p.default_width <= MAX_WIDTH);
         assert!(!p.title.is_empty());
@@ -116,11 +119,11 @@ fn collapse_commands_fold_a_side() {
 fn window_menu_items_track_the_layout() {
     let mut a = app();
     let items = panes::window_menu_items(&a);
-    assert_eq!(items.len(), 9);
-    let closed = |t: &str| matches!(t, "Layers" | "Comments" | "Pan and Zoom" | "Document Stencil" | "External Data");
+    assert_eq!(items.len(), 10);
+    let closed = |t: &str| matches!(t, "Layers" | "Comments" | "Pan and Zoom" | "Document Stencil" | "External Data" | "Patterns");
     assert!(
         items.iter().all(|(title, _, on)| *on == !closed(title)),
-        "every pane but Layers, Comments, Pan and Zoom and Document Stencil and External Data start open"
+        "every pane but Layers, Comments, Pan and Zoom, Document Stencil, External Data and Patterns start open"
     );
     assert_eq!(items[0], ("Palette", "ui.pane.shapes", true));
     assert_eq!(items[1], ("Model Tree", "ui.pane.navigation", true));

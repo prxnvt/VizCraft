@@ -9,6 +9,7 @@ groups! {
     basic_shapes,
     flowchart,
     diagram_parts,
+    patterns,
     text,
 }
 

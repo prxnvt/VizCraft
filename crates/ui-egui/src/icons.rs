@@ -207,6 +207,8 @@ pub const NAMES: &[&str] = &[
     "generatePreview",
     "generateCheck",
     "generateTarget",
+    // Insert > Patterns
+    "pattern",
 ];
 
 /// Reference size of the design grid, in points. At this size the stroke is `BASE_STROKE`.
@@ -1346,6 +1348,20 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
             pen.line(&[(7.0, 5.0), (2.5, 10.0), (7.0, 15.0)]);
             pen.line(&[(13.0, 5.0), (17.5, 10.0), (13.0, 15.0)]);
             pen.line_c(&[(11.5, 3.5), (8.5, 16.5)], a);
+        }
+        "pattern" => {
+            // A split fanning out to three branches that join again.
+            pen.rect(2.5, 8.0, 5.5, 12.0, c);
+            pen.rect(14.5, 8.0, 17.5, 12.0, c);
+            pen.frect(8.5, 3.0, 11.5, 6.0, a);
+            pen.frect(8.5, 8.5, 11.5, 11.5, a);
+            pen.frect(8.5, 14.0, 11.5, 17.0, a);
+            pen.line(&[(5.5, 10.0), (8.5, 4.5)]);
+            pen.line(&[(5.5, 10.0), (8.5, 10.0)]);
+            pen.line(&[(5.5, 10.0), (8.5, 15.5)]);
+            pen.line(&[(11.5, 4.5), (14.5, 10.0)]);
+            pen.line(&[(11.5, 10.0), (14.5, 10.0)]);
+            pen.line(&[(11.5, 15.5), (14.5, 10.0)]);
         }
         _ => {
             // Fallback: a rounded tile with the first letter.
