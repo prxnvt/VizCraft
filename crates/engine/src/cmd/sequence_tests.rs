@@ -275,3 +275,189 @@ fn deleting_a_lifeline_leaves_free_ends_the_dangling_rule_reports() {
     let issues = run(&mut s, "validate.run", json!({}));
     assert!(issues["issues"].as_array().unwrap().iter().any(|i| i["rule"] == "uml.dangling"), "{issues}");
 }
+
+#[test]
+fn the_move_and_activation_commands_are_one_undo_step_each() {
+    let mut s = template();
+    let steps: Vec<(&str, Value)> = vec![
+        ("sequence.moveDown", json!({"id": "m1"})),
+        ("sequence.moveUp", json!({"id": "m1"})),
+        ("sequence.moveRight", json!({"id": "client"})),
+        ("sequence.moveLeft", json!({"id": "client"})),
+        ("sequence.setActivations", json!({"mode": "explicit"})),
+        ("sequence.setActivations", json!({"mode": "auto"})),
+        ("sequence.setActivation", json!({"id": "m1", "activate": true, "deactivate": true})),
+        ("sequence.setActivation", json!({"id": "m1", "activate": false})),
+    ];
+    for (id, params) in &steps {
+        let before = s.doc.clone();
+        let out = run(&mut s, id, params.clone());
+        assert_ne!(s.doc, before, "{id} {params} changed the document: {out}");
+        run(&mut s, "edit.undo", json!({}));
+        assert_eq!(s.doc, before, "{id} is one undo step");
+        run(&mut s, "edit.redo", json!({}));
+    }
+    // The order came back; the activation run after m1 keeps only the deactivate.
+    assert_eq!(order(&mut s)[..3], ["message m1", "deactivate client", "message m2"].map(String::from));
+    let x = |s: &Session, id: &str| s.doc.page().unwrap().shape(id).map(|v| v.x + v.w / 2.0).unwrap();
+    // Alt+Right swaps the columns: Client and Orders API trade places, heads stay on their row.
+    let (c, a, y) = (x(&s, "client"), x(&s, "api"), s.doc.page().unwrap().shape("api").unwrap().y);
+    run(&mut s, "sequence.moveRight", json!({"id": "client"}));
+    assert!(x(&s, "client") > x(&s, "api") && x(&s, "api") <= c + 1e-9 && x(&s, "client") >= a - 1e-9);
+    assert_eq!(s.doc.page().unwrap().shape("api").unwrap().y, y);
+    // The selection is the default id; refusals name what is wrong.
+    s.sel = crate::Selection::single("m2");
+    run(&mut s, "sequence.moveDown", json!({}));
+    assert_eq!(order(&mut s)[2..4], ["message m3", "message m2"].map(String::from));
+    for (id, params, needle) in [
+        ("sequence.moveLeft", json!({"id": "api"}), "leftmost"),
+        ("sequence.moveRight", json!({"id": "db"}), "rightmost"),
+        ("sequence.moveUp", json!({"id": "m1"}), "already first"),
+        ("sequence.moveDown", json!({"id": "f1"}), "already last"),
+        ("sequence.moveLeft", json!({"id": "m1"}), "not a lifeline"),
+        ("sequence.setActivations", json!({"mode": "sometimes"}), "sometimes"),
+        ("sequence.setActivation", json!({"id": "m1"}), "activate"),
+        ("sequence.setActivation", json!({"id": "db", "activate": true}), "not a message"),
+    ] {
+        let e = s.run(id, &params).unwrap_err().to_string();
+        assert!(e.contains(needle), "{id}: {e}");
+    }
+}
+
+#[test]
+fn move_up_at_an_operand_start_leaves_the_fragment() {
+    let mut s = template();
+    // m5 starts the else operand: up goes to the end of the found operand.
+    run(&mut s, "sequence.moveUp", json!({"id": "m5"}));
+    assert_eq!(order(&mut s)[3..], ["open f1", "message m4", "message m5", "else f1", "close f1"].map(String::from));
+    // m4 starts the first operand: up leaves the fragment.
+    run(&mut s, "sequence.moveUp", json!({"id": "m4"}));
+    assert_eq!(order(&mut s)[3..5], ["message m4", "open f1"].map(String::from));
+    // Down at the end of the last operand leaves it too.
+    let mut t = template();
+    run(&mut t, "sequence.moveDown", json!({"id": "m5"}));
+    assert_eq!(order(&mut t).last().map(String::as_str), Some("message m5"));
+}
+
+#[test]
+fn alt_arrow_shortcuts_are_unique() {
+    let reg = crate::cmd::registry();
+    for (key, id) in
+        [("Alt+Up", "sequence.moveUp"), ("Alt+Down", "sequence.moveDown"), ("Alt+Left", "sequence.moveLeft"), ("Alt+Right", "sequence.moveRight")]
+    {
+        let owners: Vec<&str> = reg.all().iter().filter(|c| c.shortcut.split(" / ").any(|k| k == key)).map(|c| c.id).collect();
+        assert_eq!(owners, vec![id], "{key}");
+    }
+}
+
+#[test]
+fn shape_add_of_a_lifeline_master_joins_the_interaction() {
+    let mut s = template();
+    let out = run(&mut s, "shape.add", json!({"stencil": "uml.lifeline", "x": 900, "y": 40, "text": "Cache"}));
+    let id = out["id"].as_str().unwrap().to_string();
+    let page = s.doc.page().unwrap();
+    assert!(matches!(page.shape(&id).unwrap().sequence, Some(Part::Lifeline { destroyed: false })));
+    // A message-type connector drawn between two lifelines joins the order as that sort.
+    let out = run(&mut s, "connector.add", json!({"from": {"shape": "api"}, "to": {"shape": id}, "kind": "uml.asyncMessage", "text": "warm"}));
+    let c = out["id"].as_str().unwrap().to_string();
+    let o = run(&mut s, "sequence.order", json!({}));
+    let row = o["events"].as_array().unwrap().iter().find(|e| e["id"] == c.as_str()).cloned().unwrap();
+    assert_eq!((row["kind"].as_str(), row["sort"].as_str()), (Some("message"), Some("async")));
+}
+
+#[test]
+fn golden_message_labels_sit_above_their_lines_in_svg() {
+    let mut s = Session::new(Document::new());
+    run(&mut s, "sequence.new", json!({}));
+    run(&mut s, "sequence.addLifeline", json!({"name": "A", "id": "a"}));
+    run(&mut s, "sequence.addLifeline", json!({"name": "B", "id": "b"}));
+    run(&mut s, "sequence.addMessage", json!({"from": "a", "to": "b", "label": "call", "id": "m1"}));
+    let svg = String::from_utf8(vizcraft_formats::svg::export_page(&s.doc, 0).unwrap()).unwrap();
+    let group: Vec<&str> = svg.lines().map(str::trim).skip_while(|l| *l != r#"<g id="m1">"#).take_while(|l| *l != "</g>").collect();
+    let attr = |l: &str, k: &str| -> f64 {
+        let at = l.find(&format!(" {k}=\"")).unwrap() + k.len() + 3;
+        l[at..].split('"').next().unwrap().parse().unwrap()
+    };
+    let rect = group.iter().find(|l| l.starts_with("<rect")).unwrap();
+    let line = group.iter().find(|l| l.starts_with("<path d=\"M")).unwrap();
+    let line_y: f64 = line.split_whitespace().nth(2).unwrap().trim_end_matches('"').parse().unwrap();
+    assert!(attr(rect, "y") + attr(rect, "height") < line_y, "{rect} above {line}");
+}
+
+/// The page's stems, bars, fragment tabs and guards, and message label boxes.
+fn template_boxes(s: &Session) -> (Vec<(String, f64, f64, f64)>, Vec<(String, vizcraft_diagram::Rect)>) {
+    use vizcraft_diagram::container::Decor;
+    let page = s.doc.page().unwrap();
+    let mut lines = Vec::new();
+    let mut boxes = Vec::new();
+    for x in &page.shapes {
+        match &x.sequence {
+            Some(Part::Lifeline { .. }) => {
+                let head = if x.kind == vizcraft_diagram::ShapeKind::ActorLifeline {
+                    vizcraft_diagram::sequence::ACTOR_HEAD
+                } else {
+                    vizcraft_diagram::sequence::HEAD
+                };
+                lines.push((format!("stem {}", x.id), x.x + x.w / 2.0, x.y + head, x.y + x.h));
+            }
+            Some(Part::Activation { .. }) => {
+                for bx in [x.x, x.x + x.w] {
+                    lines.push((format!("bar {}", x.id), bx, x.y, x.y + x.h));
+                }
+            }
+            Some(Part::Fragment { .. }) => {
+                for d in vizcraft_diagram::sequence::fragment_decor(x) {
+                    match d {
+                        Decor::Line { points, dashed: false, .. } => boxes.push(("tab".into(), vizcraft_diagram::Rect::bounding(points).unwrap())),
+                        Decor::Text { center, text, size, .. } => {
+                            let w = text.chars().count() as f64 * size * 0.6;
+                            boxes.push((
+                                text,
+                                vizcraft_diagram::Rect::new(center.x - w / 2.0, center.y - size / 2.0, center.x + w / 2.0, center.y + size / 2.0),
+                            ));
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    for c in &page.connectors {
+        let g = vizcraft_diagram::connector_geometry(page, c);
+        if let Some(r) = vizcraft_diagram::sequence::label_rect(c, g.label_pos) {
+            boxes.push((format!("label {}", c.id), r));
+        }
+    }
+    (lines, boxes)
+}
+
+#[test]
+fn on_the_template_no_stem_or_bar_crosses_a_tab_guard_or_label_and_operands_are_even() {
+    let mut s = template();
+    for step in 0..3 {
+        let (lines, boxes) = template_boxes(&s);
+        assert!(boxes.iter().filter(|b| b.0 == "tab").count() == 1 && boxes.iter().any(|b| b.0 == "[else]"), "{boxes:?}");
+        for (what, x, y0, y1) in &lines {
+            for (name, r) in &boxes {
+                let hit = *x > r.x0 && *x < r.x1 && *y1 > r.y0 && *y0 < r.y1;
+                assert!(!hit, "step {step}: {what} crosses {name} {r:?}");
+            }
+        }
+        // Evenly spaced operands: each first row one row below its guard line, the separator and
+        // the bottom half a row below the last row.
+        let page = s.doc.page().unwrap();
+        let row = page.sequence.as_ref().unwrap().row;
+        let f = page.shape("f1").unwrap();
+        let Some(Part::Fragment { operands, .. }) = &f.sequence else { panic!() };
+        let y = |id: &str| page.connector(id).and_then(|c| vizcraft_diagram::connector_geometry(page, c).polyline.first().map(|p| p.y)).unwrap();
+        let sep = f.y + operands[1].at;
+        let gaps = [y("m4") - f.y, sep - y("m4"), y("m5") - sep, f.y + f.h - y("m5")];
+        for (got, want) in gaps.iter().zip([row, row / 2.0, row, row / 2.0]) {
+            assert!((got - want).abs() < 1e-6, "step {step}: {gaps:?}");
+        }
+        // Again with the guards longer and the rows taller.
+        run(&mut s, "sequence.setFragment", json!({"id": "f1", "guards": ["order found in the cache", "else"]}));
+        run(&mut s, "sequence.layout", json!({"row": 48 + 8 * step}));
+    }
+}

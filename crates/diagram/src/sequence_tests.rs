@@ -328,3 +328,192 @@ fn relayout_packs_from_the_margin_and_rename_follows_copies() {
     assert!(ev.contains(&Event::Open("f9".into())));
     assert!(copy.shapes.iter().any(|s| matches!(&s.sequence, Some(Part::Activation { lifeline, .. }) if lifeline == "api2")));
 }
+
+#[test]
+fn a_message_label_sits_above_its_line() {
+    let doc = sample();
+    let page = doc.page().unwrap();
+    for id in ["m1", "m2", "m3", "m4", "m5"] {
+        let c = page.connector(id).unwrap();
+        let g = crate::route::connector_geometry(page, c);
+        let (y0, y1) = y_of(page, c);
+        assert!((y0 - y1).abs() < 1e-9);
+        let r = label_rect(c, g.label_pos).unwrap();
+        assert!((r.y1 - (y0 - LABEL_GAP)).abs() < 1e-9, "{id}: the box ends {LABEL_GAP} above the line");
+        let (a, b) = (g.polyline.first().unwrap().x, g.polyline.last().unwrap().x);
+        assert!((r.center().x - (a + b) / 2.0).abs() < 1e-9, "{id}: centred over the line");
+    }
+    // A plain connector keeps its label on the line.
+    let mut plain = page.connector("m1").unwrap().clone();
+    plain.message = None;
+    let g = crate::route::connector_geometry(page, &plain);
+    assert!((g.label_pos.y - y_of(page, &plain).0).abs() < 1e-9);
+}
+
+#[test]
+fn a_self_message_label_sits_right_of_its_loop() {
+    let mut doc = sample();
+    let page = doc.page_mut().unwrap();
+    page.connectors.push(message("me", "api", "api", Sort::Async, "tick"));
+    settle(&mut doc);
+    let page = doc.page().unwrap();
+    let c = page.connector("me").unwrap();
+    let g = crate::route::connector_geometry(page, c);
+    assert_eq!(g.polyline.len(), 4, "{:?}", g.polyline);
+    let loop_x = g.polyline.iter().map(|p| p.x).fold(f64::MIN, f64::max);
+    let r = label_rect(c, g.label_pos).unwrap();
+    assert!((r.x0 - (loop_x + 4.0)).abs() < 1e-9);
+    let mid = (g.polyline[0].y + g.polyline[3].y) / 2.0;
+    assert!((r.center().y - mid).abs() < 1e-9);
+    // Lost and found labels sit above their stub.
+    let lost = label_anchor(&[Point::new(0.0, 100.0), Point::new(60.0, 100.0)], "x", &crate::Style::default()).unwrap();
+    assert!(lost.y < 100.0 && (lost.x - 30.0).abs() < 1e-9);
+    assert_eq!(label_anchor(&[], "x", &crate::Style::default()), None);
+}
+
+#[test]
+fn message_kind_connectors_and_lifeline_shapes_are_adopted() {
+    let mut doc = sample();
+    let page = doc.page_mut().unwrap();
+    // A lifeline-kind shape with no part, as `shape.add` of the master leaves it.
+    let mut cache = Shape::new("cache", ShapeKind::Lifeline, 600.0, 40.0, 100.0, 300.0);
+    cache.text = "Cache".into();
+    page.shapes.push(cache);
+    let mut adopted = Connector::new("c9", End::dynamic("api"), End::dynamic("cache"));
+    adopted.kind = "uml.asyncMessage".into();
+    let mut plain = Connector::new("c10", End::dynamic("api"), End::dynamic("cache"));
+    plain.kind = "basic".into();
+    let mut half = Connector::new("c11", End::dynamic("api"), End::free(Point::new(900.0, 900.0)));
+    half.kind = "uml.syncMessage".into();
+    page.connectors.extend([adopted, plain, half]);
+    settle(&mut doc);
+    let page = doc.page().unwrap();
+    assert!(matches!(page.shape("cache").unwrap().sequence, Some(Part::Lifeline { destroyed: false })));
+    assert_eq!(page.connector("c9").unwrap().message, Some(Message { sort: Sort::Async }));
+    assert_eq!(page.connector("c10").unwrap().message, None, "a plain connector stays drawing");
+    assert_eq!(page.connector("c11").unwrap().message, None, "one end free");
+    let events = &page.sequence.as_ref().unwrap().events;
+    assert_eq!(events.last(), Some(&Event::Message("c9".into())));
+    // Settle stays idempotent.
+    let mut again = doc.clone();
+    settle(&mut again);
+    assert_eq!(again, doc);
+    assert_eq!(Sort::from_connector_type("uml.replyMessage"), Some(Sort::Reply));
+    assert_eq!(Sort::from_connector_type("uml.class"), None);
+}
+
+#[test]
+fn drop_positions_steps_and_owners() {
+    let doc = sample();
+    let page = doc.page().unwrap();
+    let events = page.sequence.as_ref().unwrap().events.clone();
+    let rows: HashMap<String, f64> = rows(page).into_iter().collect();
+    let y = |id: &str| rows[id];
+    // Between m1 and m2: before m2.
+    let (p, line) = drop_position(page, (y("m1") + y("m2")) / 2.0, None).unwrap();
+    assert_eq!(p, Position::Before("m2".into()));
+    assert!((line - (y("m1") + y("m2")) / 2.0).abs() < 1e-9);
+    // Just above the separator: the end of operand 0; just above the bottom: the end of operand 1.
+    let sep = page.shape("f1").map(|f| {
+        f.y + match &f.sequence {
+            Some(Part::Fragment { operands, .. }) => operands[1].at,
+            _ => 0.0,
+        }
+    });
+    let (p, _) = drop_position(page, sep.unwrap() - 1.0, Some("m1")).unwrap();
+    assert_eq!(p, Position::In { fragment: "f1".into(), operand: 0 });
+    let f = page.shape("f1").unwrap();
+    let (p, _) = drop_position(page, f.y + f.h - 1.0, None).unwrap();
+    assert_eq!(p, Position::In { fragment: "f1".into(), operand: 1 });
+    // Below everything: after the last top-level block; the dragged block is skipped.
+    assert_eq!(drop_position(page, 1e6, None).unwrap().0, Position::After("f1".into()));
+    assert_eq!(drop_position(page, 1e6, Some("f1")).unwrap().0, Position::After("m3".into()));
+    assert_eq!(drop_position(page, y("m2") - 1.0, Some("m2")).unwrap().0, Position::Before("m3".into()));
+    // Steps: past a sibling, into the next operand, out at the edges, over a fragment whole.
+    assert_eq!(step(&events, "m1", false), Err("`m1` is already first".into()));
+    assert_eq!(step(&events, "m1", true), Ok(Position::After("m2".into())));
+    assert_eq!(step(&events, "m3", true), Ok(Position::After("f1".into())));
+    assert_eq!(step(&events, "m4", false), Ok(Position::Before("f1".into())));
+    assert_eq!(step(&events, "m4", true), Ok(Position::Before("m5".into())));
+    assert_eq!(step(&events, "m5", false), Ok(Position::In { fragment: "f1".into(), operand: 0 }));
+    assert_eq!(step(&events, "m5", true), Ok(Position::After("f1".into())));
+    assert_eq!(step(&events, "f1", false), Ok(Position::Before("m3".into())));
+    assert!(step(&events, "ghost", true).is_err());
+    assert_eq!(enclosing(&events, "m5"), Some(("f1".into(), 1)));
+    assert_eq!(enclosing(&events, "m1"), None);
+    // Lifelines are found by head, stem and bar; a bar's owner is its lifeline.
+    let api = page.shape("api").unwrap();
+    let stem = Point::new(api.x + api.w / 2.0 + 2.0, api.y + api.h - 10.0);
+    assert_eq!(lifeline_at(page, stem, 3.0).as_deref(), Some("api"));
+    assert_eq!(lifeline_at(page, Point::new(api.x - 40.0, stem.y), 3.0), None);
+    let bar = page.shapes.iter().find(|s| matches!(&s.sequence, Some(Part::Activation { lifeline, .. }) if lifeline == "api")).unwrap();
+    assert_eq!(lifeline_at(page, bar.center(), 0.0).as_deref(), Some("api"));
+    assert_eq!(owner(page, &bar.id), "api");
+    assert_eq!(owner(page, "m1"), "m1");
+    assert_eq!(column_at(page, -1e6), 0);
+    assert_eq!(column_at(page, api.x + api.w / 2.0 + 1.0), 2);
+    assert_eq!(column_at(page, 1e6), 3);
+    // The alt's separator dragged above 200 OK makes 200 OK start the second operand; dragged
+    // below everything it starts at the last block.
+    assert_eq!(separator_target(page, "f1", 1, y("m4") - 1.0).as_deref(), Some("m5"), "m4 cannot start operand 1: operand 0 keeps it");
+    assert_eq!(separator_target(page, "f1", 1, 1e6).as_deref(), Some("m5"));
+    assert_eq!(separator_target(page, "f1", 0, 0.0), None);
+    assert_eq!(separator_target(page, "m1", 1, 0.0), None);
+}
+
+/// Text decor's box, estimated as the layout does.
+fn text_rect(d: &container::Decor) -> Option<Rect> {
+    let container::Decor::Text { center, text, size, .. } = d else { return None };
+    let w = text.chars().count() as f64 * size * 0.6;
+    Some(Rect::new(center.x - w / 2.0, center.y - size / 2.0, center.x + w / 2.0, center.y + size / 2.0))
+}
+
+fn crosses(r: &Rect, x: f64, y0: f64, y1: f64) -> bool {
+    x > r.x0 && x < r.x1 && y1 > r.y0 && y0 < r.y1
+}
+
+#[test]
+fn fragment_tabs_guards_and_labels_stay_clear_of_stems_and_bars_and_operands_are_evenly_spaced() {
+    let doc = sample();
+    let page = doc.page().unwrap();
+    let f = page.shape("f1").unwrap();
+    let mut boxes: Vec<(String, Rect)> = Vec::new();
+    for d in fragment_decor(f) {
+        match &d {
+            container::Decor::Line { points, dashed: false, .. } => boxes.push(("tab".into(), Rect::bounding(points.iter().copied()).unwrap())),
+            container::Decor::Text { text, .. } => boxes.push((text.clone(), text_rect(&d).unwrap())),
+            _ => {}
+        }
+    }
+    assert_eq!(boxes.len(), 4, "{boxes:?}");
+    for c in &page.connectors {
+        let g = crate::route::connector_geometry(page, c);
+        boxes.push((c.id.clone(), label_rect(c, g.label_pos).unwrap()));
+    }
+    for s in &page.shapes {
+        let (what, xs, y0, y1) = match &s.sequence {
+            Some(Part::Lifeline { .. }) => ("stem", vec![s.x + s.w / 2.0], s.y + HEAD.min(s.h), s.y + s.h),
+            Some(Part::Activation { .. }) => ("bar", vec![s.x, s.x + s.w / 2.0, s.x + s.w], s.y, s.y + s.h),
+            _ => continue,
+        };
+        for (name, r) in &boxes {
+            for &x in &xs {
+                assert!(!crosses(r, x, y0, y1), "the {what} of {} crosses {name} {r:?}", s.id);
+            }
+        }
+    }
+    // Rows: one row below the top and the separator, half a row above the separator and bottom.
+    let row = page.sequence.as_ref().unwrap().row;
+    let rows: HashMap<String, f64> = rows(page).into_iter().collect();
+    let Some(Part::Fragment { operands, .. }) = &f.sequence else { panic!() };
+    let sep = f.y + operands[1].at;
+    for (got, want) in [(rows["m4"] - f.y, row), (sep - rows["m4"], row / 2.0), (rows["m5"] - sep, row), (f.y + f.h - rows["m5"], row / 2.0)] {
+        assert!((got - want).abs() < 1e-9, "{got} != {want}");
+    }
+    // The frame reaches half a column gap past its stems and clear of the bars.
+    let gap = page.sequence.as_ref().unwrap().column_gap;
+    let client = page.shape("client").unwrap();
+    let api = page.shape("api").unwrap();
+    assert!(client.x + client.w / 2.0 - f.x >= gap / 2.0 - 1e-9);
+    assert!(f.x + f.w - (api.x + api.w / 2.0) >= gap / 2.0 - 1e-9);
+}

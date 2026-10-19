@@ -53,7 +53,7 @@ const MIN_HEAD_W: f64 = 80.0;
 /// Narrowest actor head.
 const MIN_ACTOR_W: f64 = 60.0;
 /// Height of a fragment's operator tab.
-const TAB_H: f64 = 20.0;
+const TAB_H: f64 = lay::TAB_H;
 /// Margin of a page laid out from scratch.
 const MARGIN: f64 = 40.0;
 /// Prefix of ids handed to generated shapes before the document numbers them.
@@ -398,6 +398,11 @@ impl Sort {
             Sort::Destroy => "uml.destroyMessage",
         }
     }
+    /// The sort a `uml.*Message` connector type draws; lost and found share the async type, so
+    /// that type reads as async.
+    pub fn from_connector_type(kind: &str) -> Option<Sort> {
+        [Sort::Sync, Sort::Async, Sort::Reply, Sort::Create, Sort::Destroy].into_iter().find(|s| s.connector_type() == kind)
+    }
     fn layout(self) -> MessageSort {
         match self {
             Sort::Sync => MessageSort::Sync,
@@ -501,13 +506,17 @@ pub fn fragment_decor(s: &Shape) -> Vec<Decor> {
         if l.a == 0 { Color::rgb(0x2b, 0x3a, 0x4a) } else { l }
     };
     let font = Color::rgb(0x1f, 0x2a, 0x36);
-    let size = s.style.font_size.clamp(6.0, 48.0);
+    let size = decor_font(s);
     let (w, h) = (size_of(s.w), size_of(s.h));
     let mut out = Vec::new();
-    let mut guard_x = 8.0;
+    let tw = tab_w(*operator, size).min(w);
+    // Settle keeps the guards' x (clear of the first covered stem and its bars) as the margin.
+    let guard_x = match &s.container {
+        Some(c) if c.margin > 0.0 && c.margin < w => c.margin.max(tw + 8.0),
+        _ => tw + 8.0,
+    };
     if *operator != Operator::Region {
         let name = operator.name();
-        let tw = (text_w(name, size) + 16.0).min(w);
         let th = TAB_H.min(h);
         let cut = 6.0f64.min(tw / 2.0).min(th / 2.0);
         out.push(Decor::Line {
@@ -525,7 +534,6 @@ pub fn fragment_decor(s: &Shape) -> Vec<Decor> {
             color: font,
             bold: true,
         });
-        guard_x = tw + 8.0;
     }
     for (k, o) in operands.iter().enumerate() {
         let at = o.at.clamp(0.0, h);
@@ -535,9 +543,9 @@ pub fn fragment_decor(s: &Shape) -> Vec<Decor> {
         if o.guard.trim().is_empty() {
             continue;
         }
-        let text = if *operator == Operator::Ref { o.guard.clone() } else { format!("[{}]", o.guard.trim()) };
+        let text = if *operator == Operator::Ref { o.guard.clone() } else { guard_text(&o.guard) };
         let gw = text_w(&text, size);
-        let (gx, gy) = if k == 0 { (guard_x, TAB_H / 2.0) } else { (8.0, at + TAB_H / 2.0) };
+        let (gx, gy) = (guard_x, if k == 0 { TAB_H / 2.0 } else { at + TAB_H / 2.0 });
         if *operator == Operator::Ref {
             out.push(Decor::Text {
                 center: t.apply(Point::new(w / 2.0, h / 2.0)),
@@ -568,9 +576,67 @@ fn size_of(v: f64) -> f64 {
     size(v)
 }
 
+/// Font size of a fragment's tab and guards.
+fn decor_font(s: &Shape) -> f64 {
+    s.style.font_size.clamp(6.0, 48.0)
+}
+
+/// Width of an operator's tab at font `size`; none for a region.
+fn tab_w(operator: Operator, size: f64) -> f64 {
+    if operator == Operator::Region { 0.0 } else { text_w(operator.name(), size) + 16.0 }
+}
+
+/// A guard as drawn: in brackets.
+fn guard_text(guard: &str) -> String {
+    format!("[{}]", guard.trim())
+}
+
+/// Width of an operand's guard as drawn (none for an empty guard or a `ref`, whose text is
+/// centred in the frame).
+fn guard_w(operator: Operator, guard: &str, size: f64) -> f64 {
+    if operator == Operator::Ref || guard.trim().is_empty() { 0.0 } else { text_w(&guard_text(guard), size) }
+}
+
 /// Estimated width of one line of text at `font` size.
 fn text_w(text: &str, font: f64) -> f64 {
     text.split('\n').map(|l| l.chars().count()).max().unwrap_or(0) as f64 * font * 0.6
+}
+
+/// Space between a message label's box and its line.
+pub const LABEL_GAP: f64 = 3.0;
+
+/// The box a connector label of `text` at `font` size takes, as SVG export draws it: width and
+/// height.
+pub fn label_box_size(text: &str, font: f64) -> (f64, f64) {
+    let font = if font.is_finite() { font.clamp(1.0, 400.0) } else { 12.0 };
+    let lines: Vec<&str> = text.lines().collect();
+    let longest = lines.iter().map(|l| l.chars().count()).max().unwrap_or(0) as f64;
+    (longest * font * 0.6 + font * 0.6, lines.len().max(1) as f64 * font * 1.2 + font * 0.3)
+}
+
+/// The centre of a message's label: above a straight message (lost and found ones above their
+/// stub), its box's bottom [`LABEL_GAP`] over the line's midpoint; right of a self message's loop,
+/// left-aligned 4 past it at the loop's middle. `None` for a route with no points. Labels never
+/// sit on the line, so a stem or arrowhead never runs through one.
+pub fn label_anchor(polyline: &[Point], text: &str, style: &crate::Style) -> Option<Point> {
+    let (first, last) = (*polyline.first()?, *polyline.last()?);
+    let (bw, bh) = label_box_size(text, style.font_size);
+    if polyline.len() >= 4 {
+        let x = polyline.iter().map(|p| p.x).fold(f64::NEG_INFINITY, f64::max);
+        return Some(Point::new(x + 4.0 + bw / 2.0, (first.y + last.y) / 2.0));
+    }
+    let mid = crate::geom::point_along(polyline, 0.5)?;
+    Some(Point::new(mid.x, mid.y - bh / 2.0 - LABEL_GAP))
+}
+
+/// The box a message's label takes on the page, from its centre: what must stay clear of stems,
+/// bars, tabs and guards.
+pub fn label_rect(c: &Connector, centre: Point) -> Option<Rect> {
+    if c.text.trim().is_empty() {
+        return None;
+    }
+    let (bw, bh) = label_box_size(&c.text, c.style.font_size);
+    Some(Rect::new(centre.x - bw / 2.0, centre.y - bh / 2.0, centre.x + bw / 2.0, centre.y + bh / 2.0))
 }
 
 /// Estimated size of a label.
@@ -617,8 +683,16 @@ fn placeable(page: &Page, c: &Connector) -> bool {
 /// that cannot be placed), repeats, and fragments whose events do not balance; adopt message
 /// connectors and notes no event names; clear fragment parts no event names. Returns whether
 /// anything changed.
+///
+/// Shapes of a lifeline kind with no part join as lifelines (a `shape.add` of the lifeline master,
+/// from the Insert menu or an agent), and connectors of one of the five `uml.*Message` types glued
+/// to two lifelines join as messages of that sort. Other connectors stay plain drawing.
 pub fn reconcile(page: &mut Page) -> bool {
-    let Some(seq) = page.sequence.as_ref() else { return false };
+    if page.sequence.is_none() {
+        return false;
+    }
+    let adopted = adopt(page);
+    let Some(seq) = page.sequence.as_ref() else { return adopted };
     let before = seq.events.clone();
     let mut events: Vec<Event> = Vec::with_capacity(before.len());
     let mut seen: HashSet<(&'static str, String)> = HashSet::new();
@@ -680,7 +754,7 @@ pub fn reconcile(page: &mut Page) -> bool {
         }
     }
     let fragments: HashSet<String> = events.iter().filter_map(|e| if let Event::Open(f) = e { Some(f.clone()) } else { None }).collect();
-    let mut changed = events != before;
+    let mut changed = adopted || events != before;
     for s in &mut page.shapes {
         if matches!(s.sequence, Some(Part::Fragment { .. })) && !fragments.contains(&s.id) {
             s.sequence = None;
@@ -689,6 +763,30 @@ pub fn reconcile(page: &mut Page) -> bool {
     }
     if let Some(seq) = page.sequence.as_mut() {
         seq.events = events;
+    }
+    changed
+}
+
+/// Give lifeline-kind shapes with no part a lifeline part, and message-type connectors glued to
+/// two lifelines a message; returns whether anything changed.
+fn adopt(page: &mut Page) -> bool {
+    let mut changed = false;
+    for s in &mut page.shapes {
+        if s.sequence.is_none() && matches!(s.kind, ShapeKind::Lifeline | ShapeKind::ActorLifeline) {
+            s.sequence = Some(Part::Lifeline { destroyed: false });
+            changed = true;
+        }
+    }
+    let lifelines: HashSet<String> = page.shapes.iter().filter(|s| matches!(s.sequence, Some(Part::Lifeline { .. }))).map(|s| s.id.clone()).collect();
+    let on = |e: &End| e.shape().is_some_and(|id| lifelines.contains(id));
+    for c in &mut page.connectors {
+        if c.message.is_some() || !on(&c.start) || !on(&c.end) {
+            continue;
+        }
+        if let Some(sort) = Sort::from_connector_type(&c.kind) {
+            c.message = Some(Message { sort });
+            changed = true;
+        }
     }
     changed
 }
@@ -756,24 +854,30 @@ fn map(page: &Page, keep: bool) -> Mapped {
                 SeqEvent::Message { from, to, sort: sort.layout(), label: label_size(&c.text, c.style.font_size.clamp(6.0, 72.0)) }
             }
             Event::Open(id) => {
-                let Some(Shape { sequence: Some(Part::Fragment { operator, operands, covers }), style, .. }) = page.shape(id) else { continue };
+                let Some(s @ Shape { sequence: Some(Part::Fragment { operator, operands, covers }), .. }) = page.shape(id) else { continue };
                 let guard = operands.first().map(|o| o.guard.as_str()).unwrap_or_default();
-                let font = style.font_size.clamp(6.0, 72.0);
+                let font = decor_font(s);
+                // A ref's text is centred in the frame, which must hold it.
+                let label = if *operator == Operator::Ref { text_w(guard, font) } else { 0.0 };
                 SeqEvent::Open {
                     forks: operator.forks(),
                     covers: covers.iter().filter_map(|c| col(Some(c))).collect(),
-                    label: text_w(operator.name(), font) + text_w(guard, font) + 24.0,
+                    label,
+                    tab: tab_w(*operator, font),
+                    guard: guard_w(*operator, guard, font),
                 }
             }
             Event::Else(id) => {
                 let n = elses.entry(id.as_str()).or_insert(0);
                 *n += 1;
                 let n = *n;
-                let guard = match page.shape(id).and_then(|s| s.sequence.as_ref()) {
-                    Some(Part::Fragment { operands, .. }) => operands.get(n).map(|o| o.guard.clone()).unwrap_or_default(),
-                    _ => String::new(),
+                let label = match page.shape(id) {
+                    Some(s @ Shape { sequence: Some(Part::Fragment { operator, operands, .. }), .. }) => {
+                        operands.get(n).map_or(0.0, |o| guard_w(*operator, &o.guard, decor_font(s)))
+                    }
+                    _ => 0.0,
                 };
-                SeqEvent::Else { label: text_w(&guard, 12.0) + 16.0 }
+                SeqEvent::Else { label }
             }
             Event::Close(_) => SeqEvent::Close,
             Event::Note(id) => {
@@ -908,6 +1012,7 @@ fn apply(page: &mut Page, m: &Mapped, l: &lay::SeqLayout, dx: f64, dy: f64) {
     let mut ni = 0usize;
     let mut operand_at: HashMap<String, Vec<f64>> = HashMap::new();
     let mut frag_rects: HashMap<String, Rect> = HashMap::new();
+    let mut guard_xs: HashMap<String, f64> = HashMap::new();
     for (k, &ei) in m.which.iter().enumerate() {
         let Some(e) = seq.events.get(ei) else { continue };
         let route = l.routes.get(k).cloned().unwrap_or_default();
@@ -937,9 +1042,13 @@ fn apply(page: &mut Page, m: &Mapped, l: &lay::SeqLayout, dx: f64, dy: f64) {
             Event::Open(id) => {
                 let r = l.fragments.get(fi).copied();
                 let seps = l.separators.get(fi).cloned().unwrap_or_default();
+                let gx = l.guards.get(fi).copied();
                 fi += 1;
                 if let Some(r) = r {
                     frag_rects.insert(id.clone(), Rect::new(r.x + dx, r.y + dy, r.x + r.width + dx, r.y + r.height + dy));
+                    if let Some(gx) = gx {
+                        guard_xs.insert(id.clone(), gx - r.x);
+                    }
                     operand_at.insert(id.clone(), seps.iter().map(|s| s - r.y).collect());
                 }
             }
@@ -972,6 +1081,9 @@ fn apply(page: &mut Page, m: &Mapped, l: &lay::SeqLayout, dx: f64, dy: f64) {
             }
         }
         fragment_look(s);
+        if let (Some(c), Some(gx)) = (s.container.as_mut(), guard_xs.get(id)) {
+            c.margin = gx.clamp(0.0, Container::MAX_BAND);
+        }
     }
     // Generated shapes, reused per lifeline in order.
     let mut old_bars: HashMap<String, Vec<Shape>> = HashMap::new();
@@ -1084,7 +1196,8 @@ fn mark_look(s: &mut Shape, lifeline: &str, x: f64, y: f64) {
     s.sequence = Some(Part::Destruction { lifeline: lifeline.into() });
 }
 
-/// The container look of a fragment: locked, transparent, no heading.
+/// The container look of a fragment: locked, transparent, no heading. Settle keeps the x its
+/// guards start at (right of the first covered stem and its bars) in the container's margin.
 pub fn fragment_look(s: &mut Shape) {
     let c = s.container.get_or_insert_with(Container::default);
     c.locked = true;
@@ -1121,6 +1234,196 @@ pub fn rows(page: &Page) -> Vec<(String, f64)> {
     let Ok(l) = lay::layout(&m.input, &m.options) else { return Vec::new() };
     let dy = top_of(page, &m.cols);
     m.which.iter().zip(&l.rows).filter_map(|(&ei, y)| seq.events.get(ei).map(|e| (e.id().to_string(), y + dy))).collect()
+}
+
+/// Per page event, the y it is drawn at (`None` for one the layout skips).
+fn event_rows(page: &Page) -> Vec<Option<f64>> {
+    let Some(seq) = &page.sequence else { return Vec::new() };
+    let mut out = vec![None; seq.events.len()];
+    let m = map(page, true);
+    let Ok(l) = lay::layout(&m.input, &m.options) else { return out };
+    let dy = top_of(page, &m.cols);
+    for (&ei, y) in m.which.iter().zip(&l.rows) {
+        if let Some(slot) = out.get_mut(ei) {
+            *slot = Some(y + dy);
+        }
+    }
+    out
+}
+
+fn is_activation(e: &Event) -> bool {
+    matches!(e, Event::Activate(_) | Event::Deactivate(_))
+}
+
+/// The operand of fragment `f` that event index `i` lies in: the separators of `f` before it.
+fn operand_at(events: &[Event], f: &str, i: usize) -> usize {
+    let start = block_of(events, f).map_or(0, |r| r.start);
+    events.iter().take(i.saturating_add(1)).skip(start).filter(|e| matches!(e, Event::Else(x) if x == f)).count()
+}
+
+/// Where a block dropped at page `y` goes, and the y of the insertion line to draw. The events of
+/// `skip`'s block (the one being dragged) are passed over; activation events are stepped over. A
+/// drop above a separator or a fragment's bottom ends that operand; a drop below everything goes
+/// after the last top-level block. `None` when the page has no interaction.
+pub fn drop_position(page: &Page, y: f64, skip: Option<&str>) -> Option<(Position, f64)> {
+    let seq = page.sequence.as_ref()?;
+    let events = &seq.events;
+    let rows = event_rows(page);
+    let skipped = skip.and_then(|id| block_of(events, id)).unwrap_or(0..0);
+    let row = seq.row;
+    let mut prev: Option<f64> = None;
+    for (i, e) in events.iter().enumerate() {
+        if skipped.contains(&i) || is_activation(e) {
+            continue;
+        }
+        let Some(ey) = rows.get(i).copied().flatten() else { continue };
+        if ey > y {
+            let line = prev.map_or(ey - row / 2.0, |p| (p + ey) / 2.0);
+            let pos = match e {
+                Event::Message(id) | Event::Note(id) | Event::Open(id) => Position::Before(id.clone()),
+                Event::Else(f) => Position::In { fragment: f.clone(), operand: operand_at(events, f, i).saturating_sub(1) },
+                Event::Close(f) => Position::In { fragment: f.clone(), operand: operand_at(events, f, i) },
+                Event::Activate(_) | Event::Deactivate(_) => continue,
+            };
+            return Some((pos, line));
+        }
+        prev = Some(ey);
+    }
+    // Below everything: after the last top-level block that is not the one dragged.
+    let mut depth = 0usize;
+    let mut last: Option<&str> = None;
+    for (i, e) in events.iter().enumerate() {
+        match e {
+            Event::Open(f) => {
+                if depth == 0 && !skipped.contains(&i) {
+                    last = Some(f);
+                }
+                depth += 1;
+            }
+            Event::Close(_) => depth = depth.saturating_sub(1),
+            Event::Message(id) | Event::Note(id) if depth == 0 && !skipped.contains(&i) => last = Some(id),
+            _ => {}
+        }
+    }
+    let line = prev.map_or(y, |p| p + row / 2.0);
+    Some((last.map_or(Position::End, |l| Position::After(l.to_string())), line))
+}
+
+/// Where the block of `id` goes one step up or down: past the neighbouring sibling block (a
+/// fragment is stepped over whole); at an operand's edge, into the neighbouring operand; at the
+/// first or last operand, out of the fragment. Activation events are stepped over.
+pub fn step(events: &[Event], id: &str, down: bool) -> Result<Position, String> {
+    let r = block_of(events, id).ok_or_else(|| format!("`{id}` is not a message, note or fragment of the interaction"))?;
+    if down {
+        let Some((j, e)) = events.iter().enumerate().skip(r.end).find(|(_, e)| !is_activation(e)) else {
+            return Err(format!("`{id}` is already last"));
+        };
+        Ok(match e {
+            Event::Message(x) | Event::Note(x) | Event::Open(x) => Position::After(x.clone()),
+            Event::Close(f) => Position::After(f.clone()),
+            Event::Else(f) => {
+                let k = operand_at(events, f, j);
+                match events.iter().skip(j + 1).find(|e| !is_activation(e)) {
+                    Some(Event::Message(x) | Event::Note(x) | Event::Open(x)) => Position::Before(x.clone()),
+                    _ => Position::In { fragment: f.clone(), operand: k },
+                }
+            }
+            Event::Activate(_) | Event::Deactivate(_) => return Err(format!("`{id}` is already last")),
+        })
+    } else {
+        let Some((j, e)) = events.iter().enumerate().take(r.start).rev().find(|(_, e)| !is_activation(e)) else {
+            return Err(format!("`{id}` is already first"));
+        };
+        Ok(match e {
+            Event::Message(x) | Event::Note(x) => Position::Before(x.clone()),
+            Event::Close(f) | Event::Open(f) => Position::Before(f.clone()),
+            Event::Else(f) => Position::In { fragment: f.clone(), operand: operand_at(events, f, j).saturating_sub(1) },
+            Event::Activate(_) | Event::Deactivate(_) => return Err(format!("`{id}` is already first")),
+        })
+    }
+}
+
+/// The innermost fragment around the block of `id`, and the operand it lies in.
+pub fn enclosing(events: &[Event], id: &str) -> Option<(String, usize)> {
+    let r = block_of(events, id)?;
+    let mut stack: Vec<(String, usize)> = Vec::new();
+    for e in events.iter().take(r.start) {
+        match e {
+            Event::Open(f) => stack.push((f.clone(), 0)),
+            Event::Else(f) => {
+                if let Some(top) = stack.last_mut().filter(|t| &t.0 == f) {
+                    top.1 += 1;
+                }
+            }
+            Event::Close(_) => {
+                stack.pop();
+            }
+            _ => {}
+        }
+    }
+    stack.pop()
+}
+
+/// The lifeline under `p`: its head or stem (within `tol`), or one of its activation bars or its
+/// destruction mark.
+pub fn lifeline_at(page: &Page, p: Point, tol: f64) -> Option<String> {
+    let tol = if tol.is_finite() { tol.clamp(0.0, 1000.0) } else { 0.0 };
+    page.shapes.iter().rev().find_map(|s| match &s.sequence {
+        Some(Part::Lifeline { .. }) if stem_hit(s, p, tol) => Some(s.id.clone()),
+        Some(Part::Activation { lifeline, .. } | Part::Destruction { lifeline })
+            if s.bounds().inflate(tol).contains(p) && is_lifeline(page, lifeline) =>
+        {
+            Some(lifeline.clone())
+        }
+        _ => None,
+    })
+}
+
+/// The shape a click on `id` picks: an activation bar or destruction mark picks its lifeline,
+/// anything else itself.
+pub fn owner(page: &Page, id: &str) -> String {
+    match page.shape(id).and_then(|s| s.sequence.as_ref()) {
+        Some(Part::Activation { lifeline, .. } | Part::Destruction { lifeline }) if is_lifeline(page, lifeline) => lifeline.clone(),
+        _ => id.to_string(),
+    }
+}
+
+/// The column a lifeline dropped at page `x` takes: how many lifelines have their centre left of it.
+pub fn column_at(page: &Page, x: f64) -> usize {
+    columns(page).iter().filter_map(|&i| page.shapes.get(i)).filter(|s| s.x + s.w / 2.0 < x).count()
+}
+
+/// The block that starts operand `operand` (1 or more) of `fragment` when its separator is dragged
+/// to page `y`: the first block directly inside the fragment drawn below `y`, from the second
+/// block of the operand before it to the last block of the operand itself (the neighbouring
+/// separators bound it). `None` when there is no such block.
+pub fn separator_target(page: &Page, fragment: &str, operand: usize, y: f64) -> Option<String> {
+    let seq = page.sequence.as_ref()?;
+    let events = &seq.events;
+    let r = block_of(events, fragment).filter(|r| matches!(events.get(r.start), Some(Event::Open(_))))?;
+    if operand == 0 {
+        return None;
+    }
+    let rows = event_rows(page);
+    let inner = depth_at(events, r.start) + 1;
+    // Blocks directly inside, with their operand and row.
+    let mut blocks: Vec<(String, usize, f64)> = Vec::new();
+    let mut k = 0usize;
+    for i in r.clone().skip(1) {
+        match events.get(i) {
+            Some(Event::Else(f)) if f == fragment => k += 1,
+            Some(Event::Message(x) | Event::Note(x) | Event::Open(x)) if depth_at(events, i) == inner => {
+                if let Some(ey) = rows.get(i).copied().flatten() {
+                    blocks.push((x.clone(), k, ey));
+                }
+            }
+            _ => {}
+        }
+    }
+    let prev_first = blocks.iter().position(|b| b.1 == operand - 1);
+    let candidates: Vec<&(String, usize, f64)> =
+        blocks.iter().enumerate().filter(|(i, b)| (b.1 == operand - 1 && Some(*i) != prev_first) || b.1 == operand).map(|(_, b)| b).collect();
+    candidates.iter().find(|b| b.2 > y).or(candidates.last()).map(|b| b.0.clone())
 }
 
 /// Rename item ids in a page's interaction and parts after a copy: `shapes` maps old shape ids
