@@ -24,6 +24,10 @@ pub(crate) struct Grid {
     pub h_cross: Vec<u32>,
     /// Crossings with earlier connectors on each vertical edge (empty when not penalised).
     pub v_cross: Vec<u32>,
+    /// Horizontal edges lying on an earlier connector's run (empty when not penalised).
+    pub h_along: Vec<bool>,
+    /// Vertical edges lying on an earlier connector's run (empty when not penalised).
+    pub v_along: Vec<bool>,
 }
 
 impl Grid {
@@ -58,35 +62,36 @@ impl Grid {
         self.node_blocked.get(node).copied().unwrap_or(true)
     }
 
-    /// The neighbour of `node` in heading `dir`: (node, edge length, crossings on the edge).
-    fn step(&self, node: usize, dir: usize) -> Option<(usize, f64, u32)> {
+    /// The neighbour of `node` in heading `dir`: (node, edge length, crossings on the edge,
+    /// whether the edge lies on an earlier connector's run).
+    fn step(&self, node: usize, dir: usize) -> Option<(usize, f64, u32, bool)> {
         let nx = self.nx();
         if nx == 0 {
             return None;
         }
         let (i, j) = (node % nx, node / nx);
-        let (next, len, blocked, cross) = match dir {
+        let (next, len, blocked, cross, along) = match dir {
             RIGHT => {
                 let e = j * (nx - 1) + i;
-                (node + 1, self.xs.get(i + 1)? - self.xs.get(i)?, *self.h_blocked.get(e)?, self.h_cross.get(e))
+                (node + 1, self.xs.get(i + 1)? - self.xs.get(i)?, *self.h_blocked.get(e)?, self.h_cross.get(e), self.h_along.get(e))
             }
             LEFT => {
                 let e = j * (nx - 1) + i.checked_sub(1)?;
-                (node - 1, self.xs.get(i)? - self.xs.get(i - 1)?, *self.h_blocked.get(e)?, self.h_cross.get(e))
+                (node - 1, self.xs.get(i)? - self.xs.get(i - 1)?, *self.h_blocked.get(e)?, self.h_cross.get(e), self.h_along.get(e))
             }
             DOWN => {
                 let e = node;
-                (node + nx, self.ys.get(j + 1)? - self.ys.get(j)?, *self.v_blocked.get(e)?, self.v_cross.get(e))
+                (node + nx, self.ys.get(j + 1)? - self.ys.get(j)?, *self.v_blocked.get(e)?, self.v_cross.get(e), self.v_along.get(e))
             }
             _ => {
                 let e = node.checked_sub(nx)?;
-                (e, self.ys.get(j)? - self.ys.get(j.checked_sub(1)?)?, *self.v_blocked.get(e)?, self.v_cross.get(e))
+                (e, self.ys.get(j)? - self.ys.get(j.checked_sub(1)?)?, *self.v_blocked.get(e)?, self.v_cross.get(e), self.v_along.get(e))
             }
         };
         if blocked || self.blocked(next) {
             return None;
         }
-        Some((next, len, cross.copied().unwrap_or(0)))
+        Some((next, len, cross.copied().unwrap_or(0), along.copied().unwrap_or(false)))
     }
 }
 
@@ -161,10 +166,11 @@ pub(crate) struct Found {
 }
 
 /// Finds the cheapest node path from any of `sources` to any of `targets`, minimising the
-/// sources' and targets' own costs plus length plus `bend` per bend plus `crossing` per crossing.
+/// sources' and targets' own costs plus length plus `bend` per bend plus `crossing` per crossing
+/// plus `overlap` per unit of length run on top of an earlier connector.
 /// Ties go to the earlier source and target, so the result is deterministic. Returns `None` when
 /// no path exists.
-pub(crate) fn search(grid: &Grid, sources: &[Source], targets: &[Target], bend: f64, crossing: f64) -> Option<Found> {
+pub(crate) fn search(grid: &Grid, sources: &[Source], targets: &[Target], bend: f64, crossing: f64, overlap: f64) -> Option<Found> {
     let nodes = grid.nodes();
     let usable = |n: usize| n < nodes && !grid.blocked(n);
     let goal = nodes.checked_mul(4)?;
@@ -261,8 +267,8 @@ pub(crate) fn search(grid: &Grid, sources: &[Source], targets: &[Target], bend: 
             if nd == dir ^ 1 {
                 continue;
             }
-            let Some((next, len, cross)) = grid.step(node, nd) else { continue };
-            let ng = g + len + if nd == dir { 0.0 } else { bend } + crossing * f64::from(cross);
+            let Some((next, len, cross, along)) = grid.step(node, nd) else { continue };
+            let ng = g + len + if nd == dir { 0.0 } else { bend } + crossing * f64::from(cross) + if along { overlap * len } else { 0.0 };
             let ns = next * 4 + nd;
             if let Some(b) = best.get_mut(ns)
                 && ng < *b

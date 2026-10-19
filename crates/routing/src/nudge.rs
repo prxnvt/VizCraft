@@ -79,7 +79,41 @@ struct Member {
     /// Obstacles this segment may overlap: the route's ignored ones and, for a sliding end
     /// segment, the shape it leaves.
     exempt: Vec<usize>,
+    /// Room the segment needs on each side for the route's label, when the label sits on it.
+    room: f64,
+    /// Along the segment, the stretch the label covers, when the label sits on it.
+    label_span: Option<(f64, f64)>,
+    /// Obstacles the route passes through by right (a container holding an end): a label stays
+    /// off their outlines even so.
+    frames: Vec<usize>,
 }
+
+/// The segment of `pts` holding the middle of the route by length, where its label is drawn, and
+/// that middle point.
+fn middle_segment(pts: &[Point]) -> Option<(usize, Point)> {
+    let len = |w: &[Point]| match w {
+        [a, b] => ((b.x - a.x).powi(2) + (b.y - a.y).powi(2)).sqrt(),
+        _ => 0.0,
+    };
+    let total: f64 = pts.windows(2).map(len).sum();
+    if !(total.is_finite() && total > 0.0) {
+        return None;
+    }
+    let mut run = 0.0;
+    for (i, w) in pts.windows(2).enumerate() {
+        let l = len(w);
+        if run + l >= total / 2.0 {
+            let [a, b] = w else { return None };
+            let t = if l > 0.0 { (total / 2.0 - run) / l } else { 0.0 };
+            return Some((i, Point::new(a.x + t * (b.x - a.x), a.y + t * (b.y - a.y))));
+        }
+        run += l;
+    }
+    None
+}
+
+/// Space kept between a label and a shape beside it.
+const LABEL_GAP: f64 = 2.0;
 
 /// Nudges every non-fallback route in place, horizontal segments first, then vertical ones.
 pub(crate) fn nudge(routes: &mut [Routed], obstacles: &[Option<Rect>], spacing: f64) {
@@ -109,6 +143,7 @@ fn members(routes: &[Routed], axis: Axis) -> Vec<Member> {
         let Some(margin) = r.margin else { continue };
         let pts = &r.route.points;
         let last = pts.len().saturating_sub(2);
+        let labelled = r.label.and_then(|l| Some((middle_segment(pts)?, l)));
         for seg in 0..pts.len().saturating_sub(1) {
             let (Some(&a), Some(&b)) = (pts.get(seg), pts.get(seg + 1)) else { continue };
             if !near(axis.across(a), axis.across(b)) || near(axis.along(a), axis.along(b)) {
@@ -147,6 +182,26 @@ fn members(routes: &[Routed], axis: Axis) -> Vec<Member> {
                 fixed,
                 slide: if fixed { None } else { slide },
                 exempt,
+                room: match labelled {
+                    // A label centred on a horizontal segment reaches half its height across it;
+                    // on a vertical one, half its width.
+                    Some(((k, _), (w, h))) if k == seg => match axis {
+                        Axis::Horizontal => h / 2.0,
+                        Axis::Vertical => w / 2.0,
+                    },
+                    _ => 0.0,
+                },
+                frames: r.ignore.clone(),
+                label_span: match labelled {
+                    Some(((k, at), (w, h))) if k == seg => {
+                        let half = match axis {
+                            Axis::Horizontal => w / 2.0,
+                            Axis::Vertical => h / 2.0,
+                        };
+                        Some((axis.along(at) - half, axis.along(at) + half))
+                    }
+                    _ => None,
+                },
             });
         }
     }
@@ -202,9 +257,25 @@ fn channel(m: &Member, obstacles: &[Option<Rect>], axis: Axis) -> (f64, f64) {
     (lo, hi)
 }
 
+/// Every route's label box as it stands: (route, box).
+fn label_boxes(routes: &[Routed]) -> Vec<(usize, Rect)> {
+    routes
+        .iter()
+        .enumerate()
+        .filter(|(_, r)| r.margin.is_some())
+        .filter_map(|(i, r)| {
+            let (w, h) = r.label?;
+            let (_, at) = middle_segment(&r.route.points)?;
+            Some((i, Rect::new(at.x - w / 2.0, at.y - h / 2.0, at.x + w / 2.0, at.y + h / 2.0)))
+        })
+        .collect()
+}
+
 fn pass(routes: &mut [Routed], obstacles: &[Option<Rect>], spacing: f64, axis: Axis) {
     let all = members(routes, axis);
+    let labels = label_boxes(routes);
     let mut moves: Vec<(usize, usize, f64)> = Vec::new();
+    let mut label_moves: Vec<(usize, usize, f64)> = Vec::new();
     let mut i = 0;
     while i < all.len() {
         let Some(first) = all.get(i) else { break };
@@ -217,14 +288,18 @@ fn pass(routes: &mut [Routed], obstacles: &[Option<Rect>], spacing: f64, axis: A
             reach = reach.max(m.hi);
             j += 1;
         }
-        if let Some(group) = all.get(i..j)
-            && group.len() > 1
-        {
-            place(group, obstacles, spacing, axis, routes, &mut moves);
+        if let Some(group) = all.get(i..j) {
+            if group.len() > 1 {
+                place(group, obstacles, spacing, axis, routes, &mut moves);
+            } else if let Some(m) = group.first()
+                && let Some(v) = clear_label(m, obstacles, &labels, axis)
+            {
+                label_moves.push((m.route, m.seg, v));
+            }
         }
         i = j;
     }
-    for (route, seg, v) in moves {
+    let apply = |routes: &mut [Routed], (route, seg, v): (usize, usize, f64)| {
         if let Some(r) = routes.get_mut(route) {
             for k in [seg, seg + 1] {
                 if let Some(p) = r.route.points.get_mut(k) {
@@ -232,7 +307,104 @@ fn pass(routes: &mut [Routed], obstacles: &[Option<Rect>], spacing: f64, axis: A
                 }
             }
         }
+    };
+    for m in moves {
+        apply(routes, m);
     }
+    // Moving a segment for its label stretches its neighbours; a move that lays one of them on
+    // another route's run is undone.
+    for (route, seg, v) in label_moves {
+        let Some(old) = routes.get(route).map(|r| r.route.points.clone()) else { continue };
+        apply(routes, (route, seg, v));
+        let clashes = routes.get(route).is_some_and(|r| {
+            routes.iter().enumerate().any(|(j, o)| j != route && o.margin.is_some() && runs_meet(&r.route.points, &o.route.points, spacing))
+        });
+        if clashes && let Some(r) = routes.get_mut(route) {
+            r.route.points = old;
+        }
+    }
+}
+
+/// Whether two polylines have axis-aligned segments closer than `spacing` side by side,
+/// overlapping along them by more than `spacing`.
+fn runs_meet(a: &[Point], b: &[Point], spacing: f64) -> bool {
+    let gap = (spacing - 0.5).max(0.5);
+    let over = |a0: f64, a1: f64, b0: f64, b1: f64| a0.max(a1).min(b0.max(b1)) - a0.min(a1).max(b0.min(b1)) > spacing;
+    a.windows(2).any(|s| {
+        b.windows(2).any(|t| {
+            let ([p, q], [u, v]) = (s, t) else { return false };
+            (near(p.y, q.y) && near(u.y, v.y) && (p.y - u.y).abs() < gap && over(p.x, q.x, u.x, v.x))
+                || (near(p.x, q.x) && near(u.x, v.x) && (p.x - u.x).abs() < gap && over(p.y, q.y, u.y, v.y))
+        })
+    })
+}
+
+/// Where a lone segment carrying its route's label must move so the label clears the shapes
+/// and the other routes' labels beside it, or `None` when it already does or cannot. The segment stays in the channel its
+/// line keeps clear of shapes and short of its neighbours' far ends, as nudging always does.
+fn clear_label(m: &Member, obstacles: &[Option<Rect>], labels: &[(usize, Rect)], axis: Axis) -> Option<f64> {
+    let (s0, s1) = m.label_span?;
+    if m.fixed || m.room <= 0.0 {
+        return None;
+    }
+    let c = m.across;
+    let pad = m.room + LABEL_GAP;
+    let mut label_zones: Vec<(f64, f64)> = Vec::new();
+    let (mut reach_lo, mut reach_hi) = (f64::NEG_INFINITY, f64::INFINITY);
+    for (k, r) in obstacles.iter().enumerate() {
+        let Some(r) = r else { continue };
+        let (a0, a1, c0, c1) = axis.rect(r);
+        if m.exempt.contains(&k) {
+            // A frame the line may cross: the label keeps off its two sides along the segment.
+            if m.frames.contains(&k) && a1 > s0 && a0 < s1 {
+                label_zones.extend([(c0 - pad, c0 + pad), (c1 - pad, c1 + pad)]);
+            }
+            continue;
+        }
+        if a1 > s0 && a0 < s1 {
+            label_zones.push((c0 - pad, c1 + pad));
+        }
+        // The line itself keeps its margin over its whole extent, and cannot jump past a shape.
+        let (e0, e1, d0, d1) = axis.rect(&r.expanded(m.margin));
+        if e0 < m.hi && e1 > m.lo {
+            if d1 <= c + eps_for(d1, c) {
+                reach_lo = reach_lo.max(d1);
+            } else if d0 >= c - eps_for(d0, c) {
+                reach_hi = reach_hi.min(d0);
+            } else {
+                return None;
+            }
+        }
+    }
+    // Other routes' labels beside this one's stretch are kept off too.
+    for (_, r) in labels.iter().filter(|(i, _)| *i != m.route) {
+        let (a0, a1, c0, c1) = axis.rect(r);
+        if a1 > s0 && a0 < s1 {
+            label_zones.push((c0 - pad, c1 + pad));
+        }
+    }
+    let inside = |v: f64| label_zones.iter().any(|(z0, z1)| v > *z0 + eps_for(*z0, v) && v < *z1 - eps_for(v, *z1));
+    if !inside(c) {
+        return None;
+    }
+    let (mut lo, mut hi) = (reach_lo, reach_hi);
+    for far in [m.prev_far, m.next_far] {
+        let room = (far - c).abs() * MAX_SHRINK;
+        if far < c {
+            lo = lo.max(c - room);
+        } else {
+            hi = hi.min(c + room);
+        }
+    }
+    if let Some((a, b)) = m.slide {
+        lo = lo.max(a);
+        hi = hi.min(b);
+    }
+    label_zones
+        .iter()
+        .flat_map(|(z0, z1)| [*z0, *z1])
+        .filter(|v| v.is_finite() && *v >= lo && *v <= hi && !inside(*v))
+        .min_by(|a, b| (a - c).abs().total_cmp(&(b - c).abs()))
 }
 
 /// Groups larger than this skip the pairwise score (it costs the square of the group size) and are
@@ -273,6 +445,16 @@ fn side_vote(m: &Member, other: &Member, c: f64) -> i64 {
 
 fn place(group: &[Member], obstacles: &[Option<Rect>], spacing: f64, axis: Axis, routes: &[Routed], moves: &mut Vec<(usize, usize, f64)>) {
     let c = group.first().map_or(0.0, |m| m.across);
+    // A label on a segment needs its neighbours further off than the plain spacing: clear of its
+    // box, and of a neighbour's label box beside it.
+    let mut rooms: Vec<f64> = group.iter().map(|m| m.room).filter(|r| r.is_finite() && *r > 0.0).collect();
+    rooms.sort_by(|a, b| b.total_cmp(a));
+    let base = spacing;
+    let spacing = match rooms.as_slice() {
+        [] => spacing,
+        [one] => spacing.max(one + spacing / 2.0),
+        [a, b, ..] => spacing.max(a + b + spacing / 2.0),
+    };
     let has_fixed = group.iter().any(|m| m.fixed);
     // Order members so that a segment whose neighbours lie toward smaller coordinates sits on the
     // smaller side, which avoids many needless crossings; the pairwise score below settles the
@@ -299,15 +481,21 @@ fn place(group: &[Member], obstacles: &[Option<Rect>], spacing: f64, axis: Axis,
     let k = order.len();
     let positions: Vec<f64> = if has_fixed {
         // The fixed segments keep the shared line, so the movable ones take free slots beside it,
-        // nearest first, alternating sides.
-        let mut slots: Vec<f64> = (1..=k)
-            .flat_map(|i| {
-                let d = i as f64 * spacing;
-                [c + d, c - d]
-            })
-            .filter(|&v| v >= lo && v <= hi)
-            .take(k)
-            .collect();
+        // nearest first, alternating sides; with no room for a label's spacing, the plain one.
+        let slots_at = |spacing: f64| -> Vec<f64> {
+            (1..=k)
+                .flat_map(|i| {
+                    let d = i as f64 * spacing;
+                    [c + d, c - d]
+                })
+                .filter(|&v| v >= lo && v <= hi)
+                .take(k)
+                .collect()
+        };
+        let mut slots = slots_at(spacing);
+        if slots.len() < k {
+            slots = slots_at(base);
+        }
         if slots.len() < k {
             return;
         }

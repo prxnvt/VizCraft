@@ -43,16 +43,13 @@ use vizcraft_routing::{End as REnd, Obstacle, Options, Point as RPoint, Request,
 
 use crate::container::{self, Role};
 use crate::geom::{Point, Rect, Vec2};
-use crate::kind::ShapeKind;
 use crate::model::{Connector, Document, End, Page, Route, Shape};
 use crate::route::{EndPoint, resolve_through};
 use crate::routing_policy::{StraightFallback, routes};
 
-/// Clearance the router keeps between routes and shapes.
-pub const MARGIN: f64 = 10.0;
-
-/// How close a plain or straight route may pass a shape and still be kept instead of rerouted.
-const KEEP_CLEARANCE: f64 = 4.0;
+/// Clearance the router keeps between routes and shapes on a page that sets none (see
+/// [`crate::routing_policy::clearance`], which every routing pass uses).
+pub const MARGIN: f64 = crate::routing_policy::DEFAULT_CLEARANCE;
 
 /// How deep a drawn line may sink into a shape before [`crossings`] reports it: flattening a
 /// curve and rounding coordinates cost a fraction of a unit, which nobody can see.
@@ -64,6 +61,18 @@ pub const ARC_CLEARANCE: f64 = 0.5;
 
 /// Farthest the nudge pass slides a dynamically glued end along its side to fan connectors out.
 pub const FAN_MAX: f64 = 12.0;
+
+/// Extra cost per unit of length a searched route pays for running on top of one searched before
+/// it in the same pass: enough that a connector leaves from another side rather than share a
+/// run, which nudging could only part by a few units.
+const OVERLAP_PENALTY: f64 = 2.0;
+
+/// Extra cost of crossing a connector routed in the same pass: three bends, so a
+/// route takes a parallel lane on the side that does not cross where one is near.
+const CROSSING_PENALTY: f64 = 60.0;
+
+/// Most searched connectors in one pass that get the second search against the others.
+const MAX_RESEARCH: usize = 200;
 
 /// The grid budget for one search while dragging: small enough for every frame.
 pub const PREVIEW_BUDGET: usize = 20_000;
@@ -245,7 +254,32 @@ impl<'a> Field<'a> {
         out
     }
 
-    fn hits(&self, ctx: &Ctx, pts: &[Point], clearance: f64) -> Vec<vizcraft_routing::Hit> {
+    /// Every solid shape's id and bounds (bodies only, not heading bands).
+    pub fn bodies(&self) -> impl Iterator<Item = (&'a str, Rect)> + '_ {
+        self.owner
+            .iter()
+            .zip(&self.band)
+            .zip(&self.obstacles)
+            .filter(|((_, band), _)| !**band)
+            .map(|((s, _), o)| (s.id.as_str(), Rect::new(o.rect.min.x, o.rect.min.y, o.rect.max.x, o.rect.max.y)))
+    }
+
+    /// Whether `pts` runs along an edge of either of its own end shapes instead of leaving it
+    /// (see [`crate::route_quality::runs_along`]).
+    fn hugs(&self, ctx: &Ctx, pts: &[Point], clearance: f64) -> bool {
+        [ctx.start_own, ctx.end_own].into_iter().flatten().filter_map(|k| self.obstacles.get(k)).any(|o| {
+            let r = Rect::new(o.rect.min.x, o.rect.min.y, o.rect.max.x, o.rect.max.y);
+            crate::route_quality::runs_along(pts, &r, clearance).is_some()
+        })
+    }
+
+    /// Whether `pts` keeps `clearance` from every shape it must avoid and leaves its own end
+    /// shapes instead of running along them: a route kept as it is must meet both.
+    fn stands_off(&self, ctx: &Ctx, pts: &[Point], clearance: f64) -> bool {
+        self.clear(ctx, pts, clearance) && !self.hugs(ctx, pts, clearance)
+    }
+
+    pub(crate) fn hits(&self, ctx: &Ctx, pts: &[Point], clearance: f64) -> Vec<vizcraft_routing::Hit> {
         let r: Vec<RPoint> = pts.iter().map(|p| RPoint::new(p.x, p.y)).collect();
         vizcraft_routing::crossings(&r, &self.obstacles, &ctx.ignore, ctx.start_own, ctx.end_own, clearance)
     }
@@ -268,6 +302,11 @@ impl<'a> LazyField<'a> {
 
     pub fn get(&self) -> &Field<'a> {
         self.cell.get_or_init(|| Field::new(self.page))
+    }
+
+    /// The page's routing clearance ([`crate::routing_policy::clearance`]).
+    pub fn clearance(&self) -> f64 {
+        crate::routing_policy::clearance(self.page)
     }
 }
 
@@ -350,9 +389,9 @@ pub fn refresh(doc: &mut Document, before: &Document) {
         };
         let keep = keep_of(page, &ids);
         route_with(page, Some(&ids), &Options::default(), &keep);
-        // Runs are spread apart only among connectors routed together, so a new route can lie on
-        // an untouched connector's run (two wires sharing a channel look joined). Route the
-        // connectors it landed on again together with it, once.
+        // Runs are spread apart, and crossings weighed, only among connectors routed together, so
+        // a new route can lie on or cut across an untouched connector's run (two wires sharing a
+        // channel look joined). Route the connectors it met again together with it, once.
         let shared = sharing_runs(page, &ids);
         if !shared.is_empty() {
             ids.extend(shared);
@@ -362,9 +401,8 @@ pub fn refresh(doc: &mut Document, before: &Document) {
     }
 }
 
-/// Routed connectors not in `ids` whose drawn line shares a run with one of the `ids`: a
-/// horizontal or vertical segment of each on the same line, overlapping for more than a
-/// tolerance.
+/// Routed connectors not in `ids` whose drawn line shares a run with, or crosses, one of the
+/// `ids`.
 fn sharing_runs(page: &Page, ids: &[String]) -> Vec<String> {
     let lazy = LazyField::new(page);
     let mine: HashSet<&str> = ids.iter().map(String::as_str).collect();
@@ -377,26 +415,27 @@ fn sharing_runs(page: &Page, ids: &[String]) -> Vec<String> {
         .filter(|c| {
             let pts = lines(c);
             let Some(bb) = Rect::bounding(pts.iter().copied()) else { return false };
-            moved.iter().zip(&boxes).any(|(m, mb)| mb.inflate(CROSSING_TOLERANCE).intersects(&bb) && share_run(m, &pts))
+            moved.iter().zip(&boxes).any(|(m, mb)| mb.inflate(CROSSING_TOLERANCE).intersects(&bb) && (share_run(m, &pts) || cross(m, &pts)))
         })
         .map(|c| c.id.clone())
         .collect()
 }
 
-/// Whether polylines `a` and `b` have an axis-aligned segment each on the same line (within the
-/// crossing tolerance) whose extents overlap by more than one page unit.
-fn share_run(a: &[Point], b: &[Point]) -> bool {
-    const MIN_OVERLAP: f64 = 1.0;
-    let overlap = |a0: f64, a1: f64, b0: f64, b1: f64| a0.max(a1).min(b0.max(b1)) - a0.min(a1).max(b0.min(b1)) > MIN_OVERLAP;
+/// Whether polylines `a` and `b` cross: two of their segments cross in both interiors.
+fn cross(a: &[Point], b: &[Point]) -> bool {
+    let side = |p: Point, q: Point, r: Point| (q - p).cross(r - p);
     a.windows(2).any(|s| {
         b.windows(2).any(|t| {
             let (p, q, u, v) = (s[0], s[1], t[0], t[1]);
-            let horizontal = |p: Point, q: Point| (p.y - q.y).abs() <= CROSSING_TOLERANCE;
-            let vertical = |p: Point, q: Point| (p.x - q.x).abs() <= CROSSING_TOLERANCE;
-            (horizontal(p, q) && horizontal(u, v) && (p.y - u.y).abs() <= CROSSING_TOLERANCE && overlap(p.x, q.x, u.x, v.x))
-                || (vertical(p, q) && vertical(u, v) && (p.x - u.x).abs() <= CROSSING_TOLERANCE && overlap(p.y, q.y, u.y, v.y))
+            side(p, q, u) * side(p, q, v) < -1e-9 && side(u, v, p) * side(u, v, q) < -1e-9
         })
     })
+}
+
+/// Whether polylines `a` and `b` share a run: on one line, or side by side closer than the
+/// router's run spacing, for more than one page unit (see [`crate::route_quality::share_a_run`]).
+fn share_run(a: &[Point], b: &[Point]) -> bool {
+    crate::route_quality::share_a_run(a, b, 1.0)
 }
 
 /// What about a shape matters to routing.
@@ -466,6 +505,7 @@ fn stale(page: &Page, old: Option<&Page>) -> Vec<String> {
     }
     let old_conns: HashMap<&str, &Connector> = old.connectors.iter().map(|c| (c.id.as_str(), c)).collect();
     let lazy = LazyField::new(page);
+    let reach = 2.0 * crate::routing_policy::clearance(page).max(MARGIN);
     routed
         .into_iter()
         .filter(|c| {
@@ -474,7 +514,7 @@ fn stale(page: &Page, old: Option<&Page>) -> Vec<String> {
             let glued = [c.start.shape(), c.end.shape()].into_iter().flatten().any(|id| changed.contains(id));
             edited || glued || {
                 let pts = crate::route::polyline_in(page, c, &lazy);
-                rects.iter().any(|r| near_rect(&pts, r, 2.0 * MARGIN))
+                rects.iter().any(|r| near_rect(&pts, r, reach))
             }
         })
         .map(|c| c.id.clone())
@@ -510,6 +550,7 @@ pub fn preview(page: &mut Page, moving: &[String], budget: usize) {
         shapes.extend(more);
     }
     let rects: Vec<Rect> = page.shapes.iter().filter(|s| shapes.contains(&s.id)).map(Shape::bounds).collect();
+    let reach = crate::routing_policy::clearance(page).max(MARGIN);
     let lazy = LazyField::new(page);
     let ids: Vec<String> = page
         .connectors
@@ -520,7 +561,7 @@ pub fn preview(page: &mut Page, moving: &[String], budget: usize) {
                 || [c.start.shape(), c.end.shape()].into_iter().flatten().any(|id| shapes.contains(id))
                 || (!rects.is_empty() && {
                     let pts = crate::route::polyline_in(page, c, &lazy);
-                    rects.iter().any(|r| near_rect(&pts, r, MARGIN))
+                    rects.iter().any(|r| near_rect(&pts, r, reach))
                 })
         })
         .map(|c| c.id.clone())
@@ -570,16 +611,148 @@ fn side_of(d: Vec2) -> Option<Side> {
     })
 }
 
-/// How far a dynamically glued end on `s` may slide along a side: only on outlines whose sides are
-/// straight at their connection points and that are not turned off the axes.
-fn spread_of(s: &Shape) -> f64 {
-    let square = (s.angle_deg / 90.0 - (s.angle_deg / 90.0).round()).abs() < 1e-9;
-    let straight = matches!(s.kind, ShapeKind::Rectangle | ShapeKind::RoundedRectangle | ShapeKind::PredefinedProcess);
-    if square && straight { FAN_MAX.min(s.w.min(s.h) / 4.0).max(0.0) } else { 0.0 }
+/// A side this many times longer than the shape is deep makes it a bar (a fork or join, a bus):
+/// connectors meet it on its long sides, anywhere along most of them.
+const BAR_RATIO: f64 = 6.0;
+
+/// How far an outline may bow away from a side's line and still let an end slide along it: a
+/// curved side (an ellipse's) is nearly straight around its middle, so connectors meeting it can
+/// still spread a little, ending within this much of the outline.
+const SIDE_BAND: f64 = 1.0;
+
+/// Share of a bar's long side an end may slide either way from its middle.
+pub const BAR_SHARE: f64 = 0.4;
+
+/// Whether `s` is turned only by quarter turns, so its sides stay on the axes.
+fn square(s: &Shape) -> bool {
+    (s.angle_deg / 90.0 - (s.angle_deg / 90.0).round()).abs() < 1e-9
+}
+
+/// For a bar (see [`BAR_RATIO`]), whether its long sides run horizontally.
+pub fn bar_axis(s: &Shape) -> Option<bool> {
+    let b = s.bounds();
+    let (w, h) = (b.width(), b.height());
+    if !square(s) || !(w.is_finite() && h.is_finite()) || w <= 0.0 || h <= 0.0 {
+        return None;
+    }
+    if w >= BAR_RATIO * h {
+        Some(true)
+    } else if h >= BAR_RATIO * w {
+        Some(false)
+    } else {
+        None
+    }
+}
+
+/// Whether `side` is one of the short ends of bar `s`, which connectors do not meet.
+fn bar_end(s: &Shape, side: Side) -> bool {
+    match bar_axis(s) {
+        Some(true) => matches!(side, Side::Left | Side::Right),
+        Some(false) => matches!(side, Side::Top | Side::Bottom),
+        None => false,
+    }
+}
+
+/// How far a dynamically glued end on `s` may slide along each side (left, right, top, bottom):
+/// only as far as the outline stays within [`SIDE_BAND`] of the frame's side either way from
+/// every connection point on it (all along a rectangle's side, a freeform outline's straight side,
+/// a little way round an ellipse), on a shape not turned off the axes. A bar's long sides allow most of their length; other sides at most
+/// [`FAN_MAX`] and a quarter of the shape's smaller size.
+fn side_spreads(s: &Shape) -> [f64; 4] {
+    let mut out = [0.0; 4];
+    if !square(s) {
+        return out;
+    }
+    let b = s.bounds();
+    let (w, h) = (b.width(), b.height());
+    if !(w.is_finite() && h.is_finite()) || w <= 0.0 || h <= 0.0 {
+        return out;
+    }
+    let eps = 1e-6 * (1.0 + b.x0.abs().max(b.x1.abs()).max(b.y0.abs()).max(b.y1.abs()));
+    let mut segments: Vec<(Point, Point)> = Vec::new();
+    for pl in s.outline_world().flatten(0.5) {
+        let n = pl.points.len();
+        for i in 0..n {
+            let j = if i + 1 < n {
+                i + 1
+            } else if pl.closed {
+                0
+            } else {
+                break;
+            };
+            if let (Some(a), Some(b)) = (pl.points.get(i), pl.points.get(j)) {
+                segments.push((*a, *b));
+            }
+        }
+    }
+    let points = s.connection_points_world();
+    let bar = bar_axis(s);
+    // (across value of the side's line, whether the side runs horizontally)
+    let sides = [(b.x0, false), (b.x1, false), (b.y0, true), (b.y1, true)];
+    for (slot, (line, horizontal)) in out.iter_mut().zip(sides) {
+        let across = |p: Point| if horizontal { p.y } else { p.x };
+        let along = |p: Point| if horizontal { p.x } else { p.y };
+        let on = |p: Point| (across(p) - line).abs() <= eps;
+        let len = if horizontal { w } else { h };
+        let cap = if bar == Some(horizontal) { BAR_SHARE * len } else { FAN_MAX.min(w.min(h) / 4.0) };
+        // The stretches of the side's line the outline keeps within the band of: one per outline
+        // segment that comes that close, clipped to the band.
+        let mut spans: Vec<(f64, f64)> = segments
+            .iter()
+            .filter_map(|(a, b)| {
+                let (fa, fb) = (across(*a) - line, across(*b) - line);
+                let (t0, t1) = if (fb - fa).abs() < 1e-12 {
+                    if fa.abs() > SIDE_BAND {
+                        return None;
+                    }
+                    (0.0, 1.0)
+                } else {
+                    let (u, v) = ((-SIDE_BAND - fa) / (fb - fa), (SIDE_BAND - fa) / (fb - fa));
+                    (u.min(v).max(0.0), u.max(v).min(1.0))
+                };
+                if t1 < t0 {
+                    return None;
+                }
+                let at = |t: f64| along(*a) + t * (along(*b) - along(*a));
+                Some((at(t0).min(at(t1)), at(t0).max(at(t1))))
+            })
+            .collect();
+        spans.sort_by(|x, y| x.0.total_cmp(&y.0));
+        let mut merged: Vec<(f64, f64)> = Vec::new();
+        for (lo, hi) in spans {
+            match merged.last_mut() {
+                Some(last) if lo <= last.1 + eps => last.1 = last.1.max(hi),
+                _ => merged.push((lo, hi)),
+            }
+        }
+        let mut reach = f64::INFINITY;
+        let mut any = false;
+        for p in points.iter().copied().filter(|p| p.is_finite() && on(*p)) {
+            any = true;
+            let x = along(p);
+            let best = merged.iter().filter(|(lo, hi)| *lo <= x + eps && x <= hi + eps).map(|(lo, hi)| (x - lo).min(hi - x)).fold(0.0, f64::max);
+            reach = reach.min(best);
+        }
+        *slot = if any && reach.is_finite() { reach.min(cap).max(0.0) } else { 0.0 };
+    }
+    out
+}
+
+/// How far a routed end glued to `s` may lie from the connection point it belongs to, along the
+/// side that leaves in direction `dir`: the slide the nudge pass and the router may give it.
+pub fn slide_limit(s: &Shape, dir: Vec2) -> f64 {
+    let i = match side_of(dir) {
+        Some(Side::Left) => 0,
+        Some(Side::Right) => 1,
+        Some(Side::Top) => 2,
+        Some(Side::Bottom) => 3,
+        None => return 0.0,
+    };
+    side_spreads(s).get(i).copied().unwrap_or(0.0)
 }
 
 /// The router's view of one end: the plain resolved point and side, the own obstacle, and for
-/// dynamic glue every connection point as a candidate.
+/// dynamic glue every connection point as a candidate (a bar's short ends left out).
 fn router_end(page: &Page, e: &End, plain: &EndPoint, own: Option<usize>) -> REnd {
     let mut out = REnd::at(rp(plain.pos));
     out.side = plain.dir.and_then(side_of);
@@ -589,11 +762,41 @@ fn router_end(page: &Page, e: &End, plain: &EndPoint, own: Option<usize>) -> REn
     if let End::Glued { shape, point: None, port: None } = e
         && let Some(s) = page.shape(shape)
     {
-        out.candidates =
-            (0..s.connection_points().len()).filter_map(|i| Some((rp(s.connection_point_world(i)?), side_of(s.connection_direction(i)?)?))).collect();
-        out.spread = spread_of(s);
+        out.candidates = (0..s.connection_points().len())
+            .filter_map(|i| Some((rp(s.connection_point_world(i)?), side_of(s.connection_direction(i)?)?)))
+            .filter(|(_, side)| !bar_end(s, *side))
+            .collect();
+        let spreads = side_spreads(s);
+        out.spread = spreads.iter().copied().fold(0.0, f64::max);
+        out.side_spread = Some(spreads);
     }
     out
+}
+
+/// Add to a bar's end the points on its long sides straight across from where the other end may
+/// be, so a line can meet the bar square instead of jogging to its middle. Only points within
+/// the side's slide of a connection point are added.
+fn add_bar_candidates(page: &Page, e: &End, end: &mut REnd, other: &REnd) {
+    let End::Glued { shape, point: None, port: None } = e else { return };
+    let Some(s) = page.shape(shape) else { return };
+    let Some(horizontal) = bar_axis(s) else { return };
+    let targets: Vec<RPoint> = other.candidates.iter().map(|(p, _)| *p).chain(std::iter::once(other.point)).filter(RPoint::is_finite).collect();
+    let mut extra: Vec<(RPoint, Side)> = Vec::new();
+    for &(p, side) in &end.candidates {
+        let limit = end.spread_on(Some(side));
+        if limit <= 0.0 || bar_end(s, side) {
+            continue;
+        }
+        for t in &targets {
+            let q = if horizontal { RPoint::new(t.x, p.y) } else { RPoint::new(p.x, t.y) };
+            let off = if horizontal { (q.x - p.x).abs() } else { (q.y - p.y).abs() };
+            if off > 1e-6 && off <= limit && !extra.iter().chain(&end.candidates).any(|(c, _)| (c.x - q.x).abs() < 1e-6 && (c.y - q.y).abs() < 1e-6) {
+                extra.push((q, side));
+            }
+        }
+    }
+    let room = vizcraft_routing::MAX_CANDIDATES.saturating_sub(end.candidates.len());
+    end.candidates.extend(extra.into_iter().take(room));
 }
 
 /// Every position an end may take for a straight line: each connection point of a dynamically
@@ -608,8 +811,9 @@ fn straight_points(page: &Page, e: &End, plain: &EndPoint) -> Vec<Point> {
     }
 }
 
-/// The first clear straight line between the ends' positions, nearest pair first.
-fn straight_pair(field: &Field, ctx: &Ctx, starts: &[Point], ends: &[Point]) -> Option<(Point, Point)> {
+/// The first straight line between the ends' positions that keeps `clearance` from shapes and
+/// leaves both end shapes instead of running along them, nearest pair first.
+fn straight_pair(field: &Field, ctx: &Ctx, starts: &[Point], ends: &[Point], clearance: f64) -> Option<(Point, Point)> {
     let mut pairs: Vec<(f64, usize, usize)> = Vec::new();
     for (i, a) in starts.iter().enumerate() {
         for (j, b) in ends.iter().enumerate() {
@@ -621,7 +825,7 @@ fn straight_pair(field: &Field, ctx: &Ctx, starts: &[Point], ends: &[Point]) -> 
     pairs.sort_by(|x, y| x.0.total_cmp(&y.0).then(x.1.cmp(&y.1)).then(x.2.cmp(&y.2)));
     pairs.into_iter().find_map(|(_, i, j)| {
         let (a, b) = (*starts.get(i)?, *ends.get(j)?);
-        field.clear(ctx, &[a, b], KEEP_CLEARANCE).then_some((a, b))
+        field.stands_off(ctx, &[a, b], clearance).then_some((a, b))
     })
 }
 
@@ -635,6 +839,11 @@ fn short_stub(pts: &[RPoint], trim: (f64, f64)) -> bool {
     pts.len() >= 3
         && (len(pts.first(), pts.get(1)) + 1e-6 < trim.0
             || len(n.checked_sub(1).and_then(|i| pts.get(i)), n.checked_sub(2).and_then(|i| pts.get(i))) + 1e-6 < trim.1)
+}
+
+/// Whether every segment of `pts` is horizontal or vertical, so nudging can slide it.
+fn axis_aligned(pts: &[Point]) -> bool {
+    pts.len() >= 2 && pts.windows(2).all(|w| matches!(w, [a, b] if (a.x - b.x).abs() < 1e-9 || (a.y - b.y).abs() < 1e-9))
 }
 
 /// How far an arrowhead of `arrow` at `line_width` cuts the line back from its tip.
@@ -652,6 +861,9 @@ fn route_with(page: &mut Page, ids: Option<&[String]>, opts: &Options, keep: &Ha
         return Vec::new();
     }
     let keep_straight = page.routing.straight_fallback == StraightFallback::Keep;
+    // The page's clearance is the router's margin: the room kept from shapes and the least stub.
+    let clear = crate::routing_policy::clearance(page);
+    let opts = &Options { margin: clear, ..*opts };
     let (results, failed) = {
         let view: &Page = page;
         let lazy = LazyField::new(view);
@@ -663,15 +875,21 @@ fn route_with(page: &mut Page, ids: Option<&[String]>, opts: &Options, keep: &Ha
             let ctx = field.context(c);
             let ends = resolve_through(view, c, &[]);
             let plain: Vec<Point> = crate::route::path_for(&ends, c.route).flatten(0.5).into_iter().next().map(|pl| pl.points).unwrap_or_default();
+            // A dynamic end on a bar is always searched, so it can meet the bar square anywhere
+            // along a long side instead of at a short end or with a jog to the middle.
+            let on_bar = [(&c.start, &ends.start), (&c.end, &ends.end)].into_iter().any(|(e, p)| {
+                matches!(e, End::Glued { point: None, port: None, .. })
+                    && p.shape.as_deref().and_then(|id| view.shape(id)).is_some_and(|s| bar_axis(s).is_some())
+            });
             let own_bends = keep.contains(&c.id) && !c.waypoints.is_empty() && !crate::route::stored_route(view, c);
             let plan = if own_bends && field.clear(&ctx, &crate::route::polyline_in(view, c, &lazy), -CROSSING_TOLERANCE) {
                 Plan::Keep
-            } else if field.clear(&ctx, &plain, KEEP_CLEARANCE) {
-                Plan::Plain { points: plain.iter().copied().map(rp).collect(), nudge: c.route == Route::Orthogonal }
-            } else if c.route == Route::Straight {
+            } else if !on_bar && field.stands_off(&ctx, &plain, clear) {
+                Plan::Plain { points: plain.iter().copied().map(rp).collect(), nudge: axis_aligned(&plain) }
+            } else if c.route == Route::Straight && !on_bar {
                 let starts = straight_points(view, &c.start, &ends.start);
                 let finishes = straight_points(view, &c.end, &ends.end);
-                match straight_pair(field, &ctx, &starts, &finishes) {
+                match straight_pair(field, &ctx, &starts, &finishes, clear) {
                     Some((a, b)) => Plan::Straight(vec![rp(a), rp(b)]),
                     None if keep_straight => Plan::Plain { points: plain.iter().copied().map(rp).collect(), nudge: false },
                     None => Plan::Search,
@@ -685,13 +903,83 @@ fn route_with(page: &mut Page, ids: Option<&[String]>, opts: &Options, keep: &Ha
             let (trim_start, trim_end) = trims.last().copied().unwrap_or_default();
             let mut start = router_end(view, &c.start, &ends.start, ctx.start_own);
             let mut end = router_end(view, &c.end, &ends.end, ctx.end_own);
+            let (bare_start, bare_end) = (start.clone(), end.clone());
+            add_bar_candidates(view, &c.start, &mut start, &bare_end);
+            add_bar_candidates(view, &c.end, &mut end, &bare_start);
             start.stub = (trim_start > 0.0).then_some(trim_start);
             end.stub = (trim_end > 0.0).then_some(trim_end);
-            requests.push(Request::new(start, end).ignoring(ctx.ignore));
+            let mut request = Request::new(start, end).ignoring(ctx.ignore);
+            if let Some((w, h)) = crate::route_quality::label_size(c) {
+                request = request.labelled(w, h);
+            }
+            requests.push(request);
+        }
+        // Two kept lines on one run (a flow and its reply between the same shapes) cannot be told
+        // apart, and nudging cannot part a line it may not bend: search both, so they come out
+        // as routes nudging spreads.
+        let kept: Vec<Option<Vec<Point>>> = plans
+            .iter()
+            .map(|p| match p {
+                Plan::Plain { points, .. } | Plan::Straight(points) => Some(points.iter().map(|q| Point::new(q.x, q.y)).collect()),
+                _ => None,
+            })
+            .collect();
+        let run = clear.max(1.0);
+        for i in 0..kept.len().min(MAX_PAIRS) {
+            for j in i + 1..kept.len().min(MAX_PAIRS) {
+                if let (Some(Some(a)), Some(Some(b))) = (kept.get(i), kept.get(j))
+                    && crate::route_quality::share_a_run(a, b, run)
+                {
+                    for k in [i, j] {
+                        if let Some(p) = plans.get_mut(k) {
+                            *p = Plan::Search;
+                        }
+                    }
+                }
+            }
         }
         // Search the connectors that need it, together; nudging comes after, over every route.
         let search: Vec<Request> = plans.iter().zip(&requests).filter(|(p, _)| matches!(p, Plan::Search)).map(|(_, r)| r.clone()).collect();
-        let found = vizcraft_routing::route_all(&field.obstacles, &search, &Options { segment_spacing: 0.0, ..*opts });
+        // Lines kept as they are count as drawn, and so do the connectors this pass leaves alone,
+        // so a searched route does not run on them either.
+        let mut fixed: Vec<Vec<RPoint>> = plans
+            .iter()
+            .zip(chosen.iter().filter_map(|&i| view.connectors.get(i)))
+            .filter_map(|(p, c)| match p {
+                Plan::Plain { points, .. } | Plan::Straight(points) => Some(points.clone()),
+                Plan::Keep => Some(crate::route::polyline_in(view, c, &lazy).into_iter().map(rp).collect()),
+                Plan::Search => None,
+            })
+            .collect();
+        let in_pass: HashSet<usize> = chosen.iter().copied().collect();
+        fixed.extend(
+            view.connectors
+                .iter()
+                .enumerate()
+                .filter(|(i, c)| !in_pass.contains(i) && !crate::key::is_key_connector(c))
+                .map(|(_, c)| crate::route::polyline_in(view, c, &lazy).into_iter().map(rp).collect()),
+        );
+        let search_opts = Options { segment_spacing: 0.0, overlap_penalty: Some(OVERLAP_PENALTY), crossing_penalty: Some(CROSSING_PENALTY), ..*opts };
+        let mut found = vizcraft_routing::route_all_around(&field.obstacles, &search, &search_opts, &fixed);
+        // The first route searched saw none of the others; search each once more against all the
+        // rest as they now stand, so an early route also gives way where it shares a run.
+        if found.len() > 1 && found.len() <= MAX_RESEARCH {
+            for k in 0..found.len() {
+                let Some(req) = search.get(k) else { continue };
+                if found.get(k).is_some_and(|r| r.fallback) {
+                    continue;
+                }
+                let mut others = fixed.clone();
+                others.extend(found.iter().enumerate().filter(|(j, r)| *j != k && !r.fallback).map(|(_, r)| r.points.clone()));
+                if let Some(again) =
+                    vizcraft_routing::route_all_around(&field.obstacles, std::slice::from_ref(req), &search_opts, &others).into_iter().next()
+                    && !again.fallback
+                    && let Some(slot) = found.get_mut(k)
+                {
+                    *slot = again;
+                }
+            }
+        }
         let mut found = found.into_iter();
         let mut routes: Vec<RRoute> = Vec::with_capacity(plans.len());
         let mut failed: Vec<bool> = Vec::with_capacity(plans.len());
@@ -752,6 +1040,7 @@ fn route_with(page: &mut Page, ids: Option<&[String]>, opts: &Options, keep: &Ha
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::kind::ShapeKind;
     use crate::model::Connector;
     use crate::route::{resolve_ends, route_path, route_polyline};
     use crate::routing_policy::Avoid;
@@ -823,13 +1112,16 @@ mod tests {
 
     #[test]
     fn straight_connectors_pick_a_clear_pair_detour_or_keep() {
-        // The wall blocks the facing points but not the line between the tops.
+        // A small block sits on the line between the nearest points, but not on the line from
+        // a's bottom to b's left; a line along a box edge (between the tops of two boxes side by
+        // side) is never taken.
         let mut page = walled(Route::Straight);
-        page.shapes[1] = rect("wall", 150.0, 110.0, 40.0, 150.0);
+        page.shapes = vec![rect("a", 0.0, 0.0, 60.0, 40.0), rect("wall", 90.0, 55.0, 30.0, 10.0), rect("b", 300.0, 300.0, 60.0, 40.0)];
         reroute(&mut page, None);
         let pts = route_polyline(&page, &page.connectors[0]);
         assert_eq!(pts.len(), 2, "one straight segment: {pts:?}");
-        assert!(crossings(&page).is_empty());
+        assert_eq!(pts[0], Point::new(30.0, 40.0), "{pts:?}");
+        assert!(crate::route_quality::check(&page).is_empty(), "{:?}", crate::route_quality::check(&page));
         // A full-height wall leaves no clear straight line: the detour, unless the page keeps it.
         let mut page = walled(Route::Straight);
         reroute(&mut page, None);
@@ -938,12 +1230,27 @@ mod tests {
 
     #[test]
     fn connectors_sharing_a_side_fan_out_and_draw_where_they_were_slid() {
-        // Both connectors leave a's right side and run on top of each other to the turn.
+        // Both connectors leave a's right side and run on top of each other to the turn: walls
+        // close to its other sides leave no room for a stub there.
         let mut page = Page::new("p", "p");
-        page.shapes = vec![rect("a", 0.0, 0.0, 100.0, 100.0), rect("b", 400.0, -300.0, 100.0, 60.0), rect("c", 400.0, 340.0, 100.0, 60.0)];
+        page.shapes = vec![
+            rect("a", 0.0, 0.0, 100.0, 100.0),
+            rect("b", 400.0, -300.0, 100.0, 60.0),
+            rect("c", 400.0, 340.0, 100.0, 60.0),
+            rect("top", -30.0, -20.0, 140.0, 12.0),
+            rect("bottom", -30.0, 108.0, 140.0, 12.0),
+            rect("left", -20.0, -30.0, 12.0, 160.0),
+        ];
         page.connectors = vec![link("ab", "a", "b", Route::Orthogonal), link("ac", "a", "c", Route::Orthogonal)];
         let shared = |page: &Page| route_polyline(page, &page.connectors[0]).get(..2) == route_polyline(page, &page.connectors[1]).get(..2);
         assert!(shared(&page), "before routing the first segments coincide");
+        // Without the walls, the overlap is avoided altogether: one leaves upward, one downward.
+        let mut open = page.clone();
+        open.shapes.truncate(3);
+        reroute(&mut open, None);
+        let sides = (resolve_ends(&open, &open.connectors[0]).start.point, resolve_ends(&open, &open.connectors[1]).start.point);
+        assert_eq!(sides, (Some(0), Some(2)), "top and bottom");
+        assert!(crate::route_quality::check(&open).is_empty(), "{:?}", crate::route_quality::check(&open));
         reroute(&mut page, None);
         assert!(crossings(&page).is_empty(), "{:?}", crossings(&page));
         assert!(!shared(&page));
@@ -1041,6 +1348,79 @@ mod tests {
         let still = page.clone();
         preview(&mut page, &["nothing".to_string()], PREVIEW_BUDGET);
         assert_eq!(page, still);
+    }
+
+    #[test]
+    fn a_line_keeps_the_clearance_from_a_box_beside_its_axis() {
+        // Two boxes one above the other and a third box 4 units off the axis between them.
+        for route in [Route::Straight, Route::Orthogonal, Route::Curved] {
+            let mut page = Page::new("p", "p");
+            page.shapes = vec![rect("a", 0.0, 0.0, 100.0, 50.0), rect("b", 0.0, 250.0, 100.0, 50.0), rect("x", 54.0, 120.0, 40.0, 40.0)];
+            page.connectors = vec![link("c", "a", "b", route)];
+            reroute(&mut page, None);
+            let found = crate::route_quality::check(&page);
+            assert!(found.is_empty(), "{route:?}: {found:?} {:?}", route_polyline(&page, &page.connectors[0]));
+        }
+    }
+
+    #[test]
+    fn boxes_with_aligned_edges_are_joined_bottom_to_top_never_along_the_edges() {
+        // The right edges line up: a line between the right midpoints would run down both edges.
+        for route in [Route::Straight, Route::Orthogonal] {
+            let mut page = Page::new("p", "p");
+            page.shapes = vec![rect("a", 0.0, 0.0, 140.0, 56.0), rect("b", 40.0, 300.0, 100.0, 56.0)];
+            page.connectors = vec![link("c", "a", "b", route)];
+            reroute(&mut page, None);
+            let pts = route_polyline(&page, &page.connectors[0]);
+            let (first, last) = (pts[0], pts[pts.len() - 1]);
+            assert_eq!((first.y, last.y), (56.0, 300.0), "{route:?}: leaves a's bottom and enters b's top: {pts:?}");
+            assert!(crate::route_quality::check(&page).is_empty(), "{route:?}: {:?}", crate::route_quality::check(&page));
+        }
+    }
+
+    #[test]
+    fn a_freeform_box_and_a_bar_spread_their_ends() {
+        // A freeform outline straight along its sides spreads like a rectangle; an ellipse a
+        // little; a diamond's corner barely.
+        let mut f = Shape::new("f", ShapeKind::Freeform, 0.0, 0.0, 120.0, 60.0);
+        let outline = crate::geom::Path::polygon(&[Point::new(0.0, 0.0), Point::new(120.0, 0.0), Point::new(120.0, 60.0), Point::new(0.0, 60.0)]);
+        f.path = Some(crate::shape_fields::Freeform::new(&outline, true));
+        f.sanitize();
+        assert_eq!(side_spreads(&f), [FAN_MAX; 4]);
+        let e = Shape::new("e", ShapeKind::Ellipse, 0.0, 0.0, 110.0, 110.0);
+        assert!(side_spreads(&e).iter().all(|&v| v > 5.0 && v < FAN_MAX), "{:?}", side_spreads(&e));
+        let d = Shape::new("d", ShapeKind::Diamond, 0.0, 0.0, 140.0, 90.0);
+        assert!(side_spreads(&d).iter().all(|&v| v < 3.0), "{:?}", side_spreads(&d));
+        let mut turned = rect("t", 0.0, 0.0, 100.0, 60.0);
+        turned.angle_deg = 30.0;
+        assert_eq!(side_spreads(&turned), [0.0; 4]);
+        // Two boxes above a bar meet its long top side straight down, wherever they stand.
+        let mut page = Page::new("p", "p");
+        page.shapes = vec![rect("a", 0.0, 0.0, 100.0, 50.0), rect("b", 200.0, 0.0, 100.0, 50.0), rect("bar", 0.0, 200.0, 300.0, 8.0)];
+        page.connectors = vec![link("ab", "a", "bar", Route::Orthogonal), link("bb", "b", "bar", Route::Orthogonal)];
+        reroute(&mut page, None);
+        for (c, x) in [("ab", 50.0), ("bb", 250.0)] {
+            let pts = route_polyline(&page, page.connector(c).unwrap());
+            assert_eq!(pts, vec![Point::new(x, 50.0), Point::new(x, 200.0)], "{c}");
+        }
+        assert!(crate::route_quality::check(&page).is_empty(), "{:?}", crate::route_quality::check(&page));
+        // Rerouting again keeps them.
+        let once = page.clone();
+        reroute(&mut page, None);
+        assert_eq!(page, once);
+    }
+
+    #[test]
+    fn a_wider_clearance_moves_the_route_further_off() {
+        let gap = |clearance: Option<f64>| {
+            let mut page = walled(Route::Orthogonal);
+            page.routing.clearance = clearance;
+            reroute(&mut page, None);
+            let pts = route_polyline(&page, &page.connectors[0]);
+            pts.iter().map(|p| (p.y - 260.0).max(-p.y)).fold(f64::NEG_INFINITY, f64::max)
+        };
+        assert!((gap(None) - MARGIN).abs() < 1e-6, "{}", gap(None));
+        assert!((gap(Some(25.0)) - 25.0).abs() < 1e-6, "{}", gap(Some(25.0)));
     }
 
     #[test]

@@ -1,5 +1,5 @@
 //! Design > Connectors: the page-wide connector style, the page's routing policy (Avoid Shapes,
-//! Straight Lines), line jumps for the page or the selection, and the connector kind.
+//! Straight Lines, Clearance), line jumps for the page or the selection, and the connector kind.
 
 use serde_json::json;
 use vizcraft_diagram::{Avoid, Connector, Route, StraightFallback};
@@ -53,6 +53,23 @@ fn straight_menu() -> Vec<MenuEntry> {
     ]
 }
 
+/// The page's routing clearance: how far routes keep from shapes and how long the stub leaving a
+/// shape is. Auto follows the page's symbol grid module, else 10 units; any other value can be
+/// set through `page.setRouting {clearance}`.
+fn clearance_menu() -> Vec<MenuEntry> {
+    fn is(a: &CraftApp, c: Option<f64>) -> bool {
+        a.session.doc.page().is_some_and(|p| p.routing.clearance == c)
+    }
+    vec![
+        MenuEntry::new("Auto", "page.setRouting", json!({"clearance": "auto"})).checked(|a| is(a, None)),
+        MenuEntry::new("5", "page.setRouting", json!({"clearance": 5.0})).checked(|a| is(a, Some(5.0))),
+        MenuEntry::new("10", "page.setRouting", json!({"clearance": 10.0})).checked(|a| is(a, Some(10.0))),
+        MenuEntry::new("15", "page.setRouting", json!({"clearance": 15.0})).checked(|a| is(a, Some(15.0))),
+        MenuEntry::new("20", "page.setRouting", json!({"clearance": 20.0})).checked(|a| is(a, Some(20.0))),
+        MenuEntry::new("30", "page.setRouting", json!({"clearance": 30.0})).checked(|a| is(a, Some(30.0))),
+    ]
+}
+
 /// Default Kind: draw the selected connectors, or every connector of the page when none is
 /// selected, as a kind of the catalog.
 fn kind_menu(app: &mut CraftApp, ui: &mut egui::Ui) {
@@ -83,6 +100,7 @@ pub(in crate::ribbon) fn group() -> Group {
                     checked: Some(|a| all_connectors(a, |c| c.jumps)),
                 },
                 Custom(kind_menu),
+                Menu { label: "Clearance", icon: "margins", big: false, menu: clearance_menu() },
             ]),
         ],
     )

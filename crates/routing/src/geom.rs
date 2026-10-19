@@ -22,6 +22,8 @@ pub(crate) struct Opts {
     pub bend: f64,
     /// Zero means crossings are not penalised.
     pub crossing: f64,
+    /// Zero means running on top of earlier connectors is not penalised.
+    pub overlap: f64,
     pub spacing: f64,
     pub max_grid: usize,
 }
@@ -37,6 +39,7 @@ impl From<&Options> for Opts {
             margin: distance_or(o.margin, d.margin),
             bend: distance_or(o.bend_penalty, d.bend_penalty),
             crossing: o.crossing_penalty.map_or(0.0, |c| distance_or(c, 0.0)),
+            overlap: o.overlap_penalty.map_or(0.0, |c| distance_or(c, 0.0)),
             spacing: distance_or(o.segment_spacing, d.segment_spacing),
             max_grid: o.max_grid.min(HARD_MAX_GRID),
         }

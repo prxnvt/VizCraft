@@ -4,6 +4,7 @@
 //! it to every connector on the page in the same undo step.
 
 use serde_json::{Value, json};
+use vizcraft_diagram::routing_policy::MAX_CLEARANCE;
 use vizcraft_diagram::{Avoid, Page, RoutingPolicy, StraightFallback};
 
 use super::{opt_str, short};
@@ -12,12 +13,12 @@ use crate::{CmdResult, CommandSpec, EngineError, Session};
 /// The routing commands.
 pub fn specs() -> Vec<CommandSpec> {
     vec![CommandSpec::new("page.setRouting", "Connector Routing", "Design > Connectors", set_routing).params(concat!(
-        r#"{"page"?: id|name|index (default the active page), "avoid"?: "always"|"never", "straightFallback"?: "detour"|"keep"} -> {page, avoid, straightFallback}"#,
-        r#"; always (the default) routes every connector on the page around shapes, never leaves it to each connector's own Avoid Shapes; a straight connector whose line would cross a shape draws the orthogonal detour, or with keep stays straight and is reported"#
+        r#"{"page"?: id|name|index (default the active page), "avoid"?: "always"|"never", "straightFallback"?: "detour"|"keep", "clearance"?: number|"auto"} -> {page, avoid, straightFallback, clearance, clearanceUsed}"#,
+        r#"; always (the default) routes every connector on the page around shapes, never leaves it to each connector's own Avoid Shapes; a straight connector whose line would cross a shape draws the orthogonal detour, or with keep stays straight and is reported; clearance is how far routes keep from shapes and how long the stub leaving a shape is (0 to 100 page units; auto, the default, follows the page's symbol grid module, else 10)"#
     ))]
 }
 
-/// Apply the `avoid` and `straightFallback` keys of `v` (both optional) to `page` and return the
+/// Apply the `avoid`, `straightFallback` and `clearance` keys of `v` (all optional) to `page` and return the
 /// policy it ends with; `page.setup {routing}` shares it. Turning avoidance off for the page drops
 /// the stored routes of connectors that do not avoid shapes on their own, since those routes were
 /// the page's, not the user's.
@@ -30,6 +31,16 @@ pub fn apply_routing(page: &mut Page, v: &Value) -> Result<RoutingPolicy, Engine
     if let Some(t) = opt_str(v, "straightFallback")? {
         policy.straight_fallback = StraightFallback::from_name(t)
             .ok_or_else(|| EngineError::Params(format!("`straightFallback` must be \"detour\" or \"keep\", not `{}`", short(t))))?;
+    }
+    match v.get("clearance") {
+        None => {}
+        Some(Value::Null) => policy.clearance = None,
+        Some(Value::String(t)) if t == "auto" => policy.clearance = None,
+        Some(Value::Number(n)) => match n.as_f64().filter(|c| c.is_finite() && (0.0..=MAX_CLEARANCE).contains(c)) {
+            Some(c) => policy.clearance = Some(c),
+            None => return Err(EngineError::Params(format!("`clearance` must be a number from 0 to {MAX_CLEARANCE}, or \"auto\""))),
+        },
+        Some(_) => return Err(EngineError::Params(format!("`clearance` must be a number from 0 to {MAX_CLEARANCE}, or \"auto\""))),
     }
     if page.routing.avoid == Avoid::Always && policy.avoid == Avoid::Never {
         for c in page.connectors.iter_mut().filter(|c| !c.avoid) {
@@ -57,7 +68,13 @@ fn set_routing(s: &mut Session, v: &Value) -> CmdResult {
     let index = page_index(s, v)?;
     let page = s.doc.pages.get_mut(index).ok_or_else(|| EngineError::Failed("no such page".into()))?;
     let policy = apply_routing(page, v)?;
-    Ok(json!({"page": page.id, "avoid": policy.avoid.name(), "straightFallback": policy.straight_fallback.name()}))
+    Ok(json!({
+        "page": page.id,
+        "avoid": policy.avoid.name(),
+        "straightFallback": policy.straight_fallback.name(),
+        "clearance": policy.clearance.map_or(json!("auto"), |c| json!(c)),
+        "clearanceUsed": vizcraft_diagram::routing_policy::clearance(page),
+    }))
 }
 
 #[cfg(test)]
@@ -88,7 +105,7 @@ mod tests {
         assert_eq!(s.doc.page().unwrap().routing.straight_fallback, StraightFallback::Keep);
         assert!(!crossings(s.doc.page().unwrap()).is_empty(), "a kept straight line is reported");
         let out = s.run("page.setRouting", &json!({"page": "Page-1", "straightFallback": "detour"})).unwrap();
-        assert_eq!(out, json!({"page": "p1", "avoid": "always", "straightFallback": "detour"}));
+        assert_eq!(out, json!({"page": "p1", "avoid": "always", "straightFallback": "detour", "clearance": "auto", "clearanceUsed": 10.0}));
         assert!(crossings(s.doc.page().unwrap()).is_empty(), "the detour goes around the wall");
         assert!(!s.doc.page().unwrap().connector("c").unwrap().waypoints.is_empty());
         let out = s.run("page.setRouting", &json!({"page": 0, "avoid": "never"})).unwrap();
@@ -102,9 +119,41 @@ mod tests {
     }
 
     #[test]
+    fn the_clearance_is_set_reset_undone_and_changes_the_route() {
+        let mut s = walled();
+        s.run("page.setRouting", &json!({})).unwrap();
+        let route = |s: &Session| s.doc.page().unwrap().connector("c").unwrap().waypoints.clone();
+        let near = route(&s);
+        let out = s.run("page.setRouting", &json!({"clearance": 30})).unwrap();
+        assert_eq!((out["clearance"].as_f64(), out["clearanceUsed"].as_f64()), (Some(30.0), Some(30.0)));
+        assert_eq!(s.doc.page().unwrap().routing.clearance, Some(30.0));
+        let far = route(&s);
+        assert_ne!(near, far, "a wider clearance moves the detour");
+        // The detour passes the wall's ends at least the clearance away.
+        let wall = s.doc.page().unwrap().shape("wall").unwrap().bounds();
+        let gap = far.iter().map(|p| (p.y - wall.y1).max(wall.y0 - p.y)).fold(f64::NEG_INFINITY, f64::max);
+        assert!(gap >= 30.0 - 1e-6, "{far:?}");
+        let out = s.run("page.setRouting", &json!({"clearance": "auto"})).unwrap();
+        assert_eq!(out["clearance"], "auto");
+        assert_eq!(s.doc.page().unwrap().routing.clearance, None);
+        s.run("edit.undo", &json!({})).unwrap();
+        assert_eq!(s.doc.page().unwrap().routing.clearance, Some(30.0));
+        assert_eq!(route(&s), far);
+    }
+
+    #[test]
     fn bad_params_are_refused() {
         let mut s = walled();
-        for bad in [json!({"avoid": "sometimes"}), json!({"straightFallback": 3}), json!({"page": "nope"}), json!({"page": []})] {
+        for bad in [
+            json!({"avoid": "sometimes"}),
+            json!({"straightFallback": 3}),
+            json!({"page": "nope"}),
+            json!({"page": []}),
+            json!({"clearance": -1}),
+            json!({"clearance": 1e9}),
+            json!({"clearance": "wide"}),
+            json!({"clearance": [4]}),
+        ] {
             assert!(s.run("page.setRouting", &bad).is_err(), "{bad}");
         }
         assert_eq!(s.doc.page().unwrap().routing, vizcraft_diagram::RoutingPolicy::default());

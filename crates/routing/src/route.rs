@@ -30,11 +30,27 @@ pub(crate) struct Routed {
     pub start_slide: Option<Slide>,
     /// How the last point may slide, if at all.
     pub end_slide: Option<Slide>,
+    /// The size of the label at the middle of the route, if any.
+    pub label: Option<(f64, f64)>,
 }
 
-/// The slide an end allows, given the rectangle of the obstacle it is glued to.
-fn slide_of(end: &End, obstacles: &[Option<Rect>]) -> Option<Slide> {
-    let limit = if end.spread.is_finite() { end.spread.clamp(0.0, geom::COORD_LIMIT) } else { 0.0 };
+/// The side a route leaves its end `at` through, from the direction of its segment from `at` to
+/// `next` (`None` for a segment that is not axis-aligned or has no length).
+fn side_toward(at: Point, next: Point) -> Option<Side> {
+    let (dx, dy) = (next.x - at.x, next.y - at.y);
+    if geom::near(dy, 0.0) && !geom::near(dx, 0.0) {
+        Some(if dx > 0.0 { Side::Right } else { Side::Left })
+    } else if geom::near(dx, 0.0) && !geom::near(dy, 0.0) {
+        Some(if dy > 0.0 { Side::Bottom } else { Side::Top })
+    } else {
+        None
+    }
+}
+
+/// The slide an end allows along `side`, given the rectangle of the obstacle it is glued to.
+fn slide_of(end: &End, obstacles: &[Option<Rect>], side: Option<Side>) -> Option<Slide> {
+    let spread = end.spread_on(side);
+    let limit = if spread.is_finite() { spread.clamp(0.0, geom::COORD_LIMIT) } else { 0.0 };
     if limit <= 0.0 {
         return None;
     }
@@ -49,10 +65,27 @@ impl Routed {
     }
 
     fn with(route: Route, margin: Option<f64>, req: &Request, obstacles: &[Option<Rect>]) -> Self {
-        let (start_slide, end_slide) = if margin.is_some() { (slide_of(&req.start, obstacles), slide_of(&req.end, obstacles)) } else { (None, None) };
-        Self { route, margin, ignore: req.ignore.clone(), start_slide, end_slide }
+        let pts = &route.points;
+        let first = match pts.as_slice() {
+            [a, b, ..] => side_toward(*a, *b),
+            _ => None,
+        };
+        let last = match pts.as_slice() {
+            [.., b, a] => side_toward(*a, *b),
+            _ => None,
+        };
+        let (start_slide, end_slide) =
+            if margin.is_some() { (slide_of(&req.start, obstacles, first), slide_of(&req.end, obstacles, last)) } else { (None, None) };
+        let label = req
+            .label
+            .filter(|(w, h)| w.is_finite() && h.is_finite() && *w >= 0.0 && *h >= 0.0)
+            .map(|(w, h)| (w.min(geom::COORD_LIMIT), h.min(geom::COORD_LIMIT)));
+        Self { route, margin, ignore: req.ignore.clone(), start_slide, end_slide, label }
     }
 }
+
+/// Least distance between an earlier run and the lane offered beside it.
+const MIN_LANE: f64 = 6.0;
 
 /// Why one routing attempt did not produce a route.
 enum Miss {
@@ -254,6 +287,18 @@ fn attempt(obstacles: &[Option<Rect>], req: &Request, opts: &Opts, existing: &[(
         xs.extend([r.min.x, r.max.x].into_iter().filter(|&x| x > region.min.x && x < region.max.x));
         ys.extend([r.min.y, r.max.y].into_iter().filter(|&y| y > region.min.y && y < region.max.y));
     }
+    if opts.overlap > 0.0 {
+        // Lanes beside each earlier run, so a route that would lie on one has a parallel line to
+        // take instead (an open area offers no other grid line).
+        let lane = m.max(MIN_LANE);
+        for &(a, b) in existing {
+            if geom::near(a.x, b.x) && !geom::near(a.y, b.y) {
+                xs.extend([a.x - lane, a.x + lane].into_iter().filter(|&w| w > region.min.x && w < region.max.x));
+            } else if geom::near(a.y, b.y) && !geom::near(a.x, b.x) {
+                ys.extend([a.y - lane, a.y + lane].into_iter().filter(|&w| w > region.min.y && w < region.max.y));
+            }
+        }
+    }
     for v in [&mut xs, &mut ys] {
         v.sort_by(f64::total_cmp);
         v.dedup_by(|p, q| p.total_cmp(q).is_eq());
@@ -261,7 +306,7 @@ fn attempt(obstacles: &[Option<Rect>], req: &Request, opts: &Opts, existing: &[(
     if xs.len().saturating_mul(ys.len()) > opts.max_grid {
         return Err(Miss::TooBig);
     }
-    let grid = build_grid(xs, ys, &inside, existing, opts.crossing > 0.0);
+    let grid = build_grid(xs, ys, &inside, existing, opts.crossing > 0.0, opts.overlap > 0.0);
     let sources: Vec<Source> = starts.iter().filter_map(|t| Some(Source { node: grid.node_at(t.stub)?, dir: t.dir, cost: t.cost })).collect();
     // The route arrives heading into the shape, the opposite of the side's outward heading.
     let targets: Vec<Target> =
@@ -269,7 +314,7 @@ fn attempt(obstacles: &[Option<Rect>], req: &Request, opts: &Opts, existing: &[(
     if sources.len() != starts.len() || targets.len() != ends.len() {
         return Err(Miss::NoPath);
     }
-    let found = search::search(&grid, &sources, &targets, opts.bend, opts.crossing).ok_or(Miss::NoPath)?;
+    let found = search::search(&grid, &sources, &targets, opts.bend, opts.crossing, opts.overlap).ok_or(Miss::NoPath)?;
     let (Some(a), Some(b)) = (starts.get(found.source), ends.get(found.target)) else { return Err(Miss::NoPath) };
     let mut points = Vec::with_capacity(found.nodes.len() + 2);
     points.push(a.point);
@@ -335,7 +380,7 @@ fn midpoints(v: &[f64]) -> Vec<f64> {
     v.windows(2).filter_map(|w| if let [a, b] = w { Some(a / 2.0 + b / 2.0) } else { None }).collect()
 }
 
-fn build_grid(xs: Vec<f64>, ys: Vec<f64>, obstacles: &[Rect], existing: &[(Point, Point)], crossings: bool) -> Grid {
+fn build_grid(xs: Vec<f64>, ys: Vec<f64>, obstacles: &[Rect], existing: &[(Point, Point)], crossings: bool, overlaps: bool) -> Grid {
     let (nx, ny) = (xs.len(), ys.len());
     let (mx, my) = (midpoints(&xs), midpoints(&ys));
     let mut nodes = Cover::new(nx, ny);
@@ -385,5 +430,37 @@ fn build_grid(xs: Vec<f64>, ys: Vec<f64>, obstacles: &[Rect], existing: &[(Point
             }
         }
     }
-    Grid { xs, ys, node_blocked: nodes.blocked(), h_blocked: hs.blocked(), v_blocked: vs.blocked(), h_cross, v_cross }
+    // An edge lies on an earlier run when the run is on its grid line and covers its middle.
+    let mut h_along = Vec::new();
+    let mut v_along = Vec::new();
+    if overlaps {
+        h_along = vec![false; mx.len().saturating_mul(ny)];
+        v_along = vec![false; nx.saturating_mul(my.len())];
+        // Lines closer to a run than a lane would read as the same run.
+        let close = MIN_LANE - 0.5;
+        for &(a, b) in existing {
+            if geom::near(a.y, b.y) && !geom::near(a.x, b.x) {
+                let (r0, r1) = strictly_inside(&ys, a.y - close, a.y + close);
+                let (i0, i1) = strictly_inside(&mx, a.x.min(b.x), a.x.max(b.x));
+                for j in r0..r1 {
+                    for i in i0..i1 {
+                        if let Some(e) = h_along.get_mut(j * mx.len() + i) {
+                            *e = true;
+                        }
+                    }
+                }
+            } else if geom::near(a.x, b.x) && !geom::near(a.y, b.y) {
+                let (c0, c1) = strictly_inside(&xs, a.x - close, a.x + close);
+                let (j0, j1) = strictly_inside(&my, a.y.min(b.y), a.y.max(b.y));
+                for i in c0..c1 {
+                    for j in j0..j1 {
+                        if let Some(e) = v_along.get_mut(j * nx + i) {
+                            *e = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Grid { xs, ys, node_blocked: nodes.blocked(), h_blocked: hs.blocked(), v_blocked: vs.blocked(), h_cross, v_cross, h_along, v_along }
 }

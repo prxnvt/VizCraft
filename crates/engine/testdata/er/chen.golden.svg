@@ -51,53 +51,53 @@
     <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="17.106" y="572.2">quantity</tspan></text>
   </g>
   <g id="c18">
-    <path d="M230 95.2 L230 202.15" fill="none" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
-    <path d="M228.125 202.15 L228.125 309.1" fill="none" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
-    <path d="M231.875 202.15 L231.875 309.1" fill="none" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
-    <path d="M230 178.15 L286.4 202.15 L230 226.15 L173.6 202.15 Z" fill="#ffffff" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
-    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="230" y="206.35">places</tspan></text>
-    <rect x="211.375" y="109.325" width="14.4" height="18" fill="#ffffff"/>
-    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="218.575" y="122.525">1</tspan></text>
-    <rect x="234.225" y="276.975" width="14.4" height="18" fill="#ffffff"/>
-    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="241.425" y="290.175">N</tspan></text>
+    <path d="M160 123.2 L160 187.1 L85.95 187.1" fill="none" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
+    <path d="M85.95 185.225 L78.125 185.225 L78.125 310.975 L90 310.975" fill="none" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
+    <path d="M85.95 188.975 L81.875 188.975 L81.875 307.225 L90 307.225" fill="none" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
+    <path d="M85.95 163.1 L142.35 187.1 L85.95 211.1 L29.55 187.1 Z" fill="#ffffff" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="85.95" y="191.3">places</tspan></text>
+    <rect x="141.375" y="137.325" width="14.4" height="18" fill="#ffffff"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="148.575" y="150.525">1</tspan></text>
+    <rect x="59.675" y="288.675" width="14.4" height="18" fill="#ffffff"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="66.875" y="301.875">N</tspan></text>
   </g>
   <g id="c20">
-    <path d="M228.125 309.1 L228.125 416.05" fill="none" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
-    <path d="M231.875 309.1 L231.875 416.05" fill="none" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
-    <path d="M228.125 416.05 L228.125 523" fill="none" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
-    <path d="M231.875 416.05 L231.875 523" fill="none" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
-    <path d="M230 392.05 L300.8 416.05 L230 440.05 L159.2 416.05 Z" fill="#ffffff" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
-    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="230" y="420.25">contains</tspan></text>
-    <rect x="211.375" y="323.225" width="14.4" height="18" fill="#ffffff"/>
-    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="218.575" y="336.425">1</tspan></text>
-    <rect x="234.225" y="490.875" width="14.4" height="18" fill="#ffffff"/>
-    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="241.425" y="504.075">N</tspan></text>
+    <path d="M158.125 337.1 L158.125 399.125 L85.95 399.125" fill="none" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
+    <path d="M161.875 337.1 L161.875 402.875 L85.95 402.875" fill="none" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
+    <path d="M85.95 399.125 L78.125 399.125 L78.125 524.875 L90 524.875" fill="none" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
+    <path d="M85.95 402.875 L81.875 402.875 L81.875 521.125 L90 521.125" fill="none" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
+    <path d="M85.95 377 L156.75 401 L85.95 425 L15.15 401 Z" fill="#ffffff" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="85.95" y="405.2">contains</tspan></text>
+    <rect x="141.375" y="351.225" width="14.4" height="18" fill="#ffffff"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="148.575" y="364.425">1</tspan></text>
+    <rect x="59.675" y="502.575" width="14.4" height="18" fill="#ffffff"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="66.875" y="515.775">N</tspan></text>
   </g>
   <g id="c22">
     <path d="M160 67.2 L160 27.2" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
   </g>
   <g id="c24">
-    <path d="M230 95.2 L247.894 140.2" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M160 123.2 L247.894 140.2" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
   </g>
   <g id="c26">
-    <path d="M90 95.2 L72.106 140.2" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M160 123.2 L72.106 140.2" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
   </g>
   <g id="c28">
     <path d="M160 281.1 L160 241.1" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
   </g>
   <g id="c30">
-    <path d="M230 309.1 L247.894 354.1" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M160 337.1 L247.894 354.1" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
   </g>
   <g id="c32">
-    <path d="M90 309.1 L72.106 354.1" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M160 337.1 L72.106 354.1" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
   </g>
   <g id="c34">
     <path d="M160 495 L160 455" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
   </g>
   <g id="c36">
-    <path d="M230 523 L247.894 568" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M160 551 L247.894 568" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
   </g>
   <g id="c38">
-    <path d="M90 523 L72.106 568" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M160 551 L72.106 568" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
   </g>
 </svg>

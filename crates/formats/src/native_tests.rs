@@ -872,10 +872,10 @@ fn compartments_and_port_glue_round_trip() {
 fn page_routing_policy_round_trips_and_old_files_route_every_connector() {
     use vizcraft_diagram::{Avoid, RoutingPolicy, StraightFallback};
     let mut doc = Document::new();
-    doc.pages[0].routing = RoutingPolicy { avoid: Avoid::Never, straight_fallback: StraightFallback::Keep };
+    doc.pages[0].routing = RoutingPolicy { avoid: Avoid::Never, straight_fallback: StraightFallback::Keep, clearance: Some(16.0) };
     let bytes = save(&doc).unwrap();
     let text = String::from_utf8(bytes.clone()).unwrap();
-    assert!(text.contains(r#""routing""#) && text.contains(r#""straightFallback": "keep""#), "{text}");
+    assert!(text.contains(r#""routing""#) && text.contains(r#""straightFallback": "keep""#) && text.contains(r#""clearance": 16"#), "{text}");
     assert_eq!(load(&bytes).unwrap().pages[0].routing, doc.pages[0].routing);
     // The default is left out, and a file without it (or with junk) loads with avoidance on.
     let plain = String::from_utf8(save(&Document::new()).unwrap()).unwrap();

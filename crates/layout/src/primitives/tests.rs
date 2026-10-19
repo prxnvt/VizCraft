@@ -206,3 +206,20 @@ fn roles_round_trip_through_json_and_map_ids() {
     assert!(p.references().is_empty());
     assert!(serde_json::from_value::<Primitive<String>>(serde_json::json!({"primitive": "spiral", "roles": {}})).is_err());
 }
+
+#[test]
+fn a_two_way_pair_across_a_container_keeps_its_first_direction() {
+    // 0 holds 1 and 2; 3 and 4 are outside. 3 talks to 1 and back, 2 talks to 4 and back: the
+    // first flow of each pair sets the order, so 3 comes before the container and 4 after it.
+    let g = graph(5, &[(3, 1), (1, 3), (1, 2), (2, 4), (4, 2)]);
+    let p = Primitive::Nested { containers: vec![Nest { id: 0, members: vec![1, 2], padding: None, header: None }] };
+    for direction in [Direction::TopBottom, Direction::LeftRight] {
+        let (_, r) = run(&g, &p, &Options { direction, ..Options::default() }, &[(0, 1), (0, 2)]);
+        let (before, after) = if direction.is_horizontal() {
+            (r[3].right() <= r[0].x, r[0].right() <= r[4].x)
+        } else {
+            (r[3].bottom() <= r[0].y, r[0].bottom() <= r[4].y)
+        };
+        assert!(before && after, "{direction:?}: {r:?}");
+    }
+}
