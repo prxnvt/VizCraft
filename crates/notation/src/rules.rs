@@ -28,7 +28,7 @@ use vizcraft_model::issue::Fix;
 use vizcraft_model::{Element, IdScope, Issue, PropValue, Registry, Relationship};
 
 use crate::infer::Facts;
-use crate::schema::{Check, CompareOp, ElementType, Pack, PortDirection, PropKind, PropertySchema, RuleDecl, RuleMode};
+use crate::schema::{Check, CompareOp, ElementType, FlowExpect, Pack, PortDirection, PropKind, PropertySchema, RuleDecl, RuleMode};
 use crate::{Catalog, legal};
 
 /// Longest issue message, in bytes; longer messages are cut at a character boundary.
@@ -340,6 +340,7 @@ impl<'a> Ctx<'a> {
             Check::DanglingConnector => self.dangling(pack, rule, out),
             Check::MinOutgoing { types, relationship, min } => self.min_count(pack, rule, types, relationship, *min, true, out),
             Check::MinIncoming { types, relationship, min } => self.min_count(pack, rule, types, relationship, *min, false, out),
+            Check::FlowBalance { types, relationship, expect } => self.flow_balance(pack, rule, types, relationship, *expect, out),
             Check::ExclusiveDirections { types, relationship } => self.exclusive(pack, rule, types, relationship, out),
             Check::Unreachable { from, relationship, types } => self.unreachable(pack, rule, from, relationship, types, out),
             Check::ForbiddenCycle { relationship } => self.cycles(rule, relationship, out),
@@ -621,6 +622,31 @@ impl<'a> Ctx<'a> {
                 let dir = if outgoing { "outgoing" } else { "incoming" };
                 let what = format!("{} has {n} {dir} {rel_label}relationships; at least {min} expected.", self.el_label(&e.id));
                 out.push(self.issue(rule, what, vec![e.id.clone()]));
+            }
+        }
+    }
+
+    /// Elements used against their shape: a fork-like element with more incoming than outgoing
+    /// relationships, or a join-like one with more outgoing than incoming.
+    fn flow_balance(&self, pack: &Pack, rule: &RuleDecl, types: &[String], relationship: &str, expect: FlowExpect, out: &mut Vec<Issue>) {
+        let rel_label = if relationship.is_empty() { "".to_string() } else { format!("{} ", self.rel_type_label(relationship)) };
+        for e in self.doc.model.elements.iter().filter(|e| self.covers_elements(pack, types, &e.type_id)) {
+            let ins: Vec<&Relationship> = self.in_of(&e.id).iter().copied().filter(|r| rel_matches(relationship, r)).collect();
+            let outs: Vec<&Relationship> = self.out_of(&e.id).iter().copied().filter(|r| rel_matches(relationship, r)).collect();
+            let (n_in, n_out) = (ins.len(), outs.len());
+            let wrong = match expect {
+                FlowExpect::FanOut => n_in > n_out,
+                FlowExpect::FanIn => n_out > n_in,
+            };
+            if wrong {
+                let used = match expect {
+                    FlowExpect::FanOut => "a fork splits one flow into several",
+                    FlowExpect::FanIn => "a join merges several flows into one",
+                };
+                let what = format!("{} has {n_in} incoming and {n_out} outgoing {rel_label}relationships; {used}.", self.el_label(&e.id));
+                let mut subjects = subjects_with(&e.id, &ins);
+                subjects.extend(outs.iter().map(|r| r.id.clone()));
+                out.push(self.issue(rule, what, subjects));
             }
         }
     }

@@ -801,6 +801,17 @@ pub struct Ruleset {
     pub rules: Vec<String>,
 }
 
+/// The shape [`Check::FlowBalance`] expects of an element's flows.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum FlowExpect {
+    /// One in, several out (a fork): more incoming than outgoing is reported.
+    #[default]
+    FanOut,
+    /// Several in, one out (a join): more outgoing than incoming is reported.
+    FanIn,
+}
+
 /// How [`Check::PropertyCompare`] compares.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -894,6 +905,21 @@ pub enum Check {
         /// Fewest allowed.
         #[serde(default)]
         min: u32,
+    },
+    /// An element of these types that has the wrong share of incoming and outgoing relationships
+    /// of `relationship` for the way it is meant to be used: with `expect` `fanOut` (a fork)
+    /// more incoming than outgoing is reported, with `fanIn` (a join) more outgoing than incoming.
+    /// Elements with none of either are skipped.
+    FlowBalance {
+        /// Types checked.
+        #[serde(default)]
+        types: Vec<String>,
+        /// Relationship type counted.
+        #[serde(default)]
+        relationship: String,
+        /// The shape the element is expected to have.
+        #[serde(default)]
+        expect: FlowExpect,
     },
     /// An element of these types with both incoming and outgoing relationships of `relationship`.
     ExclusiveDirections {

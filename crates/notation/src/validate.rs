@@ -543,6 +543,7 @@ impl<'a> Checker<'a> {
                 Check::DuplicateIdentifier { scope } | Check::UnmatchedPair { scope } => self.reference(&ctx, Kind::Scope, scope),
                 Check::MinOutgoing { types, relationship, .. }
                 | Check::MinIncoming { types, relationship, .. }
+                | Check::FlowBalance { types, relationship, .. }
                 | Check::ExclusiveDirections { types, relationship } => {
                     self.type_list(&ctx, types);
                     self.reference(&ctx, Kind::Relationship, relationship);
