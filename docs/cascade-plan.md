@@ -1528,11 +1528,16 @@ The branches start after `b6e-frontend` (the engineering drawing UI, the fronten
 | `b6-analyze-ui` (8062) | Opus | Analyze and Compare groups on the Model tab over `analyze.*` and `model.diff`; canvas highlights with level chips, dimming and staleness; the Analysis dock tab with Go to, Select, Re-run and Clear; the model diff as an overlay with ghosts of removed items (`model.diff` returns `ghosts`) |
 | `b6-sequence-ui` (8064) | Opus | Sequence pages edited on the canvas: stem hits, column drags, drag to reorder, drawing messages stem to stem, lifeline and note insertion, fragment wrap and guard editing, the Sequence contextual tab, the Inspector Sequence group, Alt+arrow moves, and message labels above the line in the canvas and every export |
 | `b6-ux` (8069) | Sonnet | Tab and Enter insertion, the `/` picker with next, connect and pattern rows, double-click connector and end label editing, compartment edits that write the model, Model Tree relationship rows, Inspector relationship ends, UML member rows (`uml.*Member`) and ER columns, the notation-aware Re-Layout menu and insert direction, the Process tab trim, the Steps tool and the Key and Steps groups |
-| `b6-polish` (8068) | Sonnet | The wave 1 and 2 drawing follow-ups: ER cells that fit with an ellipsis and one header row, step badges clear of labels and drawn on the canvas, names below actor and User figures (`textPlace`), Inter Italic for PNG and PDF, the `dfd.threat` layout, `uml.Decision` back in the palette, the ASME zone check, and the ER double outlines, halves, label frames and arrow ends on the canvas |
+| `b6-polish` (8068) | Sonnet | The wave 1 and 2 drawing follow-ups: ER cells that fit with an ellipsis and one header row, step badges clear of labels and drawn on the canvas, names below actor and User figures (`textPlace`), Inter Italic for PNG and PDF, `uml.Decision` back in the palette, Fork and Join told apart in the palette with a direction rule, the ASME zone check, and the ER double outlines, halves, label frames and arrow ends on the canvas |
+| `b6-routing` (8060) | Opus | Added after the user's look at the app: a route quality checker run over every template, connectors that stand off from shapes and leave their ends perpendicular (a `page.setRouting` clearance with a default), fan-out at shared sides including Freeform shapes, Chen attributes off the relationship axis, the nested two-way dedupe and the `dfd.threat` layout, activity flows into fork and join bars |
 
-Merge order: sequence-ui, polish, analyze-ui, ux, gallery; the full suite after each; snapshots
-regenerated after the last merge. At most three builds at once: gallery, analyze-ui and
-sequence-ui start first, ux and polish as each of those finishes. The user's checkpoint after the
+Merge order: sequence-ui, polish, routing, analyze-ui, ux, gallery; the full suite after each;
+snapshots regenerated after the last merge. At most three builds at once: gallery, analyze-ui and
+sequence-ui start first, then routing, ux and polish as slots free. From the user's look at the
+wave 2 templates in the app: Fork and Join look the same (polish), ER tables showed blank lines and
+unaligned columns on the canvas (polish, after the b6e-frontend canvas tables), the Chen
+relationship ran along the entity box edges and routes overlapped (routing), sequence lifelines ran
+through the fragment tab and guard (sequence-ui). The user's checkpoint after the
 wave is a walkthrough in the app: a template from the New page with a chosen standard, Tab and `/`
 insertion, member and column editing, a sequence reorder, Downstream and Compare.
 
