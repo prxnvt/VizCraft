@@ -1485,7 +1485,18 @@ the canvas yet.
 
 ## Block 6 wave 2: software packs (engine)
 
-State: briefs written on 2026-10-19 against the integration branch at a979a97, one per branch in
+State: done. All four branches merged into the integration branch on 2026-10-19 (topology,
+uml, sequence, er), `cargo xtask ci` green after each; snapshots regenerated after uml; worktrees
+and branches removed. Merge fixes: two enum conflicts needed a closing brace between the two
+sides; the cloud topology preview golden was re-blessed because `relationship.create` now draws
+with the relationship's connector type; doc indentation after the sync steps were renumbered.
+Follow-ups for the frontend, beyond each brief's section 4: `uml.Decision` is kept out of the
+palette until the ui-egui search test is scoped; PNG export does not render italics; actor names
+and the User and Internet glyph labels sit on their figures; `dfd.threat` routes are cluttered;
+sequence message labels would read better above the line; ER compartment tables always draw a
+header row. UML rule citations were checked against the UML 2.5.1 table of contents only.
+
+Briefs were written on 2026-10-19 against the integration branch at a979a97, one per branch in
 [docs/briefs/b6-wave2/](briefs/b6-wave2/), each a planning agent's draft headed by resolutions.
 Engine only; `b6e-frontend` (the engineering drawing UI, pulled forward by the user) runs in its
 own session in `crates/ui-egui` at the same time and the user merges it into this branch.

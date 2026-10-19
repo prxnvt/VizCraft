@@ -100,6 +100,7 @@ params. Agents use them through `command_run` and `command_batch`:
 | `glyph.*` | Parametric symbols: list builders, draw one as SVG, read and set a placed symbol's parameters |
 | `key.*`, `connector.setStep`, `connector.renumberSteps`, `topology.toMermaid` | Generated keys, numbered step badges, Mermaid architecture text |
 | `sequence.*` | Sequence diagrams edited by order: lifelines, messages, replies, fragments, Mermaid or PlantUML text |
+| `er.*` | Entity-relationship columns and cardinalities, DBML or Mermaid ER text; `file.import {format: "dbml"}` reads DBML |
 
 `file.export` writes `mermaid` (`.mmd`) and `plantuml` (`.puml`) text for the active page and
 returns `warnings` for what the format cannot hold; `file.import {format: "mermaid", merge: true}`

@@ -236,7 +236,7 @@ Built on the integration branch `claude/engineering-diagramming-standards-305d6b
 | Parametric glyphs (engine) | Ten symbol builders, `Shape.glyph`, rebuild before bind, glyph provenance in `cargo xtask assets`; `glyph.*`, `vizcraft-cli glyph` | `crates/stencils`, `crates/notation`, `crates/diagram`, `crates/engine`, `xtask` | done (wave 1 `b6e-builders`); Inspector Symbol group in the frontend wave |
 | UML and sequence (engine) | `uml` pack in sections, member rows, end labels, eight templates, PlantUML export, Mermaid class, state and sequence; the sequence substrate and `sequence.*` | `crates/notation`, `crates/diagram`, `crates/layout`, `crates/formats`, `crates/engine` | done (wave 2 `b6-uml`, `b6-sequence`); editing UI in the frontend wave |
 | Topology (engine) | `cloud`, `network` and `dfd` packs, nesting with owner sync, container looks, step badges, generated keys, Mermaid architecture-beta | `crates/notation`, `crates/diagram`, `crates/mermaid`, `crates/formats`, `crates/engine` | done (wave 2 `b6-topology`); Key group and badges on the canvas in the frontend wave |
-| ER (engine) | `er` pack in four notations, DBML, Mermaid ER | | in progress (wave 2 `b6-er`) |
+| ER (engine) | `er` pack in IE, Chen, Barker and IDEF1X, new line ends and looks, owned columns, ER layout, DBML and Mermaid ER, `er.*` | `crates/diagram`, `crates/notation`, `crates/layout`, `crates/formats`, `crates/engine` | done (wave 2 `b6-er`); line looks on the canvas and column editing in the frontend wave |
 | Frontend | Canvas tools, keys, panes, ribbon groups, dock tabs, New gallery | `crates/ui-egui` | planned (wave 3) |
 | Packs on the substrate | C4, code forms, electrical, process, fluid power, mechanical | | planned (wave 4) |
 

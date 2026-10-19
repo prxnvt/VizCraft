@@ -18,9 +18,9 @@ import are built; the rest is planned ([ROADMAP.md](../ROADMAP.md)).
 | PNG | export (built: one page or several, one file each) | 2, built in 3 | W3C PNG specification (written by `resvg`) |
 | PDF | export (built: one vector page per document page, foreground pages by default, built from the SVG export through the krilla and krilla-svg crates; text is real PDF text in embedded subsets of the bundled Inter faces; blur effects are rasterised inside the PDF; 100 page units are one inch (0.72 pt per unit), pages capped at 200 inches; printing uses the same writer with paper layout, tiling or fit, and non-printing shapes left out) | 2, B2 | ISO 32000 (PDF) |
 | `.vsdx` | import | 4 | Microsoft Open Specifications [MS-VSDX]; ECMA-376 Open Packaging Conventions |
-| Mermaid class, state, sequence and architecture-beta into and out of the model | read and write (built: `file.import {format: "mermaid", merge: true}` reads class and state diagrams into `uml` elements, sequence diagrams into the sequence substrate, architecture-beta into `cloud` elements; `file.export` to `.mmd` writes the page by its viewpoint; architecture-beta from the mermaid.js.org page read 2026-10-19; ER in progress) | B6 wave 2 | Mermaid syntax documentation |
+| Mermaid class, state, ER, sequence and architecture-beta into and out of the model | read and write (built: `file.import {format: "mermaid", merge: true}` reads class and state diagrams into `uml` elements, sequence diagrams into the sequence substrate, architecture-beta into `cloud` elements; `file.export` to `.mmd` writes the page by its viewpoint; architecture-beta from the mermaid.js.org page read 2026-10-19, erDiagram into `er` entities with owned columns) | B6 wave 2 | Mermaid syntax documentation |
 | PlantUML | write (built: `file.export` to `.puml` for the class, component, package, deployment, use case, activity, state machine and sequence viewpoints; unstructured activity edges come back as warnings) | B6 wave 2 | PlantUML language reference |
-| DBML | read and write (planned) | B6 wave 2 | DBML documentation (dbml.dbdiagram.io) |
+| DBML | read and write (built: `file.import {format: "dbml"}` with merge and re-import, `er.write {format: "dbml"}`; tables, columns and settings, refs including composite, enums, table groups, notes and indexes; sticky notes and table partials come back as warnings; capped at 2 MB, 5 000 tables, 256 columns) | B6 wave 2 | DBML documentation (dbml.dbdiagram.io) |
 | Structurizr DSL | read and write (planned) | B6 wave 4 | Structurizr DSL language reference |
 | D2 | write (planned) | B6 wave 4 | D2 language documentation |
 
@@ -115,7 +115,11 @@ files for names ending in `.drawio` or `.drawio.xml`, and refuses other names.
   activation, destruction, fragment with operands and guards, or note part); on a connector,
   `message` (sort) and `step` (badge number, 0 none). Packs gain `sections`, element and
   relationship `keyword`, relationship `endLabels`, compartment `rowsFrom`, element
-  `allowedParents`, glyph `container` looks and variant `options`.
+  `allowedParents`, glyph `container` looks and variant `options`. ER adds connector `halves`
+  (per-half dash and double line) and `labelFrame` (a Chen diamond), style `compound` (double
+  outline), connector type `ends` (ends read from relationship properties), variant `satellites`
+  and `compartments`, and table query `owned`, `filter` and `values`. draw.io: the double bar
+  writes and reads as `ERmandOne`, the dot end writes as `oval` and reads back as a circle.
 - **Blocks 6 and 6E fields** (all optional, serde defaults, left out when default, so a file
   from before them loads and saves back byte for byte; `formats/testdata/pre-6e-sample.vizcraft`
   checks it): in the model, `nets` (`id`, `kind` wire, potential, pipe, fluid or signal, `name`,
