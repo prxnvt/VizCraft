@@ -19,6 +19,7 @@
 //! | [`Primitive::HubSpoke`] | `radial` | one hub, spokes on a circle whose radius clears the hub and the spokes |
 //! | [`Primitive::Rings`] | `radial` | concentric rings of nodes around a centre |
 //! | [`Primitive::Voter`] | `radial` | N channel chains side by side feeding one voter node after them |
+//! | [`Primitive::Sequence`] | `crate::sequence` | UML sequence lifelines: heads in a row left to right, the edges in index order as calls down the page |
 
 mod band;
 mod chain;
@@ -125,6 +126,12 @@ pub enum Primitive<T = usize> {
         /// The node the channels feed.
         voter: T,
     },
+    /// Lifeline heads in a row, the edges in index order as synchronous calls.
+    Sequence {
+        /// The lifelines left to right (default: node order); nodes left out follow.
+        #[serde(default)]
+        lifelines: Option<Vec<T>>,
+    },
 }
 
 impl<T> Primitive<T> {
@@ -140,6 +147,7 @@ impl<T> Primitive<T> {
             Primitive::Rings { .. } => "rings",
             Primitive::Timeline { .. } => "timeline",
             Primitive::Voter { .. } => "voter",
+            Primitive::Sequence { .. } => "sequence",
         }
     }
 
@@ -185,6 +193,7 @@ impl<T> Primitive<T> {
             Primitive::Voter { channels, voter } => {
                 Primitive::Voter { channels: channels.into_iter().map(|c| list(c, &mut g)).collect::<Result<_, _>>()?, voter: g(voter)? }
             }
+            Primitive::Sequence { lifelines } => Primitive::Sequence { lifelines: lifelines.map(|l| list(l, &mut g)).transpose()? },
         })
     }
 
@@ -228,6 +237,7 @@ impl<T> Primitive<T> {
                 out.extend(channels.iter().flatten());
                 out.push(voter);
             }
+            Primitive::Sequence { lifelines } => out.extend(lifelines.iter().flatten()),
         }
         out
     }
@@ -256,6 +266,7 @@ pub fn layout_primitive(graph: &Graph, primitive: &Primitive, options: &Options)
         Primitive::Rings { center, rings } => (radial::rings(graph, *center, rings, &opt)?, Vec::new()),
         Primitive::Timeline { events, labels } => (grid::timeline(graph, events.as_deref(), labels, &opt)?, Vec::new()),
         Primitive::Voter { channels, voter } => (radial::voter(graph, channels, *voter, &opt)?, Vec::new()),
+        Primitive::Sequence { lifelines } => (crate::sequence::graph_columns(graph, lifelines.as_deref(), &opt)?, Vec::new()),
     };
     Ok(finish(graph, pos, resized, &opt, notes))
 }

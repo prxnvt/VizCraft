@@ -29,6 +29,7 @@ mod layered;
 mod overlap;
 mod pins;
 mod primitives;
+pub mod sequence;
 mod tree;
 
 pub use primitives::{Nest, Parallel, Primitive, layout_primitive};
