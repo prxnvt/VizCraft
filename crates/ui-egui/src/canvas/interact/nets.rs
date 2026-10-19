@@ -26,10 +26,11 @@ pub fn click(app: &mut CraftApp) {
     app.canvas.net_held = under_pointer(app);
 }
 
-/// The status bar text for the highlighted net: its number (else name, else id) and its pin
-/// count, as `Net 2003, 3 pins`. `None` when no net is highlighted.
+/// The status bar text for the highlighted net (see [`crate::canvas::draw::nets::highlighted`]):
+/// its number (else name, else id) and its pin count, as `Net 2003, 3 pins`. `None` when no net
+/// is highlighted.
 pub fn status(app: &CraftApp) -> Option<String> {
-    let id = app.canvas.net_held.as_deref().or(app.canvas.net_hover.as_deref())?;
+    let id = crate::canvas::draw::nets::highlighted(app.canvas.net_held.as_deref(), app.canvas.net_hover.as_deref())?;
     let entry = app.session.nets.nets.get(id)?;
     let name = app.session.doc.model.nets.iter().find(|n| n.id == id).map(|n| n.label_text().to_string()).filter(|t| !t.is_empty());
     let pins = entry.pins.len();

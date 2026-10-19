@@ -51,9 +51,11 @@ pub fn draw(painter: &Painter, vp: &Viewport2D, doc: &Document, page: &Page) {
     }
 }
 
-/// The net to highlight: the held one, else the one under the pointer.
+/// The net to highlight: the one under the pointer, else the held one. Hover wins so that, with
+/// a net held, pointing at another wire still shows that wire's net; the held net comes back
+/// when the pointer leaves the wires.
 pub fn highlighted<'a>(held: Option<&'a str>, hover: Option<&'a str>) -> Option<&'a str> {
-    held.or(hover)
+    hover.or(held)
 }
 
 /// Highlight net `net` on `page`: a wide translucent band over each of its segments, a ring on

@@ -42,6 +42,13 @@ Inspector now asks only when a builder draws the shape (`panes/inspector.rs`,
 `drawn_by_builder`), with the regression test
 `selecting_a_plain_shape_leaves_no_symbol_error_in_the_status_bar` (it fails on the old code). Twelve UI snapshots had the stray error baked into their status bar; they were retaken and differ from the old ones only in that strip.
 
+After the user tried the app: once a click held a net's highlight, hovering any other wire kept
+showing the held net, so wires connected at both ends looked as if they had no net. The wire
+under the pointer now wins over the held net, for the highlight and the status bar, and the held
+net returns when the pointer leaves the wires (`draw/nets.rs::highlighted`,
+`interact/nets.rs::status`; regression test
+`hovering_another_wire_shows_its_net_while_one_is_held`, which fails on the old code).
+
 ## Engine changes in this branch (all small)
 
 | File | Change |

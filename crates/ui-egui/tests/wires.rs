@@ -207,6 +207,41 @@ fn hovering_a_wire_highlights_its_net_and_a_click_holds_it() {
     assert_eq!(h.state().canvas.net_held, None, "a click elsewhere lets go");
 }
 
+/// The middle of `wire`'s longest run, in screen points.
+fn on(h: &Harness<'_, CraftApp>, wire: &str) -> Pos2 {
+    let page = h.state().session.doc.page().unwrap();
+    let poly = route_polyline(page, page.connector(wire).unwrap());
+    let (p, q) = poly.windows(2).map(|s| (s[0], s[1])).max_by(|x, y| x.0.distance(x.1).total_cmp(&y.0.distance(y.1))).unwrap();
+    screen(h, p.midpoint(q))
+}
+
+#[test]
+fn hovering_another_wire_shows_its_net_while_one_is_held() {
+    // Regression (found by the user): a click held a loose wire's net, and from then on hovering
+    // a wire connected at both ends kept showing the held net, so it looked as if connected
+    // wires had no net.
+    let mut h = harness();
+    let (a, b) = contact_and_coil(&mut h);
+    let joined = run(&mut h, "wire.draw", json!({"from": {"shape": a, "point": 1}, "to": {"shape": b, "point": 1}}));
+    let pin0 = pin(&h, &a, 0);
+    let loose = run(&mut h, "wire.draw", json!({"from": {"shape": a, "point": 0}, "to": {"x": pin0.x, "y": pin0.y - 120.0}}));
+    run(&mut h, "net.set", json!({"net": joined["net"], "number": "1"}));
+    run(&mut h, "net.set", json!({"net": loose["net"], "number": "2"}));
+    run(&mut h, "edit.selectNone", json!({}));
+    let status = |h: &Harness<'_, CraftApp>| vizcraft_ui_egui::canvas::status_items(h.state()).first().cloned();
+    let at = on(&h, loose["id"].as_str().unwrap());
+    click(&mut h, at);
+    assert_eq!(status(&h).as_deref(), Some("Net 2, 1 pin"), "the loose wire's net is held");
+    let at = on(&h, joined["id"].as_str().unwrap());
+    h.event(Event::PointerMoved(at));
+    h.run_steps(2);
+    assert_eq!(status(&h).as_deref(), Some("Net 1, 2 pins"), "the wire under the pointer wins over the held net");
+    let away = screen(&h, Point::new(pin0.x + 300.0, pin0.y + 300.0));
+    h.event(Event::PointerMoved(away));
+    h.run_steps(2);
+    assert_eq!(status(&h).as_deref(), Some("Net 2, 1 pin"), "the held net comes back off the wires");
+}
+
 #[test]
 fn the_preview_palette_places_builder_symbols() {
     let mut h = harness();
