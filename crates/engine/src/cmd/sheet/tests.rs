@@ -81,6 +81,17 @@ fn set_get_list_and_off() {
 }
 
 #[test]
+fn a_bare_sheet_set_takes_the_projects_chosen_sheet() {
+    let mut s = blank();
+    run(&mut s, "template.standards", json!({"sheet": "asme.b.landscape"}));
+    let r = run(&mut s, "sheet.set", json!({}));
+    assert_eq!(r["presetId"], "asme.b.landscape");
+    assert_eq!(run(&mut s, "sheet.presets", json!({}))["default"], "asme.b.landscape");
+    run(&mut s, "template.standards", json!({"sheet": ""}));
+    assert_eq!(run(&mut s, "sheet.presets", json!({}))["default"], "iso.a3.landscape", "empty restores ISO A3");
+}
+
+#[test]
 fn a_page_without_a_sheet_is_untouched() {
     let mut s = Session::new(crate::sample::sample_document());
     let before = s.doc.clone();

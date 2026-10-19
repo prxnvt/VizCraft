@@ -50,10 +50,10 @@ pub fn specs() -> Vec<CommandSpec> {
     ]
 }
 
-/// The sheet preset a page gets when `sheet.set` names none: the document's standard sheet.
-/// `Document.standards.sheet` (b6-templates) takes this over when it is set.
-pub fn default_preset(_doc: &Document) -> String {
-    "iso.a3.landscape".to_string()
+/// The sheet preset a page gets when `sheet.set` names none: the project's chosen sheet
+/// (`Document.standards`, set through `template.standards`), ISO A3 landscape by default.
+pub fn default_preset(doc: &Document) -> String {
+    doc.standards.sheet().to_string()
 }
 
 /// The page a command acts on: the `page` param (id, name or index), else the active page.
