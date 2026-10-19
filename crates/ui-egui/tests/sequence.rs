@@ -320,3 +320,24 @@ fn the_sequence_tab_shows_only_on_a_sequence_page() {
     let id = r["id"].as_str().unwrap().to_string();
     assert!(matches!(shape(&h, &id).sequence, Some(Part::Note { .. })));
 }
+
+#[test]
+fn dragging_a_separator_moves_a_message_between_operands_in_one_step() {
+    let mut h = harness(true);
+    // "rows" joins the found operand, so it holds two messages.
+    run(&mut h, "sequence.move", json!({"id": "m3", "before": "m4"}));
+    let before = order(&mut h);
+    let f = shape(&h, "f1");
+    let Some(Part::Fragment { operands, .. }) = &f.sequence else { panic!() };
+    let sep = f.y + operands[1].at;
+    let x = f.x + f.w - 10.0;
+    let to = Point::new(x, (row_of(&h, "m3") + row_of(&h, "m4")) / 2.0);
+    drag_with(&mut h, Point::new(x, sep), to, |app| assert_eq!(dragging(app), "separator"));
+    let o = order(&mut h);
+    let at = o.iter().position(|e| e == "open f1").unwrap();
+    assert_eq!(o[at..at + 6], ["open f1", "message m3", "else f1", "message m4", "message m5", "close f1"].map(String::from), "{o:?}");
+    let Some(Part::Fragment { operands, .. }) = shape(&h, "f1").sequence else { panic!() };
+    assert_eq!(operands.iter().map(|o| o.guard.as_str()).collect::<Vec<_>>(), ["found", "else"], "the guards stay with their operands");
+    run(&mut h, "edit.undo", json!({}));
+    assert_eq!(order(&mut h), before);
+}
