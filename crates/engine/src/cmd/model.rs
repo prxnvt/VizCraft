@@ -347,6 +347,8 @@ pub fn place_shape(doc: &mut Document, id: &str, page: usize, x: f64, y: f64, w:
     shape.sanitize();
     let page = doc.pages.get_mut(page).ok_or_else(|| EngineError::Params("no such page".into()))?;
     page.shapes.push(shape);
+    // On a page with a symbol grid module the first port lands on the grid.
+    super::wire::snap_first_port(page, &sid);
     Ok(sid)
 }
 

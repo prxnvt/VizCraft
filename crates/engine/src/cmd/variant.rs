@@ -136,6 +136,11 @@ fn set(s: &mut Session, v: &Value) -> CmdResult {
         None if variant.is_empty() => {}
         None => page.view = Some(View { variant: variant.clone(), ..View::default() }),
     }
+    // A variant drawn on its own symbol grid module (an ANSI variant of an IEC pack) gives the
+    // page that module; one that names none leaves the page's module as it was.
+    if let Some(module) = cat().variant(&variant).map(|(_, x)| x.module).filter(|m| !m.is_none()) {
+        page.view.get_or_insert_with(View::default).module = module;
+    }
     let id = page.id.clone();
     Ok(json!({"page": id, "variant": variant, "shapes": done.shapes, "connectors": done.connectors}))
 }

@@ -844,4 +844,28 @@ mod tests {
         assert!(has(&probs, "the limit is 10000"));
         assert!(probs.last().unwrap().starts_with("and "));
     }
+
+    #[test]
+    fn ports_off_the_module_are_reported_for_the_pack_and_each_variant() {
+        let pack = |module: &str, variant_module: &str, w: f64| {
+            let json = format!(
+                r##"{{"id": "modtest", "version": "1.0.0", "name": "M", "module": {module},
+                "glyphs": [{{"id": "modtest.r", "label": "R", "category": "C", "outline": "rectangle", "w": {w}, "h": 19.685, "fill": "#ffffff", "line": "#000000"}},
+                           {{"id": "modtest.r2", "label": "R", "category": "C", "outline": "rectangle", "w": 40, "h": 20, "fill": "#ffffff", "line": "#000000"}}],
+                "elementTypes": [{{"id": "modtest.R", "glyph": "modtest.r", "ports": [{{"id": "a", "x": 0, "y": 0.5}}, {{"id": "b", "x": 1, "y": 0.5}}]}}],
+                "variants": [{{"id": "modtest.ansi", "label": "ANSI", "module": {variant_module}, "glyphs": {{"modtest.R": "modtest.r2"}}}}]}}"##
+            );
+            serde_json::from_str::<Pack>(&json).unwrap()
+        };
+        // Four 2.5 mm modules wide, and 40 units is four 0.1 inch modules: clean.
+        let ok = check(&pack("\"iso2_5mm\"", "\"inch0_1\"", 4.0 * vizcraft_model::Module::ISO_STEP));
+        assert!(ok.iter().all(|p| !p.contains("module")), "{ok:?}");
+        // 45 units is not a whole number of 2.5 mm modules.
+        let off = check(&pack("\"iso2_5mm\"", "\"none\"", 45.0));
+        assert!(has(&off, "port `b` of glyph `modtest.r` is not a whole number of modules"), "{off:?}");
+        // The variant draws with its own glyph on the pack's module: 40 is not 2.5 mm modules.
+        assert!(has(&off, "variant `modtest.ansi`"), "{off:?}");
+        // No module: nothing to check.
+        assert!(check(&pack("\"none\"", "\"none\"", 45.0)).iter().all(|p| !p.contains("module")));
+    }
 }

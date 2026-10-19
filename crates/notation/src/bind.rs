@@ -17,6 +17,8 @@ use crate::{Catalog, legal};
 
 /// Bring views and model into agreement after a command turned `before` into `doc`, in this order:
 ///
+/// 0. The net pass ([`crate::bind_nets::nets`]) keeps nets, wire segments and junctions
+///    consistent; it does nothing in a document without wiring.
 /// 1. A shape whose `element` is missing from the model, and a connector whose `relationship` is
 ///    missing, become free drawing (the reference is cleared).
 /// 2. A second shape for the same element on one page is a copy: it gets a new element (fresh id
@@ -75,6 +77,8 @@ use crate::{Catalog, legal};
 ///   exists, and the user's own compartments are left alone.
 pub fn sync(doc: &mut Document, before: &Document, cat: &Catalog) {
     vizcraft_diagram::views::sanitize_refs(doc);
+    // Wiring needs no elements, so the net pass runs before the early return below.
+    crate::bind_nets::nets(doc, before, cat);
     conformance(doc, cat);
     // Nothing can be bound in a model with no items, and nothing drawn in `before` can need
     // removing: free drawing leaves here untouched.

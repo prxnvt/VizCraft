@@ -18,12 +18,14 @@
 //! - [`drawing`]: the drawing checks of the built-in Drawing pack.
 //! - [`glob`]: the name patterns of the `nameFormat` check.
 //! - [`cases`]: pack test cases (a document, a profile and the issues expected).
-//! - [`bind`]: the sync pass that keeps model and views in step after every command.
+//! - [`bind`]: the sync pass that keeps model and views in step after every command;
+//!   [`bind_nets`]: its net pass, which keeps nets, wire segments and junctions consistent.
 //!
 //! No egui and no engine; wasm safe.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
 pub mod bind;
+pub mod bind_nets;
 pub mod cases;
 pub mod catalog;
 pub mod drawing;
