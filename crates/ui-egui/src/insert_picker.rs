@@ -179,7 +179,7 @@ pub fn show(app: &mut CraftApp, ctx: &egui::Context, vp: &Viewport2D) {
                     }
                     let icon = egui::Rect::from_center_size(rect.left_center() + vec2(14.0, 0.0), vec2(18.0, 14.0));
                     if let Some(m) = vizcraft_stencils::master(&it.master) {
-                        crate::icons::paint_kind(ui.painter(), icon, m.kind, m.w as f32, m.h as f32, t.icon, t.accent);
+                        crate::icons::paint_master(ui.painter(), icon, m, t.icon, t.accent);
                     }
                     let g = ui.painter().text(rect.left_center() + vec2(30.0, 0.0), Align2::LEFT_CENTER, &it.label, regular(12.5), t.text);
                     ui.painter().text(g.right_center() + vec2(8.0, 0.0), Align2::LEFT_CENTER, &it.group, regular(11.0), t.text_dim);

@@ -207,7 +207,18 @@ impl App {
             Ok(_) => {
                 let _ = app.run("ui.backstage", serde_json::json!({"value": false}));
             }
-            Err(e) => app.status(format!("Couldn't open {path}: {e}")),
+            Err(e) => {
+                eprintln!("vizcraft: {path}: {e}");
+                app.status(format!("Couldn't open {path}: {e}"));
+            }
+        }
+    }
+
+    /// The files named on the command line, each in its own window as File > Open does here: the
+    /// first in the untouched first window, every other one in a new window.
+    fn open_files(&mut self, ctx: &egui::Context, files: &[String]) {
+        for f in files {
+            self.open_document(ctx, f);
         }
     }
 
@@ -584,12 +595,7 @@ fn main() -> eframe::Result {
                 let rx = control_server::start(port, cc.egui_ctx.clone());
                 app = app.with_control(rx);
             }
-            for f in files {
-                if let Err(e) = app.run("file.open", serde_json::json!({"path": f})) {
-                    eprintln!("vizcraft: {f}: {e}");
-                }
-            }
-            Ok(Box::new(App {
+            let mut host = App {
                 root: app,
                 restored,
                 windows: windows::Windows::default(),
@@ -600,14 +606,49 @@ fn main() -> eframe::Result {
                 prev_cpu: None,
                 mem_sampled: None,
                 trace_frames: 0,
-            }))
+            };
+            host.open_files(&cc.egui_ctx, &files);
+            Ok(Box::new(host))
         }),
     )
 }
 
 #[cfg(test)]
 mod tests {
-    use super::parse_window_pos;
+    use super::{App, parse_window_pos, windows};
+    use vizcraft_engine::Session;
+    use vizcraft_ui_egui::CraftApp;
+
+    #[test]
+    fn every_file_on_the_command_line_opens_in_its_own_window() {
+        let dir = std::env::temp_dir().join(format!("vizcraft-files-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut files = Vec::new();
+        for name in ["a", "b", "c"] {
+            let path = dir.join(format!("{name}.vizcraft"));
+            let mut s = Session::new(vizcraft_engine::Document::new());
+            s.run("edit.setTitle", &serde_json::json!({"title": name})).unwrap();
+            s.run("file.save", &serde_json::json!({"path": path.to_string_lossy()})).unwrap();
+            files.push(path.to_string_lossy().to_string());
+        }
+        let mut host = App {
+            root: CraftApp::new(Session::new(vizcraft_engine::Document::new()), super::services()),
+            restored: None,
+            windows: windows::Windows::default(),
+            #[cfg(target_os = "macos")]
+            menu: None,
+            #[cfg(target_os = "macos")]
+            in_window_menus: false,
+            prev_cpu: None,
+            mem_sampled: None,
+            trace_frames: 0,
+        };
+        host.open_files(&egui::Context::default(), &files);
+        assert_eq!(host.root.session.path.as_deref(), Some(std::path::Path::new(&files[0])), "the first file takes the first window");
+        let others: Vec<String> = host.windows.apps_mut().filter_map(|a| a.session.path.as_ref().map(|p| p.to_string_lossy().to_string())).collect();
+        assert_eq!(others, files[1..], "every other file has a window of its own");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     #[test]
     fn window_pos_parses_two_numbers() {

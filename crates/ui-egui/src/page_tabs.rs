@@ -154,6 +154,9 @@ fn context_menu(app: &mut CraftApp, ui: &mut Ui, tabs: &[TabInfo], i: usize, tab
     if item(ui, "Insert Page", true) {
         run(app, "page.add", json!({"index": i + 1}));
     }
+    if item(ui, "Insert Page from Template...", true) {
+        run(app, "ui.gallery", json!({"mode": "page"}));
+    }
     if item(ui, "Duplicate", true) {
         run(app, "page.duplicate", json!({"page": tab.id}));
     }
