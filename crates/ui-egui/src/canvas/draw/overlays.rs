@@ -13,12 +13,22 @@ use crate::canvas::Viewport2D;
 use crate::canvas::interact::{self, Drag};
 use crate::theme::Tokens;
 
+/// Whether `s` is a lifeline: its hover and selection outline is its head and stem, drawn by
+/// `interact::sequence::overlay`.
+fn is_lifeline(s: &dg::Shape) -> bool {
+    matches!(s.sequence, Some(dg::sequence::Part::Lifeline { .. }))
+}
+
 fn frame_screen(vp: &Viewport2D, s: &dg::Shape) -> Vec<Pos2> {
     let tr = s.transform();
     [(0.0, 0.0), (s.w, 0.0), (s.w, s.h), (0.0, s.h)].iter().map(|&(x, y)| vp.world_to_screen(pos(tr.apply(dg::Point::new(x, y))))).collect()
 }
 
 fn connection_marks(painter: &egui::Painter, vp: &Viewport2D, s: &dg::Shape, colour: Color32, hot: Option<usize>) {
+    // Glue to a lifeline is always dynamic; settle owns its stored points.
+    if matches!(s.kind, dg::ShapeKind::Lifeline | dg::ShapeKind::ActorLifeline) {
+        return;
+    }
     for (i, p) in s.connection_points_world().into_iter().enumerate() {
         let c = vp.world_to_screen(pos(p));
         let r = 3.0;
@@ -216,6 +226,7 @@ pub fn overlay(app: &CraftApp, painter: &egui::Painter, vp: &Viewport2D, page: &
     guides(app, painter, vp, page, t);
     align_lines(app, painter, vp, real, t);
     wire_overlay(app, painter, vp, real, t);
+    interact::sequence::overlay(app, painter, vp, page, real, t);
     // With Connection Points on, every visible shape shows its points, faintly.
     if app.session.view.aids.connection_points {
         let visible = vp.visible_world_rect();
@@ -227,7 +238,7 @@ pub fn overlay(app: &CraftApp, painter: &egui::Painter, vp: &Viewport2D, page: &
     if drag.is_none()
         && let Some(Hit::Shape(id)) = &app.canvas.hover
         && !sel.contains(id)
-        && let Some(s) = page.shape(id)
+        && let Some(s) = page.shape(id).filter(|s| !is_lifeline(s))
     {
         painter.add(egui::Shape::closed_line(frame_screen(vp, s), Stroke::new(1.0, accent.gamma_multiply(0.6))));
     }
@@ -251,6 +262,9 @@ pub fn overlay(app: &CraftApp, painter: &egui::Painter, vp: &Viewport2D, page: &
     // Selected shapes and connectors.
     for id in sel {
         if let Some(s) = page.shape(id) {
+            if is_lifeline(s) {
+                continue;
+            }
             painter.add(egui::Shape::closed_line(frame_screen(vp, s), Stroke::new(1.0, accent)));
         } else if let Some(c) = page.connector(id) {
             let g = dg::connector_geometry(page, c);

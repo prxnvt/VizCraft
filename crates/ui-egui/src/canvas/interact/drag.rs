@@ -48,12 +48,12 @@ fn effective_handle(s: &Shape, handle: usize) -> Option<(f64, f64)> {
 
 /// Whether resize handle `handle` of `s` can change the shape (the overlay hides it otherwise).
 pub fn handle_allowed(s: &Shape, handle: usize) -> bool {
-    effective_handle(s, handle).is_some()
+    effective_handle(s, handle).is_some() && !super::sequence::frame_fixed(s)
 }
 
 /// Whether `s` may be turned with the rotate handle.
 pub fn rotate_allowed(s: &Shape) -> bool {
-    !s.locks.rotation
+    !s.locks.rotation && !super::sequence::frame_fixed(s)
 }
 
 /// Whether a move drag may carry `ids` on `page`: none of them is a position-locked shape.
@@ -129,6 +129,7 @@ pub fn preview_page(page: &Page, drag: &Drag, zoom: f32) -> Option<Page> {
     let mut p = page.clone();
     let moving: Vec<String> = match drag {
         Drag::Marquee { .. } | Drag::Lasso { .. } | Drag::TextBox { .. } => return None,
+        Drag::Sequence(d) => return super::sequence::preview(page, d),
         Drag::TextBlock { id, grab, to, shift } => {
             super::text_block::preview(&mut p, id, grab, *to, *shift);
             Vec::new()
@@ -193,7 +194,7 @@ pub fn drag_target(page: &Page, drag: &Drag, zoom: f32) -> Option<End> {
 pub(super) fn finish(app: &mut CraftApp, drag: Drag, zoom: f32) {
     let Some(page) = app.session.doc.page() else { return };
     // Protection refuses every shape edit a drag commits (selection drags still run).
-    let edits = matches!(drag, Drag::Move { .. } | Drag::Resize { .. } | Drag::Rotate { .. });
+    let edits = matches!(drag, Drag::Move { .. } | Drag::Resize { .. } | Drag::Rotate { .. } | Drag::Sequence(_));
     if edits && protected(&app.session.doc, page) {
         app.status("The shapes are protected (Developer > Protect Document)");
         return;
@@ -263,6 +264,7 @@ pub(super) fn finish(app: &mut CraftApp, drag: Drag, zoom: f32) {
             }
         }
         Drag::Wire { from, to, pipe } => super::wire::finish(app, from, to, pipe, zoom),
+        Drag::Sequence(d) => super::sequence::finish(app, d, zoom),
         Drag::TextBox { from, to } => super::tools::add_text_box(app, from, Some(dg::Rect::from_points(from, to))),
         Drag::TextBlock { id, grab, to, shift } => super::text_block::finish(app, &id, &grab, to, shift),
         Drag::Reglue { id, start, to } => {

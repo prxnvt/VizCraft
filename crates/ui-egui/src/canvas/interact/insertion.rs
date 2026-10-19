@@ -119,9 +119,10 @@ fn handles_allowed(app: &CraftApp) -> bool {
 }
 
 /// Shapes that get handles: anything but containers, lane sets and callouts, which frame or
-/// point at other shapes rather than take part in a flow.
+/// point at other shapes rather than take part in a flow, and the parts of a sequence diagram,
+/// which grow through the Sequence tab instead.
 fn takes_handles(page: &dg::Page, id: &str) -> bool {
-    page.shape(id).is_some_and(|s| !dg::container::is_container(s) && !dg::container::is_callout(s))
+    page.shape(id).is_some_and(|s| !dg::container::is_container(s) && !dg::container::is_callout(s) && s.sequence.is_none())
 }
 
 /// Track which shape the pointer rests on and show its handles once it has rested long enough.

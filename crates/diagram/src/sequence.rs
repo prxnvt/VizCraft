@@ -491,7 +491,7 @@ pub fn stem_hit(s: &Shape, p: Point, tol: f64) -> bool {
     let tol = if tol.is_finite() { tol.clamp(0.0, 1000.0) } else { 0.0 };
     let head = if s.kind == ShapeKind::ActorLifeline { ACTOR_HEAD } else { HEAD }.min(s.h);
     let (x, y) = (p.x - s.x, p.y - s.y);
-    let in_head = (0.0..=s.w).contains(&x) && (0.0..=head).contains(&y);
+    let in_head = (-tol..=s.w + tol).contains(&x) && (-tol..=head).contains(&y);
     let on_stem = (x - s.w / 2.0).abs() <= tol && y >= head - tol && y <= s.h + tol;
     in_head || on_stem
 }

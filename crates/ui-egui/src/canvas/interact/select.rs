@@ -81,6 +81,7 @@ fn depth(page: &Page, chain: &[String], sel: &[String]) -> Option<(usize, bool)>
 /// What a click on shape `id` selects, given the current selection `sel`: the outermost group
 /// around it, or one level further down when that level (or a sibling in it) is selected.
 pub fn click_target(page: &Page, id: &str, sel: &[String]) -> String {
+    let id = &dg::sequence::owner(page, id);
     let c = chain(page, id);
     let last = c.len().saturating_sub(1);
     let k = match depth(page, &c, sel) {
@@ -93,6 +94,7 @@ pub fn click_target(page: &Page, id: &str, sel: &[String]) -> String {
 /// What a press-and-drag on shape `id` moves: the selected level of its group chain, else the
 /// shape at the level the user is working in, else the outermost group.
 pub fn press_target(page: &Page, id: &str, sel: &[String]) -> String {
+    let id = &dg::sequence::owner(page, id);
     let c = chain(page, id);
     let last = c.len().saturating_sub(1);
     let k = match depth(page, &c, sel) {

@@ -36,11 +36,13 @@ pub fn shape_contains(shape: &Shape, p: Point, tolerance: f64) -> bool {
         return false;
     }
     let t = tol(tolerance);
-    if !shape.bounds().inflate(t).contains(p) {
-        return false;
-    }
+    // A lifeline's head box and stem, tested before the outline's bounds: an actor's outline is
+    // only its head circle, narrower than the figure and its name.
     if crate::sequence::stem_hit(shape, p, t) {
         return true;
+    }
+    if !shape.bounds().inflate(t).contains(p) {
+        return false;
     }
     let lines = shape.outline_world().flatten(HIT_FLATTEN);
     let rings = lines.iter().filter(|pl| pl.closed && point_in_polygon(p, &pl.points)).count();
@@ -237,6 +239,9 @@ mod tests {
         assert!(shape_contains(&s, Point::new(52.0, 200.0), 3.0), "the stem");
         assert!(!shape_contains(&s, Point::new(20.0, 200.0), 3.0), "beside the stem");
         assert_eq!(connection_point_at(&s, Point::new(50.0, 0.0), 5.0), None);
+        let mut actor = Shape::new("a", ShapeKind::ActorLifeline, 0.0, 0.0, 100.0, 300.0);
+        actor.sanitize();
+        assert!(shape_contains(&actor, Point::new(2.0, 60.0), 0.0), "an actor's name band, outside its head circle");
         let r = Shape::new("r", ShapeKind::Rectangle, 0.0, 0.0, 100.0, 300.0);
         assert!(!shape_contains(&s, Point::new(52.0, 400.0), 3.0) && shape_contains(&r, Point::new(52.0, 200.0), 0.0));
     }

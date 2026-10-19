@@ -22,6 +22,9 @@ pub(super) fn near(vp: &Viewport2D, a: Point, screen: Pos2) -> bool {
 }
 
 pub(super) fn decide(app: &CraftApp, page: &Page, vp: &Viewport2D, at: Pos2, m: Modifiers) -> Option<Start> {
+    if let Some(s) = super::sequence::decide(app, page, vp, at, m) {
+        return Some(s);
+    }
     let w = point(vp.screen_to_world(at));
     let zoom = vp.zoom;
     let tol = f64::from(GRAB / zoom);

@@ -87,9 +87,22 @@ pub fn command_for(app: &CraftApp, combo: &str) -> Option<&'static str> {
     UI_COMMANDS.iter().find(|(_, _, sc, _)| sc.split(" / ").any(|k| k.eq_ignore_ascii_case(combo))).map(|(id, ..)| *id)
 }
 
-/// Shortcuts egui's text fields handle themselves; while one is focused they stay with it.
+/// Shortcuts egui's text fields handle themselves; while one is focused they stay with it. The
+/// sequence moves are Alt+arrows, which move the caret by word in a field.
 fn text_field_owns(id: &str) -> bool {
-    matches!(id, "edit.cut" | "edit.copy" | "edit.paste" | "edit.selectAll" | "edit.undo" | "edit.redo")
+    matches!(
+        id,
+        "edit.cut"
+            | "edit.copy"
+            | "edit.paste"
+            | "edit.selectAll"
+            | "edit.undo"
+            | "edit.redo"
+            | "sequence.moveUp"
+            | "sequence.moveDown"
+            | "sequence.moveLeft"
+            | "sequence.moveRight"
+    )
 }
 
 /// Whether `key` is a letter A to Z.
@@ -280,6 +293,10 @@ mod tests {
                     Key::F7,
                     Key::F12,
                     Key::Space,
+                    Key::ArrowUp,
+                    Key::ArrowDown,
+                    Key::ArrowLeft,
+                    Key::ArrowRight,
                     Key::Delete,
                     Key::Backspace,
                     Key::A,
