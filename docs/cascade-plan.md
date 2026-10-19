@@ -1494,7 +1494,9 @@ Follow-ups for the frontend, beyond each brief's section 4: `uml.Decision` is ke
 palette until the ui-egui search test is scoped; PNG export does not render italics; actor names
 and the User and Internet glyph labels sit on their figures; `dfd.threat` routes are cluttered;
 sequence message labels would read better above the line; ER compartment tables always draw a
-header row. UML rule citations were checked against the UML 2.5.1 table of contents only.
+header row. UML rule citations were checked against the UML 2.5.1 table of contents only. From the session's own look at the template exports: ER table cells clip long types
+(`varchar(255` loses its parenthesis) and each table shows two header rows; cloud step badges sit
+on the start of their line labels; the abstract class is not italic in PNG.
 
 Briefs were written on 2026-10-19 against the integration branch at a979a97, one per branch in
 [docs/briefs/b6-wave2/](briefs/b6-wave2/), each a planning agent's draft headed by resolutions.
