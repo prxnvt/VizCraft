@@ -97,7 +97,7 @@ pub fn build(template: &Template, choices: &Choices) -> Result<Document, EngineE
     }
     let base = Session::new(Document::new());
     let (variant, sheet) = resolve(pack, t, choices, None)?;
-    Ok(plan(&base, base.doc.clone(), t, &variant, &sheet, Vec::new())?.doc)
+    Ok(plan(&base, Document::new(), false, t, &variant, &sheet, Vec::new())?.doc)
 }
 
 /// The template id param, checked against the catalog.
@@ -197,14 +197,25 @@ fn bind(v: &Value, names: &HashMap<String, Value>) -> Result<Value, String> {
     })
 }
 
-/// Run the pipeline for template `t` on a scratch session holding `doc` (with `base`'s registry,
-/// view and selection), after the `prelude` steps, and return what it left and the resolved
-/// steps. Fails with the step that failed.
-fn plan(base: &Session, doc: Document, t: &Template, variant: &str, sheet: &str, prelude: Vec<(String, Value)>) -> Result<Plan, EngineError> {
+/// Run the pipeline for template `t` on a scratch session holding `doc` (with `base`'s registry
+/// and view), after the `prelude` steps, and return what it left and the resolved steps. With
+/// `keep_sel` (when `doc` is `base`'s own document) the scratch also takes `base`'s selection, so
+/// the replay starts from the same state. Fails with the step that failed.
+fn plan(
+    base: &Session,
+    doc: Document,
+    keep_sel: bool,
+    t: &Template,
+    variant: &str,
+    sheet: &str,
+    prelude: Vec<(String, Value)>,
+) -> Result<Plan, EngineError> {
     let mut s = Session::new(doc);
     s.registry = base.registry.clone();
     s.view = base.view.clone();
-    s.sel = base.sel.clone();
+    if keep_sel {
+        s.sel = base.sel.clone();
+    }
     let mut out = Plan { doc: Document::new(), steps: Vec::new(), applied: Vec::new(), skipped: Vec::new() };
     let fail = |id: &str, e: EngineError| EngineError::Failed(format!("template `{}`: {} failed: {e}", short(&t.id), short(id)));
     let step = |s: &mut Session, out: &mut Plan, id: &str, params: Value| -> Result<Value, EngineError> {
@@ -352,7 +363,7 @@ fn new(s: &mut Session, v: &Value) -> CmdResult {
     }
     let prelude = if std.is_empty() { Vec::new() } else { vec![("template.standards".to_string(), Value::Object(std))] };
     // A dry run first: a template that fails leaves the user's document and history alone.
-    let p = plan(s, Document::new(), t, &variant, &sheet, prelude)?;
+    let p = plan(s, Document::new(), false, t, &variant, &sheet, prelude)?;
     s.set_document(Document::new());
     s.path = None;
     s.transaction(&format!("New from {}", t.label), &p.steps)?;
@@ -374,7 +385,7 @@ fn add_page(s: &mut Session, v: &Value) -> CmdResult {
     if let Some(n) = name {
         add.insert("name".into(), json!(n));
     }
-    let p = plan(s, s.doc.clone(), t, &variant, &sheet, vec![("page.add".to_string(), Value::Object(add))])?;
+    let p = plan(s, s.doc.clone(), true, t, &variant, &sheet, vec![("page.add".to_string(), Value::Object(add))])?;
     s.transaction(&format!("New Page from {}", t.label), &p.steps)?;
     select_first_element(s);
     Ok(outcome(s, t, &variant, &sheet, &p))
@@ -384,7 +395,7 @@ fn preview(s: &mut Session, v: &Value) -> CmdResult {
     let (pack, t) = template_param(v)?;
     let choices = choices_param(v)?;
     let (variant, sheet) = resolve(pack, t, &choices, None)?;
-    let p = plan(s, Document::new(), t, &variant, &sheet, Vec::new())?;
+    let p = plan(s, Document::new(), false, t, &variant, &sheet, Vec::new())?;
     let index = p.doc.active_index();
     let bytes = vizcraft_formats::svg::export_page(&p.doc, index).map_err(|e| EngineError::Failed(e.to_string()))?;
     if bytes.len() > MAX_PREVIEW {
