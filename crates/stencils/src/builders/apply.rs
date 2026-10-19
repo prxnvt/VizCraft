@@ -159,11 +159,12 @@ pub fn snap_first_port(shape: &mut Shape, module: f64) {
         return;
     }
     let Some(p) = shape.connection_points.first().copied() else { return };
-    let (px, py) = (p.x * shape.w, p.y * shape.h);
-    let x = ((shape.x + px) / module).round() * module - px;
-    let y = ((shape.y + py) / module).round() * module - py;
-    if x.is_finite() && y.is_finite() {
-        shape.x = x;
-        shape.y = y;
+    // Through the transform, so a turned or mirrored glyph snaps the pin where it is drawn.
+    let at = shape.transform().apply(Point::new(p.x * shape.w, p.y * shape.h));
+    let dx = (at.x / module).round() * module - at.x;
+    let dy = (at.y / module).round() * module - at.y;
+    if dx.is_finite() && dy.is_finite() {
+        shape.x += dx;
+        shape.y += dy;
     }
 }

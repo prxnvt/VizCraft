@@ -332,6 +332,22 @@ mod tests {
     }
 
     #[test]
+    fn a_page_module_snaps_the_first_port_to_the_grid_even_after_a_turn() {
+        let (mut s, _e, sh) = drawn();
+        let pin = |s: &Session| {
+            let shape = s.doc.pages[0].shape(&sh).unwrap();
+            let p = shape.connection_points[0];
+            shape.transform().apply(vizcraft_diagram::geom::Point::new(p.x * shape.w, p.y * shape.h))
+        };
+        let on_grid = |v: f64| ((v / 10.0).round() * 10.0 - v).abs() < 1e-6;
+        run(&mut s, "shape.move", json!({"ids": [sh], "dx": 3.3, "dy": 7.1}));
+        run(&mut s, "shape.rotate", json!({"ids": [sh], "turns": 1}));
+        run(&mut s, "page.setModule", json!({"module": "inch0_1"}));
+        let at = pin(&s);
+        assert!(on_grid(at.x) && on_grid(at.y), "first port at {at:?} is on the 0.1 inch grid");
+    }
+
+    #[test]
     fn a_variant_redraws_the_contact_as_jic_at_its_module_and_keeps_the_poles() {
         let (mut s, e, sh) = drawn();
         run(&mut s, "element.setProperty", json!({"id": e, "key": "poles", "value": 3}));

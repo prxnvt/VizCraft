@@ -11,8 +11,8 @@ use super::{Anchor, text_svg};
 /// Where a slot sits in world coordinates: its point in the shape's frame carried by the
 /// shape's transform. The text itself stays upright.
 ///
-/// This is the one place that maps a slot onto the page; the shape orientation
-/// (`Shape.orient`) from the substrate branch changes only this function.
+/// This is the one place that maps a slot onto the page; `Shape::transform` already applies the
+/// shape's quarter turns and mirror (`Shape.orient`), so the slot follows the glyph.
 pub fn anchor(shape: &Shape, label: &GlyphLabel) -> Point {
     shape.transform().apply(Point::new(label.x * shape.w, label.y * shape.h))
 }

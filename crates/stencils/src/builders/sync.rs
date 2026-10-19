@@ -14,12 +14,10 @@ use vizcraft_notation::Catalog;
 
 use super::{BuildError, apply};
 
-/// The page's symbol module in page units, `None` for the standard's own.
-///
-/// The page module (`View.module`, `snap::module_step`) comes with the substrate branch; until
-/// then every page uses the standard's module. This is the one place that reads it.
-pub fn page_module(_page: &Page) -> Option<f64> {
-    None
+/// The page's symbol module in page units (`View.module`), `None` for the standard's own.
+/// This is the one place builders read it.
+pub fn page_module(page: &Page) -> Option<f64> {
+    vizcraft_diagram::snap::module_step(page)
 }
 
 /// The page's rendering variant, empty for the default drawing.
