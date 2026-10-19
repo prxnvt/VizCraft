@@ -10,6 +10,7 @@ import are built; the rest is planned ([ROADMAP.md](../ROADMAP.md)).
 | `.drawio` (mxGraph XML) | read, write (built: every page; import into a page) | 3 | draw.io documentation; the Apache-2.0 mxGraph and draw.io format documentation |
 | Mermaid | import (built: flowchart, sequence, class, state, ER) | 3 | Mermaid syntax documentation |
 | CSV | import (built) | 3 | draw.io documentation on CSV import |
+| XLSX and Markdown tables | write (built: `table.export` and `report.run` with `format: xlsx` or `markdown`; the workbook is a stored-entry ZIP with the five smallest SpreadsheetML parts and inline strings, written by our own code with no new dependency, so the web build writes it too; `table::read` reads it back) | B5 | ECMA-376 Office Open XML, SpreadsheetML |
 | Table (CSV or XLSX) for data links | read (built: `datalink.*`; capped at 10 000 rows, 256 columns and 4 KB per cell; XLSX through `calamine`, not in the web build) | B4 | CSV through the `csv` crate; XLSX from ECMA-376 SpreadsheetML (test workbooks are assembled from hand-written XML parts) |
 | `.vizcraft-stencil` (custom masters, JSON) | read, write (built: `master.export`, `master.import`) | B4 | Our own: a named list of `Fragment` snapshots |
 | SVG | export (built: one page; pictures as `<g class="picture">` with an `<image href="data:...">`, a `vc-cN` clip path for the crop and a `vc-pN` colour-matrix filter for the adjustments, so PNG and PDF follow) | 1, B4 | W3C SVG 1.1 |

@@ -69,7 +69,7 @@ own words.
 
 Every file format is implemented from public specifications only: the draw.io (mxGraph) file
 format documentation, the Mermaid syntax documentation, the Microsoft MS-VSDX open specification,
-and the SVG and PDF specifications. Never read another application's parser or writer source to
+the ECMA-376 Office Open XML specification (SpreadsheetML, for XLSX tables), and the SVG and PDF specifications. Never read another application's parser or writer source to
 learn a format, and never commit files another application produced; test files are written by
 our own code or by hand. Each format, its source and its state are listed in
 [docs/formats.md](docs/formats.md); update it with the code.
