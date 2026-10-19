@@ -64,7 +64,17 @@ fn directed_tree(sub: &Sub) -> Option<Rooted> {
         return None;
     }
     let root = indeg.iter().position(|&d| d == 0)?;
+    sort_by_order(sub, &mut children);
     Rooted::from_children(n, root, children)
+}
+
+/// Sorts every child list by model order (stable, so equal keys keep edge order).
+fn sort_by_order(sub: &Sub, children: &mut [Vec<usize>]) {
+    if sub.has_order() {
+        for list in children.iter_mut() {
+            list.sort_by_key(|&w| sub.order_key(w));
+        }
+    }
 }
 
 /// A breadth-first spanning tree that ignores edge directions, rooted at the first node without
@@ -82,6 +92,10 @@ fn spanning_tree(sub: &Sub) -> Option<Rooted> {
         adj[e.t].push(e.s);
     }
     let root = indeg.iter().position(|&d| d == 0).unwrap_or(0);
+    for list in adj.iter_mut() {
+        // Breadth first in model order, so siblings are found in that order.
+        list.sort_by_key(|&w| sub.order_key(w));
+    }
     let mut children: Vec<Vec<usize>> = vec![Vec::new(); n];
     let mut seen = vec![false; n];
     seen[root] = true;

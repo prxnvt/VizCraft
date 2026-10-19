@@ -4,13 +4,14 @@
 //! at both ends to two of them become layout edges. A whole page or selection is laid out in
 //! units: groups, containers and lane sets move as one node with everything inside them, and
 //! callouts follow their targets. The `layout.*` commands and the Mermaid and
-//! CSV importers all place shapes through [`layout_items`] (rearrange everything) or
-//! [`layout_incremental`] (place new shapes around ones that stay put), so they agree on what a
-//! layout does.
+//! CSV importers all place shapes through [`layout_items`] (rearrange everything),
+//! [`layout_incremental`] (place new shapes around ones that stay put, which are pinned) or
+//! [`layout_primitive`] (a fixed drawing such as a pipeline or a matrix), and all three map the
+//! page to a graph the same way ([`page_graph`]), so they agree on what a layout does.
 
 use std::collections::{HashMap, HashSet, VecDeque};
 
-pub use vizcraft_layout::{Algorithm, Direction, Options};
+pub use vizcraft_layout::{Algorithm, Direction, Nest, Options, Parallel, Primitive};
 
 use crate::MAX_EXTENT;
 use crate::geom::{Point, Rect};
@@ -47,7 +48,7 @@ pub fn grow_page(page: &mut Page) {
 
 /// The layout node for a unit with bounding box `b`.
 fn node(b: &Rect) -> vizcraft_layout::Node {
-    vizcraft_layout::Node { width: (b.x1 - b.x0).clamp(1.0, 1.0e5), height: (b.y1 - b.y0).clamp(1.0, 1.0e5) }
+    vizcraft_layout::Node::new((b.x1 - b.x0).clamp(1.0, 1.0e5), (b.y1 - b.y0).clamp(1.0, 1.0e5))
 }
 
 /// The top-left corner of `b`.
@@ -117,6 +118,29 @@ fn units(page: &Page, ids: Option<&[String]>) -> Vec<Unit> {
     unit_roots(page, ids).iter().filter_map(|r| unit_at(page, r)).filter_map(|(u, pinned)| (!pinned).then_some(u)).collect()
 }
 
+/// The graph a layout of `units` works on: one node per unit, sized by its bounds and ordered by
+/// `order` (the smallest order of the unit's shapes) when given, and one edge per connector glued
+/// to two different units. Returns the graph and the unit index of every shape in a unit.
+fn page_graph<'a>(page: &Page, units: &'a [Unit], order: Option<&HashMap<String, u32>>) -> (vizcraft_layout::Graph, HashMap<&'a str, usize>) {
+    let mut unit_of: HashMap<&str, usize> = HashMap::new();
+    let mut graph = vizcraft_layout::Graph::default();
+    for (n, u) in units.iter().enumerate() {
+        for id in &u.ids {
+            unit_of.insert(id.as_str(), n);
+        }
+        let mut node = node(&u.bounds);
+        node.order = order.and_then(|o| u.ids.iter().filter_map(|id| o.get(id)).min().copied());
+        graph.nodes.push(node);
+    }
+    for c in &page.connectors {
+        let (Some(a), Some(b)) = (c.start.shape().and_then(|s| unit_of.get(s)), c.end.shape().and_then(|s| unit_of.get(s))) else { continue };
+        if a != b {
+            graph.edges.push(vizcraft_layout::Edge::new(*a, *b));
+        }
+    }
+    (graph, unit_of)
+}
+
 /// Lay out the shapes named by `ids` (or every shape on the page when `None`) with `opts`.
 ///
 /// The layout works on units ([`units`]): a group, container or lane set is one node and moves
@@ -127,24 +151,23 @@ fn units(page: &Page, ids: Option<&[String]>) -> Vec<Unit> {
 /// layout's notes (for example a tree layout falling back to layered), or the reason the layout
 /// was refused.
 pub fn layout_items(page: &mut Page, ids: Option<&[String]>, opts: &Options) -> Result<Vec<String>, String> {
+    layout_items_ordered(page, ids, opts, None)
+}
+
+/// [`layout_items`] keeping a model order: `order` gives shapes their place (for example the
+/// creation order of the elements they draw), and the layered and tree layouts keep siblings in
+/// that order wherever crossing reduction would only tie. Shapes missing from it come last.
+pub fn layout_items_ordered(
+    page: &mut Page,
+    ids: Option<&[String]>,
+    opts: &Options,
+    order: Option<&HashMap<String, u32>>,
+) -> Result<Vec<String>, String> {
     let units = units(page, ids);
     if units.is_empty() {
         return Ok(Vec::new());
     }
-    let mut unit_of: HashMap<&str, usize> = HashMap::new();
-    let mut graph = vizcraft_layout::Graph::default();
-    for (n, u) in units.iter().enumerate() {
-        for id in &u.ids {
-            unit_of.insert(id.as_str(), n);
-        }
-        graph.nodes.push(node(&u.bounds));
-    }
-    for c in &page.connectors {
-        let (Some(a), Some(b)) = (c.start.shape().and_then(|s| unit_of.get(s)), c.end.shape().and_then(|s| unit_of.get(s))) else { continue };
-        if a != b {
-            graph.edges.push(vizcraft_layout::Edge::new(*a, *b));
-        }
-    }
+    let (graph, _) = page_graph(page, &units, order);
     let origin = if ids.is_some() { units.iter().map(|u| corner(&u.bounds)).reduce(|p, q| Point::new(p.x.min(q.x), p.y.min(q.y))) } else { None }
         .unwrap_or(Point::new(PAGE_MARGIN, PAGE_MARGIN));
     let out = vizcraft_layout::layout(&graph, opts).map_err(|e| e.to_string())?;
@@ -157,6 +180,184 @@ pub fn layout_items(page: &mut Page, ids: Option<&[String]>, opts: &Options) -> 
     }
     apply_moves(page, delta);
     Ok(out.notes)
+}
+
+/// What [`layout_primitive`] did: the units it moved (their head shapes), the layout's notes and
+/// the bounds of the moved shapes afterwards.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PrimitiveOutcome {
+    /// The head shape of every unit laid out, in page order.
+    pub ids: Vec<String>,
+    /// The layout's notes.
+    pub notes: Vec<String>,
+    /// The bounding box of everything moved, after the move.
+    pub bounds: Option<Rect>,
+}
+
+/// Lay the shapes named by `ids` (every shape on the page when `None`) out with `primitive`,
+/// whose roles name shapes by id.
+///
+/// The unit rules are those of [`layout_items`]: a role naming a member of a group, container or
+/// lane set names the unit it moves with, and a unit with a locked shape refuses the layout. The
+/// nested-container primitive is the exception: each container is its own node, resized to its
+/// content, and its members are laid out inside it; with no `containers` given it takes the
+/// containers among the shapes and their members from the page. A selection keeps its previous
+/// top-left corner; a whole page starts at [`PAGE_MARGIN`]. Returns the reason the roles were
+/// refused (nothing moves then).
+pub fn layout_primitive(page: &mut Page, ids: Option<&[String]>, primitive: Primitive<String>, opts: &Options) -> Result<PrimitiveOutcome, String> {
+    let nested = matches!(primitive, Primitive::Nested { .. });
+    let primitive = match primitive {
+        Primitive::Nested { containers } => {
+            let containers = if containers.is_empty() { page_nests(page, ids) } else { containers };
+            Primitive::Nested { containers: containers.into_iter().map(|c| with_box_insets(page, c)).collect() }
+        }
+        p => p,
+    };
+    // The roles name shapes too, so they are laid out even when `ids` leaves them out.
+    let mut named: Vec<String> = match ids {
+        Some(ids) => ids.to_vec(),
+        None => page.shapes.iter().map(|s| s.id.clone()).collect(),
+    };
+    for r in primitive.references() {
+        if page.shape(r).is_none() {
+            return Err(format!("{r} is not a shape on this page"));
+        }
+        if !named.contains(r) {
+            named.push(r.clone());
+        }
+    }
+    let units = if nested { nested_units(page, &primitive, &named)? } else { locked_free_units(page, &named)? };
+    if units.is_empty() {
+        return Ok(PrimitiveOutcome { ids: Vec::new(), notes: Vec::new(), bounds: None });
+    }
+    let (graph, unit_of) = page_graph(page, &units, None);
+    let roles = primitive.try_map(&mut |id: String| match page.shape(&id) {
+        None => Err(format!("{id} is not a shape on this page")),
+        Some(_) => unit_of.get(id.as_str()).copied().ok_or_else(|| format!("{id} cannot be laid out (a callout follows its target)")),
+    })?;
+    let out = vizcraft_layout::layout_primitive(&graph, &roles, opts).map_err(|e| name_nodes(&e.to_string(), &units))?;
+    let origin = if ids.is_some() { units.iter().map(|u| corner(&u.bounds)).reduce(|p, q| Point::new(p.x.min(q.x), p.y.min(q.y))) } else { None }
+        .unwrap_or(Point::new(PAGE_MARGIN, PAGE_MARGIN));
+    let mut delta: HashMap<String, Point> = HashMap::new();
+    for (u, pos) in units.iter().zip(&out.nodes) {
+        let d = Point::new(origin.x + pos.x - u.bounds.x0, origin.y + pos.y - u.bounds.y0);
+        for id in &u.ids {
+            delta.insert(id.clone(), d);
+        }
+    }
+    let heads: Vec<String> = units.iter().filter_map(|u| u.ids.first().cloned()).collect();
+    let moved: Vec<String> = delta.keys().cloned().collect();
+    apply_moves(page, delta);
+    for r in &out.resized {
+        if let Some(id) = heads.get(r.node)
+            && let Some(s) = page.shape_mut(id)
+        {
+            s.w = r.width;
+            s.h = r.height;
+            s.sanitize();
+        }
+    }
+    if !out.resized.is_empty() {
+        arrange::refit_groups(page);
+        grow_page(page);
+    }
+    Ok(PrimitiveOutcome { ids: heads, notes: out.notes, bounds: arrange::bounds_of(page, &moved) })
+}
+
+/// The units of `named` for a primitive, refusing one that holds a shape that must not move.
+fn locked_free_units(page: &Page, named: &[String]) -> Result<Vec<Unit>, String> {
+    let mut out = Vec::new();
+    for root in unit_roots(page, Some(named)) {
+        let Some((unit, pinned)) = unit_at(page, &root) else { continue };
+        if pinned {
+            return Err(format!("{root} holds a locked shape, so it cannot be laid out"));
+        }
+        out.push(unit);
+    }
+    Ok(out)
+}
+
+/// The containers among `ids` (every shape when `None`) and their members, from the page: each
+/// container or lane that holds members, with its children that are not callouts.
+fn page_nests(page: &Page, ids: Option<&[String]>) -> Vec<Nest<String>> {
+    let named: Vec<String> = match ids {
+        Some(ids) => arrange::with_descendants(page, ids),
+        None => page.shapes.iter().map(|s| s.id.clone()).collect(),
+    };
+    let named: HashSet<&str> = named.iter().map(String::as_str).collect();
+    page.shapes
+        .iter()
+        .filter(|s| named.contains(s.id.as_str()) && s.container.as_ref().is_some_and(|c| c.holds_members()))
+        .filter_map(|s| {
+            let members: Vec<String> = arrange::children(page, &s.id)
+                .into_iter()
+                .filter(|m| page.shape(m).is_some_and(|m| !container::is_callout(m)))
+                .filter_map(|m| unit_root(page, &m))
+                .fold(Vec::new(), |mut acc, m| {
+                    if !acc.contains(&m) && m != s.id {
+                        acc.push(m);
+                    }
+                    acc
+                });
+            (!members.is_empty()).then(|| Nest { id: s.id.clone(), members, padding: None, header: None })
+        })
+        .collect()
+}
+
+/// `nest` with the padding and heading its container shape draws, where the role leaves them out:
+/// the heading band on top, and the margin (or a heading on another side) all round.
+fn with_box_insets(page: &Page, mut nest: Nest<String>) -> Nest<String> {
+    let Some(s) = page.shape(&nest.id) else { return nest };
+    let (f, inner) = (s.frame(), container::content_rect(s));
+    let margin = s.container.as_ref().map_or(0.0, |c| c.margin);
+    let side = margin.max(inner.x0 - f.x0).max(f.x1 - inner.x1).max(f.y1 - inner.y1);
+    let clean = |v: f64| if v.is_finite() { v.clamp(0.0, 1.0e4) } else { 0.0 };
+    nest.padding = nest.padding.or(Some(clean(side.max(10.0))));
+    nest.header = nest.header.or(Some(clean(inner.y0 - f.y0)));
+    nest
+}
+
+/// The units of the nested-container primitive: each container its own node (the shape alone,
+/// with its heading and margin filled into its role when the role leaves them out), each other
+/// named shape the unit it moves with.
+fn nested_units(page: &Page, primitive: &Primitive<String>, named: &[String]) -> Result<Vec<Unit>, String> {
+    let boxes: HashSet<&str> = match primitive {
+        Primitive::Nested { containers } => containers.iter().map(|c| c.id.as_str()).collect(),
+        _ => HashSet::new(),
+    };
+    let mut roots: Vec<String> = Vec::new();
+    for id in named {
+        let root = if boxes.contains(id.as_str()) { Some(id.clone()) } else { unit_root(page, id) };
+        if let Some(r) = root
+            && !roots.contains(&r)
+        {
+            roots.push(r);
+        }
+    }
+    let mut out = Vec::new();
+    for root in page.shapes.iter().filter(|s| roots.contains(&s.id)).map(|s| s.id.clone()) {
+        let ids = if boxes.contains(root.as_str()) { vec![root.clone()] } else { arrange::with_descendants(page, std::slice::from_ref(&root)) };
+        if ids.iter().filter_map(|id| page.shape(id)).any(|m| m.locks.position || layer::locked(page, m)) {
+            return Err(format!("{root} holds a locked shape, so it cannot be laid out"));
+        }
+        let Some(bounds) = (if boxes.contains(root.as_str()) { page.shape(&root).map(Shape::frame) } else { arrange::bounds_of(page, &ids) }) else {
+            continue;
+        };
+        out.push(Unit { ids, bounds });
+    }
+    Ok(out)
+}
+
+/// A layout error with node indices replaced by the head shape of each unit.
+fn name_nodes(message: &str, units: &[Unit]) -> String {
+    let mut out = message.to_string();
+    // Highest index first, so "node 12" is not read as "node 1" followed by "2".
+    for (i, u) in units.iter().enumerate().rev() {
+        if let Some(id) = u.ids.first() {
+            out = out.replace(&format!("node {i}"), &format!("shape {id}"));
+        }
+    }
+    out
 }
 
 /// Move every shape named in `delta` by its offset and tidy up after a layout. Callouts left out
@@ -389,7 +590,16 @@ fn place_scope(
             }
         }
     }
-    let mut graph = vizcraft_layout::Graph { nodes: boxes.iter().map(node).collect(), ..vizcraft_layout::Graph::default() };
+    // Units that stay (and shapes outside the box that anchor new ones) are pinned where they are,
+    // so the layout places the new units around them.
+    let mut graph = vizcraft_layout::Graph {
+        nodes: boxes
+            .iter()
+            .enumerate()
+            .map(|(n, b)| if placed(n) { node(b) } else { node(b).pinned(vizcraft_layout::Point::new(b.x0, b.y0)) })
+            .collect(),
+        ..vizcraft_layout::Graph::default()
+    };
     let mut neighbours: Vec<Vec<usize>> = vec![Vec::new(); boxes.len()];
     for c in &page.connectors {
         let (Some(&a), Some(&b)) = (c.start.shape().and_then(|s| node_of.get(s)), c.end.shape().and_then(|s| node_of.get(s))) else { continue };
