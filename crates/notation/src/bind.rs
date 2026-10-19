@@ -44,6 +44,10 @@ use crate::{Catalog, legal};
 /// 8. A bound shape whose element type declares compartments (`ElementType::compartments`)
 ///    gets each one it lacks (appended in declaration order), and a declared list's rows (a
 ///    paragraph's lines) become the element's named properties as `name: value`.
+/// 9. A bound shape whose `parent` changed (or that is newly bound), of a type that declares
+///    `allowedParents`, takes as owner the element of the container shape it now sits in when
+///    that type is allowed, and loses the owner it had from a container it left for the top
+///    ([`crate::nesting::owners`]).
 ///
 /// Details of each step:
 ///
@@ -93,6 +97,7 @@ pub fn sync(doc: &mut Document, before: &Document, cat: &Catalog) {
     record_packs(doc, cat);
     compartments(doc, cat);
     crate::sheet_pass::run(doc, cat);
+    crate::nesting::owners(doc, before, cat);
 }
 
 /// Element index by id; the model is appended to only during the pass, so indexes stay valid.
