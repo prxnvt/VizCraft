@@ -1437,7 +1437,12 @@ hooks. Follow-ups for the frontend wave, beyond each brief's section 4: the junc
 `shape.rotate` and `shape.mirror` report the old selection as `primary`; the `sheet` pack needs its
 palette, viewpoints, ruleset and leader connector type (with snapshots retaken); the canvas path
 cache ignores `Freeform.frame`; table columns are not drawn on the canvas; ASME zone data and the
-ISO 7200 block width are to be checked against MIL-STD-100G and the standard.
+ISO 7200 block width are to be checked against MIL-STD-100G and the standard. From the user's look at the app after the wave: the canvas does not draw wire numbers (the
+exports do); the generated frame page shows as its own page tab ("Wiring Background"); the
+Inspector's Document title reads `properties.title` while `doc.setProperty {key: "title"}` wrote
+the ISO 7200 field, so the two disagree (one key must win); the `sheet.mandatoryFields` issue
+message starts with the rule's description ("The title block's mandatory fields are filled in.")
+before the actual problem.
 
 Briefs were written against the integration branch after it merged main at 48d62ac (Block 5
 done; `cargo xtask ci` green). Five backend branches, all Opus at medium effort,
