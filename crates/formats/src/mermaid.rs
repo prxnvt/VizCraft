@@ -19,6 +19,7 @@
 pub mod architecture;
 mod class;
 mod common;
+pub mod er;
 mod graph;
 mod sequence;
 mod state;
@@ -43,6 +44,7 @@ pub fn import(text: &str) -> Result<Imported, FormatError> {
         Diagram::Architecture(a) => architecture::build(a, text, &mut warnings)?,
         Diagram::Class(d) => class::build(d, &mut warnings)?,
         Diagram::State(d) => state::build(d, &mut warnings)?,
+        Diagram::Er(d) => er::build(d, &mut warnings)?,
         other => graph::build(&other.to_graph(), &mut warnings)?,
     };
     carry_tags(text, &mut page);
@@ -50,13 +52,14 @@ pub fn import(text: &str) -> Result<Imported, FormatError> {
 }
 
 /// Write page `page` of `doc` as Mermaid text, picked by the page's viewpoint (or, with none,
-/// the kinds of element it draws): UML class and state machine pages. Returns the text and the
+/// the kinds of element it draws): UML class and state machine pages, and ER pages. Returns the text and the
 /// warnings about what the text cannot hold.
 pub fn export(doc: &vizcraft_diagram::Document, page: usize) -> Result<(String, Vec<String>), FormatError> {
     let p = crate::uml::read(doc, page)?;
     match p.viewpoint.as_str() {
         "uml.ClassDiagram" => class::write(doc, page),
         "uml.StateMachineDiagram" => state::write(doc, page),
+        "er.Conceptual" | "er.Logical" | "er.Physical" => er::write_page(doc, page),
         _ if p.has_any(crate::uml::STATE_TYPES) => state::write(doc, page),
         _ if p.has_any(&["Class", "Interface", "Enumeration"]) => class::write(doc, page),
         _ => Err(FormatError::Encode("Mermaid export writes UML class and state machine pages; this page is neither".into())),

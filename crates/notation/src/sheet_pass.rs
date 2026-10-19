@@ -167,7 +167,7 @@ fn tables(doc: &mut Document, cat: &Catalog) {
         return;
     }
     // Filled tables per (element, variant): (compartment id, columns, rows).
-    type Plan = Vec<(String, Vec<Column>, Vec<String>)>;
+    type Plan = Vec<(String, Vec<Column>, Vec<String>, bool)>;
     let mut plans: HashMap<(String, String), Plan> = HashMap::new();
     let by_id: HashMap<&str, &Element> = doc.model.elements.iter().map(|e| (e.id.as_str(), e)).collect();
     let mut children: HashMap<&str, Vec<&Element>> = HashMap::new();
@@ -194,7 +194,7 @@ fn tables(doc: &mut Document, cat: &Catalog) {
                     } else {
                         table_rows(doc, cat, e, q)
                     };
-                    Some((d.id.clone(), query_columns(q), rows))
+                    Some((d.id.clone(), query_columns(q), rows, q.owned))
                 })
                 .collect();
             if !plan.is_empty() {
@@ -209,18 +209,31 @@ fn tables(doc: &mut Document, cat: &Catalog) {
         let variant = page.view.as_ref().map(|v| v.variant.clone()).unwrap_or_default();
         for s in &mut page.shapes {
             let Some(plan) = s.element.clone().and_then(|e| plans.get(&(e, variant.clone()))) else { continue };
-            for (id, cols, rows) in plan {
+            let mut centred = false;
+            for (id, cols, rows, owned) in plan {
                 let Some(c) = s.compartments.iter_mut().find(|c| &c.id == id && c.kind == CompartmentKind::List) else { continue };
                 set_if_changed(&mut c.columns, cols.clone());
                 set_if_changed(&mut c.rows, rows.clone());
                 c.sanitize();
+                centred |= *owned;
             }
-            let need = cp::fit_height(s);
-            if need > s.h {
-                s.h = need;
-                s.sanitize();
-            }
+            grow_to_fit(s, centred);
         }
+    }
+}
+
+/// Grow `s` to fit its main text and compartments when they no longer fit. A shape whose rows
+/// list what its element owns (an ER table's columns) grows about its centre, so redrawing it in
+/// another notation (`variant.set` keeps centres) and back does not walk it down the page; any
+/// other shape grows downward.
+pub fn grow_to_fit(s: &mut Shape, centred: bool) {
+    let need = cp::fit_height(s);
+    if need > s.h {
+        if centred {
+            s.y -= (need - s.h) / 2.0;
+        }
+        s.h = need;
+        s.sanitize();
     }
 }
 

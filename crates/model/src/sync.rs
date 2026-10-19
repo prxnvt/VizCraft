@@ -6,7 +6,8 @@
 //! 1. the record of the last import from the same source (incoming id to the model id it became);
 //! 2. the same id;
 //! 3. the same non-empty tag;
-//! 4. the same name within the same type.
+//! 4. the same name within the same type; an owned element (an ER column) only under the element
+//!    its owner matched, so the `id` columns of two tables never cross-match.
 //!
 //! A matched element whose name, tag or properties differ is `updated`, else `kept`; an incoming
 //! element with no match is `added`; an element the record names that nothing matched is
@@ -112,7 +113,13 @@ pub fn diff(existing: &Model, incoming: &Model, known: &BTreeMap<String, String>
                 MatchedBy::Id => existing.element(&inc.id).filter(free),
                 MatchedBy::Tag if !inc.tag.is_empty() => by_tag.get(inc.tag.as_str()).and_then(|v| v.iter().copied().find(free)),
                 MatchedBy::Name if !inc.name.trim().is_empty() => {
-                    by_name.get(&(inc.type_id.as_str(), inc.name.trim())).and_then(|v| v.iter().copied().find(free))
+                    // An owned element matches only under its owner's match (owners come first).
+                    let owner = inc.owner.as_ref().map(|o| ch.map.get(o));
+                    let under = |e: &&Element| match &owner {
+                        None => true,
+                        Some(mapped) => mapped.is_some() && e.owner.as_ref() == *mapped,
+                    };
+                    by_name.get(&(inc.type_id.as_str(), inc.name.trim())).and_then(|v| v.iter().copied().find(|e| free(e) && under(e)))
                 }
                 MatchedBy::Tag | MatchedBy::Name => None,
             };
@@ -280,6 +287,18 @@ mod tests {
         assert_eq!(ch.map.len(), 1);
         assert_eq!(ch.map["q"], "e1");
         assert_eq!(ch.added, vec!["p".to_string(), "r".to_string()]);
+    }
+
+    #[test]
+    fn owned_elements_match_by_name_only_under_their_owners_match() {
+        let owned = |id: &str, name: &str, owner: &str| Element { owner: Some(owner.into()), ..el(id, "t.Col", name) };
+        let cur = model(vec![el("T1", "t.Table", "users"), el("T2", "t.Table", "orders"), owned("c1", "id", "T1"), owned("c2", "id", "T2")], vec![]);
+        let inc = model(vec![el("a", "t.Table", "orders"), owned("a.id", "id", "a"), el("b", "t.Table", "carts"), owned("b.id", "id", "b")], vec![]);
+        let ch = diff(&cur, &inc, &BTreeMap::new(), &[]);
+        assert_eq!(ch.map["a"], "T2");
+        assert_eq!(ch.map["a.id"], "c2", "the orders id column, not the users one");
+        assert!(!ch.map.contains_key("b.id"), "a column of an unmatched table is new");
+        assert_eq!(ch.added, vec!["b".to_string(), "b.id".to_string()]);
     }
 
     #[test]

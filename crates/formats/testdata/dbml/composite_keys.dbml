@@ -1,0 +1,35 @@
+Table merchants {
+  id int
+  country_code int
+  merchant_name varchar
+
+  indexes {
+    (id, country_code) [pk]
+  }
+}
+
+Table merchant_periods {
+  id int [pk]
+  merchant_id int
+  country_code int
+  start_date datetime
+}
+
+Ref: merchant_periods.(merchant_id, country_code) > merchants.(id, country_code)
+
+Table people {
+  id int [pk]
+}
+
+Table passports {
+  person_id int [pk]
+  number varchar
+}
+
+Ref: passports.person_id - people.id
+
+Table tags {
+  id int [pk]
+}
+
+Ref: tags.id <> people.id

@@ -1,0 +1,9 @@
+erDiagram
+    p[Person] {
+        string firstName
+        varchar(255) lastName
+        decimal balance "in cents"
+    }
+    a["Bank Account"]
+    p ||--o{ a : holds
+    a }o--|| p : ""

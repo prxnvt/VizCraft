@@ -19,6 +19,7 @@ pub mod document;
 pub mod edit;
 pub mod effects;
 pub mod element;
+pub mod er;
 pub mod file;
 pub mod find;
 pub mod generate;
@@ -134,6 +135,7 @@ pub fn registry() -> Registry {
     v.extend(key::specs());
     v.extend(step::specs());
     v.extend(topology::specs());
+    v.extend(er::specs());
     Registry::new(v)
 }
 

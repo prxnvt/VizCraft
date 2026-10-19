@@ -24,7 +24,7 @@ const DRAWIO_EXTENSIONS: [&str; 2] = ["drawio.xml", "drawio"];
 pub const EXPORT_FORMATS: [&str; 6] = ["svg", "png", "pdf", "drawio", "mermaid", "plantuml"];
 
 /// Formats `import_bytes` knows, by name.
-pub const IMPORT_FORMATS: [&str; 3] = ["drawio", "mermaid", "csv"];
+pub const IMPORT_FORMATS: [&str; 4] = ["drawio", "mermaid", "csv", "dbml"];
 
 /// Largest file or text an import reads, in bytes. The parsers cap their own input too; this
 /// stops a huge file being read into memory at all.
@@ -64,7 +64,7 @@ pub fn read_limited(path: &str) -> Result<Vec<u8>, EngineError> {
 }
 
 /// The import format for a file called `name`, from its extension: `.drawio`, `.xml` (draw.io),
-/// `.mmd`, `.mermaid` (Mermaid) or `.csv`. `None` for anything else.
+/// `.mmd`, `.mermaid` (Mermaid), `.csv` or `.dbml`. `None` for anything else.
 pub fn import_format_for_name(name: &str) -> Option<&'static str> {
     if is_drawio(name) {
         return Some("drawio");
@@ -73,6 +73,7 @@ pub fn import_format_for_name(name: &str) -> Option<&'static str> {
         "xml" => Some("drawio"),
         "mmd" | "mermaid" => Some("mermaid"),
         "csv" => Some("csv"),
+        "dbml" => Some("dbml"),
         _ => None,
     }
 }
@@ -112,6 +113,7 @@ pub fn import_bytes(format: &str, bytes: &[u8]) -> Result<vizcraft_formats::Impo
         "drawio" => vizcraft_formats::drawio::import(bytes),
         "mermaid" => vizcraft_formats::mermaid::import(text()?.trim_start_matches('\u{feff}')),
         "csv" => vizcraft_formats::csv::import(text()?.trim_start_matches('\u{feff}')),
+        "dbml" => vizcraft_formats::dbml::import(text()?.trim_start_matches('\u{feff}')),
         other => return Err(EngineError::Params(format!("cannot import `{}`", crate::cmd::short(other)))),
     };
     r.map_err(|e| EngineError::Failed(e.to_string()))

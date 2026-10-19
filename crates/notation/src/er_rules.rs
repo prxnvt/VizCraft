@@ -87,9 +87,8 @@ fn primary_keys(
             keyed.insert(o);
         }
     }
-    let checked_page = |pi: usize| {
-        viewpoints.is_empty() || doc.pages.get(pi).and_then(|p| p.view.as_ref()).is_some_and(|v| viewpoints.contains(&v.viewpoint))
-    };
+    let checked_page =
+        |pi: usize| viewpoints.is_empty() || doc.pages.get(pi).and_then(|p| p.view.as_ref()).is_some_and(|v| viewpoints.contains(&v.viewpoint));
     for e in doc.model.elements.iter().filter(|e| covers(facts, pack, types, &e.type_id)) {
         if keyed.contains(e.id.as_str()) {
             continue;

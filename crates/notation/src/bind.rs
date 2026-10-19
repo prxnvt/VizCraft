@@ -761,11 +761,8 @@ fn compartments(doc: &mut Document, cat: &Catalog) {
                 }
                 c.sanitize();
             }
-            let need = cp::fit_height(s);
-            if need > s.h {
-                s.h = need;
-                s.sanitize();
-            }
+            let centred = decls.iter().any(|d| d.query.as_ref().is_some_and(|q| q.owned));
+            crate::sheet_pass::grow_to_fit(s, centred);
         }
     }
 }
