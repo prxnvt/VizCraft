@@ -350,6 +350,10 @@ mod tests {
         assert_eq!(r["totals"]["cycles"], 1);
         assert_eq!(r["cyclic"], true);
         assert_eq!(r["table"]["columns"], json!(["fanIn", "fanOut", "layer", "containmentDepth"]));
+        // Every table row is named, not only the elements on the critical path.
+        let rows = r["table"]["rows"].as_array().unwrap();
+        assert!(rows.iter().all(|row| r["names"].get(row["id"].as_str().unwrap()).is_some()), "{}", r["names"]);
+        assert!(r["names"].get("lone").is_some());
         let r = run(&mut s, "analyze.path", json!({"from": "start", "to": "ok"}));
         assert_eq!((strs(&r["elements"]), r["length"].clone()), (vec!["start".to_string(), "do".into(), "ok".into()], json!(2)));
         assert!(s.run("analyze.path", &json!({"from": "start", "to": "lone"})).is_err());

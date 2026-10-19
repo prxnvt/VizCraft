@@ -145,8 +145,8 @@ impl AnalysisResult {
         ids
     }
 
-    /// Every id the result names (elements, relationships, marks and group members), each once,
-    /// in that order.
+    /// Every id the result names (elements, relationships, marks, group members and table rows),
+    /// each once, in that order.
     pub fn ids(&self) -> Vec<String> {
         let mut seen = std::collections::HashSet::new();
         let all = self
@@ -154,7 +154,8 @@ impl AnalysisResult {
             .iter()
             .chain(&self.relationships)
             .chain(self.marks.keys())
-            .chain(self.groups.iter().flat_map(|g| g.elements.iter().chain(&g.relationships)));
+            .chain(self.groups.iter().flat_map(|g| g.elements.iter().chain(&g.relationships)))
+            .chain(self.table.iter().flat_map(|t| t.rows.iter().map(|r| &r.id)));
         all.filter(|id| seen.insert(id.as_str())).cloned().collect()
     }
 }
