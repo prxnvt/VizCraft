@@ -222,6 +222,7 @@ impl<'a> Checker<'a> {
         self.identifiers();
         self.rules();
         self.rulesets();
+        self.modules();
     }
 
     fn glyphs(&mut self) {
@@ -267,6 +268,57 @@ impl<'a> Checker<'a> {
             self.colour(&ctx, "line", &t.line);
             if let Some(r) = &t.relationship_type {
                 self.reference(&ctx, Kind::Relationship, r);
+            }
+            if let Some(n) = &t.net
+                && vizcraft_model::NetKind::from_name(n).is_none()
+            {
+                self.problem(format!("{ctx}: unknown net kind `{}`", short(n)));
+            }
+            if !t.marker.is_empty() && vizcraft_diagram::LineMarker::from_name(&t.marker).is_none() {
+                self.problem(format!("{ctx}: unknown line marker `{}`", short(&t.marker)));
+            }
+        }
+    }
+
+    /// Every port of a typed glyph must sit a whole number of modules from the type's first
+    /// port (within 0.05 of a module), on every module the pack and its variants name, so
+    /// symbols placed on the module grid put their pins on it too.
+    fn modules(&mut self) {
+        let pack = self.pack;
+        // (module, glyph override per type) for the pack and each variant with a module.
+        let mut checks: Vec<(String, f64, Option<&std::collections::BTreeMap<String, String>>)> = Vec::new();
+        if let Some(step) = pack.module.step() {
+            checks.push(("the pack's module".to_string(), step, None));
+        }
+        for v in capped(&pack.variants) {
+            if let Some(step) = v.module.step().or(pack.module.step()) {
+                checks.push((format!("variant `{}`", short(&v.id)), step, Some(&v.glyphs)));
+            }
+        }
+        if checks.is_empty() {
+            return;
+        }
+        for (what, step, glyphs) in checks {
+            for t in capped(&pack.element_types) {
+                let Some(first) = t.ports.first() else { continue };
+                let glyph_id = glyphs.and_then(|g| g.get(&t.id)).unwrap_or(&t.glyph);
+                let Some(g) = pack.glyph(glyph_id) else { continue };
+                for p in capped(&t.ports).iter().skip(1) {
+                    let off = [(p.x - first.x) * g.w, (p.y - first.y) * g.h];
+                    let on = off.iter().all(|d| {
+                        let m = d / step;
+                        m.is_finite() && (m - m.round()).abs() <= 0.05
+                    });
+                    if !on {
+                        self.problem(format!(
+                            "element type `{}`: port `{}` of glyph `{}` is not a whole number of modules from port `{}` on {what}",
+                            short(&t.id),
+                            short(&p.id),
+                            short(glyph_id),
+                            short(&first.id)
+                        ));
+                    }
+                }
             }
         }
     }
@@ -791,5 +843,29 @@ mod tests {
         assert!(probs.len() <= MAX_PROBLEMS + 1);
         assert!(has(&probs, "the limit is 10000"));
         assert!(probs.last().unwrap().starts_with("and "));
+    }
+
+    #[test]
+    fn ports_off_the_module_are_reported_for_the_pack_and_each_variant() {
+        let pack = |module: &str, variant_module: &str, w: f64| {
+            let json = format!(
+                r##"{{"id": "modtest", "version": "1.0.0", "name": "M", "module": {module},
+                "glyphs": [{{"id": "modtest.r", "label": "R", "category": "C", "outline": "rectangle", "w": {w}, "h": 19.685, "fill": "#ffffff", "line": "#000000"}},
+                           {{"id": "modtest.r2", "label": "R", "category": "C", "outline": "rectangle", "w": 40, "h": 20, "fill": "#ffffff", "line": "#000000"}}],
+                "elementTypes": [{{"id": "modtest.R", "glyph": "modtest.r", "ports": [{{"id": "a", "x": 0, "y": 0.5}}, {{"id": "b", "x": 1, "y": 0.5}}]}}],
+                "variants": [{{"id": "modtest.ansi", "label": "ANSI", "module": {variant_module}, "glyphs": {{"modtest.R": "modtest.r2"}}}}]}}"##
+            );
+            serde_json::from_str::<Pack>(&json).unwrap()
+        };
+        // Four 2.5 mm modules wide, and 40 units is four 0.1 inch modules: clean.
+        let ok = check(&pack("\"iso2_5mm\"", "\"inch0_1\"", 4.0 * vizcraft_model::Module::ISO_STEP));
+        assert!(ok.iter().all(|p| !p.contains("module")), "{ok:?}");
+        // 45 units is not a whole number of 2.5 mm modules.
+        let off = check(&pack("\"iso2_5mm\"", "\"none\"", 45.0));
+        assert!(has(&off, "port `b` of glyph `modtest.r` is not a whole number of modules"), "{off:?}");
+        // The variant draws with its own glyph on the pack's module: 40 is not 2.5 mm modules.
+        assert!(has(&off, "variant `modtest.ansi`"), "{off:?}");
+        // No module: nothing to check.
+        assert!(check(&pack("\"none\"", "\"none\"", 45.0)).iter().all(|p| !p.contains("module")));
     }
 }

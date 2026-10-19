@@ -6,7 +6,8 @@ use vizcraft_drawio::{
 };
 
 use super::read::{
-    COMPARTMENTS_ATTR, END_LABEL_ATTR, EXT_ATTR, EXT_FONT_STYLE, EXT_MODEL, EXT_STYLE, EXT_WRAPPER, START_LABEL_ATTR, master_for_kind,
+    COMPARTMENTS_ATTR, END_LABEL_ATTR, EXT_ATTR, EXT_FONT_STYLE, EXT_MODEL, EXT_STYLE, EXT_WRAPPER, JUNCTION_KEY, MARKER_KEY, NET_KEY, NETS_ATTR,
+    ORIENT_KEY, START_LABEL_ATTR, master_for_kind, orient_text,
 };
 
 /// The id of the root cell and of the one layer every page is written with.
@@ -113,8 +114,25 @@ fn shape_style_with(shape: &Shape, html: bool) -> DStyle {
     let master = vizcraft_stencils::master(&shape.stencil).filter(|m| m.kind == shape.kind).map_or_else(|| master_for_kind(shape.kind), |m| m.id);
     pair(&mut s, "vizcraft", master);
     pair(&mut s, "fillColor", hex(shape.style.fill));
-    if shape.angle_deg != 0.0 {
-        pair(&mut s, "rotation", format_f64(shape.angle_deg));
+    if shape.orient.is_default() {
+        if shape.angle_deg != 0.0 {
+            pair(&mut s, "rotation", format_f64(shape.angle_deg));
+        }
+    } else {
+        // draw.io mirrors in the frame (`flipH`) and then rotates, the order VizCraft applies the
+        // orientation in, so the quarter turns ride in the rotation; `vizcraftOrient` says how
+        // much of it they are.
+        let rotation = (shape.angle_deg + 90.0 * f64::from(shape.orient.turns)).rem_euclid(360.0);
+        if rotation != 0.0 {
+            pair(&mut s, "rotation", format_f64(rotation));
+        }
+        if shape.orient.mirror {
+            pair(&mut s, "flipH", "1");
+        }
+        pair(&mut s, ORIENT_KEY, orient_text(shape.orient));
+    }
+    if vizcraft_diagram::net::is_junction(shape) {
+        pair(&mut s, JUNCTION_KEY, "1");
     }
     finish(&mut s, &shape.style, html, &shape.ext);
     s
@@ -175,6 +193,12 @@ fn edge_style(page: &Page, c: &Connector, html: bool) -> DStyle {
     }
     if c.jumps {
         pair(&mut s, "jumpStyle", "arc");
+    }
+    if let Some(n) = &c.net {
+        pair(&mut s, NET_KEY, n.clone());
+    }
+    if c.marker != vizcraft_diagram::LineMarker::None {
+        pair(&mut s, MARKER_KEY, c.marker.name());
     }
     if let Some(p) = glue_point(page, &c.start) {
         pair(&mut s, "exitX", format_f64(p.x));
@@ -270,12 +294,26 @@ fn dpoint(p: vizcraft_diagram::Point) -> vizcraft_drawio::Point {
 /// One page as a draw.io model: the root cell `0`, the layer `1`, the shapes, then the
 /// connectors.
 pub(crate) fn model_from_page(page: &Page) -> GraphModel {
+    model_from_page_with_nets(page, &[])
+}
+
+/// [`model_from_page`] with the nets its segments name written as JSON in the page model's
+/// `vizcraftNets` attribute, so a reread restores them (other draw.io readers ignore it).
+pub(crate) fn model_from_page_with_nets(page: &Page, nets: &[vizcraft_diagram::vizcraft_model::Net]) -> GraphModel {
     let mut model = GraphModel::with_default_layer();
     for (k, v) in page.ext.range(EXT_MODEL.to_string()..) {
         let Some(attr) = k.strip_prefix(EXT_MODEL) else { break };
-        if !attr.is_empty() && attr.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.' | ':')) {
+        // A stale nets attribute kept from an import is replaced by the nets drawn now.
+        if attr != NETS_ATTR && !attr.is_empty() && attr.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.' | ':')) {
             model.attributes.push(attr, v.as_str());
         }
+    }
+    let used: std::collections::HashSet<&str> = page.connectors.iter().filter_map(|c| c.net.as_deref()).collect();
+    let drawn: Vec<&vizcraft_diagram::vizcraft_model::Net> = nets.iter().filter(|n| used.contains(n.id.as_str())).collect();
+    if !drawn.is_empty()
+        && let Ok(json) = serde_json::to_string(&drawn)
+    {
+        model.attributes.set(NETS_ATTR, json);
     }
     let frame = page.frame();
     model.attributes.set("pageWidth", format_f64(frame.width()));
@@ -421,5 +459,88 @@ mod compartment_tests {
         assert_eq!(s.compartments.len(), 1);
         assert_eq!(s.compartments[0].rows, vec!["r".to_string()]);
         assert!(p.shape("u").unwrap().compartments.is_empty());
+    }
+}
+
+#[cfg(test)]
+mod net_tests {
+    use vizcraft_diagram::net::{is_junction, split_at};
+    use vizcraft_diagram::vizcraft_model::{Net, NetKind};
+    use vizcraft_diagram::{Arrow, Connector, Document, End, LineMarker, Orient, Point, Route, Shape, ShapeKind};
+
+    use crate::drawio::{load, save};
+
+    /// A wire with a junction on it, a marked branch, and a turned, mirrored glyph.
+    fn wired() -> Document {
+        let mut doc = Document::new();
+        doc.model.nets.push(Net { name: "L1".into(), ..Net::new("n1", NetKind::Potential) });
+        let page = &mut doc.pages[0];
+        let mut glyph = Shape::new("r1", ShapeKind::Rectangle, 300.0, 50.0, 40.0, 20.0);
+        glyph.connection_points = vec![Point::new(0.0, 0.5), Point::new(1.0, 0.5)];
+        glyph.orient = Orient { turns: 1, mirror: true };
+        glyph.angle_deg = 10.0;
+        page.shapes.push(glyph);
+        let w = Connector {
+            route: Route::Orthogonal,
+            end_arrow: Arrow::None,
+            net: Some("n1".into()),
+            ..Connector::new("w1", End::free(Point::new(0.0, 100.0)), End::free(Point::new(200.0, 100.0)))
+        };
+        page.connectors.push(w);
+        split_at(page, "w1", Point::new(100.0, 100.0), "w2", "j1", true).unwrap();
+        page.connectors.push(Connector {
+            marker: LineMarker::DoubleSlash,
+            ..Connector {
+                end_arrow: Arrow::None,
+                net: Some("n1".into()),
+                ..Connector::new("w3", End::point("j1", 0), End::free(Point::new(100.0, 200.0)))
+            }
+        });
+        doc
+    }
+
+    #[test]
+    fn a_wire_a_junction_and_an_oriented_glyph_survive_a_round_trip() {
+        let doc = wired();
+        let bytes = save(&doc).unwrap();
+        let xml = String::from_utf8(bytes.clone()).unwrap();
+        assert!(xml.contains("vizcraftOrient=1m") && xml.contains("flipH=1") && xml.contains("rotation=100"), "{xml}");
+        assert!(xml.contains("vizcraftNet=n1") && xml.contains("vizcraftMarker=doubleSlash") && xml.contains("vizcraftJunction=1"), "{xml}");
+        assert!(xml.contains("vizcraftNets="), "{xml}");
+        let back = load(&bytes).unwrap();
+        let p = &back.pages[0];
+        let g = p.shape("r1").unwrap();
+        assert_eq!((g.orient, g.angle_deg), (Orient { turns: 1, mirror: true }, 10.0));
+        let j = p.shape("j1").unwrap();
+        assert!(is_junction(j) && j.connection_points.len() == 1);
+        assert_eq!(back.model.nets, doc.model.nets, "the net with its name comes back");
+        for id in ["w1", "w2", "w3"] {
+            assert_eq!(p.connector(id).unwrap().net.as_deref(), Some("n1"), "{id}");
+        }
+        assert_eq!(p.connector("w3").unwrap().marker, LineMarker::DoubleSlash);
+        assert_eq!(p.connector("w3").unwrap().start, End::point("j1", 0));
+        assert!(p.ext.keys().all(|k| !k.contains("vizcraftNets")), "the carrier attribute is used up");
+        // Writing the reread document again gives the same file.
+        assert_eq!(save(&back).unwrap(), bytes);
+    }
+
+    #[test]
+    fn foreign_flips_read_as_orientations() {
+        let xml = r#"<mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+            <mxCell id="a" vertex="1" parent="1" style="flipH=1;rotation=30"><mxGeometry x="0" y="0" width="40" height="20" as="geometry"/></mxCell>
+            <mxCell id="b" vertex="1" parent="1" style="flipV=1"><mxGeometry x="0" y="0" width="40" height="20" as="geometry"/></mxCell>
+            <mxCell id="c" vertex="1" parent="1" style="flipV=1;flipH=1"><mxGeometry x="0" y="0" width="40" height="20" as="geometry"/></mxCell>
+            <mxCell id="d" vertex="1" parent="1" style="vizcraftOrient=junk;flipH=0"><mxGeometry x="0" y="0" width="40" height="20" as="geometry"/></mxCell>
+            <mxCell id="e" edge="1" parent="1" style="vizcraftNet=ghost;vizcraftMarker=zigzag"><mxGeometry relative="1" as="geometry"/></mxCell>
+            </root></mxGraphModel>"#;
+        let doc = load(xml.as_bytes()).unwrap();
+        let p = &doc.pages[0];
+        let o = |id: &str| (p.shape(id).unwrap().orient, p.shape(id).unwrap().angle_deg);
+        assert_eq!(o("a"), (Orient { turns: 0, mirror: true }, 30.0));
+        assert_eq!(o("b"), (Orient { turns: 2, mirror: true }, 0.0), "a vertical flip is a mirror and two turns");
+        assert_eq!(o("c"), (Orient { turns: 2, mirror: false }, 0.0), "both flips are a half turn");
+        assert_eq!(o("d"), (Orient::NONE, 0.0));
+        let e = p.connector("e").unwrap();
+        assert_eq!((e.net.as_deref(), e.marker), (None, LineMarker::None), "a net that did not come back is cleared");
     }
 }

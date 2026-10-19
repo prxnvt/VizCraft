@@ -88,7 +88,7 @@ impl<'a> ChildIndex<'a> {
 
 /// Cap key lengths, drop empty keys, non-finite numbers and entries past the count cap, and cut
 /// text values. Keys that collide after cutting keep the first in key order.
-fn sanitize_props(props: &mut BTreeMap<String, PropValue>) {
+pub(crate) fn sanitize_props(props: &mut BTreeMap<String, PropValue>) {
     let needs_work = props.len() > MAX_PROPERTIES
         || props.iter().any(|(k, v)| {
             k.is_empty()

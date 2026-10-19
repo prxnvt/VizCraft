@@ -65,12 +65,17 @@ pub struct Pack {
     /// against crow's foot, Gane-Sarson against Yourdon). A page picks one in `View.variant`;
     /// none picked is the default drawing (each type's own glyph and connector type).
     pub variants: Vec<Variant>,
+    /// The symbol grid module the pack's glyphs are drawn on (`iso2_5mm` for IEC engineering
+    /// packs, `inch0_1` for ANSI ones); a page that takes the pack's viewpoint takes it as its
+    /// `View.module`. None by default.
+    #[serde(skip_serializing_if = "vizcraft_model::Module::is_none")]
+    pub module: vizcraft_model::Module,
 }
 
 /// A rendering variant of a pack: which glyph draws each element type and which connector type
 /// draws each relationship type, for the types it changes. A type it does not list keeps its
 /// default drawing. Ids are pack-qualified like the types (`er.chen`).
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Variant {
     /// Variant id, `<pack>.<name>`.
@@ -83,6 +88,10 @@ pub struct Variant {
     pub glyphs: std::collections::BTreeMap<String, String>,
     /// Relationship type id to connector type id.
     pub connectors: std::collections::BTreeMap<String, String>,
+    /// The symbol grid module this variant draws on (an ANSI variant of an IEC pack says
+    /// `inch0_1`); `variant.set` copies it onto the page. None keeps the page's module.
+    #[serde(skip_serializing_if = "vizcraft_model::Module::is_none")]
+    pub module: vizcraft_model::Module,
 }
 
 impl Pack {
@@ -192,6 +201,19 @@ pub struct ConnectorType {
     /// Relationship type a connector of this kind becomes when it joins two bound shapes; `None`
     /// lets the pack's connection table choose.
     pub relationship_type: Option<String>,
+    /// The net kind a connector of this kind is a segment of (`wire`, `potential`, `pipe`,
+    /// `fluid`, `signal`); the net pass gives such a connector a net. `None`: an ordinary
+    /// connector.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub net: Option<String>,
+    /// Marks repeated along the line: a `LineMarker` name from `vizcraft-diagram` (`none`,
+    /// `doubleSlash`, `cross`, `l`, `circle`, `wave`).
+    #[serde(skip_serializing_if = "is_none_marker")]
+    pub marker: String,
+}
+
+fn is_none_marker(m: &String) -> bool {
+    m.is_empty() || m == "none"
 }
 
 impl Default for ConnectorType {
@@ -209,6 +231,8 @@ impl Default for ConnectorType {
             jumps: false,
             keywords: Vec::new(),
             relationship_type: None,
+            net: None,
+            marker: "none".into(),
         }
     }
 }

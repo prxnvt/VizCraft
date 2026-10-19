@@ -1233,3 +1233,78 @@ fn import_records_round_trip_and_hostile_ones_are_sanitised() {
     assert_eq!(r.removed, vec!["e1".to_string()]);
     assert_eq!(r.time, 0);
 }
+
+/// A file written before Block 6E (no nets, no orientation, no module) loads and saves back
+/// byte for byte.
+#[test]
+fn a_pre_6e_file_is_byte_identical_after_load_and_save() {
+    let bytes = include_bytes!("../testdata/pre-6e-sample.vizcraft");
+    let doc = load(bytes).unwrap();
+    assert!(doc.model.nets.is_empty() && doc.pages.iter().flat_map(|p| &p.shapes).all(|s| s.orient.is_default()));
+    assert_eq!(String::from_utf8(save(&doc).unwrap()).unwrap(), String::from_utf8(bytes.to_vec()).unwrap());
+}
+
+/// Nets, segment membership, line markers, orientation and the page module round trip.
+#[test]
+fn nets_markers_orientation_and_module_round_trip() {
+    use vizcraft_diagram::vizcraft_model::{Module, Net, NetKind, NetLabel};
+    use vizcraft_diagram::{LineMarker, Orient, Point};
+    let mut doc = Document::new();
+    let mut net = Net { name: "24V".into(), number: "2003".into(), label: NetLabel::Each, ..Net::new("n1", NetKind::Potential) };
+    net.properties.insert("colour".into(), PropValue::Text("BU".into()));
+    doc.model.nets.push(net);
+    let page = doc.page_mut().unwrap();
+    page.view = Some(View { module: Module::Iso2_5mm, ..View::default() });
+    let mut s = Shape::new("s1", ShapeKind::Rectangle, 0.0, 0.0, 40.0, 20.0);
+    s.orient = Orient { turns: 3, mirror: true };
+    page.shapes.push(s);
+    let mut c = Connector::new("c1", End::point("s1", 0), End::free(Point::new(100.0, 0.0)));
+    c.net = Some("n1".into());
+    c.marker = LineMarker::Wave;
+    page.connectors.push(c);
+    let bytes = save(&doc).unwrap();
+    let v: Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(v["model"]["nets"][0]["kind"], "potential", "a document holding only wiring keeps its model section");
+    assert_eq!(v["document"]["pages"][0]["view"]["module"], "iso2_5mm");
+    assert_eq!(v["document"]["pages"][0]["shapes"][0]["orient"], json!({"turns": 3, "mirror": true}));
+    assert_eq!(v["document"]["pages"][0]["connectors"][0]["net"], "n1");
+    assert_eq!(v["document"]["pages"][0]["connectors"][0]["marker"], "wave");
+    let back = load(&bytes).unwrap();
+    assert_eq!(back, doc);
+    assert_eq!(save(&back).unwrap(), bytes);
+    // A custom module is a number on disk.
+    let mut doc = back;
+    doc.page_mut().unwrap().view = Some(View { module: Module::Custom(12.5), ..View::default() });
+    let v: Value = serde_json::from_slice(&save(&doc).unwrap()).unwrap();
+    assert_eq!(v["document"]["pages"][0]["view"]["module"], 12.5);
+}
+
+/// Junk nets, orientations, markers and modules load as defaults, and dangling net references
+/// are cleared.
+#[test]
+fn junk_nets_and_orientation_sanitise() {
+    let file = json!({
+        "format": "vizcraft",
+        "version": 4,
+        "model": {"schemaVersion": 1, "nets": [{"id": "n1", "kind": "plasma", "label": 7}, {"id": "n1"}, {"id": ""}, 5, {"id": "n2", "name": "x".repeat(1000)}]},
+        "document": {"pages": [{"id": "p1", "name": "P", "view": {"module": "parsec"},
+            "shapes": [{"id": "s1", "kind": "rectangle", "orient": {"turns": 9, "mirror": "maybe"}}, {"id": "s2", "orient": "sideways"}],
+            "connectors": [
+                {"id": "c1", "start": {"x": 0, "y": 0}, "end": {"x": 1, "y": 1}, "net": "n1", "marker": "zigzag"},
+                {"id": "c2", "start": {"x": 0, "y": 0}, "end": {"x": 1, "y": 1}, "net": "ghost"},
+                {"id": "c3", "start": {"x": 0, "y": 0}, "end": {"x": 1, "y": 1}, "net": 5}
+            ]}]}
+    });
+    let doc = load(file.to_string().as_bytes()).unwrap();
+    let ids: Vec<&str> = doc.model.nets.iter().map(|n| n.id.as_str()).collect();
+    assert_eq!(ids, ["n1", "n2"]);
+    assert_eq!(doc.model.nets[0].kind, vizcraft_diagram::vizcraft_model::NetKind::Wire);
+    assert!(doc.model.nets[1].name.len() <= vizcraft_diagram::vizcraft_model::MAX_TAG);
+    let p = &doc.pages[0];
+    assert!(p.view.as_ref().is_some_and(|v| v.module.is_none()));
+    assert_eq!(p.shape("s1").unwrap().orient, vizcraft_diagram::Orient { turns: 1, mirror: false });
+    assert!(p.shape("s2").unwrap().orient.is_default());
+    let net = |id: &str| p.connector(id).unwrap().net.clone();
+    assert_eq!((net("c1"), net("c2"), net("c3")), (Some("n1".into()), None, None));
+    assert_eq!(p.connector("c1").unwrap().marker, vizcraft_diagram::LineMarker::None);
+}

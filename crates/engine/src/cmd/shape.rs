@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use vizcraft_diagram::geom::MAX_COORD;
 use vizcraft_diagram::{Color, End, MAX_EXTENT, Style};
 
-use super::{Kinds, MAX_DELTA, MIN_SIZE, delete_items, has_shapes, num, opt_bool, opt_str, page_mut, req_num, select, short, targets, with_sel};
+use super::{Kinds, MAX_DELTA, MIN_SIZE, has_shapes, num, opt_bool, opt_str, page_mut, req_num, select, short, targets, with_sel};
 use crate::{CmdResult, CommandSpec, EngineError, Session, p};
 
 /// Return all shape commands.
@@ -17,12 +17,19 @@ pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("shape.add", "Add Shape", "Insert > Shapes", add)
             .params(r#"{"stencil": string, "x": n, "y": n, "w"?: n, "h"?: n, "text"?: string, "id"?: string} -> {"id", "element"?}; x, y is the top-left; a master of a notation type (Flowchart) also creates an element named text"#),
-        CommandSpec::new("shape.delete", "Delete Shape", "Home > Editing", delete).params(r#"{"ids"?: [string]} (default: selection)"#).when(has_shapes),
+        CommandSpec::new("shape.delete", "Delete Shape", "Home > Editing", delete)
+            .params(r#"{"ids"?: [string] (default: selection), "heal"?: bool} -> {"deleted", "detached", "healed"?}; a device with exactly one wire segment on each of two pins joins the two as it goes unless heal is false"#)
+            .when(has_shapes),
         CommandSpec::new("shape.move", "Move", "Home > Arrange", move_shapes)
             .params(r#"{"ids"?: [string], "dx": n, "dy": n} or {"id": string, "x": n, "y": n}"#)
             .when(has_shapes),
         CommandSpec::new("shape.resize", "Resize", "Home > Arrange", resize).params(r#"{"id": string, "x"?: n, "y"?: n, "w": n, "h": n}"#).when(has_shapes),
-        CommandSpec::new("shape.rotate", "Rotate", "Home > Arrange", rotate).params(r#"{"ids"?: [string], "angle": degrees}"#).when(has_shapes),
+        CommandSpec::new("shape.rotate", "Rotate", "Home > Arrange", rotate)
+            .params(r#"{"ids"?: [string], "angle"?: degrees (absolute), "turns"?: int (relative quarter turns, clockwise)} -> {"rotated", "angle", "orient"?}; one of angle and turns is required; turns turn the glyph (pins and outline) in right angles and keep its text upright; groups take only angle"#)
+            .when(has_shapes),
+        CommandSpec::new("shape.mirror", "Mirror", "Home > Arrange", mirror)
+            .params(r#"{"ids"?: [string], "axis": "x" (left and right swap) | "y" (top and bottom swap)} -> {"mirrored", "orient": [{"id", "turns", "mirror"}]}; mirrors the glyph in its frame, pins included, text kept upright; groups are left alone"#)
+            .when(has_shapes),
         CommandSpec::new("shape.setText", "Edit Text", "Home > Font", set_text).params(r#"{"id": string, "text": string}; on a shape of an element, renames the element and every view of it"#).when(has_shapes),
         CommandSpec::new("shape.setStyle", "Shape Style", "Home > Shape Styles", set_style)
             .params(
@@ -122,8 +129,9 @@ fn add(s: &mut Session, v: &Value) -> CmdResult {
 
 fn delete(s: &mut Session, v: &Value) -> CmdResult {
     let ids = targets(s, v, Kinds::Shapes)?;
+    let heal = opt_bool(v, "heal")?;
     super::protect::check(s, &ids, super::protect::Lock::Delete)?;
-    delete_items(s, &ids)
+    super::delete_items_heal(s, &ids, heal)
 }
 
 /// `{id, x, y}` puts one shape's top-left at `x, y`; otherwise `{ids?, dx, dy}` moves the shapes
@@ -190,20 +198,66 @@ fn resize(s: &mut Session, v: &Value) -> CmdResult {
 }
 
 fn rotate(s: &mut Session, v: &Value) -> CmdResult {
-    let angle = req_num(v, "angle")?;
+    let angle = num(v, "angle")?;
+    let turns = match v.get("turns") {
+        None | Some(Value::Null) => None,
+        Some(t) => Some(
+            t.as_i64()
+                .filter(|t| (-1_000_000..=1_000_000).contains(t))
+                .ok_or_else(|| EngineError::Params("`turns` must be a whole number".into()))?,
+        ),
+    };
+    if angle.is_none() && turns.is_none() {
+        return Err(EngineError::Params("give `angle` (degrees) or `turns` (quarter turns)".into()));
+    }
     let ids = targets(s, v, Kinds::Shapes)?;
     super::layer::ensure_unlocked(s, &ids)?;
     super::protect::check(s, &ids, super::protect::Lock::Rotation)?;
     let page = page_mut(s)?;
     let mut out = 0.0;
+    let mut orients = Vec::new();
     for id in &ids {
-        // A group turns its members with it.
-        vizcraft_diagram::arrange::set_angle(page, id, angle.rem_euclid(360.0));
+        if let Some(angle) = angle {
+            // A group turns its members with it.
+            vizcraft_diagram::arrange::set_angle(page, id, angle.rem_euclid(360.0));
+        }
+        if let Some(t) = turns
+            && let Some(sh) = page.shape_mut(id).filter(|sh| !vizcraft_diagram::arrange::is_group(sh))
+        {
+            sh.orient = sh.orient.turned(t);
+            orients.push(json!({"id": id, "turns": sh.orient.turns, "mirror": sh.orient.mirror}));
+        }
         if let Some(sh) = page.shape(id) {
             out = sh.angle_deg;
         }
     }
-    with_sel(s, json!({"rotated": ids, "angle": out}))
+    if turns.is_some() {
+        with_sel(s, json!({"rotated": ids, "angle": out, "orient": orients}))
+    } else {
+        with_sel(s, json!({"rotated": ids, "angle": out}))
+    }
+}
+
+fn mirror(s: &mut Session, v: &Value) -> CmdResult {
+    let left_right = match p::req_str(v, "axis")? {
+        "x" => true,
+        "y" => false,
+        other => return Err(EngineError::Params(format!("`axis` must be \"x\" or \"y\", not `{}`", short(other)))),
+    };
+    let ids = targets(s, v, Kinds::Shapes)?;
+    super::layer::ensure_unlocked(s, &ids)?;
+    super::protect::check(s, &ids, super::protect::Lock::Rotation)?;
+    let page = page_mut(s)?;
+    let mut done = Vec::new();
+    let mut orients = Vec::new();
+    for id in &ids {
+        if let Some(sh) = page.shape_mut(id).filter(|sh| !vizcraft_diagram::arrange::is_group(sh)) {
+            sh.orient = sh.orient.mirrored(left_right);
+            orients.push(json!({"id": id, "turns": sh.orient.turns, "mirror": sh.orient.mirror}));
+            done.push(id.clone());
+        }
+    }
+    with_sel(s, json!({"mirrored": done, "orient": orients}))
 }
 
 fn set_text(s: &mut Session, v: &Value) -> CmdResult {

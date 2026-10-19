@@ -152,7 +152,7 @@ impl Relationship {
 /// What a diagram page shows of the model: the viewpoint (a pack's named filter of allowed
 /// element and relationship types) and the layout the page was last arranged with. A page
 /// carries it as `Page.view`; the geometry is in the page's shapes, keyed by their element.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct View {
     /// Pack-qualified viewpoint id (`flowchart.Flowchart`); empty means any type is allowed.
@@ -165,6 +165,9 @@ pub struct View {
     /// the pack's default drawing. Capped at [`View::MAX_VARIANT`] bytes when read.
     #[serde(deserialize_with = "capped_variant", skip_serializing_if = "String::is_empty")]
     pub variant: String,
+    /// The symbol grid module ports and wires snap to on this page; none by default.
+    #[serde(skip_serializing_if = "crate::Module::is_none")]
+    pub module: crate::Module,
 }
 
 impl View {
@@ -231,6 +234,10 @@ pub struct Model {
     /// Pattern instances: which pattern made which elements, with which arguments.
     #[serde(deserialize_with = "lenient_vec", skip_serializing_if = "Vec::is_empty")]
     pub patterns: Vec<crate::PatternInstance>,
+    /// Nets: electrical potentials, pipe runs and signals, which wire segments name in
+    /// `Connector.net` (see [`crate::net`]).
+    #[serde(deserialize_with = "lenient_vec", skip_serializing_if = "Vec::is_empty")]
+    pub nets: Vec<crate::Net>,
 }
 
 impl Default for Model {
@@ -242,12 +249,21 @@ impl Default for Model {
 impl Model {
     /// An empty model at the current schema version.
     pub fn new() -> Self {
-        Model { schema_version: SCHEMA_VERSION, packs: Vec::new(), elements: Vec::new(), relationships: Vec::new(), patterns: Vec::new() }
+        Model {
+            schema_version: SCHEMA_VERSION,
+            packs: Vec::new(),
+            elements: Vec::new(),
+            relationships: Vec::new(),
+            patterns: Vec::new(),
+            nets: Vec::new(),
+        }
     }
 
-    /// True when the model has no packs, elements or relationships (a free-drawing document).
+    /// True when the model has no packs, elements, relationships, patterns or nets (a
+    /// free-drawing document). A document whose only model items are nets (plain wiring) or
+    /// pattern instances is not empty, so saving keeps its model section.
     pub fn is_empty(&self) -> bool {
-        self.packs.is_empty() && self.elements.is_empty() && self.relationships.is_empty()
+        self.packs.is_empty() && self.elements.is_empty() && self.relationships.is_empty() && self.patterns.is_empty() && self.nets.is_empty()
     }
 
     /// Most notation packs a model lists; a file with more keeps the first ones.
@@ -261,6 +277,7 @@ impl Model {
     pub fn sanitize(&mut self) {
         crate::repair::sanitize(self);
         crate::pattern::sanitize(self);
+        crate::net::sanitize(self);
     }
 
     /// The element with this id.
@@ -283,9 +300,19 @@ impl Model {
         self.relationships.iter_mut().find(|r| r.id == id)
     }
 
-    /// Whether an element or relationship has this id.
+    /// Whether an element, relationship or net has this id.
     pub fn contains_id(&self, id: &str) -> bool {
-        self.element(id).is_some() || self.relationship(id).is_some()
+        self.element(id).is_some() || self.relationship(id).is_some() || self.net(id).is_some()
+    }
+
+    /// The net with this id.
+    pub fn net(&self, id: &str) -> Option<&crate::Net> {
+        self.nets.iter().find(|n| n.id == id)
+    }
+
+    /// The net with this id, mutably.
+    pub fn net_mut(&mut self, id: &str) -> Option<&mut crate::Net> {
+        self.nets.iter_mut().find(|n| n.id == id)
     }
 
     /// Relationships whose source is `element`.

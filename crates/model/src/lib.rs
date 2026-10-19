@@ -8,6 +8,7 @@
 //! - [`identity`]: the project-wide registry of tags: identifier formats, auto-numbering,
 //!   uniqueness and paired references.
 //! - [`issue`]: the structured [`Issue`] that rules and the registry report.
+//! - [`net`]: nets (potentials, pipe runs, signals) and the symbol grid [`Module`].
 //!
 //! Types are pack-qualified strings (`flowchart.Decision`, `pid.CentrifugalPump`): the prefix
 //! before the first `.` is the notation pack that defines them (`vizcraft-notation`). This crate
@@ -20,6 +21,7 @@
 
 pub mod identity;
 pub mod issue;
+pub mod net;
 pub mod pattern;
 pub mod query;
 mod repair;
@@ -31,6 +33,7 @@ mod types;
 
 pub use identity::{Duplicate, IdFormat, IdScope, Registry, Unmatched};
 pub use issue::{Issue, Severity};
+pub use net::{Module, Net, NetKind, NetLabel};
 pub use pattern::PatternInstance;
 pub use types::{Element, Model, ModelError, PackRef, PropValue, Relationship, Removed, View};
 

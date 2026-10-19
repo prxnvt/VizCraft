@@ -197,6 +197,9 @@ pub struct Session {
     /// The last analysis result (`analyze.*`, `model.diff`): session state outside the document, so
     /// undo neither restores nor clears it; its `rev` says which revision it was computed at.
     pub analysis: Option<vizcraft_analysis::AnalysisResult>,
+    /// Which net every wire segment, pin and junction belongs to, rebuilt together with
+    /// [`Session::issues`] after every document change, undo, redo and open.
+    pub nets: vizcraft_diagram::net::NetIndex,
     history: Vec<Undo>,
     redo: Vec<Undo>,
     /// Consecutive `Typing` steps are one undo step until another command runs.
@@ -230,6 +233,7 @@ impl Session {
             clipboard: String::new(),
             issues: Vec::new(),
             analysis: None,
+            nets: vizcraft_diagram::net::NetIndex::default(),
             history: Vec::new(),
             redo: Vec::new(),
             typing_open: false,
@@ -248,11 +252,13 @@ impl Session {
     /// Recompute [`Session::issues`] from the live rules. A panic inside a rule must not take the
     /// app down: it leaves the list empty and says so in the status bar.
     pub fn refresh_issues(&mut self) {
+        self.nets = vizcraft_diagram::net::NetIndex::build(&self.doc);
         let doc = &self.doc;
         match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| vizcraft_notation::rules::live(doc, vizcraft_notation::catalog()))) {
             Ok(mut issues) => {
                 // Elements a re-import no longer found are flagged by the import record, not a rule.
                 issues.extend(vizcraft_diagram::import_record::removed_issues(doc));
+                issues.extend(crate::cmd::net::conflict_issues(doc, &self.nets));
                 self.issues = issues;
             }
             Err(_) => {
@@ -448,6 +454,8 @@ impl Session {
                     let _t = crate::trace::span("bind.sync");
                     vizcraft_notation::bind::sync(&mut self.doc, &before_doc, vizcraft_notation::catalog());
                 }
+                // The net pass may heal away a junction or a wire that is still selected.
+                crate::cmd::net::prune_removed(self, &before_doc);
                 // New items take the document theme; decoration pages follow titles and sizes.
                 let _t = crate::trace::span("design.afterChange");
                 crate::cmd::design::after_change(&mut self.doc, &before_doc);

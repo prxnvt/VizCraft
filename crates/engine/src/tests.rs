@@ -64,7 +64,9 @@ fn registry_ids_are_unique_and_prefixed() {
                 "picture",
                 "ink",
                 "variant",
-                "generate"
+                "generate",
+                "net",
+                "wire"
             ]
             .contains(&prefix),
             "{}: unexpected prefix",
@@ -123,6 +125,11 @@ fn hostile_params_never_panic() {
         json!({"script": "not json", "commands": []}),
         json!({"bytes": "!!not base64!!", "id": "s2", "crop": {"x": "a", "w": -1e308}, "points": [[1e308, "x"], {}], "mediaType": "image/gif", "maxDimension": -5, "quality": 1e300, "recolor": 7}),
         json!({"instance": "s2", "direction": "fromTable", "table": {"columns": [5, null], "rows": [[{}], "x", null]}, "path": "/nonexistent/\u{0}.csv", "source": "\u{0}", "merge": "yes", "type": 7}),
+        json!({"from": {"connector": "c8", "x": 1e308, "y": "a"}, "to": {"junction": 5}, "points": [[1, 2], {"x": "nan"}], "kind": "plasma", "net": 7}),
+        json!({"from": {"connector": "c8", "x": 100, "y": 100}, "to": {"shape": "s2", "point": 0}, "points": [{"x": 1e308, "y": -1e308}], "kind": "pipe"}),
+        json!({"ids": ["s2"], "turns": 1e300, "axis": "z", "heal": 3, "module": -3, "shape": "s2", "connector": "c8"}),
+        json!({"ids": ["s2"], "turns": -7, "axis": "y", "heal": true, "module": "iso2_5mm", "nets": ["x", 5], "at": "c8", "net": null}),
+        json!({"net": "n1", "nets": [], "name": "x".repeat(70_000), "number": 5, "label": [], "properties": {"a": {}}, "scheme": "page", "band": 0}),
         nested_batches(40),
     ];
     for spec in reg.all() {

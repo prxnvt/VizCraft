@@ -33,6 +33,7 @@ pub mod link;
 pub mod r#macro;
 pub mod master;
 pub mod model;
+pub mod net;
 pub mod notation;
 pub mod page;
 pub mod pattern;
@@ -53,6 +54,7 @@ pub mod text;
 pub mod validate;
 pub mod variant;
 pub mod view;
+pub mod wire;
 
 use std::collections::HashSet;
 
@@ -116,6 +118,8 @@ pub fn registry() -> Registry {
     v.extend(ink::specs());
     v.extend(help::specs());
     v.extend(generate::specs());
+    v.extend(net::specs());
+    v.extend(wire::specs());
     Registry::new(v)
 }
 
@@ -401,11 +405,41 @@ pub fn drop_undrawn_relationships(doc: &mut vizcraft_diagram::Document, relation
 
 /// Delete shapes and connectors by id from the active page (see [`delete_on_page`]); a
 /// relationship whose last connector view went is removed from the model, while elements stay in
-/// the model when their shapes go. Returns `{"deleted": [ids], "detached": [connector ids]}` and
-/// the selection.
+/// the model when their shapes go. A device with exactly one wire segment on each of two pins
+/// heals its wire as it goes (see [`delete_items_heal`]). Returns `{"deleted": [ids],
+/// "detached": [connector ids]}` (and `"healed": [connector ids]` when a wire was healed) and the
+/// selection.
 pub fn delete_items(s: &mut Session, ids: &[String]) -> CmdResult {
+    delete_items_heal(s, ids, None)
+}
+
+/// [`delete_items`] with the healing choice: `Some(false)` never heals; otherwise each deleted
+/// shape with exactly one wire segment on each of two pins (not two different named nets, and
+/// neither segment itself deleted) has its two segments joined through where its pins were, so
+/// taking a device out of a wire leaves the wire whole.
+pub fn delete_items_heal(s: &mut Session, ids: &[String], heal: Option<bool>) -> CmdResult {
     layer::ensure_unlocked(s, ids)?;
     protect::check(s, ids, protect::Lock::Delete)?;
+    let mut healed: Vec<String> = Vec::new();
+    if heal != Some(false) && !s.doc.model.nets.is_empty() {
+        let doomed: HashSet<&str> = ids.iter().map(String::as_str).collect();
+        let plans: Vec<(String, String, String)> = match s.doc.page() {
+            Some(page) => ids
+                .iter()
+                .filter_map(|id| {
+                    let (a, b) = net::heal_pair(&s.doc, page, id)?;
+                    (!doomed.contains(a.as_str()) && !doomed.contains(b.as_str())).then(|| (id.clone(), a, b))
+                })
+                .collect(),
+            None => Vec::new(),
+        };
+        let page = page_mut(s)?;
+        for (shape, a, b) in plans {
+            if vizcraft_diagram::net::join(page, &a, &b, &shape) {
+                healed.push(a);
+            }
+        }
+    }
     let page = page_mut(s)?;
     let page_id = page.id.clone();
     let d = delete_on_page(page, ids);
@@ -418,7 +452,11 @@ pub fn delete_items(s: &mut Session, ids: &[String]) -> CmdResult {
     }
     drop_undrawn_relationships(&mut s.doc, &d.relationships);
     prune_selection(s);
-    with_sel(s, json!({"deleted": d.items, "detached": d.detached}))
+    if healed.is_empty() {
+        with_sel(s, json!({"deleted": d.items, "detached": d.detached}))
+    } else {
+        with_sel(s, json!({"deleted": d.items, "detached": d.detached, "healed": healed}))
+    }
 }
 
 /// ISO-8601 timestamp (UTC, seconds), without a date-time dependency.

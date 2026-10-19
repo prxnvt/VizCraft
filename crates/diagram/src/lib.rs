@@ -10,6 +10,8 @@
 //! - [`route`]: glue resolution and the three route styles.
 //! - [`autolayout`]: automatic placement of shapes with `vizcraft-layout`.
 //! - [`autoroute`]: connector routes that avoid shapes, with `vizcraft-routing`.
+//! - [`net`]: wire segments, junctions, the net index and line labels; [`line_marks`]: the
+//!   marks repeated along a line that say what it carries.
 //! - [`jumps`]: line jumps, and the page-level connector geometry that draws them.
 //! - [`views`]: shapes and connectors as views of `vizcraft-model` elements and relationships.
 //! - [`data`]: typed shape data rows and the page's data key definitions.
@@ -45,8 +47,10 @@ pub mod ink;
 pub mod jumps;
 pub mod kind;
 pub mod layer;
+pub mod line_marks;
 pub mod master;
 pub mod model;
+pub mod net;
 pub mod page_fields;
 pub mod print_fields;
 pub mod route;
@@ -68,6 +72,7 @@ pub use doc_fields::{Comment, CommentAnchor, DocProperties, ImageAsset, Protecti
 pub use geom::{Path, PathEl, Point, Polyline, Rect, Transform, Vec2};
 pub use hit::{BandHit, Hit, band_at, connection_point_at, connector_at, connectors_in_rect, glue_shape_at, hit, shape_at, shapes_in_rect};
 pub use kind::ShapeKind;
+pub use line_marks::LineMarker;
 pub use master::CustomMaster;
 pub use model::{Arrow, Color, Connector, CoreProps, Document, End, Page, Route, Shape, Style};
 pub use model::{MAX_WAYPOINTS, is_plain_id};
@@ -75,7 +80,7 @@ pub use page_fields::{DrawingScale, Guide, GuideOrientation, HeaderFooter, Layer
 pub use route::{Arrowhead, ConnectorGeometry, EndPoint, Ends, arrowhead, connector_geometry, resolve_ends, route_path, route_polyline};
 pub use routing_policy::{Avoid, RoutingPolicy, StraightFallback};
 pub use serde_util::base64;
-pub use shape_fields::{Behavior, CropRect, Freeform, Hyperlink, ImageRef, LinkKind, Locks, TextBlock};
+pub use shape_fields::{Behavior, CropRect, Freeform, Hyperlink, ImageRef, LinkKind, Locks, Orient, TextBlock};
 pub use style_fields::{
     Bullets, Dash, Glow, Gradient, GradientKind, GradientStop, HAlign, LineCap, Margins, Shadow, TextCase, TextDirection, VAlign,
 };

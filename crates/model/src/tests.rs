@@ -776,6 +776,7 @@ fn any_model() -> impl Strategy<Value = Model> {
             elements,
             relationships,
             patterns: Vec::new(),
+            nets: Vec::new(),
         })
 }
 
@@ -843,4 +844,34 @@ proptest! {
             }
         }
     }
+}
+
+#[test]
+fn a_model_with_only_nets_or_patterns_is_not_empty() {
+    // Regression: `is_empty` once looked at packs, elements and relationships only, so saving a
+    // document that held nothing but wiring (or pattern instances) dropped its model section.
+    let mut m = Model::new();
+    assert!(m.is_empty());
+    m.nets.push(crate::Net::new("n1", crate::NetKind::Wire));
+    assert!(!m.is_empty());
+    let mut m = Model::new();
+    m.patterns.push(crate::PatternInstance { id: "p1".into(), ..crate::PatternInstance::default() });
+    assert!(!m.is_empty());
+}
+
+#[test]
+fn nets_share_the_id_space_and_sanitise() {
+    let mut m = Model::new();
+    m.add_element(Element::new("e1", "flowchart.Process")).unwrap();
+    for id in ["n1", "n1", "", "e1", &"x".repeat(200)] {
+        m.nets.push(crate::Net { name: "y".repeat(1000), ..crate::Net::new(id, crate::NetKind::Pipe) });
+    }
+    m.sanitize();
+    let ids: Vec<&str> = m.nets.iter().map(|n| n.id.as_str()).collect();
+    assert_eq!(ids, ["n1", &"x".repeat(crate::MAX_ID)]);
+    assert!(m.nets.iter().all(|n| n.name.len() <= crate::MAX_TAG));
+    assert!(m.contains_id("n1") && m.net("n1").is_some());
+    let again = m.clone();
+    m.sanitize();
+    assert_eq!(m, again, "sanitize is idempotent");
 }

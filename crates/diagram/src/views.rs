@@ -22,14 +22,15 @@ pub struct ViewItems {
     pub items: Vec<String>,
 }
 
-/// Clear every `Shape.element` that names no element of `doc.model` and every
-/// `Connector.relationship` that names no relationship, so a damaged or hand-edited file loads
-/// with those items as free drawing.
+/// Clear every `Shape.element` that names no element of `doc.model`, every
+/// `Connector.relationship` that names no relationship and every `Connector.net` that names no
+/// net, so a damaged or hand-edited file loads with those items as free drawing.
 pub fn sanitize_refs(doc: &mut Document) {
     // Build the id sets once: the model lookups are linear scans, and a large page would make
     // a per-item lookup quadratic.
     let elements: HashSet<&str> = doc.model.elements.iter().map(|e| e.id.as_str()).collect();
     let relationships: HashSet<&str> = doc.model.relationships.iter().map(|r| r.id.as_str()).collect();
+    let nets: HashSet<&str> = doc.model.nets.iter().map(|n| n.id.as_str()).collect();
     for page in &mut doc.pages {
         for shape in &mut page.shapes {
             if shape.element.as_deref().is_some_and(|e| !elements.contains(e)) {
@@ -39,6 +40,9 @@ pub fn sanitize_refs(doc: &mut Document) {
         for c in &mut page.connectors {
             if c.relationship.as_deref().is_some_and(|r| !relationships.contains(r)) {
                 c.relationship = None;
+            }
+            if c.net.as_deref().is_some_and(|n| !nets.contains(n)) {
+                c.net = None;
             }
         }
     }
