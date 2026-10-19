@@ -1,0 +1,18 @@
+[package]
+name = "vizcraft-analysis"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "VizCraft graph analysis over the semantic model: reachability, cycles, cut points, paths, metrics and model compare; no geometry, no UI"
+
+[lints]
+workspace = true
+
+[dependencies]
+vizcraft-model = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }

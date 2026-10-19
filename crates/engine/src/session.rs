@@ -194,6 +194,9 @@ pub struct Session {
     /// Live issues: what the live rules of the model's notation packs report for the document as
     /// it is now. Recomputed after every document change, undo, redo and open.
     pub issues: Vec<vizcraft_model::Issue>,
+    /// The last analysis result (`analyze.*`, `model.diff`): session state outside the document, so
+    /// undo neither restores nor clears it; its `rev` says which revision it was computed at.
+    pub analysis: Option<vizcraft_analysis::AnalysisResult>,
     history: Vec<Undo>,
     redo: Vec<Undo>,
     /// Consecutive `Typing` steps are one undo step until another command runs.
@@ -226,6 +229,7 @@ impl Session {
             sel: Selection::default(),
             clipboard: String::new(),
             issues: Vec::new(),
+            analysis: None,
             history: Vec::new(),
             redo: Vec::new(),
             typing_open: false,
@@ -340,6 +344,7 @@ impl Session {
     pub fn set_document(&mut self, doc: Document) {
         self.doc = doc;
         self.sel = Selection::default();
+        self.analysis = None;
         self.history.clear();
         self.redo.clear();
         self.typing_open = false;

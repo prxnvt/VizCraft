@@ -16,6 +16,7 @@ vizcraft-patterns = { workspace = true }
 vizcraft-stencils = { workspace = true }
 vizcraft-formats = { workspace = true }
 vizcraft-codegen = { workspace = true }
+vizcraft-analysis = { workspace = true }
 thiserror = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

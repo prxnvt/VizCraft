@@ -11,6 +11,9 @@
 //!                                                            test case or a folder of cases
 //! vizcraft-cli generate FILE [--spec SPEC | --target ID --output DIR] [--check | --preview] [--json]
 //!                                                            run a generator over the model; --check for CI
+//! vizcraft-cli analyze FILE --kind KIND [--id ID] [--from ID] [--to ID] [--direction D] [--depth N]
+//!                      [--types T,T] [--against FILE] [--check] [--json]
+//!                                                            graph analysis or model compare; --check for CI
 //! vizcraft-cli control HOST:PORT METHOD [JSON]             one request to a running app, reply on stdout
 //! vizcraft-cli control HOST:PORT -                         forward request lines from stdin, one reply each
 //! vizcraft-cli mcp [--connect ADDR | --headless]           MCP server on stdio, driving the running app or,
@@ -31,6 +34,7 @@ use std::time::Duration;
 use serde_json::{Value, json};
 use vizcraft_engine::{Document, Session};
 
+mod analyze;
 mod generate;
 mod validate;
 
@@ -52,6 +56,13 @@ USAGE:
                                                          the .vizcraft-gen.toml beside FILE); --check exits 1
                                                          when the output is stale, a run exits 1 when hand
                                                          edits conflict
+  vizcraft-cli analyze FILE --kind KIND [--id ID] [--from ID] [--to ID] [--direction D] [--depth N]
+                       [--types T,T] [--against FILE] [--check] [--json]
+                                                         graph analysis over the model: KIND is dependencies,
+                                                         cycles, unreachable, spof, metrics, path or diff
+                                                         (FILE against --against); --check exits 1 when cycles,
+                                                         unreachable elements, single points of failure or
+                                                         differences are found
   vizcraft-cli control HOST:PORT METHOD [JSON]         one request to a running app (started with --control PORT)
   vizcraft-cli control HOST:PORT -                     forward request lines from stdin, one reply line each
   vizcraft-cli mcp [--connect ADDR | --headless]      MCP server (JSON-RPC on stdin and stdout). --connect drives
@@ -86,6 +97,7 @@ fn main() -> ExitCode {
         Some("inspect") => inspect(&args[1..]),
         Some("validate") => validate::validate(&args[1..]),
         Some("generate") => generate::generate(&args[1..]),
+        Some("analyze") => analyze::analyze(&args[1..]),
         Some("control") => control(&args[1..]),
         Some("mcp") => mcp(&args[1..]),
         Some("--version" | "-V") => {

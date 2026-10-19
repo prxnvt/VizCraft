@@ -1,6 +1,7 @@
 //! Command implementations, one module per menu: each exposes `specs()`.
 
 pub mod addon;
+pub mod analyze;
 pub mod arrange;
 pub mod batch;
 pub mod callout;
@@ -95,6 +96,7 @@ pub fn registry() -> Registry {
     v.extend(proof::specs());
     v.extend(report::specs());
     v.extend(table::specs());
+    v.extend(analyze::specs());
     v.extend(pattern::specs());
     v.extend(document::specs());
     v.extend(notation::specs());
