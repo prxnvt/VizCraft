@@ -116,7 +116,7 @@ files for names ending in `.drawio` or `.drawio.xml`, and refuses other names.
   `message` (sort) and `step` (badge number, 0 none). Packs gain `sections`, element and
   relationship `keyword`, relationship `endLabels`, compartment `rowsFrom`, element
   `allowedParents`, glyph `container` looks and variant `options`. ER adds connector `halves`
-  (per-half dash and double line) and `labelFrame` (a Chen diamond), style `compound` (double
+  (per-half dash and double line) and `labelFrame` (a Chen diamond), glyph `textPlace` (`inside` or `below`; also a native shape field, left out when `inside`), rule check `flowBalance {types, relationship, expect: fanOut or fanIn}`, style `compound` (double
   outline), connector type `ends` (ends read from relationship properties), variant `satellites`
   and `compartments`, and table query `owned`, `filter` and `values`. draw.io: the double bar
   writes and reads as `ERmandOne`, the dot end writes as `oval` and reads back as a circle.

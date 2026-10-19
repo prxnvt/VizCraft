@@ -101,6 +101,7 @@ params. Agents use them through `command_run` and `command_batch`:
 | `uml.addMember`, `uml.setMember`, `uml.removeMember`, `uml.moveMember` | A class's attribute, operation or literal rows, stored canonically; bad multiplicities come back in `problems` |
 | `inspector.get` on a connector or relationship | The relationship, its type and ends, with each property tagged `end: start, end or null` |
 | `page.setRouting {clearance}` | The routing clearance (0 to 100, or `auto` for the symbol grid step or 10); the result gives `clearanceUsed` |
+| `text.setBlock {position: "inside" or "below"}` | Puts a shape's text inside its frame or below it; returns `textPlace` |
 | `connector.add {relationship: "auto"}` | Makes the drawn connector the relationship the rules allow first between its ends |
 | `key.*`, `connector.setStep`, `connector.renumberSteps`, `topology.toMermaid` | Generated keys, numbered step badges, Mermaid architecture text |
 | `sequence.*` | Sequence diagrams edited by order: lifelines, messages, replies, fragments, moves up, down, left and right (`id` defaults to the selection), activation mode and per-message activation, Mermaid or PlantUML text |
