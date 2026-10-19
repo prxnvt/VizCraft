@@ -22,7 +22,7 @@ pub(super) fn active_pack(app: &CraftApp) -> Option<&'static Pack> {
     vizcraft_notation::catalog().pack(vp.split_once('.').map_or("", |(p, _)| p)).filter(|p| p.viewpoint(vp).is_some())
 }
 
-fn has_view(app: &CraftApp) -> bool {
+pub(super) fn has_view(app: &CraftApp) -> bool {
     active_pack(app).is_some()
 }
 

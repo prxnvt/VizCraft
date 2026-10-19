@@ -863,3 +863,24 @@ fn insert_direction_menu_shows_what_auto_resolves_to_and_sets_the_direction() {
     h.run_steps(3);
     assert_eq!(h.state().ui.insert_direction, "left");
 }
+
+fn group_labels(app: &CraftApp, tab: &str) -> Vec<&'static str> {
+    vizcraft_ui_egui::ribbon::tabs(app).iter().find(|t| t.name == tab).map(|t| t.groups.iter().map(|g| g.label).collect()).unwrap_or_default()
+}
+
+#[test]
+fn the_process_tab_drops_diagram_validation_where_the_notation_tab_has_it() {
+    let uml = from_template("uml.classDiagram");
+    assert!(!group_labels(uml.state(), "Process").contains(&"Diagram Validation"), "{:?}", group_labels(uml.state(), "Process"));
+    assert!(group_labels(uml.state(), "Process").contains(&"Subprocess"), "Subprocess stays");
+    let tab = vizcraft_ui_egui::ribbon::tabs(uml.state()).into_iter().find(|t| t.name == "UML").expect("the UML tab");
+    let check = tab.groups.iter().find(|g| g.label == "Check").expect("a Check group");
+    let mut ids = Vec::new();
+    check.controls.iter().for_each(|c| c.ids(&mut ids));
+    for id in ["validate.run", "validate.setProfile", "ui.dock", "validate.next", "validate.previous"] {
+        assert!(ids.contains(&id), "{id} in the notation Check group: {ids:?}");
+    }
+    // A free page keeps validation on the Process tab.
+    let sample = harness_with(Session::new(vizcraft_engine::sample::sample_document()));
+    assert!(group_labels(sample.state(), "Process").contains(&"Diagram Validation"));
+}

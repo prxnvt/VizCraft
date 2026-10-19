@@ -65,6 +65,17 @@ pub use controls::PALETTE;
 use controls::{ColorsSpec, caption, colors, gallery};
 pub use draw::{Overflow, popup_open, show, show_tabs};
 
+/// The validation controls of the Process tab's Diagram Validation group, which a notation tab
+/// shows in its Check group too.
+pub(in crate::ribbon) fn process_validation_controls() -> Vec<Control> {
+    process::validation_controls()
+}
+
+/// Whether the page has a notation tab (its viewpoint's pack names one).
+pub(in crate::ribbon) fn notation_tab_shown(app: &CraftApp) -> bool {
+    notation::has_view(app)
+}
+
 /// The tab that opens the File page instead of a ribbon. Always first in the strip.
 pub const FILE_TAB: &str = "File";
 
@@ -399,7 +410,7 @@ pub fn tabs(app: &CraftApp) -> Vec<Tab> {
         insert::tab(),
         design::tab(),
         data::tab(),
-        process::tab(),
+        process::tab(app),
         model::tab(),
         generate::tab(),
         review::tab(),
