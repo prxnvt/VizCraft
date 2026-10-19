@@ -56,7 +56,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::CraftApp;
-pub use inspector::{InspectorMode, InspectorState, InspectorTab};
+pub use inspector::{InspectorMode, InspectorState, InspectorTab, inspect_fields as inspector_fields};
 pub use layout::{DEFAULT_HEIGHT, GAP, HEADER_H, MAX_HEIGHT, MAX_WIDTH, MIN_HEIGHT, MIN_WIDTH, PaneLayout, STRIP_W};
 pub use manager::show;
 pub use model_tree::{TreeState, inspect as tree_inspect};

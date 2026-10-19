@@ -185,7 +185,26 @@
       "source": "own design"
     }
   ],
-  "connectorTypes": [],
+  "connectorTypes": [
+    {
+      "id": "sheet.leader",
+      "label": "Balloon leader",
+      "category": "Sheet",
+      "route": "straight",
+      "startArrow": "none",
+      "endArrow": "circle",
+      "dash": "solid",
+      "lineWidth": 1.0,
+      "line": "#1e2630",
+      "keywords": [
+        "leader",
+        "balloon",
+        "find number",
+        "item"
+      ],
+      "relationshipType": "sheet.CallsOut"
+    }
+  ],
   "elementTypes": [
     {
       "id": "sheet.Revision",
@@ -413,8 +432,41 @@
       ]
     }
   ],
-  "palette": [],
-  "viewpoints": [],
+  "palette": [
+    {
+      "id": "sheet.callouts",
+      "label": "Callouts",
+      "types": [
+        "sheet.Balloon",
+        "sheet.Part",
+        "sheet.OffSheet"
+      ]
+    },
+    {
+      "id": "sheet.tables",
+      "label": "Sheet tables",
+      "types": [
+        "sheet.RevisionTable",
+        "sheet.Revision",
+        "sheet.PartsList"
+      ]
+    }
+  ],
+  "viewpoints": [
+    {
+      "id": "sheet.Sheet",
+      "label": "Drawing sheet",
+      "description": "A drawing sheet: the frame and title block, revision table, parts list with balloons, and off-sheet and cross references.",
+      "types": [
+        "*"
+      ],
+      "relationships": [
+        "sheet.CallsOut",
+        "sheet.Continues",
+        "sheet.References"
+      ]
+    }
+  ],
   "identifiers": [
     {
       "id": "sheet.item",
@@ -530,7 +582,23 @@
       }
     }
   ],
-  "rulesets": [],
+  "rulesets": [
+    {
+      "id": "sheet.drawingSheet",
+      "label": "Drawing sheet (ISO 7200, ASME Y14)",
+      "description": "Title block fields filled in and within their lengths, revisions in sequence, one balloon per listed part, cross and off-sheet references that resolve, unique item numbers and current composed tags.",
+      "rules": [
+        "sheet.mandatoryFields",
+        "sheet.fieldLength",
+        "sheet.revisionSequence",
+        "sheet.balloonRows",
+        "sheet.unresolvedXref",
+        "sheet.unmatchedOffSheet",
+        "sheet.duplicateItem",
+        "sheet.staleTag"
+      ]
+    }
+  ],
   "variants": [
     {
       "id": "sheet.iso5457",

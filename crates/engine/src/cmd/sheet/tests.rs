@@ -158,7 +158,11 @@ fn revise_letters_follow_the_asme_scheme() {
     s.doc.model.elements.push(y);
     assert_eq!(run(&mut s, "sheet.revise", json!({"description": "after Y"}))["rev"], "AA");
     assert!(s.issues.iter().any(|i| i.rule == "sheet.revisionSequence"), "Y after J skips letters");
-    refused(&mut s, "sheet.revise", json!({}));
+    let before = s.doc.clone();
+    assert_eq!(run(&mut s, "sheet.revise", json!({}))["rev"], serde_json::Value::Null);
+    assert_eq!(s.ui_requests.last().unwrap()["open"], "revise", "no description asks the UI for the fields");
+    assert_eq!(s.doc, before, "and changes nothing");
+    refused(&mut s, "sheet.revise", json!({"description": 4}));
 }
 
 #[test]
@@ -183,6 +187,7 @@ fn a_parts_list_fills_from_three_parts_and_a_balloon_shows_its_item() {
     assert_eq!(s.doc.model.element(b["balloon"].as_str().unwrap()).unwrap().name, "2");
     let c = s.doc.pages[0].connector(b["connector"].as_str().unwrap()).unwrap();
     assert_eq!(c.end.shape(), s.doc.pages[0].shapes.iter().find(|x| x.element.as_deref() == Some("part1")).map(|x| x.id.as_str()));
+    assert_eq!((c.kind.as_str(), c.end_arrow, c.route), ("sheet.leader", vizcraft_diagram::Arrow::Circle, vizcraft_diagram::Route::Straight));
     // Two parts have no balloon yet.
     assert_eq!(s.issues.iter().filter(|i| i.rule == "sheet.balloonRows").count(), 2);
     refused(&mut s, "sheet.balloon", json!({"part": "pl"}));

@@ -34,12 +34,14 @@ pub mod paste_special;
 pub mod pattern_dialog;
 pub mod presentation;
 pub mod print_preview;
+pub mod revise_dialog;
 pub mod ribbon;
 pub mod shape_name_dialog;
 pub mod snap_dialog;
 pub mod spelling_dialog;
 pub mod symbol_dialog;
 pub mod theme;
+pub mod valve_dialog;
 pub mod widgets;
 pub mod window_geometry;
 
@@ -91,7 +93,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "ui.dialog",
         "Open Dialog",
         "",
-        r#"{"name": "commands|zoom|about|preferences|quit|shortcuts|message|pageSetup|snapSettings|find|pasteSpecial|numberShapes|arrayShapes|moveShapes|saveMacro|spelling", "title"?: string, "text"?: string}"#,
+        r#"{"name": "commands|zoom|about|preferences|quit|shortcuts|message|pageSetup|snapSettings|find|pasteSpecial|numberShapes|arrayShapes|moveShapes|saveMacro|spelling|revise|valve", "title"?: string, "text"?: string}"#,
     ),
     ("ui.closeDialog", "Close Dialog", "", "{}"),
     ("ui.backstage", "File Page", "", r#"{"value"?: bool}"#),
@@ -150,7 +152,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "ui.dock",
         "Bottom Dock",
         "",
-        r#"{"open"?: bool, "tab"?: "problems|search|activity|tables|generate", "height"?: number} -> {"open", "height", "tab", "rows"}; naming a tab opens the dock on it, naming nothing toggles it"#,
+        r#"{"open"?: bool, "tab"?: "problems|search|activity|tables|nets|generate", "height"?: number} -> {"open", "height", "tab", "rows"}; naming a tab opens the dock on it, naming nothing toggles it"#,
     ),
     (
         "ui.generate",
@@ -170,6 +172,13 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "",
         r#"{"view"?: "list|matrix", "type"?: element or relationship type, "rows"?: element type, "cols"?: element type, "relationship"?: relationship type, "property"?: string, "filter"?: string} -> {"view", "type", "rows", "cols", "count"}; opens the dock on the Tables tab showing that list (type; empty is every element) or matrix"#,
     ),
+    (
+        "ui.nets",
+        "Nets",
+        "",
+        r#"{"net"?: net id, "goto"?: bool} -> {"selected", "editing", "nets": [{"id", "number", "name", "kind", "pins", "segments"}], "members"}; opens the dock on the Nets tab, selects the net there and with goto selects its wires on its page"#,
+    ),
+    ("ui.valve", "Valve...", "", r#"{} (the Valve builder dialog over glyph.builders and glyph.build: updates the selected valve with glyph.setParams or places one with glyph.insert)"#),
     (
         "ui.patterns",
         "Patterns",
@@ -729,6 +738,10 @@ impl CraftApp {
                     name => dialogs::Dialog::open(name, self),
                 };
                 json!({"dialog": self.dialog.as_ref().map(|d| d.name())})
+            }
+            "ui.valve" => {
+                self.dialog = dialogs::Dialog::open("valve", self);
+                json!({"dialog": "valve"})
             }
             "ui.closeDialog" => {
                 self.dialog = None;

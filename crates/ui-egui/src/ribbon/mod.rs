@@ -52,6 +52,7 @@ mod notation;
 mod picture;
 mod process;
 mod review;
+mod sheet;
 mod view;
 
 use egui::{Color32, Ui, vec2};
@@ -390,7 +391,7 @@ pub const LINE_WEIGHTS: &[f32] = &[0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0];
 
 /// The tabs, in Visio's order: Home, Insert, Design, Data, Process, Review, View, Developer,
 /// Help, then the contextual Connector, Container and Callout tabs (shown while a connector, a
-/// container or lane, or a callout is selected). Tabs with no
+/// container or lane, or a callout is selected) and the Sheet tab (while the page has a sheet). Tabs with no
 /// groups yet are left out, so they stay hidden until a group lands.
 pub fn tabs(app: &CraftApp) -> Vec<Tab> {
     [
@@ -408,6 +409,7 @@ pub fn tabs(app: &CraftApp) -> Vec<Tab> {
         connector::tab(),
         container::tab(),
         callout::tab(),
+        sheet::tab(),
         picture::tab(),
         ink::tab(),
         notation::tab(app),
