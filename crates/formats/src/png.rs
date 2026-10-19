@@ -39,6 +39,8 @@ pub(crate) fn fonts() -> Arc<fontdb::Database> {
         db.load_font_data(include_bytes!("../../../assets/fonts/Inter-Regular.ttf").to_vec());
         db.load_font_data(include_bytes!("../../../assets/fonts/Inter-Medium.ttf").to_vec());
         db.load_font_data(include_bytes!("../../../assets/fonts/Inter-SemiBold.ttf").to_vec());
+        // usvg does not slant an upright face, so `font-style="italic"` needs a real italic.
+        db.load_font_data(include_bytes!("../../../assets/fonts/Inter-Italic.ttf").to_vec());
         db.set_sans_serif_family("Inter");
         Arc::new(db)
     })
@@ -110,6 +112,20 @@ mod tests {
         page.height = h;
         doc.pages = vec![page];
         doc
+    }
+
+    #[test]
+    fn fonts_carry_an_italic_face_and_italic_text_renders_differently() {
+        assert!(fonts().faces().any(|f| f.families.iter().any(|n| n.0 == "Inter") && f.style == fontdb::Style::Italic));
+        let render = |italic: bool| {
+            let mut doc = doc_with_page(200.0, 60.0);
+            let mut s = vizcraft_diagram::Shape::new("s", vizcraft_diagram::ShapeKind::Rectangle, 10.0, 10.0, 180.0, 40.0);
+            s.text = "Party".into();
+            s.style.italic = italic;
+            doc.pages[0].shapes.push(s);
+            render_page(&doc, 0, 2.0).unwrap().0
+        };
+        assert_ne!(render(true), render(false), "italic text must not fall back to upright");
     }
 
     #[test]
