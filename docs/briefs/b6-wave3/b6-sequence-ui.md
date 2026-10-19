@@ -42,6 +42,12 @@ For this branch:
   right of the first covered stem, or on an opaque label box); message labels above the line (as
   drafted) never meet a stem or bar. A test asserts no stem or bar intersects a tab, guard or label
   box on the template, and the goldens are re-blessed after a look.
+- From the user's second look ("awkward"): operand spacing in the sequence layout is uneven. In
+  `uml.sequence` the `[found]` operand has a tall empty gap under its guard and its "200 OK" sits on
+  the dashed separator, and the `[else]` operand is mostly empty above "404 Not Found". Each
+  operand's first row starts one row below its guard line, the separator sits half a row below the
+  operand's last row, and the frame's bottom edge half a row below the last operand's last row, so
+  rows are evenly spaced and nothing touches a separator. Test it on the template and re-bless.
 - Adoption in `reconcile` is limited to the five `uml.*Message` kinds glued to two lifelines, as drafted.
 
 ## Draft brief
