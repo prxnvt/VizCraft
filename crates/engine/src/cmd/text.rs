@@ -14,9 +14,9 @@
 //! size, bold, colour and alignment overrides.
 
 use serde_json::{Value, json};
+use vizcraft_diagram::shape_fields::TextPlace;
 use vizcraft_diagram::text_fields::{CaseChange, FIELDS, Field, TEXT_BOX_STENCIL, change_case};
 use vizcraft_diagram::{Bullets, Color, HAlign, Margins, Shape, ShapeKind, Style, TextBlock, TextCase, TextDirection, VAlign};
-use vizcraft_diagram::shape_fields::TextPlace;
 
 use super::compartment as band;
 use super::{Kinds, MAX_DELTA, has_shapes, num, opt_bool, opt_str, page_mut, req_num, select, short, targets, with_sel};

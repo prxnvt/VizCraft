@@ -75,7 +75,8 @@ fn halves(painter: &Painter, vp: &Viewport2D, c: &Connector, g: &ConnectorGeomet
         } else {
             vec![half]
         };
-        let lines: Vec<(Vec<egui::Pos2>, bool)> = lines.into_iter().filter(|l| l.len() >= 2).map(|l| (l.into_iter().map(pos).collect(), false)).collect();
+        let lines: Vec<(Vec<egui::Pos2>, bool)> =
+            lines.into_iter().filter(|l| l.len() >= 2).map(|l| (l.into_iter().map(pos).collect(), false)).collect();
         outline(painter, vp, &hs, &lines, colour);
     }
 }

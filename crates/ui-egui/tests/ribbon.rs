@@ -724,7 +724,9 @@ fn the_arrow_menus_offer_every_end_and_mark_the_current_one() {
     // The sample's connectors have no start end and a triangle at the end.
     let rows = open_menu(&mut h, "End Arrow");
     assert_eq!(rows.len(), vizcraft_diagram::Arrow::EVERY.len());
-    for label in ["None", "Hollow triangle", "Crow's foot with bar", "Crow's foot with circle", "Bar with circle", "Hollow circle", "Double bar", "Dot"] {
+    for label in
+        ["None", "Hollow triangle", "Crow's foot with bar", "Crow's foot with circle", "Bar with circle", "Hollow circle", "Double bar", "Dot"]
+    {
         assert!(rows.iter().any(|(l, _)| l == label), "{label} is missing: {rows:?}");
     }
     assert_eq!(marked(&rows), ["Triangle"]);

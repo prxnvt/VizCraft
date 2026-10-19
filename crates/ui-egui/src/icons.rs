@@ -1624,13 +1624,21 @@ pub fn paint_fork_join(p: &Painter, r: Rect, join: bool, c: Color32) {
         // Flows arrive at the bar from above, with the head touching it.
         let (y0, y1) = (cy - reach, bar.top());
         p.line_segment([Pos2::new(*x, y0), Pos2::new(*x, y1)], line);
-        p.add(Shape::convex_polygon(vec![Pos2::new(*x, y1), Pos2::new(*x - head * 0.6, y1 - head), Pos2::new(*x + head * 0.6, y1 - head)], c, Stroke::NONE));
+        p.add(Shape::convex_polygon(
+            vec![Pos2::new(*x, y1), Pos2::new(*x - head * 0.6, y1 - head), Pos2::new(*x + head * 0.6, y1 - head)],
+            c,
+            Stroke::NONE,
+        ));
     }
     for x in bottom_x {
         // Flows leave the bar below, ending in a head.
         let (y0, y1) = (bar.bottom(), cy + reach);
         p.line_segment([Pos2::new(*x, y0), Pos2::new(*x, y1)], line);
-        p.add(Shape::convex_polygon(vec![Pos2::new(*x, y1), Pos2::new(*x - head * 0.6, y1 - head), Pos2::new(*x + head * 0.6, y1 - head)], c, Stroke::NONE));
+        p.add(Shape::convex_polygon(
+            vec![Pos2::new(*x, y1), Pos2::new(*x - head * 0.6, y1 - head), Pos2::new(*x + head * 0.6, y1 - head)],
+            c,
+            Stroke::NONE,
+        ));
     }
 }
 

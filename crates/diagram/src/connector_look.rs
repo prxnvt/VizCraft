@@ -8,11 +8,11 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Shape, Style};
 use crate::geom::{Path, Point, Rect, finite, polyline_length};
 use crate::kind::ShapeKind;
 use crate::serde_util::is_default;
 use crate::style_fields::Dash;
+use crate::{Shape, Style};
 
 /// How one half of a connector line is drawn.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
