@@ -31,7 +31,7 @@
     <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="720" y="319.2">Fix input</tspan></text>
   </g>
   <g id="c8">
-    <path d="M450 90 L450 122.01 L465 122.01 L465 142.269" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M450 90 L450 107.269 L465 107.269 L465 142.269" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
     <path d="M465 154.019 L460.3 142.269 L469.7 142.269 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
   </g>
   <g id="c9">
@@ -39,10 +39,10 @@
     <path d="M495 315 L506.75 310.3 L506.75 319.7 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
   </g>
   <g id="c10">
-    <path d="M405 315 L395 315 L395 408.25 L450 408.25 L450 408.25" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M405 315 L388.6 315 L388.6 408.25 L450 408.25 L450 408.25" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
     <path d="M450 420 L445.3 408.25 L454.7 408.25 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
-    <rect x="380.6" y="381" width="28.8" height="18" fill="#ffffff"/>
-    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="395" y="394.2">Yes</tspan></text>
+    <rect x="374.2" y="381" width="28.8" height="18" fill="#ffffff"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="388.6" y="394.2">Yes</tspan></text>
   </g>
   <g id="c11">
     <path d="M450 385 L450 395 L638.25 395 L638.25 315 L638.25 315" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>

@@ -1,176 +1,176 @@
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="1095.591" height="258.661" viewBox="15 15 1095.591 258.661">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="1617.991" height="258.661" viewBox="15 15 1617.991 258.661">
   <title>Page-1</title>
-  <rect x="15" y="15" width="1095.591" height="258.661" fill="#ffffff"/>
+  <rect x="15" y="15" width="1617.991" height="258.661" fill="#ffffff"/>
   <g id="s3">
-    <path d="M40 50.5 C40 47.186 42.686 44.5 46 44.5 L584 44.5 C587.314 44.5 590 47.186 590 50.5 L590 197.5 C590 200.814 587.314 203.5 584 203.5 L46 203.5 C42.686 203.5 40 200.814 40 197.5 Z" fill="#fffafa" stroke="#c0392b" stroke-width="1.5" stroke-dasharray="6 4.5"/>
-    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="315" y="62.7">Internal network</tspan></text>
+    <path d="M305.6 46 C305.6 42.686 308.286 40 311.6 40 L1020.8 40 C1024.114 40 1026.8 42.686 1026.8 46 L1026.8 193 C1026.8 196.314 1024.114 199 1020.8 199 L311.6 199 C308.286 199 305.6 196.314 305.6 193 Z" fill="#fffafa" stroke="#c0392b" stroke-width="1.5" stroke-dasharray="6 4.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="666.2" y="58.2">Internal network</tspan></text>
   </g>
   <g id="s9">
-    <path d="M69.6 93.5 L170.4 93.5 C176.8 93.5 180 95.9 180 100.7 L180 176.3 C180 181.1 176.8 183.5 170.4 183.5 L69.6 183.5 C63.2 183.5 60 181.1 60 176.3 L60 100.7 C60 95.9 63.2 93.5 69.6 93.5 Z" fill="#e4f2ec" stroke="#2d6e58" stroke-width="1.5"/>
-    <path d="M60 116.9 L180 116.9" fill="none" stroke="#2d6e58" stroke-width="1.5"/>
-    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="120" y="142.7">Web app</tspan></text>
+    <path d="M335.2 89 L436 89 C442.4 89 445.6 91.4 445.6 96.2 L445.6 171.8 C445.6 176.6 442.4 179 436 179 L335.2 179 C328.8 179 325.6 176.6 325.6 171.8 L325.6 96.2 C325.6 91.4 328.8 89 335.2 89 Z" fill="#e4f2ec" stroke="#2d6e58" stroke-width="1.5"/>
+    <path d="M325.6 112.4 L445.6 112.4" fill="none" stroke="#2d6e58" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="385.6" y="138.2">Web app</tspan></text>
   </g>
   <g id="s11">
-    <path d="M459.6 93.5 L560.4 93.5 C566.8 93.5 570 95.9 570 100.7 L570 176.3 C570 181.1 566.8 183.5 560.4 183.5 L459.6 183.5 C453.2 183.5 450 181.1 450 176.3 L450 100.7 C450 95.9 453.2 93.5 459.6 93.5 Z" fill="#e4f2ec" stroke="#2d6e58" stroke-width="1.5"/>
-    <path d="M450 116.9 L570 116.9" fill="none" stroke="#2d6e58" stroke-width="1.5"/>
-    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="510" y="142.7">Payments</tspan></text>
+    <path d="M896.4 89 L997.2 89 C1003.6 89 1006.8 91.4 1006.8 96.2 L1006.8 171.8 C1006.8 176.6 1003.6 179 997.2 179 L896.4 179 C890 179 886.8 176.6 886.8 171.8 L886.8 96.2 C886.8 91.4 890 89 896.4 89 Z" fill="#e4f2ec" stroke="#2d6e58" stroke-width="1.5"/>
+    <path d="M886.8 112.4 L1006.8 112.4" fill="none" stroke="#2d6e58" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="946.8" y="138.2">Payments</tspan></text>
   </g>
   <g id="s13">
-    <path d="M390 92.5 L240 92.5 L240 136.5 L390 136.5 M267 92.5 L267 136.5" fill="none" stroke="#84523c" stroke-width="1.5"/>
-    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="315" y="118.7">Orders</tspan></text>
+    <path d="M741.2 88 L591.2 88 L591.2 132 L741.2 132 M618.2 88 L618.2 132" fill="none" stroke="#84523c" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="666.2" y="114.2">Orders</tspan></text>
   </g>
   <g id="s5">
-    <path d="M650 40 L762.8 40 L762.8 97.6 L650 97.6 Z" fill="#eef1f4" stroke="#46535f" stroke-width="1.5"/>
-    <path d="M762.8 46.4 L770 46.4 L770 104 L657.2 104 L657.2 97.6" fill="none" stroke="#46535f" stroke-width="1.5"/>
-    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="710" y="76.2">Customer</tspan></text>
+    <path d="M40 87.5 L152.8 87.5 L152.8 145.1 L40 145.1 Z" fill="#eef1f4" stroke="#46535f" stroke-width="1.5"/>
+    <path d="M152.8 93.9 L160 93.9 L160 151.5 L47.2 151.5 L47.2 145.1" fill="none" stroke="#46535f" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="100" y="123.7">Customer</tspan></text>
   </g>
   <g id="s7">
-    <path d="M650 144 L762.8 144 L762.8 201.6 L650 201.6 Z" fill="#eef1f4" stroke="#46535f" stroke-width="1.5"/>
-    <path d="M762.8 150.4 L770 150.4 L770 208 L657.2 208 L657.2 201.6" fill="none" stroke="#46535f" stroke-width="1.5"/>
-    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="710" y="180.2">Card network</tspan></text>
+    <path d="M1172.4 87.5 L1285.2 87.5 L1285.2 145.1 L1172.4 145.1 Z" fill="#eef1f4" stroke="#46535f" stroke-width="1.5"/>
+    <path d="M1285.2 93.9 L1292.4 93.9 L1292.4 151.5 L1179.6 151.5 L1179.6 145.1" fill="none" stroke="#46535f" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="1232.4" y="123.7">Card network</tspan></text>
   </g>
   <g id="key28">
-    <path d="M810 40 L1085.591 40 L1085.591 248.661 L810 248.661 Z" fill="none" stroke="none"/>
+    <path d="M1332.4 40 L1607.991 40 L1607.991 248.661 L1332.4 248.661 Z" fill="none" stroke="none"/>
   </g>
   <g id="key28_border">
-    <path d="M810 40 L1085.591 40 L1085.591 248.661 L810 248.661 Z" fill="#ffffff" stroke="#1e2630" stroke-width="2.756"/>
+    <path d="M1332.4 40 L1607.991 40 L1607.991 248.661 L1332.4 248.661 Z" fill="#ffffff" stroke="#1e2630" stroke-width="2.756"/>
   </g>
   <g id="key28_cell0">
-    <path d="M810 40 L1085.591 40 L1085.591 71.496 L810 71.496 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+    <path d="M1332.4 40 L1607.991 40 L1607.991 71.496 L1332.4 71.496 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
   </g>
   <g id="key28_text0">
-    <path d="M813.937 40 L1081.654 40 L1081.654 69.921 L813.937 69.921 Z" fill="none" stroke="none"/>
-    <text text-anchor="start" font-family="Inter, sans-serif" font-size="19.685" font-weight="bold" fill="#1e2630" xml:space="preserve"><tspan x="813.937" y="61.85">Key</tspan></text>
+    <path d="M1336.337 40 L1604.054 40 L1604.054 69.921 L1336.337 69.921 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="19.685" font-weight="bold" fill="#1e2630" xml:space="preserve"><tspan x="1336.337" y="61.85">Key</tspan></text>
   </g>
   <g id="key28_cell1">
-    <path d="M810 71.496 L888.74 71.496 L888.74 106.929 L810 106.929 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+    <path d="M1332.4 71.496 L1411.14 71.496 L1411.14 106.929 L1332.4 106.929 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
   </g>
   <g id="key28_text1">
-    <path d="M813.937 71.496 L884.803 71.496 L884.803 105.354 L813.937 105.354 Z" fill="none" stroke="none"/>
+    <path d="M1336.337 71.496 L1407.203 71.496 L1407.203 105.354 L1336.337 105.354 Z" fill="none" stroke="none"/>
   </g>
   <g id="key28_cell2">
-    <path d="M888.74 71.496 L1085.591 71.496 L1085.591 106.929 L888.74 106.929 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+    <path d="M1411.14 71.496 L1607.991 71.496 L1607.991 106.929 L1411.14 106.929 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
   </g>
   <g id="key28_text2">
-    <path d="M892.677 71.496 L1081.654 71.496 L1081.654 105.354 L892.677 105.354 Z" fill="none" stroke="none"/>
-    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="892.677" y="93.346">Trust Boundary</tspan></text>
+    <path d="M1415.077 71.496 L1604.054 71.496 L1604.054 105.354 L1415.077 105.354 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1415.077" y="93.346">Trust Boundary</tspan></text>
   </g>
   <g id="key28_cell3">
-    <path d="M810 106.929 L888.74 106.929 L888.74 142.362 L810 142.362 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+    <path d="M1332.4 106.929 L1411.14 106.929 L1411.14 142.362 L1332.4 142.362 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
   </g>
   <g id="key28_text3">
-    <path d="M813.937 106.929 L884.803 106.929 L884.803 140.787 L813.937 140.787 Z" fill="none" stroke="none"/>
+    <path d="M1336.337 106.929 L1407.203 106.929 L1407.203 140.787 L1336.337 140.787 Z" fill="none" stroke="none"/>
   </g>
   <g id="key28_cell4">
-    <path d="M888.74 106.929 L1085.591 106.929 L1085.591 142.362 L888.74 142.362 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+    <path d="M1411.14 106.929 L1607.991 106.929 L1607.991 142.362 L1411.14 142.362 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
   </g>
   <g id="key28_text4">
-    <path d="M892.677 106.929 L1081.654 106.929 L1081.654 140.787 L892.677 140.787 Z" fill="none" stroke="none"/>
-    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="892.677" y="128.78">Process</tspan></text>
+    <path d="M1415.077 106.929 L1604.054 106.929 L1604.054 140.787 L1415.077 140.787 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1415.077" y="128.78">Process</tspan></text>
   </g>
   <g id="key28_cell5">
-    <path d="M810 142.362 L888.74 142.362 L888.74 177.795 L810 177.795 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+    <path d="M1332.4 142.362 L1411.14 142.362 L1411.14 177.795 L1332.4 177.795 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
   </g>
   <g id="key28_text5">
-    <path d="M813.937 142.362 L884.803 142.362 L884.803 176.22 L813.937 176.22 Z" fill="none" stroke="none"/>
+    <path d="M1336.337 142.362 L1407.203 142.362 L1407.203 176.22 L1336.337 176.22 Z" fill="none" stroke="none"/>
   </g>
   <g id="key28_cell6">
-    <path d="M888.74 142.362 L1085.591 142.362 L1085.591 177.795 L888.74 177.795 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+    <path d="M1411.14 142.362 L1607.991 142.362 L1607.991 177.795 L1411.14 177.795 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
   </g>
   <g id="key28_text6">
-    <path d="M892.677 142.362 L1081.654 142.362 L1081.654 176.22 L892.677 176.22 Z" fill="none" stroke="none"/>
-    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="892.677" y="164.213">Data Store</tspan></text>
+    <path d="M1415.077 142.362 L1604.054 142.362 L1604.054 176.22 L1415.077 176.22 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1415.077" y="164.213">Data Store</tspan></text>
   </g>
   <g id="key28_cell7">
-    <path d="M810 177.795 L888.74 177.795 L888.74 213.228 L810 213.228 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+    <path d="M1332.4 177.795 L1411.14 177.795 L1411.14 213.228 L1332.4 213.228 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
   </g>
   <g id="key28_text7">
-    <path d="M813.937 177.795 L884.803 177.795 L884.803 211.654 L813.937 211.654 Z" fill="none" stroke="none"/>
+    <path d="M1336.337 177.795 L1407.203 177.795 L1407.203 211.654 L1336.337 211.654 Z" fill="none" stroke="none"/>
   </g>
   <g id="key28_cell8">
-    <path d="M888.74 177.795 L1085.591 177.795 L1085.591 213.228 L888.74 213.228 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+    <path d="M1411.14 177.795 L1607.991 177.795 L1607.991 213.228 L1411.14 213.228 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
   </g>
   <g id="key28_text8">
-    <path d="M892.677 177.795 L1081.654 177.795 L1081.654 211.654 L892.677 211.654 Z" fill="none" stroke="none"/>
-    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="892.677" y="199.646">External Entity</tspan></text>
+    <path d="M1415.077 177.795 L1604.054 177.795 L1604.054 211.654 L1415.077 211.654 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1415.077" y="199.646">External Entity</tspan></text>
   </g>
   <g id="key28_cell9">
-    <path d="M810 213.228 L888.74 213.228 L888.74 248.661 L810 248.661 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+    <path d="M1332.4 213.228 L1411.14 213.228 L1411.14 248.661 L1332.4 248.661 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
   </g>
   <g id="key28_text9">
-    <path d="M813.937 213.228 L884.803 213.228 L884.803 247.087 L813.937 247.087 Z" fill="none" stroke="none"/>
+    <path d="M1336.337 213.228 L1407.203 213.228 L1407.203 247.087 L1336.337 247.087 Z" fill="none" stroke="none"/>
   </g>
   <g id="key28_cell10">
-    <path d="M888.74 213.228 L1085.591 213.228 L1085.591 248.661 L888.74 248.661 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+    <path d="M1411.14 213.228 L1607.991 213.228 L1607.991 248.661 L1411.14 248.661 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
   </g>
   <g id="key28_text10">
-    <path d="M892.677 213.228 L1081.654 213.228 L1081.654 247.087 L892.677 247.087 Z" fill="none" stroke="none"/>
-    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="892.677" y="235.079">Flow (square)</tspan></text>
+    <path d="M1415.077 213.228 L1604.054 213.228 L1604.054 247.087 L1415.077 247.087 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1415.077" y="235.079">Flow (square)</tspan></text>
   </g>
   <g id="key28_s0">
-    <path d="M830.291 81.433 C830.291 78.119 832.977 75.433 836.291 75.433 L862.449 75.433 C865.763 75.433 868.449 78.119 868.449 81.433 L868.449 96.992 C868.449 100.306 865.763 102.992 862.449 102.992 L836.291 102.992 C832.977 102.992 830.291 100.306 830.291 96.992 Z" fill="#fffafa" stroke="#c0392b" stroke-width="1.5" stroke-dasharray="6 4.5"/>
+    <path d="M1352.691 81.433 C1352.691 78.119 1355.377 75.433 1358.691 75.433 L1384.849 75.433 C1388.163 75.433 1390.849 78.119 1390.849 81.433 L1390.849 96.992 C1390.849 100.306 1388.163 102.992 1384.849 102.992 L1358.691 102.992 C1355.377 102.992 1352.691 100.306 1352.691 96.992 Z" fill="#fffafa" stroke="#c0392b" stroke-width="1.5" stroke-dasharray="6 4.5"/>
   </g>
   <g id="key28_s1">
-    <path d="M833.937 110.866 L864.803 110.866 C866.763 110.866 867.743 111.601 867.743 113.071 L867.743 136.22 C867.743 137.69 866.763 138.425 864.803 138.425 L833.937 138.425 C831.977 138.425 830.997 137.69 830.997 136.22 L830.997 113.071 C830.997 111.601 831.977 110.866 833.937 110.866 Z" fill="#e4f2ec" stroke="#2d6e58" stroke-width="1.5"/>
-    <path d="M830.997 118.031 L867.743 118.031" fill="none" stroke="#2d6e58" stroke-width="1.5"/>
+    <path d="M1356.337 110.866 L1387.203 110.866 C1389.163 110.866 1390.143 111.601 1390.143 113.071 L1390.143 136.22 C1390.143 137.69 1389.163 138.425 1387.203 138.425 L1356.337 138.425 C1354.377 138.425 1353.397 137.69 1353.397 136.22 L1353.397 113.071 C1353.397 111.601 1354.377 110.866 1356.337 110.866 Z" fill="#e4f2ec" stroke="#2d6e58" stroke-width="1.5"/>
+    <path d="M1353.397 118.031 L1390.143 118.031" fill="none" stroke="#2d6e58" stroke-width="1.5"/>
   </g>
   <g id="key28_s2">
-    <path d="M880.866 150.84 L817.874 150.84 L817.874 169.318 L880.866 169.318 M829.213 150.84 L829.213 169.318" fill="none" stroke="#84523c" stroke-width="1.5"/>
+    <path d="M1403.266 150.84 L1340.274 150.84 L1340.274 169.318 L1403.266 169.318 M1351.613 150.84 L1351.613 169.318" fill="none" stroke="#84523c" stroke-width="1.5"/>
   </g>
   <g id="key28_s3">
-    <path d="M823.533 181.732 L872.106 181.732 L872.106 206.535 L823.533 206.535 Z" fill="#eef1f4" stroke="#46535f" stroke-width="1.5"/>
-    <path d="M872.106 184.488 L875.207 184.488 L875.207 209.291 L826.634 209.291 L826.634 206.535" fill="none" stroke="#46535f" stroke-width="1.5"/>
+    <path d="M1345.933 181.732 L1394.506 181.732 L1394.506 206.535 L1345.933 206.535 Z" fill="#eef1f4" stroke="#46535f" stroke-width="1.5"/>
+    <path d="M1394.506 184.488 L1397.607 184.488 L1397.607 209.291 L1349.034 209.291 L1349.034 206.535" fill="none" stroke="#46535f" stroke-width="1.5"/>
   </g>
   <g id="key28_s4a">
-    <path d="M817.874 230.445 L818.874 230.445 L818.874 231.445 L817.874 231.445 Z" fill="none" stroke="none"/>
+    <path d="M1340.274 230.445 L1341.274 230.445 L1341.274 231.445 L1340.274 231.445 Z" fill="none" stroke="none"/>
   </g>
   <g id="key28_s4b">
-    <path d="M879.866 230.445 L880.866 230.445 L880.866 231.445 L879.866 231.445 Z" fill="none" stroke="none"/>
+    <path d="M1402.266 230.445 L1403.266 230.445 L1403.266 231.445 L1402.266 231.445 Z" fill="none" stroke="none"/>
   </g>
   <g id="c15">
-    <path d="M650 72 L600 72 L600 82.5 L191.75 82.5 L191.75 138.5 L191.75 138.5" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
-    <path d="M180 138.5 L191.75 133.8 L191.75 143.2 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
-    <rect x="370.65" y="73.5" width="43.2" height="18" fill="#ffffff"/>
-    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="392.25" y="86.7">order</tspan></text>
+    <path d="M160 113.5 L313.85 113.5 L313.85 128 L313.85 128" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M325.6 128 L313.85 132.7 L313.85 123.3 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <rect x="228.45" y="104.5" width="43.2" height="18" fill="#ffffff"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="250.05" y="117.7">order</tspan></text>
   </g>
   <g id="c17">
-    <path d="M180 138.5 L210 138.5 L210 114.5 L228.25 114.5" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
-    <path d="M240 114.5 L228.25 119.2 L228.25 109.8 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
-    <rect x="163.2" y="117.5" width="93.6" height="18" fill="#ffffff"/>
-    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="210" y="130.7">order record</tspan></text>
+    <path d="M445.6 131 L518.4 131 L518.4 110 L579.45 110" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M591.2 110 L579.45 114.7 L579.45 105.3 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <rect x="471.6" y="111.5" width="93.6" height="18" fill="#ffffff"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="518.4" y="124.7">order record</tspan></text>
   </g>
   <g id="c19">
-    <path d="M390 114.5 L420 114.5 L420 138.5 L438.25 138.5" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
-    <path d="M450 138.5 L438.25 143.2 L438.25 133.8 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
-    <rect x="380.4" y="117.5" width="79.2" height="18" fill="#ffffff"/>
-    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="420" y="130.7">amount due</tspan></text>
+    <path d="M741.2 110 L814 110 L814 131 L875.05 131" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M886.8 131 L875.05 135.7 L875.05 126.3 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <rect x="774.4" y="111.5" width="79.2" height="18" fill="#ffffff"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="814" y="124.7">amount due</tspan></text>
   </g>
   <g id="c21">
-    <path d="M570 138.5 L607 138.5 L607 176 L638.25 176" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
-    <path d="M650 176 L638.25 180.7 L638.25 171.3 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
-    <rect x="581.8" y="151.25" width="50.4" height="18" fill="#ffffff"/>
-    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="607" y="164.45">charge</tspan></text>
+    <path d="M1006.8 140 L1160.65 140 L1160.65 125.5 L1160.65 125.5" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M1172.4 125.5 L1160.65 130.2 L1160.65 120.8 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <rect x="1071.65" y="131" width="50.4" height="18" fill="#ffffff"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="1096.85" y="144.2">charge</tspan></text>
   </g>
   <g id="c23">
-    <path d="M650 176 L613 176 L613 138.5 L581.75 138.5" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
-    <path d="M570 138.5 L581.75 133.8 L581.75 143.2 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
-    <rect x="580.6" y="145.25" width="64.8" height="18" fill="#ffffff"/>
-    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="613" y="158.45">approval</tspan></text>
+    <path d="M1172.4 113.5 L1018.55 113.5 L1018.55 128 L1018.55 128" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M1006.8 128 L1018.55 123.3 L1018.55 132.7 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <rect x="1049.95" y="104.5" width="64.8" height="18" fill="#ffffff"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="1082.35" y="117.7">approval</tspan></text>
   </g>
   <g id="c25">
-    <path d="M450 138.5 L400 138.5 L400 146.5 L191.75 146.5 L191.75 138.5 L191.75 138.5" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
-    <path d="M180 138.5 L191.75 133.8 L191.75 143.2 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
-    <rect x="286.2" y="137.5" width="57.6" height="18" fill="#ffffff"/>
-    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="315" y="150.7">receipt</tspan></text>
+    <path d="M886.8 137 L876.8 137 L876.8 143 L457.35 143 L457.35 137 L457.35 137" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M445.6 137 L457.35 132.3 L457.35 141.7 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <rect x="637.4" y="134" width="57.6" height="18" fill="#ffffff"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="666.2" y="147.2">receipt</tspan></text>
   </g>
   <g id="c27">
-    <path d="M120 93.5 L120 82.5 L638.25 82.5 L638.25 72 L638.25 72" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
-    <path d="M650 72 L638.25 76.7 L638.25 67.3 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
-    <rect x="337.95" y="73.5" width="93.6" height="18" fill="#ffffff"/>
-    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="384.75" y="86.7">confirmation</tspan></text>
+    <path d="M325.6 140 L171.75 140 L171.75 125.5 L171.75 125.5" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M160 125.5 L171.75 120.8 L171.75 130.2 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <rect x="188.75" y="131" width="93.6" height="18" fill="#ffffff"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="235.55" y="144.2">confirmation</tspan></text>
   </g>
   <g id="key28_s4c">
-    <path d="M818.874 230.945 L868.116 230.945" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
-    <path d="M879.866 230.945 L868.116 235.645 L868.116 226.245 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M1341.274 230.945 L1390.516 230.945" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M1402.266 230.945 L1390.516 235.645 L1390.516 226.245 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
   </g>
 </svg>
