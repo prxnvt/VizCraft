@@ -394,7 +394,12 @@ fn issue(rule: &RuleDecl, what: &str, subjects: Vec<String>, doc: &Document) -> 
             }
         }
     }
-    let mut i = Issue::new(rule.id.clone(), rule.severity, crate::rules::message(&rule.description, what)).with_subjects(subjects).with_items(items);
+    // Each sheet finding is a whole sentence about the problem ("Legal owner is empty."), so the
+    // message is the finding alone; the rule's description, which states what should hold, would
+    // read as part of the problem. The Problems panel shows the rule beside it.
+    let mut i = Issue::new(rule.id.clone(), rule.severity, crate::rules::cut(what.trim(), crate::rules::MAX_MESSAGE))
+        .with_subjects(subjects)
+        .with_items(items);
     i.page = page.flatten().and_then(|p| doc.pages.get(p)).map(|p| p.id.clone());
     i
 }

@@ -33,6 +33,16 @@ pub fn specs() -> Vec<CommandSpec> {
     ]
 }
 
+/// Set the document's title. The title property (`properties.title`, the ISO 7200 title field
+/// the title block, the exports and `doc.properties` read) is the one title; the plain
+/// `Document.title` is kept equal to it so the window title and older readers agree.
+/// `edit.setTitle`, `doc.setProperties` and `doc.setProperty {key: "title"}` all end here.
+pub fn write_title(doc: &mut vizcraft_diagram::Document, title: &str) {
+    doc.properties.title = title.to_string();
+    doc.properties.sanitize();
+    doc.title = doc.properties.title.clone();
+}
+
 fn properties_json(p: &DocProperties) -> Value {
     json!({"title": p.title, "subject": p.subject, "author": p.author, "keywords": p.keywords, "description": p.description})
 }
@@ -48,10 +58,14 @@ fn set_properties(s: &mut Session, v: &Value) -> CmdResult {
     if given.is_empty() {
         return Err(EngineError::Params("give at least one of title, subject, author, keywords, description".into()));
     }
+    if let Some((_, t)) = given.iter().find(|(k, _)| *k == "title") {
+        let t = t.clone();
+        write_title(&mut s.doc, &t);
+    }
     let p = &mut s.doc.properties;
     for (k, t) in given {
         match k {
-            "title" => p.title = t,
+            "title" => {}
             "subject" => p.subject = t,
             "author" => p.author = t,
             "keywords" => p.keywords = t,
@@ -102,18 +116,21 @@ fn set_property(s: &mut Session, v: &Value) -> CmdResult {
     if d.kind == PropKind::Enum && !value.is_empty() && !d.values.contains(&value) {
         return Err(EngineError::Params(format!("`{key}` must be one of {}", d.values.join(", "))));
     }
-    let props = &mut s.doc.properties;
     if key == "title" {
-        props.title = value.clone();
-    } else if value.is_empty() {
-        props.fields.remove(key);
+        write_title(&mut s.doc, &value);
     } else {
-        if !props.fields.contains_key(key) && props.fields.len() >= DocProperties::MAX_FIELDS {
-            return Err(EngineError::Params(format!("a document keeps at most {} named properties", DocProperties::MAX_FIELDS)));
+        let props = &mut s.doc.properties;
+        if value.is_empty() {
+            props.fields.remove(key);
+        } else {
+            if !props.fields.contains_key(key) && props.fields.len() >= DocProperties::MAX_FIELDS {
+                return Err(EngineError::Params(format!("a document keeps at most {} named properties", DocProperties::MAX_FIELDS)));
+            }
+            props.fields.insert(key.to_string(), value.clone());
         }
-        props.fields.insert(key.to_string(), value.clone());
+        props.sanitize();
     }
-    props.sanitize();
+    let props = &s.doc.properties;
     let stored = if key == "title" { props.title.clone() } else { props.fields.get(key).cloned().unwrap_or_default() };
     let mut out = json!({"key": key, "value": stored});
     if let (Some(i), Some(o)) = (value_issue(d, &stored), out.as_object_mut()) {
@@ -295,6 +312,28 @@ mod tests {
         assert!(s.run("doc.setProperties", &json!({"title": 4})).is_err());
         run(&mut s, "doc.setProperties", json!({"title": "x".repeat(5000)}));
         assert_eq!(s.doc.properties.title.len(), DocProperties::MAX_SHORT);
+    }
+
+    /// Regression: the Inspector's title (`edit.setTitle`) and the ISO 7200 title field
+    /// (`doc.setProperty {key: "title"}`) were two keys that disagreed. Every writer now sets the
+    /// one title, and an old document whose two fields differ reads the property.
+    #[test]
+    fn every_title_writer_sets_the_one_title() {
+        let mut s = loaded();
+        run(&mut s, "doc.setProperty", json!({"key": "title", "value": "Pump skid"}));
+        assert_eq!((s.doc.title.as_str(), s.doc.properties.title.as_str()), ("Pump skid", "Pump skid"));
+        run(&mut s, "edit.setTitle", json!({"title": "Wiring"}));
+        assert_eq!((s.doc.title.as_str(), s.doc.properties.title.as_str()), ("Wiring", "Wiring"));
+        let listed = run(&mut s, "doc.properties", json!({}));
+        let row = listed["properties"].as_array().unwrap().iter().find(|p| p["key"] == "title").cloned().unwrap();
+        assert_eq!(row["value"], "Wiring", "doc.properties reads what edit.setTitle wrote");
+        run(&mut s, "doc.setProperties", json!({"title": "Plant"}));
+        assert_eq!((s.doc.title.as_str(), s.doc.properties.title.as_str()), ("Plant", "Plant"));
+        // A document saved before the fix with two different titles: the property wins.
+        let mut doc = vizcraft_diagram::Document::new();
+        doc.title = "Old window title".into();
+        doc.properties.title = "Title block title".into();
+        assert_eq!(vizcraft_diagram::text_fields::doc_value(&doc, 0, "title"), "Title block title");
     }
 
     #[test]

@@ -127,6 +127,13 @@ fn the_title_block_follows_set_properties_and_refresh_is_idempotent() {
     // The mandatory fields rule reports the empty ones.
     assert!(s.issues.iter().any(|i| i.rule == "sheet.mandatoryFields"));
     assert!(s.issues.iter().any(|i| i.rule == "sheet.fieldLength"));
+    // Regression: the message states only the problem, not the rule's description first.
+    run(&mut s, "doc.setProperty", json!({"key": "legalOwner", "value": null}));
+    let owner = s.issues.iter().find(|i| i.rule == "sheet.mandatoryFields" && i.message.contains("Legal owner")).expect("legal owner reported");
+    assert_eq!(owner.message, "Legal owner is empty.");
+    assert!(s.issues.iter().filter(|i| i.rule.starts_with("sheet.")).all(|i| !i.message.starts_with("The title block")));
+    let long = s.issues.iter().find(|i| i.rule == "sheet.fieldLength").unwrap();
+    assert!(long.message.starts_with("Identification number has 19 characters"), "{}", long.message);
     run(&mut s, "doc.setProperty", json!({"key": "legalOwner", "value": null}));
     assert!(!s.doc.properties.fields.contains_key("legalOwner"));
     refused(&mut s, "doc.setProperty", json!({"key": "nope", "value": "x"}));
