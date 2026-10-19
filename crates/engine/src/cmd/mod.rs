@@ -52,6 +52,7 @@ pub mod shapeop;
 pub mod sheet;
 pub mod suggest;
 pub mod table;
+pub mod template;
 pub mod text;
 pub mod validate;
 pub mod variant;
@@ -126,6 +127,7 @@ pub fn registry() -> Registry {
     v.extend(generate::specs());
     v.extend(net::specs());
     v.extend(wire::specs());
+    v.extend(template::specs());
     Registry::new(v)
 }
 

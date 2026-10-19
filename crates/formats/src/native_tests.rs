@@ -1377,3 +1377,21 @@ fn glyph_builder_state_round_trips_and_old_shapes_write_as_before() {
     junk["document"]["pages"][0]["shapes"][0]["glyph"] = json!("not a glyph");
     assert!(load(&serde_json::to_vec(&junk).unwrap()).unwrap().page().unwrap().shapes[0].glyph.is_none());
 }
+
+#[test]
+fn project_standards_round_trip_and_an_old_file_loads_with_none() {
+    use vizcraft_diagram::standards::Standards;
+    let mut doc = modelled();
+    doc.standards = Standards { symbols: "jic".into(), sheet: "ansi.b.landscape".into() };
+    let bytes = save(&doc).unwrap();
+    assert_eq!(parse(&bytes)["document"]["standards"], json!({"symbols": "jic", "sheet": "ansi.b.landscape"}));
+    assert_eq!(load(&bytes).unwrap().standards, doc.standards);
+    // A file written before the field existed, and a junk value, read as the defaults.
+    let free = save(&Document::new()).unwrap();
+    assert!(parse(&free)["document"].get("standards").is_none());
+    let old = load(&free).unwrap();
+    assert_eq!((old.standards.symbols(), old.standards.sheet()), ("iec", "iso.a3.landscape"));
+    let mut junk = parse(&free);
+    junk["document"]["standards"] = json!(7);
+    assert_eq!(load(&serde_json::to_vec(&junk).unwrap()).unwrap().standards, Standards::default());
+}

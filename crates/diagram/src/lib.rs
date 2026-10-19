@@ -61,6 +61,7 @@ pub mod shape_fields;
 pub mod shapeop;
 pub mod sheet;
 pub mod snap;
+pub mod standards;
 pub mod style_fields;
 pub mod text_fields;
 pub mod theme;

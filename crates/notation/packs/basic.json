@@ -260,5 +260,13 @@
         "basic.cloud"
       ]
     }
+  ],
+  "templates": [
+    {
+      "id": "basic.blank",
+      "label": "Blank Drawing",
+      "description": "An empty page for free drawing with the basic shapes.",
+      "keywords": ["blank", "empty", "drawing", "sketch"]
+    }
   ]
 }

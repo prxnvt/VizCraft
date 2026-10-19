@@ -55,8 +55,10 @@ pub struct Pack {
     /// Named sets of rules a document can be held to (`flowchart.iso5807`); the first is the one
     /// a document gets when it starts using the pack.
     pub rulesets: Vec<Ruleset>,
-    /// Template ids the pack supports (none yet).
-    pub templates: Vec<String>,
+    /// Starting points the pack offers (see [`crate::template`]); old bare-string entries are
+    /// dropped when the pack loads.
+    #[serde(deserialize_with = "crate::template::entries")]
+    pub templates: Vec<crate::template::Template>,
     /// Pattern ids the pack supports (none yet).
     pub patterns: Vec<String>,
     /// Exporter ids the pack supports (none yet).

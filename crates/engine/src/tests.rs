@@ -69,7 +69,8 @@ fn registry_ids_are_unique_and_prefixed() {
                 "generate",
                 "net",
                 "wire",
-                "glyph"
+                "glyph",
+                "template"
             ]
             .contains(&prefix),
             "{}: unexpected prefix",
@@ -137,6 +138,8 @@ fn hostile_params_never_panic() {
         json!({"sheet": "asme.e.portrait", "zones": {"cols": 99, "rows": 24}, "number": 9999, "key": "title", "value": "x".repeat(70_000), "x": 1e308, "y": -1e308, "index": 1e20, "all": true, "scope": "\u{0}"}),
         json!({"builder": "contact", "glyph": 7, "params": {"poles": 1e308, "form": [], "tag": "y".repeat(5000)}, "module": -1e308, "ids": ["s2"]}),
         json!({"builder": "\u{0}", "params": {"standard": "jic", "poles": "NaN", "": 1, "paths": "P-Q;;;X|"}, "module": "a", "id": "s2", "page": "\u{0}"}),
+        json!({"template": "flowchart.decision", "variant": 5, "sheet": {}, "path": {}}),
+        json!({"template": "x".repeat(1000)}),
         nested_batches(40),
     ];
     for spec in reg.all() {

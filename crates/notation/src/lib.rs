@@ -18,6 +18,7 @@
 //! - [`drawing`]: the drawing checks of the built-in Drawing pack.
 //! - [`glob`]: the name patterns of the `nameFormat` check.
 //! - [`cases`]: pack test cases (a document, a profile and the issues expected).
+//! - [`template`]: templates, the starting points a pack offers, and their checks.
 //! - [`bind`]: the sync pass that keeps model and views in step after every command;
 //!   [`bind_nets`]: its net pass, which keeps nets, wire segments and junctions consistent.
 //! - [`sheet_pass`]: the drawing-sheet part of that pass (tables, balloons, cross references).
@@ -38,6 +39,7 @@ pub mod loader;
 pub mod rules;
 pub mod schema;
 pub mod sheet_pass;
+pub mod template;
 pub mod validate;
 
 pub use catalog::{Catalog, catalog};
@@ -46,3 +48,4 @@ pub use schema::{
     Check, CompareOp, ConditionalStyle, Connection, ConnectorType, ElementType, Glyph, Pack, PaletteGroup, Port, PortDirection, PropKind,
     PropertySchema, RelationshipType, RuleDecl, RuleMode, Ruleset, Variant, Viewpoint,
 };
+pub use template::Template;

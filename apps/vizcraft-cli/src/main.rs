@@ -15,6 +15,9 @@
 //!                      [--types T,T] [--against FILE] [--check] [--json]
 //!                                                            graph analysis or model compare; --check for CI
 //! vizcraft-cli glyph BUILDER [--param K=V]... [--module N] one parametric glyph as SVG on stdout
+//! vizcraft-cli new --template ID [--variant V] [--sheet S] [--svg PREVIEW.svg] [--json] OUT
+//!                                                            a new document from a template
+//! vizcraft-cli new --list [--audience A] [--json]           the templates the packs offer
 //! vizcraft-cli control HOST:PORT METHOD [JSON]             one request to a running app, reply on stdout
 //! vizcraft-cli control HOST:PORT -                         forward request lines from stdin, one reply each
 //! vizcraft-cli mcp [--connect ADDR | --headless]           MCP server on stdio, driving the running app or,
@@ -38,6 +41,7 @@ use vizcraft_engine::{Document, Session};
 mod analyze;
 mod generate;
 mod glyph;
+mod new;
 mod validate;
 
 const USAGE: &str = "\
@@ -68,6 +72,10 @@ USAGE:
   vizcraft-cli glyph BUILDER [--param KEY=VALUE]... [--module N]
                                                          draw one parametric glyph (a builder name or a
                                                          pack glyph id) and print its SVG; warnings on stderr
+  vizcraft-cli new --template ID [--variant V] [--sheet S] [--svg PREVIEW.svg] [--json] OUT
+                                                         a new document drawn from a template, saved to OUT;
+                                                         --svg also writes its preview
+  vizcraft-cli new --list [--audience A] [--json]     the templates the notation packs offer
   vizcraft-cli control HOST:PORT METHOD [JSON]         one request to a running app (started with --control PORT)
   vizcraft-cli control HOST:PORT -                     forward request lines from stdin, one reply line each
   vizcraft-cli mcp [--connect ADDR | --headless]      MCP server (JSON-RPC on stdin and stdout). --connect drives
@@ -104,6 +112,7 @@ fn main() -> ExitCode {
         Some("generate") => generate::generate(&args[1..]),
         Some("analyze") => analyze::analyze(&args[1..]),
         Some("glyph") => glyph::glyph(&args[1..]),
+        Some("new") => new::new(&args[1..]),
         Some("control") => control(&args[1..]),
         Some("mcp") => mcp(&args[1..]),
         Some("--version" | "-V") => {

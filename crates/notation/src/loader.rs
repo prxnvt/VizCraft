@@ -92,6 +92,7 @@ fn finish(mut pack: Pack) -> Result<Pack, NotationError> {
     problems.extend(builder_glyphs(&pack));
     problems.extend(variants(&pack));
     problems.extend(sheet_fields(&pack));
+    problems.extend(crate::template::check(&pack));
     if !problems.is_empty() {
         return Err(NotationError::Invalid(problems));
     }
