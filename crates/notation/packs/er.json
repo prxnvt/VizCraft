@@ -799,8 +799,8 @@
             ],
             "headers": [
               "",
-              "Column",
-              "Type"
+              "",
+              ""
             ],
             "widths": [
               40,
@@ -877,8 +877,8 @@
             ],
             "headers": [
               "",
-              "Column",
-              "Type"
+              "",
+              ""
             ],
             "widths": [
               40,
@@ -1416,7 +1416,7 @@
               ],
               "headers": [
                 "",
-                "Attribute"
+                ""
               ],
               "widths": [
                 30,
@@ -1488,7 +1488,7 @@
               ],
               "headers": [
                 "",
-                "Attribute"
+                ""
               ],
               "widths": [
                 30,

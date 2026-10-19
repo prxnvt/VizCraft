@@ -8,11 +8,11 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::Shape;
 use crate::geom::{Path, Point, Rect, finite, polyline_length};
 use crate::kind::ShapeKind;
 use crate::serde_util::is_default;
 use crate::style_fields::Dash;
+use crate::{Shape, Style};
 
 /// How one half of a connector line is drawn.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -175,6 +175,21 @@ pub fn inner_outline(s: &Shape) -> Option<Path> {
         }
         _ => None,
     }
+}
+
+/// Rough advance width of one label character as a multiple of the font size.
+const LABEL_CHAR_WIDTH: f64 = 0.6;
+/// Label line height as a multiple of the font size.
+const LABEL_LINE_HEIGHT: f64 = 1.2;
+
+/// The size (width, height) of the box a connector label `text` takes in style `st`, in world
+/// units: the same estimate the SVG export draws its label box with (0.6 em a character, 1.2 em a
+/// line, bullets and case applied), so a badge or a router can keep clear of the label.
+pub fn label_size(text: &str, st: &Style) -> (f64, f64) {
+    let size = finite(st.font_size, 12.0).clamp(1.0, Style::MAX_FONT_SIZE);
+    let lines: Vec<String> = text.lines().enumerate().map(|(i, l)| format!("{}{}", st.bullets.marker(i), st.text_case.apply(l))).collect();
+    let longest = lines.iter().map(|l| l.chars().count()).max().unwrap_or(0) as f64;
+    (longest * size * LABEL_CHAR_WIDTH + size * 0.6, lines.len().max(1) as f64 * size * LABEL_LINE_HEIGHT + size * 0.3)
 }
 
 /// The frame around a label of `w` by `h` centred on `center`: the box itself, or a diamond

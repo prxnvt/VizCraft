@@ -719,13 +719,15 @@ fn the_connector_tab_kind_menu_marks_the_selected_connectors_kind() {
 }
 
 #[test]
-fn the_arrow_menus_offer_all_thirteen_ends_and_mark_the_current_one() {
+fn the_arrow_menus_offer_every_end_and_mark_the_current_one() {
     let (mut h, conn) = connector_tab(1280.0);
     let ends = |h: &Harness| h.state().session.doc.page().and_then(|p| p.connector(&conn)).map(|c| (c.start_arrow, c.end_arrow)).unwrap();
     // The sample's connectors have no start end and a triangle at the end.
     let rows = open_menu(&mut h, "End Arrow");
-    assert_eq!(rows.len(), vizcraft_diagram::Arrow::ALL.len());
-    for label in ["None", "Hollow triangle", "Crow's foot with bar", "Crow's foot with circle", "Bar with circle", "Hollow circle"] {
+    assert_eq!(rows.len(), vizcraft_diagram::Arrow::EVERY.len());
+    for label in
+        ["None", "Hollow triangle", "Crow's foot with bar", "Crow's foot with circle", "Bar with circle", "Hollow circle", "Double bar", "Dot"]
+    {
         assert!(rows.iter().any(|(l, _)| l == label), "{label} is missing: {rows:?}");
     }
     assert_eq!(marked(&rows), ["Triangle"]);
@@ -736,7 +738,7 @@ fn the_arrow_menus_offer_all_thirteen_ends_and_mark_the_current_one() {
     h.get_by_label("Crow's foot with bar").click();
     h.run_steps(3);
     let rows = open_menu(&mut h, "Start Arrow");
-    assert_eq!(rows.len(), vizcraft_diagram::Arrow::ALL.len());
+    assert_eq!(rows.len(), vizcraft_diagram::Arrow::EVERY.len());
     assert_eq!(marked(&rows), ["None"]);
     h.get_by_label("Hollow diamond").click();
     h.run_steps(4);

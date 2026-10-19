@@ -210,7 +210,7 @@
   </g>
   <g id="p2-tb-label0">
     <path d="M909.449 974.016 L1003.937 974.016 L1003.937 985.827 L909.449 985.827 Z" fill="none" stroke="none"/>
-    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="909.449" y="983.633">Responsible dept.</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="913.386" y="983.633">Responsible dept.</tspan></text>
   </g>
   <g id="p2-tb-text0">
     <path d="M909.449 985.827 L1003.937 985.827 L1003.937 1002.362 L909.449 1002.362 Z" fill="none" stroke="none"/>
@@ -220,7 +220,7 @@
   </g>
   <g id="p2-tb-label1">
     <path d="M1011.811 974.016 L1137.795 974.016 L1137.795 985.827 L1011.811 985.827 Z" fill="none" stroke="none"/>
-    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1011.811" y="983.633">Technical reference</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1015.748" y="983.633">Technical reference</tspan></text>
   </g>
   <g id="p2-tb-text1">
     <path d="M1011.811 985.827 L1137.795 985.827 L1137.795 1002.362 L1011.811 1002.362 Z" fill="none" stroke="none"/>
@@ -230,7 +230,7 @@
   </g>
   <g id="p2-tb-label2">
     <path d="M1145.669 974.016 L1275.591 974.016 L1275.591 985.827 L1145.669 985.827 Z" fill="none" stroke="none"/>
-    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1145.669" y="983.633">Created by</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1149.606" y="983.633">Created by</tspan></text>
   </g>
   <g id="p2-tb-text2">
     <path d="M1145.669 985.827 L1275.591 985.827 L1275.591 1002.362 L1145.669 1002.362 Z" fill="none" stroke="none"/>
@@ -240,7 +240,7 @@
   </g>
   <g id="p2-tb-label3">
     <path d="M1283.465 974.016 L1413.386 974.016 L1413.386 985.827 L1283.465 985.827 Z" fill="none" stroke="none"/>
-    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1283.465" y="983.633">Approved by</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1287.402" y="983.633">Approved by</tspan></text>
   </g>
   <g id="p2-tb-text3">
     <path d="M1283.465 985.827 L1413.386 985.827 L1413.386 1002.362 L1283.465 1002.362 Z" fill="none" stroke="none"/>
@@ -250,7 +250,7 @@
   </g>
   <g id="p2-tb-label4">
     <path d="M1421.26 974.016 L1610.236 974.016 L1610.236 985.827 L1421.26 985.827 Z" fill="none" stroke="none"/>
-    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1421.26" y="983.633">Document type</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1425.197" y="983.633">Document type</tspan></text>
   </g>
   <g id="p2-tb-text4">
     <path d="M1421.26 985.827 L1610.236 985.827 L1610.236 1002.362 L1421.26 1002.362 Z" fill="none" stroke="none"/>
@@ -260,7 +260,7 @@
   </g>
   <g id="p2-tb-label5">
     <path d="M909.449 1005.512 L1003.937 1005.512 L1003.937 1017.323 L909.449 1017.323 Z" fill="none" stroke="none"/>
-    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="909.449" y="1015.129">Classification</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="913.386" y="1015.129">Classification</tspan></text>
   </g>
   <g id="p2-tb-text5">
     <path d="M909.449 1017.323 L1003.937 1017.323 L1003.937 1033.858 L909.449 1033.858 Z" fill="none" stroke="none"/>
@@ -270,7 +270,7 @@
   </g>
   <g id="p2-tb-label6">
     <path d="M1011.811 1005.512 L1137.795 1005.512 L1137.795 1017.323 L1011.811 1017.323 Z" fill="none" stroke="none"/>
-    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1011.811" y="1015.129">Document status</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1015.748" y="1015.129">Document status</tspan></text>
   </g>
   <g id="p2-tb-text6">
     <path d="M1011.811 1017.323 L1137.795 1017.323 L1137.795 1033.858 L1011.811 1033.858 Z" fill="none" stroke="none"/>
@@ -280,7 +280,7 @@
   </g>
   <g id="p2-tb-label7">
     <path d="M1145.669 1005.512 L1275.591 1005.512 L1275.591 1017.323 L1145.669 1017.323 Z" fill="none" stroke="none"/>
-    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1145.669" y="1015.129">Date of issue</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1149.606" y="1015.129">Date of issue</tspan></text>
   </g>
   <g id="p2-tb-text7">
     <path d="M1145.669 1017.323 L1275.591 1017.323 L1275.591 1033.858 L1145.669 1033.858 Z" fill="none" stroke="none"/>
@@ -290,7 +290,7 @@
   </g>
   <g id="p2-tb-label8">
     <path d="M1283.465 1005.512 L1334.646 1005.512 L1334.646 1017.323 L1283.465 1017.323 Z" fill="none" stroke="none"/>
-    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1283.465" y="1015.129">Lang.</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1287.402" y="1015.129">Lang.</tspan></text>
   </g>
   <g id="p2-tb-text8">
     <path d="M1283.465 1017.323 L1334.646 1017.323 L1334.646 1033.858 L1283.465 1033.858 Z" fill="none" stroke="none"/>
@@ -300,29 +300,29 @@
   </g>
   <g id="p2-tb-label9">
     <path d="M1342.52 1005.512 L1413.386 1005.512 L1413.386 1017.323 L1342.52 1017.323 Z" fill="none" stroke="none"/>
-    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1342.52" y="1015.129">Size</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1346.457" y="1015.129">Size</tspan></text>
   </g>
   <g id="p2-tb-text9">
     <path d="M1342.52 1017.323 L1413.386 1017.323 L1413.386 1033.858 L1342.52 1033.858 Z" fill="none" stroke="none"/>
-    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1342.52" y="1030.512">A3</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1346.457" y="1030.512">A3</tspan></text>
   </g>
   <g id="p2-tb-cell10">
     <path d="M1417.323 1003.937 L1515.748 1003.937 L1515.748 1035.433 L1417.323 1035.433 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
   </g>
   <g id="p2-tb-label10">
     <path d="M1421.26 1005.512 L1511.811 1005.512 L1511.811 1017.323 L1421.26 1017.323 Z" fill="none" stroke="none"/>
-    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1421.26" y="1015.129">Sheet</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1425.197" y="1015.129">Sheet</tspan></text>
   </g>
   <g id="p2-tb-text10">
     <path d="M1421.26 1017.323 L1511.811 1017.323 L1511.811 1033.858 L1421.26 1033.858 Z" fill="none" stroke="none"/>
-    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1421.26" y="1030.512">1/1</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1425.197" y="1030.512">1/1</tspan></text>
   </g>
   <g id="p2-tb-cell11">
     <path d="M1515.748 1003.937 L1614.173 1003.937 L1614.173 1035.433 L1515.748 1035.433 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
   </g>
   <g id="p2-tb-label11">
     <path d="M1519.685 1005.512 L1610.236 1005.512 L1610.236 1017.323 L1519.685 1017.323 Z" fill="none" stroke="none"/>
-    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1519.685" y="1015.129">Rev.</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1523.622" y="1015.129">Rev.</tspan></text>
   </g>
   <g id="p2-tb-text11">
     <path d="M1519.685 1017.323 L1610.236 1017.323 L1610.236 1033.858 L1519.685 1033.858 Z" fill="none" stroke="none"/>
@@ -332,7 +332,7 @@
   </g>
   <g id="p2-tb-label12">
     <path d="M909.449 1037.008 L1137.795 1037.008 L1137.795 1048.819 L909.449 1048.819 Z" fill="none" stroke="none"/>
-    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="909.449" y="1046.625">Legal owner</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="913.386" y="1046.625">Legal owner</tspan></text>
   </g>
   <g id="p2-tb-text12">
     <path d="M909.449 1048.819 L1137.795 1048.819 L1137.795 1128.346 L909.449 1128.346 Z" fill="none" stroke="none"/>
@@ -342,18 +342,18 @@
   </g>
   <g id="p2-tb-label13">
     <path d="M1145.669 1037.008 L1413.386 1037.008 L1413.386 1048.819 L1145.669 1048.819 Z" fill="none" stroke="none"/>
-    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1145.669" y="1046.625">Title</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1149.606" y="1046.625">Title</tspan></text>
   </g>
   <g id="p2-tb-text13">
     <path d="M1145.669 1048.819 L1413.386 1048.819 L1413.386 1088.976 L1145.669 1088.976 Z" fill="none" stroke="none"/>
-    <text text-anchor="start" font-family="Inter, sans-serif" font-size="28.121" font-weight="bold" fill="#1e2630" xml:space="preserve"><tspan x="1145.669" y="1078.74">Golden</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="28.121" font-weight="bold" fill="#1e2630" xml:space="preserve"><tspan x="1149.606" y="1078.74">Golden</tspan></text>
   </g>
   <g id="p2-tb-cell14">
     <path d="M1141.732 1090.551 L1417.323 1090.551 L1417.323 1129.921 L1141.732 1129.921 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
   </g>
   <g id="p2-tb-label14">
     <path d="M1145.669 1092.126 L1413.386 1092.126 L1413.386 1103.937 L1145.669 1103.937 Z" fill="none" stroke="none"/>
-    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1145.669" y="1101.744">Supplementary title</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1149.606" y="1101.744">Supplementary title</tspan></text>
   </g>
   <g id="p2-tb-text14">
     <path d="M1145.669 1103.937 L1413.386 1103.937 L1413.386 1128.346 L1145.669 1128.346 Z" fill="none" stroke="none"/>
@@ -363,7 +363,7 @@
   </g>
   <g id="p2-tb-label15">
     <path d="M1421.26 1037.008 L1610.236 1037.008 L1610.236 1048.819 L1421.26 1048.819 Z" fill="none" stroke="none"/>
-    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1421.26" y="1046.625">Identification number</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1425.197" y="1046.625">Identification number</tspan></text>
   </g>
   <g id="p2-tb-text15">
     <path d="M1421.26 1048.819 L1610.236 1048.819 L1610.236 1128.346 L1421.26 1128.346 Z" fill="none" stroke="none"/>

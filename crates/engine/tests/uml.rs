@@ -166,6 +166,29 @@ fn a_merging_state_import_owns_states_by_region_and_reimport_keeps_ids_and_posit
     assert!(s.doc.model.relationships.iter().any(|r| r.name == "halt" && r.type_id == "uml.Transition"));
 }
 
+#[test]
+fn a_fork_used_as_a_join_and_a_join_used_as_a_fork_are_reported_at_info_level() {
+    let mut s = blank();
+    run(&mut s, "template.new", json!({"template": "uml.activity"}));
+    let issues = run(&mut s, "validate.run", json!({}));
+    let has = |v: &Value, rule: &str| v["issues"].as_array().unwrap().iter().any(|i| i["rule"] == rule);
+    assert!(!has(&issues, "uml.forkUsedAsJoin") && !has(&issues, "uml.joinUsedAsFork"), "{issues}");
+    let find = |s: &Session, t: &str| s.doc.model.elements.iter().find(|e| e.type_id == t).unwrap().id.clone();
+    let (fork, join) = (find(&s, "uml.ForkNode"), find(&s, "uml.JoinNode"));
+    let a = run(&mut s, "element.create", json!({"type": "uml.Action", "name": "Extra", "x": 0, "y": 0}))["id"].as_str().unwrap().to_string();
+    // A second flow into the fork gives it more in than out only once it also loses outputs, so
+    // add inputs until it does; likewise outputs for the join.
+    for _ in 0..2 {
+        run(&mut s, "relationship.create", json!({"from": a, "to": fork, "type": "uml.ControlFlow"}));
+        run(&mut s, "relationship.create", json!({"from": join, "to": a, "type": "uml.ControlFlow"}));
+    }
+    let issues = run(&mut s, "validate.run", json!({}));
+    for rule in ["uml.forkUsedAsJoin", "uml.joinUsedAsFork"] {
+        let i = issues["issues"].as_array().unwrap().iter().find(|i| i["rule"] == rule).unwrap_or_else(|| panic!("{rule}: {issues}"));
+        assert_eq!(i["severity"], "info");
+    }
+}
+
 const TEMPLATES: [&str; 7] =
     ["uml.classDiagram", "uml.stateMachine", "uml.activity", "uml.useCase", "uml.component", "uml.deployment", "uml.package"];
 

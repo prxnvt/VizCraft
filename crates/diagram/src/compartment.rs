@@ -239,6 +239,11 @@ impl Compartment {
             self.columns.clear();
         }
     }
+    /// Whether a table draws a header row: it has columns and at least one title is not blank.
+    /// A table whose titles are all blank is columns only, so it adds no empty line.
+    pub fn has_header(&self) -> bool {
+        self.kind == CompartmentKind::List && self.columns.iter().any(|c| !c.title.trim().is_empty())
+    }
     /// The editable body: a paragraph's text, a list's rows one per line, nothing for a slot.
     pub fn body_text(&self) -> String {
         match self.kind {
@@ -273,6 +278,8 @@ impl Compartment {
         // Bullets and case belong to the main text; rows draw as typed.
         st.bullets = crate::style_fields::Bullets::None;
         st.text_case = crate::style_fields::TextCase::Normal;
+        // UML italicises an abstract class's name, not its members: rows are upright.
+        st.italic = false;
         st
     }
 }
@@ -362,7 +369,7 @@ pub fn natural_height(s: &Shape, c: &Compartment) -> f64 {
     let title = if c.title.is_some() { lh } else { 0.0 };
     match c.kind {
         CompartmentKind::Paragraph => 2.0 * PAD + title + count_lines(&c.text) as f64 * lh,
-        CompartmentKind::List => 2.0 * PAD + title + (c.rows.len().max(1) + usize::from(!c.columns.is_empty())) as f64 * lh,
+        CompartmentKind::List => 2.0 * PAD + title + (c.rows.len().max(1) + usize::from(c.has_header())) as f64 * lh,
         CompartmentKind::Slot => title + SLOT_MIN,
     }
 }
@@ -412,8 +419,8 @@ pub fn layout(s: &Shape) -> Vec<Band> {
         });
         let body = Rect::new(0.0, top.min(rect.y1), w, (rect.y1 - pad).max(top.min(rect.y1)));
         let table = c.kind == CompartmentKind::List && !c.columns.is_empty();
-        let header = table.then(|| Rect::new(0.0, body.y0, w, (body.y0 + lh).min(rect.y1.max(body.y0))));
-        let first = if table { 1 } else { 0 };
+        let header = (table && c.has_header()).then(|| Rect::new(0.0, body.y0, w, (body.y0 + lh).min(rect.y1.max(body.y0))));
+        let first = usize::from(header.is_some());
         let rows = if c.kind == CompartmentKind::List {
             (0..c.rows.len())
                 .map(|r| Rect::new(0.0, body.y0 + (r + first) as f64 * lh, w, body.y0 + (r + first + 1) as f64 * lh))
@@ -443,6 +450,43 @@ fn column_edges(cols: &[Column], w: f64) -> Vec<f64> {
         *last = w;
     }
     out
+}
+
+/// Width of one character of Inter as a fraction of the font size: a class estimate, shared by
+/// every drawing that has to cut text to a cell.
+fn glyph_em(c: char) -> f64 {
+    match c {
+        'i' | 'l' | 'j' | 't' | 'f' | 'r' | '(' | ')' | '[' | ']' | '.' | ',' | ':' | ';' | '\'' | '|' | '!' | ' ' => 0.3,
+        'm' | 'w' | 'M' | 'W' => 0.9,
+        '0'..='9' => 0.6,
+        c if c.is_uppercase() => 0.68,
+        _ => 0.55,
+    }
+}
+
+/// `text` cut to fit `width` world units at `font_size`. Text that is cut ends in an ellipsis
+/// (U+2026) and the result, ellipsis included, stays within the width by the same estimate. The
+/// estimate is per character class for Inter, not a measurement; draw the result clipped to the
+/// cell so a wider real glyph never spills over.
+pub fn fit_cell(text: &str, width: f64, font_size: f64) -> String {
+    let em = finite(font_size, 12.0).max(1.0);
+    let width = finite(width, 0.0);
+    let total: f64 = text.chars().map(glyph_em).sum::<f64>() * em;
+    if total <= width {
+        return text.to_string();
+    }
+    let room = width - glyph_em('\u{2026}') * em;
+    let mut out = String::new();
+    let mut used = 0.0;
+    for c in text.chars() {
+        used += glyph_em(c) * em;
+        if used > room {
+            break;
+        }
+        out.push(c);
+    }
+    let out = out.trim_end().to_string();
+    if room < 0.0 { String::new() } else { format!("{out}\u{2026}") }
 }
 
 /// The cells of a table row: its text split at tabs, padded or cut to `n` cells.
@@ -605,6 +649,37 @@ mod tests {
         s.compartments = vec![attrs, ops];
         s.sanitize();
         s
+    }
+
+    #[test]
+    fn fit_cell_keeps_varchar_255_whole_and_marks_a_cut_with_an_ellipsis() {
+        assert_eq!(fit_cell("varchar(255)", 78.0, 12.0), "varchar(255)");
+        let cut = fit_cell("a description far too long for its cell", 78.0, 12.0);
+        assert!(cut.ends_with('\u{2026}') && cut.chars().count() < 39);
+        let est: f64 = cut.chars().map(glyph_em).sum::<f64>() * 12.0;
+        assert!(est <= 78.0);
+        assert_eq!(fit_cell("anything", 2.0, 12.0), "");
+        assert_eq!(fit_cell("", 0.0, 12.0), "");
+    }
+
+    #[test]
+    fn a_table_with_blank_titles_has_no_header_row() {
+        let mut s = class("k");
+        let mut c = Compartment::new("t", CompartmentKind::List);
+        c.columns = vec![Column { title: String::new(), width: 1.0 }, Column { title: " ".into(), width: 2.0 }];
+        c.rows = vec!["a\tb".into()];
+        assert!(!c.has_header());
+        let with_rows = natural_height(&s, &c);
+        c.columns[1].title = "Type".into();
+        assert!(c.has_header());
+        assert!((natural_height(&s, &c) - with_rows - 12.0 * LINE_HEIGHT).abs() < 1e-9);
+        c.columns[1].title.clear();
+        s.compartments = vec![c];
+        s.sanitize();
+        let bands = layout(&s);
+        let t = &bands[1];
+        assert!(t.header.is_none() && t.columns.len() == 3 && t.rows.len() == 1);
+        assert!((t.rows[0].y0 - t.body.y0).abs() < 1e-9);
     }
 
     #[test]

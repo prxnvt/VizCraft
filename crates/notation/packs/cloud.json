@@ -395,6 +395,7 @@
     },
     {
       "id": "cloud.user",
+      "textPlace": "below",
       "label": "User",
       "category": "Actors",
       "outline": "path",
@@ -414,6 +415,7 @@
     },
     {
       "id": "cloud.internet",
+      "textPlace": "below",
       "label": "Internet",
       "category": "Actors",
       "outline": "path",

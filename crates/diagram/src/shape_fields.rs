@@ -9,6 +9,29 @@ use crate::geom::{Path, PathEl, Point, Transform, finite};
 use crate::model::{MAX_ID, truncate};
 use crate::serde_util::{lenient, lenient_vec, num};
 
+/// Where a shape's text goes when it has no explicit [`TextBlock`]: on the shape, or under it (a
+/// figure such as an actor or a user draws its name below).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub enum TextPlace {
+    /// On the frame (or the main band of a shape with compartments).
+    #[default]
+    Inside,
+    /// Under the frame, centred, starting a little below it.
+    Below,
+}
+
+crate::serde_util::named_enum!(TextPlace, TextPlace::Inside, {
+    TextPlace::Inside => "inside",
+    TextPlace::Below => "below",
+});
+
+impl TextPlace {
+    /// Gap between the frame and a text block placed below it, in world units.
+    pub const BELOW_GAP: f64 = 2.0;
+    /// Narrowest text block placed below a frame, in world units.
+    pub const BELOW_MIN_WIDTH: f64 = 160.0;
+}
+
 /// Where a shape's text sits, relative to the shape. `None` on a shape means the text block is the
 /// shape's own frame.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]

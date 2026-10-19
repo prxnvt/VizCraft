@@ -1995,6 +1995,7 @@
       "glyphs": [
         {
           "id": "uml.actor",
+          "textPlace": "below",
           "label": "Actor",
           "category": "Use Cases",
           "outline": "path",
@@ -2676,6 +2677,7 @@
           "types": [
             "uml.InitialNode",
             "uml.Action",
+            "uml.Decision",
             "uml.ForkNode",
             "uml.JoinNode",
             "uml.ActivityFinal",
@@ -2746,6 +2748,36 @@
             "min": 2
           },
           "reference": "UML 2.5.1, 15.3.3.4 JoinNode semantics"
+        },
+        {
+          "id": "uml.forkUsedAsJoin",
+          "description": "A fork splits one flow into several; one with more flows in than out reads as a join.",
+          "severity": "info",
+          "mode": "live",
+          "check": {
+            "kind": "flowBalance",
+            "types": [
+              "uml.ForkNode"
+            ],
+            "relationship": "uml.ControlFlow",
+            "expect": "fanOut"
+          },
+          "reference": "UML 2.5.1, 15.3.3 Control nodes (fork and join)"
+        },
+        {
+          "id": "uml.joinUsedAsFork",
+          "description": "A join merges several flows into one; one with more flows out than in reads as a fork.",
+          "severity": "info",
+          "mode": "live",
+          "check": {
+            "kind": "flowBalance",
+            "types": [
+              "uml.JoinNode"
+            ],
+            "relationship": "uml.ControlFlow",
+            "expect": "fanIn"
+          },
+          "reference": "UML 2.5.1, 15.3.3.4 JoinNode semantics"
         }
       ],
       "rulesets": [
@@ -2753,7 +2785,9 @@
           "id": "uml.uml251",
           "rules": [
             "uml.actionReached",
-            "uml.joinInflows"
+            "uml.joinInflows",
+            "uml.forkUsedAsJoin",
+            "uml.joinUsedAsFork"
           ]
         }
       ],
