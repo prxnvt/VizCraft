@@ -1016,6 +1016,19 @@ pub enum Check {
         #[serde(default)]
         property: String,
     },
+    /// On a sequence page: a message drawn above an earlier one or on its row, a message to a
+    /// created lifeline before its create message or after a lifeline's destroy, an unbalanced
+    /// fragment or a second operand where the operator takes one, a message drawn outside its
+    /// operand (see `vizcraft_diagram::sequence::check_order`).
+    MessageOrder,
+    /// On a sequence page, operands taken as paths: a reply with no open synchronous call from
+    /// its receiver to its sender, a call answered twice, and with `requireReplies` a call never
+    /// answered (see `vizcraft_diagram::sequence::check_replies`).
+    RepliesMatched {
+        /// Report calls never answered too.
+        #[serde(default)]
+        require_replies: bool,
+    },
     /// A check this build does not know (from a newer pack); skipped, and reported by the loader.
     #[default]
     #[serde(other)]

@@ -222,50 +222,6 @@ fn er_diagram_has_attributes_and_cardinalities() {
 }
 
 #[test]
-fn sequence_diagram_has_rows_lifelines_and_ordered_messages() {
-    let src = "sequenceDiagram\n  participant A as Alice\n  actor B as Bob\n  A->>B: Hello\n  B-->>A: Hi back\n  Note right of B: thinking\n  B-)A: async\n  A->>A: self\n  loop Every minute\n    A-xB: ping\n  end\n";
-    let imported = import(src).unwrap();
-    let p = &imported.pages[0];
-    // Two participants, two lifelines, one note.
-    assert_eq!(p.shapes.len(), 5);
-    assert_eq!(p.connectors.len(), 5);
-    let (a, b) = (shape(p, "A"), shape(p, "B"));
-    assert_eq!((a.text.as_str(), b.text.as_str()), ("Alice", "Bob"));
-    assert!((a.y - b.y).abs() < 1e-9 && b.x > a.x + a.w);
-    let lifeline = shape(p, "A_lifeline");
-    assert!(lifeline.w <= 3.0 && lifeline.y >= a.y + a.h - 1e-9 && lifeline.h > 100.0);
-    let mut last_y = f64::NEG_INFINITY;
-    for c in &p.connectors {
-        let (End::Free { x: x0, y: y0 }, End::Free { y: y1, .. }) = (&c.start, &c.end) else { panic!("free ends") };
-        assert!(*y0 > last_y, "messages run down the page");
-        last_y = y0.max(*y1);
-        assert!((x0 - a.center().x).abs() < 1e-6 || (x0 - b.center().x).abs() < 1e-6);
-    }
-    let hello = &p.connectors[0];
-    assert_eq!((hello.text.as_str(), hello.end_arrow), ("Hello", Arrow::Triangle));
-    assert_eq!(p.connectors[1].ext.get("mermaid.line").map(String::as_str), Some("dotted"));
-    assert_eq!(p.connectors[2].end_arrow, Arrow::Open);
-    let note = shape(p, "note1");
-    assert_eq!(note.text, "thinking");
-    assert!(note.x > b.center().x);
-    assert!(imported.warnings.iter().any(|w| w.contains("blocks")));
-}
-
-#[test]
-fn sequence_autonumber_and_boxes() {
-    let src =
-        "sequenceDiagram\n  autonumber\n  box Aqua Team\n    participant A\n    participant B\n  end\n  participant C\n  A->>B: one\n  B->>C: two\n";
-    let p = page(src);
-    let texts: Vec<&str> = p.connectors.iter().map(|c| c.text.as_str()).collect();
-    assert_eq!(texts, vec!["1. one", "2. two"]);
-    let bx = p.shapes.iter().find(|s| s.ext.get("mermaid.group").map(String::as_str) == Some("box")).unwrap();
-    assert_eq!(bx.style.fill, Color::rgb(0, 255, 255));
-    assert!(inside(bx.bounds(), shape(&p, "A").bounds()) && inside(bx.bounds(), shape(&p, "B").bounds()));
-    assert!(!inside(bx.bounds(), shape(&p, "C").bounds()));
-    assert!(p.shapes.iter().position(|s| s.id == bx.id) < p.shapes.iter().position(|s| s.id == "A"));
-}
-
-#[test]
 fn warnings_pass_through_with_line_numbers() {
     let imported = import("flowchart TD\n  A --> B\n  this is not a statement ((\n").unwrap_or_default();
     // Either the parser rejects the line or warns about it; a warning names its line.

@@ -16,7 +16,7 @@ fn the_uml_cases_validate() {
     let cases = format!("{}/../../crates/notation/packs/tests/uml", env!("CARGO_MANIFEST_DIR"));
     let o = cli(&["validate", &cases]);
     assert!(o.status.success(), "{}", text(&o));
-    assert!(text(&o).contains("12 cases: 12 passed"), "{}", text(&o));
+    assert!(text(&o).contains("passed, 0 failed"), "{}", text(&o));
 }
 
 #[test]

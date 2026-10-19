@@ -451,6 +451,11 @@ impl Session {
             };
             if changed {
                 {
+                    // Sequence pages are redrawn from their event order before anything binds.
+                    let _t = crate::trace::span("sequence.settle");
+                    vizcraft_diagram::sequence::settle_doc(&mut self.doc, &before_doc);
+                }
+                {
                     // Builder shapes redraw first, so binding sees their new ports.
                     let _t = crate::trace::span("glyph.rebuild");
                     vizcraft_stencils::builders::sync::rebuild(&mut self.doc, &before_doc, vizcraft_notation::catalog());

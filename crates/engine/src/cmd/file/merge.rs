@@ -91,6 +91,10 @@ fn read_incoming(page: &Page, fallback: &str, warnings: &mut Vec<String>) -> Inc
     let (mut frames, mut odd) = (0usize, 0usize);
     let mut seen: HashSet<&str> = HashSet::new();
     for s in page.shapes.iter().take(vizcraft_model::MAX_ELEMENTS) {
+        // Activation bars, destruction marks and fragments are drawn by the sequence settle pass.
+        if s.sequence.as_ref().is_some_and(|p| !p.is_element_view()) {
+            continue;
+        }
         let typed = s.ext.get(TYPE_KEY).is_some_and(|t| cat().element_type(t).is_some());
         if (container::is_container(s) || ar::is_group(s)) && !typed {
             frames += 1;

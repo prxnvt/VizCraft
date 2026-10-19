@@ -636,6 +636,7 @@ pub fn decor(s: &Shape) -> Vec<Decor> {
     if c.role == Role::LaneSet && !c.phases.is_empty() {
         phase_decor(s, c, &world, line, &mut out);
     }
+    out.extend(crate::sequence::fragment_decor(s));
     out
 }
 

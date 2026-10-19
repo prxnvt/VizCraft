@@ -45,6 +45,11 @@ pub enum ShapeKind {
     Trapezoid,
     /// Pentagon pointing down (flowchart off-page reference).
     OffPageReference,
+    /// A UML sequence lifeline: the outline is the head box, the detail the dashed stem (see
+    /// [`crate::sequence`]).
+    Lifeline,
+    /// A UML sequence lifeline drawn as an actor: a stick figure over its name, then the stem.
+    ActorLifeline,
     /// An outline of its own, stored on the shape ([`Shape::path`](crate::Shape::path)): what a
     /// boolean operation, join or trim makes. Without a stored path it is the frame's rectangle.
     Freeform,
@@ -68,6 +73,8 @@ crate::serde_util::named_enum!(ShapeKind, ShapeKind::Rectangle, {
     ShapeKind::Trapezoid => "trapezoid",
     ShapeKind::OffPageReference => "offPageReference",
     ShapeKind::Freeform => "freeform",
+    ShapeKind::Lifeline => "lifeline",
+    ShapeKind::ActorLifeline => "actorLifeline",
 });
 
 impl ShapeKind {
@@ -137,6 +144,7 @@ impl ShapeKind {
                 path
             }
             ShapeKind::Cloud => cloud(w, h),
+            ShapeKind::Lifeline | ShapeKind::ActorLifeline => crate::sequence::head_outline(self, w, h),
         }
     }
 
@@ -160,6 +168,7 @@ impl ShapeKind {
                 path.move_to(Point::new(w - k, 0.0)).line_to(Point::new(w - k, h));
                 Some(path)
             }
+            ShapeKind::Lifeline | ShapeKind::ActorLifeline => crate::sequence::stem_detail(self, w, h),
             _ => None,
         }
     }
@@ -167,6 +176,9 @@ impl ShapeKind {
     /// Default connection points in normalized `0..1` frame coordinates: where the outline meets
     /// the rays from the centre to the top, right, bottom and left, in that order.
     pub fn connection_points(self) -> Vec<Point> {
+        if matches!(self, ShapeKind::Lifeline | ShapeKind::ActorLifeline) {
+            return crate::sequence::frame_points();
+        }
         // A square reference frame is enough: every outline scales with its frame except the
         // corner radii and cylinder caps, which do not move the side midpoints.
         const REF: f64 = 100.0;

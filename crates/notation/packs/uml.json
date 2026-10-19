@@ -3619,6 +3619,439 @@
           }
         }
       ]
+    },
+    {
+      "id": "sequence",
+      "label": "Sequence",
+      "glyphs": [
+        {
+          "id": "uml.lifeline",
+          "label": "Lifeline",
+          "category": "Sequence",
+          "outline": "lifeline",
+          "w": 100,
+          "h": 300,
+          "fill": "#f2f6fb",
+          "line": "#2b3a4a",
+          "keywords": [
+            "participant",
+            "object",
+            "sequence",
+            "uml"
+          ],
+          "elementType": "uml.Lifeline",
+          "source": "drawn from UML 2.5.1 (OMG formal/17-12-05), 17.3.4.1 Lifeline notation: a head rectangle over a dashed vertical line"
+        },
+        {
+          "id": "uml.actorLifeline",
+          "label": "Actor Lifeline",
+          "category": "Sequence",
+          "outline": "actorLifeline",
+          "w": 80,
+          "h": 300,
+          "fill": "#ffffff",
+          "line": "#2b3a4a",
+          "keywords": [
+            "actor",
+            "user",
+            "participant",
+            "sequence",
+            "uml"
+          ],
+          "elementType": "uml.ActorLifeline",
+          "source": "drawn from UML 2.5.1 (OMG formal/17-12-05), 17.3.4.1 Lifeline notation, with the stick man of 18.2.4 Actor notation as its head"
+        },
+        {
+          "id": "uml.activation",
+          "label": "Activation",
+          "category": "Sequence",
+          "outline": "rectangle",
+          "w": 10,
+          "h": 60,
+          "fill": "#ffffff",
+          "line": "#2b3a4a",
+          "keywords": [
+            "execution specification",
+            "activation bar",
+            "sequence",
+            "uml"
+          ],
+          "source": "drawn from UML 2.5.1 (OMG formal/17-12-05), 17.2.4.4 ExecutionSpecification notation: a thin rectangle on the lifeline"
+        },
+        {
+          "id": "uml.fragment",
+          "label": "Combined Fragment",
+          "category": "Sequence",
+          "outline": "rectangle",
+          "w": 240,
+          "h": 120,
+          "fill": "#ffffff",
+          "line": "#2b3a4a",
+          "keywords": [
+            "alt",
+            "opt",
+            "loop",
+            "par",
+            "fragment",
+            "sequence",
+            "uml"
+          ],
+          "source": "drawn from UML 2.5.1 (OMG formal/17-12-05), 17.6.4.3 CombinedFragment notation: a rectangle with the operator in a pentagon in its upper left corner, operands separated by dashed lines"
+        },
+        {
+          "id": "uml.destruction",
+          "label": "Destruction",
+          "category": "Sequence",
+          "outline": "path",
+          "w": 16,
+          "h": 16,
+          "fill": "#ffffff",
+          "line": "#2b3a4a",
+          "keywords": [
+            "destroy",
+            "delete",
+            "cross",
+            "sequence",
+            "uml"
+          ],
+          "path": "M0 0 L1 1 M1 0 L0 1",
+          "source": "drawn from UML 2.5.1 (OMG formal/17-12-05), 17.4.4.2 DestructionOccurrenceSpecification notation: a cross at the bottom of the lifeline"
+        }
+      ],
+      "elementTypes": [
+        {
+          "id": "uml.Lifeline",
+          "label": "Lifeline",
+          "description": "An individual participant in an interaction.",
+          "glyph": "uml.lifeline",
+          "properties": [
+            {
+              "key": "represents",
+              "label": "Represents",
+              "kind": "text",
+              "description": "The part or classifier the lifeline stands for (`order: Order`); empty for none."
+            }
+          ]
+        },
+        {
+          "id": "uml.ActorLifeline",
+          "label": "Actor Lifeline",
+          "description": "A lifeline that stands for an actor, drawn as a stick man.",
+          "glyph": "uml.actorLifeline",
+          "extends": "uml.Lifeline"
+        }
+      ],
+      "relationshipTypes": [
+        {
+          "id": "uml.Message",
+          "label": "Message",
+          "description": "A communication from one lifeline to another: a call, a signal, a reply, or the creation or destruction of the receiver.",
+          "endArrow": "triangle",
+          "properties": [
+            {
+              "key": "sort",
+              "label": "Sort",
+              "kind": "enum",
+              "values": [
+                "synchCall",
+                "asynchCall",
+                "reply",
+                "createMessage",
+                "deleteMessage"
+              ],
+              "default": "synchCall"
+            }
+          ]
+        }
+      ],
+      "connectorTypes": [
+        {
+          "id": "uml.syncMessage",
+          "label": "Synchronous Message",
+          "category": "Sequence",
+          "route": "straight",
+          "startArrow": "none",
+          "endArrow": "triangle",
+          "dash": "solid",
+          "lineWidth": 1.25,
+          "line": "#34495e",
+          "keywords": [
+            "call",
+            "synchronous",
+            "message",
+            "sequence",
+            "uml"
+          ],
+          "relationshipType": "uml.Message"
+        },
+        {
+          "id": "uml.asyncMessage",
+          "label": "Asynchronous Message",
+          "category": "Sequence",
+          "route": "straight",
+          "startArrow": "none",
+          "endArrow": "open",
+          "dash": "solid",
+          "lineWidth": 1.25,
+          "line": "#34495e",
+          "keywords": [
+            "signal",
+            "asynchronous",
+            "message",
+            "sequence",
+            "uml"
+          ],
+          "relationshipType": "uml.Message"
+        },
+        {
+          "id": "uml.replyMessage",
+          "label": "Reply Message",
+          "category": "Sequence",
+          "route": "straight",
+          "startArrow": "none",
+          "endArrow": "open",
+          "dash": "dashed",
+          "lineWidth": 1.25,
+          "line": "#34495e",
+          "keywords": [
+            "reply",
+            "return",
+            "message",
+            "sequence",
+            "uml"
+          ],
+          "relationshipType": "uml.Message"
+        },
+        {
+          "id": "uml.createMessage",
+          "label": "Create Message",
+          "category": "Sequence",
+          "route": "straight",
+          "startArrow": "none",
+          "endArrow": "open",
+          "dash": "dashed",
+          "lineWidth": 1.25,
+          "line": "#34495e",
+          "keywords": [
+            "create",
+            "new",
+            "message",
+            "sequence",
+            "uml"
+          ],
+          "relationshipType": "uml.Message"
+        },
+        {
+          "id": "uml.destroyMessage",
+          "label": "Destroy Message",
+          "category": "Sequence",
+          "route": "straight",
+          "startArrow": "none",
+          "endArrow": "open",
+          "dash": "solid",
+          "lineWidth": 1.25,
+          "line": "#34495e",
+          "keywords": [
+            "destroy",
+            "delete",
+            "message",
+            "sequence",
+            "uml"
+          ],
+          "relationshipType": "uml.Message"
+        }
+      ],
+      "connections": [
+        {
+          "source": [
+            "uml.Lifeline"
+          ],
+          "relationship": "uml.Message",
+          "target": [
+            "uml.Lifeline"
+          ]
+        }
+      ],
+      "palette": [
+        {
+          "id": "uml.sequence",
+          "label": "Sequence",
+          "types": [
+            "uml.Lifeline",
+            "uml.ActorLifeline",
+            "uml.Note"
+          ]
+        }
+      ],
+      "viewpoints": [
+        {
+          "id": "uml.Sequence",
+          "label": "Sequence Diagram",
+          "description": "Lifelines exchanging messages in time order, with activations, combined fragments and notes.",
+          "types": [
+            "uml.Lifeline",
+            "uml.ActorLifeline",
+            "uml.Note"
+          ],
+          "relationships": [
+            "uml.Message",
+            "uml.Anchor"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "uml.messageOrder",
+          "description": "Messages follow the interaction's order.",
+          "severity": "warning",
+          "mode": "live",
+          "check": {
+            "kind": "messageOrder"
+          },
+          "reference": "UML 2.5.1, 17.8.1 Sequence Diagram Notation (time runs down the page), 17.4.3.4 Destruction Occurrence Specifications (nothing follows a destruction on its lifeline) and 17.6.3.8 Option, 17.6.3.9 Break and 17.6.3.17 Loop (one operand)"
+        },
+        {
+          "id": "uml.repliesMatched",
+          "description": "A reply answers an open synchronous call.",
+          "severity": "warning",
+          "mode": "live",
+          "check": {
+            "kind": "repliesMatched"
+          },
+          "reference": "UML 2.5.1, 17.4.3.1 Messages: a reply answers a synchronous call from its receiver, and 17.6.3.7 Alternatives (each operand is its own trace)"
+        }
+      ],
+      "rulesets": [
+        {
+          "id": "uml.uml251",
+          "rules": [
+            "uml.messageOrder",
+            "uml.repliesMatched"
+          ]
+        }
+      ],
+      "templates": [
+        {
+          "id": "uml.sequence",
+          "label": "Sequence Diagram",
+          "description": "A client, an API and a database: a request, a query and its rows, then a found or not-found reply in an alt fragment.",
+          "viewpoint": "uml.Sequence",
+          "keywords": [
+            "sequence",
+            "interaction",
+            "message",
+            "lifeline",
+            "uml"
+          ],
+          "codeForms": [
+            "mermaid.sequence",
+            "plantuml.sequence"
+          ],
+          "seed": [
+            {
+              "command": "sequence.new",
+              "params": {}
+            },
+            {
+              "command": "sequence.addLifeline",
+              "params": {
+                "name": "Client",
+                "id": "client",
+                "actor": true
+              }
+            },
+            {
+              "command": "sequence.addLifeline",
+              "params": {
+                "name": "Orders API",
+                "id": "api",
+                "actor": false
+              }
+            },
+            {
+              "command": "sequence.addLifeline",
+              "params": {
+                "name": "Database",
+                "id": "db",
+                "actor": false
+              }
+            },
+            {
+              "command": "sequence.addMessage",
+              "params": {
+                "from": "client",
+                "to": "api",
+                "sort": "sync",
+                "label": "GET /orders/42",
+                "id": "m1"
+              }
+            },
+            {
+              "command": "sequence.addMessage",
+              "params": {
+                "from": "api",
+                "to": "db",
+                "sort": "sync",
+                "label": "query",
+                "id": "m2"
+              }
+            },
+            {
+              "command": "sequence.addMessage",
+              "params": {
+                "from": "db",
+                "to": "api",
+                "sort": "reply",
+                "label": "rows",
+                "id": "m3"
+              }
+            },
+            {
+              "command": "sequence.addMessage",
+              "params": {
+                "from": "api",
+                "to": "client",
+                "sort": "reply",
+                "label": "200 OK",
+                "id": "m4"
+              }
+            },
+            {
+              "command": "sequence.addMessage",
+              "params": {
+                "from": "api",
+                "to": "client",
+                "sort": "reply",
+                "label": "404 Not Found",
+                "id": "m5"
+              }
+            },
+            {
+              "command": "sequence.wrap",
+              "params": {
+                "id": "f1",
+                "ids": [
+                  "m4",
+                  "m5"
+                ],
+                "operator": "alt",
+                "guard": "found"
+              }
+            },
+            {
+              "command": "sequence.addOperand",
+              "params": {
+                "id": "f1",
+                "before": "m5",
+                "guard": "else"
+              }
+            }
+          ],
+          "layout": {
+            "primitive": "sequence"
+          }
+        }
+      ]
     }
   ]
 }

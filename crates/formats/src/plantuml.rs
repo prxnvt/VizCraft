@@ -28,6 +28,9 @@ const MAX_DEPTH: usize = 64;
 
 /// Write page `page` of `doc` as PlantUML: the text and the warnings.
 pub fn write(doc: &Document, page: usize) -> Result<(String, Vec<String>), FormatError> {
+    if doc.pages.get(page).is_some_and(|p| p.sequence.is_some()) {
+        return crate::plantuml_sequence::write(doc, page);
+    }
     let p = uml::read(doc, page)?;
     let mut w = Writer::new(&p);
     w.line(0, "@startuml");

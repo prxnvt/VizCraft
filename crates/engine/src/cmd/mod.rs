@@ -48,6 +48,7 @@ pub mod relationship;
 pub mod report;
 pub mod routing;
 pub mod script;
+pub mod sequence;
 pub mod shape;
 pub mod shapeop;
 pub mod sheet;
@@ -134,6 +135,7 @@ pub fn registry() -> Registry {
     v.extend(key::specs());
     v.extend(step::specs());
     v.extend(topology::specs());
+    v.extend(sequence::specs());
     Registry::new(v)
 }
 

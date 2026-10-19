@@ -1,0 +1,479 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "model": {
+      "schemaVersion": 1,
+      "packs": [
+        {
+          "id": "uml",
+          "version": "1.0.0"
+        }
+      ],
+      "elements": [
+        {
+          "id": "e2",
+          "type": "uml.Lifeline",
+          "name": "Client"
+        },
+        {
+          "id": "e4",
+          "type": "uml.Lifeline",
+          "name": "Session"
+        }
+      ],
+      "relationships": [
+        {
+          "id": "r6",
+          "type": "uml.Message",
+          "source": "e2",
+          "target": "e4",
+          "name": "call",
+          "properties": {
+            "sort": "synchCall"
+          }
+        },
+        {
+          "id": "r8",
+          "type": "uml.Message",
+          "source": "e4",
+          "target": "e2",
+          "name": "ok",
+          "properties": {
+            "sort": "reply"
+          }
+        },
+        {
+          "id": "r9",
+          "type": "uml.Message",
+          "source": "e2",
+          "target": "e4",
+          "name": "close",
+          "properties": {
+            "sort": "deleteMessage"
+          }
+        },
+        {
+          "id": "r11",
+          "type": "uml.Message",
+          "source": "e2",
+          "target": "e4",
+          "name": "late",
+          "properties": {
+            "sort": "asynchCall"
+          }
+        }
+      ]
+    },
+    "document": {
+      "title": "",
+      "core": {
+        "author": "VizCraft User",
+        "lastModifiedBy": "VizCraft User",
+        "created": "2026-10-19T18:40:17Z",
+        "modified": "2026-10-19T18:40:17Z",
+        "revision": 1
+      },
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "width": 1100.0,
+          "height": 850.0,
+          "board": "infinite",
+          "shapes": [
+            {
+              "id": "a",
+              "stencil": "uml.lifeline",
+              "kind": "lifeline",
+              "x": 50.0,
+              "y": 40.0,
+              "w": 80.0,
+              "h": 220.0,
+              "angleDeg": 0.0,
+              "text": "Client",
+              "style": {
+                "fill": "#f2f6fb",
+                "line": "#2b3a4a",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 0.42727272727272725
+                },
+                {
+                  "x": 0.5,
+                  "y": 0.5909090909090909
+                },
+                {
+                  "x": 0.5,
+                  "y": 0.7545454545454545
+                },
+                {
+                  "x": 0.5,
+                  "y": 0.9181818181818182
+                }
+              ],
+              "element": "e2",
+              "textBlock": {
+                "dx": 0.0,
+                "dy": -90.0,
+                "w": 80.0,
+                "h": 40.0,
+                "angleDeg": 0.0
+              },
+              "sequence": {
+                "part": "lifeline",
+                "destroyed": false
+              }
+            },
+            {
+              "id": "b",
+              "stencil": "uml.lifeline",
+              "kind": "lifeline",
+              "x": 200.0,
+              "y": 40.0,
+              "w": 80.0,
+              "h": 166.0,
+              "angleDeg": 0.0,
+              "text": "Session",
+              "style": {
+                "fill": "#f2f6fb",
+                "line": "#2b3a4a",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.4375,
+                  "y": 0.5662650602409639
+                },
+                {
+                  "x": 0.4375,
+                  "y": 0.7831325301204819
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                }
+              ],
+              "element": "e4",
+              "textBlock": {
+                "dx": 0.0,
+                "dy": -63.0,
+                "w": 80.0,
+                "h": 40.0,
+                "angleDeg": 0.0
+              },
+              "sequence": {
+                "part": "lifeline",
+                "destroyed": false
+              }
+            },
+            {
+              "id": "s7",
+              "stencil": "uml.activation",
+              "kind": "rectangle",
+              "x": 235.0,
+              "y": 134.0,
+              "w": 10.0,
+              "h": 36.0,
+              "angleDeg": 0.0,
+              "text": "",
+              "style": {
+                "fill": "#ffffff",
+                "line": "#2b3a4a",
+                "lineWidth": 1.0,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [],
+              "locks": {
+                "width": true,
+                "height": true,
+                "aspect": false,
+                "position": true,
+                "rotation": true,
+                "delete": true,
+                "select": false,
+                "text": false
+              },
+              "sequence": {
+                "part": "activation",
+                "lifeline": "b",
+                "depth": 1
+              }
+            },
+            {
+              "id": "s10",
+              "stencil": "uml.destruction",
+              "kind": "freeform",
+              "x": 232.0,
+              "y": 198.0,
+              "w": 16.0,
+              "h": 16.0,
+              "angleDeg": 0.0,
+              "text": "",
+              "style": {
+                "fill": "#ffffff",
+                "line": "#2b3a4a",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [],
+              "locks": {
+                "width": true,
+                "height": true,
+                "aspect": false,
+                "position": true,
+                "rotation": true,
+                "delete": true,
+                "select": false,
+                "text": false
+              },
+              "path": {
+                "els": [
+                  {
+                    "moveTo": {
+                      "x": 0.0,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 16.0,
+                      "y": 16.0
+                    }
+                  },
+                  {
+                    "moveTo": {
+                      "x": 16.0,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 0.0,
+                      "y": 16.0
+                    }
+                  }
+                ],
+                "closed": false
+              },
+              "sequence": {
+                "part": "destruction",
+                "lifeline": "b"
+              }
+            }
+          ],
+          "connectors": [
+            {
+              "id": "m1",
+              "start": {
+                "shape": "a",
+                "point": 4
+              },
+              "end": {
+                "shape": "b",
+                "point": 4
+              },
+              "route": "straight",
+              "startArrow": "none",
+              "endArrow": "triangle",
+              "text": "call",
+              "kind": "uml.syncMessage",
+              "style": {
+                "fill": "#00000000",
+                "line": "#34495e",
+                "lineWidth": 1.25,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "relationship": "r6",
+              "message": {
+                "sort": "sync"
+              }
+            },
+            {
+              "id": "m2",
+              "start": {
+                "shape": "b",
+                "point": 5
+              },
+              "end": {
+                "shape": "a",
+                "point": 5
+              },
+              "route": "straight",
+              "startArrow": "none",
+              "endArrow": "open",
+              "text": "ok",
+              "kind": "uml.replyMessage",
+              "style": {
+                "fill": "#00000000",
+                "line": "#34495e",
+                "lineWidth": 1.25,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false,
+                "dash": "dashed"
+              },
+              "relationship": "r8",
+              "message": {
+                "sort": "reply"
+              }
+            },
+            {
+              "id": "m3",
+              "start": {
+                "shape": "a",
+                "point": 6
+              },
+              "end": {
+                "shape": "b",
+                "point": 6
+              },
+              "route": "straight",
+              "startArrow": "none",
+              "endArrow": "open",
+              "text": "close",
+              "kind": "uml.destroyMessage",
+              "style": {
+                "fill": "#00000000",
+                "line": "#34495e",
+                "lineWidth": 1.25,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "relationship": "r9",
+              "message": {
+                "sort": "destroy"
+              }
+            },
+            {
+              "id": "m4",
+              "start": {
+                "shape": "a",
+                "point": 7
+              },
+              "end": {
+                "shape": "b",
+                "point": 7
+              },
+              "route": "straight",
+              "startArrow": "none",
+              "endArrow": "open",
+              "text": "late",
+              "kind": "uml.asyncMessage",
+              "style": {
+                "fill": "#00000000",
+                "line": "#34495e",
+                "lineWidth": 1.25,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "relationship": "r11",
+              "message": {
+                "sort": "async"
+              }
+            }
+          ],
+          "view": {
+            "viewpoint": "uml.Sequence"
+          },
+          "sequence": {
+            "events": [
+              {
+                "message": "m1"
+              },
+              {
+                "message": "m2"
+              },
+              {
+                "message": "m3"
+              },
+              {
+                "message": "m4"
+              }
+            ],
+            "activations": "auto",
+            "row": 36.0,
+            "columnGap": 60.0
+          }
+        }
+      ],
+      "idSeq": 11,
+      "conformance": {
+        "enabled": true,
+        "rulesets": [
+          "uml.uml251"
+        ]
+      }
+    }
+  },
+  "expect": [
+    {
+      "rule": "uml.messageOrder",
+      "items": [
+        "m4",
+        "b"
+      ]
+    }
+  ]
+}

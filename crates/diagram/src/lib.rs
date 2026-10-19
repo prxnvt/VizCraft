@@ -57,6 +57,7 @@ pub mod page_fields;
 pub mod print_fields;
 pub mod route;
 pub mod routing_policy;
+pub mod sequence;
 mod serde_util;
 pub mod shape_fields;
 pub mod shapeop;

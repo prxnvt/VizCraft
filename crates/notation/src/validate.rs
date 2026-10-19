@@ -618,6 +618,7 @@ impl<'a> Checker<'a> {
                     self.type_list(&ctx, types);
                     self.key(&ctx, property);
                 }
+                Check::MessageOrder | Check::RepliesMatched { .. } => {}
                 Check::Unknown => self.problem(format!("{ctx}: unknown check kind (the pack needs a newer VizCraft)")),
             }
         }

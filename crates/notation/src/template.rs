@@ -46,7 +46,7 @@ pub const DIRECTIONS: &[&str] = &["TB", "TD", "BT", "LR", "RL"];
 
 /// The layout primitives `layout.primitive` accepts (the engine's tests keep the two lists in
 /// step).
-pub const PRIMITIVES: &[&str] = &["pipeline", "bands", "chain", "matrix", "nested", "hubSpoke", "rings", "timeline", "voter"];
+pub const PRIMITIVES: &[&str] = &["pipeline", "bands", "chain", "matrix", "nested", "hubSpoke", "rings", "timeline", "voter", "sequence"];
 
 /// The named symbol grid modules (`page.setModule`): none, the ISO 2.5 mm module and the 0.1 inch
 /// module. A number is a module in page units (100 per inch).

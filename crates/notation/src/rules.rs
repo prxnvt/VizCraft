@@ -359,6 +359,7 @@ impl<'a> Ctx<'a> {
             Check::EndMarkerMatchesProperty { .. } | Check::MultiplicitySyntax { .. } | Check::MaxPerOwner { .. } | Check::UniqueMembers { .. } => {
                 crate::rules_uml::check(self.doc, self.cat, pack, rule, out)
             }
+            Check::MessageOrder | Check::RepliesMatched { .. } => crate::sequence_rules::check(self.doc, rule, out),
             Check::Unknown => {}
         }
     }
