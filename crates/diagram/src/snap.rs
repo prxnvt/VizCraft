@@ -22,6 +22,19 @@ pub struct Targets {
     pub rects: Vec<Rect>,
     /// Connection points of other shapes.
     pub points: Vec<Point>,
+    /// The page's symbol grid module step in page units (see [`module_step`]); when set it is
+    /// tried ahead of the zoom grid, so ports and wires land on the module.
+    pub module: Option<f64>,
+}
+
+/// The symbol grid step of `page` in page units: its view's module, `None` when it has none.
+pub fn module_step(page: &crate::Page) -> Option<f64> {
+    page.view.as_ref().and_then(|v| v.module.step())
+}
+
+/// `v` rounded to the nearest multiple of `step` (a step that is not positive leaves `v`).
+pub fn round_to(v: f64, step: f64) -> f64 {
+    if step.is_finite() && step > 0.0 && v.is_finite() { (v / step).round() * step } else { v }
 }
 
 /// Which kind of target a snap landed on.
@@ -33,6 +46,8 @@ pub enum Kind {
     Shape,
     /// A connection point.
     Point,
+    /// A line of the page's symbol grid module.
+    Module,
     /// A grid line.
     Grid,
 }
@@ -43,7 +58,8 @@ impl Kind {
         match self {
             Kind::Guide => 0,
             Kind::Shape | Kind::Point => 1,
-            Kind::Grid => 2,
+            Kind::Module => 2,
+            Kind::Grid => 3,
         }
     }
 }
@@ -111,7 +127,7 @@ fn axis_lines(t: &Targets, vertical: bool) -> Vec<Line> {
 }
 
 /// Best shift on one axis for the moving values `cands`, and the line it lands on.
-fn best_shift(cands: &[f64], lines: &[Line], grid: Option<f64>, tol: f64) -> Option<(f64, Line)> {
+fn best_shift(cands: &[f64], lines: &[Line], grid: Option<f64>, module: Option<f64>, tol: f64) -> Option<(f64, Line)> {
     let mut best: Option<(f64, Line)> = None;
     let mut consider = |shift: f64, line: Line| {
         if !shift.is_finite() || shift.abs() > tol {
@@ -128,6 +144,10 @@ fn best_shift(cands: &[f64], lines: &[Line], grid: Option<f64>, tol: f64) -> Opt
     for &c in cands {
         for l in lines {
             consider(l.at - c, *l);
+        }
+        if let Some(m) = module.filter(|m| m.is_finite() && *m > 0.0) {
+            let at = (c / m).round() * m;
+            consider(at - c, Line { at, span: (f64::NAN, f64::NAN), kind: Kind::Module });
         }
         if let Some(g) = grid.filter(|g| g.is_finite() && *g > 0.0) {
             let at = (c / g).round() * g;
@@ -168,8 +188,8 @@ fn snap_axes(xs: &[f64], ys: &[f64], own_x: (f64, f64), own_y: (f64, f64), t: &T
     let tol = if tol.is_finite() { tol.max(0.0) } else { 0.0 };
     let vlines = axis_lines(t, true);
     let hlines = axis_lines(t, false);
-    let dx = best_shift(xs, &vlines, t.grid, tol).map_or(0.0, |(s, _)| s);
-    let dy = best_shift(ys, &hlines, t.grid, tol).map_or(0.0, |(s, _)| s);
+    let dx = best_shift(xs, &vlines, t.grid, t.module, tol).map_or(0.0, |(s, _)| s);
+    let dy = best_shift(ys, &hlines, t.grid, t.module, tol).map_or(0.0, |(s, _)| s);
     let xs: Vec<f64> = xs.iter().map(|x| x + dx).collect();
     let ys: Vec<f64> = ys.iter().map(|y| y + dy).collect();
     // A vertical line spans the item's (shifted) y extent and the target's.
@@ -329,6 +349,7 @@ mod tests {
             guides: vec![guide(false, 900.0)],
             rects: vec![Rect::from_xywh(500.0, 500.0, 10.0, 10.0)],
             points: vec![Point::new(-400.0, -400.0)],
+            module: None,
         };
         let s = snap_rect(Rect::from_xywh(0.0, 0.0, 50.0, 50.0), &t, 8.0);
         assert_eq!(s, Snapped::default());
@@ -338,6 +359,7 @@ mod tests {
     #[test]
     fn hostile_input_is_ignored() {
         let t = Targets {
+            module: Some(f64::NAN),
             grid: Some(f64::NAN),
             guides: vec![guide(true, f64::INFINITY)],
             rects: vec![Rect::new(f64::NAN, f64::NAN, f64::NAN, f64::NAN)],
@@ -365,5 +387,22 @@ mod tests {
         assert_eq!(major_every(Units::Inches, 12.5), 8);
         assert_eq!(major_every(Units::Inches, 200.0), 4);
         assert_eq!(major_every(Units::Pixels, 10.0), 5);
+    }
+
+    #[test]
+    fn the_module_comes_ahead_of_the_zoom_grid() {
+        let m = vizcraft_model::Module::Iso2_5mm.step();
+        let t = Targets { grid: Some(10.0), module: m, ..Targets::default() };
+        let s = snap_point(Point::new(31.0, 48.0), &t, 6.0);
+        let step = 2.5 * 100.0 / 25.4;
+        // 31 lands on 3 modules (29.53) rather than the grid line at 30; 48 on 5 modules (49.21).
+        assert!(((31.0 + s.offset.x) - 3.0 * step).abs() < 1e-9, "{s:?}");
+        assert!(((48.0 + s.offset.y) - 5.0 * step).abs() < 1e-9, "{s:?}");
+        let mut page = crate::Page::new("p", "P");
+        assert_eq!(module_step(&page), None);
+        page.view = Some(vizcraft_model::View { module: vizcraft_model::Module::Inch0_1, ..Default::default() });
+        assert_eq!(module_step(&page), Some(10.0));
+        assert_eq!(round_to(14.0, 10.0), 10.0);
+        assert_eq!(round_to(14.0, f64::NAN), 14.0);
     }
 }

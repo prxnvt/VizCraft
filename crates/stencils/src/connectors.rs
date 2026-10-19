@@ -7,7 +7,8 @@
 
 use std::sync::{Mutex, PoisonError};
 
-use vizcraft_diagram::{Arrow, Color, Connector, Dash, Route, Style};
+use vizcraft_diagram::vizcraft_model::NetKind;
+use vizcraft_diagram::{Arrow, Color, Connector, Dash, LineMarker, Route, Style};
 use vizcraft_notation::{Catalog, ConnectorType};
 
 use crate::search::words;
@@ -47,11 +48,17 @@ pub struct ConnectorKind {
     /// The relationship type a connector of this kind becomes between bound shapes, if the kind
     /// names one.
     pub relationship_type: Option<&'static str>,
+    /// The net kind a connector of this kind is a segment of, if any: the sync step's net pass
+    /// gives such a connector a net of this kind.
+    pub net: Option<NetKind>,
+    /// Marks repeated along the line.
+    pub marker: LineMarker,
 }
 
 impl ConnectorKind {
-    /// Draw `c` as this kind: its route, ends, dash, width, line colour and jumps are replaced
-    /// and `kind` is set. Glue, text, bends, avoidance and every other style field stay.
+    /// Draw `c` as this kind: its route, ends, dash, width, line colour, jumps and line marker
+    /// are replaced and `kind` is set. Glue, text, bends, avoidance, net membership and every
+    /// other style field stay.
     pub fn apply(&self, c: &mut Connector) {
         c.kind = self.id.to_string();
         c.route = self.route;
@@ -61,6 +68,7 @@ impl ConnectorKind {
         c.style.dash = self.dash;
         c.style.line_width = self.line_width;
         c.style.line = self.line;
+        c.marker = self.marker;
         c.sanitize();
     }
 }
@@ -86,6 +94,8 @@ fn kind_from(t: &ConnectorType) -> ConnectorKind {
         jumps: t.jumps,
         keywords: keywords.leak(),
         relationship_type: t.relationship_type.as_deref().map(leak),
+        net: t.net.as_deref().and_then(NetKind::from_name),
+        marker: LineMarker::from_name(&t.marker).unwrap_or_default(),
     }
 }
 
@@ -270,5 +280,18 @@ mod tests {
         assert!(ids("\u{0}\u{FFFF}\u{1F600}").is_empty());
         let long = format!("{}{}", "é".repeat(MAX_QUERY_CHARS - 1), "ü".repeat(10));
         assert!(ids(&long).is_empty());
+    }
+
+    #[test]
+    fn a_connector_type_with_a_net_kind_and_marker_carries_them() {
+        let t = ConnectorType { id: "t.pneumatic".into(), net: Some("signal".into()), marker: "doubleSlash".into(), ..ConnectorType::default() };
+        let k = kind_from(&t);
+        assert_eq!((k.net, k.marker), (Some(NetKind::Signal), LineMarker::DoubleSlash));
+        let mut c = Connector { net: Some("n1".into()), ..Connector::default() };
+        k.apply(&mut c);
+        assert_eq!((c.marker, c.net.as_deref()), (LineMarker::DoubleSlash, Some("n1")), "the net is kept");
+        let junk = kind_from(&ConnectorType { net: Some("plasma".into()), marker: "zigzag".into(), ..ConnectorType::default() });
+        assert_eq!((junk.net, junk.marker), (None, LineMarker::None));
+        assert_eq!(connector_kind("basic.line").map(|k| (k.net, k.marker)), Some((None, LineMarker::None)));
     }
 }

@@ -502,10 +502,14 @@ fn set_viewpoint(s: &mut Session, v: &Value) -> CmdResult {
     let layout = pg.view.as_ref().map(|v| v.layout.clone()).unwrap_or_default();
     // The rendering variant stays with the page across a viewpoint change.
     let variant = pg.view.as_ref().map(|v| v.variant.clone()).unwrap_or_default();
+    // A pack that draws on a symbol grid module gives the page that module; otherwise the
+    // page keeps the one it had (a choice, never taken away).
+    let pack_module = viewpoint.as_deref().and_then(|vp| cat().pack(vizcraft_model::pack_of(vp))).map(|p| p.module).filter(|m| !m.is_none());
+    let module = pack_module.or_else(|| pg.view.as_ref().map(|v| v.module)).unwrap_or_default();
     pg.view = match &viewpoint {
-        Some(vp) => Some(View { viewpoint: vp.clone(), layout, variant }),
-        None if layout.is_empty() && variant.is_empty() => None,
-        None => Some(View { viewpoint: String::new(), layout, variant }),
+        Some(vp) => Some(View { viewpoint: vp.clone(), layout, variant, module }),
+        None if layout.is_empty() && variant.is_empty() && module.is_none() => None,
+        None => Some(View { viewpoint: String::new(), layout, variant, module }),
     };
     let id = pg.id.clone();
     Ok(json!({"page": id, "viewpoint": viewpoint}))

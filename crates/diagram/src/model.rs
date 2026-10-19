@@ -396,6 +396,10 @@ pub struct Shape {
     /// The data graphic the shape shows (an id in [`Document::data_graphics`]).
     #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
     pub data_graphic: Option<String>,
+    /// Quarter turns and mirror of the glyph, applied before `angle_deg` (see
+    /// [`crate::shape_fields::Orient`]); text stays upright.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
+    pub orient: crate::shape_fields::Orient,
 }
 
 impl Default for Shape {
@@ -429,6 +433,7 @@ impl Default for Shape {
             name: String::new(),
             language: String::new(),
             data_graphic: None,
+            orient: crate::shape_fields::Orient::NONE,
         }
     }
 }
@@ -481,6 +486,7 @@ impl Shape {
         }
         truncate(&mut self.name, Self::MAX_NAME);
         sanitize_language(&mut self.language);
+        self.orient.sanitize();
     }
     /// Longest screen tip kept, in bytes.
     pub const MAX_SCREEN_TIP: usize = 4096;
@@ -507,9 +513,39 @@ impl Shape {
     pub fn center(&self) -> Point {
         Point::new(self.x + self.w / 2.0, self.y + self.h / 2.0)
     }
-    /// Local frame coordinates (`(0, 0)` to `(w, h)`) to world coordinates, rotation included.
+    /// Local frame coordinates (`(0, 0)` to `(w, h)`) to world coordinates: the orientation
+    /// (mirror and quarter turns about the frame centre), then the rotation, then the position.
+    /// Outline, detail, hit testing, connection points and their directions all follow it.
     pub fn transform(&self) -> Transform {
-        Transform::rotate_about(Point::new(self.w / 2.0, self.h / 2.0), self.angle_deg).then(&Transform::translate(self.x, self.y))
+        let placed = Transform::rotate_about(Point::new(self.w / 2.0, self.h / 2.0), self.angle_deg).then(&Transform::translate(self.x, self.y));
+        // The default orientation adds nothing, and leaving it out keeps every existing drawing
+        // bit for bit what it was.
+        if self.orient.is_default() { placed } else { self.orient.transform(self.w, self.h).then(&placed) }
+    }
+    /// The orientation alone, as a transform of the local frame about its centre (the identity
+    /// for the default orientation).
+    pub fn orient_transform(&self) -> Transform {
+        if self.orient.is_default() { Transform::IDENTITY } else { self.orient.transform(self.w, self.h) }
+    }
+    /// [`Shape::text_rect`] with the block moved where the orientation carries its centre, in the
+    /// unrotated local frame. The block itself is neither turned nor mirrored, so text stays
+    /// upright; for the default orientation this is exactly `text_rect`.
+    pub fn text_rect_oriented(&self) -> (Rect, f64) {
+        let (r, angle) = self.text_rect();
+        if self.orient.is_default() {
+            return (r, angle);
+        }
+        let c = r.center();
+        let to = self.orient.transform(self.w, self.h).apply(c);
+        (Rect::new(r.x0 + to.x - c.x, r.y0 + to.y - c.y, r.x1 + to.x - c.x, r.y1 + to.y - c.y), angle)
+    }
+    /// Where the text block sits in the world and the angle its text is drawn at: the block
+    /// centre follows the whole transform (orientation included), but the angle is only
+    /// `angle_deg` plus the block's own angle, so quarter turns and mirroring never turn or
+    /// mirror the text (IEC 61082 keeps text readable from the bottom or the right).
+    pub fn text_frame(&self) -> (Point, f64) {
+        let (r, block_angle) = self.text_rect();
+        (self.transform().apply(r.center()), (self.angle_deg + block_angle).rem_euclid(360.0))
     }
     /// The outline in local frame coordinates: the stored path of a freeform shape, else the
     /// kind's outline.
@@ -774,6 +810,13 @@ pub struct Connector {
     /// shows the relationship's name.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
     pub relationship: Option<String>,
+    /// The net this connector is a segment of (an id in the model's nets); `None` for an
+    /// ordinary connector. Segments join at junctions and pins (see [`crate::net`]).
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub net: Option<String>,
+    /// Marks repeated along the line that say what it carries (see [`crate::line_marks`]).
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
+    pub marker: crate::line_marks::LineMarker,
 }
 
 impl Default for Connector {
@@ -795,6 +838,8 @@ impl Default for Connector {
             jumps: false,
             ext: BTreeMap::new(),
             relationship: None,
+            net: None,
+            marker: crate::line_marks::LineMarker::None,
         }
     }
 }
@@ -822,6 +867,12 @@ impl Connector {
             *p = Point::new(finite(p.x, 0.0), finite(p.y, 0.0));
         }
         sanitize_ext(&mut self.ext);
+        if let Some(n) = &mut self.net {
+            truncate(n, MAX_ID);
+            if n.is_empty() {
+                self.net = None;
+            }
+        }
     }
     /// Whether either end is glued to `shape`.
     pub fn touches(&self, shape: &str) -> bool {

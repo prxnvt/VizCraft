@@ -1,5 +1,6 @@
 //! The parts of a [`Shape`](crate::Shape) beyond frame, kind, text and style: the text block, links,
-//! protection locks, behaviour flags, a picture and the freeform outline. All plain data.
+//! protection locks, behaviour flags, a picture, the freeform outline and the glyph orientation.
+//! All plain data.
 
 use serde::{Deserialize, Serialize};
 
@@ -443,6 +444,98 @@ impl Freeform {
     }
 }
 
+/// A glyph's orientation in quarter turns and a mirror, applied about the frame centre before the
+/// shape's free rotation (`angle_deg`). Engineering symbols turn in right angles and mirror so
+/// their pins stay on the module grid; their text stays upright (see `Shape::text_frame`).
+///
+/// The eight states are stored in one canonical form: first mirror left to right when `mirror`
+/// is set, then turn clockwise `turns` quarter turns. A top-to-bottom flip is therefore a mirror
+/// plus two turns, so equal orientations always compare equal. On disk it is
+/// `{"turns": 1, "mirror": true}`, left out when it is the default; `turns` is reduced modulo 4.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Orient {
+    /// Clockwise quarter turns, `0..=3`.
+    #[serde(skip_serializing_if = "is_zero")]
+    pub turns: u8,
+    /// Mirrored left to right before turning.
+    #[serde(skip_serializing_if = "is_false")]
+    pub mirror: bool,
+}
+
+fn is_zero(v: &u8) -> bool {
+    *v == 0
+}
+
+fn is_false(v: &bool) -> bool {
+    !*v
+}
+
+impl<'de> Deserialize<'de> for Orient {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        /// Every field optional and lenient, so junk reads as the default orientation.
+        #[derive(Deserialize, Default)]
+        #[serde(default)]
+        struct Raw {
+            #[serde(deserialize_with = "num")]
+            turns: f64,
+            #[serde(deserialize_with = "lenient")]
+            mirror: bool,
+        }
+        let raw: Raw = lenient(d)?;
+        Ok(Orient::new(raw.turns, raw.mirror))
+    }
+}
+
+impl Orient {
+    /// The default: no turn, no mirror.
+    pub const NONE: Orient = Orient { turns: 0, mirror: false };
+
+    /// An orientation of `turns` quarter turns (any finite whole number, reduced modulo 4;
+    /// fractions round, junk is 0) after an optional mirror.
+    pub fn new(turns: f64, mirror: bool) -> Self {
+        let t = if turns.is_finite() { turns.round().rem_euclid(4.0) } else { 0.0 };
+        // `t` is a whole number in 0..4 here, so the cast is exact.
+        Orient { turns: (t as u8) % 4, mirror }
+    }
+    /// Whether this is the default orientation.
+    pub fn is_default(self) -> bool {
+        self == Orient::NONE
+    }
+    /// Keep `turns` in `0..=3`.
+    pub fn sanitize(&mut self) {
+        self.turns %= 4;
+    }
+    /// This orientation turned a further `turns` quarter turns clockwise (negative: counter
+    /// clockwise).
+    pub fn turned(self, turns: i64) -> Orient {
+        Orient { turns: ((i64::from(self.turns) + turns.rem_euclid(4)).rem_euclid(4)) as u8, mirror: self.mirror }
+    }
+    /// This orientation mirrored in the shape's frame: `left_right` swaps left and right, else
+    /// top and bottom. Written back in canonical form (a top-to-bottom flip is a mirror and two
+    /// turns).
+    pub fn mirrored(self, left_right: bool) -> Orient {
+        // Mirror after `R^k F^b` is `F R^k F^b = R^-k F^(b+1)`; the vertical mirror is `R^2 F`.
+        let k = i64::from(self.turns);
+        let turns = if left_right { (-k).rem_euclid(4) } else { (2 - k).rem_euclid(4) };
+        Orient { turns: turns as u8, mirror: !self.mirror }
+    }
+    /// The orientation as a transform of the local frame `(0, 0)` to `(w, h)` about its centre.
+    /// The coefficients are exact (0 and plus or minus 1), so turning four times or mirroring
+    /// twice lands exactly where it started.
+    pub fn transform(self, w: f64, h: f64) -> Transform {
+        let c = Point::new(w / 2.0, h / 2.0);
+        let flip = if self.mirror { Transform::scale(-1.0, 1.0) } else { Transform::IDENTITY };
+        // A clockwise quarter turn on screen (y down) maps (x, y) to (-y, x).
+        let quarter = Transform { m: [0.0, 1.0, -1.0, 0.0, 0.0, 0.0] };
+        let mut t = Transform::translate(-c.x, -c.y).then(&flip);
+        for _ in 0..self.turns % 4 {
+            t = t.then(&quarter);
+        }
+        t.then(&Transform::translate(c.x, c.y))
+    }
+}
+
 #[cfg(test)]
 mod freeform_tests {
     use super::*;
@@ -472,5 +565,87 @@ mod freeform_tests {
         lie.els.splice(0..0, [PathEl::MoveTo(p(1.0, 1.0)), PathEl::LineTo(p(2.0, 2.0))]);
         lie.sanitize();
         assert!(lie.closed);
+    }
+
+    /// Every orientation, in a fixed order.
+    fn all_orients() -> Vec<Orient> {
+        (0..4u8).flat_map(|t| [false, true].map(|m| Orient { turns: t, mirror: m })).collect()
+    }
+
+    #[test]
+    fn orientations_round_trip_in_canonical_form() {
+        for o in all_orients() {
+            let v = serde_json::to_value(o).unwrap();
+            assert_eq!(serde_json::from_value::<Orient>(v.clone()).unwrap(), o, "{v}");
+            // Four quarter turns, or two mirrors, land where they started.
+            assert_eq!(o.turned(1).turned(1).turned(1).turned(1), o);
+            assert_eq!(o.mirrored(true).mirrored(true), o);
+            assert_eq!(o.mirrored(false).mirrored(false), o);
+            // Equal orientations have equal transforms, and different ones differ.
+            for p in all_orients() {
+                assert_eq!(o == p, o.transform(40.0, 20.0).m == p.transform(40.0, 20.0).m, "{o:?} {p:?}");
+            }
+        }
+        assert_eq!(serde_json::to_value(Orient::NONE).unwrap(), serde_json::json!({}));
+        let junk: Orient = serde_json::from_value(serde_json::json!({"turns": 7, "mirror": "yes"})).unwrap();
+        assert_eq!(junk, Orient { turns: 3, mirror: false });
+        let junk: Orient = serde_json::from_value(serde_json::json!({"turns": -1e300})).unwrap();
+        assert!(junk.turns < 4);
+        let junk: Orient = serde_json::from_value(serde_json::json!("sideways")).unwrap();
+        assert_eq!(junk, Orient::NONE);
+        // A top-to-bottom flip is stored as a mirror plus two turns.
+        assert_eq!(Orient::NONE.mirrored(false), Orient { turns: 2, mirror: true });
+        assert_eq!(Orient::NONE.turned(-1), Orient { turns: 3, mirror: false });
+    }
+
+    #[test]
+    fn pins_outline_and_hit_area_agree_after_a_turn_and_a_mirror() {
+        use crate::{Shape, ShapeKind};
+        // A device 40 by 20 with pins on the left and right middle.
+        let mut s = Shape::new("r", ShapeKind::Rectangle, 100.0, 100.0, 40.0, 20.0);
+        s.connection_points = vec![Point::new(0.0, 0.5), Point::new(1.0, 0.25)];
+        s.orient = Orient { turns: 1, mirror: false };
+        // A quarter turn about the centre (120, 110): the left pin goes to the top.
+        let p0 = s.connection_point_world(0).unwrap();
+        assert!(p0.distance(Point::new(120.0, 90.0)) < 1e-9, "{p0:?}");
+        assert_eq!(s.connection_direction(0).map(|d| (d.x.round(), d.y.round())), Some((0.0, -1.0)));
+        let b = s.bounds();
+        assert!((b.width() - 20.0).abs() < 1e-9 && (b.height() - 40.0).abs() < 1e-9, "{b:?}");
+        assert!(crate::hit::shape_contains(&s, Point::new(120.0, 128.0), 0.0), "the turned body is hit");
+        assert!(!crate::hit::shape_contains(&s, Point::new(135.0, 110.0), 0.0), "the old body is not");
+        // Mirrored as well: the second pin, a quarter down the right side, swaps sides.
+        s.orient = Orient { turns: 0, mirror: true };
+        let p1 = s.connection_point_world(1).unwrap();
+        assert!(p1.distance(Point::new(100.0, 105.0)) < 1e-9, "{p1:?}");
+        // The outline's points all sit on pins' frame: the outline maps by the same transform.
+        let outline = s.outline_world().bounds().unwrap();
+        assert!(outline.contains(p1) && outline.contains(s.connection_point_world(0).unwrap()));
+    }
+
+    #[test]
+    fn text_stays_upright_after_a_turn() {
+        use crate::{Shape, ShapeKind};
+        let mut s = Shape::new("r", ShapeKind::Rectangle, 0.0, 0.0, 40.0, 20.0);
+        s.text_block = Some(TextBlock { dx: 10.0, dy: 0.0, w: 20.0, h: 10.0, angle_deg: 0.0 });
+        s.orient = Orient { turns: 1, mirror: false };
+        let (centre, angle) = s.text_frame();
+        assert_eq!(angle, 0.0, "a quarter turn does not turn the text");
+        // The block centre (30, 10) turns about (20, 10) to (20, 20).
+        assert!(centre.distance(Point::new(20.0, 20.0)) < 1e-9, "{centre:?}");
+        let (r, _) = s.text_rect_oriented();
+        assert!(r.center().distance(centre) < 1e-9 && (r.width() - 20.0).abs() < 1e-9);
+        s.angle_deg = 30.0;
+        assert_eq!(s.text_frame().1, 30.0, "the free rotation still turns it");
+    }
+
+    #[test]
+    fn the_default_orientation_leaves_the_transform_bit_identical() {
+        use crate::{Shape, ShapeKind};
+        let mut s = Shape::new("r", ShapeKind::Diamond, 13.7, -4.1, 33.3, 17.9);
+        s.angle_deg = 37.0;
+        let old =
+            crate::geom::Transform::rotate_about(Point::new(s.w / 2.0, s.h / 2.0), s.angle_deg).then(&crate::geom::Transform::translate(s.x, s.y));
+        assert_eq!(s.transform().m, old.m);
+        assert_eq!(s.text_rect_oriented(), s.text_rect());
     }
 }

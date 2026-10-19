@@ -64,8 +64,13 @@ impl RoutingPolicy {
 }
 
 /// Whether `c` routes around shapes on `page`: the page policy says always, or the connector's
-/// own flag is set.
+/// own flag is set. A net segment (a connector with `net` set) follows its own flag only: wires
+/// and pipes keep the bends they were drawn with, as in every schematic editor, even on a page
+/// whose policy is to always avoid.
 pub fn routes(page: &Page, c: &Connector) -> bool {
+    if c.net.is_some() {
+        return c.avoid;
+    }
     page.routing.routes(c.avoid)
 }
 
@@ -85,5 +90,16 @@ mod tests {
         assert!(
             p.routes(false) && RoutingPolicy { avoid: Avoid::Never, ..p }.routes(true) && !RoutingPolicy { avoid: Avoid::Never, ..p }.routes(false)
         );
+    }
+
+    #[test]
+    fn net_segments_keep_their_bends_on_an_always_avoid_page() {
+        let page = Page::new("p", "P");
+        let mut c = Connector::default();
+        assert!(routes(&page, &c), "the page policy routes plain connectors");
+        c.net = Some("n1".into());
+        assert!(!routes(&page, &c), "a segment keeps its drawn bends");
+        c.avoid = true;
+        assert!(routes(&page, &c), "unless it asks to avoid shapes");
     }
 }

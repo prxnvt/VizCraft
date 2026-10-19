@@ -139,7 +139,8 @@ impl<'a> Field<'a> {
             let b = s.bounds();
             f.by_id.entry(s.id.as_str()).or_insert(s);
             f.bounds.entry(s.id.as_str()).or_insert(b);
-            if crate::arrange::is_group(s) || !crate::layer::visible(page, s) {
+            // Junctions are points on wires, never something to route around.
+            if crate::arrange::is_group(s) || crate::net::is_junction(s) || !crate::layer::visible(page, s) {
                 continue;
             }
             f.obstacles.push(Obstacle::new(b.x0, b.y0, b.x1, b.y1));
@@ -363,7 +364,7 @@ struct Sig<'a> {
 fn sig<'a>(page: &Page, s: &'a Shape) -> Sig<'a> {
     Sig {
         bounds: s.bounds(),
-        solid: !crate::arrange::is_group(s) && crate::layer::visible(page, s),
+        solid: !crate::arrange::is_group(s) && !crate::net::is_junction(s) && crate::layer::visible(page, s),
         parent: s.parent.as_deref(),
         heading: container::heading_rect(s).and_then(|r| world_box(s, r)),
         points: s.connection_points_world(),

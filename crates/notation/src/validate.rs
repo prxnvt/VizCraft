@@ -222,6 +222,7 @@ impl<'a> Checker<'a> {
         self.identifiers();
         self.rules();
         self.rulesets();
+        self.modules();
     }
 
     fn glyphs(&mut self) {
@@ -267,6 +268,57 @@ impl<'a> Checker<'a> {
             self.colour(&ctx, "line", &t.line);
             if let Some(r) = &t.relationship_type {
                 self.reference(&ctx, Kind::Relationship, r);
+            }
+            if let Some(n) = &t.net
+                && vizcraft_model::NetKind::from_name(n).is_none()
+            {
+                self.problem(format!("{ctx}: unknown net kind `{}`", short(n)));
+            }
+            if !t.marker.is_empty() && vizcraft_diagram::LineMarker::from_name(&t.marker).is_none() {
+                self.problem(format!("{ctx}: unknown line marker `{}`", short(&t.marker)));
+            }
+        }
+    }
+
+    /// Every port of a typed glyph must sit a whole number of modules from the type's first
+    /// port (within 0.05 of a module), on every module the pack and its variants name, so
+    /// symbols placed on the module grid put their pins on it too.
+    fn modules(&mut self) {
+        let pack = self.pack;
+        // (module, glyph override per type) for the pack and each variant with a module.
+        let mut checks: Vec<(String, f64, Option<&std::collections::BTreeMap<String, String>>)> = Vec::new();
+        if let Some(step) = pack.module.step() {
+            checks.push(("the pack's module".to_string(), step, None));
+        }
+        for v in capped(&pack.variants) {
+            if let Some(step) = v.module.step().or(pack.module.step()) {
+                checks.push((format!("variant `{}`", short(&v.id)), step, Some(&v.glyphs)));
+            }
+        }
+        if checks.is_empty() {
+            return;
+        }
+        for (what, step, glyphs) in checks {
+            for t in capped(&pack.element_types) {
+                let Some(first) = t.ports.first() else { continue };
+                let glyph_id = glyphs.and_then(|g| g.get(&t.id)).unwrap_or(&t.glyph);
+                let Some(g) = pack.glyph(glyph_id) else { continue };
+                for p in capped(&t.ports).iter().skip(1) {
+                    let off = [(p.x - first.x) * g.w, (p.y - first.y) * g.h];
+                    let on = off.iter().all(|d| {
+                        let m = d / step;
+                        m.is_finite() && (m - m.round()).abs() <= 0.05
+                    });
+                    if !on {
+                        self.problem(format!(
+                            "element type `{}`: port `{}` of glyph `{}` is not a whole number of modules from port `{}` on {what}",
+                            short(&t.id),
+                            short(&p.id),
+                            short(glyph_id),
+                            short(&first.id)
+                        ));
+                    }
+                }
             }
         }
     }
