@@ -10,7 +10,7 @@ use crate::ribbon::Group;
 use crate::widgets;
 
 /// The Drawing Explorer button: opens the Navigation pane, then points its tree at the
-/// diagrams branch. `ui.tree` may not exist in this build yet; then only the pane opens.
+/// diagrams branch (`ui.tree`).
 fn drawing_explorer(app: &mut CraftApp, ui: &mut Ui) {
     let r = widgets::big(ui, app, "drawingExplorer", &widgets::big_label("Drawing Explorer"), "ui.pane.navigation", json!({"value": true}));
     if r.clicked() {

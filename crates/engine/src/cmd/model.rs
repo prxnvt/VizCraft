@@ -316,11 +316,10 @@ pub fn rename_relationship(doc: &mut Document, id: &str, name: &str) -> Result<(
     Ok(())
 }
 
-/// The `page` param as a page index; absent is the active page (the first, as
-/// `Document::page` reads it).
+/// The `page` param as a page index; absent is the active page.
 pub fn page_param(doc: &Document, v: &Value) -> Result<usize, EngineError> {
     match opt_str(v, "page")? {
-        None => Ok(0),
+        None => Ok(doc.active_index()),
         Some(r) => doc.find_page(check_len("page", r)?).ok_or_else(|| EngineError::Params(format!("no page `{}`", short(r)))),
     }
 }

@@ -397,7 +397,15 @@ pub fn delete_items(s: &mut Session, ids: &[String]) -> CmdResult {
     layer::ensure_unlocked(s, ids)?;
     protect::check(s, ids, protect::Lock::Delete)?;
     let page = page_mut(s)?;
+    let page_id = page.id.clone();
     let d = delete_on_page(page, ids);
+    // A comment thread outlives the shape it was pinned to: it moves to the page, in the same
+    // undo step as the delete.
+    for c in s.doc.comments.iter_mut().filter(|c| c.anchor.page == page_id) {
+        if c.anchor.shape.as_ref().is_some_and(|sh| d.items.contains(sh)) {
+            c.anchor.shape = None;
+        }
+    }
     drop_undrawn_relationships(&mut s.doc, &d.relationships);
     prune_selection(s);
     with_sel(s, json!({"deleted": d.items, "detached": d.detached}))

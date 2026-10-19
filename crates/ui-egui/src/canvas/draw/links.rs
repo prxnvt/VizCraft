@@ -34,10 +34,22 @@ pub fn draw(app: &CraftApp, painter: &Painter, vp: &Viewport2D, page: &Page, t: 
     if !app.ui.panes.is_open("comments") {
         return;
     }
+    for (r, _, number) in markers(page, &app.session.doc.comments, vp) {
+        if !painter.clip_rect().intersects(r) {
+            continue;
+        }
+        painter.rect_filled(r, 3.0, t.accent);
+        painter.text(r.center(), Align2::CENTER_CENTER, number.to_string(), FontId::proportional(10.0), t.on_accent);
+    }
+}
+
+/// The screen rectangle, comment id and number of each comment marker on `page`: at the top left
+/// of the anchor shape, or of the page for a page comment, side by side where several share one.
+/// The canvas draws these and `interact::links` hit-tests them, so the two always agree.
+pub fn markers(page: &Page, comments: &[vizcraft_diagram::Comment], vp: &Viewport2D) -> Vec<(Rect, String, usize)> {
     let mut at_anchor: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
-    let mut number = 0usize;
-    for c in app.session.doc.comments.iter().filter(|c| c.anchor.page == page.id) {
-        number += 1;
+    let mut out = Vec::new();
+    for (number, c) in comments.iter().filter(|c| c.anchor.page == page.id).enumerate() {
         let anchor = c.anchor.shape.as_deref().and_then(|id| page.shape(id));
         let (key, origin) = match anchor {
             Some(sh) => (sh.id.clone(), vp.world_to_screen(pos2(sh.bounds().x0 as f32, sh.bounds().y0 as f32))),
@@ -49,10 +61,23 @@ pub fn draw(app: &CraftApp, painter: &Painter, vp: &Viewport2D, page: &Page, t: 
         let k = at_anchor.entry(key).or_insert(0);
         let r = Rect::from_min_size(origin + vec2(2.0 + *k as f32 * (MARKER.x + 2.0), -MARKER.y - 2.0), MARKER);
         *k += 1;
-        if !painter.clip_rect().intersects(r) {
-            continue;
-        }
-        painter.rect_filled(r, 3.0, t.accent);
-        painter.text(r.center(), Align2::CENTER_CENTER, number.to_string(), FontId::proportional(10.0), t.on_accent);
+        out.push((r, c.id.clone(), number + 1));
     }
+    out
+}
+
+/// Ask the Comments pane to scroll to the thread of comment `id` when it next draws (a click on
+/// the comment's marker does this). Kept in egui's memory, so it survives until the pane runs.
+pub fn reveal(ctx: &egui::Context, id: &str) {
+    ctx.memory_mut(|m| m.data.insert_temp(egui::Id::new("comments_reveal"), id.to_string()));
+}
+
+/// The comment the pane was asked to scroll to, if any.
+pub fn revealing(ctx: &egui::Context) -> Option<String> {
+    ctx.memory_mut(|m| m.data.get_temp::<String>(egui::Id::new("comments_reveal")))
+}
+
+/// The pane has scrolled to the thread: forget the request.
+pub fn reveal_done(ctx: &egui::Context) {
+    ctx.memory_mut(|m| m.data.remove::<String>(egui::Id::new("comments_reveal")));
 }

@@ -10,14 +10,21 @@ use vizcraft_diagram::{Document, Page, Shape};
 use super::{FillCache, color, font_for, line_px, pos, rect};
 use crate::canvas::Viewport2D;
 
-/// Draw `s` (as [`super::shape`] does) with its data graphic, if it shows one.
-pub fn shape(painter: &Painter, vp: &Viewport2D, doc: &Document, page: &Page, s: &Shape, cache: &mut FillCache, show_text: bool) {
+/// Draw `s` (as [`super::shape`] does) in the colours its data graphic gives it, and return the
+/// graphic's marks (bars, icons, text) for [`marks`] to draw later: the canvas draws them in a
+/// pass after the connectors, so a bar a connector crosses stays on top.
+pub fn shape(painter: &Painter, vp: &Viewport2D, doc: &Document, page: &Page, s: &Shape, cache: &mut FillCache, show_text: bool) -> Vec<Mark> {
     let Some(r) = render(doc, page, s) else {
         super::shape(painter, vp, s, cache, show_text);
-        return;
+        return Vec::new();
     };
     super::shape(painter, vp, &recolored(s, &r), cache, show_text);
-    for m in r.items.iter().flat_map(|i| &i.marks) {
+    r.items.into_iter().flat_map(|i| i.marks).collect()
+}
+
+/// Draw the marks [`shape`] returned.
+pub fn marks(painter: &Painter, vp: &Viewport2D, marks: &[Mark]) {
+    for m in marks {
         mark(painter, vp, m);
     }
 }
@@ -100,7 +107,8 @@ mod tests {
                 if !with {
                     shown.data_graphic = None;
                 }
-                shape(ui.painter(), &vp, &doc, page, &shown, &mut cache, true);
+                let drawn = shape(ui.painter(), &vp, &doc, page, &shown, &mut cache, true);
+                marks(ui.painter(), &vp, &drawn);
             });
             out.textures_delta.clear();
             counts.push(out.shapes.len());

@@ -112,3 +112,25 @@ fn the_ribbons_run_the_review_and_process_commands() {
     h.run_steps(3);
     assert_eq!(h.state().ui.tab, "Process");
 }
+
+#[test]
+fn a_click_on_a_comment_marker_shows_the_thread_in_the_pane() {
+    let mut h = harness(Rc::new(RefCell::new(Vec::new())));
+    let (start, end) = (id_of(&h, "Start"), id_of(&h, "End"));
+    h.state_mut().run("comment.add", json!({"text": "first", "shape": start})).unwrap();
+    let second = h.state_mut().run("comment.add", json!({"text": "second", "shape": end})).unwrap()["id"].as_str().unwrap().to_string();
+    h.state_mut().run("edit.selectNone", json!({})).unwrap();
+    h.state_mut().ui.panes.open("comments", None);
+    h.run_steps(4);
+    let marker = {
+        let app = h.state();
+        let vp = app.canvas.viewport(&app.session.view).expect("the canvas has been laid out");
+        let page = app.session.doc.page().unwrap();
+        let all = vizcraft_ui_egui::canvas::draw::links::markers(page, &app.session.doc.comments, &vp);
+        all.into_iter().find(|(_, id, _)| *id == second).map(|(r, ..)| r.center()).expect("the second comment has a marker")
+    };
+    click(&mut h, marker, Modifiers::NONE);
+    assert_eq!(h.state().session.sel.items, vec![end.clone()], "comment.show selected the anchor");
+    assert!(h.state().ui.panes.is_open("comments"));
+    assert!(vizcraft_ui_egui::canvas::draw::links::revealing(&h.ctx).is_none(), "the pane took the reveal request and scrolled to the thread");
+}

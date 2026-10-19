@@ -47,7 +47,7 @@ pub fn specs() -> Vec<CommandSpec> {
             Ok(json!({"dialog": "defineShapeData"}))
         })
         .params("{} -> opens the Define Shape Data dialog in the app; agents call data.defineKey"),
-        CommandSpec::new("view.shapeDataPane", "Shape Data Window", "Data > Show/Hide", |s, v| {
+        CommandSpec::new("view.shapeDataPane", "Inspector", "Data > Show/Hide", |s, v| {
             let value = opt_bool(v, "value")?;
             let req = json!({"pane": "shapeData", "value": value});
             s.ui_requests.push(req.clone());

@@ -106,7 +106,7 @@ fn thread(app: &mut CraftApp, ui: &mut Ui, c: &Comment) {
         .stroke(egui::Stroke::new(1.0, t.border))
         .corner_radius(4.0)
         .inner_margin(egui::Margin::same(8));
-    frame.show(ui, |ui| {
+    let shown = frame.show(ui, |ui| {
         ui.set_width(ui.available_width());
         ui.horizontal_wrapped(|ui| {
             ui.label(egui::RichText::new(&c.author).strong().color(t.text));
@@ -143,4 +143,8 @@ fn thread(app: &mut CraftApp, ui: &mut Ui, c: &Comment) {
         });
         set_draft(ui, rid, text);
     });
+    if crate::canvas::draw::links::revealing(ui.ctx()).as_deref() == Some(c.id.as_str()) {
+        ui.scroll_to_rect(shown.response.rect, Some(egui::Align::Center));
+        crate::canvas::draw::links::reveal_done(ui.ctx());
+    }
 }

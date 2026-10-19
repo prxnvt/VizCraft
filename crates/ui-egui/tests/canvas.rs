@@ -274,6 +274,21 @@ fn dragging_a_connector_end_reglues_it() {
 }
 
 #[test]
+fn a_text_locked_shape_does_not_open_the_in_place_editor() {
+    let mut h = harness();
+    h.state_mut().run("shape.setLocks", json!({"ids": ["s4"], "text": true})).unwrap();
+    settle(&mut h);
+    let p = shape_centre(&h, "s4");
+    double_click(&mut h, p);
+    assert!(h.state().canvas.editing.is_none(), "the lock refuses the editor");
+    assert!(h.state().status_msg.as_ref().is_some_and(|(m, _)| m.contains("locked against text editing")), "{:?}", h.state().status_msg);
+    h.state_mut().run("shape.setLocks", json!({"ids": ["s4"], "text": false})).unwrap();
+    settle(&mut h);
+    double_click(&mut h, p);
+    assert_eq!(h.state().canvas.editing.as_ref().map(|e| e.id().to_string()), Some("s4".into()));
+}
+
+#[test]
 fn double_click_edits_text_in_place() {
     let mut h = harness();
     let p = shape_centre(&h, "s4");

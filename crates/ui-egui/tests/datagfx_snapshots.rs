@@ -88,6 +88,8 @@ fn data_graphic_snapshots() {
     run(&mut h, "view.zoom", json!({"value": 200}));
     let c = h.state().session.doc.shape(&id).unwrap().center();
     h.state_mut().session.view.pan = [c.x as f32 + 40.0, c.y as f32 + 10.0];
+    // The sample's connector into the shape crosses the bar: the bar is drawn above it (the data
+    // graphic pass follows the connectors), which this snapshot shows.
     snap(&mut results, &mut h, "canvas-data-graphic");
     assert_eq!(h.state().session.doc.shape(&id).unwrap().style, style, "drawing the colour by value changes no style");
 

@@ -46,19 +46,51 @@ pub struct Hit {
     pub view: Option<(usize, String)>,
 }
 
-/// The rows matching `query`, best first (see `suggest::search`), at most [`MAX_HITS`].
-pub fn hits(app: &CraftApp, query: &str) -> Vec<Hit> {
+/// Every command the palette and `suggest.search` search: the engine's registry, then
+/// [`UI_COMMANDS`].
+fn command_rows(app: &CraftApp) -> Vec<CommandRow<'_>> {
     let ui_rows = UI_COMMANDS.iter().map(|(id, label, sc, _)| CommandRow { id, label, location: "UI", shortcut: sc });
-    let rows: Vec<CommandRow<'_>> = app
-        .session
+    app.session
         .registry
         .all()
         .iter()
         .map(|c| CommandRow { id: c.id, label: c.label, location: c.location, shortcut: c.shortcut })
         .chain(ui_rows)
-        .collect();
+        .collect()
+}
+
+/// The rows matching `query`, best first (see `suggest::search`), at most [`MAX_HITS`].
+pub fn hits(app: &CraftApp, query: &str) -> Vec<Hit> {
+    let rows = command_rows(app);
     suggest::search(&app.session.doc, &rows, query, &[], MAX_HITS).into_iter().map(|h| row(app, &rows, h)).collect()
 }
+
+/// `suggest.search` from any origin (control channel, MCP, scripts as well as the palette):
+/// the engine's search over the registry rows plus [`UI_COMMANDS`], so the `ui.*` commands are
+/// found too. Same params and reply as the engine command: `{query, kinds?, limit?}` ->
+/// `{hits}`.
+pub fn search(app: &CraftApp, params: &serde_json::Value) -> Result<serde_json::Value, String> {
+    let query = params.get("query").and_then(serde_json::Value::as_str).ok_or("`query` must be a string")?;
+    let kinds: Vec<HitKind> = match params.get("kinds") {
+        None | Some(serde_json::Value::Null) => Vec::new(),
+        Some(serde_json::Value::Array(a)) => a
+            .iter()
+            .take(HitKind::ALL.len().saturating_mul(4))
+            .map(|k| k.as_str().and_then(HitKind::parse).ok_or("`kinds` holds command, type or element"))
+            .collect::<Result<_, _>>()?,
+        Some(_) => return Err("`kinds` must be an array of strings".into()),
+    };
+    let limit = match params.get("limit") {
+        None | Some(serde_json::Value::Null) => SEARCH_LIMIT,
+        // Clamped as a float first so a huge or negative number cannot overflow the cast.
+        Some(n) => n.as_f64().ok_or("`limit` must be a number")?.clamp(1.0, suggest::MAX_HITS as f64) as usize,
+    };
+    let rows = command_rows(app);
+    Ok(json!({"hits": suggest::search(&app.session.doc, &rows, query, &kinds, limit)}))
+}
+
+/// Results `suggest.search` returns when `limit` is not given (as the engine command does).
+const SEARCH_LIMIT: usize = 50;
 
 /// A search hit as the palette shows it.
 fn row(app: &CraftApp, rows: &[CommandRow<'_>], h: SearchHit) -> Hit {
@@ -200,6 +232,25 @@ mod tests {
         let minimize = super::hits(&a, "minimize");
         assert!(minimize.iter().any(|h| h.id == "window.minimize" && !h.enabled), "placeholders show disabled");
         assert!(super::hits(&a, "").len() <= MAX_HITS);
+    }
+
+    #[test]
+    fn suggest_search_over_the_control_channel_finds_ui_commands() {
+        let mut a = app();
+        let r = a.run_as(vizcraft_engine::Origin::Control, "suggest.search", json!({"query": "ui.commands", "kinds": ["command"]})).unwrap();
+        let hits = r["hits"].as_array().unwrap();
+        assert!(hits.iter().any(|h| h["id"] == "ui.commands"), "{hits:?}");
+        let r = a.run_as(vizcraft_engine::Origin::Mcp, "suggest.search", json!({"query": "zoom", "limit": 3})).unwrap();
+        assert!(r["hits"].as_array().unwrap().len() <= 3);
+        for bad in [
+            json!({}),
+            json!({"query": 5}),
+            json!({"query": "x", "kinds": ["nope"]}),
+            json!({"query": "x", "kinds": 3}),
+            json!({"query": "x", "limit": "a"}),
+        ] {
+            assert!(a.run("suggest.search", bad.clone()).is_err(), "{bad}");
+        }
     }
 
     #[test]

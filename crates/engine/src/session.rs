@@ -291,6 +291,14 @@ impl Session {
     pub fn can_redo(&self) -> bool {
         !self.redo.is_empty()
     }
+    /// How many steps Undo can take back.
+    pub fn undo_depth(&self) -> usize {
+        self.history.len()
+    }
+    /// How many steps Redo can do again.
+    pub fn redo_depth(&self) -> usize {
+        self.redo.len()
+    }
     /// Label of the command Undo would take back.
     pub fn undo_label(&self) -> Option<&str> {
         self.history.last().map(|u| u.label.as_str())
@@ -652,9 +660,10 @@ fn is_transaction(id: &str) -> bool {
     matches!(id, "edit.batch" | "script.run")
 }
 
-/// Whether a script records this command: not view-only, UI, app, help, file or script commands.
+/// Whether a script records this command: not view-only, UI, app, help, file, script or macro commands (a macro run records the steps it
+/// ran, not the run itself).
 pub fn recordable(id: &str) -> bool {
-    !["view.", "ui.", "app.", "help.", "file.", "script."].iter().any(|p| id.starts_with(p))
+    !["view.", "ui.", "app.", "help.", "file.", "script.", "macro."].iter().any(|p| id.starts_with(p))
 }
 
 /// A rough size of a document in memory: item structs plus their strings, points and image

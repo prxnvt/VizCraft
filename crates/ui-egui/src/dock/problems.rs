@@ -59,16 +59,19 @@ fn run_check(app: &mut CraftApp, params: &Value) -> Result<Value, String> {
     Ok(r)
 }
 
-/// `validate.run` asked for by the person (ribbon, palette, dock): run it for the whole document,
-/// keep the result for the rows and open the dock on Problems. Runs for an agent (control channel,
-/// MCP, scripts) and for a scope other than the whole document go to the engine untouched.
+/// `validate.run` for the whole document, from any origin (ribbon, palette, dock, control
+/// channel, MCP, scripts): run it, keep the result for the rows, and, when the person asked for
+/// it (a UI-origin run), open the dock on Problems. A scope other than the whole document goes to
+/// the engine untouched.
 pub(crate) fn on_run(app: &mut CraftApp, params: &Value) -> Option<Result<Value, String>> {
     let whole = params.get("scope").and_then(Value::as_str).is_none_or(|s| s == "all") && params.get("page").is_none() && params.get("ids").is_none();
-    if app.session.origin() != vizcraft_engine::Origin::Ui || !whole {
+    if !whole {
         return None;
     }
     let r = run_check(app, &json!({}));
-    super::open_on(app, DockTab::Problems);
+    if app.session.origin() == vizcraft_engine::Origin::Ui {
+        super::open_on(app, DockTab::Problems);
+    }
     Some(r)
 }
 

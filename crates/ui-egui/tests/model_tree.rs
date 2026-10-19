@@ -182,3 +182,27 @@ fn ten_thousand_elements_stay_smooth() {
     assert!(t.elapsed().as_secs_f32() < 10.0, "five frames of ten thousand elements took {:?}", t.elapsed());
     assert!(h.query_by_label("Element 9999").is_none(), "rows far below the fold are not built");
 }
+
+#[test]
+fn the_model_tabs_show_in_all_views_goes_to_the_page_and_selects_the_shapes() {
+    let mut app = flow_app();
+    app.ui.tab = "Model".into();
+    let on_first = app.session.doc.pages[0].shapes.iter().find(|s| s.element.as_deref() == Some("ok")).map(|s| s.id.clone()).unwrap();
+    let on_second = app.session.doc.pages[1].shapes.iter().find(|s| s.element.as_deref() == Some("ok")).map(|s| s.id.clone()).unwrap();
+    app.run("edit.select", json!({"ids": [on_first]})).unwrap();
+    let mut h = Harness::builder().with_size(egui::vec2(1600.0, 900.0)).with_max_steps(64).build_ui_state(
+        |ui, app: &mut CraftApp| {
+            app.logic(ui.ctx());
+            app.ui(ui);
+        },
+        app,
+    );
+    h.run_steps(5);
+    h.get_by_label("Show in All Views").click();
+    h.run_steps(3);
+    // The menu entry is the last "Second" on screen (the page tab is another).
+    h.get_all_by_label("Second").last().expect("the menu lists the page").click();
+    h.run_steps(4);
+    assert_eq!(h.state().session.doc.page().map(|p| p.name.as_str()), Some("Second"));
+    assert_eq!(h.state().session.sel.items, vec![on_second], "the element's shapes on that page are selected");
+}

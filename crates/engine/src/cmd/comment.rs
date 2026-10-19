@@ -270,6 +270,21 @@ mod tests {
     }
 
     #[test]
+    fn a_deleted_shapes_comment_becomes_a_page_comment_and_undo_restores_it() {
+        let mut s = session();
+        let a = id_of(&s, "Start");
+        s.run("comment.add", &json!({"text": "Keep me", "shape": a})).unwrap();
+        s.run("shape.delete", &json!({"ids": [a.clone()]})).unwrap();
+        assert_eq!(s.doc.comments.len(), 1, "the thread stays");
+        assert_eq!(s.doc.comments[0].anchor.shape, None);
+        let listed = s.run("comment.list", &json!({})).unwrap();
+        assert!(listed["comments"][0]["shape"].is_null());
+        assert_eq!(listed["comments"][0]["text"], "Keep me");
+        s.run("edit.undo", &json!({})).unwrap();
+        assert_eq!(s.doc.comments[0].anchor.shape.as_deref(), Some(a.as_str()));
+    }
+
+    #[test]
     fn bad_comments_are_refused() {
         let mut s = session();
         assert!(s.run("comment.add", &json!({"text": "  "})).is_err());

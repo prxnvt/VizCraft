@@ -183,17 +183,9 @@ fn set_text(s: &mut Session, v: &Value) -> CmdResult {
     let id = p::req_str(v, "id")?;
     let text = p::req_str(v, "text")?;
     let page = s.doc.page().ok_or_else(|| EngineError::Failed("the document has no page".into()))?;
-    let rel = page.connector(id).ok_or_else(|| not_a_connector(id))?.relationship.clone().filter(|r| s.doc.model.relationship(r).is_some());
-    // A connector that draws a relationship shows its name: renaming the relationship updates
-    // this connector and every other view of it.
-    match rel {
-        Some(r) => super::model::rename_relationship(&mut s.doc, &r, text)?,
-        None => {
-            let c = page_mut(s)?.connector_mut(id).ok_or_else(|| not_a_connector(id))?;
-            c.text = text.to_string();
-            c.sanitize();
-        }
-    }
+    page.connector(id).ok_or_else(|| not_a_connector(id))?;
+    // The shared setter renames the relationship when the connector draws one, so every view follows.
+    super::text::put_text(s, id, text)?;
     let id = id.to_string();
     with_sel(s, json!({"id": id}))
 }

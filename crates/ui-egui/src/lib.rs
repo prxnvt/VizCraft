@@ -173,7 +173,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.window.cascade", "Cascade", "", "{} (stack every window, each a little right and down of the last)"),
     ("ui.window.switch", "Switch Windows", "", r#"{"index": n} (0 is the first window)"#),
     ("ui.macroRecord", "Record Macro", "", r#"{"value"?: bool} (start or stop recording a script; stopping keeps it for Save Macro)"#),
-    ("ui.spelling", "Spelling", "", "{}"),
+    ("ui.spelling", "Spelling", "F7", "{}"),
     (
         "ui.linkData",
         "Link Data to Shapes",
@@ -332,6 +332,18 @@ impl Default for UiState {
             inspector: Default::default(),
             dock: Default::default(),
         }
+    }
+}
+
+/// The media type of a picture file by its name (png, jpg, jpeg or svg, any case), for
+/// `picture.insert`; `None` for any other file.
+fn picture_media_type(name: &str) -> Option<&'static str> {
+    let ext = name.rsplit(['/', '\\']).next().unwrap_or(name).rsplit_once('.')?.1.to_ascii_lowercase();
+    match ext.as_str() {
+        "png" => Some("image/png"),
+        "jpg" | "jpeg" => Some("image/jpeg"),
+        "svg" => Some("image/svg+xml"),
+        _ => None,
     }
 }
 
@@ -626,6 +638,10 @@ impl CraftApp {
         }
         if let Some(r) = canvas::interact::ink::ui_command(self, id, p) {
             return Some(r);
+        }
+        // The engine's search cannot see the `ui.*` commands; this one can, from every origin.
+        if id == "suggest.search" {
+            return Some(command_palette::search(self, p));
         }
         let s = |k: &str| p.get(k).and_then(Value::as_str);
         let b = |k: &str| p.get(k).and_then(Value::as_bool);
@@ -1054,6 +1070,12 @@ impl CraftApp {
         let Some(inbox) = self.services.inbox.clone() else { return };
         let files = std::mem::take(&mut *inbox.lock().unwrap_or_else(|e| e.into_inner()));
         for (name, bytes) in files {
+            // A dropped or picked picture becomes a picture shape; it is not a document.
+            if let Some(media) = picture_media_type(&name) {
+                let _ = self.run("picture.insert", json!({"bytes": vizcraft_diagram::base64::encode(&bytes), "mediaType": media}));
+                self.backstage = false;
+                continue;
+            }
             // Mermaid, CSV and bare XML files are imported onto the page; documents open.
             if !vizcraft_engine::io::is_document(&name)
                 && let Some(format) = vizcraft_engine::io::import_format_for_name(&name)

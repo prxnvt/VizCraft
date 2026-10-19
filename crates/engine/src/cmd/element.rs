@@ -69,7 +69,7 @@ fn frame_param(v: &Value) -> Result<Option<(f64, f64, Option<f64>, Option<f64>)>
 
 /// Select `shape` when it is on the active page (the selection only holds active-page items).
 fn select_if_active(s: &mut Session, page: usize, shape: &str) {
-    if page == 0 {
+    if page == s.doc.active_index() {
         select(s, vec![shape.to_string()]);
     }
 }

@@ -996,6 +996,42 @@ fn a_fragment_round_trip_keeps_connections_and_gives_fresh_ids() {
 }
 
 #[test]
+fn a_recorded_script_holds_no_macro_steps_and_the_undo_depths_follow_the_stacks() {
+    let mut s = blank();
+    run(&mut s, "script.recordStart", json!({}));
+    run(&mut s, "shape.add", json!({"stencil": "basic.rectangle", "x": 0, "y": 0}));
+    // Whether the macro folder exists or not, listing and running macros is not a step.
+    let _ = s.run("macro.list", &json!({}));
+    let _ = s.run("macro.run", &json!({"name": "nothing"}));
+    let script = run(&mut s, "script.recordStop", json!({}))["script"].clone();
+    let ids: Vec<&str> = script.as_array().unwrap().iter().filter_map(|st| st["command"].as_str()).collect();
+    assert_eq!(ids, ["shape.add"]);
+    assert!(!crate::session::recordable("macro.run"));
+    assert_eq!((s.undo_depth(), s.redo_depth()), (1, 0));
+    assert_eq!(s.can_undo(), s.undo_depth() > 0);
+    run(&mut s, "edit.undo", json!({}));
+    assert_eq!((s.undo_depth(), s.redo_depth()), (0, 1));
+    assert_eq!(s.can_redo(), s.redo_depth() > 0);
+}
+
+#[test]
+fn page_defaults_follow_the_active_page_and_the_inspector_label() {
+    let mut s = blank();
+    run(&mut s, "page.add", json!({"name": "Two"}));
+    run(&mut s, "page.add", json!({"name": "Three"}));
+    run(&mut s, "page.setActive", json!({"page": 2}));
+    assert_eq!(s.doc.active_index(), 2);
+    let made = run(&mut s, "element.create", json!({"type": "flowchart.Process", "name": "Here", "x": 10, "y": 10}));
+    let shape = made["shape"].as_str().unwrap().to_string();
+    assert!(s.doc.pages[2].shape(&shape).is_some(), "an element made with no `page` lands on the active page");
+    assert!(s.doc.pages[0].shapes.is_empty());
+    assert_eq!(s.sel.items, vec![shape], "and its shape is selected, as it is on the active page");
+    run(&mut s, "model.setViewpoint", json!({"viewpoint": null}));
+    let label = s.commands().into_iter().find(|c| c.id == "view.shapeDataPane").map(|c| c.label);
+    assert_eq!(label.as_deref(), Some("Inspector"));
+}
+
+#[test]
 fn a_recorded_script_replays_to_the_same_document() {
     let mut s = blank();
     let first = run(&mut s, "shape.add", json!({"stencil": "basic.rectangle", "x": 0, "y": 0}))["id"].as_str().unwrap().to_string();

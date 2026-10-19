@@ -239,6 +239,7 @@ mod tests {
                     Key::Slash,
                     Key::Num0,
                     Key::F1,
+                    Key::F7,
                     Key::F12,
                     Key::Space,
                     Key::Delete,

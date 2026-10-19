@@ -160,6 +160,10 @@ fn shape_json(sh: &Shape, d: Detail, lk: &Lookup) -> Value {
     if d == Detail::Full || !sh.text.is_empty() {
         o.insert("text".into(), json!(sh.text));
     }
+    // A name is set on purpose (`shape.rename`), so every detail level shows it.
+    if !sh.name.is_empty() {
+        o.insert("name".into(), json!(sh.name));
+    }
     if let Some(e) = &sh.element {
         o.insert("element".into(), json!(e));
         if let Some(t) = lk.elements.get(e.as_str()) {
@@ -340,6 +344,7 @@ const WRITTEN: &[&str] = &[
     "stencil",
     "kind",
     "text",
+    "name",
     "element",
     "elementType",
     "parent",
@@ -386,6 +391,10 @@ fn shape_line(s: &Value, d: Detail, indent: usize) -> String {
     if !text.is_empty() {
         line.push(' ');
         line.push_str(&quoted(text));
+    }
+    let name = text_of(s, "name");
+    if !name.is_empty() {
+        line.push_str(&format!(" name {}", quoted(name)));
     }
     if let Some(e) = s.get("element").and_then(Value::as_str) {
         line.push_str(&format!(" element {e}"));
@@ -705,6 +714,17 @@ mod tests {
         let ids: Vec<&str> = page["shapes"].as_array().unwrap().iter().map(|x| x["id"].as_str().unwrap()).collect();
         let doc_ids: Vec<&str> = s.doc.page().unwrap().shapes.iter().map(|x| x.id.as_str()).collect();
         assert_eq!(ids, doc_ids);
+    }
+
+    #[test]
+    fn a_shape_name_shows_at_structure_detail() {
+        let mut s = session();
+        s.run("shape.rename", &json!({"id": "s4", "name": "Gate"})).unwrap();
+        let r = s.run("doc.describe", &json!({})).unwrap();
+        assert_eq!(r["pages"][0]["shapes"][2]["name"], "Gate");
+        assert!(r["pages"][0]["shapes"][0].get("name").is_none(), "an unnamed shape has no name key");
+        let t = s.run("doc.describe", &json!({"format": "text"})).unwrap();
+        assert!(t["text"].as_str().unwrap().contains("name \"Gate\""), "{}", t["text"]);
     }
 
     #[test]

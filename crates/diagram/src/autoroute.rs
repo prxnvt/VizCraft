@@ -603,15 +603,6 @@ fn route_with(page: &mut Page, ids: Option<&[String]>, opts: &Options, keep: &Ha
         return Vec::new();
     }
     let keep_straight = page.routing.straight_fallback == StraightFallback::Keep;
-    // The router's stub (the last segment, leaving a side) is one margin long. An arrowhead trims
-    // the line back from its tip, so a stub shorter than that would leave the head over the bend;
-    // the margin is raised to the longest trim among the connectors being routed.
-    let longest_trim = chosen
-        .iter()
-        .filter_map(|&i| page.connectors.get(i))
-        .map(|c| head_trim(c.start_arrow, c.style.line_width).max(head_trim(c.end_arrow, c.style.line_width)))
-        .fold(0.0, f64::max);
-    let opts = &Options { margin: opts.margin.max(longest_trim), ..*opts };
     let (results, failed) = {
         let view: &Page = page;
         let lazy = LazyField::new(view);
@@ -641,8 +632,12 @@ fn route_with(page: &mut Page, ids: Option<&[String]>, opts: &Options, keep: &Ha
             };
             plans.push(plan);
             trims.push((head_trim(c.start_arrow, c.style.line_width), head_trim(c.end_arrow, c.style.line_width)));
-            let start = router_end(view, &c.start, &ends.start, ctx.start_own);
-            let end = router_end(view, &c.end, &ends.end, ctx.end_own);
+            // Each end's stub is at least its arrowhead's trim, so the head never sits over a bend.
+            let (trim_start, trim_end) = trims.last().copied().unwrap_or_default();
+            let mut start = router_end(view, &c.start, &ends.start, ctx.start_own);
+            let mut end = router_end(view, &c.end, &ends.end, ctx.end_own);
+            start.stub = (trim_start > 0.0).then_some(trim_start);
+            end.stub = (trim_end > 0.0).then_some(trim_end);
             requests.push(Request::new(start, end).ignoring(ctx.ignore));
         }
         // Search the connectors that need it, together; nudging comes after, over every route.

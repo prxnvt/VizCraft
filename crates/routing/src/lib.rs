@@ -139,6 +139,10 @@ pub struct End {
     /// side apart; zero (the default) keeps the end where the route put it. The slide never takes
     /// the end past the glued obstacle's side.
     pub spread: f64,
+    /// The length of the segment that leaves (or enters) the shape, for an end whose arrowhead
+    /// needs more room than [`Options::margin`] gives; `None` uses the margin. A value below the
+    /// margin is raised to it, so the search still starts outside the expanded obstacles.
+    pub stub: Option<f64>,
 }
 
 /// Most candidates one end offers to the search; more are ignored.

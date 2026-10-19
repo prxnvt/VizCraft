@@ -22,6 +22,18 @@ fn link_hint(sh: &dg::Shape) -> Option<String> {
 pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D) -> bool {
     let Some(hp) = response.hover_pos() else { return false };
     let Some(page) = app.session.doc.page() else { return false };
+    // A click on a comment marker (drawn while the Comments pane is open) goes to that thread.
+    if app.ui.panes.is_open("comments") && response.clicked_by(egui::PointerButton::Primary) {
+        let hit = crate::canvas::draw::links::markers(page, &app.session.doc.comments, vp).into_iter().find(|(r, ..)| r.contains(hp));
+        if let Some((_, id, _)) = hit {
+            if app.run("comment.show", json!({"id": id})).is_ok() {
+                app.ui.panes.open("comments", None);
+                crate::canvas::draw::links::reveal(ui.ctx(), &id);
+            }
+            return true;
+        }
+    }
+    let Some(page) = app.session.doc.page() else { return false };
     let Some(Hit::Shape(id)) = dg::hit(page, point(vp.screen_to_world(hp)), f64::from(HIT / vp.zoom)) else { return false };
     let Some(sh) = page.shape(&id) else { return false };
     if app.canvas.drag.is_none() {

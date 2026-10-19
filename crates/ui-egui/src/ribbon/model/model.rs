@@ -24,16 +24,36 @@ fn tree_open(app: &CraftApp) -> bool {
     app.ui.panes.is_open("navigation")
 }
 
-/// Show in All Views: the pages that draw the selected element, a click goes to one.
+/// Show in All Views: the pages that draw the selected element. A click runs `model.views`, goes
+/// to that page and selects the element's shapes there, as the Model Tree's context menu does.
 fn views_menu(app: &mut CraftApp, ui: &mut egui::Ui) {
     let element = selected_elements(app).into_iter().next();
     menu_button_if(ui, app, "layout", "Show in All Views", "Show in All Views", false, element.is_some(), |ui, app| {
         let Some(e) = element else { return };
+        let active = app.session.doc.page().map(|p| p.id.clone());
         for v in vizcraft_diagram::views::views_of(&app.session.doc, &e) {
             let name = app.session.doc.pages.get(v.page).map(|p| p.name.clone()).unwrap_or_default();
-            menu_item(ui, app, &name, "page.setActive", json!({"page": v.page_id}), Some(app.session.doc.page().is_some_and(|p| p.id == v.page_id)));
+            if ui.add(egui::Button::new(name).selected(active.as_deref() == Some(v.page_id.as_str()))).clicked() {
+                show_view(app, &e, &v.page_id);
+                ui.close();
+            }
         }
     });
+}
+
+/// Run `model.views` for element `e`, then show page `page_id` and select the shapes there that
+/// draw it.
+fn show_view(app: &mut CraftApp, e: &str, page_id: &str) {
+    let Ok(r) = app.run("model.views", json!({"id": e})) else { return };
+    let items: Vec<Value> = r
+        .get("views")
+        .and_then(Value::as_array)
+        .and_then(|vs| vs.iter().find(|v| v.get("page").and_then(Value::as_str) == Some(page_id)))
+        .and_then(|v| v.get("items").and_then(Value::as_array).cloned())
+        .unwrap_or_default();
+    if app.run("page.setActive", json!({"page": page_id})).is_ok() && !items.is_empty() {
+        let _ = app.run("edit.select", json!({"ids": items}));
+    }
 }
 
 /// Move in Model: none, or one of the container elements, as the owner of the selected element.

@@ -226,6 +226,7 @@ fn grow(s: &mut Session, v: &Value) -> CmdResult {
 /// Set the stored text of a shape or connector the way `shape.setText` and `connector.setText`
 /// do: a view of a model element or relationship renames it (and so every view of it).
 pub fn put_text(s: &mut Session, id: &str, text: &str) -> Result<(), EngineError> {
+    super::protect::check(s, [id], super::protect::Lock::Text)?;
     let page = s.doc.page().ok_or_else(|| EngineError::Failed("the document has no page".into()))?;
     if let Some(sh) = page.shape(id) {
         match sh.element.clone().filter(|e| s.doc.model.element(e).is_some()) {

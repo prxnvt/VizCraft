@@ -398,10 +398,12 @@ fn services() -> Services {
     Services {
         pick_open: Some(Box::new(|purpose: &str| {
             let _t = vizcraft_engine::trace::span("blocking.pickOpen");
-            let dialog = if purpose == "import" {
-                rfd::FileDialog::new().add_filter("Diagrams to import", &["drawio", "xml", "mmd", "mermaid", "csv"])
-            } else {
-                rfd::FileDialog::new().add_filter("VizCraft documents", &["vizcraft", "json"]).add_filter("draw.io diagrams", &["drawio"])
+            let dialog = match purpose {
+                "import" => rfd::FileDialog::new().add_filter("Diagrams to import", &["drawio", "xml", "mmd", "mermaid", "csv"]),
+                "picture" => rfd::FileDialog::new().add_filter("Pictures", &["png", "jpg", "jpeg", "svg"]),
+                "data" => rfd::FileDialog::new().add_filter("Data tables", &["csv", "xlsx"]),
+                "spec" => rfd::FileDialog::new().add_filter("Generator specs", &["toml", "json"]),
+                _ => rfd::FileDialog::new().add_filter("VizCraft documents", &["vizcraft", "json"]).add_filter("draw.io diagrams", &["drawio"]),
             };
             dialog.add_filter("All files", &["*"]).pick_file().map(|p| p.to_string_lossy().to_string())
         })),

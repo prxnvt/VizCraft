@@ -149,6 +149,22 @@ fn info_page_edits_properties_and_inspects_hidden_data() {
 }
 
 #[test]
+fn f7_opens_the_spelling_dialog() {
+    let mut h = Harness::builder().with_size(vec2(1280.0, 800.0)).build_ui_state(
+        |ui, app: &mut CraftApp| {
+            app.logic(ui.ctx());
+            app.ui(ui);
+        },
+        planted_app(),
+    );
+    h.run_steps(3);
+    assert!(h.query_by_label("Not in Dictionary (1 of 2)").is_none());
+    h.key_press(egui::Key::F7);
+    h.run_steps(6);
+    assert!(h.query_by_label("Not in Dictionary (1 of 2)").is_some());
+}
+
+#[test]
 fn review_snapshots() {
     if !wgpu_available() {
         eprintln!("review snapshots: skipped (no wgpu adapter, no references, or VIZCRAFT_SKIP_SNAPSHOTS)");

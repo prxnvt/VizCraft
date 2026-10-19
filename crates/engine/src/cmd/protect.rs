@@ -361,6 +361,31 @@ mod tests {
     }
 
     #[test]
+    fn a_text_lock_and_document_protection_refuse_every_text_edit() {
+        let mut s = two();
+        s.run("shape.setLocks", &json!({"ids": ["a"], "text": true})).unwrap();
+        let before = s.doc.page().unwrap().shapes[0].text.clone();
+        let e = s.run("shape.setText", &json!({"id": "a", "text": "changed"})).unwrap_err().to_string();
+        assert!(e.contains("locked against text editing"), "{e}");
+        for (cmd, params) in [
+            ("text.setCase", json!({"ids": ["a"], "case": "upper"})),
+            ("text.insertSymbol", json!({"ids": ["a"], "symbol": "x"})),
+            ("text.insertField", json!({"ids": ["a"], "field": "date"})),
+        ] {
+            assert!(s.run(cmd, &params).is_err(), "{cmd} edits locked text");
+        }
+        assert_eq!(s.doc.page().unwrap().shapes[0].text, before);
+        // The other shape is free, and a connector label takes the same path.
+        s.run("shape.setText", &json!({"id": "b", "text": "free"})).unwrap();
+        // Unlocked, the edit goes through; then document protection refuses it again.
+        s.run("shape.setLocks", &json!({"ids": ["a"], "text": false})).unwrap();
+        s.run("shape.setText", &json!({"id": "a", "text": "changed"})).unwrap();
+        s.run("doc.protect", &json!({"shapes": true})).unwrap();
+        let e = s.run("shape.setText", &json!({"id": "a", "text": "again"})).unwrap_err().to_string();
+        assert!(e.contains("protected against text editing"), "{e}");
+    }
+
+    #[test]
     fn rename_sets_the_name_or_asks_for_one() {
         let mut s = two();
         let r = s.run("shape.rename", &json!({"id": "a", "name": "  Pump P-101 "})).unwrap();
