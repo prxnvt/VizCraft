@@ -1,0 +1,15 @@
+architecture-beta
+    %% type: q cloud.Compute
+    group edge(cloud)[Edge]
+    group net(cloud)[Network] in edge
+    service web(internet)[Web]
+    service db(database)[Orders] in net
+    service app(server)[App] in net
+    service files(disk)[Files] in net
+    service q(logos:queue-thing)[Jobs]
+    junction j in net
+    web:R --> L:app
+    app:B -- T:db
+    app:R <--> L:files
+    files:B -- T:j
+    q:L <-- R:db{group}

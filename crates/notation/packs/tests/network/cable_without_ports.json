@@ -1,0 +1,563 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "model": {
+      "schemaVersion": 1,
+      "packs": [
+        {
+          "id": "network",
+          "version": "1.0.0"
+        }
+      ],
+      "elements": [
+        {
+          "id": "site",
+          "type": "network.Site",
+          "name": "HQ"
+        },
+        {
+          "id": "rack",
+          "type": "network.Rack",
+          "name": "R1",
+          "owner": "site"
+        },
+        {
+          "id": "rt",
+          "type": "network.Router",
+          "name": "Edge",
+          "owner": "rack"
+        },
+        {
+          "id": "sw",
+          "type": "network.Switch",
+          "name": "Core",
+          "owner": "rack",
+          "properties": {
+            "layer": "l2"
+          }
+        }
+      ],
+      "relationships": [
+        {
+          "id": "r7",
+          "type": "network.Cable",
+          "source": "rt",
+          "target": "sw"
+        }
+      ]
+    },
+    "document": {
+      "title": "",
+      "core": {
+        "author": "VizCraft User",
+        "lastModifiedBy": "VizCraft User",
+        "created": "2026-10-19T17:46:48Z",
+        "modified": "2026-10-19T17:46:48Z",
+        "revision": 1
+      },
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "width": 1100.0,
+          "height": 850.0,
+          "board": "infinite",
+          "shapes": [
+            {
+              "id": "s2",
+              "stencil": "network.site",
+              "kind": "rectangle",
+              "x": 0.0,
+              "y": 0.0,
+              "w": 700.0,
+              "h": 460.0,
+              "angleDeg": 0.0,
+              "text": "HQ",
+              "style": {
+                "fill": "#fafbfc",
+                "line": "#4d5a68",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false,
+                "cornerRadius": 8.0
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "site",
+              "textBlock": {
+                "dx": 0.0,
+                "dy": -216.0,
+                "w": 700.0,
+                "h": 28.0,
+                "angleDeg": 0.0
+              },
+              "behavior": {
+                "container": true,
+                "nonPrinting": false,
+                "hidden": false,
+                "noGlue": false,
+                "noSnap": false
+              },
+              "container": {
+                "role": "container",
+                "margin": 20.0,
+                "headingPosition": "top",
+                "headingStyle": "band",
+                "headingSize": 28.0,
+                "band": "#e3e8ee",
+                "style": "pack",
+                "autoFit": false,
+                "locked": false,
+                "vertical": false,
+                "leader": true,
+                "side": "auto"
+              }
+            },
+            {
+              "id": "s3",
+              "stencil": "network.rack",
+              "kind": "rectangle",
+              "x": 40.0,
+              "y": 60.0,
+              "w": 260.0,
+              "h": 360.0,
+              "angleDeg": 0.0,
+              "text": "R1",
+              "style": {
+                "fill": "#f7f7f7",
+                "line": "#3d3d3d",
+                "lineWidth": 2.0,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "rack",
+              "parent": "s2",
+              "textBlock": {
+                "dx": 0.0,
+                "dy": -166.0,
+                "w": 260.0,
+                "h": 28.0,
+                "angleDeg": 0.0
+              },
+              "behavior": {
+                "container": true,
+                "nonPrinting": false,
+                "hidden": false,
+                "noGlue": false,
+                "noSnap": false
+              },
+              "container": {
+                "role": "container",
+                "margin": 20.0,
+                "headingPosition": "top",
+                "headingStyle": "band",
+                "headingSize": 28.0,
+                "band": "#d9d9d9",
+                "style": "pack",
+                "autoFit": false,
+                "locked": false,
+                "vertical": false,
+                "leader": true,
+                "side": "auto"
+              }
+            },
+            {
+              "id": "s4",
+              "stencil": "network.router",
+              "kind": "freeform",
+              "x": 80.0,
+              "y": 100.0,
+              "w": 90.0,
+              "h": 90.0,
+              "angleDeg": 0.0,
+              "text": "Edge",
+              "style": {
+                "fill": "#e6eef7",
+                "line": "#2f5f8f",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                }
+              ],
+              "element": "rt",
+              "parent": "s3",
+              "path": {
+                "els": [
+                  {
+                    "moveTo": {
+                      "x": 45.0,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 70.2,
+                        "y": 0.0
+                      },
+                      {
+                        "x": 90.0,
+                        "y": 19.8
+                      },
+                      {
+                        "x": 90.0,
+                        "y": 45.0
+                      }
+                    ]
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 90.0,
+                        "y": 70.2
+                      },
+                      {
+                        "x": 70.2,
+                        "y": 90.0
+                      },
+                      {
+                        "x": 45.0,
+                        "y": 90.0
+                      }
+                    ]
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 19.8,
+                        "y": 90.0
+                      },
+                      {
+                        "x": 0.0,
+                        "y": 70.2
+                      },
+                      {
+                        "x": 0.0,
+                        "y": 45.0
+                      }
+                    ]
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 0.0,
+                        "y": 19.8
+                      },
+                      {
+                        "x": 19.8,
+                        "y": 0.0
+                      },
+                      {
+                        "x": 45.0,
+                        "y": 0.0
+                      }
+                    ]
+                  },
+                  "close",
+                  {
+                    "moveTo": {
+                      "x": 22.5,
+                      "y": 34.2
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 67.5,
+                      "y": 34.2
+                    }
+                  },
+                  {
+                    "moveTo": {
+                      "x": 58.5,
+                      "y": 27.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 67.5,
+                      "y": 34.2
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 58.5,
+                      "y": 41.4
+                    }
+                  },
+                  {
+                    "moveTo": {
+                      "x": 67.5,
+                      "y": 55.8
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 22.5,
+                      "y": 55.8
+                    }
+                  },
+                  {
+                    "moveTo": {
+                      "x": 31.499999999999996,
+                      "y": 48.6
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 22.5,
+                      "y": 55.8
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 31.499999999999996,
+                      "y": 62.99999999999999
+                    }
+                  }
+                ],
+                "closed": true,
+                "frame": [
+                  90.0,
+                  90.0
+                ]
+              }
+            },
+            {
+              "id": "s5",
+              "stencil": "network.switch",
+              "kind": "freeform",
+              "x": 80.0,
+              "y": 260.0,
+              "w": 140.0,
+              "h": 50.0,
+              "angleDeg": 0.0,
+              "text": "Core",
+              "style": {
+                "fill": "#e8f2ec",
+                "line": "#2f6f4a",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                }
+              ],
+              "element": "sw",
+              "parent": "s3",
+              "path": {
+                "els": [
+                  {
+                    "moveTo": {
+                      "x": 0.0,
+                      "y": 5.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 140.0,
+                      "y": 5.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 140.0,
+                      "y": 45.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 0.0,
+                      "y": 45.0
+                    }
+                  },
+                  "close",
+                  {
+                    "moveTo": {
+                      "x": 11.200000000000001,
+                      "y": 17.5
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 56.0,
+                      "y": 17.5
+                    }
+                  },
+                  {
+                    "moveTo": {
+                      "x": 44.800000000000004,
+                      "y": 12.5
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 56.0,
+                      "y": 17.5
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 44.800000000000004,
+                      "y": 22.5
+                    }
+                  },
+                  {
+                    "moveTo": {
+                      "x": 56.0,
+                      "y": 32.5
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 11.200000000000001,
+                      "y": 32.5
+                    }
+                  },
+                  {
+                    "moveTo": {
+                      "x": 22.400000000000002,
+                      "y": 27.500000000000004
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 11.200000000000001,
+                      "y": 32.5
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 22.400000000000002,
+                      "y": 37.5
+                    }
+                  }
+                ],
+                "closed": true,
+                "frame": [
+                  140.0,
+                  50.0
+                ]
+              }
+            }
+          ],
+          "connectors": [
+            {
+              "id": "c6",
+              "start": {
+                "shape": "s4"
+              },
+              "end": {
+                "shape": "s5"
+              },
+              "route": "straight",
+              "startArrow": "none",
+              "endArrow": "none",
+              "text": "",
+              "kind": "network.cable",
+              "style": {
+                "fill": "#00000000",
+                "line": "#2c2c2c",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "relationship": "r7"
+            }
+          ],
+          "view": {
+            "viewpoint": "network.Physical"
+          }
+        }
+      ],
+      "idSeq": 7,
+      "conformance": {
+        "enabled": true,
+        "rulesets": [
+          "network.topology"
+        ]
+      }
+    }
+  },
+  "expect": [
+    {
+      "rule": "network.cableEndsOnPorts"
+    }
+  ]
+}

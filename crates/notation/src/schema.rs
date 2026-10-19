@@ -191,6 +191,10 @@ pub struct Glyph {
     /// builder glyph of a shipped pack.
     #[serde(skip_serializing_if = "String::is_empty")]
     pub source: String,
+    /// The border a container type's views draw (dash, corner, heading); a glyph with one is a
+    /// container master. See [`crate::nesting::ContainerLook`].
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub container: Option<crate::nesting::ContainerLook>,
 }
 
 /// A connector type: a named route, pair of line ends and line style, applied to a connector as
@@ -362,6 +366,11 @@ pub struct ElementType {
     /// the sync pass (see `crate::bind`); empty for none.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub compartments: Vec<CompartmentDecl>,
+    /// The types an element of this type may sit in, by drawing or in the model: qualified
+    /// container type ids (supertypes count), `*` for any, `top` for no owner. Empty: the type
+    /// does not nest by drawing. See [`crate::nesting`].
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub allowed_parents: Vec<String>,
 }
 
 /// A compartment an element type declares for its views (`vizcraft_diagram::compartment`).
@@ -847,6 +856,29 @@ pub enum Check {
     /// Sheets: a tag composed from its sheet, zone, rung or owner that no longer matches (the
     /// element moved); `sheet.renumber` recomposes it.
     StaleTag,
+    /// An element of these types whose owner's type its `allowedParents` does not list (or with
+    /// no owner where `top` is not listed). With `drawn`, also a view inside a container shape
+    /// whose element's type is not allowed. See [`crate::nesting`].
+    NestingAllowed {
+        /// Types checked.
+        #[serde(default)]
+        types: Vec<String>,
+        /// Also check the drawing: the nearest container shape around each view.
+        #[serde(default)]
+        drawn: bool,
+    },
+    /// An element or relationship of these types with an empty name.
+    Labelled {
+        /// Types checked (element or relationship types; empty: every type of the pack).
+        #[serde(default)]
+        types: Vec<String>,
+    },
+    /// A relationship of this type with an end on no port, where that end's type declares ports.
+    EndsOnPorts {
+        /// Relationship type checked (empty: every relationship of the pack).
+        #[serde(default)]
+        relationship: String,
+    },
     /// A check this build does not know (from a newer pack); skipped, and reported by the loader.
     #[default]
     #[serde(other)]

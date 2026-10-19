@@ -70,7 +70,9 @@ fn registry_ids_are_unique_and_prefixed() {
                 "net",
                 "wire",
                 "glyph",
-                "template"
+                "template",
+                "key",
+                "topology"
             ]
             .contains(&prefix),
             "{}: unexpected prefix",
@@ -140,6 +142,9 @@ fn hostile_params_never_panic() {
         json!({"builder": "\u{0}", "params": {"standard": "jic", "poles": "NaN", "": 1, "paths": "P-Q;;;X|"}, "module": "a", "id": "s2", "page": "\u{0}"}),
         json!({"template": "flowchart.decision", "variant": 5, "sheet": {}, "path": {}}),
         json!({"template": "x".repeat(1000)}),
+        json!({"id": "c8", "step": -1, "page": 5, "exclude": [1, null], "title": [], "x": "a", "y": 1e308, "steps": "yes", "all": 3}),
+        json!({"id": "c8", "step": 1e9, "exclude": ["a,b", ""], "title": "x".repeat(5000), "x": 1e308, "y": -1e308}),
+        json!({"id": {}, "step": {}, "exclude": "cloud.User", "steps": false, "all": true, "page": "\u{0}"}),
         nested_batches(40),
     ];
     for spec in reg.all() {

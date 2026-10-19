@@ -1,0 +1,205 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "model": {
+      "schemaVersion": 1,
+      "packs": [
+        {
+          "id": "dfd",
+          "version": "1.0.0"
+        }
+      ],
+      "elements": [
+        {
+          "id": "cust",
+          "type": "dfd.ExternalEntity",
+          "name": "Customer"
+        },
+        {
+          "id": "p",
+          "type": "dfd.Process",
+          "name": "Answer",
+          "tag": "1"
+        }
+      ],
+      "relationships": [
+        {
+          "id": "r4",
+          "type": "dfd.Flow",
+          "source": "cust",
+          "target": "p",
+          "name": "question"
+        },
+        {
+          "id": "r6",
+          "type": "dfd.Flow",
+          "source": "p",
+          "target": "cust"
+        }
+      ]
+    },
+    "document": {
+      "title": "",
+      "core": {
+        "author": "VizCraft User",
+        "lastModifiedBy": "VizCraft User",
+        "created": "2026-10-19T17:49:52Z",
+        "modified": "2026-10-19T17:49:52Z",
+        "revision": 1
+      },
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "width": 1100.0,
+          "height": 850.0,
+          "board": "infinite",
+          "shapes": [
+            {
+              "id": "s2",
+              "stencil": "dfd.entity",
+              "kind": "rectangle",
+              "x": 0.0,
+              "y": 0.0,
+              "w": 120.0,
+              "h": 60.0,
+              "angleDeg": 0.0,
+              "text": "Customer",
+              "style": {
+                "fill": "#eef1f4",
+                "line": "#46535f",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "cust"
+            },
+            {
+              "id": "s3",
+              "stencil": "dfd.process",
+              "kind": "ellipse",
+              "x": 300.0,
+              "y": 0.0,
+              "w": 110.0,
+              "h": 110.0,
+              "angleDeg": 0.0,
+              "text": "Answer",
+              "style": {
+                "fill": "#e4f2ec",
+                "line": "#2d6e58",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "p"
+            }
+          ],
+          "connectors": [
+            {
+              "id": "c5",
+              "start": {
+                "shape": "s2"
+              },
+              "end": {
+                "shape": "s3"
+              },
+              "route": "orthogonal",
+              "startArrow": "none",
+              "endArrow": "triangle",
+              "text": "question",
+              "style": {
+                "fill": "#00000000",
+                "line": "#3a4a5c",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "relationship": "r4"
+            },
+            {
+              "id": "c7",
+              "start": {
+                "shape": "s3"
+              },
+              "end": {
+                "shape": "s2"
+              },
+              "route": "orthogonal",
+              "startArrow": "none",
+              "endArrow": "triangle",
+              "text": "",
+              "style": {
+                "fill": "#00000000",
+                "line": "#3a4a5c",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "relationship": "r6"
+            }
+          ],
+          "view": {
+            "viewpoint": "dfd.Level"
+          }
+        }
+      ],
+      "idSeq": 7,
+      "conformance": {
+        "enabled": true,
+        "rulesets": [
+          "dfd.dfd"
+        ]
+      }
+    }
+  },
+  "expect": [
+    {
+      "rule": "dfd.flowLabelled"
+    }
+  ]
+}

@@ -22,6 +22,8 @@ pub enum DiagramKind {
     Class,
     /// `sequenceDiagram`.
     Sequence,
+    /// An architecture diagram (`architecture-beta`).
+    Architecture,
 }
 
 /// A node shape hint. Flowchart shapes keep their Mermaid meaning; the other types use the

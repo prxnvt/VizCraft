@@ -1,0 +1,1424 @@
+{
+  "schemaVersion": 1,
+  "id": "network",
+  "version": "1.0.0",
+  "name": "Network Topology",
+  "description": "Network topology over one model with two views: the physical view of sites, racks, devices and cables between ports, and the logical view of security zones, subnets and what routes to and attaches to them.",
+  "audience": [
+    "general",
+    "software",
+    "engineering"
+  ],
+  "glyphs": [
+    {
+      "id": "network.site",
+      "label": "Site",
+      "category": "Places",
+      "outline": "rectangle",
+      "w": 600,
+      "h": 400,
+      "fill": "#fafbfc",
+      "line": "#4d5a68",
+      "keywords": [
+        "building",
+        "location",
+        "campus"
+      ],
+      "elementType": "network.Site",
+      "container": {
+        "corner": 8,
+        "band": "#e3e8ee"
+      }
+    },
+    {
+      "id": "network.rack",
+      "label": "Rack",
+      "category": "Places",
+      "outline": "rectangle",
+      "w": 220,
+      "h": 320,
+      "fill": "#f7f7f7",
+      "line": "#3d3d3d",
+      "keywords": [
+        "cabinet",
+        "enclosure"
+      ],
+      "elementType": "network.Rack",
+      "container": {
+        "heading": "band",
+        "band": "#d9d9d9",
+        "lineWidth": 2
+      }
+    },
+    {
+      "id": "network.zone",
+      "label": "Security Zone",
+      "category": "Logical",
+      "outline": "rectangle",
+      "w": 420,
+      "h": 300,
+      "fill": "#fdfbf6",
+      "line": "#9a7a2c",
+      "keywords": [
+        "trust",
+        "segment",
+        "dmz"
+      ],
+      "elementType": "network.Zone",
+      "container": {
+        "dash": "dashed",
+        "corner": 10,
+        "heading": "line"
+      }
+    },
+    {
+      "id": "network.router",
+      "label": "Router",
+      "category": "Devices",
+      "outline": "path",
+      "w": 90,
+      "h": 90,
+      "fill": "#e6eef7",
+      "line": "#2f5f8f",
+      "keywords": [
+        "route",
+        "layer 3",
+        "wan"
+      ],
+      "elementType": "network.Router",
+      "path": "M 0.5 0 C 0.78 0 1 0.22 1 0.5 C 1 0.78 0.78 1 0.5 1 C 0.22 1 0 0.78 0 0.5 C 0 0.22 0.22 0 0.5 0 Z",
+      "detail": "M 0.25 0.38 L 0.75 0.38 M 0.65 0.3 L 0.75 0.38 L 0.65 0.46 M 0.75 0.62 L 0.25 0.62 M 0.35 0.54 L 0.25 0.62 L 0.35 0.7",
+      "source": "own design"
+    },
+    {
+      "id": "network.switch",
+      "label": "Switch",
+      "category": "Devices",
+      "outline": "path",
+      "w": 140,
+      "h": 50,
+      "fill": "#e8f2ec",
+      "line": "#2f6f4a",
+      "keywords": [
+        "layer 2",
+        "lan",
+        "ports"
+      ],
+      "elementType": "network.Switch",
+      "path": "M 0 0.1 L 1 0.1 L 1 0.9 L 0 0.9 Z",
+      "detail": "M 0.08 0.35 L 0.4 0.35 M 0.32 0.25 L 0.4 0.35 L 0.32 0.45 M 0.4 0.65 L 0.08 0.65 M 0.16 0.55 L 0.08 0.65 L 0.16 0.75",
+      "source": "own design"
+    },
+    {
+      "id": "network.firewall",
+      "label": "Firewall",
+      "category": "Devices",
+      "outline": "path",
+      "w": 110,
+      "h": 70,
+      "fill": "#f8e9e6",
+      "line": "#9a3d2c",
+      "keywords": [
+        "security",
+        "filter",
+        "policy"
+      ],
+      "elementType": "network.Firewall",
+      "path": "M 0 0 L 1 0 L 1 1 L 0 1 Z",
+      "detail": "M 0 0.33 L 1 0.33 M 0 0.66 L 1 0.66 M 0.33 0 L 0.33 0.33 M 0.66 0.33 L 0.66 0.66 M 0.33 0.66 L 0.33 1 M 0.8 0 L 0.8 0.33 M 0.15 0.33 L 0.15 0.66 M 0.8 0.66 L 0.8 1",
+      "source": "own design"
+    },
+    {
+      "id": "network.accessPoint",
+      "label": "Access Point",
+      "category": "Devices",
+      "outline": "path",
+      "w": 80,
+      "h": 80,
+      "fill": "#eef0f8",
+      "line": "#4a548c",
+      "keywords": [
+        "wireless",
+        "wifi",
+        "radio"
+      ],
+      "elementType": "network.AccessPoint",
+      "path": "M 0.2 0.7 L 0.8 0.7 L 0.8 1 L 0.2 1 Z",
+      "detail": "M 0.3 0.5 C 0.4 0.4 0.6 0.4 0.7 0.5 M 0.2 0.35 C 0.38 0.2 0.62 0.2 0.8 0.35 M 0.1 0.2 C 0.36 0 0.64 0 0.9 0.2",
+      "source": "own design"
+    },
+    {
+      "id": "network.server",
+      "label": "Server",
+      "category": "Devices",
+      "outline": "path",
+      "w": 80,
+      "h": 100,
+      "fill": "#eceff2",
+      "line": "#45505c",
+      "keywords": [
+        "host",
+        "machine",
+        "compute"
+      ],
+      "elementType": "network.Server",
+      "path": "M 0 0 L 1 0 L 1 1 L 0 1 Z",
+      "detail": "M 0 0.33 L 1 0.33 M 0 0.66 L 1 0.66 M 0.1 0.16 L 0.3 0.16 M 0.1 0.5 L 0.3 0.5 M 0.1 0.83 L 0.3 0.83",
+      "source": "own design"
+    },
+    {
+      "id": "network.storage",
+      "label": "Storage",
+      "category": "Devices",
+      "outline": "path",
+      "w": 90,
+      "h": 90,
+      "fill": "#f2ece4",
+      "line": "#7a5a34",
+      "keywords": [
+        "disk",
+        "array",
+        "san",
+        "nas"
+      ],
+      "elementType": "network.Storage",
+      "path": "M 0 0.14 C 0 -0.04 1 -0.04 1 0.14 L 1 0.86 C 1 1.04 0 1.04 0 0.86 Z",
+      "detail": "M 0 0.14 C 0 0.32 1 0.32 1 0.14 M 0 0.5 C 0 0.68 1 0.68 1 0.5",
+      "source": "own design"
+    },
+    {
+      "id": "network.workstation",
+      "label": "Workstation",
+      "category": "Devices",
+      "outline": "path",
+      "w": 90,
+      "h": 80,
+      "fill": "#eef2f6",
+      "line": "#4c5d6e",
+      "keywords": [
+        "desktop",
+        "pc",
+        "client",
+        "laptop"
+      ],
+      "elementType": "network.Workstation",
+      "path": "M 0 0 L 1 0 L 1 0.72 L 0 0.72 Z M 0.42 0.72 L 0.58 0.72 L 0.62 0.9 L 0.38 0.9 Z M 0.25 0.9 L 0.75 0.9 L 0.75 1 L 0.25 1 Z",
+      "detail": "M 0.06 0.08 L 0.94 0.08 L 0.94 0.64 L 0.06 0.64 Z",
+      "source": "own design"
+    },
+    {
+      "id": "network.patchPanel",
+      "label": "Patch Panel",
+      "category": "Devices",
+      "outline": "path",
+      "w": 160,
+      "h": 40,
+      "fill": "#f1f1f1",
+      "line": "#555555",
+      "keywords": [
+        "patch",
+        "jacks",
+        "cabling"
+      ],
+      "elementType": "network.PatchPanel",
+      "path": "M 0 0 L 1 0 L 1 1 L 0 1 Z",
+      "detail": "M 0.1 0.35 L 0.16 0.35 L 0.16 0.65 L 0.1 0.65 Z M 0.26 0.35 L 0.32 0.35 L 0.32 0.65 L 0.26 0.65 Z M 0.42 0.35 L 0.48 0.35 L 0.48 0.65 L 0.42 0.65 Z M 0.58 0.35 L 0.64 0.35 L 0.64 0.65 L 0.58 0.65 Z M 0.74 0.35 L 0.8 0.35 L 0.8 0.65 L 0.74 0.65 Z",
+      "source": "own design"
+    },
+    {
+      "id": "network.subnet",
+      "label": "Subnet",
+      "category": "Logical",
+      "outline": "path",
+      "w": 150,
+      "h": 60,
+      "fill": "#f5f7ec",
+      "line": "#6b7a2c",
+      "keywords": [
+        "network",
+        "vlan",
+        "cidr",
+        "segment"
+      ],
+      "elementType": "network.Subnet",
+      "path": "M 0 0.5 L 0.12 0 L 0.88 0 L 1 0.5 L 0.88 1 L 0.12 1 Z",
+      "source": "own design"
+    },
+    {
+      "id": "network.addressTable",
+      "label": "Address Table",
+      "category": "Logical",
+      "outline": "rectangle",
+      "w": 380,
+      "h": 120,
+      "fill": "#ffffff",
+      "line": "#4d5a68",
+      "keywords": [
+        "addresses",
+        "ip plan",
+        "list"
+      ],
+      "elementType": "network.AddressTable"
+    }
+  ],
+  "connectorTypes": [
+    {
+      "id": "network.cable",
+      "label": "Cable",
+      "category": "Lines",
+      "route": "straight",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "solid",
+      "lineWidth": 1.5,
+      "line": "#2c2c2c",
+      "keywords": [
+        "wire",
+        "link",
+        "patch"
+      ],
+      "relationshipType": "network.Cable"
+    },
+    {
+      "id": "network.attached",
+      "label": "Attached",
+      "category": "Lines",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "dashed",
+      "lineWidth": 1.5,
+      "line": "#3a4a5c",
+      "keywords": [
+        "member",
+        "address",
+        "interface"
+      ],
+      "relationshipType": "network.Attached"
+    },
+    {
+      "id": "network.routes",
+      "label": "Routes",
+      "category": "Lines",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "open",
+      "dash": "solid",
+      "lineWidth": 1.5,
+      "line": "#3a4a5c",
+      "keywords": [
+        "gateway",
+        "route",
+        "next hop"
+      ],
+      "relationshipType": "network.Routes"
+    }
+  ],
+  "elementTypes": [
+    {
+      "id": "network.Site",
+      "label": "Site",
+      "description": "A building or campus.",
+      "glyph": "network.site",
+      "container": true,
+      "allowedParents": [
+        "top"
+      ],
+      "properties": [
+        {
+          "key": "address",
+          "label": "Address",
+          "kind": "text"
+        }
+      ]
+    },
+    {
+      "id": "network.Rack",
+      "label": "Rack",
+      "description": "A rack or cabinet of devices.",
+      "glyph": "network.rack",
+      "container": true,
+      "allowedParents": [
+        "network.Site",
+        "top"
+      ],
+      "properties": [
+        {
+          "key": "units",
+          "label": "Units",
+          "kind": "integer",
+          "description": "Height in rack units."
+        }
+      ]
+    },
+    {
+      "id": "network.Device",
+      "label": "Device",
+      "description": "Any network device; its ports are where cables plug in.",
+      "ports": [
+        {
+          "id": "p1",
+          "label": "1",
+          "x": 0,
+          "y": 0.5
+        },
+        {
+          "id": "p2",
+          "label": "2",
+          "x": 1,
+          "y": 0.5
+        },
+        {
+          "id": "p3",
+          "label": "3",
+          "x": 0.5,
+          "y": 0
+        },
+        {
+          "id": "p4",
+          "label": "4",
+          "x": 0.5,
+          "y": 1
+        }
+      ],
+      "allowedParents": [
+        "network.Rack",
+        "network.Site",
+        "top"
+      ],
+      "properties": [
+        {
+          "key": "model",
+          "label": "Model",
+          "kind": "text"
+        },
+        {
+          "key": "mgmtAddress",
+          "label": "Management address",
+          "kind": "text"
+        }
+      ]
+    },
+    {
+      "id": "network.Router",
+      "label": "Router",
+      "description": "Forwards traffic between networks.",
+      "glyph": "network.router",
+      "extends": "network.Device",
+      "ports": [
+        {
+          "id": "p1",
+          "label": "1",
+          "x": 0,
+          "y": 0.5
+        },
+        {
+          "id": "p2",
+          "label": "2",
+          "x": 1,
+          "y": 0.5
+        },
+        {
+          "id": "p3",
+          "label": "3",
+          "x": 0.5,
+          "y": 0
+        },
+        {
+          "id": "p4",
+          "label": "4",
+          "x": 0.5,
+          "y": 1
+        }
+      ]
+    },
+    {
+      "id": "network.Switch",
+      "label": "Switch",
+      "description": "Joins devices on a local network.",
+      "glyph": "network.switch",
+      "extends": "network.Device",
+      "ports": [
+        {
+          "id": "p1",
+          "label": "1",
+          "x": 0,
+          "y": 0.5
+        },
+        {
+          "id": "p2",
+          "label": "2",
+          "x": 1,
+          "y": 0.5
+        },
+        {
+          "id": "p3",
+          "label": "3",
+          "x": 0.5,
+          "y": 0
+        },
+        {
+          "id": "p4",
+          "label": "4",
+          "x": 0.5,
+          "y": 1
+        }
+      ],
+      "properties": [
+        {
+          "key": "layer",
+          "label": "Layer",
+          "kind": "enum",
+          "description": "Layer 2 switching only, or layer 3 routing too.",
+          "values": [
+            "l2",
+            "l3"
+          ],
+          "default": "l2"
+        }
+      ]
+    },
+    {
+      "id": "network.Firewall",
+      "label": "Firewall",
+      "description": "Filters traffic between security zones.",
+      "glyph": "network.firewall",
+      "extends": "network.Device",
+      "ports": [
+        {
+          "id": "outside",
+          "label": "outside",
+          "x": 0,
+          "y": 0.5
+        },
+        {
+          "id": "inside",
+          "label": "inside",
+          "x": 1,
+          "y": 0.5
+        },
+        {
+          "id": "mgmt",
+          "label": "mgmt",
+          "x": 0.5,
+          "y": 0
+        },
+        {
+          "id": "dmz",
+          "label": "dmz",
+          "x": 0.5,
+          "y": 1
+        }
+      ]
+    },
+    {
+      "id": "network.AccessPoint",
+      "label": "Access Point",
+      "description": "A wireless access point.",
+      "glyph": "network.accessPoint",
+      "extends": "network.Device",
+      "ports": [
+        {
+          "id": "p1",
+          "label": "1",
+          "x": 0,
+          "y": 0.5
+        },
+        {
+          "id": "p2",
+          "label": "2",
+          "x": 1,
+          "y": 0.5
+        },
+        {
+          "id": "p3",
+          "label": "3",
+          "x": 0.5,
+          "y": 0
+        },
+        {
+          "id": "p4",
+          "label": "4",
+          "x": 0.5,
+          "y": 1
+        }
+      ]
+    },
+    {
+      "id": "network.Server",
+      "label": "Server",
+      "description": "A physical server.",
+      "glyph": "network.server",
+      "extends": "network.Device",
+      "ports": [
+        {
+          "id": "p1",
+          "label": "1",
+          "x": 0,
+          "y": 0.5
+        },
+        {
+          "id": "p2",
+          "label": "2",
+          "x": 1,
+          "y": 0.5
+        },
+        {
+          "id": "p3",
+          "label": "3",
+          "x": 0.5,
+          "y": 0
+        },
+        {
+          "id": "p4",
+          "label": "4",
+          "x": 0.5,
+          "y": 1
+        }
+      ]
+    },
+    {
+      "id": "network.Storage",
+      "label": "Storage",
+      "description": "A storage array.",
+      "glyph": "network.storage",
+      "extends": "network.Device",
+      "ports": [
+        {
+          "id": "p1",
+          "label": "1",
+          "x": 0,
+          "y": 0.5
+        },
+        {
+          "id": "p2",
+          "label": "2",
+          "x": 1,
+          "y": 0.5
+        },
+        {
+          "id": "p3",
+          "label": "3",
+          "x": 0.5,
+          "y": 0
+        },
+        {
+          "id": "p4",
+          "label": "4",
+          "x": 0.5,
+          "y": 1
+        }
+      ]
+    },
+    {
+      "id": "network.Workstation",
+      "label": "Workstation",
+      "description": "A user's computer.",
+      "glyph": "network.workstation",
+      "extends": "network.Device",
+      "ports": [
+        {
+          "id": "p1",
+          "label": "1",
+          "x": 0,
+          "y": 0.5
+        },
+        {
+          "id": "p2",
+          "label": "2",
+          "x": 1,
+          "y": 0.5
+        },
+        {
+          "id": "p3",
+          "label": "3",
+          "x": 0.5,
+          "y": 0
+        },
+        {
+          "id": "p4",
+          "label": "4",
+          "x": 0.5,
+          "y": 1
+        }
+      ]
+    },
+    {
+      "id": "network.PatchPanel",
+      "label": "Patch Panel",
+      "description": "Terminates cable runs in a rack.",
+      "glyph": "network.patchPanel",
+      "extends": "network.Device",
+      "ports": [
+        {
+          "id": "p1",
+          "label": "1",
+          "x": 0,
+          "y": 0.5
+        },
+        {
+          "id": "p2",
+          "label": "2",
+          "x": 1,
+          "y": 0.5
+        },
+        {
+          "id": "p3",
+          "label": "3",
+          "x": 0.5,
+          "y": 0
+        },
+        {
+          "id": "p4",
+          "label": "4",
+          "x": 0.5,
+          "y": 1
+        }
+      ]
+    },
+    {
+      "id": "network.Zone",
+      "label": "Security Zone",
+      "description": "A logical zone of equal trust; it owns the subnets in it.",
+      "glyph": "network.zone",
+      "container": true,
+      "allowedParents": [
+        "top"
+      ],
+      "properties": [
+        {
+          "key": "trust",
+          "label": "Trust",
+          "kind": "enum",
+          "description": "How far the zone is trusted.",
+          "values": [
+            "untrusted",
+            "dmz",
+            "trusted",
+            "management"
+          ],
+          "default": "trusted"
+        }
+      ]
+    },
+    {
+      "id": "network.Subnet",
+      "label": "Subnet",
+      "description": "An IP subnet, usually one VLAN.",
+      "glyph": "network.subnet",
+      "allowedParents": [
+        "network.Zone",
+        "top"
+      ],
+      "properties": [
+        {
+          "key": "cidr",
+          "label": "Address range",
+          "kind": "text",
+          "description": "The address range, such as 10.0.1.0/24.",
+          "required": true
+        },
+        {
+          "key": "vlan",
+          "label": "VLAN",
+          "kind": "integer",
+          "description": "The VLAN id, 1 to 4094."
+        },
+        {
+          "key": "gateway",
+          "label": "Gateway",
+          "kind": "text",
+          "description": "The default gateway address."
+        }
+      ]
+    },
+    {
+      "id": "network.AddressTable",
+      "label": "Address Table",
+      "description": "A table of every subnet: range, VLAN and gateway.",
+      "glyph": "network.addressTable",
+      "compartments": [
+        {
+          "id": "rows",
+          "kind": "list",
+          "title": "Addresses",
+          "query": {
+            "types": [
+              "network.Subnet"
+            ],
+            "columns": [
+              "name",
+              "cidr",
+              "vlan",
+              "gateway"
+            ],
+            "headers": [
+              "Subnet",
+              "Range",
+              "VLAN",
+              "Gateway"
+            ],
+            "widths": [
+              100,
+              110,
+              50,
+              110
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "relationshipTypes": [
+    {
+      "id": "network.Cable",
+      "label": "Cable",
+      "description": "A physical cable between two ports.",
+      "endArrow": "none",
+      "properties": [
+        {
+          "key": "medium",
+          "label": "Medium",
+          "kind": "enum",
+          "description": "What the cable is made of.",
+          "values": [
+            "copper",
+            "fiber",
+            "coax"
+          ],
+          "default": "copper"
+        },
+        {
+          "key": "speed",
+          "label": "Speed",
+          "kind": "text",
+          "description": "Link speed, such as 10G."
+        }
+      ]
+    },
+    {
+      "id": "network.Attached",
+      "label": "Attached",
+      "description": "A device has an address on a subnet.",
+      "endArrow": "none",
+      "properties": [
+        {
+          "key": "address",
+          "label": "Address",
+          "kind": "text",
+          "description": ""
+        },
+        {
+          "key": "vlan",
+          "label": "VLAN",
+          "kind": "integer",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "id": "network.Routes",
+      "label": "Routes",
+      "description": "A router or firewall is the gateway of a subnet.",
+      "endArrow": "open"
+    }
+  ],
+  "connections": [
+    {
+      "source": [
+        "network.Device"
+      ],
+      "relationship": "network.Cable",
+      "target": [
+        "network.Device"
+      ]
+    },
+    {
+      "source": [
+        "network.Device"
+      ],
+      "relationship": "network.Attached",
+      "target": [
+        "network.Subnet"
+      ]
+    },
+    {
+      "source": [
+        "network.Router",
+        "network.Firewall",
+        "network.Switch"
+      ],
+      "relationship": "network.Routes",
+      "target": [
+        "network.Subnet"
+      ]
+    }
+  ],
+  "palette": [
+    {
+      "id": "network.places",
+      "label": "Places",
+      "types": [
+        "network.Site",
+        "network.Rack"
+      ]
+    },
+    {
+      "id": "network.devices",
+      "label": "Devices",
+      "types": [
+        "network.Router",
+        "network.Switch",
+        "network.Firewall",
+        "network.AccessPoint",
+        "network.Server",
+        "network.Storage",
+        "network.Workstation",
+        "network.PatchPanel"
+      ]
+    },
+    {
+      "id": "network.logical",
+      "label": "Logical",
+      "types": [
+        "network.Zone",
+        "network.Subnet",
+        "network.AddressTable"
+      ]
+    }
+  ],
+  "viewpoints": [
+    {
+      "id": "network.Physical",
+      "label": "Physical",
+      "description": "Sites, racks, devices and the cables between their ports.",
+      "types": [
+        "network.Site",
+        "network.Rack",
+        "network.Device"
+      ],
+      "relationships": [
+        "network.Cable"
+      ]
+    },
+    {
+      "id": "network.Logical",
+      "label": "Logical",
+      "description": "Zones, subnets, and the devices that route to or attach to them.",
+      "types": [
+        "network.Zone",
+        "network.Subnet",
+        "network.AddressTable",
+        "network.Device"
+      ],
+      "relationships": [
+        "network.Attached",
+        "network.Routes"
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "network.illegalLine",
+      "description": "Lines follow the connection table.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "illegalRelationship"
+      }
+    },
+    {
+      "id": "network.cableEndsOnPorts",
+      "description": "A cable plugs into a port at both ends.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "endsOnPorts",
+        "relationship": "network.Cable"
+      }
+    },
+    {
+      "id": "network.subnetGateway",
+      "description": "Every subnet has a gateway that routes to it.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "minIncoming",
+        "types": [
+          "network.Subnet"
+        ],
+        "relationship": "network.Routes",
+        "min": 1
+      }
+    },
+    {
+      "id": "network.vlanLow",
+      "description": "A VLAN id is at least 1.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "propertyCompare",
+        "types": [
+          "network.Subnet"
+        ],
+        "property": "vlan",
+        "op": "ge",
+        "other": 1
+      }
+    },
+    {
+      "id": "network.vlanHigh",
+      "description": "A VLAN id is at most 4094.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "propertyCompare",
+        "types": [
+          "network.Subnet"
+        ],
+        "property": "vlan",
+        "op": "le",
+        "other": 4094
+      }
+    },
+    {
+      "id": "network.subnetRange",
+      "description": "Every subnet has an address range.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "requiredProperty",
+        "types": [
+          "network.Subnet"
+        ]
+      }
+    },
+    {
+      "id": "network.nesting",
+      "description": "Devices sit in racks or sites, racks in sites, subnets in zones.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "nestingAllowed",
+        "drawn": false
+      }
+    },
+    {
+      "id": "network.labelled",
+      "description": "Every device, place, zone and subnet has a name.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "labelled",
+        "types": [
+          "network.Device",
+          "network.Site",
+          "network.Rack",
+          "network.Zone",
+          "network.Subnet"
+        ]
+      }
+    },
+    {
+      "id": "network.viewpoint",
+      "description": "Pages show only the types their viewpoint allows.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "viewpointType"
+      }
+    }
+  ],
+  "rulesets": [
+    {
+      "id": "network.topology",
+      "label": "Network topology",
+      "description": "Ports, gateways, VLAN ranges, nesting and names of a network topology.",
+      "rules": [
+        "network.illegalLine",
+        "network.cableEndsOnPorts",
+        "network.subnetGateway",
+        "network.vlanLow",
+        "network.vlanHigh",
+        "network.subnetRange",
+        "network.nesting",
+        "network.labelled",
+        "network.viewpoint"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "id": "network.logical",
+      "label": "Logical Network",
+      "description": "Subnets with their address ranges and VLANs, the router and firewall that route to them, and an address table.",
+      "keywords": [
+        "ip",
+        "subnet",
+        "vlan",
+        "routing",
+        "addressing",
+        "logical"
+      ],
+      "viewpoint": "network.Logical",
+      "seed": [
+        {
+          "command": "element.create",
+          "as": "rt",
+          "params": {
+            "type": "network.Router",
+            "name": "Edge router",
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "fw",
+          "params": {
+            "type": "network.Firewall",
+            "name": "Perimeter",
+            "x": 200,
+            "y": 0
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "office",
+          "params": {
+            "type": "network.Subnet",
+            "name": "Office LAN",
+            "x": 0,
+            "y": 200,
+            "properties": {
+              "cidr": "10.0.1.0/24",
+              "vlan": 10,
+              "gateway": "10.0.1.1"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "servers",
+          "params": {
+            "type": "network.Subnet",
+            "name": "Servers",
+            "x": 200,
+            "y": 200,
+            "properties": {
+              "cidr": "10.0.2.0/24",
+              "vlan": 20,
+              "gateway": "10.0.2.1"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "guest",
+          "params": {
+            "type": "network.Subnet",
+            "name": "Guest",
+            "x": 400,
+            "y": 200,
+            "properties": {
+              "cidr": "10.0.3.0/24",
+              "vlan": 30,
+              "gateway": "10.0.3.1"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "host",
+          "params": {
+            "type": "network.Server",
+            "name": "App host",
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "table",
+          "params": {
+            "type": "network.AddressTable",
+            "name": "Addresses",
+            "x": 600,
+            "y": 0
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${fw.id}",
+            "to": "${office.id}",
+            "name": "",
+            "type": "network.Routes"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${fw.id}",
+            "to": "${servers.id}",
+            "name": "",
+            "type": "network.Routes"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${rt.id}",
+            "to": "${guest.id}",
+            "name": "",
+            "type": "network.Routes"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${host.id}",
+            "to": "${servers.id}",
+            "name": "",
+            "type": "network.Attached",
+            "properties": {
+              "address": "10.0.2.10"
+            }
+          }
+        }
+      ],
+      "layout": {
+        "algorithm": "layered",
+        "direction": "TB"
+      },
+      "key": true
+    },
+    {
+      "id": "network.physical",
+      "label": "Physical Network",
+      "description": "A site with two racks of devices and the cables between their ports, on an A3 sheet with a title block.",
+      "keywords": [
+        "rack",
+        "cabling",
+        "physical",
+        "devices",
+        "ports",
+        "site"
+      ],
+      "viewpoint": "network.Physical",
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true,
+      "seed": [
+        {
+          "command": "element.create",
+          "as": "site",
+          "params": {
+            "type": "network.Site",
+            "name": "Head office",
+            "x": 0,
+            "y": 0,
+            "w": 800,
+            "h": 520
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "r1",
+          "params": {
+            "type": "network.Rack",
+            "name": "Rack 1",
+            "x": 20,
+            "y": 40,
+            "w": 300,
+            "h": 440
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "r2",
+          "params": {
+            "type": "network.Rack",
+            "name": "Rack 2",
+            "x": 360,
+            "y": 40,
+            "w": 300,
+            "h": 440
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "rt",
+          "params": {
+            "type": "network.Router",
+            "name": "Edge router",
+            "x": 40,
+            "y": 80
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "fw",
+          "params": {
+            "type": "network.Firewall",
+            "name": "Perimeter",
+            "x": 40,
+            "y": 200
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "sw",
+          "params": {
+            "type": "network.Switch",
+            "name": "Core switch",
+            "x": 40,
+            "y": 320,
+            "properties": {
+              "layer": "l3"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "srv",
+          "params": {
+            "type": "network.Server",
+            "name": "App host",
+            "x": 380,
+            "y": 80
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "san",
+          "params": {
+            "type": "network.Storage",
+            "name": "Array",
+            "x": 380,
+            "y": 220
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "pp",
+          "params": {
+            "type": "network.PatchPanel",
+            "name": "Patch A",
+            "x": 380,
+            "y": 360
+          }
+        },
+        {
+          "command": "container.addMember",
+          "params": {
+            "container": "${site.shape}",
+            "ids": [
+              "${r1.shape}",
+              "${r2.shape}"
+            ]
+          }
+        },
+        {
+          "command": "container.addMember",
+          "params": {
+            "container": "${r1.shape}",
+            "ids": [
+              "${rt.shape}",
+              "${fw.shape}",
+              "${sw.shape}"
+            ]
+          }
+        },
+        {
+          "command": "container.addMember",
+          "params": {
+            "container": "${r2.shape}",
+            "ids": [
+              "${srv.shape}",
+              "${san.shape}",
+              "${pp.shape}"
+            ]
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${rt.shape}",
+              "point": 3
+            },
+            "to": {
+              "shape": "${fw.shape}",
+              "point": 2
+            },
+            "kind": "network.cable"
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${fw.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${sw.shape}",
+              "point": 0
+            },
+            "kind": "network.cable"
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${sw.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${srv.shape}",
+              "point": 0
+            },
+            "kind": "network.cable"
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${sw.shape}",
+              "point": 3
+            },
+            "to": {
+              "shape": "${san.shape}",
+              "point": 0
+            },
+            "kind": "network.cable"
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${sw.shape}",
+              "point": 2
+            },
+            "to": {
+              "shape": "${pp.shape}",
+              "point": 0
+            },
+            "kind": "network.cable"
+          }
+        }
+      ],
+      "layout": {
+        "primitive": "nested",
+        "direction": "LR",
+        "roles": {
+          "containers": []
+        }
+      },
+      "key": true
+    }
+  ]
+}

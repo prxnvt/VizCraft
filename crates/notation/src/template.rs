@@ -279,6 +279,9 @@ pub fn check(pack: &Pack) -> Vec<String> {
             }
             _ => {}
         }
+        if t.title_block && t.sheet.is_empty() {
+            out.push(format!("{ctx}: a title block needs a sheet; set `sheet` too"));
+        }
         out.extend(seed(&ctx, t));
         if let Some(l) = &t.layout {
             out.extend(layout(&ctx, l));

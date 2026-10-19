@@ -548,6 +548,7 @@ impl<'a> Checker<'a> {
                 }
                 Check::CrossesShape | Check::UngluedEnd | Check::Overlap | Check::OffBoard | Check::TextOverflow => {}
                 Check::DocumentFields { .. } | Check::RevisionSequence | Check::BalloonRows | Check::CrossReferences | Check::StaleTag => {}
+                Check::NestingAllowed { .. } | Check::Labelled { .. } | Check::EndsOnPorts { .. } => {}
                 Check::Unknown => self.problem(format!("{ctx}: unknown check kind (the pack needs a newer VizCraft)")),
             }
         }
@@ -605,9 +606,11 @@ mod tests {
 
     #[test]
     fn builtin_packs_are_consistent() {
+        // Through the loader, which reads path glyphs as freeform for the general checks.
         for (name, text) in BUILTIN {
-            let p: Pack = serde_json::from_str(text).unwrap();
-            assert_eq!(check(&p), Vec::<String>::new(), "{name}");
+            if let Err(e) = crate::loader::load_shipped(name, text) {
+                panic!("{name}: {e}");
+            }
         }
     }
 

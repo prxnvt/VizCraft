@@ -93,6 +93,7 @@ fn finish(mut pack: Pack) -> Result<Pack, NotationError> {
     problems.extend(variants(&pack));
     problems.extend(sheet_fields(&pack));
     problems.extend(crate::template::check(&pack));
+    problems.extend(crate::nesting::check_pack(&pack));
     if !problems.is_empty() {
         return Err(NotationError::Invalid(problems));
     }

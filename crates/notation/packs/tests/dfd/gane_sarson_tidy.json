@@ -1,0 +1,610 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "model": {
+      "schemaVersion": 1,
+      "packs": [
+        {
+          "id": "dfd",
+          "version": "1.0.0"
+        }
+      ],
+      "elements": [
+        {
+          "id": "tb",
+          "type": "dfd.TrustBoundary",
+          "name": "Back office"
+        },
+        {
+          "id": "cust",
+          "type": "dfd.ExternalEntity",
+          "name": "Customer"
+        },
+        {
+          "id": "p",
+          "type": "dfd.Process",
+          "name": "Take order",
+          "tag": "1",
+          "owner": "tb"
+        },
+        {
+          "id": "orders",
+          "type": "dfd.DataStore",
+          "name": "Orders",
+          "owner": "tb"
+        }
+      ],
+      "relationships": [
+        {
+          "id": "r6",
+          "type": "dfd.Flow",
+          "source": "cust",
+          "target": "p",
+          "name": "order"
+        },
+        {
+          "id": "r8",
+          "type": "dfd.Flow",
+          "source": "p",
+          "target": "orders",
+          "name": "order record"
+        },
+        {
+          "id": "r10",
+          "type": "dfd.Flow",
+          "source": "orders",
+          "target": "p",
+          "name": "history"
+        },
+        {
+          "id": "r12",
+          "type": "dfd.Flow",
+          "source": "p",
+          "target": "cust",
+          "name": "receipt"
+        }
+      ]
+    },
+    "document": {
+      "title": "",
+      "core": {
+        "author": "VizCraft User",
+        "lastModifiedBy": "VizCraft User",
+        "created": "2026-10-19T17:49:52Z",
+        "modified": "2026-10-19T17:49:52Z",
+        "revision": 1
+      },
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "width": 1100.0,
+          "height": 850.0,
+          "board": "infinite",
+          "shapes": [
+            {
+              "id": "s2",
+              "stencil": "dfd.boundary",
+              "kind": "rectangle",
+              "x": 250.0,
+              "y": -40.0,
+              "w": 420.0,
+              "h": 380.0,
+              "angleDeg": 0.0,
+              "text": "Back office",
+              "style": {
+                "fill": "#fffafa",
+                "line": "#c0392b",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false,
+                "dash": "dashed",
+                "cornerRadius": 6.0
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "tb",
+              "textBlock": {
+                "dx": 0.0,
+                "dy": -176.0,
+                "w": 420.0,
+                "h": 28.0,
+                "angleDeg": 0.0
+              },
+              "behavior": {
+                "container": true,
+                "nonPrinting": false,
+                "hidden": false,
+                "noGlue": false,
+                "noSnap": false
+              },
+              "container": {
+                "role": "container",
+                "margin": 20.0,
+                "headingPosition": "top",
+                "headingStyle": "plain",
+                "headingSize": 28.0,
+                "band": "#dfe6ee",
+                "style": "pack",
+                "autoFit": false,
+                "locked": false,
+                "vertical": false,
+                "leader": true,
+                "side": "auto"
+              }
+            },
+            {
+              "id": "s4",
+              "stencil": "dfd.gsProcess",
+              "kind": "freeform",
+              "x": 300.0,
+              "y": 20.0,
+              "w": 120.0,
+              "h": 90.0,
+              "angleDeg": 0.0,
+              "text": "Take order",
+              "style": {
+                "fill": "#e4f2ec",
+                "line": "#2d6e58",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "p",
+              "parent": "s2",
+              "path": {
+                "els": [
+                  {
+                    "moveTo": {
+                      "x": 9.6,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 110.4,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 116.80000000000001,
+                        "y": 0.0
+                      },
+                      {
+                        "x": 120.0,
+                        "y": 2.4000000000000004
+                      },
+                      {
+                        "x": 120.0,
+                        "y": 7.2
+                      }
+                    ]
+                  },
+                  {
+                    "lineTo": {
+                      "x": 120.0,
+                      "y": 82.8
+                    }
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 120.0,
+                        "y": 87.60000000000001
+                      },
+                      {
+                        "x": 116.80000000000001,
+                        "y": 90.0
+                      },
+                      {
+                        "x": 110.4,
+                        "y": 90.0
+                      }
+                    ]
+                  },
+                  {
+                    "lineTo": {
+                      "x": 9.6,
+                      "y": 90.0
+                    }
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 3.2000000000000006,
+                        "y": 90.0
+                      },
+                      {
+                        "x": 0.0,
+                        "y": 87.60000000000001
+                      },
+                      {
+                        "x": 0.0,
+                        "y": 82.8
+                      }
+                    ]
+                  },
+                  {
+                    "lineTo": {
+                      "x": 0.0,
+                      "y": 7.2
+                    }
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 0.0,
+                        "y": 2.4000000000000004
+                      },
+                      {
+                        "x": 3.2000000000000006,
+                        "y": 0.0
+                      },
+                      {
+                        "x": 9.6,
+                        "y": 0.0
+                      }
+                    ]
+                  },
+                  "close",
+                  {
+                    "moveTo": {
+                      "x": 0.0,
+                      "y": 23.400000000000002
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 120.0,
+                      "y": 23.400000000000002
+                    }
+                  }
+                ],
+                "closed": true,
+                "frame": [
+                  120.0,
+                  90.0
+                ]
+              }
+            },
+            {
+              "id": "s5",
+              "stencil": "dfd.gsStore",
+              "kind": "freeform",
+              "x": 300.0,
+              "y": 220.0,
+              "w": 150.0,
+              "h": 44.0,
+              "angleDeg": 0.0,
+              "text": "Orders",
+              "style": {
+                "fill": "#ffffff",
+                "line": "#84523c",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "orders",
+              "parent": "s2",
+              "path": {
+                "els": [
+                  {
+                    "moveTo": {
+                      "x": 150.0,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 0.0,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 0.0,
+                      "y": 44.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 150.0,
+                      "y": 44.0
+                    }
+                  },
+                  {
+                    "moveTo": {
+                      "x": 27.0,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 27.0,
+                      "y": 44.0
+                    }
+                  }
+                ],
+                "closed": false,
+                "frame": [
+                  150.0,
+                  44.0
+                ]
+              }
+            },
+            {
+              "id": "s3",
+              "stencil": "dfd.gsEntity",
+              "kind": "freeform",
+              "x": 0.0,
+              "y": 0.0,
+              "w": 120.0,
+              "h": 64.0,
+              "angleDeg": 0.0,
+              "text": "Customer",
+              "style": {
+                "fill": "#eef1f4",
+                "line": "#46535f",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "cust",
+              "path": {
+                "els": [
+                  {
+                    "moveTo": {
+                      "x": 0.0,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 112.8,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 112.8,
+                      "y": 57.6
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 0.0,
+                      "y": 57.6
+                    }
+                  },
+                  "close",
+                  {
+                    "moveTo": {
+                      "x": 112.8,
+                      "y": 6.4
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 120.0,
+                      "y": 6.4
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 120.0,
+                      "y": 64.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 7.199999999999999,
+                      "y": 64.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 7.199999999999999,
+                      "y": 57.6
+                    }
+                  }
+                ],
+                "closed": true,
+                "frame": [
+                  120.0,
+                  64.0
+                ]
+              }
+            }
+          ],
+          "connectors": [
+            {
+              "id": "c7",
+              "start": {
+                "shape": "s3"
+              },
+              "end": {
+                "shape": "s4"
+              },
+              "route": "orthogonal",
+              "startArrow": "none",
+              "endArrow": "triangle",
+              "text": "order",
+              "style": {
+                "fill": "#00000000",
+                "line": "#3a4a5c",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "relationship": "r6"
+            },
+            {
+              "id": "c9",
+              "start": {
+                "shape": "s4"
+              },
+              "end": {
+                "shape": "s5"
+              },
+              "route": "orthogonal",
+              "startArrow": "none",
+              "endArrow": "triangle",
+              "text": "order record",
+              "style": {
+                "fill": "#00000000",
+                "line": "#3a4a5c",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "relationship": "r8"
+            },
+            {
+              "id": "c11",
+              "start": {
+                "shape": "s5"
+              },
+              "end": {
+                "shape": "s4"
+              },
+              "route": "orthogonal",
+              "startArrow": "none",
+              "endArrow": "triangle",
+              "text": "history",
+              "style": {
+                "fill": "#00000000",
+                "line": "#3a4a5c",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "relationship": "r10"
+            },
+            {
+              "id": "c13",
+              "start": {
+                "shape": "s4"
+              },
+              "end": {
+                "shape": "s3"
+              },
+              "route": "orthogonal",
+              "startArrow": "none",
+              "endArrow": "triangle",
+              "text": "receipt",
+              "style": {
+                "fill": "#00000000",
+                "line": "#3a4a5c",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "relationship": "r12"
+            }
+          ],
+          "view": {
+            "viewpoint": "dfd.Level",
+            "variant": "dfd.gane_sarson"
+          }
+        }
+      ],
+      "idSeq": 13,
+      "conformance": {
+        "enabled": true,
+        "rulesets": [
+          "dfd.dfd"
+        ]
+      }
+    }
+  },
+  "expect": []
+}

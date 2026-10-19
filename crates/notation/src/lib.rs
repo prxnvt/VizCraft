@@ -21,6 +21,8 @@
 //! - [`template`]: templates, the starting points a pack offers, and their checks.
 //! - [`bind`]: the sync pass that keeps model and views in step after every command;
 //!   [`bind_nets`]: its net pass, which keeps nets, wire segments and junctions consistent.
+//! - [`nesting`]: which types may sit in which containers, container looks, the owner-sync step
+//!   and the nesting, label and port checks.
 //! - [`sheet_pass`]: the drawing-sheet part of that pass (tables, balloons, cross references).
 //!
 //! No egui and no engine; wasm safe.
@@ -36,6 +38,7 @@ pub mod glyph_path;
 pub mod infer;
 pub mod legal;
 pub mod loader;
+pub mod nesting;
 pub mod rules;
 pub mod schema;
 pub mod sheet_pass;

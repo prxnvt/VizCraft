@@ -353,6 +353,9 @@ impl<'a> Ctx<'a> {
             Check::DocumentFields { .. } | Check::RevisionSequence | Check::BalloonRows | Check::CrossReferences | Check::StaleTag => {
                 crate::sheet_pass::check(self.doc, self.cat, pack, rule, out)
             }
+            Check::NestingAllowed { .. } | Check::Labelled { .. } | Check::EndsOnPorts { .. } => {
+                crate::nesting::check(self.doc, self.cat, pack, rule, out)
+            }
             Check::Unknown => {}
         }
     }

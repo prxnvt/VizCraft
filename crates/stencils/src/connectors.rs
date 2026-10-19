@@ -233,7 +233,8 @@ mod tests {
 
     #[test]
     fn the_catalog_lists_the_basic_and_flowchart_kinds_in_order() {
-        let all: Vec<&str> = connector_kinds().iter().map(|k| k.id).collect();
+        // Other packs add their kinds after these.
+        let all: Vec<&str> = connector_kinds().iter().map(|k| k.id).filter(|id| id.starts_with("basic.") || id.starts_with("flowchart.")).collect();
         assert_eq!(all, ["basic.line", "basic.arrow", "basic.twoWay", "basic.dependency", "basic.bus", "basic.signal", "flowchart.flow"]);
         let dep = connector_kind("basic.dependency").unwrap();
         assert_eq!((dep.dash, dep.end_arrow, dep.start_arrow), (Dash::Dashed, Arrow::Open, Arrow::None));
@@ -263,7 +264,7 @@ mod tests {
 
     #[test]
     fn search_ranks_and_limits() {
-        assert_eq!(ids("").len(), 7);
+        assert_eq!(ids("").len(), connector_kinds().len());
         assert_eq!(search_connector_kinds("", 3).len(), 3);
         assert_eq!(ids("arrow").first(), Some(&"basic.arrow"));
         assert_eq!(ids("dependency"), ["basic.dependency"]);
@@ -275,7 +276,7 @@ mod tests {
 
     #[test]
     fn hostile_queries_are_bounded() {
-        assert!(ids(&"a ".repeat(100_000)).len() <= 7);
+        assert!(ids(&"a ".repeat(100_000)).len() <= connector_kinds().len());
         assert!(ids(&"x".repeat(1_000_000)).is_empty());
         assert!(ids("\u{0}\u{FFFF}\u{1F600}").is_empty());
         let long = format!("{}{}", "é".repeat(MAX_QUERY_CHARS - 1), "ü".repeat(10));

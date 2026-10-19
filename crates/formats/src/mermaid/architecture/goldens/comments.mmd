@@ -1,0 +1,5 @@
+architecture-beta
+    %% type: g cloud.Region
+    %% type: lb cloud.LoadBalancer
+    group g(cloud)[Region]
+    service lb(server)[Front] in g

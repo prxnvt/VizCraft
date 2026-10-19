@@ -1,0 +1,254 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "model": {
+      "schemaVersion": 1,
+      "packs": [
+        {
+          "id": "dfd",
+          "version": "1.0.0"
+        }
+      ],
+      "elements": [
+        {
+          "id": "cust",
+          "type": "dfd.ExternalEntity",
+          "name": "Customer"
+        },
+        {
+          "id": "hole",
+          "type": "dfd.Process",
+          "name": "Archive",
+          "tag": "1"
+        },
+        {
+          "id": "miracle",
+          "type": "dfd.Process",
+          "name": "Invent",
+          "tag": "2"
+        }
+      ],
+      "relationships": [
+        {
+          "id": "r5",
+          "type": "dfd.Flow",
+          "source": "cust",
+          "target": "hole",
+          "name": "records"
+        },
+        {
+          "id": "r7",
+          "type": "dfd.Flow",
+          "source": "miracle",
+          "target": "cust",
+          "name": "report"
+        }
+      ]
+    },
+    "document": {
+      "title": "",
+      "core": {
+        "author": "VizCraft User",
+        "lastModifiedBy": "VizCraft User",
+        "created": "2026-10-19T17:49:52Z",
+        "modified": "2026-10-19T17:49:52Z",
+        "revision": 1
+      },
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "width": 1100.0,
+          "height": 850.0,
+          "board": "infinite",
+          "shapes": [
+            {
+              "id": "s2",
+              "stencil": "dfd.entity",
+              "kind": "rectangle",
+              "x": 0.0,
+              "y": 0.0,
+              "w": 120.0,
+              "h": 60.0,
+              "angleDeg": 0.0,
+              "text": "Customer",
+              "style": {
+                "fill": "#eef1f4",
+                "line": "#46535f",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "cust"
+            },
+            {
+              "id": "s3",
+              "stencil": "dfd.process",
+              "kind": "ellipse",
+              "x": 300.0,
+              "y": 0.0,
+              "w": 110.0,
+              "h": 110.0,
+              "angleDeg": 0.0,
+              "text": "Archive",
+              "style": {
+                "fill": "#e4f2ec",
+                "line": "#2d6e58",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "hole"
+            },
+            {
+              "id": "s4",
+              "stencil": "dfd.process",
+              "kind": "ellipse",
+              "x": 300.0,
+              "y": 200.0,
+              "w": 110.0,
+              "h": 110.0,
+              "angleDeg": 0.0,
+              "text": "Invent",
+              "style": {
+                "fill": "#e4f2ec",
+                "line": "#2d6e58",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "miracle"
+            }
+          ],
+          "connectors": [
+            {
+              "id": "c6",
+              "start": {
+                "shape": "s2"
+              },
+              "end": {
+                "shape": "s3"
+              },
+              "route": "orthogonal",
+              "startArrow": "none",
+              "endArrow": "triangle",
+              "text": "records",
+              "style": {
+                "fill": "#00000000",
+                "line": "#3a4a5c",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "relationship": "r5"
+            },
+            {
+              "id": "c8",
+              "start": {
+                "shape": "s4"
+              },
+              "end": {
+                "shape": "s2"
+              },
+              "route": "orthogonal",
+              "startArrow": "none",
+              "endArrow": "triangle",
+              "text": "report",
+              "style": {
+                "fill": "#00000000",
+                "line": "#3a4a5c",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "relationship": "r7"
+            }
+          ],
+          "view": {
+            "viewpoint": "dfd.Level"
+          }
+        }
+      ],
+      "idSeq": 8,
+      "conformance": {
+        "enabled": true,
+        "rulesets": [
+          "dfd.dfd"
+        ]
+      }
+    }
+  },
+  "expect": [
+    {
+      "rule": "dfd.processHasOutput"
+    },
+    {
+      "rule": "dfd.processHasInput"
+    }
+  ]
+}

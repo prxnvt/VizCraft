@@ -1,0 +1,444 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="1627.191" height="719.291" viewBox="15 15 1627.191 719.291">
+  <title>Page-1</title>
+  <rect x="15" y="15" width="1627.191" height="719.291" fill="#ffffff"/>
+  <g id="s3">
+    <path d="M161.6 44 C161.6 41.791 163.391 40 165.6 40 L1297.6 40 C1299.809 40 1301.6 41.791 1301.6 44 L1301.6 459.1 C1301.6 461.309 1299.809 463.1 1297.6 463.1 L165.6 463.1 C163.391 463.1 161.6 461.309 161.6 459.1 Z" fill="#fafcfe" stroke="#3f6e9e" stroke-width="1.5" stroke-dasharray="6 4.5"/>
+    <polyline points="161.6,68 1301.6,68" fill="none" stroke="#3f6e9e" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="731.6" y="58.2">East</tspan></text>
+  </g>
+  <g id="s5">
+    <path d="M181.6 94 C181.6 90.686 184.286 88 187.6 88 L905.6 88 C908.914 88 911.6 90.686 911.6 94 L911.6 437.1 C911.6 440.414 908.914 443.1 905.6 443.1 L187.6 443.1 C184.286 443.1 181.6 440.414 181.6 437.1 Z" fill="#f8fcf9" stroke="#3d7a52" stroke-width="1.5"/>
+    <polygon points="182.35,88.75 910.85,88.75 910.85,115.25 182.35,115.25" fill="#e2f1e6"/>
+    <polyline points="181.6,116 911.6,116" fill="none" stroke="#3d7a52" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="546.6" y="106.2">Main network</tspan></text>
+  </g>
+  <g id="s7">
+    <path d="M201.6 200.55 L511.6 200.55 L511.6 358.55 L201.6 358.55 Z" fill="#fafdf7" stroke="#4f8a2e" stroke-width="1.5"/>
+    <polygon points="202.35,201.3 510.85,201.3 510.85,227.8 202.35,227.8" fill="#e4f4d9"/>
+    <polyline points="201.6,228.55 511.6,228.55" fill="none" stroke="#4f8a2e" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="356.6" y="218.75">Public</tspan></text>
+  </g>
+  <g id="s13">
+    <path d="M221.6 269.05 L236 258.55 L327.2 258.55 L341.6 269.05 L341.6 328.55 L221.6 328.55 Z" fill="#f6ece6" stroke="#8c4d2c" stroke-width="1.5"/>
+    <path d="M228.8 275.35 L245.6 275.35 M238.4 270.45 L245.6 275.35 L238.4 280.25" fill="none" stroke="#8c4d2c" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="281.6" y="297.75">API gateway</tspan></text>
+  </g>
+  <g id="s15">
+    <path d="M446.6 248.55 C471.8 248.55 491.6 268.35 491.6 293.55 C491.6 318.75 471.8 338.55 446.6 338.55 C421.4 338.55 401.6 318.75 401.6 293.55 C401.6 268.35 421.4 248.55 446.6 248.55 Z" fill="#e5f0f5" stroke="#2c6a84" stroke-width="1.5"/>
+    <path d="M434 266.55 L444.8 266.55 M444.8 266.55 L459.2 257.55 M444.8 266.55 L459.2 266.55 M444.8 266.55 L459.2 275.55" fill="none" stroke="#2c6a84" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="446.6" y="297.75">Balancer</tspan></text>
+  </g>
+  <g id="s9">
+    <path d="M571.6 136 L891.6 136 L891.6 423.1 L571.6 423.1 Z" fill="#f7fbfd" stroke="#2f7391" stroke-width="1.5"/>
+    <polygon points="572.35,136.75 890.85,136.75 890.85,163.25 572.35,163.25" fill="#dceef6"/>
+    <polyline points="571.6,164 891.6,164" fill="none" stroke="#2f7391" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="731.6" y="154.2">Private</tspan></text>
+  </g>
+  <g id="s17">
+    <path d="M601.2 193.55 L702 193.55 C708.4 193.55 711.6 195.417 711.6 199.15 L711.6 257.95 C711.6 261.683 708.4 263.55 702 263.55 L601.2 263.55 C594.8 263.55 591.6 261.683 591.6 257.95 L591.6 199.15 C591.6 195.417 594.8 193.55 601.2 193.55 Z" fill="#e9f3f0" stroke="#2f6f60" stroke-width="1.5"/>
+    <path d="M598.8 203.35 L608.4 198.45 L618 203.35 L618 215.95 L598.8 215.95 M598.8 203.35 L618 203.35 M608.4 203.35 L608.4 215.95" fill="none" stroke="#2f6f60" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="651.6" y="232.75">Shop A</tspan></text>
+  </g>
+  <g id="s19">
+    <path d="M601.2 333.1 L702 333.1 C708.4 333.1 711.6 334.967 711.6 338.7 L711.6 397.5 C711.6 401.233 708.4 403.1 702 403.1 L601.2 403.1 C594.8 403.1 591.6 401.233 591.6 397.5 L591.6 338.7 C591.6 334.967 594.8 333.1 601.2 333.1 Z" fill="#e9f3f0" stroke="#2f6f60" stroke-width="1.5"/>
+    <path d="M598.8 342.9 L608.4 338 L618 342.9 L618 355.5 L598.8 355.5 M598.8 342.9 L618 342.9 M608.4 342.9 L608.4 355.5" fill="none" stroke="#2f6f60" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="651.6" y="372.3">Shop B</tspan></text>
+  </g>
+  <g id="s21">
+    <path d="M771.6 196.15 C771.6 179.95 871.6 179.95 871.6 196.15 L871.6 260.95 C871.6 277.15 771.6 277.15 771.6 260.95 Z" fill="#f3e9e4" stroke="#84523c" stroke-width="1.5"/>
+    <path d="M771.6 196.15 C771.6 212.35 871.6 212.35 871.6 196.15" fill="none" stroke="#84523c" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="821.6" y="232.75">Orders</tspan></text>
+  </g>
+  <g id="s23">
+    <path d="M982 235.55 L1091.2 235.55 C1098.133 235.55 1101.6 237.15 1101.6 240.35 L1101.6 290.75 C1101.6 293.95 1098.133 295.55 1091.2 295.55 L982 295.55 C975.067 295.55 971.6 293.95 971.6 290.75 L971.6 240.35 C971.6 237.15 975.067 235.55 982 235.55 Z" fill="#f1eaf6" stroke="#6b4a88" stroke-width="1.5"/>
+    <path d="M1052.2 247.55 L1052.2 283.55 M1065.2 247.55 L1065.2 283.55 M1078.2 247.55 L1078.2 283.55 M1091.2 247.55 L1091.2 283.55" fill="none" stroke="#6b4a88" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="1036.6" y="269.75">Jobs</tspan></text>
+  </g>
+  <g id="s25">
+    <path d="M1171.2 230.55 L1272 230.55 C1278.4 230.55 1281.6 232.417 1281.6 236.15 L1281.6 294.95 C1281.6 298.683 1278.4 300.55 1272 300.55 L1171.2 300.55 C1164.8 300.55 1161.6 298.683 1161.6 294.95 L1161.6 236.15 C1161.6 232.417 1164.8 230.55 1171.2 230.55 Z" fill="#f5efe2" stroke="#8a6420" stroke-width="1.5"/>
+    <path d="M1178.4 234.75 L1171.2 245.95 L1179.6 245.95 L1173.6 255.75 L1188 242.45 L1179.6 242.45 L1184.4 234.75" fill="none" stroke="#8a6420" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="1221.6" y="269.75">Mailer</tspan></text>
+  </g>
+  <g id="s11">
+    <path d="M70.8 208.35 C80.6 208.35 86.2 217.35 86.2 229.05 C86.2 240.75 80.6 249.75 70.8 249.75 C61 249.75 55.4 240.75 55.4 229.05 C55.4 217.35 61 208.35 70.8 208.35 Z M40 294.75 C40 267.75 54 255.15 70.8 255.15 C87.6 255.15 101.6 267.75 101.6 294.75 Z" fill="#eef1f4" fill-rule="evenodd" stroke="#46535f" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="70.8" y="253.95">Visitor</tspan></text>
+  </g>
+  <g id="key40">
+    <path d="M1341.6 40 L1617.191 40 L1617.191 709.291 L1341.6 709.291 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="key40_border">
+    <path d="M1341.6 40 L1617.191 40 L1617.191 709.291 L1341.6 709.291 Z" fill="#ffffff" stroke="#1e2630" stroke-width="2.756"/>
+  </g>
+  <g id="key40_cell0">
+    <path d="M1341.6 40 L1617.191 40 L1617.191 71.496 L1341.6 71.496 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text0">
+    <path d="M1345.537 40 L1613.254 40 L1613.254 71.496 L1345.537 71.496 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="19.685" font-weight="bold" fill="#1e2630" xml:space="preserve"><tspan x="1349.537" y="62.638">Key</tspan></text>
+  </g>
+  <g id="key40_cell1">
+    <path d="M1341.6 71.496 L1420.34 71.496 L1420.34 106.929 L1341.6 106.929 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text1">
+    <path d="M1345.537 71.496 L1416.403 71.496 L1416.403 106.929 L1345.537 106.929 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="key40_cell2">
+    <path d="M1420.34 71.496 L1617.191 71.496 L1617.191 106.929 L1420.34 106.929 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text2">
+    <path d="M1424.277 71.496 L1613.254 71.496 L1613.254 106.929 L1424.277 106.929 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1428.277" y="94.134">Region</tspan></text>
+  </g>
+  <g id="key40_cell3">
+    <path d="M1341.6 106.929 L1420.34 106.929 L1420.34 142.362 L1341.6 142.362 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text3">
+    <path d="M1345.537 106.929 L1416.403 106.929 L1416.403 142.362 L1345.537 142.362 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="key40_cell4">
+    <path d="M1420.34 106.929 L1617.191 106.929 L1617.191 142.362 L1420.34 142.362 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text4">
+    <path d="M1424.277 106.929 L1613.254 106.929 L1613.254 142.362 L1424.277 142.362 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1428.277" y="129.567">Virtual Network</tspan></text>
+  </g>
+  <g id="key40_cell5">
+    <path d="M1341.6 142.362 L1420.34 142.362 L1420.34 177.795 L1341.6 177.795 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text5">
+    <path d="M1345.537 142.362 L1416.403 142.362 L1416.403 177.795 L1345.537 177.795 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="key40_cell6">
+    <path d="M1420.34 142.362 L1617.191 142.362 L1617.191 177.795 L1420.34 177.795 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text6">
+    <path d="M1424.277 142.362 L1613.254 142.362 L1613.254 177.795 L1424.277 177.795 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1428.277" y="165">Public Subnet</tspan></text>
+  </g>
+  <g id="key40_cell7">
+    <path d="M1341.6 177.795 L1420.34 177.795 L1420.34 213.228 L1341.6 213.228 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text7">
+    <path d="M1345.537 177.795 L1416.403 177.795 L1416.403 213.228 L1345.537 213.228 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="key40_cell8">
+    <path d="M1420.34 177.795 L1617.191 177.795 L1617.191 213.228 L1420.34 213.228 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text8">
+    <path d="M1424.277 177.795 L1613.254 177.795 L1613.254 213.228 L1424.277 213.228 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1428.277" y="200.433">Gateway</tspan></text>
+  </g>
+  <g id="key40_cell9">
+    <path d="M1341.6 213.228 L1420.34 213.228 L1420.34 248.661 L1341.6 248.661 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text9">
+    <path d="M1345.537 213.228 L1416.403 213.228 L1416.403 248.661 L1345.537 248.661 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="key40_cell10">
+    <path d="M1420.34 213.228 L1617.191 213.228 L1617.191 248.661 L1420.34 248.661 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text10">
+    <path d="M1424.277 213.228 L1613.254 213.228 L1613.254 248.661 L1424.277 248.661 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1428.277" y="235.866">Load Balancer</tspan></text>
+  </g>
+  <g id="key40_cell11">
+    <path d="M1341.6 248.661 L1420.34 248.661 L1420.34 284.094 L1341.6 284.094 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text11">
+    <path d="M1345.537 248.661 L1416.403 248.661 L1416.403 284.094 L1345.537 284.094 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="key40_cell12">
+    <path d="M1420.34 248.661 L1617.191 248.661 L1617.191 284.094 L1420.34 284.094 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text12">
+    <path d="M1424.277 248.661 L1613.254 248.661 L1613.254 284.094 L1424.277 284.094 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1428.277" y="271.299">Private Subnet</tspan></text>
+  </g>
+  <g id="key40_cell13">
+    <path d="M1341.6 284.094 L1420.34 284.094 L1420.34 319.528 L1341.6 319.528 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text13">
+    <path d="M1345.537 284.094 L1416.403 284.094 L1416.403 319.528 L1345.537 319.528 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="key40_cell14">
+    <path d="M1420.34 284.094 L1617.191 284.094 L1617.191 319.528 L1420.34 319.528 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text14">
+    <path d="M1424.277 284.094 L1613.254 284.094 L1613.254 319.528 L1424.277 319.528 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1428.277" y="306.732">Container</tspan></text>
+  </g>
+  <g id="key40_cell15">
+    <path d="M1341.6 319.528 L1420.34 319.528 L1420.34 354.961 L1341.6 354.961 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text15">
+    <path d="M1345.537 319.528 L1416.403 319.528 L1416.403 354.961 L1345.537 354.961 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="key40_cell16">
+    <path d="M1420.34 319.528 L1617.191 319.528 L1617.191 354.961 L1420.34 354.961 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text16">
+    <path d="M1424.277 319.528 L1613.254 319.528 L1613.254 354.961 L1424.277 354.961 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1428.277" y="342.165">Database</tspan></text>
+  </g>
+  <g id="key40_cell17">
+    <path d="M1341.6 354.961 L1420.34 354.961 L1420.34 390.394 L1341.6 390.394 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text17">
+    <path d="M1345.537 354.961 L1416.403 354.961 L1416.403 390.394 L1345.537 390.394 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="key40_cell18">
+    <path d="M1420.34 354.961 L1617.191 354.961 L1617.191 390.394 L1420.34 390.394 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text18">
+    <path d="M1424.277 354.961 L1613.254 354.961 L1613.254 390.394 L1424.277 390.394 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1428.277" y="377.598">Queue</tspan></text>
+  </g>
+  <g id="key40_cell19">
+    <path d="M1341.6 390.394 L1420.34 390.394 L1420.34 425.827 L1341.6 425.827 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text19">
+    <path d="M1345.537 390.394 L1416.403 390.394 L1416.403 425.827 L1345.537 425.827 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="key40_cell20">
+    <path d="M1420.34 390.394 L1617.191 390.394 L1617.191 425.827 L1420.34 425.827 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text20">
+    <path d="M1424.277 390.394 L1613.254 390.394 L1613.254 425.827 L1424.277 425.827 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1428.277" y="413.031">Function</tspan></text>
+  </g>
+  <g id="key40_cell21">
+    <path d="M1341.6 425.827 L1420.34 425.827 L1420.34 461.26 L1341.6 461.26 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text21">
+    <path d="M1345.537 425.827 L1416.403 425.827 L1416.403 461.26 L1345.537 461.26 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="key40_cell22">
+    <path d="M1420.34 425.827 L1617.191 425.827 L1617.191 461.26 L1420.34 461.26 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text22">
+    <path d="M1424.277 425.827 L1613.254 425.827 L1613.254 461.26 L1424.277 461.26 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1428.277" y="448.465">User</tspan></text>
+  </g>
+  <g id="key40_cell23">
+    <path d="M1341.6 461.26 L1420.34 461.26 L1420.34 496.693 L1341.6 496.693 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text23">
+    <path d="M1345.537 461.26 L1416.403 461.26 L1416.403 496.693 L1345.537 496.693 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="key40_cell24">
+    <path d="M1420.34 461.26 L1617.191 461.26 L1617.191 496.693 L1420.34 496.693 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text24">
+    <path d="M1424.277 461.26 L1613.254 461.26 L1613.254 496.693 L1424.277 496.693 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1428.277" y="483.898">Request</tspan></text>
+  </g>
+  <g id="key40_cell25">
+    <path d="M1341.6 496.693 L1420.34 496.693 L1420.34 532.126 L1341.6 532.126 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text25">
+    <path d="M1345.537 496.693 L1416.403 496.693 L1416.403 532.126 L1345.537 532.126 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="key40_cell26">
+    <path d="M1420.34 496.693 L1617.191 496.693 L1617.191 532.126 L1420.34 532.126 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text26">
+    <path d="M1424.277 496.693 L1613.254 496.693 L1613.254 532.126 L1424.277 532.126 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1428.277" y="519.331">Event</tspan></text>
+  </g>
+  <g id="key40_cell27">
+    <path d="M1341.6 532.126 L1420.34 532.126 L1420.34 567.559 L1341.6 567.559 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text27">
+    <path d="M1345.537 532.126 L1416.403 532.126 L1416.403 567.559 L1345.537 567.559 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="key40_cell28">
+    <path d="M1420.34 532.126 L1617.191 532.126 L1617.191 567.559 L1420.34 567.559 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text28">
+    <path d="M1424.277 532.126 L1613.254 532.126 L1613.254 567.559 L1424.277 567.559 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1428.277" y="554.764">1  HTTPS 443</tspan></text>
+  </g>
+  <g id="key40_cell29">
+    <path d="M1341.6 567.559 L1420.34 567.559 L1420.34 602.992 L1341.6 602.992 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text29">
+    <path d="M1345.537 567.559 L1416.403 567.559 L1416.403 602.992 L1345.537 602.992 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="key40_cell30">
+    <path d="M1420.34 567.559 L1617.191 567.559 L1617.191 602.992 L1420.34 602.992 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text30">
+    <path d="M1424.277 567.559 L1613.254 567.559 L1613.254 602.992 L1424.277 602.992 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1428.277" y="590.197">2  route</tspan></text>
+  </g>
+  <g id="key40_cell31">
+    <path d="M1341.6 602.992 L1420.34 602.992 L1420.34 638.425 L1341.6 638.425 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text31">
+    <path d="M1345.537 602.992 L1416.403 602.992 L1416.403 638.425 L1345.537 638.425 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="key40_cell32">
+    <path d="M1420.34 602.992 L1617.191 602.992 L1617.191 638.425 L1420.34 638.425 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text32">
+    <path d="M1424.277 602.992 L1613.254 602.992 L1613.254 638.425 L1424.277 638.425 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1428.277" y="625.63">3  forward</tspan></text>
+  </g>
+  <g id="key40_cell33">
+    <path d="M1341.6 638.425 L1420.34 638.425 L1420.34 673.858 L1341.6 673.858 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text33">
+    <path d="M1345.537 638.425 L1416.403 638.425 L1416.403 673.858 L1345.537 673.858 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="key40_cell34">
+    <path d="M1420.34 638.425 L1617.191 638.425 L1617.191 673.858 L1420.34 673.858 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text34">
+    <path d="M1424.277 638.425 L1613.254 638.425 L1613.254 673.858 L1424.277 673.858 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1428.277" y="661.063">4  query</tspan></text>
+  </g>
+  <g id="key40_cell35">
+    <path d="M1341.6 673.858 L1420.34 673.858 L1420.34 709.291 L1341.6 709.291 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text35">
+    <path d="M1345.537 673.858 L1416.403 673.858 L1416.403 709.291 L1345.537 709.291 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="key40_cell36">
+    <path d="M1420.34 673.858 L1617.191 673.858 L1617.191 709.291 L1420.34 709.291 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="key40_text36">
+    <path d="M1424.277 673.858 L1613.254 673.858 L1613.254 709.291 L1424.277 709.291 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1428.277" y="696.496">5  enqueue</tspan></text>
+  </g>
+  <g id="key40_s0">
+    <path d="M1360.927 79.433 C1360.927 77.224 1362.718 75.433 1364.927 75.433 L1397.013 75.433 C1399.222 75.433 1401.013 77.224 1401.013 79.433 L1401.013 98.992 C1401.013 101.201 1399.222 102.992 1397.013 102.992 L1364.927 102.992 C1362.718 102.992 1360.927 101.201 1360.927 98.992 Z" fill="#fafcfe" stroke="#3f6e9e" stroke-width="1.5" stroke-dasharray="6 4.5"/>
+  </g>
+  <g id="key40_s1">
+    <path d="M1360.927 116.866 C1360.927 113.552 1363.613 110.866 1366.927 110.866 L1395.013 110.866 C1398.327 110.866 1401.013 113.552 1401.013 116.866 L1401.013 132.425 C1401.013 135.739 1398.327 138.425 1395.013 138.425 L1366.927 138.425 C1363.613 138.425 1360.927 135.739 1360.927 132.425 Z" fill="#f8fcf9" stroke="#3d7a52" stroke-width="1.5"/>
+  </g>
+  <g id="key40_s2">
+    <path d="M1360.927 146.299 L1401.013 146.299 L1401.013 173.858 L1360.927 173.858 Z" fill="#fafdf7" stroke="#4f8a2e" stroke-width="1.5"/>
+  </g>
+  <g id="key40_s3">
+    <path d="M1357.348 185.866 L1363.017 181.732 L1398.923 181.732 L1404.592 185.866 L1404.592 209.291 L1357.348 209.291 Z" fill="#f6ece6" stroke="#8c4d2c" stroke-width="1.5"/>
+    <path d="M1360.183 188.346 L1366.797 188.346 M1363.962 186.417 L1366.797 188.346 L1363.962 190.276" fill="none" stroke="#8c4d2c" stroke-width="1.5"/>
+  </g>
+  <g id="key40_s4">
+    <path d="M1380.97 217.165 C1388.687 217.165 1394.75 223.228 1394.75 230.945 C1394.75 238.661 1388.687 244.724 1380.97 244.724 C1373.254 244.724 1367.191 238.661 1367.191 230.945 C1367.191 223.228 1373.254 217.165 1380.97 217.165 Z" fill="#e5f0f5" stroke="#2c6a84" stroke-width="1.5"/>
+    <path d="M1377.112 222.677 L1380.419 222.677 M1380.419 222.677 L1384.828 219.921 M1380.419 222.677 L1384.828 222.677 M1380.419 222.677 L1384.828 225.433" fill="none" stroke="#2c6a84" stroke-width="1.5"/>
+  </g>
+  <g id="key40_s5">
+    <path d="M1360.927 252.598 L1401.013 252.598 L1401.013 280.157 L1360.927 280.157 Z" fill="#f7fbfd" stroke="#2f7391" stroke-width="1.5"/>
+  </g>
+  <g id="key40_s6">
+    <path d="M1361.128 288.031 L1400.813 288.031 C1403.332 288.031 1404.592 288.766 1404.592 290.236 L1404.592 313.386 C1404.592 314.856 1403.332 315.591 1400.813 315.591 L1361.128 315.591 C1358.608 315.591 1357.348 314.856 1357.348 313.386 L1357.348 290.236 C1357.348 288.766 1358.608 288.031 1361.128 288.031 Z" fill="#e9f3f0" stroke="#2f6f60" stroke-width="1.5"/>
+    <path d="M1360.183 291.89 L1363.962 289.961 L1367.742 291.89 L1367.742 296.85 L1360.183 296.85 M1360.183 291.89 L1367.742 291.89 M1363.962 291.89 L1363.962 296.85" fill="none" stroke="#2f6f60" stroke-width="1.5"/>
+  </g>
+  <g id="key40_s7">
+    <path d="M1365.659 327.323 C1365.659 322.362 1396.281 322.362 1396.281 327.323 L1396.281 347.165 C1396.281 352.126 1365.659 352.126 1365.659 347.165 Z" fill="#f3e9e4" stroke="#84523c" stroke-width="1.5"/>
+    <path d="M1365.659 327.323 C1365.659 332.283 1396.281 332.283 1396.281 327.323" fill="none" stroke="#84523c" stroke-width="1.5"/>
+  </g>
+  <g id="key40_s8">
+    <path d="M1355.891 358.898 L1406.049 358.898 C1409.233 358.898 1410.826 359.633 1410.826 361.102 L1410.826 384.252 C1410.826 385.722 1409.233 386.457 1406.049 386.457 L1355.891 386.457 C1352.707 386.457 1351.114 385.722 1351.114 384.252 L1351.114 361.102 C1351.114 359.633 1352.707 358.898 1355.891 358.898 Z" fill="#f1eaf6" stroke="#6b4a88" stroke-width="1.5"/>
+    <path d="M1388.135 364.409 L1388.135 380.945 M1394.107 364.409 L1394.107 380.945 M1400.078 364.409 L1400.078 380.945 M1406.049 364.409 L1406.049 380.945" fill="none" stroke="#6b4a88" stroke-width="1.5"/>
+  </g>
+  <g id="key40_s9">
+    <path d="M1361.128 394.331 L1400.813 394.331 C1403.332 394.331 1404.592 395.066 1404.592 396.535 L1404.592 419.685 C1404.592 421.155 1403.332 421.89 1400.813 421.89 L1361.128 421.89 C1358.608 421.89 1357.348 421.155 1357.348 419.685 L1357.348 396.535 C1357.348 395.066 1358.608 394.331 1361.128 394.331 Z" fill="#f5efe2" stroke="#8a6420" stroke-width="1.5"/>
+    <path d="M1363.962 395.984 L1361.128 400.394 L1364.435 400.394 L1362.072 404.252 L1367.742 399.016 L1364.435 399.016 L1366.324 395.984" fill="none" stroke="#8a6420" stroke-width="1.5"/>
+  </g>
+  <g id="key40_s10">
+    <path d="M1380.97 430.866 C1383.971 430.866 1385.686 433.622 1385.686 437.205 C1385.686 440.787 1383.971 443.543 1380.97 443.543 C1377.969 443.543 1376.254 440.787 1376.254 437.205 C1376.254 433.622 1377.969 430.866 1380.97 430.866 Z M1371.539 457.323 C1371.539 449.055 1375.826 445.197 1380.97 445.197 C1386.114 445.197 1390.401 449.055 1390.401 457.323 Z" fill="#eef1f4" fill-rule="evenodd" stroke="#46535f" stroke-width="1.5"/>
+  </g>
+  <g id="key40_s11a">
+    <path d="M1349.474 478.476 L1350.474 478.476 L1350.474 479.476 L1349.474 479.476 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="key40_s11b">
+    <path d="M1411.466 478.476 L1412.466 478.476 L1412.466 479.476 L1411.466 479.476 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="key40_s12a">
+    <path d="M1349.474 513.909 L1350.474 513.909 L1350.474 514.909 L1349.474 514.909 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="key40_s12b">
+    <path d="M1411.466 513.909 L1412.466 513.909 L1412.466 514.909 L1411.466 514.909 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="key40_s13">
+    <path d="M1392.781 549.843 C1392.781 556.366 1387.493 561.654 1380.97 561.654 C1374.447 561.654 1369.159 556.366 1369.159 549.843 C1369.159 543.319 1374.447 538.031 1380.97 538.031 C1387.493 538.031 1392.781 543.319 1392.781 549.843 Z" fill="#3a4a5c" stroke="#ffffff" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12.992" font-weight="bold" fill="#ffffff" xml:space="preserve"><tspan x="1380.97" y="554.39">1</tspan></text>
+  </g>
+  <g id="key40_s14">
+    <path d="M1392.781 585.276 C1392.781 591.799 1387.493 597.087 1380.97 597.087 C1374.447 597.087 1369.159 591.799 1369.159 585.276 C1369.159 578.753 1374.447 573.465 1380.97 573.465 C1387.493 573.465 1392.781 578.753 1392.781 585.276 Z" fill="#3a4a5c" stroke="#ffffff" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12.992" font-weight="bold" fill="#ffffff" xml:space="preserve"><tspan x="1380.97" y="589.823">2</tspan></text>
+  </g>
+  <g id="key40_s15">
+    <path d="M1392.781 620.709 C1392.781 627.232 1387.493 632.52 1380.97 632.52 C1374.447 632.52 1369.159 627.232 1369.159 620.709 C1369.159 614.186 1374.447 608.898 1380.97 608.898 C1387.493 608.898 1392.781 614.186 1392.781 620.709 Z" fill="#3a4a5c" stroke="#ffffff" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12.992" font-weight="bold" fill="#ffffff" xml:space="preserve"><tspan x="1380.97" y="625.256">3</tspan></text>
+  </g>
+  <g id="key40_s16">
+    <path d="M1392.781 656.142 C1392.781 662.665 1387.493 667.953 1380.97 667.953 C1374.447 667.953 1369.159 662.665 1369.159 656.142 C1369.159 649.619 1374.447 644.331 1380.97 644.331 C1387.493 644.331 1392.781 649.619 1392.781 656.142 Z" fill="#3a4a5c" stroke="#ffffff" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12.992" font-weight="bold" fill="#ffffff" xml:space="preserve"><tspan x="1380.97" y="660.689">4</tspan></text>
+  </g>
+  <g id="key40_s17">
+    <path d="M1392.781 691.575 C1392.781 698.098 1387.493 703.386 1380.97 703.386 C1374.447 703.386 1369.159 698.098 1369.159 691.575 C1369.159 685.052 1374.447 679.764 1380.97 679.764 C1387.493 679.764 1392.781 685.052 1392.781 691.575 Z" fill="#3a4a5c" stroke="#ffffff" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12.992" font-weight="bold" fill="#ffffff" xml:space="preserve"><tspan x="1380.97" y="696.122">5</tspan></text>
+  </g>
+  <g id="c27">
+    <path d="M105.8 249.75 L163.7 249.75 L163.7 293.55 L209.85 293.55" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M221.6 293.55 L209.85 298.25 L209.85 288.85 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <rect x="127.7" y="262.65" width="72" height="18" fill="#ffffff"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="163.7" y="275.85">HTTPS 443</tspan></text>
+    <circle cx="145.7" cy="249.75" r="6.6" fill="#3a4a5c" stroke="#ffffff" stroke-width="1"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="7.26" font-weight="bold" fill="#ffffff" xml:space="preserve"><tspan x="145.7" y="252.291">1</tspan></text>
+  </g>
+  <g id="c29">
+    <path d="M341.6 293.55 L389.85 293.55" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M401.6 293.55 L389.85 298.25 L389.85 288.85 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <rect x="350" y="284.55" width="43.2" height="18" fill="#ffffff"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="371.6" y="297.75">route</tspan></text>
+    <circle cx="356.6" cy="293.55" r="6.6" fill="#3a4a5c" stroke="#ffffff" stroke-width="1"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="7.26" font-weight="bold" fill="#ffffff" xml:space="preserve"><tspan x="356.6" y="296.091">2</tspan></text>
+  </g>
+  <g id="c31">
+    <path d="M491.6 293.55 L541.6 293.55 L541.6 228.55 L579.85 228.55" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M591.6 228.55 L579.85 233.25 L579.85 223.85 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <rect x="512.8" y="252.05" width="57.6" height="18" fill="#ffffff"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="541.6" y="265.25">forward</tspan></text>
+    <circle cx="532.85" cy="293.55" r="6.6" fill="#3a4a5c" stroke="#ffffff" stroke-width="1"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="7.26" font-weight="bold" fill="#ffffff" xml:space="preserve"><tspan x="532.85" y="296.091">3</tspan></text>
+  </g>
+  <g id="c33">
+    <path d="M491.6 293.55 L541.6 293.55 L541.6 368.1 L579.85 368.1" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M591.6 368.1 L579.85 372.8 L579.85 363.4 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <rect x="512.8" y="321.825" width="57.6" height="18" fill="#ffffff"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="541.6" y="335.025">forward</tspan></text>
+  </g>
+  <g id="c35">
+    <path d="M711.6 228.55 L759.85 228.55" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M771.6 228.55 L759.85 233.25 L759.85 223.85 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <rect x="720" y="219.55" width="43.2" height="18" fill="#ffffff"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="741.6" y="232.75">query</tspan></text>
+    <circle cx="726.6" cy="228.55" r="6.6" fill="#3a4a5c" stroke="#ffffff" stroke-width="1"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="7.26" font-weight="bold" fill="#ffffff" xml:space="preserve"><tspan x="726.6" y="231.091">4</tspan></text>
+  </g>
+  <g id="c37">
+    <path d="M711.6 228.55 L761.6 228.55 L761.6 283.1 L961.6 283.1 L961.6 265.55 L971.6 265.55" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M959.85 270.25 L971.6 265.55 L959.85 260.85" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <rect x="794.3" y="274.1" width="57.6" height="18" fill="#ffffff"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="823.1" y="287.3">enqueue</tspan></text>
+    <circle cx="761.6" cy="261.575" r="6.6" fill="#3a4a5c" stroke="#ffffff" stroke-width="1"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="7.26" font-weight="bold" fill="#ffffff" xml:space="preserve"><tspan x="761.6" y="264.116">5</tspan></text>
+  </g>
+  <g id="c39">
+    <path d="M1101.6 265.55 L1161.6 265.55" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M1149.85 270.25 L1161.6 265.55 L1149.85 260.85" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <rect x="1102.8" y="256.55" width="57.6" height="18" fill="#ffffff"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="1131.6" y="269.75">trigger</tspan></text>
+  </g>
+  <g id="key40_s11c">
+    <path d="M1350.474 478.976 L1399.716 478.976" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M1411.466 478.976 L1399.716 483.676 L1399.716 474.276 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <g id="key40_s12c">
+    <path d="M1350.474 514.409 L1411.466 514.409" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-dasharray="6 4.5" stroke-linejoin="round"/>
+    <path d="M1399.716 519.109 L1411.466 514.409 L1399.716 509.709" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+</svg>

@@ -97,6 +97,7 @@ fn full(s: &mut Session, v: &Value) -> CmdResult {
     };
     let order = keep_order.then(|| creation_order(s)).transpose()?;
     let page = page_mut(s)?;
+    let ids = without_keys(page, ids);
     let notes = autolayout::layout_items_ordered(page, ids.as_deref(), &opts, order.as_ref()).map_err(EngineError::Failed)?;
     let ids = ids.unwrap_or_else(|| page.shapes.iter().map(|sh| sh.id.clone()).collect());
     with_sel(s, json!({"ids": ids, "notes": notes}))
@@ -126,6 +127,20 @@ fn default_direction(primitive: &str) -> Direction {
     if primitive == "voter" { Direction::TopBottom } else { Direction::LeftRight }
 }
 
+/// The shapes to lay out with a generated key (`vizcraft_diagram::key`) left where it is: on a
+/// page with a key, `None` (the whole page) becomes every other shape. A page without one keeps
+/// `ids` as given.
+fn without_keys(page: &vizcraft_diagram::Page, ids: Option<Vec<String>>) -> Option<Vec<String>> {
+    if !page.shapes.iter().any(vizcraft_diagram::key::is_key) {
+        return ids;
+    }
+    let keep = |id: &String| page.shape(id).is_none_or(|sh| !vizcraft_diagram::key::is_key(sh));
+    match ids {
+        Some(list) => Some(list.into_iter().filter(keep).collect()),
+        None => Some(page.shapes.iter().filter(|sh| !vizcraft_diagram::key::is_key(sh)).map(|sh| sh.id.clone()).collect()),
+    }
+}
+
 fn primitive(s: &mut Session, v: &Value) -> CmdResult {
     let name = opt_str(v, "primitive")?.ok_or_else(|| EngineError::Params("`primitive` is required".into()))?.to_string();
     let roles = match v.get("roles") {
@@ -149,7 +164,9 @@ fn primitive(s: &mut Session, v: &Value) -> CmdResult {
         let selected: Vec<String> = s.sel.items.iter().filter(|id| page.shape(id).is_some()).cloned().collect();
         (selected.len() >= 2).then_some(selected)
     };
-    let out = autolayout::layout_primitive(page_mut(s)?, ids.as_deref(), parsed, &opts).map_err(EngineError::Failed)?;
+    let page = page_mut(s)?;
+    let ids = without_keys(page, ids);
+    let out = autolayout::layout_primitive(page, ids.as_deref(), parsed, &opts).map_err(EngineError::Failed)?;
     let bounds = out.bounds.map(|b| json!({"x": b.x0, "y": b.y0, "width": b.width(), "height": b.height()}));
     with_sel(s, json!({"ids": out.ids, "notes": out.notes, "bounds": bounds}))
 }

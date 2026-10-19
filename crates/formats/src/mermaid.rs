@@ -1,4 +1,4 @@
-//! Mermaid import: flowchart, sequence, class, state and ER text become shapes and connectors on
+//! Mermaid import: flowchart, sequence, class, state, ER and architecture text become shapes and connectors on
 //! one page, placed automatically.
 //!
 //! `vizcraft-mermaid` parses the text. Flowcharts, state, class and ER diagrams go through the
@@ -16,6 +16,7 @@
 //! label that ends in ` #<tag>` where the tag holds a digit (`Pump #P-101`); the suffix is taken
 //! off the label. The tag is kept in the shape's `ext` under [`crate::csv::TAG_KEY`].
 
+pub mod architecture;
 mod common;
 mod graph;
 mod sequence;
@@ -37,6 +38,7 @@ pub fn import(text: &str) -> Result<Imported, FormatError> {
     }
     let mut page = match &parsed.diagram {
         Diagram::Sequence(seq) => sequence::build(seq, &mut warnings),
+        Diagram::Architecture(a) => architecture::build(a, text, &mut warnings)?,
         other => graph::build(&other.to_graph(), &mut warnings)?,
     };
     carry_tags(text, &mut page);

@@ -1,0 +1,839 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "model": {
+      "schemaVersion": 1,
+      "packs": [
+        {
+          "id": "flowchart",
+          "version": "1.0.0"
+        }
+      ],
+      "elements": [
+        {
+          "id": "a",
+          "type": "flowchart.Process",
+          "name": "Pack",
+          "tag": "S1",
+          "properties": {
+            "automated": false
+          }
+        },
+        {
+          "id": "b",
+          "type": "flowchart.Process",
+          "name": "Ship",
+          "tag": "S2",
+          "properties": {
+            "automated": false
+          }
+        }
+      ],
+      "relationships": [
+        {
+          "id": "r4",
+          "type": "flowchart.Flow",
+          "source": "a",
+          "target": "b"
+        }
+      ]
+    },
+    "document": {
+      "title": "",
+      "core": {
+        "author": "VizCraft User",
+        "lastModifiedBy": "VizCraft User",
+        "created": "2026-10-19T17:46:16Z",
+        "modified": "2026-10-19T17:46:16Z",
+        "revision": 1
+      },
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "width": 1100.0,
+          "height": 850.0,
+          "board": "infinite",
+          "shapes": [
+            {
+              "id": "s2",
+              "stencil": "flowchart.process",
+              "kind": "rectangle",
+              "x": 100.0,
+              "y": 100.0,
+              "w": 140.0,
+              "h": 60.0,
+              "angleDeg": 0.0,
+              "text": "Pack",
+              "style": {
+                "fill": "#e4f2ec",
+                "line": "#2d6e58",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "a"
+            },
+            {
+              "id": "s3",
+              "stencil": "flowchart.process",
+              "kind": "rectangle",
+              "x": 400.0,
+              "y": 100.0,
+              "w": 140.0,
+              "h": 60.0,
+              "angleDeg": 0.0,
+              "text": "Ship",
+              "style": {
+                "fill": "#e4f2ec",
+                "line": "#2d6e58",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "b"
+            },
+            {
+              "id": "key6",
+              "stencil": "vizcraft.group",
+              "kind": "rectangle",
+              "x": 100.0,
+              "y": 300.0,
+              "w": 275.59055118110234,
+              "h": 102.36220472440948,
+              "angleDeg": 0.0,
+              "text": "",
+              "style": {
+                "fill": "#00000000",
+                "line": "#00000000",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "ext": {
+                "vizcraft.key": "key6",
+                "vizcraft.key.title": "Key"
+              }
+            },
+            {
+              "id": "key6_border",
+              "stencil": "",
+              "kind": "rectangle",
+              "x": 100.0,
+              "y": 300.0,
+              "w": 275.59055118110234,
+              "h": 102.36220472440945,
+              "angleDeg": 0.0,
+              "text": "",
+              "style": {
+                "fill": "#ffffff",
+                "line": "#1e2630",
+                "lineWidth": 2.7559055118110236,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "ext": {
+                "vizcraft.key": "key6"
+              },
+              "parent": "key6"
+            },
+            {
+              "id": "key6_cell0",
+              "stencil": "",
+              "kind": "rectangle",
+              "x": 100.0,
+              "y": 300.0,
+              "w": 275.59055118110234,
+              "h": 31.496062992125985,
+              "angleDeg": 0.0,
+              "text": "",
+              "style": {
+                "fill": "#00000000",
+                "line": "#1e2630",
+                "lineWidth": 1.3779527559055118,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "ext": {
+                "vizcraft.key": "key6"
+              },
+              "parent": "key6"
+            },
+            {
+              "id": "key6_text0",
+              "stencil": "",
+              "kind": "rectangle",
+              "x": 103.93700787401575,
+              "y": 300.0,
+              "w": 267.7165354330709,
+              "h": 31.496062992125985,
+              "angleDeg": 0.0,
+              "text": "Key",
+              "style": {
+                "fill": "#00000000",
+                "line": "#00000000",
+                "lineWidth": 0.0,
+                "fontSize": 19.68503937007874,
+                "fontColor": "#1e2630",
+                "bold": true,
+                "italic": false,
+                "hAlign": "left"
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "ext": {
+                "vizcraft.key": "key6"
+              },
+              "parent": "key6"
+            },
+            {
+              "id": "key6_cell1",
+              "stencil": "",
+              "kind": "rectangle",
+              "x": 100.0,
+              "y": 331.496062992126,
+              "w": 78.74015748031496,
+              "h": 35.43307086614173,
+              "angleDeg": 0.0,
+              "text": "",
+              "style": {
+                "fill": "#00000000",
+                "line": "#1e2630",
+                "lineWidth": 1.3779527559055118,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "ext": {
+                "vizcraft.key": "key6"
+              },
+              "parent": "key6"
+            },
+            {
+              "id": "key6_text1",
+              "stencil": "",
+              "kind": "rectangle",
+              "x": 103.93700787401575,
+              "y": 331.496062992126,
+              "w": 70.86614173228347,
+              "h": 35.43307086614173,
+              "angleDeg": 0.0,
+              "text": "",
+              "style": {
+                "fill": "#00000000",
+                "line": "#00000000",
+                "lineWidth": 0.0,
+                "fontSize": 14.060742407199102,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false,
+                "hAlign": "left"
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "ext": {
+                "vizcraft.key": "key6"
+              },
+              "parent": "key6"
+            },
+            {
+              "id": "key6_cell2",
+              "stencil": "",
+              "kind": "rectangle",
+              "x": 178.74015748031496,
+              "y": 331.496062992126,
+              "w": 196.8503937007874,
+              "h": 35.43307086614173,
+              "angleDeg": 0.0,
+              "text": "",
+              "style": {
+                "fill": "#00000000",
+                "line": "#1e2630",
+                "lineWidth": 1.3779527559055118,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "ext": {
+                "vizcraft.key": "key6"
+              },
+              "parent": "key6"
+            },
+            {
+              "id": "key6_text2",
+              "stencil": "",
+              "kind": "rectangle",
+              "x": 182.67716535433073,
+              "y": 331.496062992126,
+              "w": 188.9763779527559,
+              "h": 35.43307086614173,
+              "angleDeg": 0.0,
+              "text": "Process",
+              "style": {
+                "fill": "#00000000",
+                "line": "#00000000",
+                "lineWidth": 0.0,
+                "fontSize": 14.060742407199102,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false,
+                "hAlign": "left"
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "ext": {
+                "vizcraft.key": "key6"
+              },
+              "parent": "key6"
+            },
+            {
+              "id": "key6_cell3",
+              "stencil": "",
+              "kind": "rectangle",
+              "x": 100.0,
+              "y": 366.92913385826773,
+              "w": 78.74015748031496,
+              "h": 35.43307086614173,
+              "angleDeg": 0.0,
+              "text": "",
+              "style": {
+                "fill": "#00000000",
+                "line": "#1e2630",
+                "lineWidth": 1.3779527559055118,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "ext": {
+                "vizcraft.key": "key6"
+              },
+              "parent": "key6"
+            },
+            {
+              "id": "key6_text3",
+              "stencil": "",
+              "kind": "rectangle",
+              "x": 103.93700787401575,
+              "y": 366.92913385826773,
+              "w": 70.86614173228347,
+              "h": 35.43307086614173,
+              "angleDeg": 0.0,
+              "text": "",
+              "style": {
+                "fill": "#00000000",
+                "line": "#00000000",
+                "lineWidth": 0.0,
+                "fontSize": 14.060742407199102,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false,
+                "hAlign": "left"
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "ext": {
+                "vizcraft.key": "key6"
+              },
+              "parent": "key6"
+            },
+            {
+              "id": "key6_cell4",
+              "stencil": "",
+              "kind": "rectangle",
+              "x": 178.74015748031496,
+              "y": 366.92913385826773,
+              "w": 196.8503937007874,
+              "h": 35.43307086614173,
+              "angleDeg": 0.0,
+              "text": "",
+              "style": {
+                "fill": "#00000000",
+                "line": "#1e2630",
+                "lineWidth": 1.3779527559055118,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "ext": {
+                "vizcraft.key": "key6"
+              },
+              "parent": "key6"
+            },
+            {
+              "id": "key6_text4",
+              "stencil": "",
+              "kind": "rectangle",
+              "x": 182.67716535433073,
+              "y": 366.92913385826773,
+              "w": 188.9763779527559,
+              "h": 35.43307086614173,
+              "angleDeg": 0.0,
+              "text": "Flow",
+              "style": {
+                "fill": "#00000000",
+                "line": "#00000000",
+                "lineWidth": 0.0,
+                "fontSize": 14.060742407199102,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false,
+                "hAlign": "left"
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "ext": {
+                "vizcraft.key": "key6"
+              },
+              "parent": "key6"
+            },
+            {
+              "id": "key6_s0",
+              "stencil": "flowchart.process",
+              "kind": "rectangle",
+              "x": 107.8740157480315,
+              "y": 335.7142857142857,
+              "w": 62.99212598425197,
+              "h": 26.996625421822273,
+              "angleDeg": 0.0,
+              "text": "",
+              "style": {
+                "fill": "#e4f2ec",
+                "line": "#2d6e58",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "ext": {
+                "vizcraft.key": "key6"
+              },
+              "parent": "key6"
+            },
+            {
+              "id": "key6_s1a",
+              "stencil": "",
+              "kind": "rectangle",
+              "x": 107.8740157480315,
+              "y": 384.1456692913386,
+              "w": 1.0,
+              "h": 1.0,
+              "angleDeg": 0.0,
+              "text": "",
+              "style": {
+                "fill": "#00000000",
+                "line": "#00000000",
+                "lineWidth": 0.0,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "ext": {
+                "vizcraft.key": "key6"
+              },
+              "parent": "key6"
+            },
+            {
+              "id": "key6_s1b",
+              "stencil": "",
+              "kind": "rectangle",
+              "x": 169.86614173228347,
+              "y": 384.1456692913386,
+              "w": 1.0,
+              "h": 1.0,
+              "angleDeg": 0.0,
+              "text": "",
+              "style": {
+                "fill": "#00000000",
+                "line": "#00000000",
+                "lineWidth": 0.0,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "ext": {
+                "vizcraft.key": "key6"
+              },
+              "parent": "key6"
+            }
+          ],
+          "connectors": [
+            {
+              "id": "c5",
+              "start": {
+                "shape": "s2"
+              },
+              "end": {
+                "shape": "s3"
+              },
+              "route": "orthogonal",
+              "startArrow": "none",
+              "endArrow": "triangle",
+              "text": "",
+              "style": {
+                "fill": "#00000000",
+                "line": "#3a4a5c",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "relationship": "r4"
+            },
+            {
+              "id": "key6_s1c",
+              "start": {
+                "shape": "key6_s1a",
+                "point": 1
+              },
+              "end": {
+                "shape": "key6_s1b",
+                "point": 3
+              },
+              "route": "straight",
+              "startArrow": "none",
+              "endArrow": "triangle",
+              "text": "",
+              "kind": "flowchart.flow",
+              "style": {
+                "fill": "#00000000",
+                "line": "#3a4a5c",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "ext": {
+                "vizcraft.key": "key6"
+              }
+            }
+          ]
+        }
+      ],
+      "idSeq": 6,
+      "conformance": {
+        "enabled": true,
+        "userSet": true,
+        "rulesets": [
+          "drawing.tidy"
+        ]
+      }
+    }
+  },
+  "expect": []
+}

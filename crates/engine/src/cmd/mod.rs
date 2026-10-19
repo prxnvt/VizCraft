@@ -27,6 +27,7 @@ pub mod help;
 pub mod ink;
 pub mod insert;
 pub mod inspector;
+pub mod key;
 pub mod lane;
 pub mod layer;
 pub mod layout;
@@ -50,10 +51,12 @@ pub mod script;
 pub mod shape;
 pub mod shapeop;
 pub mod sheet;
+pub mod step;
 pub mod suggest;
 pub mod table;
 pub mod template;
 pub mod text;
+pub mod topology;
 pub mod validate;
 pub mod variant;
 pub mod view;
@@ -128,6 +131,9 @@ pub fn registry() -> Registry {
     v.extend(net::specs());
     v.extend(wire::specs());
     v.extend(template::specs());
+    v.extend(key::specs());
+    v.extend(step::specs());
+    v.extend(topology::specs());
     Registry::new(v)
 }
 

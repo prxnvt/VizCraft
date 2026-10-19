@@ -17,6 +17,7 @@
 //! - entity-relationship diagrams (`erDiagram`): [`er::ErDiagram`]
 //! - class diagrams (`classDiagram`): [`class::ClassDiagram`]
 //! - sequence diagrams (`sequenceDiagram`): [`sequence::SequenceDiagram`]
+//! - architecture diagrams (`architecture-beta`): [`architecture::ArchitectureDiagram`]
 //!
 //! and returns it with warnings for statements it recognised but does not support, or did not
 //! recognise at all. Real syntax errors (an unclosed bracket, a link with no target, a block that
@@ -27,6 +28,7 @@
 //! nesting depth are capped ([`limits`]), and the parser never recurses, so hostile input ends in
 //! an error rather than a crash or an unbounded allocation.
 
+pub mod architecture;
 pub mod class;
 mod common;
 pub mod er;
@@ -69,6 +71,8 @@ pub enum Diagram {
     Class(class::ClassDiagram),
     /// A sequence diagram (`sequenceDiagram`).
     Sequence(sequence::SequenceDiagram),
+    /// An architecture diagram (`architecture-beta`).
+    Architecture(architecture::ArchitectureDiagram),
 }
 
 impl Diagram {
@@ -80,6 +84,7 @@ impl Diagram {
             Diagram::Er(_) => DiagramKind::Er,
             Diagram::Class(_) => DiagramKind::Class,
             Diagram::Sequence(_) => DiagramKind::Sequence,
+            Diagram::Architecture(_) => DiagramKind::Architecture,
         }
     }
 
@@ -91,6 +96,7 @@ impl Diagram {
             Diagram::Er(d) => &d.meta,
             Diagram::Class(d) => &d.meta,
             Diagram::Sequence(d) => &d.meta,
+            Diagram::Architecture(d) => &d.meta,
         }
     }
 
@@ -102,6 +108,7 @@ impl Diagram {
             Diagram::Er(d) => d.to_graph(),
             Diagram::Class(d) => d.to_graph(),
             Diagram::Sequence(d) => d.to_graph(),
+            Diagram::Architecture(d) => d.to_graph(),
         }
     }
 }
@@ -139,7 +146,6 @@ const OTHER_MERMAID_TYPES: &[&str] = &[
     "block",
     "packet-beta",
     "packet",
-    "architecture-beta",
     "kanban",
     "radar-beta",
     "treemap-beta",
@@ -163,12 +169,13 @@ pub fn parse(text: &str) -> Result<Parsed, ParseError> {
         "erDiagram" => Diagram::Er(er::parse(prepared, &mut ctx)?),
         "classDiagram" | "classDiagram-v2" => Diagram::Class(class::parse(prepared, &mut ctx)?),
         "sequenceDiagram" => Diagram::Sequence(sequence::parse(prepared, &mut ctx)?),
+        "architecture-beta" => Diagram::Architecture(architecture::parse(prepared, &mut ctx)?),
         other if OTHER_MERMAID_TYPES.contains(&other) => {
             return Err(ParseError::new(
                 header_line,
                 prepared.header_col,
                 format!(
-                    "Mermaid `{other}` diagrams are not supported; supported types are flowchart, graph, stateDiagram, erDiagram, classDiagram and sequenceDiagram"
+                    "Mermaid `{other}` diagrams are not supported; supported types are flowchart, graph, stateDiagram, erDiagram, classDiagram, sequenceDiagram and architecture-beta"
                 ),
             ));
         }
