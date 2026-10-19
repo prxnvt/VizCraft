@@ -27,7 +27,7 @@ use crate::canvas::tess::{self, triangulate};
 
 /// A shape's outline flattened and triangulated, in world space.
 struct Fill {
-    key: [u64; 9],
+    key: [u64; 10],
     /// The flattened subpaths, for outlines and glows.
     rings: Vec<(Vec<Pos2>, bool)>,
     /// What fills: the closed rings, or for a freeform the even-odd pieces (holes bridged into
@@ -57,8 +57,10 @@ impl FillCache {
         self.map.is_empty()
     }
 
-    fn key(s: &Shape, tol: f64) -> [u64; 9] {
+    fn key(s: &Shape, tol: f64) -> [u64; 10] {
         let kind = s.kind as u64;
+        // A glyph's quarter turns and mirror move its outline without moving its frame.
+        let orient = u64::from(s.orient.turns) | (u64::from(s.orient.mirror) << 8);
         [
             s.x.to_bits(),
             s.y.to_bits(),
@@ -69,6 +71,7 @@ impl FillCache {
             kind,
             s.style.corner_radius.to_bits(),
             path_hash(s),
+            orient,
         ]
     }
 
@@ -113,11 +116,17 @@ impl FillCache {
 }
 
 /// A hash of a freeform's stored path, so the cache notices an edit to it; 0 for other shapes.
+/// The frame the path was drawn in counts too: a rebuilt glyph may keep its commands and change
+/// only that box, which moves the outline in the shape.
 fn path_hash(s: &Shape) -> u64 {
     use std::hash::{Hash, Hasher};
     let Some(f) = s.path.as_ref().filter(|_| s.kind == ShapeKind::Freeform) else { return 0 };
     let mut h = std::collections::hash_map::DefaultHasher::new();
     f.closed.hash(&mut h);
+    if let Some([w, ht]) = f.frame {
+        w.to_bits().hash(&mut h);
+        ht.to_bits().hash(&mut h);
+    }
     for el in &f.els {
         let pts: &[Point] = match el {
             vizcraft_diagram::PathEl::MoveTo(p) | vizcraft_diagram::PathEl::LineTo(p) => std::slice::from_ref(p),
@@ -156,8 +165,16 @@ pub fn shape(painter: &Painter, vp: &Viewport2D, s: &Shape, cache: &mut FillCach
     }
     let t = s.transform();
     let at = |x: f64, y: f64| pos(t.apply(Point::new(x, y)));
-    let separators: Vec<(Vec<Pos2>, bool)> =
+    let mut separators: Vec<(Vec<Pos2>, bool)> =
         bands.iter().filter(|b| b.compartment.is_some()).map(|b| (vec![at(b.rect.x0, b.rect.y0), at(b.rect.x1, b.rect.y0)], false)).collect();
+    // A table's rule under its header row and between its columns, as the SVG export draws them.
+    for b in bands.iter().filter(|b| b.compartment.is_some()) {
+        let Some(h) = b.header else { continue };
+        separators.push((vec![at(h.x0, h.y1), at(h.x1, h.y1)], false));
+        for x in b.columns.iter().skip(1).take(b.columns.len().saturating_sub(2)) {
+            separators.push((vec![at(*x, h.y0), at(*x, b.rect.y1)], false));
+        }
+    }
     outline(painter, vp, st, &separators, line_c);
     super::containers::decor(painter, vp, s);
     if show_text && !s.text.trim().is_empty() {
@@ -166,6 +183,7 @@ pub fn shape(painter: &Painter, vp: &Viewport2D, s: &Shape, cache: &mut FillCach
     if !bands.is_empty() {
         compartment_text(painter, vp, s, None);
     }
+    super::text::glyph_labels(painter, vp, s);
 }
 
 /// Fill overrides of compartment bands, inset by half the line width at the frame's sides and

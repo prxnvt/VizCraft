@@ -21,11 +21,13 @@ pub mod insertion;
 pub mod keys;
 pub mod links;
 pub mod membership;
+pub mod nets;
 pub mod painter;
 pub mod select;
 pub mod text_block;
 pub mod tools;
 pub mod wire;
+pub mod xref;
 
 use egui::{Key, Response, Ui};
 use serde_json::{Value, json};
@@ -106,10 +108,16 @@ pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D
     // Hover: what is under the pointer, and the shape whose connection points to show.
     app.canvas.hover = None;
     app.canvas.hover_shape = None;
+    app.canvas.pointer_world = None;
     if let (Some(hp), Some(page)) = (response.hover_pos(), app.session.doc.page()) {
         let w = point(vp.screen_to_world(hp));
         app.canvas.hover = dg::hit(page, w, f64::from(HIT / zoom));
         app.canvas.hover_shape = dg::shape_at(page, w, f64::from(GRAB / zoom)).map(|s| s.id.clone());
+        app.canvas.pointer_world = Some(w);
+    }
+    nets::hover(app);
+    if xref::pointer(app, response) {
+        return;
     }
     if insertion::pointer(app, ui, response, vp) {
         return;
@@ -190,6 +198,7 @@ pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D
         && let Some(p) = response.interact_pointer_pos()
     {
         commit_editing(app);
+        nets::click(app);
         click(app, vp, p, m);
     }
     cursor(app, ui, response, vp);

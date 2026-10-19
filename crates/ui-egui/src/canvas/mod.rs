@@ -231,6 +231,30 @@ pub fn summary(app: &CraftApp) -> Value {
             Drag::Wire { .. } => "wire",
         }),
         "canvas": app.canvas.rect.map(|r| [r.min.x, r.min.y, r.width(), r.height()]),
+        "net": net_summary(app),
+        "zone": status_items(app).into_iter().find_map(|s| s.strip_prefix("Zone ").map(str::to_string)),
+    })
+}
+
+/// What the status bar shows about the canvas: the highlighted net with its pin count, and on a
+/// sheet page the drawing zone under the pointer (`sheet::zone_of`).
+pub fn status_items(app: &CraftApp) -> Vec<String> {
+    let mut out = Vec::new();
+    out.extend(interact::nets::status(app));
+    if let (Some(page), Some(p)) = (app.session.doc.page(), app.canvas.pointer_world)
+        && let Some(z) = dg::sheet::zone_of(page, p)
+    {
+        out.push(format!("Zone {z}"));
+    }
+    out
+}
+
+/// The `net` and `zone` parts of `ui.inspect`'s canvas summary.
+fn net_summary(app: &CraftApp) -> Value {
+    json!({
+        "hover": app.canvas.net_hover,
+        "held": app.canvas.net_held,
+        "status": interact::nets::status(app),
     })
 }
 
@@ -396,6 +420,11 @@ fn paint(app: &mut CraftApp, ui: &Ui, vp: &Viewport2D, t: &Tokens) {
                 draw::connector(&painter, vp, c, &g, editing.as_deref() != Some(c.id.as_str()));
             }
         }
+    }
+    // Line marks and wire numbers over the connectors, then the highlighted net.
+    draw::nets::draw(&painter, vp, &app.session.doc, page);
+    if let Some(net) = draw::nets::highlighted(app.canvas.net_held.as_deref(), app.canvas.net_hover.as_deref()) {
+        draw::nets::highlight(&painter, vp, &app.session.nets, page, net, t);
     }
     // Data graphic marks go above the connectors and below the overlays.
     draw::data_graphics::marks(&painter, vp, &graphic_marks);

@@ -3,7 +3,7 @@
 //! colours except the pasteboard around the sheet, which the caller fills.
 //!
 //! Layout: this module holds the model-to-egui conversions, the sheet and the fill and stroke
-//! helpers; [`shapes`] draws shapes, [`containers`] container headings, phases and callout leaders, [`data_graphics`] data graphics, [`text`] lays out text, [`connectors`] draws connectors and
+//! helpers; [`shapes`] draws shapes, [`containers`] container headings, phases and callout leaders, [`data_graphics`] data graphics, [`text`] lays out text, [`connectors`] draws connectors, [`nets`] line marks, wire numbers and the net highlight, and
 //! [`overlays`] draws the selection chrome on top.
 
 pub mod connectors;
@@ -11,6 +11,7 @@ pub mod containers;
 pub mod data_graphics;
 pub mod insertion;
 pub mod links;
+pub mod nets;
 pub mod overlays;
 pub mod pictures;
 pub mod ports;
