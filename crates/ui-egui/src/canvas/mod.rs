@@ -106,6 +106,15 @@ pub struct CanvasState {
     pub hover_shape: Option<String>,
     /// The shape or connector the armed format painter copies from (`Tool::FormatPainter`).
     pub painter_from: Option<String>,
+    /// The net of the wire under the pointer, highlighted across the page.
+    pub net_hover: Option<String>,
+    /// The net a click on one of its wires holds highlighted, until a click elsewhere or Escape.
+    pub net_held: Option<String>,
+    /// The pointer's page position while it is over the canvas (the status bar's zone reads it).
+    pub pointer_world: Option<dg::Point>,
+    /// The cross-reference label under the pointer and its tooltip text (from `xref.list`),
+    /// worked out once when the pointer reaches the label.
+    pub xref_tip: Option<(String, String)>,
     /// The view has been centred on the page once.
     centered: bool,
     /// A diagram was opened before the canvas was laid out; fit it once the size is known.
@@ -219,6 +228,7 @@ pub fn summary(app: &CraftApp) -> Value {
             Drag::Reglue { .. } => "reglue",
             Drag::TextBox { .. } => "textBox",
             Drag::TextBlock { .. } => "textBlock",
+            Drag::Wire { .. } => "wire",
         }),
         "canvas": app.canvas.rect.map(|r| [r.min.x, r.min.y, r.width(), r.height()]),
     })
@@ -300,7 +310,12 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
     if let Some(payload) = response.dnd_release_payload::<crate::panes::MasterDrag>()
         && let Some(p) = ui.ctx().pointer_interact_pos().or(response.hover_pos())
     {
+        let before = app.session.sel.primary.clone();
         insert_master(app, &payload.0, point(vp.screen_to_world(p)));
+        // A device dropped on a wire is spliced into it.
+        if let Some(id) = app.session.sel.primary.clone().filter(|id| Some(id) != before.as_ref()) {
+            interact::wire::splice_if_on_wire(app, &id);
+        }
     }
     // A shape or connector deleted under the editor (undo, an agent) ends the edit.
     if let Some(ed) = &app.canvas.editing

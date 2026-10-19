@@ -451,7 +451,7 @@ mod tests {
         let r = run(&mut s, "glyph.insert", json!({"builder": "contact", "x": 100, "y": 120}));
         let id = r["id"].as_str().unwrap().to_string();
         assert_eq!((r["primary"].as_str(), r["shapes"].clone()), (Some(id.as_str()), json!([id])));
-        assert_eq!(s.sel.items, [id.clone()], "the new shape is selected");
+        assert_eq!(s.sel.items, std::slice::from_ref(&id), "the new shape is selected");
         let shape = s.doc.pages[0].shape(&id).unwrap().clone();
         assert_eq!(shape.kind, ShapeKind::Freeform);
         assert!(shape.element.is_none(), "a free symbol, no element");

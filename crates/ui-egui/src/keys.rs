@@ -15,7 +15,10 @@
 //!
 //! Only modifier combinations and function keys are shortcuts; plain keys and Shift+letter are
 //! typing. Bare Delete and Backspace are the exception: they delete the canvas selection, but
-//! only while no text field has the keyboard (in a field they delete characters). On macOS with the native menu bar the host feeds menu key equivalents back through
+//! only while no text field has the keyboard (in a field they delete characters). Bare letters
+//! (the engineering keys R, X, Y, W and P, as in electrical CAD) are shortcuts only while the
+//! canvas has the keyboard ([`bare_letters_ok`]): no widget is focused, nothing is being edited
+//! in place, and no dialog, menu, File page, insert picker or presentation is up. On macOS with the native menu bar the host feeds menu key equivalents back through
 //! egui so this rule applies there too.
 
 use egui::{Key, Modifiers};
@@ -89,10 +92,35 @@ fn text_field_owns(id: &str) -> bool {
     matches!(id, "edit.cut" | "edit.copy" | "edit.paste" | "edit.selectAll" | "edit.undo" | "edit.redo")
 }
 
-/// Whether a key press counts as a shortcut at all: a modifier combination, a function key, or
-/// bare Delete / Backspace while no text field is focused.
-fn is_shortcut_key(key: Key, m: Modifiers, text_focused: bool) -> bool {
+/// Whether `key` is a letter A to Z.
+fn is_letter(key: Key) -> bool {
+    key.name().len() == 1 && key.name().chars().all(|c| c.is_ascii_uppercase())
+}
+
+/// Whether bare-letter shortcuts may fire this frame: the canvas has the keyboard. No widget is
+/// focused (a text field, a pane's search, the command palette's field), no shape or label is
+/// being edited in place, and no dialog, in-window menu, File page, insert picker or popover,
+/// or presentation owns the keys.
+pub fn bare_letters_ok(app: &CraftApp, ctx: &egui::Context) -> bool {
+    !(ctx.egui_wants_keyboard_input()
+        || ctx.memory(|m| m.focused().is_some())
+        || app.dialog.is_some()
+        || menus::is_open(ctx)
+        || app.canvas.editing.is_some()
+        || app.backstage_open()
+        || app.presenting
+        || app.insertion.picker.is_some()
+        || app.insertion.popover.is_some())
+}
+
+/// Whether a key press counts as a shortcut at all: a modifier combination, a function key,
+/// bare Delete / Backspace while no text field is focused, or a bare letter while the canvas has
+/// the keyboard (`canvas_keys`, see [`bare_letters_ok`]).
+fn is_shortcut_key(key: Key, m: Modifiers, text_focused: bool, canvas_keys: bool) -> bool {
     if matches!(key, Key::Delete | Key::Backspace) && !text_focused {
+        return true;
+    }
+    if canvas_keys && !text_focused && is_letter(key) && !(m.shift || m.alt || m.ctrl || m.command || m.mac_cmd) {
         return true;
     }
     let fkey = matches!(
@@ -130,6 +158,7 @@ pub fn shortcuts(app: &mut CraftApp, ctx: &egui::Context) {
         return;
     }
     let text_focused = ctx.egui_wants_keyboard_input();
+    let canvas_keys = bare_letters_ok(app, ctx);
     let presses: Vec<(Key, Modifiers)> = ctx.input(|i| {
         i.events
             .iter()
@@ -140,7 +169,7 @@ pub fn shortcuts(app: &mut CraftApp, ctx: &egui::Context) {
             .collect()
     });
     for (key, m) in presses {
-        if !is_shortcut_key(key, m, text_focused) {
+        if !is_shortcut_key(key, m, text_focused, canvas_keys) {
             continue;
         }
         let Some(name) = key_name(key) else { continue };
@@ -193,14 +222,23 @@ mod tests {
         assert_eq!(key_name(Key::ArrowLeft), Some("Left"));
         assert_eq!(key_name(Key::Num0), Some("0"));
         assert_eq!(key_name(Key::Space), Some("Space"));
-        assert!(is_shortcut_key(Key::F5, Modifiers::NONE, false));
-        assert!(!is_shortcut_key(Key::Space, Modifiers::NONE, false), "bare Space pans the canvas");
-        assert!(is_shortcut_key(Key::P, Modifiers::COMMAND | Modifiers::SHIFT, false));
-        assert!(!is_shortcut_key(Key::A, Modifiers::SHIFT, false), "Shift+letter is typing");
-        assert!(is_shortcut_key(Key::Delete, Modifiers::NONE, false), "Delete deletes the selection");
-        assert!(is_shortcut_key(Key::Backspace, Modifiers::NONE, false));
-        assert!(!is_shortcut_key(Key::Backspace, Modifiers::NONE, true), "in a text field Backspace edits the text");
+        assert!(is_shortcut_key(Key::F5, Modifiers::NONE, false, false));
+        assert!(!is_shortcut_key(Key::Space, Modifiers::NONE, false, true), "bare Space pans the canvas");
+        assert!(is_shortcut_key(Key::P, Modifiers::COMMAND | Modifiers::SHIFT, false, false));
+        assert!(!is_shortcut_key(Key::A, Modifiers::SHIFT, false, true), "Shift+letter is typing");
+        assert!(is_shortcut_key(Key::Delete, Modifiers::NONE, false, false), "Delete deletes the selection");
+        assert!(is_shortcut_key(Key::Backspace, Modifiers::NONE, false, false));
+        assert!(!is_shortcut_key(Key::Backspace, Modifiers::NONE, true, false), "in a text field Backspace edits the text");
         assert_eq!(command_for(&app(), "Delete"), Some("edit.delete"));
+        // Bare letters: only while the canvas has the keyboard, never while a field is focused.
+        assert!(is_shortcut_key(Key::R, Modifiers::NONE, false, true));
+        assert!(!is_shortcut_key(Key::R, Modifiers::NONE, false, false), "typing elsewhere");
+        assert!(!is_shortcut_key(Key::R, Modifiers::NONE, true, true), "a focused text field types the letter");
+        assert!(!is_shortcut_key(Key::Num1, Modifiers::NONE, false, true), "only letters");
+        assert!(!is_shortcut_key(Key::Escape, Modifiers::NONE, false, true));
+        for (k, id) in [("R", "ui.rotateQuarter"), ("X", "ui.mirrorX"), ("Y", "ui.mirrorY"), ("W", "ui.wire"), ("P", "ui.pipe")] {
+            assert_eq!(command_for(&app(), k), Some(id), "{k}");
+        }
     }
 
     #[test]

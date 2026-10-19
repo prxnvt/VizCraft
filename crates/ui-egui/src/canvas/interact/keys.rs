@@ -1,4 +1,6 @@
 //! Canvas keys: Escape, the arrow-key nudge and Alt+Shift+Arrow, which types a chain of steps.
+//! The engineering bare-letter keys (R, X, Y, W, P) are shortcuts of `ui.*` commands and go
+//! through `crate::keys`.
 
 use egui::{Key, Modifiers};
 use serde_json::json;
@@ -8,7 +10,8 @@ use vizcraft_engine::suggest::Direction;
 use super::run;
 use crate::{CraftApp, menus};
 
-/// Canvas keys: Escape cancels a drag or clears the selection; arrows nudge the selection by one
+/// Canvas keys: Escape returns the Wire tool to the pointer, lets go of a held net highlight, or
+/// cancels a drag or clears the selection; arrows nudge the selection by one
 /// unit (ten with Shift) through `shape.move`; Alt+Shift+Arrow with one shape selected runs
 /// `insert.next` that way with the first suggestion, which selects the new shape, so the next
 /// press carries the chain on. Nothing fires while a dialog, a menu or a text field has the
@@ -53,10 +56,16 @@ pub fn keys(app: &mut CraftApp, ctx: &egui::Context) {
         match key {
             Key::Escape => {
                 ctx.input_mut(|i| i.consume_key(m, key));
-                // Escape first disarms the format painter (kept armed by a double-click).
+                // Escape first disarms the format painter (kept armed by a double-click) and
+                // ends a wire drag; the Wire tool itself goes back to the pointer.
                 if let crate::Tool::FormatPainter { .. } = app.tool {
                     app.tool = crate::Tool::Pointer;
                     app.canvas.painter_from = None;
+                } else if let crate::Tool::Wire { .. } = app.tool {
+                    app.canvas.drag = None;
+                    app.tool = crate::Tool::Pointer;
+                } else if app.canvas.net_held.take().is_some() {
+                    // A held net highlight lets go before the selection does.
                 } else if app.canvas.drag.take().is_none() && !app.session.sel.items.is_empty() {
                     run(app, "edit.selectNone", json!({}));
                 }

@@ -140,9 +140,26 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "ui.tool",
         "Tool",
         "",
-        r#"{"tool": "pointer|area|lasso|connector|text|textBlock|formatPainter|crop|pen|highlighter|eraser", "from"?: id, "keep"?: bool, "kind"?: connector kind id}; kind makes the connector tool draw that kind (any other tool or no kind clears it); area is the pointer's marquee; formatPainter copies from "from" (default: the primary selection), once unless "keep""#,
+        r#"{"tool": "pointer|area|lasso|connector|text|textBlock|formatPainter|crop|pen|highlighter|eraser|wire|pipe", "from"?: id, "keep"?: bool, "kind"?: connector kind id}; kind makes the connector tool draw that kind (any other tool or no kind clears it); area is the pointer's marquee; formatPainter copies from "from" (default: the primary selection), once unless "keep""#,
     ),
     ("ui.find", "Find", "Mod+F", "{}"),
+    // Engineering keys: bare letters, as in electrical CAD; they fire only while the canvas has
+    // the keyboard (see `keys::bare_letters_ok`).
+    (
+        "ui.wire",
+        "Wire Tool",
+        "W",
+        "{} (arms the Wire tool: drag from a pin, a wire or empty page to a pin, a wire or empty page; Escape returns to the pointer)",
+    ),
+    ("ui.pipe", "Pipe Tool", "P", "{} (the Wire tool drawing pipes: net kind pipe, tees without a dot)"),
+    (
+        "ui.rotateQuarter",
+        "Rotate Quarter Turn",
+        "R",
+        r#"{} -> the shape.rotate {"turns": 1} result on the selected shapes (pins and outline turn, text stays upright)"#,
+    ),
+    ("ui.mirrorX", "Mirror Left to Right", "X", r#"{} -> the shape.mirror {"axis": "x"} result on the selected shapes"#),
+    ("ui.mirrorY", "Mirror Top to Bottom", "Y", r#"{} -> the shape.mirror {"axis": "y"} result on the selected shapes"#),
     ("ui.insertPicture", "Picture", "", r#"{} (pick a PNG, JPEG or SVG file, then picture.insert it)"#),
     ("ui.changePicture", "Change Picture", "", r#"{} (pick a file, then picture.change the selected picture)"#),
     ("ui.inkPen", "Pen Settings", "", r##"{"color"?: "#rrggbb", "width"?: n} -> {"color", "width"} (the Pen tool's colour and thickness)"##),
@@ -249,6 +266,12 @@ pub enum Tool {
     Highlighter,
     /// Delete the ink strokes under a click or a drag.
     Eraser,
+    /// Draw wires (or pipes) on the page's module grid: a drag from a pin, a wire or empty page
+    /// to a pin, a wire or empty page commits one `wire.draw` (`canvas/interact/wire.rs`).
+    Wire {
+        /// Draw pipes (net kind `pipe`, tees without a dot) instead of wires.
+        pipe: bool,
+    },
 }
 
 impl Tool {
@@ -265,6 +288,8 @@ impl Tool {
             Tool::Pen => "pen",
             Tool::Highlighter => "highlighter",
             Tool::Eraser => "eraser",
+            Tool::Wire { pipe: false } => "wire",
+            Tool::Wire { pipe: true } => "pipe",
         }
     }
     /// The tool for a `ui.tool` name.
@@ -281,6 +306,8 @@ impl Tool {
             "pen" => Some(Tool::Pen),
             "highlighter" => Some(Tool::Highlighter),
             "eraser" => Some(Tool::Eraser),
+            "wire" => Some(Tool::Wire { pipe: false }),
+            "pipe" => Some(Tool::Wire { pipe: true }),
             _ => None,
         }
     }
@@ -660,6 +687,9 @@ impl CraftApp {
             return Some(r);
         }
         if let Some(r) = canvas::interact::ink::ui_command(self, id, p) {
+            return Some(r);
+        }
+        if let Some(r) = canvas::interact::wire::ui_command(self, id, p) {
             return Some(r);
         }
         // The engine's search cannot see the `ui.*` commands; this one can, from every origin.

@@ -9,8 +9,8 @@
 //! Layout: this module holds the constants, [`Drag`] and the per-frame [`pointer`] dispatch and
 //! cursor; [`select`] handles clicks and the marquee, [`drag`] handle geometry, previews and
 //! commits, [`connect`] connector ends, [`tools`] what a press starts per tool, [`edit_text`]
-//! in-place text editing, [`keys`] the canvas keys and [`membership`] container membership on
-//! moves and drops.
+//! in-place text editing, [`keys`] the canvas keys, [`membership`] container membership on
+//! moves and drops, and [`wire`] the Wire and Pipe tools.
 
 pub mod connect;
 pub mod crop;
@@ -25,6 +25,7 @@ pub mod painter;
 pub mod select;
 pub mod text_block;
 pub mod tools;
+pub mod wire;
 
 use egui::{Key, Response, Ui};
 use serde_json::{Value, json};
@@ -80,6 +81,8 @@ pub enum Drag {
     TextBox { from: Point, to: Point },
     /// Moving, resizing or turning a shape's text block with the Text Block tool.
     TextBlock { id: String, grab: text_block::BlockGrab, to: Point, shift: bool },
+    /// Drawing a wire (a pipe with `pipe`) from `from` with the Wire tool.
+    Wire { from: wire::WireEnd, to: Point, pipe: bool },
 }
 
 fn round(v: f64) -> f64 {
@@ -145,7 +148,12 @@ pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D
         let w = point(vp.screen_to_world(p));
         match &mut app.canvas.drag {
             Some(
-                Drag::Marquee { to, .. } | Drag::Move { to, .. } | Drag::Connect { to, .. } | Drag::Reglue { to, .. } | Drag::TextBox { to, .. },
+                Drag::Marquee { to, .. }
+                | Drag::Move { to, .. }
+                | Drag::Connect { to, .. }
+                | Drag::Reglue { to, .. }
+                | Drag::TextBox { to, .. }
+                | Drag::Wire { to, .. },
             ) => *to = w,
             Some(Drag::TextBlock { to, shift, .. }) => {
                 *to = w;
@@ -193,9 +201,9 @@ fn cursor(app: &CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D) {
     }
     let icon = match (&app.canvas.drag, app.tool) {
         (Some(Drag::Move { .. }), _) => egui::CursorIcon::Grabbing,
-        (Some(Drag::Connect { .. } | Drag::Reglue { .. }), _) => egui::CursorIcon::Crosshair,
+        (Some(Drag::Connect { .. } | Drag::Reglue { .. } | Drag::Wire { .. }), _) => egui::CursorIcon::Crosshair,
         (Some(_), _) => return,
-        (None, Tool::Connector) => egui::CursorIcon::Crosshair,
+        (None, Tool::Connector | Tool::Wire { .. }) => egui::CursorIcon::Crosshair,
         (None, Tool::Text) => egui::CursorIcon::Text,
         (None, Tool::FormatPainter { .. }) => egui::CursorIcon::Copy,
         (None, Tool::TextBlock) => egui::CursorIcon::Move,

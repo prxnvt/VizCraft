@@ -36,6 +36,7 @@ pub(super) fn decide(app: &CraftApp, page: &Page, vp: &Viewport2D, at: Pos2, m: 
         // Handled in `ink::pointer` before this is asked.
         Tool::TextBlock | Tool::Pen | Tool::Highlighter | Tool::Eraser => None,
         Tool::Connector => Some(Start::Drag(Drag::Connect { from: target_end(page, w, zoom), to: w })),
+        Tool::Wire { pipe } => Some(Start::Drag(super::wire::start(page, w, zoom, pipe))),
         // Away from a picture's crop handles the Crop tool is the pointer.
         Tool::Pointer | Tool::Lasso | Tool::Crop => {
             if let Some(s) = single_shape(app, page) {
