@@ -31,6 +31,7 @@ pub mod page_tabs;
 pub mod palette;
 pub mod panes;
 pub mod paste_special;
+pub mod pattern_dialog;
 pub mod presentation;
 pub mod print_preview;
 pub mod ribbon;
@@ -115,6 +116,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.pane.comments", "Show Comments", "", r#"{"value"?: bool}"#),
     ("ui.pane.panZoom", "Pan and Zoom Pane", "", r#"{"value"?: bool}"#),
     ("ui.pane.documentStencil", "Document Stencil", "", r#"{"value"?: bool}"#),
+    ("ui.pane.patterns", "Patterns Pane", "", r#"{"value"?: bool}"#),
     (
         "ui.paneSide",
         "Move Pane to Side",
@@ -151,10 +153,28 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         r#"{"open"?: bool, "tab"?: "problems|search|activity|tables|generate", "height"?: number} -> {"open", "height", "tab", "rows"}; naming a tab opens the dock on it, naming nothing toggles it"#,
     ),
     (
+        "ui.generate",
+        "Generate Settings",
+        "",
+        r#"{"spec"?: path, "target"?: target id, "output"?: folder, "run"?: "preview|generate|check"} -> {"spec", "target", "output", "files": [{"path", "action"}], "issues", "log", "result"?}; sets the Generate tab's fields, opens the dock on it and optionally runs the button"#,
+    ),
+    (
         "ui.search",
         "Search the Dock",
         "",
         r#"{"query": string, "scope"?: "page|document"} -> {"query", "scope", "hits": [{"page", "id", "field", "value"}]}"#,
+    ),
+    (
+        "ui.tables",
+        "Tables",
+        "",
+        r#"{"view"?: "list|matrix", "type"?: element or relationship type, "rows"?: element type, "cols"?: element type, "relationship"?: relationship type, "property"?: string, "filter"?: string} -> {"view", "type", "rows", "cols", "count"}; opens the dock on the Tables tab showing that list (type; empty is every element) or matrix"#,
+    ),
+    (
+        "ui.patterns",
+        "Patterns",
+        "",
+        r#"{"query"?: string, "pattern"?: pattern id} -> {"query", "audience", "instance", "args", "open"}; query sets the Patterns pane's search (opening it), pattern opens its form"#,
     ),
     (
         "ui.insertPicker",
@@ -173,7 +193,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.window.cascade", "Cascade", "", "{} (stack every window, each a little right and down of the last)"),
     ("ui.window.switch", "Switch Windows", "", r#"{"index": n} (0 is the first window)"#),
     ("ui.macroRecord", "Record Macro", "", r#"{"value"?: bool} (start or stop recording a script; stopping keeps it for Save Macro)"#),
-    ("ui.spelling", "Spelling", "", "{}"),
+    ("ui.spelling", "Spelling", "F7", "{}"),
     (
         "ui.linkData",
         "Link Data to Shapes",
@@ -335,6 +355,18 @@ impl Default for UiState {
     }
 }
 
+/// The media type of a picture file by its name (png, jpg, jpeg or svg, any case), for
+/// `picture.insert`; `None` for any other file.
+fn picture_media_type(name: &str) -> Option<&'static str> {
+    let ext = name.rsplit(['/', '\\']).next().unwrap_or(name).rsplit_once('.')?.1.to_ascii_lowercase();
+    match ext.as_str() {
+        "png" => Some("image/png"),
+        "jpg" | "jpeg" => Some("image/jpeg"),
+        "svg" => Some("image/svg+xml"),
+        _ => None,
+    }
+}
+
 /// The application: one document window.
 pub struct CraftApp {
     pub session: Session,
@@ -381,6 +413,8 @@ pub struct CraftApp {
     pub shapes_query: String,
     /// The Model Tree pane's mode, open rows and rename state (`ui.tree`). Transient.
     pub tree: panes::TreeState,
+    /// The Patterns pane's search, audience filter and instance form (`ui.patterns`). Transient.
+    pub patterns: panes::PatternsState,
     /// The connector kind the connector tool draws (`ui.tool {tool: "connector", kind}`); empty
     /// is the default kind.
     pub connector_kind: String,
@@ -435,6 +469,7 @@ impl CraftApp {
             insertion: Default::default(),
             shapes_query: String::new(),
             tree: Default::default(),
+            patterns: Default::default(),
             connector_kind: String::new(),
             palette_filter: true,
             palette_focus: None,
@@ -626,6 +661,10 @@ impl CraftApp {
         }
         if let Some(r) = canvas::interact::ink::ui_command(self, id, p) {
             return Some(r);
+        }
+        // The engine's search cannot see the `ui.*` commands; this one can, from every origin.
+        if id == "suggest.search" {
+            return Some(command_palette::search(self, p));
         }
         let s = |k: &str| p.get(k).and_then(Value::as_str);
         let b = |k: &str| p.get(k).and_then(Value::as_bool);
@@ -1054,6 +1093,12 @@ impl CraftApp {
         let Some(inbox) = self.services.inbox.clone() else { return };
         let files = std::mem::take(&mut *inbox.lock().unwrap_or_else(|e| e.into_inner()));
         for (name, bytes) in files {
+            // A dropped or picked picture becomes a picture shape; it is not a document.
+            if let Some(media) = picture_media_type(&name) {
+                let _ = self.run("picture.insert", json!({"bytes": vizcraft_diagram::base64::encode(&bytes), "mediaType": media}));
+                self.backstage = false;
+                continue;
+            }
             // Mermaid, CSV and bare XML files are imported onto the page; documents open.
             if !vizcraft_engine::io::is_document(&name)
                 && let Some(format) = vizcraft_engine::io::import_format_for_name(&name)

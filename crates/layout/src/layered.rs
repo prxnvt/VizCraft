@@ -74,7 +74,7 @@ pub(crate) fn layout(sub: &Sub, opt: &Options, notes: &mut Notes) -> Piece {
     }
 
     let proper = Proper::build(&sub.sizes, &dag, &rank, notes);
-    let layers = order_layers(&proper, opt);
+    let layers = order_layers(&proper, sub, opt);
     let x = coordinates(&proper, &layers, opt);
 
     // Layer bands: each as tall as its tallest real node, separated by the layer spacing.
@@ -535,9 +535,11 @@ impl Proper {
     }
 }
 
-/// Crossing reduction: an initial breadth-first order, then alternating barycenter sweeps with
-/// transposition, keeping the best ordering found.
-fn order_layers(p: &Proper, opt: &Options) -> Vec<Vec<usize>> {
+/// Crossing reduction: an initial breadth-first order (sorted by model order when the nodes have
+/// one), then alternating barycenter sweeps with transposition, keeping the best ordering found.
+/// Sweeps and transpositions only move a vertex on a strict improvement, so ties keep the
+/// initial order.
+fn order_layers(p: &Proper, sub: &Sub, opt: &Options) -> Vec<Vec<usize>> {
     let count = p.width.len();
     let mut layers: Vec<Vec<usize>> = vec![Vec::new(); p.layer_count];
     let mut visited = vec![false; count];
@@ -558,6 +560,17 @@ fn order_layers(p: &Proper, opt: &Options) -> Vec<Vec<usize>> {
                     queue.push_back(w);
                 }
             }
+        }
+    }
+    if sub.has_order() {
+        // A dummy takes the key of the vertex above it (dummies are numbered after their tail),
+        // so a long edge stays beside the node it leaves from.
+        let mut key = vec![u64::MAX; count];
+        for v in 0..count {
+            key[v] = if v < p.real { sub.order_key(v) } else { p.up[v].first().map_or(u64::MAX, |&u| if u < v { key[u] } else { u64::MAX }) };
+        }
+        for layer in layers.iter_mut() {
+            layer.sort_by_key(|&v| key[v]);
         }
     }
     let mut pos = vec![0usize; count];

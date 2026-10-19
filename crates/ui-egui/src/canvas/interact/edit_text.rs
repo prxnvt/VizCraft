@@ -62,6 +62,14 @@ impl TextEditing {
 
 /// Start editing the text of `target`.
 pub fn start_editing(app: &mut CraftApp, target: Hit) {
+    // A text-locked shape (or a protected document) refuses the edit with the lock's message,
+    // the same one `shape.setText` gives.
+    if let Hit::Shape(id) = &target
+        && let Err(e) = vizcraft_engine::cmd::protect::check(&app.session, [id], vizcraft_engine::cmd::protect::Lock::Text)
+    {
+        app.status(e.to_string());
+        return;
+    }
     let Some(page) = app.session.doc.page() else { return };
     let text = match &target {
         Hit::Shape(id) => page.shape(id).map(|s| s.text.clone()),

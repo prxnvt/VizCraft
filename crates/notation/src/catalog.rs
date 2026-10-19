@@ -105,6 +105,34 @@ impl Catalog {
     pub fn master_for_type(&self, type_id: &str) -> Option<&str> {
         self.element_type(type_id).map(|(_, t)| t.glyph.as_str()).filter(|g| !g.is_empty())
     }
+    /// The stencil master an element type's views are drawn with on a page that uses rendering
+    /// variant `variant` (a qualified variant id; empty for the default drawing). A variant of
+    /// another pack, an unknown one, or one that does not list the type gives the default glyph.
+    pub fn master_for_type_in(&self, type_id: &str, variant: &str) -> Option<&str> {
+        let (pack, _) = self.element_type(type_id)?;
+        pack.variant(variant)
+            .and_then(|v| v.glyphs.get(type_id))
+            .map(String::as_str)
+            .filter(|g| pack.glyph(g).is_some())
+            .or_else(|| self.master_for_type(type_id))
+    }
+    /// The connector type a relationship type is drawn with under rendering variant `variant`
+    /// (empty for the default): the variant's choice when it lists the type, else the first
+    /// connector type of any pack that names the relationship type.
+    pub fn connector_type_for_relationship_in(&self, rel_type: &str, variant: &str) -> Option<&str> {
+        let chosen = self
+            .relationship_type(rel_type)
+            .and_then(|(pack, _)| pack.variant(variant).and_then(|v| v.connectors.get(rel_type)).filter(|k| pack.connector_type(k).is_some()));
+        if let Some(k) = chosen {
+            return Some(k.as_str());
+        }
+        self.packs.iter().flat_map(|p| p.connector_types.iter()).find(|k| k.relationship_type.as_deref() == Some(rel_type)).map(|k| k.id.as_str())
+    }
+    /// The rendering variant with this qualified id, with its pack.
+    pub fn variant(&self, id: &str) -> Option<(&Pack, &crate::schema::Variant)> {
+        let pack = self.pack(vizcraft_model::pack_of(id))?;
+        pack.variant(id).map(|v| (pack, v))
+    }
     /// The element type a shape placed from master `master_id` becomes, if any.
     pub fn type_for_master(&self, master_id: &str) -> Option<&str> {
         self.glyph(master_id).map(|(_, g)| g.element_type.as_str()).filter(|t| !t.is_empty())
@@ -286,6 +314,28 @@ mod tests {
 
     fn tiny(id: &str) -> Pack {
         serde_json::from_value(serde_json::json!({"id": id, "version": "1.0.0", "name": id})).unwrap()
+    }
+
+    #[test]
+    fn variants_choose_the_glyph_and_connector_type_and_fall_back_to_the_default() {
+        let pack: Pack = serde_json::from_value(serde_json::json!({
+            "id": "vt", "version": "1.0.0", "name": "Variant test",
+            "glyphs": [{"id": "vt.box", "outline": "rectangle", "w": 10, "h": 10}, {"id": "vt.round", "outline": "ellipse", "w": 10, "h": 10}],
+            "elementTypes": [{"id": "vt.A", "glyph": "vt.box"}, {"id": "vt.B", "glyph": "vt.box"}],
+            "relationshipTypes": [{"id": "vt.R"}],
+            "connectorTypes": [{"id": "vt.plain", "relationshipType": "vt.R"}, {"id": "vt.dashed", "dash": "dashed"}],
+            "variants": [{"id": "vt.alt", "glyphs": {"vt.A": "vt.round"}, "connectors": {"vt.R": "vt.dashed"}}]
+        }))
+        .unwrap();
+        let c = Catalog::builtin().with_pack(pack).unwrap();
+        assert_eq!(c.master_for_type_in("vt.A", "vt.alt"), Some("vt.round"));
+        assert_eq!(c.master_for_type_in("vt.B", "vt.alt"), Some("vt.box"), "a type the variant leaves alone");
+        assert_eq!(c.master_for_type_in("vt.A", ""), Some("vt.box"));
+        assert_eq!(c.master_for_type_in("vt.A", "flowchart.nothing"), Some("vt.box"));
+        assert_eq!(c.connector_type_for_relationship_in("vt.R", "vt.alt"), Some("vt.dashed"));
+        assert_eq!(c.connector_type_for_relationship_in("vt.R", ""), Some("vt.plain"));
+        assert_eq!(c.connector_type_for_relationship_in("flowchart.Flow", "vt.alt"), Some("flowchart.flow"));
+        assert!(c.variant("vt.alt").is_some() && c.variant("vt.none").is_none());
     }
 
     #[test]

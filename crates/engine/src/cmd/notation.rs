@@ -20,9 +20,9 @@ use crate::{CmdResult, CommandSpec, EngineError, Session, p};
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("notation.list", "Notation Packs", "Model > Notation", list)
-            .params(r#"{} -> {"packs": [{"id", "version", "name", "audience", "description", "types", "glyphs"}]}; types and glyphs are counts"#),
+            .params(r#"{} -> {"packs": [{"id", "version", "name", "audience", "description", "types", "glyphs", "variants": [{"id", "label"}]}]}; types and glyphs are counts; variants are the rendering variants (see variant.list)"#),
         CommandSpec::new("notation.describe", "Describe Notation", "Model > Notation", describe).params(
-            r#"{"pack": string, "type"?: string} -> the whole pack schema; with type: {"type": element type, "pack", "legal": [{"relationship", "targets"}]} or {"relationship": relationship type, "pack"}; type may omit the "<pack>." prefix"#,
+            r#"{"pack": string, "type"?: string} -> the whole pack schema (glyphs with their path data, variants with their glyph and connector maps); with type: {"type": element type, "pack", "legal": [{"relationship", "targets"}]} or {"relationship": relationship type, "pack"}; type may omit the "<pack>." prefix"#,
         ),
         CommandSpec::new("notation.legal", "Legal Relationships", "Model > Notation", legal_cmd).params(
             r#"{"from": string, "to"?: string} -> {"from": type, "relationships": [{"relationship", "targets"}], "to"?: type, "legal"?: bool}; from and to are element ids, shape ids of element views, or element type ids; with to, only relationships reaching its type are listed"#,
@@ -129,6 +129,7 @@ fn list(_s: &mut Session, _v: &Value) -> CmdResult {
                 "description": p.description,
                 "types": p.element_types.len(),
                 "glyphs": p.glyphs.len(),
+                "variants": p.variants.iter().map(|x| json!({"id": x.id, "label": x.label})).collect::<Vec<_>>(),
             })
         })
         .collect();

@@ -211,17 +211,10 @@ fn set_text(s: &mut Session, v: &Value) -> CmdResult {
     let text = p::req_str(v, "text")?;
     super::layer::ensure_unlocked(s, [id])?;
     let page = s.doc.page().ok_or_else(|| EngineError::Failed("the document has no page".into()))?;
-    let element = page.shape(id).ok_or_else(|| not_a_shape(id))?.element.clone().filter(|e| s.doc.model.element(e).is_some());
-    // A shape that draws an element shows the element's name: renaming the element updates
-    // this shape and every other view of it.
-    match element {
-        Some(e) => super::model::rename_element(&mut s.doc, &e, text)?,
-        None => {
-            let sh = page_mut(s)?.shape_mut(id).ok_or_else(|| not_a_shape(id))?;
-            sh.text = text.to_string();
-            sh.sanitize();
-        }
-    }
+    page.shape(id).ok_or_else(|| not_a_shape(id))?;
+    // The shared setter checks the text lock and renames the element when the shape draws one:
+    // renaming updates this shape and every other view of it.
+    super::text::put_text(s, id, text)?;
     let id = id.to_string();
     with_sel(s, json!({"id": id}))
 }

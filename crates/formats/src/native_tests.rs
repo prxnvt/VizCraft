@@ -38,7 +38,7 @@ fn modelled() -> Document {
     doc.model.add_relationship(Relationship::new("r2", "flowchart.Flow", "e2", "e3")).unwrap();
 
     let page = doc.page_mut().unwrap();
-    page.view = Some(View { viewpoint: "flowchart.Flowchart".into(), layout: "layered".into() });
+    page.view = Some(View { viewpoint: "flowchart.Flowchart".into(), layout: "layered".into(), ..View::default() });
     let mut s1 = Shape::new("s1", ShapeKind::Terminator, 100.0, 40.0, 120.0, 60.0);
     s1.element = Some("e1".into());
     s1.text = "Start".into();
@@ -1122,4 +1122,114 @@ fn picture_adjustments_round_trip_and_junk_is_clamped() {
     let back = load(&serde_json::to_vec(&junk).unwrap()).unwrap();
     let a = back.page().unwrap().shapes[0].image.as_ref().unwrap().adjust;
     assert_eq!(a, Adjust { brightness: 1.0, contrast: 0.0, transparency: 0.0, recolor: Recolor::None });
+}
+
+#[test]
+fn connector_end_labels_round_trip_natively_and_through_drawio() {
+    let mut doc = kinds_doc();
+    for (i, c) in doc.pages[0].connectors.iter_mut().enumerate() {
+        c.start_label = if i % 2 == 0 { "1".into() } else { String::new() };
+        c.end_label = format!("N{i}");
+    }
+    let bytes = save(&doc).unwrap();
+    let v = parse(&bytes);
+    assert_eq!(
+        (v["document"]["pages"][0]["connectors"][0]["startLabel"].as_str(), v["document"]["pages"][0]["connectors"][1].get("startLabel")),
+        (Some("1"), None)
+    );
+    assert_eq!(load(&bytes).unwrap().pages[0].connectors, doc.pages[0].connectors);
+    // draw.io keeps them as wrapper attributes and the import reads them back, leaving `ext` clean.
+    let xml = crate::drawio::save(&doc).unwrap();
+    assert!(String::from_utf8_lossy(&xml).contains("vizcraftEndLabel=\"N0\""));
+    let back = crate::drawio::import(&xml).unwrap();
+    for (b, w) in back.pages[0].connectors.iter().zip(&doc.pages[0].connectors) {
+        assert_eq!((&b.start_label, &b.end_label), (&w.start_label, &w.end_label), "{}", w.id);
+        assert!(b.ext.is_empty(), "{:?}", b.ext);
+    }
+    // Junk loads tolerantly and is capped.
+    let mut junk = v.clone();
+    junk["document"]["pages"][0]["connectors"][0]["startLabel"] = json!(7);
+    junk["document"]["pages"][0]["connectors"][0]["endLabel"] = json!("x".repeat(100_000));
+    let back = load(&serde_json::to_vec(&junk).unwrap()).unwrap();
+    let c = &back.pages[0].connectors[0];
+    assert!(c.start_label.is_empty() && c.end_label.len() <= vizcraft_diagram::MAX_TEXT);
+}
+
+#[test]
+fn page_rendering_variant_round_trips_and_is_capped() {
+    let mut doc = modelled();
+    if let Some(view) = doc.pages[0].view.as_mut() {
+        view.variant = "flowchart.compact".into();
+    }
+    let bytes = save(&doc).unwrap();
+    assert_eq!(parse(&bytes)["document"]["pages"][0]["view"]["variant"], "flowchart.compact");
+    assert_eq!(load(&bytes).unwrap().pages[0].view, doc.pages[0].view);
+    // No variant writes no key; junk loads as none; a huge id is cut.
+    let plain = modelled();
+    assert!(parse(&save(&plain).unwrap())["document"]["pages"][0]["view"].get("variant").is_none());
+    let mut v = parse(&bytes);
+    v["document"]["pages"][0]["view"]["variant"] = json!(["x"]);
+    assert_eq!(load(&serde_json::to_vec(&v).unwrap()).unwrap().pages[0].view.as_ref().map(|x| x.variant.clone()), Some(String::new()));
+    v["document"]["pages"][0]["view"]["variant"] = json!("é".repeat(10_000));
+    let cut = load(&serde_json::to_vec(&v).unwrap()).unwrap().pages[0].view.clone().unwrap().variant;
+    assert!(cut.len() <= View::MAX_VARIANT && cut.chars().all(|c| c == 'é'));
+}
+
+#[test]
+fn pattern_instances_round_trip_and_hostile_ones_are_sanitised() {
+    let mut doc = modelled();
+    doc.model.patterns.push(vizcraft_diagram::vizcraft_model::PatternInstance {
+        id: "pat1".into(),
+        pattern: "workflow.parallelSplit".into(),
+        args: json!({"branches": 2}),
+        members: [("split".to_string(), "e1".to_string()), ("join".to_string(), "e2".to_string())].into_iter().collect(),
+        generated: [("split".to_string(), "Split".to_string())].into_iter().collect(),
+        page: "page1".into(),
+        group: "g1".into(),
+        frames: Default::default(),
+    });
+    let bytes = save(&doc).unwrap();
+    assert_eq!(load(&bytes).unwrap().model.patterns, doc.model.patterns);
+    let mut v = parse(&bytes);
+    v["model"]["patterns"] = json!([
+        {"id": "pat1", "pattern": "x".repeat(10_000), "args": "junk", "members": {"split": "e1", "ghost": "nope"}},
+        {"id": "pat1"},
+        {"id": ""},
+        42
+    ]);
+    let back = load(&serde_json::to_vec(&v).unwrap()).unwrap();
+    assert_eq!(back.model.patterns.len(), 1);
+    let p = &back.model.patterns[0];
+    assert!(p.pattern.len() <= vizcraft_diagram::vizcraft_model::MAX_KEY);
+    assert_eq!((p.args.clone(), p.members.len()), (json!({}), 1));
+}
+
+#[test]
+fn import_records_round_trip_and_hostile_ones_are_sanitised() {
+    use vizcraft_diagram::import_record::{ImportRecord, MAX_SOURCE};
+    let mut doc = modelled();
+    doc.imports.push(ImportRecord {
+        source: "/tmp/flow.mmd".into(),
+        format: "mermaid".into(),
+        time: 1_700_000_000,
+        page: doc.pages[0].id.clone(),
+        elements: [("A".to_string(), "e1".to_string()), ("B".to_string(), "e2".to_string())].into_iter().collect(),
+        relationships: Vec::new(),
+        removed: vec!["e2".into()],
+    });
+    let mut v = parse(&save(&doc).unwrap());
+    assert_eq!(v["document"]["imports"][0]["elements"]["A"], "e1");
+    let back = load(&serde_json::to_vec(&v).unwrap()).unwrap();
+    assert_eq!(back.imports, doc.imports);
+    v["document"]["imports"] = json!([
+        {"source": "s".repeat(MAX_SOURCE * 2), "elements": {"A": "nope", "B": "e1", "": "e2"}, "removed": ["e1", 5, "missing"], "time": "x"},
+        {"source": 7},
+        "junk"
+    ]);
+    let back = load(&serde_json::to_vec(&v).unwrap()).unwrap();
+    let r = &back.imports[0];
+    assert!(r.source.len() <= MAX_SOURCE);
+    assert_eq!(r.elements.len(), 1, "ids the model lacks are dropped");
+    assert_eq!(r.removed, vec!["e1".to_string()]);
+    assert_eq!(r.time, 0);
 }

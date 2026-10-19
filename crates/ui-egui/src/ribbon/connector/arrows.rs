@@ -1,4 +1,4 @@
-//! Connector > Arrows: the start and end arrowheads, each a menu of all thirteen ends with the
+//! Connector > Arrows: the start and end arrowheads, each a menu of all fourteen ends with the
 //! connector's current one checked. Every row runs `connector.setArrows`.
 
 use serde_json::json;
@@ -26,6 +26,7 @@ macro_rules! entries {
             entries!(@one $param, $field, Arrow::CrowsFootBar, "Crow's foot with bar"),
             entries!(@one $param, $field, Arrow::CrowsFootCircle, "Crow's foot with circle"),
             entries!(@one $param, $field, Arrow::BarCircle, "Bar with circle"),
+            entries!(@one $param, $field, Arrow::Slash, "Slash"),
         ]
     };
     (@one $param:literal, $field:ident, $arrow:expr, $label:literal) => {
@@ -60,7 +61,7 @@ mod tests {
     use super::*;
 
     /// Every end in the order of [`Arrow::ALL`], with the words the menus show.
-    const ARROW_LABELS: [(Arrow, &str); 13] = [
+    const ARROW_LABELS: [(Arrow, &str); 14] = [
         (Arrow::None, "None"),
         (Arrow::Triangle, "Triangle"),
         (Arrow::Open, "Open arrow"),
@@ -74,6 +75,7 @@ mod tests {
         (Arrow::CrowsFootBar, "Crow's foot with bar"),
         (Arrow::CrowsFootCircle, "Crow's foot with circle"),
         (Arrow::BarCircle, "Bar with circle"),
+        (Arrow::Slash, "Slash"),
     ];
 
     #[test]

@@ -340,3 +340,46 @@ fn the_last_segment_is_at_least_the_arrowhead_trim() {
     }
     assert!(checked > 100, "only {checked} routes were checked");
 }
+
+/// Every route stored on `page` leaves and enters its shapes through a segment at least as long as
+/// the arrowhead's trim: the head's tip never lies inside the stub's bend.
+fn assert_stubs(page: &Page, what: &str) -> usize {
+    let mut checked = 0;
+    for c in &page.connectors {
+        let w = &c.waypoints;
+        let (Some(first), Some(second), Some(last), Some(before)) = (w.first(), w.get(1), w.last(), w.len().checked_sub(2).and_then(|i| w.get(i)))
+        else {
+            continue;
+        };
+        let lw = c.style.line_width;
+        assert!(last.distance(*before) + 1e-6 >= head_trim(c.end_arrow, lw), "{what}: {} ends in a stub shorter than its arrowhead", c.id);
+        assert!(first.distance(*second) + 1e-6 >= head_trim(c.start_arrow, lw), "{what}: {} starts in a stub shorter than its arrowhead", c.id);
+        checked += 1;
+    }
+    checked
+}
+
+#[test]
+fn no_arrow_tip_lies_inside_a_stub_on_the_sample() {
+    let mut s = Session::new(vizcraft_engine::sample::sample_document());
+    s.run("connector.setArrows", &json!({"start": "triangle", "end": "triangle"})).ok();
+    s.run("layout.full", &json!({"algorithm": "layered"})).unwrap();
+    for page in &s.doc.pages {
+        assert_stubs(page, "sample");
+    }
+    // Wide lines and big heads on a roomy page: the stub grows with the head, per end.
+    let mut rng = Rng(0x7a11_7a11_9a11);
+    let mut checked = 0;
+    for _ in 0..50 {
+        let mut page = roomy_page(&mut rng);
+        for c in &mut page.connectors {
+            c.start_arrow = vizcraft_diagram::Arrow::Triangle;
+            c.end_arrow = vizcraft_diagram::Arrow::HollowDiamond;
+            c.style.line_width = 6.0;
+        }
+        let fallback = reroute(&mut page, None);
+        page.connectors.retain(|c| !fallback.contains(&c.id));
+        checked += assert_stubs(&page, "roomy");
+    }
+    assert!(checked > 50, "only {checked} routes were checked");
+}

@@ -28,6 +28,7 @@ pub mod cases;
 pub mod catalog;
 pub mod drawing;
 pub mod glob;
+pub mod glyph_path;
 pub mod infer;
 pub mod legal;
 pub mod loader;
@@ -39,5 +40,5 @@ pub use catalog::{Catalog, catalog};
 pub use loader::NotationError;
 pub use schema::{
     Check, CompareOp, ConditionalStyle, Connection, ConnectorType, ElementType, Glyph, Pack, PaletteGroup, Port, PortDirection, PropKind,
-    PropertySchema, RelationshipType, RuleDecl, RuleMode, Ruleset, Viewpoint,
+    PropertySchema, RelationshipType, RuleDecl, RuleMode, Ruleset, Variant, Viewpoint,
 };

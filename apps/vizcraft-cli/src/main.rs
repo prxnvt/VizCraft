@@ -9,6 +9,8 @@
 //! vizcraft-cli validate FILE|DIR [--ruleset ID]... [--format text|json] [--packs DIR]
 //!                                                            run the rules headless on a document, a pack
 //!                                                            test case or a folder of cases
+//! vizcraft-cli generate FILE [--spec SPEC | --target ID --output DIR] [--check | --preview] [--json]
+//!                                                            run a generator over the model; --check for CI
 //! vizcraft-cli control HOST:PORT METHOD [JSON]             one request to a running app, reply on stdout
 //! vizcraft-cli control HOST:PORT -                         forward request lines from stdin, one reply each
 //! vizcraft-cli mcp [--connect ADDR | --headless]           MCP server on stdio, driving the running app or,
@@ -29,6 +31,7 @@ use std::time::Duration;
 use serde_json::{Value, json};
 use vizcraft_engine::{Document, Session};
 
+mod generate;
 mod validate;
 
 const USAGE: &str = "\
@@ -44,6 +47,11 @@ USAGE:
                                                          error issue), a pack test case or a folder of cases
                                                          (exit 1 when one fails); packs also load from the
                                                          folder in VIZCRAFT_PACKS_DIR
+  vizcraft-cli generate FILE [--spec SPEC | --target ID --output DIR] [--check | --preview] [--renames] [--json]
+                                                         run a generator over the document's model (default:
+                                                         the .vizcraft-gen.toml beside FILE); --check exits 1
+                                                         when the output is stale, a run exits 1 when hand
+                                                         edits conflict
   vizcraft-cli control HOST:PORT METHOD [JSON]         one request to a running app (started with --control PORT)
   vizcraft-cli control HOST:PORT -                     forward request lines from stdin, one reply line each
   vizcraft-cli mcp [--connect ADDR | --headless]      MCP server (JSON-RPC on stdin and stdout). --connect drives
@@ -77,6 +85,7 @@ fn main() -> ExitCode {
         Some("run") => run(&args[1..]),
         Some("inspect") => inspect(&args[1..]),
         Some("validate") => validate::validate(&args[1..]),
+        Some("generate") => generate::generate(&args[1..]),
         Some("control") => control(&args[1..]),
         Some("mcp") => mcp(&args[1..]),
         Some("--version" | "-V") => {

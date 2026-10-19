@@ -20,6 +20,7 @@ pub mod effects;
 pub mod element;
 pub mod file;
 pub mod find;
+pub mod generate;
 pub mod help;
 pub mod ink;
 pub mod insert;
@@ -33,6 +34,7 @@ pub mod master;
 pub mod model;
 pub mod notation;
 pub mod page;
+pub mod pattern;
 pub mod picture;
 pub mod print;
 pub mod process;
@@ -45,8 +47,10 @@ pub mod script;
 pub mod shape;
 pub mod shapeop;
 pub mod suggest;
+pub mod table;
 pub mod text;
 pub mod validate;
+pub mod variant;
 pub mod view;
 
 use std::collections::HashSet;
@@ -90,8 +94,11 @@ pub fn registry() -> Registry {
     v.extend(validate::specs());
     v.extend(proof::specs());
     v.extend(report::specs());
+    v.extend(table::specs());
+    v.extend(pattern::specs());
     v.extend(document::specs());
     v.extend(notation::specs());
+    v.extend(variant::specs());
     v.extend(insert::specs());
     v.extend(suggest::specs());
     v.extend(protect::specs());
@@ -106,6 +113,7 @@ pub fn registry() -> Registry {
     v.extend(picture::specs());
     v.extend(ink::specs());
     v.extend(help::specs());
+    v.extend(generate::specs());
     Registry::new(v)
 }
 
@@ -397,7 +405,15 @@ pub fn delete_items(s: &mut Session, ids: &[String]) -> CmdResult {
     layer::ensure_unlocked(s, ids)?;
     protect::check(s, ids, protect::Lock::Delete)?;
     let page = page_mut(s)?;
+    let page_id = page.id.clone();
     let d = delete_on_page(page, ids);
+    // A comment thread outlives the shape it was pinned to: it moves to the page, in the same
+    // undo step as the delete.
+    for c in s.doc.comments.iter_mut().filter(|c| c.anchor.page == page_id) {
+        if c.anchor.shape.as_ref().is_some_and(|sh| d.items.contains(sh)) {
+            c.anchor.shape = None;
+        }
+    }
     drop_undrawn_relationships(&mut s.doc, &d.relationships);
     prune_selection(s);
     with_sel(s, json!({"deleted": d.items, "detached": d.detached}))

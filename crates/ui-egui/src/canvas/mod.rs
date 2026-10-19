@@ -346,6 +346,7 @@ fn paint(app: &mut CraftApp, ui: &Ui, vp: &Viewport2D, t: &Tokens) {
     }
     // Hidden shapes are not drawn; a layer colour tints the shapes on it.
     let shapes_span = vizcraft_engine::trace::span("paint.shapes");
+    let mut graphic_marks = Vec::new();
     for s in page.shapes.iter().filter(|s| dg::layer::visible(page, s)) {
         if s.bounds().intersects(&visible) {
             let tinted = dg::layer::tinted(page, s);
@@ -353,9 +354,19 @@ fn paint(app: &mut CraftApp, ui: &Ui, vp: &Viewport2D, t: &Tokens) {
             // A callout's leader just under the callout, over whatever it points across.
             draw::containers::leader(&painter, vp, page, &s);
             draw::pictures::picture(&painter, vp, &app.session.doc, &s);
-            draw::data_graphics::shape(&painter, vp, &app.session.doc, page, &s, &mut app.canvas.cache, editing.as_deref() != Some(s.id.as_str()));
+            let drawn = draw::data_graphics::shape(
+                &painter,
+                vp,
+                &app.session.doc,
+                page,
+                &s,
+                &mut app.canvas.cache,
+                editing.as_deref() != Some(s.id.as_str()),
+            );
+            graphic_marks.extend(drawn);
         }
     }
+    draw::ports::draw(&painter, vp, &app.session.doc, page, &visible);
     app.canvas.cache.end_frame();
     drop(shapes_span);
     // Page-level geometry, so connectors with line jumps hop over the ones drawn before them.
@@ -371,6 +382,8 @@ fn paint(app: &mut CraftApp, ui: &Ui, vp: &Viewport2D, t: &Tokens) {
             }
         }
     }
+    // Data graphic marks go above the connectors and below the overlays.
+    draw::data_graphics::marks(&painter, vp, &graphic_marks);
     let _t = vizcraft_engine::trace::span("paint.overlays");
     draw::overlays::overlay(app, &painter, vp, page, real, t);
     draw::links::draw(app, &painter, vp, page, t);

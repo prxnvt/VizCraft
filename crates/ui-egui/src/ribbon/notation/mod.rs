@@ -10,6 +10,7 @@ use crate::CraftApp;
 groups! {
     insert,
     viewpoint,
+    variant,
     check,
 }
 

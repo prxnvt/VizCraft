@@ -64,6 +64,19 @@ fn a_planted_crossing_is_a_row_and_a_click_selects_it() {
 }
 
 #[test]
+fn a_control_origin_validate_run_fills_the_rows_without_opening_the_dock() {
+    let mut h = harness(drawing());
+    h.state_mut().ui.dock.open = false;
+    assert_eq!(inspect(&mut h)["rows"], 1, "only the live unglued end before a check");
+    h.state_mut().run_as(Origin::Control, "validate.run", json!({})).unwrap();
+    h.run_steps(2);
+    assert_eq!(inspect(&mut h)["rows"], 2, "the control run's findings are rows");
+    assert!(!h.state().ui.dock.open, "only a UI-origin run opens the dock");
+    h.state_mut().run("validate.run", json!({})).unwrap();
+    assert!(h.state().ui.dock.open && h.state().ui.dock.tab == DockTab::Problems);
+}
+
+#[test]
 fn the_fix_button_runs_its_command_as_one_step_and_clears_the_issue() {
     let mut h = harness(drawing());
     h.state_mut().run("ui.dock", json!({"tab": "problems", "open": true})).unwrap();

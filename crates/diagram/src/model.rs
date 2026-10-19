@@ -743,6 +743,13 @@ pub struct Connector {
     /// Label text, drawn at the middle of the route.
     #[serde(deserialize_with = "lenient")]
     pub text: String,
+    /// Text beside the start end (a cardinality such as `1` or `N`, a UML multiplicity), drawn
+    /// a little outside the line; empty for none. Capped like `text`.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "String::is_empty")]
+    pub start_label: String,
+    /// Text beside the end end, like `start_label`.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "String::is_empty")]
+    pub end_label: String,
     /// The connector type this was drawn as (`basic.arrow`, `flowchart.flow`), empty for none. The
     /// route, ends and line style are copied from the type when it is applied; this only names it.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "String::is_empty")]
@@ -779,6 +786,8 @@ impl Default for Connector {
             start_arrow: Arrow::None,
             end_arrow: Arrow::Triangle,
             text: String::new(),
+            start_label: String::new(),
+            end_label: String::new(),
             kind: String::new(),
             style: Style { fill: Color::TRANSPARENT, ..Style::DEFAULT },
             waypoints: Vec::new(),
@@ -804,6 +813,8 @@ impl Connector {
             }
         }
         truncate(&mut self.text, MAX_TEXT);
+        truncate(&mut self.start_label, MAX_TEXT);
+        truncate(&mut self.end_label, MAX_TEXT);
         truncate(&mut self.kind, 128);
         self.style.sanitize();
         self.waypoints.truncate(MAX_WAYPOINTS);
@@ -1111,6 +1122,9 @@ pub struct Document {
     /// Links from shape data to external tables (see [`crate::data_graphic::DataLink`]).
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub data_links: Vec<crate::data_graphic::DataLink>,
+    /// What each merging import brought in, by source (see [`crate::import_record`]).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub imports: Vec<crate::import_record::ImportRecord>,
 }
 
 /// The on-disk form; turned into a [`Document`] by fixing up anything a file got wrong.
@@ -1148,6 +1162,8 @@ struct DocumentRepr {
     data_graphics: Vec<crate::data_graphic::DataGraphic>,
     #[serde(deserialize_with = "lenient_vec")]
     data_links: Vec<crate::data_graphic::DataLink>,
+    #[serde(deserialize_with = "lenient_vec")]
+    imports: Vec<crate::import_record::ImportRecord>,
 }
 
 impl From<DocumentRepr> for Document {
@@ -1170,6 +1186,7 @@ impl From<DocumentRepr> for Document {
             ignored_words: r.ignored_words,
             data_graphics: r.data_graphics,
             data_links: r.data_links,
+            imports: r.imports,
         };
         // Pages only: the model is a separate section the caller sets afterwards, so checking view
         // references here would clear every one of them. The caller runs `sanitize` once the
@@ -1206,6 +1223,7 @@ impl Document {
             ignored_words: Vec::new(),
             data_graphics: Vec::new(),
             data_links: Vec::new(),
+            imports: Vec::new(),
         }
     }
     /// Make the document safe to work on: at least one page, every number in range, a sane model,
@@ -1214,6 +1232,7 @@ impl Document {
         self.sanitize_pages();
         self.model.sanitize();
         crate::views::sanitize_refs(self);
+        crate::import_record::prune(&mut self.imports, &self.model);
     }
     /// At least one page, every page, shape and connector in range, the properties, comments and
     /// image store bounded, and references between them repaired; the model and view references
@@ -1235,6 +1254,7 @@ impl Document {
         self.theme.sanitize();
         crate::master::sanitize_masters(&mut self.masters);
         crate::data_graphic::sanitize_doc(self);
+        crate::import_record::sanitize(&mut self.imports);
         self.sanitize_doc_refs();
     }
     /// Clear references that name nothing: a background that is not another background page, a

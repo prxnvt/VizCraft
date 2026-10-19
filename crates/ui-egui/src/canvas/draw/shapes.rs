@@ -18,7 +18,7 @@ use egui::epaint::{Mesh, PathShape};
 use egui::{Color32, Painter, Pos2, Stroke};
 use vizcraft_diagram::compartment::layout as band_layout;
 use vizcraft_diagram::text_fields::{FieldCtx, expand_shape};
-use vizcraft_diagram::{Color, GradientKind, LineCap, Point, Shape, Style};
+use vizcraft_diagram::{Color, GradientKind, LineCap, Point, Shape, ShapeKind, Style};
 
 use super::text::{compartment_text, shape_text};
 use super::{color, fill_rings, flatten, line_px, pos, stroke_lines, tolerance};
@@ -27,8 +27,13 @@ use crate::canvas::tess::{self, triangulate};
 
 /// A shape's outline flattened and triangulated, in world space.
 struct Fill {
-    key: [u64; 8],
+    key: [u64; 9],
+    /// The flattened subpaths, for outlines and glows.
     rings: Vec<(Vec<Pos2>, bool)>,
+    /// What fills: the closed rings, or for a freeform the even-odd pieces (holes bridged into
+    /// their outlines), then the open rings with no triangles.
+    pieces: Vec<(Vec<Pos2>, bool)>,
+    /// Triangles of each piece.
     tris: Vec<Vec<[u32; 3]>>,
 }
 
@@ -52,9 +57,19 @@ impl FillCache {
         self.map.is_empty()
     }
 
-    fn key(s: &Shape, tol: f64) -> [u64; 8] {
+    fn key(s: &Shape, tol: f64) -> [u64; 9] {
         let kind = s.kind as u64;
-        [s.x.to_bits(), s.y.to_bits(), s.w.to_bits(), s.h.to_bits(), s.angle_deg.to_bits(), tol.to_bits(), kind, s.style.corner_radius.to_bits()]
+        [
+            s.x.to_bits(),
+            s.y.to_bits(),
+            s.w.to_bits(),
+            s.h.to_bits(),
+            s.angle_deg.to_bits(),
+            tol.to_bits(),
+            kind,
+            s.style.corner_radius.to_bits(),
+            path_hash(s),
+        ]
     }
 
     fn get(&mut self, s: &Shape, tol: f64) -> &Fill {
@@ -64,11 +79,28 @@ impl FillCache {
         if !fresh {
             let lines = s.outline_world().rounded_corners(s.style.corner_radius).flatten(tol);
             let rings: Vec<(Vec<Pos2>, bool)> = lines.into_iter().map(|pl| (pl.points.into_iter().map(pos).collect(), pl.closed)).collect();
-            let tris = rings.iter().map(|(pts, closed)| if *closed { triangulate(pts) } else { Vec::new() }).collect();
-            self.map.insert(s.id.clone(), Fill { key, rings, tris });
+            let (pieces, tris) = if s.kind == ShapeKind::Freeform {
+                // Even-odd: a closed ring inside another is a hole; open rings only stroke.
+                let closed: Vec<Vec<Pos2>> = rings.iter().filter(|(_, c)| *c).map(|(p, _)| p.clone()).collect();
+                let mut pieces = Vec::new();
+                let mut tris = Vec::new();
+                for (p, t) in tess::even_odd(&closed) {
+                    pieces.push((p, true));
+                    tris.push(t);
+                }
+                for (p, _) in rings.iter().filter(|(_, c)| !*c) {
+                    pieces.push((p.clone(), false));
+                    tris.push(Vec::new());
+                }
+                (pieces, tris)
+            } else {
+                let tris = rings.iter().map(|(pts, closed)| if *closed { triangulate(pts) } else { Vec::new() }).collect();
+                (rings.clone(), tris)
+            };
+            self.map.insert(s.id.clone(), Fill { key, rings, pieces, tris });
         }
         // Just inserted or already fresh; an empty fill keeps the borrow simple if neither held.
-        self.map.entry(s.id.clone()).or_insert(Fill { key, rings: Vec::new(), tris: Vec::new() })
+        self.map.entry(s.id.clone()).or_insert(Fill { key, rings: Vec::new(), pieces: Vec::new(), tris: Vec::new() })
     }
 
     /// Forget shapes not drawn this frame (deleted, or another document).
@@ -78,6 +110,27 @@ impl FillCache {
             self.map.retain(|k, _| seen.contains(k));
         }
     }
+}
+
+/// A hash of a freeform's stored path, so the cache notices an edit to it; 0 for other shapes.
+fn path_hash(s: &Shape) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let Some(f) = s.path.as_ref().filter(|_| s.kind == ShapeKind::Freeform) else { return 0 };
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    f.closed.hash(&mut h);
+    for el in &f.els {
+        let pts: &[Point] = match el {
+            vizcraft_diagram::PathEl::MoveTo(p) | vizcraft_diagram::PathEl::LineTo(p) => std::slice::from_ref(p),
+            vizcraft_diagram::PathEl::CubicTo(a, b, c) => &[*a, *b, *c],
+            vizcraft_diagram::PathEl::Close => &[],
+        };
+        std::mem::discriminant(el).hash(&mut h);
+        for p in pts {
+            p.x.to_bits().hash(&mut h);
+            p.y.to_bits().hash(&mut h);
+        }
+    }
+    h.finish()
 }
 
 /// Draw one shape. `show_text` is false while its main text is being edited in place; a
@@ -187,7 +240,7 @@ fn shadow(painter: &Painter, vp: &Viewport2D, st: &Style, fill: &Fill, filled: b
     let Some(sh) = st.shadow.filter(|sh| sh.color.a > 0) else { return };
     let (dx, dy, blur) = (sh.dx as f32, sh.dy as f32, sh.blur as f32);
     let c = color(sh.color);
-    for ((pts, closed), tri) in fill.rings.iter().zip(&fill.tris) {
+    for ((pts, closed), tri) in fill.pieces.iter().zip(&fill.tris) {
         let moved = translate(pts, dx, dy);
         if filled && *closed {
             if blur > 0.0 {
@@ -200,10 +253,13 @@ fn shadow(painter: &Painter, vp: &Viewport2D, st: &Style, fill: &Fill, filled: b
             } else {
                 paint_mesh(painter, vp, tess::solid(&moved, tri, c));
             }
-        } else {
-            let width = st.line_width.max(1.0);
-            stroke_lines(painter, vp, &[(moved, *closed)], Stroke::new(line_px(width, vp.zoom), c));
         }
+    }
+    // Unfilled outlines and open lines cast their shadow as lines, from the rings so a bridged
+    // hole shows no seam.
+    for (pts, closed) in fill.rings.iter().filter(|(_, closed)| !(filled && *closed)) {
+        let width = st.line_width.max(1.0);
+        stroke_lines(painter, vp, &[(translate(pts, dx, dy), *closed)], Stroke::new(line_px(width, vp.zoom), c));
     }
 }
 
@@ -239,7 +295,7 @@ fn paint_fill(painter: &Painter, vp: &Viewport2D, s: &Shape, fill: &Fill, fill_c
         let Some(inv) = s.transform().inverse() else { return };
         // The edge colour soft edges fade from: the middle stop's.
         let edge = g.stops.get(g.stops.len() / 2).map_or(fill_c, |s| color(Color { a: rgba(s.color, keep)[3], ..s.color }));
-        for ((pts, closed), tri) in fill.rings.iter().zip(&fill.tris) {
+        for ((pts, closed), tri) in fill.pieces.iter().zip(&fill.tris) {
             if !*closed {
                 continue;
             }
@@ -256,10 +312,10 @@ fn paint_fill(painter: &Painter, vp: &Viewport2D, s: &Shape, fill: &Fill, fill_c
         return;
     }
     if soft <= 0.0 || fill_c.a() == 0 {
-        fill_rings(painter, vp, &fill.rings, &fill.tris, fill_c);
+        fill_rings(painter, vp, &fill.pieces, &fill.tris, fill_c);
         return;
     }
-    for ((pts, closed), tri) in fill.rings.iter().zip(&fill.tris) {
+    for ((pts, closed), tri) in fill.pieces.iter().zip(&fill.tris) {
         if !*closed {
             continue;
         }

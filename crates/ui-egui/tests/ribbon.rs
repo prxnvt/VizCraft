@@ -593,7 +593,7 @@ fn home_fits_1280_wide_without_a_scroll_arrow() {
 
 #[test]
 fn every_tab_the_organising_pass_touched_fits_1280_wide() {
-    for tab in ["Design", "Insert", "Process"] {
+    for tab in ["Design", "Insert", "Process", "Generate"] {
         let h = harness_at(1280.0, tab);
         assert!(!Overflow::get(&h.ctx).overflows(), "{tab} overflows at 1280");
     }
@@ -735,7 +735,7 @@ fn the_arrow_menus_offer_all_thirteen_ends_and_mark_the_current_one() {
     h.get_by_label("Crow's foot with bar").click();
     h.run_steps(3);
     let rows = open_menu(&mut h, "Start Arrow");
-    assert_eq!(rows.len(), 13);
+    assert_eq!(rows.len(), vizcraft_diagram::Arrow::ALL.len());
     assert_eq!(marked(&rows), ["None"]);
     h.get_by_label("Hollow diamond").click();
     h.run_steps(4);

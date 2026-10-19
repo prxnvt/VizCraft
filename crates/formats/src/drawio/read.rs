@@ -300,6 +300,7 @@ fn arrow(v: Option<String>, absent: Arrow, hollow: bool) -> Arrow {
         Some("ERoneToMany") => Arrow::CrowsFootBar,
         Some("ERzeroToMany") => Arrow::CrowsFootCircle,
         Some("ERzeroToOne") => Arrow::BarCircle,
+        Some("dash") => Arrow::Slash,
         // block, classic, their thin forms and anything unknown: a triangle is the closest.
         Some(_) if hollow => Arrow::HollowTriangle,
         Some(_) => Arrow::Triangle,
@@ -393,6 +394,26 @@ fn take_path(shape: &mut Shape) {
     vizcraft_diagram::shapeop::set_path_json(shape, &json);
     if shape.ext.get(EXT_WRAPPER).is_some_and(|w| w == "object") && !shape.ext.keys().any(|k| k.starts_with(EXT_ATTR)) {
         shape.ext.remove(EXT_WRAPPER);
+    }
+}
+
+/// The wrapper attributes a VizCraft export carries a connector's end labels in.
+pub(crate) const START_LABEL_ATTR: &str = "vizcraftStartLabel";
+/// See [`START_LABEL_ATTR`].
+pub(crate) const END_LABEL_ATTR: &str = "vizcraftEndLabel";
+
+/// Move a connector's end labels out of `ext` into `start_label` and `end_label`, the same way
+/// as [`take_compartments`].
+fn take_end_labels(c: &mut Connector) {
+    let start = c.ext.remove(&format!("{EXT_ATTR}{START_LABEL_ATTR}"));
+    let end = c.ext.remove(&format!("{EXT_ATTR}{END_LABEL_ATTR}"));
+    if start.is_none() && end.is_none() {
+        return;
+    }
+    c.start_label = start.unwrap_or_default();
+    c.end_label = end.unwrap_or_default();
+    if c.ext.get(EXT_WRAPPER).is_some_and(|w| w == "object") && !c.ext.keys().any(|k| k.starts_with(EXT_ATTR)) {
+        c.ext.remove(EXT_WRAPPER);
     }
 }
 
@@ -613,8 +634,10 @@ pub(crate) fn page_from_model(model: &GraphModel, id: String, name: String, warn
             jumps: look.jumps,
             ext: look.ext,
             relationship: None,
+            ..Connector::default()
         };
         wrapper_ext(c, &mut conn.ext);
+        take_end_labels(&mut conn);
         conn.sanitize();
         page.connectors.push(conn);
     }

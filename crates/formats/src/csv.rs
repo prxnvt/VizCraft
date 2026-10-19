@@ -4,8 +4,18 @@
 //! Row and edge styles go through the same mapping as `.drawio` files ([`crate::drawio`]), so a
 //! `rhombus` row is a diamond here too. Containers (`parent` rows) are not modelled yet: their
 //! members are kept as ordinary shapes, with a warning.
+//!
+//! Identity for re-import: an `id` column (any case) gives the row's shape its id when the value
+//! is a plain id used by no other row, so importing the same file again names the same items. A
+//! `tag` column is kept in the shape's `ext` under [`TAG_KEY`], a `type` column under
+//! [`TYPE_KEY`], and every other column under [`PROP_PREFIX`] followed by the column name; a
+//! merging import (`file.import {merge: true}`) reads them as the element's tag, type and
+//! properties.
+
+use std::collections::{HashMap, HashSet};
 
 use vizcraft_diagram::autolayout::{self, Algorithm, Direction, Options};
+use vizcraft_diagram::model::is_plain_id;
 use vizcraft_diagram::{Connector, End, Page, Shape};
 use vizcraft_drawio::{CsvDiagram, CsvLayout, CsvNode, NodeSize, Style as DStyle, html_to_text};
 
@@ -19,6 +29,18 @@ const DEFAULT_H: f64 = 60.0;
 /// shape to its label.
 const CHAR_W: f64 = 7.0;
 const LINE_H: f64 = 16.0;
+
+/// The `ext` key holding an imported item's tag (also written by the Mermaid importer).
+pub const TAG_KEY: &str = "import.tag";
+
+/// The `ext` key holding the element type an imported row asks for.
+pub const TYPE_KEY: &str = "import.type";
+
+/// The `ext` key prefix of an imported row's other columns, read as element properties.
+pub const PROP_PREFIX: &str = "import.prop.";
+
+/// Most columns kept as properties of one row.
+const MAX_PROPS: usize = 64;
 
 /// Read draw.io-style CSV text as one laid-out page.
 pub fn import(text: &str) -> Result<Imported, FormatError> {
@@ -36,8 +58,12 @@ pub fn import(text: &str) -> Result<Imported, FormatError> {
         warnings.push(format!("{containers} container rows are kept as ordinary shapes; their members are not grouped"));
     }
     let padding = d.directives.padding.filter(|p| p.is_finite() && *p >= 0.0).unwrap_or(10.0).min(1000.0);
+    let mut renamed: HashMap<String, String> = HashMap::new();
+    let mut used: HashSet<String> = d.nodes.iter().map(|n| n.id.clone()).collect();
     for n in &d.nodes {
-        page.shapes.push(node_shape(n, padding, &mut warnings));
+        let mut shape = node_shape(n, padding, &mut warnings);
+        carry_identity(n, &mut shape, &mut used, &mut renamed);
+        page.shapes.push(shape);
     }
     for e in &d.edges {
         let style = e.style.as_deref().map(DStyle::parse);
@@ -47,8 +73,8 @@ pub fn import(text: &str) -> Result<Imported, FormatError> {
         let mut c = Connector {
             // Left empty so the document hands out a fresh id when the page is adopted.
             id: String::new(),
-            start: End::dynamic(e.source.clone()),
-            end: End::dynamic(e.target.clone()),
+            start: End::dynamic(renamed.get(&e.source).cloned().unwrap_or_else(|| e.source.clone())),
+            end: End::dynamic(renamed.get(&e.target).cloned().unwrap_or_else(|| e.target.clone())),
             route: look.route,
             start_arrow: look.arrows.0,
             end_arrow: look.arrows.1,
@@ -60,6 +86,7 @@ pub fn import(text: &str) -> Result<Imported, FormatError> {
             jumps: look.jumps,
             ext: look.ext,
             relationship: None,
+            ..Connector::default()
         };
         c.sanitize();
         page.connectors.push(c);
@@ -73,6 +100,35 @@ pub fn import(text: &str) -> Result<Imported, FormatError> {
         }
     }
     Ok(Imported { pages: vec![page], warnings: warnings.into_vec() })
+}
+
+/// The value of column `name` (any case) in row `n`, trimmed.
+fn column<'a>(n: &'a CsvNode, name: &str) -> Option<&'a str> {
+    n.attributes.iter().find(|(k, _)| k.trim().eq_ignore_ascii_case(name)).map(|(_, v)| v.trim())
+}
+
+/// Give the row's shape the id its `id` column names (when plain and not taken by another row)
+/// and keep its `tag`, `type` and other columns in `ext` for a merging import.
+fn carry_identity(n: &CsvNode, shape: &mut Shape, used: &mut HashSet<String>, renamed: &mut HashMap<String, String>) {
+    if let Some(id) = column(n, "id").filter(|id| *id != n.id && is_plain_id(id) && !used.contains(*id)) {
+        used.insert(id.to_string());
+        renamed.insert(n.id.clone(), id.to_string());
+        shape.id = id.to_string();
+    }
+    if let Some(tag) = column(n, "tag").filter(|t| !t.is_empty()) {
+        shape.ext.insert(TAG_KEY.into(), tag.to_string());
+    }
+    if let Some(ty) = column(n, "type").filter(|t| !t.is_empty()) {
+        shape.ext.insert(TYPE_KEY.into(), ty.to_string());
+    }
+    let props = n.attributes.iter().filter(|(k, v)| {
+        let k = k.trim();
+        !k.is_empty() && !v.trim().is_empty() && !["id", "tag", "type"].iter().any(|x| k.eq_ignore_ascii_case(x))
+    });
+    for (k, v) in props.take(MAX_PROPS) {
+        shape.ext.insert(format!("{PROP_PREFIX}{}", k.trim()), v.trim().to_string());
+    }
+    shape.sanitize();
 }
 
 /// The shape for one row: style through the draw.io mapping, size from the row or the label.
@@ -199,6 +255,27 @@ id,name,manager
         let long = page.shapes.iter().find(|s| s.text.starts_with("A rather")).unwrap();
         assert!(long.w > DEFAULT_W);
         assert!(imp.warnings.iter().any(|w| w.contains("container")), "{:?}", imp.warnings);
+    }
+
+    #[test]
+    fn id_and_tag_columns_carry_identity() {
+        let text = "# label: %name%\n# connect: {\"from\": \"next\", \"to\": \"name\"}\nid,name,tag,next,cost\nstart,Begin,T-1,End,5\nfinish,End,T-2,,\nstart,Again,,,\n";
+        let imp = import(text).unwrap();
+        let page = imp.pages.first().unwrap();
+        let ids: Vec<&str> = page.shapes.iter().map(|s| s.id.as_str()).collect();
+        assert_eq!(&ids[..2], ["start", "finish"]);
+        assert_ne!(ids[2], "start", "a repeated id keeps the row's own id");
+        let begin = &page.shapes[0];
+        assert_eq!(begin.ext.get(TAG_KEY).map(String::as_str), Some("T-1"));
+        assert_eq!(begin.ext.get(&format!("{PROP_PREFIX}cost")).map(String::as_str), Some("5"));
+        assert!(!begin.ext.contains_key(&format!("{PROP_PREFIX}id")));
+        assert_eq!(page.connectors.len(), 1);
+        for c in &page.connectors {
+            for end in [&c.start, &c.end] {
+                let id = end.shape().unwrap();
+                assert!(page.shape(id).is_some(), "connector ends follow the renamed rows: {id}");
+            }
+        }
     }
 
     #[test]

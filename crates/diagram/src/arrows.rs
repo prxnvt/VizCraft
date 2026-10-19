@@ -38,6 +38,9 @@ pub enum Arrow {
     CrowsFootCircle,
     /// A bar with a hollow circle behind it (zero or one).
     BarCircle,
+    /// A short slanted stroke across the line near the end (BPMN's default-flow marker, drawn
+    /// at the source end). The line runs through it.
+    Slash,
 }
 
 crate::serde_util::named_enum!(Arrow, Arrow::None, {
@@ -54,11 +57,12 @@ crate::serde_util::named_enum!(Arrow, Arrow::None, {
     Arrow::CrowsFootBar => "crowsFootBar",
     Arrow::CrowsFootCircle => "crowsFootCircle",
     Arrow::BarCircle => "barCircle",
+    Arrow::Slash => "slash",
 });
 
 impl Arrow {
     /// Every end, in the order pickers list them.
-    pub const ALL: [Arrow; 13] = [
+    pub const ALL: [Arrow; 14] = [
         Arrow::None,
         Arrow::Triangle,
         Arrow::Open,
@@ -72,6 +76,7 @@ impl Arrow {
         Arrow::CrowsFootBar,
         Arrow::CrowsFootCircle,
         Arrow::BarCircle,
+        Arrow::Slash,
     ];
 }
 
@@ -164,7 +169,31 @@ pub fn outline(arrow: Arrow, tip: Point, dir: Vec2, line_width: f64) -> Option<A
             let gap = len * 0.3;
             geometry(vec![bar(tip, dir, at, half), circle(tip - dir * (at + gap + small), small)], false, at + gap + 2.0 * small)
         }
+        Arrow::Slash => {
+            // Slanted towards the tip, a line length back from it, so it reads as a mark on the
+            // line rather than a head.
+            let c = tip - dir * len;
+            let lean = dir * (half * 0.6);
+            geometry(vec![Path::polyline(&[c - side - lean, c + side + lean])], false, 0.0)
+        }
     }
+}
+
+/// Where the label beside one end of a connector is centred: a little along the route from the
+/// end (past any head) and a little to its side, so it sits outside the line and away from the
+/// shape the end touches. `pts` is the routed polyline; `at_start` picks its first or last end.
+/// `font_size` and `line_width` scale the offsets. `None` for a route with no length.
+pub fn end_label_anchor(pts: &[Point], at_start: bool, font_size: f64, line_width: f64) -> Option<Point> {
+    let end = if at_start { *pts.first()? } else { *pts.last()? };
+    // Direction from the end into the route: the first segment with any length.
+    let away = |p: &Point| (*p - end).normalized();
+    let into = if at_start { pts.iter().skip(1).find_map(away) } else { pts.iter().rev().skip(1).find_map(away) }?;
+    let fs = if font_size.is_finite() { font_size.clamp(1.0, 400.0) } else { 12.0 };
+    let lw = if line_width.is_finite() { line_width.clamp(0.0, 100.0) } else { 1.0 };
+    // Past the largest head (see `outline`) and half a label along.
+    let along = 8.0 + 2.5 * lw + fs;
+    let side = fs * 0.9 + lw / 2.0;
+    Some(end + into * along + into.perp() * side)
 }
 
 /// The arrowhead for an end at `tip`, with the line arriving along unit direction `dir`: the
@@ -230,6 +259,27 @@ mod tests {
                 assert!(g.trim.is_finite() && g.paths.iter().all(|p| p.bounds().is_none_or(|b| b.x1.is_finite())), "{a:?} {w}");
             }
         }
+    }
+
+    #[test]
+    fn slash_crosses_the_line_behind_the_tip_without_trimming_it() {
+        let g = outline(Arrow::Slash, TIP, DIR, 1.0).unwrap();
+        assert_eq!((g.paths.len(), g.filled, g.trim), (1, false, 0.0));
+        let b = g.paths[0].bounds().unwrap();
+        assert!(b.x0 < b.x1 && b.x1 < TIP.x, "slanted and behind the tip: {b:?}");
+        assert_eq!(Arrow::from_name("slash"), Some(Arrow::Slash));
+    }
+
+    #[test]
+    fn end_labels_sit_beside_each_end_off_the_line() {
+        let pts = [Point::new(0.0, 0.0), Point::new(100.0, 0.0), Point::new(100.0, 80.0)];
+        let s = end_label_anchor(&pts, true, 12.0, 1.0).unwrap();
+        assert!(s.x > 0.0 && s.x < 50.0 && s.y.abs() > 5.0, "{s:?}");
+        let e = end_label_anchor(&pts, false, 12.0, 1.0).unwrap();
+        assert!(e.y < 80.0 && e.y > 30.0 && (e.x - 100.0).abs() > 5.0, "{e:?}");
+        assert!(end_label_anchor(&[Point::ZERO, Point::ZERO], true, 12.0, 1.0).is_none());
+        assert!(end_label_anchor(&[], false, 12.0, 1.0).is_none());
+        assert!(end_label_anchor(&pts, true, f64::NAN, f64::INFINITY).is_some_and(|p| p.is_finite()));
     }
 
     #[test]

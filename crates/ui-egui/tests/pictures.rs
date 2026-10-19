@@ -150,3 +150,27 @@ fn a_crop_handle_drag_commits_one_crop() {
     assert_eq!(back.image.unwrap().crop, vizcraft_diagram::CropRect::FULL, "one undo step");
     assert_eq!(back.w, s.w);
 }
+
+#[test]
+fn a_dropped_png_becomes_a_picture_shape_not_a_document() {
+    let inbox: vizcraft_ui_egui::Inbox = Default::default();
+    let services = Services { inbox: Some(inbox.clone()), ..Services::default() };
+    let app = CraftApp::new(Session::new(vizcraft_engine::sample::sample_document()), services);
+    let mut h = Harness::builder().with_size(vec2(1280.0, 900.0)).with_max_steps(64).build_ui_state(
+        |ui, app: &mut CraftApp| {
+            app.logic(ui.ctx());
+            app.ui(ui);
+        },
+        app,
+    );
+    h.run_steps(3);
+    let shapes = h.state().session.doc.page().unwrap().shapes.len();
+    let title = h.state().session.doc.title.clone();
+    inbox.lock().unwrap().push(("Drop.PNG".into(), png(40, 20)));
+    h.run_steps(3);
+    let app = h.state();
+    assert_eq!(app.session.doc.page().unwrap().shapes.len(), shapes + 1, "one picture shape was added");
+    assert_eq!(app.session.doc.images.len(), 1);
+    assert_eq!(app.session.doc.images[0].media_type, "image/png");
+    assert_eq!(app.session.doc.title, title, "the document was not replaced");
+}

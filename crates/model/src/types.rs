@@ -161,6 +161,23 @@ pub struct View {
     /// Layout algorithm last applied (`layered`), empty when arranged by hand.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "String::is_empty")]
     pub layout: String,
+    /// Pack-qualified rendering variant the page draws its elements with (`er.chen`); empty is
+    /// the pack's default drawing. Capped at [`View::MAX_VARIANT`] bytes when read.
+    #[serde(deserialize_with = "capped_variant", skip_serializing_if = "String::is_empty")]
+    pub variant: String,
+}
+
+impl View {
+    /// Longest variant id kept; real ids are a few words.
+    pub const MAX_VARIANT: usize = 256;
+}
+
+/// A variant id read leniently and cut to [`View::MAX_VARIANT`] bytes at a char boundary, so a
+/// hostile file cannot make the page carry a huge id.
+fn capped_variant<'de, D: serde::Deserializer<'de>>(d: D) -> Result<String, D::Error> {
+    let mut v: String = lenient(d)?;
+    crate::repair::truncate(&mut v, View::MAX_VARIANT);
+    Ok(v)
 }
 
 /// Why a model edit was refused.
@@ -211,6 +228,9 @@ pub struct Model {
     /// Relationships in creation order.
     #[serde(deserialize_with = "lenient_vec", skip_serializing_if = "Vec::is_empty")]
     pub relationships: Vec<Relationship>,
+    /// Pattern instances: which pattern made which elements, with which arguments.
+    #[serde(deserialize_with = "lenient_vec", skip_serializing_if = "Vec::is_empty")]
+    pub patterns: Vec<crate::PatternInstance>,
 }
 
 impl Default for Model {
@@ -222,7 +242,7 @@ impl Default for Model {
 impl Model {
     /// An empty model at the current schema version.
     pub fn new() -> Self {
-        Model { schema_version: SCHEMA_VERSION, packs: Vec::new(), elements: Vec::new(), relationships: Vec::new() }
+        Model { schema_version: SCHEMA_VERSION, packs: Vec::new(), elements: Vec::new(), relationships: Vec::new(), patterns: Vec::new() }
     }
 
     /// True when the model has no packs, elements or relationships (a free-drawing document).
@@ -240,6 +260,7 @@ impl Model {
     /// offending element to the root. Idempotent.
     pub fn sanitize(&mut self) {
         crate::repair::sanitize(self);
+        crate::pattern::sanitize(self);
     }
 
     /// The element with this id.

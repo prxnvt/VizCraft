@@ -121,3 +121,15 @@ fn protect_document_stops_canvas_drags() {
     drag(&mut h, from, from + vec2(60.0, 40.0));
     assert_eq!(shape(&h, "s7").x, before.x);
 }
+
+#[test]
+fn drawing_explorer_opens_the_navigation_pane_on_the_diagrams_branch() {
+    let mut h = harness(1600.0, "Developer");
+    h.state_mut().run("ui.tree", json!({"branch": "model"})).unwrap();
+    h.run_steps(2);
+    h.get_by_label("Drawing Explorer").click();
+    h.run_steps(4);
+    assert!(h.state().ui.panes.is_open("navigation"));
+    let ins = vizcraft_ui_egui::control::inspect(h.state(), &h.ctx);
+    assert_eq!(ins["tree"]["branch"], "diagrams");
+}

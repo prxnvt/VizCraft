@@ -16,7 +16,7 @@ fn origin_name(o: Origin) -> &'static str {
     }
 }
 
-/// How many steps are on the undo stack and on the redo stack, counted once per revision.
+/// How many steps are on the undo stack and on the redo stack, read once per revision.
 fn depths(app: &mut CraftApp) -> (usize, usize) {
     let rev = app.session.rev();
     if let Some((r, u, d)) = app.ui.dock.state.depths
@@ -24,9 +24,7 @@ fn depths(app: &mut CraftApp) -> (usize, usize) {
     {
         return (u, d);
     }
-    let stats = app.session.memory_stats();
-    let n = |k: &str| stats.get(k).and_then(serde_json::Value::as_u64).unwrap_or(0) as usize;
-    let (u, d) = (n("undoSteps"), n("redoSteps"));
+    let (u, d) = (app.session.undo_depth(), app.session.redo_depth());
     app.ui.dock.state.depths = Some((rev, u, d));
     (u, d)
 }

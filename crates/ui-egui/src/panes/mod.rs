@@ -48,6 +48,7 @@ default_panes! {
     pan_zoom,
     document_stencil,
     external_data,
+    patterns,
 }
 
 use egui::Ui;
@@ -59,6 +60,7 @@ pub use inspector::{InspectorMode, InspectorState, InspectorTab};
 pub use layout::{DEFAULT_HEIGHT, GAP, HEADER_H, MAX_HEIGHT, MAX_WIDTH, MIN_HEIGHT, MIN_WIDTH, PaneLayout, STRIP_W};
 pub use manager::show;
 pub use model_tree::{TreeState, inspect as tree_inspect};
+pub use patterns::{PatternsState, inspect as patterns_inspect};
 pub use shapes::MasterDrag;
 use shapes::{palette_command, shapes_search};
 
@@ -248,6 +250,9 @@ pub fn ui_command(app: &mut CraftApp, id: &str, p: &Value) -> Option<Result<Valu
     }
     if id == "ui.shapesSearch" {
         return Some(Ok(shapes_search(app, p)));
+    }
+    if id == "ui.patterns" {
+        return Some(patterns::command(app, p));
     }
     if id == "ui.palette" {
         return Some(Ok(palette_command(app, p)));

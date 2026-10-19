@@ -122,6 +122,8 @@ fn terminal_at(p: Point, side: Option<Side>, glued_index: Option<usize>, obstacl
 
 /// Every place an end may start or finish: its candidates, or its one point.
 fn terminals(end: &End, obstacles: &[Option<Rect>], margin: f64) -> Vec<Terminal> {
+    // An end's own stub length (an arrowhead's trim) wins when it is longer than the clearance margin.
+    let margin = end.stub.filter(|s| s.is_finite()).map_or(margin, |s| s.max(margin));
     if end.candidates.is_empty() {
         return vec![terminal_at(end.point, end.side, end.obstacle, obstacles, margin, None)];
     }

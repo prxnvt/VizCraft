@@ -13,14 +13,17 @@
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
 mod connectors;
+pub mod ports;
 mod search;
 
 use std::sync::{Mutex, PoisonError};
 
-use vizcraft_diagram::{Color, Shape, ShapeKind, Style};
+use vizcraft_diagram::geom::{Path, Point, Transform};
+use vizcraft_diagram::{Color, Freeform, Shape, ShapeKind, Style};
 use vizcraft_notation::{Catalog, Glyph, Pack};
 
-pub use connectors::{ConnectorKind, connector_kind, connector_kinds, search_connector_kinds};
+pub use connectors::{ConnectorKind, connector_kind, connector_kind_for_relationship, connector_kinds, search_connector_kinds};
+pub use ports::{PortMark, port_marks, port_marks_in, port_points, port_points_in};
 
 /// A shape recipe.
 #[derive(Clone, Debug, PartialEq)]
@@ -41,6 +44,12 @@ pub struct Master {
     pub style: Style,
     /// Extra search words (the label and id are searched too).
     pub keywords: &'static [&'static str],
+    /// A path glyph's drawing in the unit box (`kind` is then [`ShapeKind::Freeform`]): closed
+    /// subpaths fill, open ones are lines. `None` for a glyph drawn by its kind.
+    pub path: Option<Path>,
+    /// Connection points, normalized, from the ports of the glyph's element type (port `i` at
+    /// point `i`); empty to use the kind's own.
+    pub ports: Vec<Point>,
 }
 
 /// A named group of masters.
@@ -101,7 +110,8 @@ fn set_from_pack(pack: &Pack) -> StencilSet {
         .glyphs
         .iter()
         .map(|g| {
-            let m = master_from_glyph(g);
+            let mut m = master_from_glyph(g);
+            m.ports = pack.element_type(&g.element_type).map(|t| ports::points_of(&t.ports)).unwrap_or_default();
             if !categories.contains(&m.category) {
                 categories.push(m.category);
             }
@@ -117,15 +127,23 @@ fn master_from_glyph(g: &Glyph) -> Master {
     let d = Style::DEFAULT;
     let style = Style { fill: Color::parse(&g.fill).unwrap_or(d.fill), line: Color::parse(&g.line).unwrap_or(d.line), ..d };
     let keywords: Vec<&'static str> = g.keywords.iter().map(|k| leak(k)).collect();
+    // A path that does not read (a pack built without the loader) draws as the frame.
+    let path = (g.outline == vizcraft_notation::loader::PATH_OUTLINE)
+        .then(|| vizcraft_notation::glyph_path::glyph_outline(&g.path, &g.detail).ok())
+        .flatten();
+    let kind =
+        if g.outline == vizcraft_notation::loader::PATH_OUTLINE { ShapeKind::Freeform } else { ShapeKind::from_name(&g.outline).unwrap_or_default() };
     Master {
         id: leak(&g.id),
         label: leak(&g.label),
         category: leak(&g.category),
-        kind: ShapeKind::from_name(&g.outline).unwrap_or_default(),
+        kind,
         w: g.w,
         h: g.h,
         style,
         keywords: keywords.leak(),
+        path,
+        ports: Vec::new(),
     }
 }
 
@@ -144,6 +162,15 @@ pub fn master(id: &str) -> Option<&'static Master> {
     built().iter().flat_map(|s| s.masters.iter()).find(|m| m.id == id)
 }
 
+/// The master that draws `master_id`'s element type under rendering variant `variant` (empty
+/// for the default): the variant's glyph when it maps the type, else `master_id`'s own master.
+/// A master with no element type is returned as it is.
+pub fn variant_master(master_id: &str, variant: &str) -> Option<&'static Master> {
+    let cat = vizcraft_notation::catalog();
+    let swapped = cat.type_for_master(master_id).and_then(|t| cat.master_for_type_in(t, variant)).and_then(master);
+    swapped.or_else(|| master(master_id))
+}
+
 /// Masters matching every whitespace-separated word of `query` (case-insensitive) in the id,
 /// label, category, set name or keywords, best match first: the exact label or id, then word
 /// prefixes, then keywords, then substrings; ties keep catalog order. An empty query gives the
@@ -160,7 +187,24 @@ impl Master {
         s.stencil = self.id.to_string();
         s.style = self.style.clone();
         s.sanitize();
+        self.redraw(&mut s);
         s
+    }
+
+    /// Draw `s` as this master: its kind, path (scaled from the unit box onto the shape's
+    /// size), connection points and style. The id, frame, text, data and glue are kept.
+    pub fn redraw(&self, s: &mut Shape) {
+        s.kind = self.kind;
+        s.stencil = self.id.to_string();
+        s.style = self.style.clone();
+        s.path = self.path.as_ref().map(|p| {
+            let (w, h) = (s.w.max(1e-6), s.h.max(1e-6));
+            let local = p.transformed(&Transform::scale(w, h));
+            let closed = local.els.iter().any(|e| matches!(e, vizcraft_diagram::geom::PathEl::Close));
+            Freeform::new(&local, closed)
+        });
+        s.connection_points = if self.ports.is_empty() { self.kind.connection_points() } else { self.ports.clone() };
+        s.sanitize();
     }
 }
 
@@ -274,8 +318,18 @@ mod tests {
         let built: Vec<&Master> = sets().iter().flat_map(|s| s.masters.iter()).collect();
         assert_eq!(built.len(), old.len());
         for (m, (id, label, category, kind, w, h, (fill, line), keywords)) in built.iter().zip(old) {
-            let want =
-                Master { id, label, category, kind: *kind, w: *w, h: *h, style: Style { fill: *fill, line: *line, ..Style::DEFAULT }, keywords };
+            let want = Master {
+                id,
+                label,
+                category,
+                kind: *kind,
+                w: *w,
+                h: *h,
+                style: Style { fill: *fill, line: *line, ..Style::DEFAULT },
+                keywords,
+                path: None,
+                ports: Vec::new(),
+            };
             assert_eq!(**m, want, "{id}");
         }
         let heads: Vec<_> = sets().iter().map(|s| (s.id, s.name, s.categories)).collect();
