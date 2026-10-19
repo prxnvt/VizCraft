@@ -6,7 +6,7 @@ use vizcraft_diagram::{Style, TextCase};
 
 use crate::CraftApp;
 use crate::ribbon::Control::*;
-use crate::ribbon::{FONT_SIZES, Group, MenuEntry, Size, color32, selected_style, short_num};
+use crate::ribbon::{Control, FONT_SIZES, Group, MenuEntry, Size, color32, selected_style, short_num};
 
 /// Families offered by the font field. Inter and JetBrains Mono draw on the canvas; other names
 /// are kept for exports and draw in the nearest shipped face.
@@ -51,33 +51,55 @@ fn case_menu(app: &mut CraftApp, ui: &mut egui::Ui) {
     icon_menu(app, ui, "textCase", "Change Case", &entries);
 }
 
+/// The font family field (also on the engineering Home tab's Text group).
+pub(super) fn family_combo() -> Control {
+    Combo {
+        id: "text.setFormat",
+        param: "fontFamily",
+        name: "Font",
+        width: 92.0,
+        items: |_| FONT_FAMILIES.iter().map(|f| f.to_string()).collect(),
+        current: |a| selected_style(a).map(|s| if s.font_family.is_empty() { "Inter".to_string() } else { s.font_family.clone() }).unwrap_or_default(),
+    }
+}
+
+/// The font size field.
+pub(super) fn size_combo() -> Control {
+    Combo {
+        id: "text.setFormat",
+        param: "size",
+        name: "Font Size",
+        width: 52.0,
+        items: |_| FONT_SIZES.iter().map(|s| format!("{s} pt")).collect(),
+        current: |a| selected_style(a).map(|s| format!("{} pt", short_num(s.font_size))).unwrap_or_default(),
+    }
+}
+
+/// The Bold toggle.
+pub(super) fn bold() -> Control {
+    format_toggle("bold", "Bold", |a| flip(a, "bold", |s| s.bold), |a| selected_style(a).is_some_and(|s| s.bold))
+}
+
+/// The Italic toggle.
+pub(super) fn italic() -> Control {
+    format_toggle("italic", "Italic", |a| flip(a, "italic", |s| s.italic), |a| selected_style(a).is_some_and(|s| s.italic))
+}
+
+/// The Underline toggle.
+pub(super) fn underline() -> Control {
+    format_toggle("underline", "Underline", |a| flip(a, "underline", |s| s.underline), |a| selected_style(a).is_some_and(|s| s.underline))
+}
+
 /// The Home tab's Font group.
 pub(in crate::ribbon) fn group() -> Group {
     Group::new(
         "Font",
         vec![Stack(vec![
+            Row(vec![family_combo(), size_combo()]),
             Row(vec![
-                Combo {
-                    id: "text.setFormat",
-                    param: "fontFamily",
-                    name: "Font",
-                    width: 92.0,
-                    items: |_| FONT_FAMILIES.iter().map(|f| f.to_string()).collect(),
-                    current: |a| selected_style(a).map(|s| if s.font_family.is_empty() { "Inter".to_string() } else { s.font_family.clone() }).unwrap_or_default(),
-                },
-                Combo {
-                    id: "text.setFormat",
-                    param: "size",
-                    name: "Font Size",
-                    width: 52.0,
-                    items: |_| FONT_SIZES.iter().map(|s| format!("{s} pt")).collect(),
-                    current: |a| selected_style(a).map(|s| format!("{} pt", short_num(s.font_size))).unwrap_or_default(),
-                },
-            ]),
-            Row(vec![
-                format_toggle("bold", "Bold", |a| flip(a, "bold", |s| s.bold), |a| selected_style(a).is_some_and(|s| s.bold)),
-                format_toggle("italic", "Italic", |a| flip(a, "italic", |s| s.italic), |a| selected_style(a).is_some_and(|s| s.italic)),
-                format_toggle("underline", "Underline", |a| flip(a, "underline", |s| s.underline), |a| selected_style(a).is_some_and(|s| s.underline)),
+                bold(),
+                italic(),
+                underline(),
                 format_toggle("strikethrough", "Strikethrough", |a| flip(a, "strikethrough", |s| s.strikethrough), |a| selected_style(a).is_some_and(|s| s.strikethrough)),
                 Button { id: "text.grow", icon: "fontGrow", label: "Increase Font Size", size: Size::Icon, params: |_| json!({"step": 1}), checked: None },
                 Button { id: "text.grow", icon: "fontShrink", label: "Decrease Font Size", size: Size::Icon, params: |_| json!({"step": -1}), checked: None },

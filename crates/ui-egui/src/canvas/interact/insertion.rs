@@ -322,7 +322,7 @@ fn row(ui: &mut Ui, t: &Tokens, k: usize, master: Option<&str>, label: &str, det
     }
     let icon = egui::Rect::from_center_size(rect.left_center() + vec2(16.0, 0.0), vec2(18.0, 14.0));
     if let Some(m) = master.and_then(vizcraft_stencils::master) {
-        crate::icons::paint_kind(ui.painter(), icon, m.kind, m.w as f32, m.h as f32, t.icon, t.accent);
+        crate::icons::paint_master(ui.painter(), icon, m, t.icon, t.accent);
     }
     let color = if dim { t.text_dim } else { t.text };
     let g = ui.painter().text(rect.left_center() + vec2(32.0, 0.0), Align2::LEFT_CENTER, label, regular(12.5), color);

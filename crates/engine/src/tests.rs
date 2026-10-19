@@ -144,6 +144,7 @@ fn hostile_params_never_panic() {
         json!({"builder": "\u{0}", "params": {"standard": "jic", "poles": "NaN", "": 1, "paths": "P-Q;;;X|"}, "module": "a", "id": "s2", "page": "\u{0}"}),
         json!({"template": "flowchart.decision", "variant": 5, "sheet": {}, "path": {}}),
         json!({"template": "x".repeat(1000)}),
+        json!({"template": "flowchart.decision", "standards": {"symbols": 5, "sheet": []}}),
         json!({"id": "c8", "step": -1, "page": 5, "exclude": [1, null], "title": [], "x": "a", "y": 1e308, "steps": "yes", "all": 3}),
         json!({"id": "c8", "step": 1e9, "exclude": ["a,b", ""], "title": "x".repeat(5000), "x": 1e308, "y": -1e308}),
         json!({"id": {}, "step": {}, "exclude": "cloud.User", "steps": false, "all": true, "page": "\u{0}"}),

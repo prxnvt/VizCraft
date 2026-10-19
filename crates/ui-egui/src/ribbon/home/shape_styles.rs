@@ -33,7 +33,7 @@ fn current_quick_style(app: &CraftApp) -> Option<usize> {
 }
 
 /// The quick styles of the active theme: one row per intensity, one column per accent.
-fn quick_styles(app: &mut CraftApp, ui: &mut Ui) {
+pub(super) fn quick_styles(app: &mut CraftApp, ui: &mut Ui) {
     let id = "design.applyQuickStyle";
     let t = Tokens::get(ui.ctx());
     let on = widgets::enabled(app, id);

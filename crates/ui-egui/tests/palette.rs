@@ -133,9 +133,12 @@ fn new_from_notation_gives_a_page_with_the_viewpoint_set() {
     run(&mut h, "ui.backstage", json!({"value": true}));
     h.get_by_label("New").click();
     h.run_steps(3);
-    h.get_by_label("Blank drawing");
+    h.get_by_label("Blank Drawing");
     h.get_by_label("General");
-    h.get_by_label("Flowchart").click();
+    // The gallery's card for the flowchart pack's blank template, then Create.
+    h.get_by_label("Blank Flowchart").click();
+    h.run_steps(3);
+    h.get_by_label("Create").click();
     h.run_steps(4);
     let page = h.state().session.doc.page().unwrap();
     assert_eq!(page.view.as_ref().map(|v| v.viewpoint.as_str()), Some("flowchart.Flowchart"));

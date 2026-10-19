@@ -87,6 +87,7 @@ pub fn menu_tree(app: &CraftApp) -> Vec<Menu> {
     }
     let mut file = vec![
         Item::Cmd("New", "file.new", json!({})),
+        Item::Cmd("New from Template...", "ui.gallery", json!({"mode": "new"})),
         Item::Cmd("New Window", "ui.newWindow", json!({})),
         Item::Cmd("Open...", "file.open", json!({})),
         Item::Sub("Open Recent", recent),

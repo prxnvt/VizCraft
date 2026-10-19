@@ -20,6 +20,8 @@ pub mod datagraphic_dialog;
 pub mod dialogs;
 pub mod dock;
 pub mod find_dialog;
+pub mod gallery;
+pub mod gallery_previews;
 pub mod icons;
 pub mod info_page;
 pub mod insert_picker;
@@ -33,6 +35,7 @@ pub mod panes;
 pub mod paste_special;
 pub mod pattern_dialog;
 pub mod presentation;
+pub mod preset;
 pub mod print_preview;
 pub mod revise_dialog;
 pub mod ribbon;
@@ -248,6 +251,18 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("app.about", "About VizCraft", "", "{}"),
     ("app.preferences", "Preferences", "Mod+,", "{}"),
     ("app.quit", "Quit VizCraft", "Mod+Q", "{}"),
+    (
+        "ui.gallery",
+        "New from Template",
+        "",
+        r#"{"open"?: bool (default true), "mode"?: "new"|"page", "query"?: string, "audience"?: string ("" is All), "select"?: template id, "symbols"?: symbol family, "sheet"?: sheet preset id, "create"?: bool, "clearRecent"?: bool} -> {"open", "mode", "query", "audience", "selected", "shown": [id], "pending", "symbols", "sheet"}; the template gallery on the File page; create runs template.new (with the bar's standards) or template.addPage for the selected card, else the first shown, and errs instead of replacing a drawing with unsaved changes; symbols and sheet set the bar (in page mode the document's standards, one undo step each)"#,
+    ),
+    (
+        "ui.preset",
+        "Workspace",
+        "",
+        r#"{"name"?: "engineering"|"office"} -> {"preset", "applied": [setting]}; with no name reads the workspace preset; engineering turns rulers off, puts the Model Tree first on the left, opens the Inspector and arranges the Home tab for engineering; office restores today's look; each setting stays changeable"#,
+    ),
 ];
 
 /// What a window command asks of the host that owns all the windows (taken by the host, which
@@ -388,6 +403,14 @@ pub struct UiState {
     pub inspector: panes::InspectorState,
     /// The bottom dock: whether it shows, how tall and which tab.
     pub dock: dock::DockLayout,
+    /// The workspace preset (`ui.preset`): `engineering`, `office`, or empty for none chosen yet
+    /// (drawn as office).
+    pub preset: String,
+    /// Templates created from lately, newest first (the gallery's Recent row).
+    pub recent_templates: Vec<String>,
+    /// The standards the New gallery starts from: the last choice made there (empty fields are
+    /// the defaults, IEC and ISO A3 landscape).
+    pub new_standards: vizcraft_diagram::standards::Standards,
 }
 
 impl Default for UiState {
@@ -404,6 +427,9 @@ impl Default for UiState {
             aids: Default::default(),
             inspector: Default::default(),
             dock: Default::default(),
+            preset: String::new(),
+            recent_templates: Vec::new(),
+            new_standards: Default::default(),
         }
     }
 }
@@ -477,6 +503,8 @@ pub struct CraftApp {
     pub palette_focus: Option<String>,
     /// The File page is showing instead of the document.
     backstage: bool,
+    /// The template gallery (File > New, Add Page from Template). Transient.
+    pub gallery: gallery::Gallery,
     control_rx: Option<Receiver<ControlRequest>>,
     shot_token: u64,
     /// Screenshots waiting to be issued: (token, not before, frames waited).
@@ -527,6 +555,7 @@ impl CraftApp {
             palette_filter: true,
             palette_focus: None,
             backstage: false,
+            gallery: Default::default(),
             control_rx: None,
             shot_token: 0,
             queued_shots: Vec::new(),
@@ -574,6 +603,7 @@ impl CraftApp {
         self.session.view.dark_mode = self.ui.dark;
         self.session.view.aids = self.ui.aids;
         self.ui.panes.sanitize();
+        gallery::sanitize_prefs(&mut self.ui);
     }
 
     /// Run a command; UI-level commands (`ui.*`, `app.*`) are handled here, the rest by the engine.
@@ -606,6 +636,12 @@ impl CraftApp {
         }
         let rev = self.session.rev();
         let r = self.session.run(id, &params).map_err(|e| e.to_string());
+        if r.is_ok()
+            && matches!(id, "template.new" | "template.addPage")
+            && let Some(t) = params.get("template").and_then(Value::as_str)
+        {
+            gallery::push_recent(&mut self.ui, t);
+        }
         self.after_command();
         if let Err(e) = &r {
             self.status(e.clone());
@@ -716,6 +752,12 @@ impl CraftApp {
             return Some(r);
         }
         if let Some(r) = canvas::interact::wire::ui_command(self, id, p) {
+            return Some(r);
+        }
+        if let Some(r) = gallery::ui_command(self, id, p) {
+            return Some(r);
+        }
+        if let Some(r) = preset::ui_command(self, id, p) {
             return Some(r);
         }
         // The engine's search cannot see the `ui.*` commands; this one can, from every origin.
@@ -1279,6 +1321,7 @@ impl CraftApp {
 fn fits_after(id: &str, params: &Value) -> bool {
     let replaces = match id {
         "file.open" => true,
+        "template.new" | "template.addPage" => true,
         "file.import" => params.get("replace").and_then(Value::as_bool) == Some(true),
         _ => false,
     };
@@ -1308,8 +1351,11 @@ mod tests {
         let mut first = app();
         first.run("file.setAuthor", json!({"name": "Ada Lovelace"})).unwrap();
         first.run("view.dark", json!({"value": true})).unwrap();
+        first.run("ui.preset", json!({"name": "engineering"})).unwrap();
         first.run("ui.tab", json!({"tab": "View"})).unwrap();
         first.ui.panes.left_width = 300.0;
+        first.run("template.new", json!({"template": "flowchart.decision"})).unwrap();
+        first.run("ui.gallery", json!({"symbols": "jic", "sheet": "asme.b"})).unwrap();
         let saved = serde_json::to_vec(&first.prefs()).unwrap();
 
         let mut second = app();
@@ -1318,6 +1364,9 @@ mod tests {
         assert!(second.session.view.dark_mode);
         assert_eq!(second.ui.tab, "View");
         assert_eq!(second.ui.panes.left_width, 300.0);
+        assert_eq!(second.ui.preset, "engineering");
+        assert_eq!(second.ui.recent_templates, ["flowchart.decision"]);
+        assert_eq!((second.ui.new_standards.symbols.as_str(), second.ui.new_standards.sheet.as_str()), ("jic", "asme.b.landscape"));
         assert_eq!(second.prefs(), first.prefs());
 
         // A later rename is what gets saved next, not the name loaded at startup.
@@ -1331,6 +1380,18 @@ mod tests {
         assert_eq!(a.session.author, default);
         assert_eq!(a.ui.tab, "View");
         assert_eq!(a.ui.panes, panes::PaneLayout::default());
+        assert!(a.ui.preset.is_empty() && a.ui.recent_templates.is_empty() && a.ui.new_standards == Default::default());
+
+        // Junk gallery preferences are cleaned: an unknown preset, repeats and too many recents,
+        // a family that is not offered.
+        let mut a = app();
+        let recent: Vec<String> = (0..20).map(|i| format!("flowchart.t{}", i % 10)).collect();
+        a.apply_prefs(
+            serde_json::from_value(json!({"preset": "zz", "recentTemplates": recent, "newStandards": {"symbols": "Q R", "sheet": "x"}})).unwrap(),
+        );
+        assert!(a.ui.preset.is_empty());
+        assert_eq!(a.ui.recent_templates.len(), gallery::MAX_RECENT);
+        assert_eq!(a.ui.new_standards, Default::default());
     }
 
     #[test]

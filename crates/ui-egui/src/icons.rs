@@ -1490,3 +1490,36 @@ pub fn paint_kind(p: &Painter, r: Rect, kind: vizcraft_diagram::ShapeKind, w: f3
         }
     }
 }
+
+/// The rings of master `m`'s outline fitted inside `r` as [`paint_master`] draws them: its path
+/// (a path or builder glyph) when it has one, else its kind's outline; each with whether it is
+/// closed. Proportions as [`paint_kind`] keeps them.
+pub fn master_rings(r: Rect, m: &vizcraft_stencils::Master) -> Vec<(Vec<Pos2>, bool)> {
+    let (w, h) = (m.w as f32, m.h as f32);
+    let (w, h) = (if w.is_finite() && w > 0.0 { w } else { 1.0 }, if h.is_finite() && h > 0.0 { h } else { 1.0 });
+    let aspect = ((w / h).clamp(0.25, 4.0)).sqrt();
+    let side = r.width().min(r.height()) * 0.86;
+    let (bw, bh) = if aspect >= 1.0 { (side, side / aspect) } else { (side * aspect, side) };
+    let o = r.center() - vec2(bw / 2.0, bh / 2.0);
+    let outline = match &m.path {
+        Some(p) => p.transformed(&vizcraft_diagram::Transform::scale(f64::from(bw), f64::from(bh))),
+        None => m.kind.outline(f64::from(bw), f64::from(bh)),
+    };
+    outline
+        .flatten(0.25)
+        .into_iter()
+        .map(|line| (line.points.iter().map(|q| pos2(o.x + q.x as f32, o.y + q.y as f32)).collect(), line.closed))
+        .collect()
+}
+
+/// Paint master `m` fitted inside `r`: a path or builder glyph by its own outline (so it no
+/// longer shows as a generic box), any other master as [`paint_kind`] draws its kind.
+pub fn paint_master(p: &Painter, r: Rect, m: &vizcraft_stencils::Master, c: Color32, a: Color32) {
+    if m.path.is_none() {
+        return paint_kind(p, r, m.kind, m.w as f32, m.h as f32, c, a);
+    }
+    let stroke = Stroke::new(stroke_width(r.width().min(r.height())), c);
+    for (pts, closed) in master_rings(r, m) {
+        p.add(if closed { Shape::closed_line(pts, stroke) } else { Shape::line(pts, stroke) });
+    }
+}

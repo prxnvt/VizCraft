@@ -71,15 +71,30 @@ fn direction_menu(app: &mut CraftApp, ui: &mut egui::Ui) {
     icon_menu(app, ui, "textDirection", "Text Direction", &entries);
 }
 
+/// The Align Left toggle (also on the engineering Home tab's Text group).
+pub(super) fn align_left() -> Control {
+    align("alignLeft", "Align Left", |_| json!({"hAlign": "left"}), |a| h_is(a, HAlign::Left))
+}
+
+/// The Center toggle.
+pub(super) fn align_center() -> Control {
+    align("alignCenter", "Center", |_| json!({"hAlign": "center"}), |a| h_is(a, HAlign::Center))
+}
+
+/// The Align Right toggle.
+pub(super) fn align_right() -> Control {
+    align("alignRight", "Align Right", |_| json!({"hAlign": "right"}), |a| h_is(a, HAlign::Right))
+}
+
 /// The Home tab's Paragraph group.
 pub(in crate::ribbon) fn group() -> Group {
     Group::new(
         "Paragraph",
         vec![Stack(vec![
             Row(vec![
-                align("alignLeft", "Align Left", |_| json!({"hAlign": "left"}), |a| h_is(a, HAlign::Left)),
-                align("alignCenter", "Center", |_| json!({"hAlign": "center"}), |a| h_is(a, HAlign::Center)),
-                align("alignRight", "Align Right", |_| json!({"hAlign": "right"}), |a| h_is(a, HAlign::Right)),
+                align_left(),
+                align_center(),
+                align_right(),
                 align("justify", "Justify", |_| json!({"hAlign": "justify"}), |a| h_is(a, HAlign::Justify)),
             ]),
             Row(vec![

@@ -395,7 +395,7 @@ pub const LINE_WEIGHTS: &[f32] = &[0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0];
 /// groups yet are left out, so they stay hidden until a group lands.
 pub fn tabs(app: &CraftApp) -> Vec<Tab> {
     [
-        home::tab(),
+        home::tab(app),
         insert::tab(),
         design::tab(),
         data::tab(),

@@ -2,8 +2,8 @@
 //! Import, Close, Preferences and About in a coloured column, the recent files and the
 //! document's facts beside it. Opened by the File tab (`ui.tab {"tab": "File"}` or
 //! `ui.backstage`); Escape or the back arrow returns to the document. Every row runs a command;
-//! nothing here has behaviour of its own. New opens a page of its own: a blank drawing, or a
-//! notation (the packs grouped by audience) whose first viewpoint the new document starts on.
+//! nothing here has behaviour of its own. New opens the template gallery ([`crate::gallery`]),
+//! which Add Page from Template also shows here.
 
 use egui::{Align2, Sense, Stroke, Ui, pos2, vec2};
 use serde_json::json;
@@ -18,8 +18,11 @@ const NAV_W: f32 = 200.0;
 pub fn show(app: &mut CraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
-        set_new_page(ui.ctx(), false);
-        let _ = app.run("ui.backstage", json!({"value": false}));
+        if app.gallery.open {
+            crate::gallery::escape(app);
+        } else {
+            let _ = app.run("ui.backstage", json!({"value": false}));
+        }
     }
     egui::Panel::left("backstage_nav")
         .exact_size(NAV_W)
@@ -32,7 +35,6 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
         .show(ui, |ui| {
             ui.spacing_mut().item_spacing = vec2(0.0, 2.0);
             if back_button(ui) {
-                set_new_page(ui.ctx(), false);
                 crate::info_page::set_open(ui.ctx(), false);
                 let _ = app.run("ui.backstage", json!({"value": false}));
             }
@@ -50,10 +52,10 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
                 if nav_item(ui, label, crate::widgets::enabled(app, id)) {
                     crate::info_page::set_open(ui.ctx(), false);
                     if id == "file.new" {
-                        set_new_page(ui.ctx(), true);
+                        crate::gallery::open(app, crate::gallery::Mode::New);
                         continue;
                     }
-                    set_new_page(ui.ctx(), false);
+                    app.gallery.open = false;
                     let _ = app.run(id, json!({}));
                     if id != "file.close" {
                         let _ = app.run("ui.backstage", json!({"value": false}));
@@ -62,7 +64,7 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
             }
             ui.add_space(14.0);
             if nav_item(ui, "Info", true) {
-                set_new_page(ui.ctx(), false);
+                app.gallery.open = false;
                 crate::info_page::set_open(ui.ctx(), true);
             }
             if nav_item(ui, "Preferences", true) {
@@ -73,8 +75,8 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
             }
         });
     egui::CentralPanel::default().frame(egui::Frame::NONE.fill(t.ribbon).inner_margin(egui::Margin::symmetric(36, 28))).show(ui, |ui| {
-        if new_page(ui.ctx()) {
-            new_from_notation(app, ui);
+        if app.gallery.open {
+            crate::gallery::show(app, ui);
             return;
         }
         if crate::info_page::is_open(ui.ctx()) {
@@ -135,81 +137,6 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
             }
         });
     });
-}
-
-/// Whether the New page is showing instead of the document's facts.
-fn new_page(ctx: &egui::Context) -> bool {
-    ctx.data(|d| d.get_temp::<bool>(egui::Id::new("backstage_new"))).unwrap_or(false)
-}
-
-fn set_new_page(ctx: &egui::Context, on: bool) {
-    ctx.data_mut(|d| d.insert_temp(egui::Id::new("backstage_new"), on));
-}
-
-/// The packs a new document can start from, grouped by the first audience each names (in the order
-/// the audiences first appear): a pack with a viewpoint is a notation to start from.
-fn notations() -> Vec<(String, Vec<&'static vizcraft_notation::Pack>)> {
-    let mut groups: Vec<(String, Vec<&'static vizcraft_notation::Pack>)> = Vec::new();
-    for p in vizcraft_notation::catalog().packs().iter().filter(|p| !p.viewpoints.is_empty()) {
-        let audience = p.audience.first().cloned().unwrap_or_else(|| "general".into());
-        match groups.iter_mut().find(|(a, _)| *a == audience) {
-            Some((_, v)) => v.push(p),
-            None => groups.push((audience, vec![p])),
-        }
-    }
-    groups
-}
-
-/// A word with its first letter capitalised.
-fn title_case(s: &str) -> String {
-    let mut c = s.chars();
-    c.next().map(|f| f.to_uppercase().chain(c).collect()).unwrap_or_default()
-}
-
-/// The New page: a blank drawing, then each notation as a card with its name and description.
-/// Choosing one runs `file.new`, then `model.setViewpoint` with the pack's first viewpoint, so the
-/// palette and the notation tab follow.
-fn new_from_notation(app: &mut CraftApp, ui: &mut Ui) {
-    let t = Tokens::get(ui.ctx());
-    ui.label(egui::RichText::new("New").font(semibold(24.0)).color(t.text));
-    ui.add_space(14.0);
-    let mut chosen: Option<Option<String>> = None;
-    egui::ScrollArea::vertical().show(ui, |ui| {
-        if card(ui, "Blank drawing", "An empty page with the basic shapes.") {
-            chosen = Some(None);
-        }
-        for (audience, packs) in notations() {
-            ui.add_space(14.0);
-            ui.label(egui::RichText::new(title_case(&audience)).font(medium(14.0)).color(t.text));
-            ui.add_space(4.0);
-            for p in packs {
-                if card(ui, &p.name, &p.description) {
-                    chosen = Some(p.viewpoints.first().map(|v| v.id.clone()));
-                }
-            }
-        }
-    });
-    if let Some(viewpoint) = chosen
-        && app.run("file.new", json!({})).is_ok()
-    {
-        if let Some(v) = viewpoint {
-            let _ = app.run("model.setViewpoint", json!({"viewpoint": v}));
-        }
-        set_new_page(ui.ctx(), false);
-        let _ = app.run("ui.backstage", json!({"value": false}));
-    }
-}
-
-/// One clickable card with a name and a line under it. Returns true when clicked.
-fn card(ui: &mut Ui, name: &str, text: &str) -> bool {
-    let t = Tokens::get(ui.ctx());
-    let (r, resp) = ui.allocate_exact_size(vec2(ui.available_width().min(520.0), 46.0), Sense::click());
-    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, name));
-    ui.painter().rect(r, 4.0, if resp.hovered() { t.hover } else { t.panel }, Stroke::new(1.0, t.border), egui::StrokeKind::Inside);
-    ui.painter().text(pos2(r.min.x + 12.0, r.min.y + 15.0), Align2::LEFT_CENTER, name, medium(13.0), t.text);
-    let clip = ui.painter().with_clip_rect(r.shrink2(vec2(10.0, 0.0)));
-    clip.text(pos2(r.min.x + 12.0, r.min.y + 32.0), Align2::LEFT_CENTER, text, regular(11.0), t.text_dim);
-    resp.clicked()
 }
 
 /// The back arrow at the top of the command column (drawn, not a glyph). Returns true when clicked.

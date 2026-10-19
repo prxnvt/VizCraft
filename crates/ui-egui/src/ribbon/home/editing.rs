@@ -61,7 +61,7 @@ fn change_shape(app: &mut CraftApp, ui: &mut egui::Ui) {
                                 if resp.hovered() {
                                     ui.painter().rect_filled(r, 3.0, t.hover);
                                 }
-                                icons::paint_kind(ui.painter(), Rect::from_center_size(r.center(), vec2(20.0, 20.0)), m.kind, m.w as f32, m.h as f32, t.icon, t.accent);
+                                icons::paint_master(ui.painter(), Rect::from_center_size(r.center(), vec2(20.0, 20.0)), m, t.icon, t.accent);
                                 let resp = resp.on_hover_text(m.label);
                                 if resp.clicked() {
                                     let _ = app.run("edit.changeShape", json!({"stencil": m.id}));

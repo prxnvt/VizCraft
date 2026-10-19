@@ -125,15 +125,7 @@ pub(super) fn gallery(ui: &mut Ui, app: &mut CraftApp, set: &str, rows: usize) {
                     resp.widget_info(|| WidgetInfo::labeled(WidgetType::Button, on, m.label));
                     hover_bg(ui, r, &resp, on, &t);
                     let (c, a) = if on { (t.icon, t.accent) } else { (t.text_disabled, t.text_disabled) };
-                    icons::paint_kind(
-                        ui.painter(),
-                        Rect::from_center_size(r.center(), vec2(SMALL_ICON, SMALL_ICON)),
-                        m.kind,
-                        m.w as f32,
-                        m.h as f32,
-                        c,
-                        a,
-                    );
+                    icons::paint_master(ui.painter(), Rect::from_center_size(r.center(), vec2(SMALL_ICON, SMALL_ICON)), m, c, a);
                     let resp = widgets::tooltip(app, resp, m.label, "shape.add");
                     if resp.clicked() && on {
                         // Same placement as a Shapes pane click: the visible middle of the page.

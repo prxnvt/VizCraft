@@ -102,6 +102,7 @@ pub fn inspect(app: &CraftApp, ctx: &egui::Context) -> Value {
         "analysis": crate::dock::analysis::inspect(app),
         "generate": crate::dock::generate::inspect(app),
         "patterns": crate::panes::patterns_inspect(app),
+        "gallery": crate::gallery::inspect(app),
         // The ribbon dropdown that is open, row by row, with each row's check state.
         "menu": crate::widgets::open_menu(ctx),
     })
