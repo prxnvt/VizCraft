@@ -230,7 +230,8 @@ pub fn put_text(s: &mut Session, id: &str, text: &str) -> Result<(), EngineError
     let page = s.doc.page().ok_or_else(|| EngineError::Failed("the document has no page".into()))?;
     if let Some(sh) = page.shape(id) {
         match sh.element.clone().filter(|e| s.doc.model.element(e).is_some()) {
-            Some(e) => super::model::rename_element(&mut s.doc, &e, text)?,
+            // A `«keyword»` line the view shows above the name is not part of the name.
+            Some(e) => super::model::rename_element(&mut s.doc, &e, vizcraft_notation::bind::strip_keyword(text))?,
             None => {
                 if let Some(sh) = page_mut(s)?.shape_mut(id) {
                     sh.text = text.to_string();
@@ -240,7 +241,7 @@ pub fn put_text(s: &mut Session, id: &str, text: &str) -> Result<(), EngineError
         }
     } else if let Some(c) = page.connector(id) {
         match c.relationship.clone().filter(|r| s.doc.model.relationship(r).is_some()) {
-            Some(r) => super::model::rename_relationship(&mut s.doc, &r, text)?,
+            Some(r) => super::model::rename_relationship(&mut s.doc, &r, vizcraft_notation::bind::strip_keyword(text))?,
             None => {
                 if let Some(c) = page_mut(s)?.connector_mut(id) {
                     c.text = text.to_string();

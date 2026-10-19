@@ -1,0 +1,57 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "model": {
+      "schemaVersion": 1,
+      "packs": [
+        {
+          "id": "uml",
+          "version": "1.0.0"
+        }
+      ],
+      "elements": [
+        {
+          "id": "a",
+          "type": "uml.Actor",
+          "name": "Customer"
+        },
+        {
+          "id": "u1",
+          "type": "uml.UseCase",
+          "name": "Buy"
+        },
+        {
+          "id": "u2",
+          "type": "uml.UseCase",
+          "name": "Audit"
+        }
+      ],
+      "relationships": [
+        {
+          "id": "r1",
+          "type": "uml.Association",
+          "source": "a",
+          "target": "u1"
+        }
+      ]
+    },
+    "document": {
+      "title": "",
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "shapes": [],
+          "connectors": []
+        }
+      ],
+      "idSeq": 100
+    }
+  },
+  "expect": [
+    {
+      "rule": "uml.useCaseReached"
+    }
+  ]
+}

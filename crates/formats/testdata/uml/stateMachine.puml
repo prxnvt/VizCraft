@@ -1,0 +1,14 @@
+@startuml
+state "Pending" as e5
+e5 : entry / reserve stock
+state "Paid" as e7
+state "Shipped" as e9
+state "Cancelled" as e11
+e11 : entry / release stock
+[*] --> e5
+e5 --> e7 : pay
+e5 --> e11 : cancel
+e7 --> e9 : ship
+e9 --> [*]
+e11 --> [*]
+@enduml

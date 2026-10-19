@@ -1,0 +1,98 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "model": {
+      "schemaVersion": 1,
+      "packs": [
+        {
+          "id": "uml",
+          "version": "1.0.0"
+        }
+      ],
+      "elements": [
+        {
+          "id": "a",
+          "type": "uml.Class",
+          "name": "A"
+        },
+        {
+          "id": "b",
+          "type": "uml.Class",
+          "name": "B"
+        }
+      ],
+      "relationships": [
+        {
+          "id": "r1",
+          "type": "uml.Association",
+          "source": "a",
+          "target": "b",
+          "properties": {
+            "navigability": "target"
+          }
+        }
+      ]
+    },
+    "document": {
+      "title": "",
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "shapes": [
+            {
+              "id": "s_a",
+              "stencil": "uml.class",
+              "kind": "rectangle",
+              "x": 0,
+              "y": 0,
+              "w": 180,
+              "h": 80,
+              "text": "",
+              "element": "a"
+            },
+            {
+              "id": "s_b",
+              "stencil": "uml.class",
+              "kind": "rectangle",
+              "x": 400,
+              "y": 0,
+              "w": 180,
+              "h": 80,
+              "text": "",
+              "element": "b"
+            }
+          ],
+          "connectors": [
+            {
+              "id": "c1",
+              "start": {
+                "shape": "s_a"
+              },
+              "end": {
+                "shape": "s_b"
+              },
+              "startArrow": "none",
+              "endArrow": "none",
+              "relationship": "r1",
+              "kind": "uml.association"
+            }
+          ],
+          "view": {
+            "viewpoint": "uml.ClassDiagram"
+          }
+        }
+      ],
+      "idSeq": 100
+    }
+  },
+  "expect": [
+    {
+      "rule": "uml.navigability",
+      "items": [
+        "c1"
+      ]
+    }
+  ]
+}

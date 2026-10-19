@@ -1,0 +1,36 @@
+@startuml
+abstract class "Party" as e2 {
+  +name: String
+}
+class "Customer" as e4 {
+  +email: String
+  -loyaltyPoints: Integer = 0
+  +placeOrder(): Order
+}
+class "Order" as e6 {
+  +number: String
+  +placed: Date
+  -lines: OrderLine [1..*]
+  +total(): Money
+  {static} +nextNumber(): String
+}
+class "OrderLine" as e8 {
+  +quantity: Integer = 1
+}
+class "Product" as e10 {
+  +sku: String
+  +price: Money
+}
+interface "PaymentMethod" as e12 {
+  +authorize(amount: Money): Boolean
+}
+class "CardPayment" as e14 {
+  -cardNumber: String
+}
+e4 --|> e2
+e4 "1" -- "orders 0..*" e6
+e6 "1" *-- "1..*" e8
+e8 -- "1" e10
+e6 ..> e12 : <<use>>
+e14 ..|> e12
+@enduml

@@ -1,0 +1,11 @@
+@startuml
+node "Web server" as e2 <<device>> {
+  artifact "shop.war" as e6
+}
+node "Database server" as e4 <<device>> {
+  artifact "schema.sql" as e8
+}
+e6 ..> e2 : <<deploy>>
+e8 ..> e4 : <<deploy>>
+e2 -- e4 : TCP/IP
+@enduml

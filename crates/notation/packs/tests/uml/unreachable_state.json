@@ -1,0 +1,74 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "model": {
+      "schemaVersion": 1,
+      "packs": [
+        {
+          "id": "uml",
+          "version": "1.0.0"
+        }
+      ],
+      "elements": [
+        {
+          "id": "i",
+          "type": "uml.Initial",
+          "name": ""
+        },
+        {
+          "id": "s1",
+          "type": "uml.State",
+          "name": "Idle"
+        },
+        {
+          "id": "s2",
+          "type": "uml.State",
+          "name": "Lost"
+        },
+        {
+          "id": "f",
+          "type": "uml.Final",
+          "name": ""
+        }
+      ],
+      "relationships": [
+        {
+          "id": "t1",
+          "type": "uml.Transition",
+          "source": "i",
+          "target": "s1"
+        },
+        {
+          "id": "t2",
+          "type": "uml.Transition",
+          "source": "s1",
+          "target": "f"
+        },
+        {
+          "id": "t3",
+          "type": "uml.Transition",
+          "source": "s2",
+          "target": "f"
+        }
+      ]
+    },
+    "document": {
+      "title": "",
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "shapes": [],
+          "connectors": []
+        }
+      ],
+      "idSeq": 100
+    }
+  },
+  "expect": [
+    {
+      "rule": "uml.stateReached"
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "model": {
+      "schemaVersion": 1,
+      "packs": [
+        {
+          "id": "uml",
+          "version": "1.0.0"
+        }
+      ],
+      "elements": [
+        {
+          "id": "w1",
+          "type": "uml.Class",
+          "name": "Car"
+        },
+        {
+          "id": "w2",
+          "type": "uml.Class",
+          "name": "Boat"
+        },
+        {
+          "id": "p",
+          "type": "uml.Class",
+          "name": "Engine"
+        }
+      ],
+      "relationships": [
+        {
+          "id": "r1",
+          "type": "uml.Composition",
+          "source": "w1",
+          "target": "p"
+        },
+        {
+          "id": "r2",
+          "type": "uml.Composition",
+          "source": "w2",
+          "target": "p"
+        }
+      ]
+    },
+    "document": {
+      "title": "",
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "shapes": [],
+          "connectors": []
+        }
+      ],
+      "idSeq": 100
+    }
+  },
+  "expect": [
+    {
+      "rule": "uml.multiplicity"
+    }
+  ]
+}

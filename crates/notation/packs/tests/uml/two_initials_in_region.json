@@ -1,0 +1,89 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "model": {
+      "schemaVersion": 1,
+      "packs": [
+        {
+          "id": "uml",
+          "version": "1.0.0"
+        }
+      ],
+      "elements": [
+        {
+          "id": "m",
+          "type": "uml.StateMachine",
+          "name": "Door"
+        },
+        {
+          "id": "r",
+          "type": "uml.Region",
+          "name": "Main",
+          "owner": "m"
+        },
+        {
+          "id": "i1",
+          "type": "uml.Initial",
+          "name": "",
+          "owner": "r"
+        },
+        {
+          "id": "i2",
+          "type": "uml.Initial",
+          "name": "",
+          "owner": "r"
+        },
+        {
+          "id": "s",
+          "type": "uml.State",
+          "name": "Closed",
+          "owner": "r"
+        },
+        {
+          "id": "f",
+          "type": "uml.Final",
+          "name": "",
+          "owner": "r"
+        }
+      ],
+      "relationships": [
+        {
+          "id": "t1",
+          "type": "uml.Transition",
+          "source": "i1",
+          "target": "s"
+        },
+        {
+          "id": "t2",
+          "type": "uml.Transition",
+          "source": "i2",
+          "target": "s"
+        },
+        {
+          "id": "t3",
+          "type": "uml.Transition",
+          "source": "s",
+          "target": "f"
+        }
+      ]
+    },
+    "document": {
+      "title": "",
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "shapes": [],
+          "connectors": []
+        }
+      ],
+      "idSeq": 100
+    }
+  },
+  "expect": [
+    {
+      "rule": "uml.oneInitial"
+    }
+  ]
+}

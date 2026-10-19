@@ -1,0 +1,10 @@
+@startuml
+package "ui" as e2
+package "domain" as e4
+package "persistence" as e6
+package "util" as e8
+e2 ..> e4 : <<import>>
+e6 ..> e4 : <<import>>
+e4 ..> e8 : <<import>>
+e2 ..> e6
+@enduml
