@@ -190,10 +190,16 @@ pub fn write(table: &Table, sheet: &str) -> Result<Vec<u8>, FormatError> {
 <Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>\
 </Types>"
     );
-    let root_rels = format!("{HEAD}<Relationships xmlns=\"{PKG_REL}\"><Relationship Id=\"rId1\" Type=\"{REL}/officeDocument\" Target=\"xl/workbook.xml\"/></Relationships>");
-    let workbook =
-        format!("{HEAD}<workbook xmlns=\"{MAIN}\" xmlns:r=\"{REL}\"><sheets><sheet name=\"{}\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>", xml_escape(&sheet_name(sheet)));
-    let workbook_rels = format!("{HEAD}<Relationships xmlns=\"{PKG_REL}\"><Relationship Id=\"rId1\" Type=\"{REL}/worksheet\" Target=\"worksheets/sheet1.xml\"/></Relationships>");
+    let root_rels = format!(
+        "{HEAD}<Relationships xmlns=\"{PKG_REL}\"><Relationship Id=\"rId1\" Type=\"{REL}/officeDocument\" Target=\"xl/workbook.xml\"/></Relationships>"
+    );
+    let workbook = format!(
+        "{HEAD}<workbook xmlns=\"{MAIN}\" xmlns:r=\"{REL}\"><sheets><sheet name=\"{}\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>",
+        xml_escape(&sheet_name(sheet))
+    );
+    let workbook_rels = format!(
+        "{HEAD}<Relationships xmlns=\"{PKG_REL}\"><Relationship Id=\"rId1\" Type=\"{REL}/worksheet\" Target=\"worksheets/sheet1.xml\"/></Relationships>"
+    );
 
     let mut data = String::new();
     data.push_str(&format!("{HEAD}<worksheet xmlns=\"{MAIN}\"><sheetData>"));

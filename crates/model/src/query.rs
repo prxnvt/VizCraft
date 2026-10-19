@@ -83,9 +83,7 @@ pub fn default_columns(subject: Subject, sel: &Selector, props: &[String]) -> Ve
 pub fn keys_in_use(model: &Model, subject: Subject, sel: &Selector) -> Vec<String> {
     let mut keys: Vec<String> = match subject {
         Subject::Elements => model.elements.iter().filter(|e| sel.matches(&e.type_id)).flat_map(|e| e.properties.keys().cloned()).collect(),
-        Subject::Relationships => {
-            model.relationships.iter().filter(|r| sel.matches(&r.type_id)).flat_map(|r| r.properties.keys().cloned()).collect()
-        }
+        Subject::Relationships => model.relationships.iter().filter(|r| sel.matches(&r.type_id)).flat_map(|r| r.properties.keys().cloned()).collect(),
     };
     keys.sort();
     keys.dedup();

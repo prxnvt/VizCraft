@@ -157,6 +157,12 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         r#"{"query": string, "scope"?: "page|document"} -> {"query", "scope", "hits": [{"page", "id", "field", "value"}]}"#,
     ),
     (
+        "ui.tables",
+        "Tables",
+        "",
+        r#"{"view"?: "list|matrix", "type"?: element or relationship type, "rows"?: element type, "cols"?: element type, "relationship"?: relationship type, "property"?: string, "filter"?: string} -> {"view", "type", "rows", "cols", "count"}; opens the dock on the Tables tab showing that list (type; empty is every element) or matrix"#,
+    ),
+    (
         "ui.insertPicker",
         "Insert Picker",
         "",

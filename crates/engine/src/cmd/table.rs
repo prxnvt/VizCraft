@@ -207,7 +207,8 @@ fn build_matrix(s: &Session, v: &Value) -> Result<Matrix, EngineError> {
 fn matrix(s: &mut Session, v: &Value) -> CmdResult {
     let m = build_matrix(s, v)?;
     let axis = |a: &[query::Axis]| a.iter().map(|x| json!({"id": x.id, "label": x.label})).collect::<Vec<_>>();
-    let cells: Vec<Value> = m.cells.iter().map(|((r, c), cell)| json!({"row": r, "col": c, "relationships": cell.relationships, "text": cell.text})).collect();
+    let cells: Vec<Value> =
+        m.cells.iter().map(|((r, c), cell)| json!({"row": r, "col": c, "relationships": cell.relationships, "text": cell.text})).collect();
     Ok(json!({"rows": axis(&m.rows), "cols": axis(&m.cols), "count": cells.len(), "cells": cells, "truncated": m.truncated}))
 }
 
@@ -260,7 +261,11 @@ fn set(s: &mut Session, v: &Value) -> CmdResult {
     let shown = match key.as_str() {
         "name" => {
             let name = text(value)?;
-            if is_element { rename_element(&mut s.doc, &id, &name)? } else { rename_relationship(&mut s.doc, &id, &name)? }
+            if is_element {
+                rename_element(&mut s.doc, &id, &name)?
+            } else {
+                rename_relationship(&mut s.doc, &id, &name)?
+            }
             cut(&name, MAX_TEXT)
         }
         "tag" if is_element => {
@@ -277,7 +282,11 @@ fn set(s: &mut Session, v: &Value) -> CmdResult {
         }
         _ => {
             check_key(&key)?;
-            let type_id = if is_element { s.doc.model.element(&id).map(|e| e.type_id.clone()) } else { s.doc.model.relationship(&id).map(|r| r.type_id.clone()) };
+            let type_id = if is_element {
+                s.doc.model.element(&id).map(|e| e.type_id.clone())
+            } else {
+                s.doc.model.relationship(&id).map(|r| r.type_id.clone())
+            };
             let schema: Option<PropertySchema> = type_id.as_deref().and_then(|t| {
                 if is_element {
                     Facts::new(&s.doc.model, cat()).properties(t).into_iter().find(|p| p.key == key).cloned()
@@ -309,9 +318,19 @@ fn toggle(s: &mut Session, v: &Value) -> CmdResult {
     let row = element_of(&s.doc, id_param(v, "row")?).ok_or_else(|| EngineError::Params("`row` is not an element".into()))?;
     let col = element_of(&s.doc, id_param(v, "col")?).ok_or_else(|| EngineError::Params("`col` is not an element".into()))?;
     let type_id = p::req_str(v, "relationship")?.to_string();
-    let rt = cat().relationship_type(&type_id).map(|(_, rt)| rt).ok_or_else(|| EngineError::Params(format!("unknown relationship type `{}`", short(&type_id))))?;
-    let existing: Vec<String> =
-        s.doc.model.relationships.iter().filter(|r| r.type_id == type_id && r.source == row && r.target == col).map(|r| r.id.clone()).take(MAX_IDS).collect();
+    let rt = cat()
+        .relationship_type(&type_id)
+        .map(|(_, rt)| rt)
+        .ok_or_else(|| EngineError::Params(format!("unknown relationship type `{}`", short(&type_id))))?;
+    let existing: Vec<String> = s
+        .doc
+        .model
+        .relationships
+        .iter()
+        .filter(|r| r.type_id == type_id && r.source == row && r.target == col)
+        .map(|r| r.id.clone())
+        .take(MAX_IDS)
+        .collect();
     if !existing.is_empty() {
         let removed = s.doc.model.remove(&existing);
         let gone: Vec<String> = removed.elements.iter().chain(removed.relationships.iter()).cloned().collect();
@@ -362,9 +381,10 @@ fn view_of(s: &Session, v: &Value) -> Result<View, EngineError> {
     match opt_str(v, "view")?.unwrap_or("list") {
         "list" => {
             let (subject, t, type_id) = build_list(s, v)?;
-            let name = type_id.as_deref().map(|t| t.rsplit('.').next().unwrap_or(t).to_string()).unwrap_or_else(|| {
-                if subject == Subject::Elements { "Elements".to_string() } else { "Relationships".to_string() }
-            });
+            let name = type_id
+                .as_deref()
+                .map(|t| t.rsplit('.').next().unwrap_or(t).to_string())
+                .unwrap_or_else(|| if subject == Subject::Elements { "Elements".to_string() } else { "Relationships".to_string() });
             Ok(View { name, columns: t.columns, rows: t.rows, truncated: t.truncated })
         }
         "matrix" => {
@@ -446,7 +466,9 @@ mod tests {
         for (i, (id, ty, name)) in nodes.iter().enumerate() {
             run(&mut s, "element.create", json!({"id": id, "type": ty, "name": name, "x": (i % 3) as f64 * 200.0, "y": (i / 3) as f64 * 150.0}));
         }
-        for (i, (a, b)) in [("start", "gather"), ("gather", "valid"), ("valid", "save"), ("valid", "fix"), ("fix", "gather"), ("save", "end")].iter().enumerate() {
+        for (i, (a, b)) in
+            [("start", "gather"), ("gather", "valid"), ("valid", "save"), ("valid", "fix"), ("fix", "gather"), ("save", "end")].iter().enumerate()
+        {
             run(&mut s, "relationship.create", json!({"id": format!("f{i}"), "from": a, "to": b}));
         }
         s
@@ -483,7 +505,8 @@ mod tests {
         let labels: Vec<&str> = r["rows"].as_array().unwrap().iter().map(|x| x["label"].as_str().unwrap()).collect();
         assert_eq!(labels, ["Gather input", "Save diagram", "Fix input"]);
         // Gather and Save reach Fix only through the decision; Fix flows back to Gather.
-        let cells: Vec<(u64, u64)> = r["cells"].as_array().unwrap().iter().map(|c| (c["row"].as_u64().unwrap(), c["col"].as_u64().unwrap())).collect();
+        let cells: Vec<(u64, u64)> =
+            r["cells"].as_array().unwrap().iter().map(|c| (c["row"].as_u64().unwrap(), c["col"].as_u64().unwrap())).collect();
         assert_eq!(cells, [(2, 0)]);
         assert_eq!(r["cells"][0]["text"], "x");
         assert!(s.run("table.matrix", &json!({"rows": "flowchart.Process", "cols": "nope.Thing"})).is_err());
@@ -512,7 +535,10 @@ mod tests {
         let r = run(&mut s, "table.set", json!({"id": id, "key": "automated", "value": "yes"}));
         assert_eq!(r["value"], "true");
         let e = s.doc.model.element(&id).unwrap();
-        assert_eq!((e.tag.as_str(), e.prop("owner"), e.prop("automated")), ("P1", Some(&PropValue::Text("Ana".into())), Some(&PropValue::Bool(true))));
+        assert_eq!(
+            (e.tag.as_str(), e.prop("owner"), e.prop("automated")),
+            ("P1", Some(&PropValue::Text("Ana".into())), Some(&PropValue::Bool(true)))
+        );
         run(&mut s, "table.set", json!({"id": id, "key": "owner", "value": ""}));
         assert!(s.doc.model.element(&id).unwrap().prop("owner").is_none());
         for bad in [
