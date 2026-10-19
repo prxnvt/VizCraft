@@ -1395,9 +1395,33 @@ branch, the session that owns it merges them back into it, runs `cargo xtask ci`
 ROADMAP.md, docs/parity.md, docs/mcp.md and docs/formats.md there, and main is left alone until
 the user says to bring the work over. The integration branch first takes the merged Block 5 main.
 Models follow the branch tables (Opus or Sonnet per branch), at medium effort, at most five
-agents at once; Block 6 wave 1 (seven branches) and Block 6E wave 1 (three branches) run as one
-pool of ten, five at a time. After each wave is merged the session stops and hands the user a
-test checklist and a launch command, and starts the next wave only on the user's go-ahead.
+agents at once. After each wave is merged the session stops and hands the user a test checklist
+and a launch command, and starts the next wave only on the user's go-ahead.
+
+Backend before frontend (decided by the user on 2026-10-19). The research branch tables are
+regrouped so the engine work lands first: model and diagram types, pack schema and packs, the
+sync pass, engine commands, layout, formats, SVG and PDF export, compatibility with existing
+documents (serde defaults, sanitising, round trips) and their tests, all reachable by command id
+and checked over the CLI and the control channel. Canvas tools and drawing, panes, ribbon groups,
+dock tabs, the New gallery and the key dispatcher come after, in frontend waves built on the
+merged engine. A research branch that spans both is split in two (for example `b6e-substrate`
+into the net model, glue, orientation and `net.*` commands first, then the Wire and Pipe tools,
+the bare-letter keys, net drawing on the canvas and the Nets dock tab). The waves, provisionally,
+to be fixed in the briefs against the merged Block 5 code:
+
+| Wave | Kind | Branches |
+|---|---|---|
+| 1 | Backend foundations | engine halves of `b6e-substrate`, `b6e-sheets`, `b6e-builders`, `b6-templates`, `b6-analysis` |
+| 2 | Backend packs and formats | `b6-uml`, `b6-er`, engine half of `b6-sequence`, `b6-topology` (packs, nesting, key command, Mermaid architecture) |
+| 3 | Frontend | UI halves of wave 1 and 2 (Wire and Pipe tools, keys, nets drawing and dock, sheet ribbon, symbol parameters in the Inspector, palette previews, New gallery and preset, Analyze ribbon and dock, sequence interaction and drawing), then `b6-ux` |
+| 4 | Packs on the substrate | `b6-c4`, `b6-code`, `b6e-electrical`, `b6e-process`, `b6e-fluidpower`, `b6e-mechanical` (each pack's engine first, its ribbon after) |
+| 5 | Frontend finish | `b6e-ux`, the pack ribbons, template preview snapshots |
+
+Standards are always a choice. IEC 60617 symbols on an ISO A3 sheet with an ISO 7200 title block
+are the default for a new engineering page that does not come from a template; ANSI and JIC
+symbols and ANSI and ASME sheets are offered alongside everywhere a standard is chosen (the New
+dialog, Page Setup, the Variant menu, `variant.set`, `sheet.set`), and switching redraws without
+re-placing anything.
 
 
 ## Block 7: first deep packs (ROADMAP Cascade 6, three tracks)
