@@ -99,6 +99,122 @@ fn fan(idx: &[usize], out: &mut Vec<[u32; 3]>) {
     }
 }
 
+/// Most rings [`even_odd`] sorts into outlines and holes; past it each ring fills on its own.
+const MAX_RINGS: usize = 256;
+
+/// Whether `p` is inside the polygon `pts` (crossing count).
+fn in_ring(p: Pos2, pts: &[Pos2]) -> bool {
+    let n = pts.len();
+    let mut inside = false;
+    for i in 0..n {
+        let (Some(a), Some(b)) = (pts.get(i), pts.get((i + n - 1) % n)) else { continue };
+        if (a.y > p.y) != (b.y > p.y) && p.x < (b.x - a.x) * (p.y - a.y) / (b.y - a.y) + a.x {
+            inside = !inside;
+        }
+    }
+    inside
+}
+
+/// Whether segments `ab` and `cd` cross at a point inside both (touching at an end does not
+/// count, so a bridge may start and end on polygon corners).
+fn crosses(a: Pos2, b: Pos2, c: Pos2, d: Pos2) -> bool {
+    if a == c || a == d || b == c || b == d {
+        return false;
+    }
+    let (d1, d2) = (cross(a, b, c), cross(a, b, d));
+    let (d3, d4) = (cross(c, d, a), cross(c, d, b));
+    ((d1 > 0.0 && d2 < 0.0) || (d1 < 0.0 && d2 > 0.0)) && ((d3 > 0.0 && d4 < 0.0) || (d3 < 0.0 && d4 > 0.0))
+}
+
+fn edges(pts: &[Pos2]) -> impl Iterator<Item = (Pos2, Pos2)> + '_ {
+    let n = pts.len();
+    (0..n).filter_map(move |i| Some((*pts.get(i)?, *pts.get((i + 1) % n)?)))
+}
+
+/// `outer` with `hole` cut in: the hole's rightmost point joined to the nearest point of
+/// `outer` that the joining segment can reach without crossing `outer`, the hole itself or any
+/// of `others`, giving one polygon that runs out along the bridge, round the hole and back.
+/// `None` when no such point exists.
+fn bridge(outer: &[Pos2], hole: &[Pos2], others: &[Vec<Pos2>]) -> Option<Vec<Pos2>> {
+    let (mi, m) = hole.iter().copied().enumerate().max_by(|a, b| a.1.x.total_cmp(&b.1.x))?;
+    let mut order: Vec<usize> = (0..outer.len()).collect();
+    order.sort_by(|&i, &j| {
+        let d = |k: usize| outer.get(k).map_or(f32::INFINITY, |q| q.distance_sq(m));
+        d(i).total_cmp(&d(j))
+    });
+    let pi = order.into_iter().find(|&i| {
+        let Some(&p) = outer.get(i) else { return false };
+        !edges(outer).any(|(a, b)| crosses(m, p, a, b))
+            && !edges(hole).any(|(a, b)| crosses(m, p, a, b))
+            && !others.iter().any(|o| edges(o).any(|(a, b)| crosses(m, p, a, b)))
+    })?;
+    let p = *outer.get(pi)?;
+    let mut out = Vec::with_capacity(outer.len() + hole.len() + 2);
+    out.extend_from_slice(outer.get(..=pi)?);
+    out.extend_from_slice(hole.get(mi..)?);
+    out.extend_from_slice(hole.get(..=mi)?);
+    out.push(p);
+    out.extend_from_slice(outer.get(pi + 1..)?);
+    Some(out)
+}
+
+/// The even-odd fill of closed `rings` as pieces of points and triangles: a ring inside an odd
+/// number of others is a hole, cut into the smallest ring around it by bridging, so the fill
+/// shows through it. A ring that cannot be bridged, or more rings or points than the limits,
+/// fill each ring on its own (the fan fallback of [`triangulate`] still applies).
+pub fn even_odd(rings: &[Vec<Pos2>]) -> Vec<(Vec<Pos2>, Vec<[u32; 3]>)> {
+    let alone = |r: &Vec<Pos2>| (r.clone(), triangulate(r));
+    let total: usize = rings.iter().map(Vec::len).sum();
+    if rings.len() < 2 || rings.len() > MAX_RINGS || total > MAX_EAR_POINTS {
+        return rings.iter().map(alone).collect();
+    }
+    let area: Vec<f32> = rings.iter().map(|r| area2(r).abs()).collect();
+    let at = |i: usize| area.get(i).copied().unwrap_or(0.0);
+    // The rings around each ring, judged by its first point; only larger rings can hold it.
+    let around: Vec<Vec<usize>> = rings
+        .iter()
+        .enumerate()
+        .map(|(i, r)| {
+            let Some(&p) = r.first() else { return Vec::new() };
+            (0..rings.len()).filter(|&j| j != i && at(j) > at(i) && rings.get(j).is_some_and(|o| in_ring(p, o))).collect()
+        })
+        .collect();
+    let depth = |i: usize| around.get(i).map_or(0, Vec::len);
+    let parent = |i: usize| around.get(i).and_then(|a| a.iter().copied().min_by(|&x, &y| at(x).total_cmp(&at(y))));
+    let mut out = Vec::new();
+    for (i, ring) in rings.iter().enumerate() {
+        if depth(i) % 2 == 1 {
+            continue;
+        }
+        let sign = area2(ring).signum();
+        let mut holes: Vec<Vec<Pos2>> =
+            (0..rings.len()).filter(|&h| depth(h) % 2 == 1 && parent(h) == Some(i)).filter_map(|h| rings.get(h).cloned()).collect();
+        // Holes wind against the outline, rightmost first so each bridge reaches the outline.
+        for h in &mut holes {
+            if area2(h).signum() == sign {
+                h.reverse();
+            }
+        }
+        holes.sort_by(|a, b| {
+            let right = |r: &Vec<Pos2>| r.iter().map(|p| p.x).fold(f32::NEG_INFINITY, f32::max);
+            right(b).total_cmp(&right(a))
+        });
+        let mut merged = ring.clone();
+        let mut left: Vec<Vec<Pos2>> = Vec::new();
+        for (k, h) in holes.iter().enumerate() {
+            let rest: Vec<Vec<Pos2>> = holes.get(k + 1..).unwrap_or_default().to_vec();
+            match bridge(&merged, h, &rest) {
+                Some(m) => merged = m,
+                None => left.push(h.clone()),
+            }
+        }
+        out.push((merged.clone(), triangulate(&merged)));
+        // A hole that could not be cut in is drawn over as its own fill rather than lost.
+        out.extend(left.iter().map(alone));
+    }
+    out
+}
+
 /// Most dashes one polyline is cut into; past it the rest of the line is left solid, so a
 /// hairline dash pattern on a huge outline cannot allocate without bound.
 const MAX_DASHES: usize = 20_000;
@@ -419,6 +535,20 @@ mod tests {
                 cross(p(t[0]), p(t[1]), p(t[2])).abs() / 2.0
             })
             .sum()
+    }
+
+    #[test]
+    fn a_ring_inside_another_is_a_hole_and_islands_fill_again() {
+        let sq = |x0: f32, y0: f32, x1: f32, y1: f32| vec![pos2(x0, y0), pos2(x1, y0), pos2(x1, y1), pos2(x0, y1)];
+        let rings = vec![sq(0.0, 0.0, 100.0, 100.0), sq(20.0, 20.0, 50.0, 50.0), sq(60.0, 60.0, 80.0, 80.0), sq(30.0, 30.0, 40.0, 40.0)];
+        let pieces = even_odd(&rings);
+        let total: f32 = pieces.iter().map(|(p, t)| area_of(p, t)).sum();
+        // The square minus two holes, plus the island inside the first hole.
+        assert!((total - (10000.0 - 900.0 - 400.0 + 100.0)).abs() < 1e-2, "{total}");
+        assert_eq!(pieces.len(), 2, "one bridged outline and the island");
+        // One ring, or junk, fills as before.
+        assert_eq!(even_odd(&rings[..1]).len(), 1);
+        assert!(!even_odd(&[vec![pos2(f32::NAN, 0.0), pos2(1.0, 1.0), pos2(0.0, 1.0)], sq(0.0, 0.0, 1.0, 1.0)]).is_empty());
     }
 
     #[test]

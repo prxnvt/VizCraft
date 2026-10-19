@@ -61,9 +61,35 @@ pub struct Pack {
     pub patterns: Vec<String>,
     /// Exporter ids the pack supports (none yet).
     pub exporters: Vec<String>,
+    /// Rendering variants: other ways of drawing the same element and relationship types (Chen
+    /// against crow's foot, Gane-Sarson against Yourdon). A page picks one in `View.variant`;
+    /// none picked is the default drawing (each type's own glyph and connector type).
+    pub variants: Vec<Variant>,
+}
+
+/// A rendering variant of a pack: which glyph draws each element type and which connector type
+/// draws each relationship type, for the types it changes. A type it does not list keeps its
+/// default drawing. Ids are pack-qualified like the types (`er.chen`).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct Variant {
+    /// Variant id, `<pack>.<name>`.
+    pub id: String,
+    /// Name shown in the notation tab's Variant menu.
+    pub label: String,
+    /// One sentence on what changes.
+    pub description: String,
+    /// Element type id to glyph id.
+    pub glyphs: std::collections::BTreeMap<String, String>,
+    /// Relationship type id to connector type id.
+    pub connectors: std::collections::BTreeMap<String, String>,
 }
 
 impl Pack {
+    /// The variant with this id.
+    pub fn variant(&self, id: &str) -> Option<&Variant> {
+        self.variants.iter().find(|v| v.id == id)
+    }
     /// The element type with this qualified id.
     pub fn element_type(&self, id: &str) -> Option<&ElementType> {
         self.element_types.iter().find(|t| t.id == id)
@@ -109,8 +135,18 @@ pub struct Glyph {
     pub label: String,
     /// Category in the Shapes pane; categories show in order of first appearance.
     pub category: String,
-    /// Outline: a `ShapeKind` name from `vizcraft-diagram` (`diamond`, `terminator`).
+    /// Outline: a `ShapeKind` name from `vizcraft-diagram` (`diamond`, `terminator`), or `path`
+    /// for an outline drawn by [`Glyph::path`].
     pub outline: String,
+    /// With outline `path`: the outline as SVG-style path data in a unit box (`0 0` to `1 1`):
+    /// `M`, `L`, `C`, `Q` and `Z`, absolute coordinates. Closed subpaths fill even-odd, open ones
+    /// are lines. Read by [`crate::glyph_path`]; the shape stretches it onto its frame.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub path: String,
+    /// With outline `path`: extra lines over the fill in the same unit box (an inner rim, a
+    /// cross), never filled. Optional.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub detail: String,
     /// Default width in world units.
     pub w: f64,
     /// Default height in world units.

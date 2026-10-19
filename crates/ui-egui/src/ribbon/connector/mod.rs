@@ -1,4 +1,5 @@
-//! The contextual Connector tab, shown while a connector is selected: kind, route, arrows and style.
+//! The contextual Connector tab, shown while a connector is selected: kind, route, arrows, end
+//! labels and style.
 
 use super::Tab;
 use crate::CraftApp;
@@ -12,6 +13,7 @@ groups! {
     kind,
     route,
     arrows,
+    end_labels,
     style,
 }
 

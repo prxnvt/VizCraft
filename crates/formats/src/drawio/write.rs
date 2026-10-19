@@ -5,7 +5,9 @@ use vizcraft_drawio::{
     Attributes, Cell, Geometry, GraphModel, Style as DStyle, StyleItem, Wrapper, WrapperKind, format_f64, html_to_text, text_to_html,
 };
 
-use super::read::{COMPARTMENTS_ATTR, EXT_ATTR, EXT_FONT_STYLE, EXT_MODEL, EXT_STYLE, EXT_WRAPPER, master_for_kind};
+use super::read::{
+    COMPARTMENTS_ATTR, END_LABEL_ATTR, EXT_ATTR, EXT_FONT_STYLE, EXT_MODEL, EXT_STYLE, EXT_WRAPPER, START_LABEL_ATTR, master_for_kind,
+};
 
 /// The id of the root cell and of the one layer every page is written with.
 const ROOT: &str = "0";
@@ -135,6 +137,7 @@ fn arrow(a: Arrow) -> (&'static str, bool) {
         Arrow::CrowsFootBar => ("ERoneToMany", false),
         Arrow::CrowsFootCircle => ("ERzeroToMany", false),
         Arrow::BarCircle => ("ERzeroToOne", false),
+        Arrow::Slash => ("dash", false),
     }
 }
 
@@ -239,6 +242,23 @@ fn compartments_ext(shape: &Shape) -> std::borrow::Cow<'_, std::collections::BTr
     std::borrow::Cow::Owned(ext)
 }
 
+/// The connector's `ext` with its end labels added as the wrapper attributes
+/// [`START_LABEL_ATTR`] and [`END_LABEL_ATTR`], the way [`compartments_ext`] carries
+/// compartments.
+fn end_labels_ext(c: &Connector) -> std::borrow::Cow<'_, std::collections::BTreeMap<String, String>> {
+    if c.start_label.is_empty() && c.end_label.is_empty() {
+        return std::borrow::Cow::Borrowed(&c.ext);
+    }
+    let mut ext = c.ext.clone();
+    ext.entry(EXT_WRAPPER.to_string()).or_insert_with(|| "object".to_string());
+    for (attr, v) in [(START_LABEL_ATTR, &c.start_label), (END_LABEL_ATTR, &c.end_label)] {
+        if !v.is_empty() {
+            ext.insert(format!("{EXT_ATTR}{attr}"), v.clone());
+        }
+    }
+    std::borrow::Cow::Owned(ext)
+}
+
 fn geometry() -> Geometry {
     Geometry { as_: Some("geometry".into()), ..Geometry::default() }
 }
@@ -271,7 +291,7 @@ pub(crate) fn model_from_page(page: &Page) -> GraphModel {
     }
     for c in &page.connectors {
         let (value, html) = label(&c.text);
-        let mut cell = labelled(cell_id(&c.id), value, &c.ext);
+        let mut cell = labelled(cell_id(&c.id), value, &end_labels_ext(c));
         cell.parent = Some(LAYER.into());
         cell.edge = true;
         cell.style = Some(edge_style(page, c, html));

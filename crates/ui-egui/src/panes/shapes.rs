@@ -23,7 +23,8 @@ pub struct MasterDrag(pub String);
 const TILE: egui::Vec2 = egui::vec2(66.0, 66.0);
 
 /// A small drawing of a master's outline, fitted into `r` (document colours: it previews what
-/// the master inserts).
+/// the master inserts). A path glyph previews from its path: closed rings fill even-odd, open
+/// ones are lines.
 fn master_preview(painter: &egui::Painter, m: &vizcraft_stencils::Master, r: Rect) {
     use crate::canvas::draw::{color, pos};
     let (w, h) = (m.w.max(1.0), m.h.max(1.0));
@@ -32,22 +33,24 @@ fn master_preview(painter: &egui::Painter, m: &vizcraft_stencils::Master, r: Rec
     let origin = r.center() - vec2(w as f32, h as f32) / 2.0;
     let place = |p: vizcraft_diagram::Point| origin + pos(p).to_vec2();
     let stroke = Stroke::new(1.0, color(m.style.line));
-    for pl in m.kind.outline(w, h).flatten(0.3) {
-        let pts: Vec<egui::Pos2> = pl.points.iter().map(|p| place(*p)).collect();
-        if pl.closed {
-            let tris = crate::canvas::tess::triangulate(&pts);
-            let mut mesh = egui::epaint::Mesh::default();
-            for p in &pts {
-                mesh.colored_vertex(*p, color(m.style.fill));
-            }
-            for [a, b, c] in tris {
-                mesh.add_triangle(a, b, c);
-            }
-            painter.add(egui::Shape::mesh(mesh));
-            painter.add(egui::Shape::closed_line(pts, stroke));
-        } else {
-            painter.add(egui::Shape::line(pts, stroke));
+    let outline = match &m.path {
+        Some(p) => p.transformed(&vizcraft_diagram::Transform::scale(w, h)),
+        None => m.kind.outline(w, h),
+    };
+    let rings: Vec<(Vec<egui::Pos2>, bool)> = outline.flatten(0.3).into_iter().map(|pl| (pl.points.iter().map(|p| place(*p)).collect(), pl.closed)).collect();
+    let closed: Vec<Vec<egui::Pos2>> = rings.iter().filter(|(_, c)| *c).map(|(p, _)| p.clone()).collect();
+    for (pts, tris) in crate::canvas::tess::even_odd(&closed) {
+        let mut mesh = egui::epaint::Mesh::default();
+        for p in &pts {
+            mesh.colored_vertex(*p, color(m.style.fill));
         }
+        for [a, b, c] in tris {
+            mesh.add_triangle(a, b, c);
+        }
+        painter.add(egui::Shape::mesh(mesh));
+    }
+    for (pts, closed) in rings {
+        painter.add(if closed { egui::Shape::closed_line(pts, stroke) } else { egui::Shape::line(pts, stroke) });
     }
     if let Some(d) = m.kind.detail(w, h) {
         for pl in d.flatten(0.3) {
@@ -57,9 +60,20 @@ fn master_preview(painter: &egui::Painter, m: &vizcraft_stencils::Master, r: Rec
     }
 }
 
+/// The master the active page draws `m`'s element type with: its rendering variant's glyph when
+/// the variant maps the type, else `m`.
+fn shown(app: &CraftApp, m: &'static vizcraft_stencils::Master) -> &'static vizcraft_stencils::Master {
+    let variant = app.session.doc.page().and_then(|p| p.view.as_ref()).map(|v| v.variant.as_str()).unwrap_or_default();
+    if variant.is_empty() {
+        return m;
+    }
+    vizcraft_stencils::variant_master(m.id, variant).unwrap_or(m)
+}
+
 /// One master tile: preview and label. Click inserts at the view centre; dragging carries a
 /// [`MasterDrag`] to the canvas.
 fn master_tile(app: &mut CraftApp, ui: &mut Ui, m: &'static vizcraft_stencils::Master) {
+    let m = shown(app, m);
     let t = Tokens::get(ui.ctx());
     let (r, resp) = ui.allocate_exact_size(TILE, Sense::click_and_drag());
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, m.label));
@@ -156,16 +170,20 @@ fn item_row(app: &mut CraftApp, ui: &mut Ui, item: &Item) {
         ui.painter().rect_filled(r, CornerRadius::same(3), t.hover);
     }
     let art = Rect::from_center_size(pos2(r.left() + 20.0, r.center().y), vec2(26.0, 16.0));
-    match item.what {
+    let what = match item.what {
+        What::Master(m) => What::Master(shown(app, m)),
+        other => other,
+    };
+    match what {
         What::Master(m) => master_preview(ui.painter(), m, art),
         What::Kind(k) => kind_preview(ui.painter(), k, art, t.text),
     }
     ui.painter().with_clip_rect(r).text(pos2(r.left() + 40.0, r.center().y), egui::Align2::LEFT_CENTER, label, regular(12.0), t.text);
-    let tip = match item.what {
+    let tip = match what {
         What::Master(m) => m.label,
         What::Kind(_) => "Draw connectors of this kind",
     };
-    act(app, ui, &resp.on_hover_text(tip), item.what);
+    act(app, ui, &resp.on_hover_text(tip), what);
 }
 
 /// Tiles in rows of as many as fit the pane's width.

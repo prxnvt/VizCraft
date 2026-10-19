@@ -28,7 +28,9 @@ fn tol(t: f64) -> f64 {
 }
 
 /// Whether `p` is inside `shape`'s outline or within `tolerance` of it. Rotation is honoured by
-/// testing against the outline in world space.
+/// testing against the outline in world space. Closed rings count even-odd, as they fill: a
+/// point inside a ring that lies inside another (a hole) is outside the shape. Open rings (a
+/// freeform's lines) are hit by distance only.
 pub fn shape_contains(shape: &Shape, p: Point, tolerance: f64) -> bool {
     if !p.is_finite() {
         return false;
@@ -38,14 +40,21 @@ pub fn shape_contains(shape: &Shape, p: Point, tolerance: f64) -> bool {
         return false;
     }
     let lines = shape.outline_world().flatten(HIT_FLATTEN);
-    lines.iter().any(|pl| pl.closed && point_in_polygon(p, &pl.points))
-        || lines.iter().any(|pl| pl.segments().any(|(a, b)| distance_to_segment(p, a, b) <= t))
+    let rings = lines.iter().filter(|pl| pl.closed && point_in_polygon(p, &pl.points)).count();
+    rings % 2 == 1 || lines.iter().any(|pl| pl.segments().any(|(a, b)| distance_to_segment(p, a, b) <= t))
+}
+
+/// Whether a click may pick `s`: selectable by its layers and not locked against selection
+/// (a select-locked shape is still reached by id).
+fn clickable(page: &Page, s: &Shape) -> bool {
+    layer::selectable(page, s) && !s.locks.select
 }
 
 /// The topmost selectable shape under `p` (last in z order first), within `tolerance` of its
-/// outline. Hidden shapes and shapes on a locked layer are passed over.
+/// outline. Hidden shapes, shapes on a locked layer and shapes locked against selection are
+/// passed over.
 pub fn shape_at(page: &Page, p: Point, tolerance: f64) -> Option<&Shape> {
-    page.shapes.iter().rev().find(|s| layer::selectable(page, s) && shape_contains(s, p, tolerance))
+    page.shapes.iter().rev().find(|s| clickable(page, s) && shape_contains(s, p, tolerance))
 }
 
 /// The topmost shape under `p` that a connector end may glue to: visible and on no layer that
@@ -74,9 +83,9 @@ pub fn hit(page: &Page, p: Point, tolerance: f64) -> Option<Hit> {
 }
 
 /// Selectable shapes whose rotated bounds lie entirely inside `rect` (marquee selection), in z
-/// order; hidden and locked shapes are left out.
+/// order; hidden, locked and select-locked shapes are left out.
 pub fn shapes_in_rect(page: &Page, rect: Rect) -> Vec<&Shape> {
-    page.shapes.iter().filter(|s| layer::selectable(page, s) && rect.contains_rect(&s.bounds())).collect()
+    page.shapes.iter().filter(|s| clickable(page, s) && rect.contains_rect(&s.bounds())).collect()
 }
 
 /// Connectors whose whole route lies inside `rect` (marquee selection), in z order.
@@ -181,6 +190,35 @@ mod tests {
         // No compartments: the main text.
         let plain = stacked(Layer::default());
         assert_eq!(band_at(&plain, Point::new(50.0, 50.0), 1.0).map(|b| (b.shape, b.compartment)), Some(("top".into(), None)));
+    }
+
+    #[test]
+    fn a_freeform_with_a_hole_is_hit_only_on_the_ring() {
+        use crate::geom::Path;
+        use crate::shape_fields::Freeform;
+        let mut path = Path::polygon(&[Point::new(0.0, 0.0), Point::new(100.0, 0.0), Point::new(100.0, 100.0), Point::new(0.0, 100.0)]);
+        path.els.extend(Path::polygon(&[Point::new(30.0, 30.0), Point::new(70.0, 30.0), Point::new(70.0, 70.0), Point::new(30.0, 70.0)]).els);
+        // An open line across the top, outside both rings, hit by distance only.
+        path.els.extend(Path::polyline(&[Point::new(0.0, -40.0), Point::new(100.0, -40.0)]).els);
+        let mut s = Shape::new("f", ShapeKind::Freeform, 0.0, -40.0, 100.0, 140.0);
+        s.path = Some(Freeform::new(&path, true));
+        s.sanitize();
+        assert!(shape_contains(&s, Point::new(10.0, 50.0), 0.0), "on the ring");
+        assert!(!shape_contains(&s, Point::new(50.0, 50.0), 0.0), "in the hole");
+        assert!(shape_contains(&s, Point::new(50.0, 50.0), 25.0), "near the hole's edge with a wide tolerance");
+        assert!(shape_contains(&s, Point::new(50.0, -40.5), 1.0), "on the open line");
+        assert!(!shape_contains(&s, Point::new(50.0, -20.0), 1.0), "an open line encloses nothing");
+    }
+
+    #[test]
+    fn a_select_locked_shape_is_not_clicked_or_marqueed() {
+        let at = Point::new(50.0, 50.0);
+        let mut p = stacked(Layer::default());
+        p.shapes[1].locks.select = true;
+        assert_eq!(hit(&p, at, 1.0), Some(Hit::Shape("under".into())));
+        assert_eq!(ids(shapes_in_rect(&p, all())), vec!["under"]);
+        assert!(p.shape("top").is_some(), "still there by id");
+        assert_eq!(glue_shape_at(&p, at, 1.0).map(|s| s.id.as_str()), Some("top"), "glue is not a click");
     }
 
     #[test]

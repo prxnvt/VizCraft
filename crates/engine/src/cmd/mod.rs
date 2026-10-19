@@ -47,6 +47,7 @@ pub mod shapeop;
 pub mod suggest;
 pub mod text;
 pub mod validate;
+pub mod variant;
 pub mod view;
 
 use std::collections::HashSet;
@@ -92,6 +93,7 @@ pub fn registry() -> Registry {
     v.extend(report::specs());
     v.extend(document::specs());
     v.extend(notation::specs());
+    v.extend(variant::specs());
     v.extend(insert::specs());
     v.extend(suggest::specs());
     v.extend(protect::specs());

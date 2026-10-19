@@ -25,13 +25,16 @@ pub fn specs() -> Vec<CommandSpec> {
             .params(r#"{"ids"?: [string], "route": "straight"|"orthogonal"|"curved"}"#)
             .when(has_connectors),
         CommandSpec::new("connector.setArrows", "Arrowheads", "Connector > Arrows", set_arrows)
-            .params(r#"{"ids"?: [string], "start"?: arrow, "end"?: arrow}; arrow = "none"|"triangle"|"open"|"diamond"|"circle""#)
+            .params(r#"{"ids"?: [string], "start"?: arrow, "end"?: arrow}; arrow = "none"|"triangle"|"open"|"diamond"|"circle"|"hollowTriangle"|"hollowDiamond"|"bar"|"openCircle"|"crowsFoot"|"crowsFootBar"|"crowsFootCircle"|"barCircle"|"slash""#)
             .when(has_connectors),
         CommandSpec::new("connector.reroute", "Avoid Shapes", "Design > Connectors", reroute)
             .params(r#"{"ids"?: [string], "avoid"?: bool (default true)} -> {"ids", "avoid"}; true routes orthogonally around shapes and keeps the route clear after every change, false clears the stored bends; default: the selected connectors, else all"#)
             .when(has_connectors),
         CommandSpec::new("connector.setJumps", "Line Jumps", "Design > Connectors", set_jumps)
             .params(r#"{"ids"?: [string], "on": bool} -> {"ids", "on"}; draw a hop where the connector crosses one drawn before it; default: the selected connectors, else all"#)
+            .when(has_connectors),
+        CommandSpec::new("connector.setEndLabels", "End Labels", "Connector > End Labels", set_end_labels)
+            .params(r#"{"ids"?: [string], "start"?: string or number, "end"?: string or number} -> {"ids"}; the text beside each end (a cardinality such as "1" or "N", a multiplicity such as "0..*"), drawn a little outside the line; "" or null clears one; default: the selected connectors"#)
             .when(has_connectors),
         CommandSpec::new("connector.setText", "Edit Text", "Home > Font", set_text).params(r#"{"id": string, "text": string}; on a connector of a relationship, renames the relationship and every view of it"#).when(has_connectors),
     ]
@@ -179,6 +182,44 @@ fn set_arrows(s: &mut Session, v: &Value) -> CmdResult {
     with_sel(s, json!({"ids": ids}))
 }
 
+/// An end label param: absent is `None` (leave it), text or a number is the new label, null is
+/// empty (clear it).
+fn end_label_param(v: &Value, k: &str) -> Result<Option<String>, EngineError> {
+    match v.get(k) {
+        None => Ok(None),
+        Some(Value::Null) => Ok(Some(String::new())),
+        Some(Value::String(t)) => Ok(Some(t.clone())),
+        // A ribbon field sends "1" as the number 1.0; it reads back as written.
+        Some(Value::Number(n)) => Ok(Some(match n.as_f64() {
+            Some(f) if f.fract() == 0.0 && f.abs() < 1e15 => format!("{}", f as i64),
+            _ => n.to_string(),
+        })),
+        Some(_) => Err(EngineError::Params(format!("`{k}` must be text, a number or null"))),
+    }
+}
+
+fn set_end_labels(s: &mut Session, v: &Value) -> CmdResult {
+    let start = end_label_param(v, "start")?;
+    let end = end_label_param(v, "end")?;
+    if start.is_none() && end.is_none() {
+        return Err(EngineError::Params("give `start`, `end` or both".into()));
+    }
+    let ids = targets(s, v, Kinds::Connectors)?;
+    let page = page_mut(s)?;
+    for id in &ids {
+        if let Some(c) = page.connector_mut(id) {
+            if let Some(t) = &start {
+                c.start_label = t.trim().to_string();
+            }
+            if let Some(t) = &end {
+                c.end_label = t.trim().to_string();
+            }
+            c.sanitize();
+        }
+    }
+    with_sel(s, json!({"ids": ids}))
+}
+
 fn set_text(s: &mut Session, v: &Value) -> CmdResult {
     let id = p::req_str(v, "id")?;
     let text = p::req_str(v, "text")?;
@@ -255,4 +296,37 @@ fn set_jumps(s: &mut Session, v: &Value) -> CmdResult {
 
 fn not_a_connector(id: &str) -> EngineError {
     EngineError::Params(format!("`{}` is not a connector on this page", short(id)))
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+    use vizcraft_diagram::{Document, Shape, ShapeKind};
+
+    use crate::Session;
+
+    #[test]
+    fn set_end_labels_sets_clears_and_refuses_junk() {
+        let mut doc = Document::new();
+        let page = doc.page_mut().unwrap();
+        page.shapes.push(Shape::new("a", ShapeKind::Rectangle, 0.0, 0.0, 100.0, 60.0));
+        page.shapes.push(Shape::new("b", ShapeKind::Rectangle, 300.0, 0.0, 100.0, 60.0));
+        let mut s = Session::new(doc);
+        let c = s.run("connector.add", &json!({"from": {"shape": "a"}, "to": {"shape": "b"}})).unwrap()["id"].as_str().unwrap().to_string();
+        s.run("connector.setEndLabels", &json!({"ids": [c], "start": "1", "end": "N"})).unwrap();
+        let get = |s: &Session| {
+            let k = s.doc.pages[0].connector(&c).unwrap();
+            (k.start_label.clone(), k.end_label.clone())
+        };
+        assert_eq!(get(&s), ("1".to_string(), "N".to_string()));
+        // A number from a ribbon field reads as written; null clears; an absent end stays.
+        s.run("connector.setEndLabels", &json!({"ids": [c], "start": 1.0})).unwrap();
+        s.run("connector.setEndLabels", &json!({"ids": [c], "end": null})).unwrap();
+        assert_eq!(get(&s), ("1".to_string(), String::new()));
+        s.run("connector.setEndLabels", &json!({"ids": [c], "end": "0..*".repeat(100_000)})).unwrap();
+        assert!(get(&s).1.len() <= vizcraft_diagram::MAX_TEXT, "capped like the label");
+        for bad in [json!({"ids": [c]}), json!({"ids": [c], "start": []}), json!({"ids": ["nope"], "start": "1"}), json!({"ids": [c], "end": {}})] {
+            assert!(s.run("connector.setEndLabels", &bad).is_err(), "{bad}");
+        }
+    }
 }
