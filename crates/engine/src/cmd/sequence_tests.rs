@@ -263,3 +263,15 @@ fn native_round_trip() {
     assert_eq!(back.pages, s.doc.pages);
     assert_eq!(back.model, s.doc.model);
 }
+
+#[test]
+fn deleting_a_lifeline_leaves_free_ends_the_dangling_rule_reports() {
+    let mut s = template();
+    run(&mut s, "shape.delete", json!({"ids": ["db"]}));
+    let page = s.doc.page().unwrap();
+    assert!(page.connector("m2").unwrap().end.shape().is_none());
+    let events = &page.sequence.as_ref().unwrap().events;
+    assert!(!events.contains(&Event::Message("m2".into())) && events.contains(&Event::Message("m1".into())));
+    let issues = run(&mut s, "validate.run", json!({}));
+    assert!(issues["issues"].as_array().unwrap().iter().any(|i| i["rule"] == "uml.dangling"), "{issues}");
+}
