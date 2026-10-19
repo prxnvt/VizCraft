@@ -52,7 +52,8 @@ worktree. Report in at most 15 lines: commits, command ids added, doc rows to ch
 | 3 Workspace (ROADMAP 4B) | 1, 2A pages, 2B Shape Data pane, 2C (conformance profile and `Issue.fixes`, connector kinds, `describe`, disk packs) | 4 |
 | 4 Visio extras | 1, 2A, 2B, 2C board frame (`b4-fixes`); inside the block `b4-pictures` needs `b4-shapeops` merged | 3 |
 | 5 Generators and glyphs (ROADMAP 5A, 5B) | 1, 3 dock, 4 table reader (`b4-datagfx`) | late 3 and 4 |
-| 7 First deep packs (ROADMAP 6) | 5 (glyphs for drawing, patterns and codegen for generator pieces) | 8 once a track's first pack lands |
+| 6E Electrical and mechanical engineering (proposed) | 5 (path glyphs, ports, variants, tables, patterns); wave 2 needs Block 6's templates, key and title block | Block 6 wave 1 |
+| 7 First deep packs (ROADMAP 6) | 5 (glyphs for drawing, patterns and codegen for generator pieces); 6E if approved (P&ID, loops and the electrical pack move there) | 8 once a track's first pack lands |
 | 8 Second-wave packs and interop (ROADMAP 7 plus new standards) | 7 per track | 9 |
 | 9 General pack and broad interop (ROADMAP 8) | 2B containers, 5 patterns | 8 |
 
@@ -1330,6 +1331,29 @@ fix deletes it, in one undo step; that a CSV with `id` and `tag` columns round-t
 their R lanes and `toTable` returns the same rows; that a parent-id table builds a tree and a
 reparented element syncs back; that an ambiguous model refuses; a kittest test for Sync;
 `hostile_params_never_panic` green with junk tables; `cargo xtask ci` green.
+
+## Block 6E: electrical and mechanical engineering (proposed, not approved)
+
+Proposed on 2026-10-19 in
+[docs/research/ee-me-diagramming-standards.md](research/ee-me-diagramming-standards.md), which
+holds the standards digest (IEEE 315 and 91, IEC 60617, 61082 and 81346, JIC and NEMA ICS 19,
+IEEE C37.2, ISA-5.1 and 5.4, ISO 10628 and 14617, PIP PIC001, DEXPI, ISO 1219, ASME Y14 and
+Y32, ISO 5457 and 7200, ISO 2553 and AWS A2.4, ISO 3952, IEC 61025, 61078 and 60812, FIPS 183),
+the UX review from those disciplines' point of view, a 32-row template catalogue, the pack
+designs, the branch table and the decisions the block needs; the four research notes with every
+source are under `docs/research/ee-me/`. In one paragraph: a sheet and net substrate (nets with
+junctions as model objects, Wire and Pipe tools on a symbol grid, orientation with upright
+labels, parametric glyph builders, sheet standards with zones, field-bound title blocks, revision
+tables and parts lists, composed designations and cross references), then the `electrical`,
+`process`, `fluidpower`, `sheet`, `mechanical`, `annotation`, `reliability` and `idef0` packs
+with their IEC or ANSI, ISA or ISO, ISO 1219, ISO or ASME variants, the templates, the ribbon
+groups for wires, sheets and reports, a Sheets navigator and Nets branch, and the connectivity,
+electrical rule check, loop, fluid power, mobility and reliability analyses with the document
+set as live tables. Eight branches (`b6e-substrate`, `b6e-sheets`, `b6e-builders` in wave 1;
+`b6e-electrical`, `b6e-process`, `b6e-fluidpower`, `b6e-mechanical`, `b6e-ux` in wave 2), ports
+8071 to 8078, after Block 5 is merged and beside Block 6. If approved, the P&ID and PFD, lists
+and loop pieces leave Block 7's industrial track and the electrical pack leaves Block 8; the
+briefs are then written against the merged Block 5 code.
 
 ## Block 7: first deep packs (ROADMAP Cascade 6, three tracks)
 
