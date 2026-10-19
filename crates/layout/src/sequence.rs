@@ -372,7 +372,14 @@ pub fn layout(input: &SeqInput, options: &SeqOptions) -> Result<SeqLayout, Layou
                     let next = from.saturating_add(1);
                     widen(&mut col, *from, next, SELF_W + aw * 2.0 + lw + w(next) / 2.0 + 10.0);
                 } else {
-                    widen(&mut col, (*from).min(*to), (*from).max(*to), lw + 20.0 + aw * 2.0);
+                    let need = lw + 20.0 + aw * 2.0;
+                    widen(&mut col, (*from).min(*to), (*from).max(*to), need);
+                    // A message passing other lifelines puts its label in a clear stretch between
+                    // stems; the one by the sender is kept wide enough for it.
+                    if from.abs_diff(*to) > 1 {
+                        let (l, r) = if from < to { (*from, from.saturating_add(1)) } else { (from.saturating_sub(1), *from) };
+                        widen(&mut col, l, r, need);
+                    }
                 }
             }
             SeqEvent::Note { over, side, size } => {

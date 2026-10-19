@@ -152,14 +152,15 @@ pub fn show(app: &CraftApp, ui: &mut Ui, t: &Tokens, runs: &mut Runs) {
             for (k, g) in guards.iter().enumerate() {
                 row(ui, t, &format!("Guard {}", k + 1), |ui| {
                     ui.horizontal(|ui| {
-                        if let Some(v) = field(ui, &format!("{}-{k}", f.id), g, 120.0) {
+                        if let Some(v) = field(ui, &format!("{}-{k}", f.id), g, 90.0) {
                             let mut all = guards.clone();
                             if let Some(slot) = all.get_mut(k) {
                                 *slot = v.trim().to_string();
                             }
                             runs.push(("sequence.setFragment", json!({"id": f.id, "guards": all})));
                         }
-                        if guards.len() > 1 && ui.small_button("Remove").on_hover_text("Its messages join the operand before it").clicked() {
+                        if guards.len() > 1 && ui.small_button("x").on_hover_text("Remove the operand; its messages join the one before it").clicked()
+                        {
                             runs.push(("sequence.removeOperand", json!({"id": f.id, "operand": k})));
                         }
                     });
@@ -169,7 +170,7 @@ pub fn show(app: &CraftApp, ui: &mut Ui, t: &Tokens, runs: &mut Runs) {
             row(ui, t, "Covers", |ui| {
                 ui.vertical(|ui| {
                     if covers.is_empty() {
-                        ui.label(RichText::new("Auto: the lifelines its content touches").color(t.text_dim));
+                        ui.label(RichText::new("Auto").color(t.text_dim)).on_hover_text("None ticked: the lifelines its content touches");
                     }
                     for (id, name) in &cols {
                         let mut on = covers.contains(id);
@@ -212,12 +213,13 @@ pub fn show(app: &CraftApp, ui: &mut Ui, t: &Tokens, runs: &mut Runs) {
                 }
             });
             row(ui, t, "Column gap", |ui| {
-                ui.horizontal(|ui| {
-                    if let Some(v) = field(ui, "gap", &num(q.column_gap), 60.0).and_then(|v| v.trim().parse::<f64>().ok()) {
-                        runs.push(("sequence.layout", json!({"columnGap": v.clamp(0.0, 2000.0)})));
-                    }
-                    ui.label(RichText::new("re-packs the columns").color(t.text_dim));
-                });
+                let r = field(ui, "gap", &num(q.column_gap), 60.0);
+                if let Some(v) = r.and_then(|v| v.trim().parse::<f64>().ok()) {
+                    runs.push(("sequence.layout", json!({"columnGap": v.clamp(0.0, 2000.0)})));
+                }
+            });
+            row(ui, t, "", |ui| {
+                ui.label(RichText::new("A new gap re-packs the columns").color(t.text_dim));
             });
         }
     });

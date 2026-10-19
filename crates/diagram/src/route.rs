@@ -465,7 +465,7 @@ pub(crate) fn geometry_in(page: &Page, c: &Connector, field: &LazyField) -> Conn
     let label_pos = c
         .message
         .as_ref()
-        .and_then(|_| crate::sequence::label_anchor(&polyline, &c.text, &c.style))
+        .and_then(|_| crate::sequence::label_anchor_on(page, &polyline, &c.text, &c.style))
         .or_else(|| point_along(&polyline, 0.5))
         .unwrap_or(ends.start.pos);
     ConnectorGeometry { ends, path, polyline, line, start_head, end_head, label_pos }

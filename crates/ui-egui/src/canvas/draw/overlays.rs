@@ -25,8 +25,9 @@ fn frame_screen(vp: &Viewport2D, s: &dg::Shape) -> Vec<Pos2> {
 }
 
 fn connection_marks(painter: &egui::Painter, vp: &Viewport2D, s: &dg::Shape, colour: Color32, hot: Option<usize>) {
-    // Glue to a lifeline is always dynamic; settle owns its stored points.
-    if matches!(s.kind, dg::ShapeKind::Lifeline | dg::ShapeKind::ActorLifeline) {
+    // Glue to a lifeline is always dynamic and settle owns its stored points; the other frames
+    // settle places (fragments, bars, marks) take no glue.
+    if matches!(s.kind, dg::ShapeKind::Lifeline | dg::ShapeKind::ActorLifeline) || interact::sequence::frame_fixed(s) {
         return;
     }
     for (i, p) in s.connection_points_world().into_iter().enumerate() {

@@ -517,3 +517,30 @@ fn fragment_tabs_guards_and_labels_stay_clear_of_stems_and_bars_and_operands_are
     assert!(client.x + client.w / 2.0 - f.x >= gap / 2.0 - 1e-9);
     assert!(f.x + f.w - (api.x + api.w / 2.0) >= gap / 2.0 - 1e-9);
 }
+
+#[test]
+fn a_label_over_a_passed_lifeline_moves_clear_of_its_stem() {
+    let mut doc = sample();
+    let page = doc.page_mut().unwrap();
+    page.shapes.push(lifeline("mid", 330.0, false));
+    // "query" runs from api to db, over the new lifeline; a call from client to mid opens a bar
+    // on it before.
+    page.connectors.push(message("c9", "client", "mid", Sort::Sync, "a long label for a short hop"));
+    let events = &mut page.sequence.as_mut().unwrap().events;
+    events.insert(1, Event::Message("c9".into()));
+    settle(&mut doc);
+    let page = doc.page().unwrap();
+    let mid = page.shape("mid").unwrap();
+    let stem = mid.x + mid.w / 2.0;
+    for id in ["m2", "m3", "c9"] {
+        let c = page.connector(id).unwrap();
+        let g = crate::route::connector_geometry(page, c);
+        let r = label_rect(c, g.label_pos).unwrap();
+        assert!(r.x1 <= stem - ACTIVATION_W || r.x0 >= stem + ACTIVATION_W || id == "c9", "{id}: {r:?} meets the stem at {stem}");
+        for s in page.shapes.iter().filter(|s| matches!(s.sequence, Some(Part::Activation { .. }))) {
+            let overlaps = r.x0 < s.x + s.w && r.x1 > s.x && r.y0 < s.y + s.h && r.y1 > s.y;
+            assert!(!overlaps, "{id}: {r:?} meets bar {:?}", (s.x, s.y, s.w, s.h));
+        }
+        assert!((r.y1 - (g.polyline[0].y - LABEL_GAP)).abs() < 1e-9, "{id} stays above its line");
+    }
+}

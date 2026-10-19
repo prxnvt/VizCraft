@@ -629,6 +629,49 @@ pub fn label_anchor(polyline: &[Point], text: &str, style: &crate::Style) -> Opt
     Some(Point::new(mid.x, mid.y - bh / 2.0 - LABEL_GAP))
 }
 
+/// [`label_anchor`] on `page`: a straight message that passes other lifelines keeps its label
+/// clear of their stems and activation bars, centred in the widest clear stretch of the line when
+/// the middle is taken (the layout keeps the stretch by the sender wide enough for the label).
+pub fn label_anchor_on(page: &Page, polyline: &[Point], text: &str, style: &crate::Style) -> Option<Point> {
+    let p = label_anchor(polyline, text, style)?;
+    let [first, last] = polyline else { return Some(p) };
+    let (bw, bh) = label_box_size(text, style.font_size);
+    let (y0, y1) = (p.y - bh / 2.0, p.y + bh / 2.0);
+    let (a, b) = (first.x.min(last.x), first.x.max(last.x));
+    let mut blocks: Vec<(f64, f64)> = page
+        .shapes
+        .iter()
+        .filter_map(|s| match &s.sequence {
+            Some(Part::Lifeline { .. }) => {
+                let head = if s.kind == ShapeKind::ActorLifeline { ACTOR_HEAD } else { HEAD }.min(s.h);
+                let x = s.x + s.w / 2.0;
+                (s.y + head < y1 && s.y + s.h > y0).then_some((x, x))
+            }
+            Some(Part::Activation { .. }) => (s.y < y1 && s.y + s.h > y0).then_some((s.x, s.x + s.w)),
+            _ => None,
+        })
+        .filter(|(l, r)| *r > a && *l < b)
+        .collect();
+    let clear = |cx: f64| blocks.iter().all(|(l, r)| *r <= cx - bw / 2.0 || *l >= cx + bw / 2.0);
+    if blocks.is_empty() || clear(p.x) {
+        return Some(p);
+    }
+    blocks.sort_by(|u, v| u.0.total_cmp(&v.0));
+    let mut gaps: Vec<(f64, f64)> = Vec::new();
+    let mut cur = a;
+    for (l, r) in &blocks {
+        if *l > cur {
+            gaps.push((cur, *l));
+        }
+        cur = cur.max(*r);
+    }
+    if b > cur {
+        gaps.push((cur, b));
+    }
+    let best = gaps.into_iter().max_by(|u, v| (u.1 - u.0).total_cmp(&(v.1 - v.0)))?;
+    Some(Point::new((best.0 + best.1) / 2.0, p.y))
+}
+
 /// The box a message's label takes on the page, from its centre: what must stay clear of stems,
 /// bars, tabs and guards.
 pub fn label_rect(c: &Connector, centre: Point) -> Option<Rect> {
