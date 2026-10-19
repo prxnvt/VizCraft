@@ -99,7 +99,7 @@ params. Agents use them through `command_run` and `command_batch`:
 | `sheet.*`, `doc.setProperty`, `doc.properties`, `xref.*` | Drawing sheets with zones and title blocks, ISO 7200 document properties, cross references; `sheet.revise` with no description opens the Revise dialog in the app |
 | `glyph.*` | Parametric symbols: list builders, draw one as SVG, place one as a free symbol (`glyph.insert`), read and set a placed symbol's parameters |
 | `key.*`, `connector.setStep`, `connector.renumberSteps`, `topology.toMermaid` | Generated keys, numbered step badges, Mermaid architecture text |
-| `sequence.*` | Sequence diagrams edited by order: lifelines, messages, replies, fragments, Mermaid or PlantUML text |
+| `sequence.*` | Sequence diagrams edited by order: lifelines, messages, replies, fragments, moves up, down, left and right (`id` defaults to the selection), activation mode and per-message activation, Mermaid or PlantUML text |
 | `er.*` | Entity-relationship columns and cardinalities, DBML or Mermaid ER text; `file.import {format: "dbml"}` reads DBML |
 
 `file.export` writes `mermaid` (`.mmd`) and `plantuml` (`.puml`) text for the active page and
