@@ -893,7 +893,8 @@ fn doc_property_form(ui: &mut Ui, t: &Tokens, props: &Value, has_sheet: bool, ru
         return;
     }
     egui::CollapsingHeader::new(format!("Title block fields ({})", rows.len()))
-        .id_salt("inspector-doc-fields")
+        // Keyed by whether a sheet exists, so the form opens by itself once the page gets one.
+        .id_salt(("inspector-doc-fields", has_sheet))
         .default_open(has_sheet)
         .show(ui, |ui| {
             let mut group = String::new();

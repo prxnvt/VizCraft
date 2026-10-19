@@ -63,7 +63,8 @@ fn size_menu(app: &mut CraftApp, ui: &mut Ui) {
             for sz in st["sizes"].as_array().map(Vec::as_slice).unwrap_or_default() {
                 let id = format!("{sid}.{}.{orientation}", sz["id"].as_str().unwrap_or_default());
                 let unit = sz["unit"].as_str().unwrap_or_default();
-                let text = format!("{}  ({} x {} {unit})", sz["name"].as_str().unwrap_or_default(), sz["width"], sz["height"]);
+                let dim = |k: &str| sz[k].as_f64().unwrap_or(0.0);
+                let text = format!("{}  ({} x {} {unit})", sz["name"].as_str().unwrap_or_default(), dim("width"), dim("height"));
                 menu_item(ui, app, &text, "sheet.set", json!({"sheet": id}), Some(id == current));
             }
         }
