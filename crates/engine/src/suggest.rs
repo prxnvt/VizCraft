@@ -229,7 +229,7 @@ pub fn next(doc: &Document, shape_id: &str) -> Vec<Suggestion> {
 }
 
 /// The relationship types that may join shape `from` to shape `to` on the active page: legal ones
-/// first in connection-table order, then the other relationship types of the source's pack (and
+/// first (those the page's viewpoint lists before the rest) in connection-table order, then the other relationship types of the source's pack (and
 /// the target's), marked illegal. Between shapes where either is free, one plain connector choice
 /// (empty id). Empty when either shape is not on the active page.
 pub fn connect(doc: &Document, from: &str, to: &str) -> Vec<RelationshipChoice> {
@@ -254,8 +254,16 @@ pub fn connect(doc: &Document, from: &str, to: &str) -> Vec<RelationshipChoice> 
             }
         }
     }
-    // Legal first; the sort is stable, so each half keeps its order.
-    out.sort_by_key(|c| !c.legal);
+    // Legal first, and among those the types the page's viewpoint lists (an activity page offers
+    // Control Flow before a Dependency that is legal everywhere); the sort is stable, so each
+    // group keeps its order.
+    let allowed: Vec<&String> = page
+        .view
+        .as_ref()
+        .and_then(|v| cat.pack(vizcraft_model::pack_of(&v.viewpoint)).and_then(|p| p.viewpoint(&v.viewpoint)))
+        .map(|vp| vp.relationships.iter().collect())
+        .unwrap_or_default();
+    out.sort_by_key(|c| (!c.legal, !allowed.iter().any(|a| **a == c.id)));
     out
 }
 

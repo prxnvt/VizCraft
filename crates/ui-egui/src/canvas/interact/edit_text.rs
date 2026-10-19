@@ -29,6 +29,15 @@ use crate::canvas::draw::text::{Block, band_block, block, block_job};
 use crate::canvas::draw::{self, color, pos};
 use crate::theme::Tokens;
 
+/// Which end label of a connector is edited.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LabelEnd {
+    /// The label beside the start end.
+    Start,
+    /// The label beside the end end.
+    End,
+}
+
 /// In-place text editing of a shape or connector.
 #[derive(Clone, Debug, PartialEq)]
 pub struct TextEditing {
@@ -49,6 +58,12 @@ pub struct TextEditing {
     /// The compartment of the shape being edited (its text, or its rows one per line); `None`
     /// is the shape's own text.
     pub compartment: Option<String>,
+    /// The end label of the connector being edited (a role and multiplicity beside an end);
+    /// `None` is the connector's main label or a shape's text.
+    pub label: Option<LabelEnd>,
+    /// What the commit writes when the edited band is drawn from the model (see [`super::bands`]);
+    /// `None` commits `compartment.set` (or the shape's own text).
+    pub model: Option<super::bands::ModelEdit>,
 }
 
 impl TextEditing {
@@ -77,8 +92,18 @@ pub fn start_editing(app: &mut CraftApp, target: Hit) {
     };
     let Some(text) = text else { return };
     app.canvas.drag = None;
-    app.canvas.editing =
-        Some(TextEditing { target, original: text.clone(), text, focus: true, caret: None, place_caret: None, created: false, compartment: None });
+    app.canvas.editing = Some(TextEditing {
+        target,
+        original: text.clone(),
+        text,
+        focus: true,
+        caret: None,
+        place_caret: None,
+        created: false,
+        compartment: None,
+        label: None,
+        model: None,
+    });
 }
 
 /// Start editing `target` where it was double-clicked (`at`, world space): a shape's compartment
@@ -98,12 +123,50 @@ pub fn start_editing_at(app: &mut CraftApp, target: Hit, at: dg::Point) {
         }),
         _ => None,
     };
+    // A band drawn from the model is edited through the model, or the sync would undo the edit.
+    let mut model = None;
+    let mut band = band;
+    if let (Some((cid, _)), Hit::Shape(id)) = (&band, &target) {
+        match super::bands::plan(app, id, cid, at) {
+            Some(super::bands::Plan::Edit { edit, text }) => {
+                model = Some(edit);
+                band = Some((cid.clone(), text));
+            }
+            Some(_) => return,
+            None => {}
+        }
+    }
     start_editing(app, target);
     if let (Some((cid, text)), Some(ed)) = (band, app.canvas.editing.as_mut()) {
         ed.compartment = Some(cid);
         ed.original = text.clone();
         ed.text = text;
+        ed.model = model;
     }
+}
+
+/// Start editing the end label `end` of connector `id` (an empty one too): the commit runs
+/// `connector.setEndLabels`, and a relationship-bound connector writes it back to the role and
+/// multiplicity properties.
+pub fn start_editing_label(app: &mut CraftApp, id: &str, end: LabelEnd) {
+    let Some(c) = app.session.doc.page().and_then(|p| p.connector(id)) else { return };
+    let text = match end {
+        LabelEnd::Start => c.start_label.clone(),
+        LabelEnd::End => c.end_label.clone(),
+    };
+    app.canvas.drag = None;
+    app.canvas.editing = Some(TextEditing {
+        target: Hit::Connector(id.to_string()),
+        original: text.clone(),
+        text,
+        focus: true,
+        caret: None,
+        place_caret: None,
+        created: false,
+        compartment: None,
+        label: Some(end),
+        model: None,
+    });
 }
 
 /// Start editing shape `id`, which was just made for it (a new text box): left empty, the commit
@@ -126,6 +189,18 @@ pub fn commit_editing(app: &mut CraftApp) {
         return;
     }
     if ed.text == ed.original {
+        return;
+    }
+    if let Some(end) = ed.label {
+        let key = match end {
+            LabelEnd::Start => "start",
+            LabelEnd::End => "end",
+        };
+        run(app, "connector.setEndLabels", json!({"ids": [ed.id()], key: ed.text.trim()}));
+        return;
+    }
+    if let Some(edit) = &ed.model {
+        super::bands::commit(app, edit, &ed.text);
         return;
     }
     if let Some(cid) = &ed.compartment {
@@ -187,6 +262,12 @@ fn placement(app: &CraftApp, vp: &Viewport2D) -> Option<Placement> {
                 let (band, c) = bands.iter().find_map(|b| Some((b, s.compartments.get(b.compartment?).filter(|c| &c.id == cid)?)))?;
                 let style = c.text_style(&s.style);
                 let font = draw::style_font(&style, zoom).unwrap_or_else(|| crate::theme::regular(12.0));
+                // A table cell edits in its own rectangle, not over the whole band.
+                if let Some(super::bands::ModelEdit::Cell { row, col, .. }) = &ed.model
+                    && let Some(cell) = super::bands::cell_rect(s, cid, *row, *col)
+                {
+                    return Some(Placement { block: band_block(vp, s, cell, dg::HAlign::Left, dg::VAlign::Middle), style, font });
+                }
                 return Some(Placement { block: band_block(vp, s, band.body, c.align, dg::VAlign::Top), style, font });
             }
             let font = draw::style_font(&s.style, zoom).unwrap_or_else(|| crate::theme::regular(12.0));
@@ -196,7 +277,15 @@ fn placement(app: &CraftApp, vp: &Viewport2D) -> Option<Placement> {
             let c = page.connector(id)?;
             let font = draw::style_font(&c.style, zoom).unwrap_or_else(|| crate::theme::regular(12.0));
             let half = vec2(80.0 * vp.zoom, font.size * 0.7);
-            let centre = vp.world_to_screen(pos(dg::connector_geometry(page, c).label_pos));
+            let g = dg::connector_geometry(page, c);
+            // An end label is edited where it is drawn, beside its end.
+            let at = match ed.label {
+                Some(end) => {
+                    dg::arrows::end_label_anchor(&g.polyline, end == LabelEnd::Start, c.style.font_size, c.style.line_width).unwrap_or(g.label_pos)
+                }
+                None => g.label_pos,
+            };
+            let centre = vp.world_to_screen(pos(at));
             let block = Block {
                 centre,
                 angle: 0.0,

@@ -37,7 +37,8 @@ pub(super) fn decide(app: &CraftApp, page: &Page, vp: &Viewport2D, at: Pos2, m: 
         },
         // Decided in `text_block::decide`, which may select the shape first.
         // Handled in `ink::pointer` before this is asked.
-        Tool::TextBlock | Tool::Pen | Tool::Highlighter | Tool::Eraser => None,
+        // The Steps tool acts on a click, decided in `steps::pointer`.
+        Tool::TextBlock | Tool::Pen | Tool::Highlighter | Tool::Eraser | Tool::Steps => None,
         Tool::Connector => Some(Start::Drag(Drag::Connect { from: target_end(page, w, zoom), to: w })),
         Tool::Wire { pipe } => Some(Start::Drag(super::wire::start(page, w, zoom, pipe))),
         // Away from a picture's crop handles the Crop tool is the pointer.

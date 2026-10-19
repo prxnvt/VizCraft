@@ -231,6 +231,8 @@ pub const NAMES: &[&str] = &[
     "fragment",
     "operand",
     "activation",
+    // Steps tool
+    "steps",
 ];
 
 /// Reference size of the design grid, in points. At this size the stroke is `BASE_STROKE`.
@@ -1051,6 +1053,12 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
             pen.line(&[(15.0, 5.0), (5.0, 15.0)]);
         }
         "check" => pen.line(&[(4.0, 10.5), (8.5, 15.0), (16.0, 6.0)]),
+        "steps" => {
+            // A numbered badge on a line.
+            pen.line(&[(11.5, 10.0), (17.0, 10.0)]);
+            pen.circle(7.0, 10.0, 4.6, c);
+            pen.line(&[(5.8, 8.7), (7.3, 7.7), (7.3, 12.4)]);
+        }
         "chevronDown" => pen.chevron(10.0, 13.0, 0.0, 1.0),
         "chevronUp" => pen.chevron(10.0, 7.0, 0.0, -1.0),
         "chevronLeft" => pen.chevron(7.0, 10.0, -1.0, 0.0),

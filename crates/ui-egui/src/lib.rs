@@ -28,6 +28,7 @@ pub mod insert_picker;
 pub mod keys;
 pub mod link_dialog;
 pub mod menus;
+pub mod notation_layout;
 pub mod page_setup;
 pub mod page_tabs;
 pub mod palette;
@@ -145,7 +146,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "ui.tool",
         "Tool",
         "",
-        r#"{"tool": "pointer|area|lasso|connector|text|textBlock|formatPainter|crop|pen|highlighter|eraser|wire|pipe", "from"?: id, "keep"?: bool, "kind"?: connector kind id}; kind makes the connector tool draw that kind (any other tool or no kind clears it); area is the pointer's marquee; formatPainter copies from "from" (default: the primary selection), once unless "keep""#,
+        r#"{"tool": "pointer|area|lasso|connector|text|textBlock|formatPainter|crop|pen|highlighter|eraser|wire|pipe|steps", "from"?: id, "keep"?: bool, "kind"?: connector kind id}; kind makes the connector tool draw that kind (any other tool or no kind clears it); area is the pointer's marquee; steps numbers connectors (a click sets the next step, Shift-click clears it, Escape returns to the pointer); formatPainter copies from "from" (default: the primary selection), once unless "keep""#,
     ),
     ("ui.find", "Find", "Mod+F", "{}"),
     // Engineering keys: bare letters, as in electrical CAD; they fire only while the canvas has
@@ -225,8 +226,27 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     (
         "ui.insertPicker",
         "Insert Picker",
-        "",
+        "/",
         r#"{"x"?: n, "y"?: n, "query"?: string} -> {"open", "at", "query", "items": [type or stencil id]}; a type-to-filter list of the page's palette types and the Drawing primitives at a canvas point (default: the view centre); Enter inserts, Escape closes"#,
+    ),
+    (
+        "ui.insertNext",
+        "Insert Next Step",
+        "Tab",
+        r#"{"direction"?: "auto|right|down|left|up" (default auto: the notation's flow)} -> the insert.next result; with one shape selected, inserts the legal next element and starts naming it (typing names it, Enter commits, Escape leaves it unnamed); insert and name are two undo steps; does nothing on a sequence page"#,
+    ),
+    (
+        "ui.insertSibling",
+        "Insert Sibling",
+        "Enter",
+        r#"{} -> the insert.next result; with one shape selected, adds a sibling from the same predecessor (same type and relationship) and starts naming it; with no predecessor edits the shape's text; with one connector selected edits its label; does nothing on a sequence page"#,
+    ),
+    ("ui.editText", "Edit Text", "F2", r#"{"id"?: shape or connector id (default: the selection)} -> {"editing", "id"}; edits the text in place"#),
+    (
+        "ui.insertDirection",
+        "Insert Direction",
+        "",
+        r#"{"direction": "auto|right|down|left|up"} -> {"direction", "resolved"}; which way Tab, Enter and the picker grow a chain; auto follows the notation's flow (a user choice, kept in the preferences)"#,
     ),
     (
         "ui.present",
@@ -326,6 +346,9 @@ pub enum Tool {
         /// Draw pipes (net kind `pipe`, tees without a dot) instead of wires.
         pipe: bool,
     },
+    /// Number connectors: a click on one runs `connector.setStep` with the next free number, a
+    /// Shift-click clears its step (`canvas/interact/steps.rs`).
+    Steps,
 }
 
 impl Tool {
@@ -344,6 +367,7 @@ impl Tool {
             Tool::Eraser => "eraser",
             Tool::Wire { pipe: false } => "wire",
             Tool::Wire { pipe: true } => "pipe",
+            Tool::Steps => "steps",
         }
     }
     /// The tool for a `ui.tool` name.
@@ -362,6 +386,7 @@ impl Tool {
             "eraser" => Some(Tool::Eraser),
             "wire" => Some(Tool::Wire { pipe: false }),
             "pipe" => Some(Tool::Wire { pipe: true }),
+            "steps" => Some(Tool::Steps),
             _ => None,
         }
     }
@@ -424,6 +449,9 @@ pub struct UiState {
     /// The standards the New gallery starts from: the last choice made there (empty fields are
     /// the defaults, IEC and ISO A3 landscape).
     pub new_standards: vizcraft_diagram::standards::Standards,
+    /// Which way Tab, Enter and the picker grow a chain: `auto` (the notation's flow), `right`,
+    /// `down`, `left` or `up`.
+    pub insert_direction: String,
 }
 
 impl Default for UiState {
@@ -443,6 +471,7 @@ impl Default for UiState {
             preset: String::new(),
             recent_templates: Vec::new(),
             new_standards: Default::default(),
+            insert_direction: "auto".into(),
         }
     }
 }
@@ -753,6 +782,9 @@ impl CraftApp {
             return Some(r);
         }
         if let Some(r) = insert_picker::ui_command(self, id, p) {
+            return Some(r);
+        }
+        if let Some(r) = canvas::interact::keys::ui_command(self, id, p) {
             return Some(r);
         }
         if let Some(r) = datagraphic_dialog::ui_command(self, id, p) {

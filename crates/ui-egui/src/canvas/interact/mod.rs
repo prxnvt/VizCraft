@@ -12,6 +12,7 @@
 //! in-place text editing, [`keys`] the canvas keys, [`membership`] container membership on
 //! moves and drops, and [`wire`] the Wire and Pipe tools.
 
+pub mod bands;
 pub mod connect;
 pub mod crop;
 pub mod drag;
@@ -19,12 +20,14 @@ pub mod edit_text;
 pub mod ink;
 pub mod insertion;
 pub mod keys;
+pub mod labels;
 pub mod links;
 pub mod membership;
 pub mod nets;
 pub mod painter;
 pub mod select;
 pub mod sequence;
+pub mod steps;
 pub mod text_block;
 pub mod tools;
 pub mod wire;
@@ -130,6 +133,9 @@ pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D
     if links::pointer(app, ui, response, vp) {
         return;
     }
+    if steps::pointer(app, ui, response, vp) {
+        return;
+    }
     if crop::pointer(app, ui, response, vp) || ink::pointer(app, ui, response, vp) {
         return;
     }
@@ -194,9 +200,17 @@ pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D
             text_block::double_click(app, vp, p);
         }
     } else if response.double_clicked_by(egui::PointerButton::Primary) && matches!(app.tool, Tool::Pointer | Tool::Lasso) {
-        let sequence_took = response.interact_pointer_pos().is_some_and(|p| sequence::double_click(app, vp, p));
-        if !sequence_took
-            && let (Some(p), Some(page)) = (response.interact_pointer_pos(), app.session.doc.page())
+        if response.interact_pointer_pos().is_some_and(|p| sequence::double_click(app, vp, p)) {
+            // The sequence guard editor took the double-click.
+        } else if let Some(p) = response.interact_pointer_pos()
+            && let Some((id, part)) = labels::label_at(app, ui, vp, p)
+        {
+            // A connector label is hit by its own box, before the (thin) line.
+            match part.end() {
+                Some(end) => edit_text::start_editing_label(app, &id, end),
+                None => edit_text::start_editing(app, dg::Hit::Connector(id)),
+            }
+        } else if let (Some(p), Some(page)) = (response.interact_pointer_pos(), app.session.doc.page())
             && let Some(h) = dg::hit(page, point(vp.screen_to_world(p)), f64::from(HIT / zoom))
         {
             edit_text::start_editing_at(app, h, point(vp.screen_to_world(p)));
@@ -219,7 +233,7 @@ fn cursor(app: &CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D) {
         (Some(Drag::Move { .. }), _) => egui::CursorIcon::Grabbing,
         (Some(Drag::Connect { .. } | Drag::Reglue { .. } | Drag::Wire { .. }), _) => egui::CursorIcon::Crosshair,
         (Some(_), _) => return,
-        (None, Tool::Connector | Tool::Wire { .. }) => egui::CursorIcon::Crosshair,
+        (None, Tool::Connector | Tool::Wire { .. } | Tool::Steps) => egui::CursorIcon::Crosshair,
         (None, Tool::Text) => egui::CursorIcon::Text,
         (None, Tool::FormatPainter { .. }) => egui::CursorIcon::Copy,
         (None, Tool::TextBlock) => egui::CursorIcon::Move,

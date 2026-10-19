@@ -256,11 +256,12 @@ pub(super) fn finish(app: &mut CraftApp, drag: Drag, zoom: f32) {
         Drag::Connect { from, to } => {
             let end = target_end(page, to, zoom);
             if connect_ok(&from, &end) {
-                run(
-                    app,
-                    "connector.add",
-                    json!({"from": end_json(&from), "to": end_json(&end), "kind": (!app.connector_kind.is_empty()).then(|| app.connector_kind.clone())}),
-                );
+                // Between two elements the drawn connector is a model relationship of the type the
+                // page's rules allow (Control Flow between activity actions), so checks and
+                // analyses count it; a chosen connector kind draws a plain connector as before.
+                let kind = (!app.connector_kind.is_empty()).then(|| app.connector_kind.clone());
+                let relationship = kind.is_none().then_some("auto");
+                run(app, "connector.add", json!({"from": end_json(&from), "to": end_json(&end), "kind": kind, "relationship": relationship}));
             }
         }
         Drag::Wire { from, to, pipe } => super::wire::finish(app, from, to, pipe, zoom),

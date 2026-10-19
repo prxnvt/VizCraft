@@ -21,7 +21,7 @@ pub const MAX_RELATIONSHIPS: usize = 500;
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("inspector.get", "Inspector", "Window > Inspector", get).params(
-            r#"{"id": element or shape id} -> {"element"?: {id, type, name, tag, owner?}, "type"?: {id, label, pack}, "identity": {tag, format, free, scope?, conflict?: {id, name}}, "properties": [{key, label, kind, unit, values, required, value, source}], "relationships": [{id, type, label, direction, other, otherName, pages}], "views": [{page, pageName, items}], "shape"?: {id, kind, stencil, text, x, y, w, h, angle}}; read only"#,
+            r#"{"id": element or shape id} -> {"element"?: {id, type, name, tag, owner?}, "type"?: {id, label, pack}, "identity": {tag, format, free, scope?, conflict?: {id, name}}, "properties": [{key, label, kind, unit, values, required, value, source}], "relationships": [{id, type, label, direction, other, otherName, pages}], "views": [{page, pageName, items}], "shape"?: {id, kind, stencil, text, x, y, w, h, angle}}; read only. For a relationship or a connector id: {"relationship": {id, type, name, source, target, sourceName, targetName, connectors: [connector ids]} | null, "type": {id, label, pack}, "properties": [{..., "end": "start"|"end"|null}], "connector"?: {id, kind, text, startLabel, endLabel}}; the end of a property comes from the type's endLabels, else from a `source` or `target` key prefix; a connector with no relationship gives `relationship: null` and empty lists"#,
         ),
         CommandSpec::new("element.checkTag", "Check Tag", "Model > Elements", check_tag)
             .params(r#"{"id": element or shape id, "tag": string} -> {"free", "scope"?: scope id, "conflict"?: {id, name}}; whether the element could take the tag in its identity scope; read only"#),
@@ -113,8 +113,89 @@ fn get(s: &mut Session, v: &Value) -> CmdResult {
     describe(s, id_param(v, "id")?)
 }
 
+/// The end of a relationship property: `start` or `end` when the type's `endLabels` list the key,
+/// else by a `source` or `target` prefix followed by a capital letter (`sourceRole`), else `None`.
+fn end_of(rt: Option<&vizcraft_notation::schema::RelationshipType>, key: &str) -> Option<&'static str> {
+    if let Some(rt) = rt {
+        if rt.end_labels.start.iter().any(|k| k == key) {
+            return Some("start");
+        }
+        if rt.end_labels.end.iter().any(|k| k == key) {
+            return Some("end");
+        }
+    }
+    let after = |prefix: &str| key.strip_prefix(prefix).and_then(|r| r.chars().next()).is_some_and(|c| c.is_ascii_uppercase());
+    if after("source") {
+        Some("start")
+    } else if after("target") {
+        Some("end")
+    } else {
+        None
+    }
+}
+
+/// `inspector.get` for a relationship id or a connector id: the relationship, its type and its
+/// properties tagged with the end they belong to. `None` when `id` is neither.
+fn describe_relationship(s: &Session, id: &str) -> Option<Value> {
+    let m = &s.doc.model;
+    let connector = s.doc.connector(id);
+    let rel = m.relationship(id).or_else(|| connector.and_then(|c| c.relationship.as_deref()).and_then(|r| m.relationship(r)));
+    if rel.is_none() && connector.is_none() {
+        return None;
+    }
+    let mut out =
+        json!({"properties": [], "relationships": [], "views": [], "identity": {"tag": "", "format": "", "free": true}, "relationship": null});
+    if let Some(c) = connector {
+        out["connector"] = json!({"id": c.id, "kind": c.kind, "text": c.text, "startLabel": c.start_label, "endLabel": c.end_label});
+    }
+    let Some(r) = rel else { return Some(out) };
+    let ty = cat().relationship_type(&r.type_id);
+    let name_of = |e: &str| m.element(e).map(|x| x.name.clone()).unwrap_or_default();
+    let connectors: Vec<&str> = s
+        .doc
+        .pages
+        .iter()
+        .flat_map(|p| p.connectors.iter())
+        .filter(|c| c.relationship.as_deref() == Some(r.id.as_str()))
+        .map(|c| c.id.as_str())
+        .collect();
+    out["relationship"] = json!({
+        "id": r.id, "type": r.type_id, "name": r.name, "source": r.source, "target": r.target,
+        "sourceName": name_of(&r.source), "targetName": name_of(&r.target), "connectors": connectors,
+    });
+    out["type"] = json!({"id": r.type_id, "label": ty.map(|(_, t)| t.label.clone()).unwrap_or_default(), "pack": r.pack()});
+    let rt = ty.map(|(_, t)| t);
+    let schema = rt.map(|t| t.properties.as_slice()).unwrap_or_default();
+    let mut props = Vec::new();
+    for sp in schema {
+        props.push(json!({
+            "key": sp.key, "label": if sp.label.is_empty() { &sp.key } else { &sp.label }, "kind": kind_name(sp.kind), "unit": sp.unit,
+            "values": sp.values, "required": sp.required, "value": r.properties.get(&sp.key).map(prop_json), "source": "schema",
+            "end": end_of(rt, &sp.key),
+        }));
+    }
+    for (k, v) in &r.properties {
+        if !schema.iter().any(|sp| sp.key == *k) {
+            let kind = match v {
+                vizcraft_model::PropValue::Bool(_) => "bool",
+                vizcraft_model::PropValue::Number(_) => "number",
+                _ => "text",
+            };
+            props.push(json!({"key": k, "label": k, "kind": kind, "unit": "", "values": [], "required": false, "value": prop_json(v), "source": "extra", "end": end_of(rt, k)}));
+        }
+    }
+    out["properties"] = Value::Array(props);
+    Some(out)
+}
+
 /// What `inspector.get` reports for `id`, without needing a mutable session (the pane reads it every frame).
 pub fn describe(s: &Session, id: &str) -> CmdResult {
+    if s.doc.model.element(id).is_none()
+        && s.doc.pages.iter().all(|p| p.shape(id).is_none())
+        && let Some(out) = describe_relationship(s, id)
+    {
+        return Ok(out);
+    }
     let (element, shape) = resolve(s, id)?;
     let mut out = json!({"properties": [], "relationships": [], "views": [], "identity": {"tag": "", "format": "", "free": true}});
     if let Some(e) = element {
@@ -208,5 +289,68 @@ mod tests {
         assert_eq!(r["shape"]["id"], json!(shape));
         assert_eq!(r["element"]["id"], "do");
         refused(&mut s, "inspector.get", json!({"id": "nope"}));
+    }
+
+    fn classes() -> crate::Session {
+        let mut s = crate::Session::new(vizcraft_diagram::Document::new());
+        run(&mut s, "template.new", json!({"template": "uml.classDiagram"}));
+        s
+    }
+
+    #[test]
+    fn a_uml_association_reports_its_four_end_rows_and_navigability() {
+        let mut s = classes();
+        let c = s
+            .doc
+            .page()
+            .unwrap()
+            .connectors
+            .iter()
+            .find(|c| c.relationship.as_deref().and_then(|r| s.doc.model.relationship(r)).is_some_and(|r| r.type_id == "uml.Association"))
+            .unwrap()
+            .id
+            .clone();
+        let before = s.doc.clone();
+        let r = run(&mut s, "inspector.get", json!({"id": c}));
+        assert_eq!(s.doc, before, "read only");
+        assert_eq!(r["relationship"]["type"], "uml.Association");
+        assert_eq!(r["type"]["pack"], "uml");
+        assert!(r["relationship"]["sourceName"].as_str().is_some_and(|n| !n.is_empty()));
+        assert_eq!(r["relationship"]["connectors"], json!([c]));
+        let props = r["properties"].as_array().unwrap();
+        let end = |k: &str| props.iter().find(|p| p["key"] == k).unwrap_or_else(|| panic!("{k} in {props:?}"))["end"].clone();
+        for (k, e) in [("sourceRole", "start"), ("sourceMultiplicity", "start"), ("targetRole", "end"), ("targetMultiplicity", "end")] {
+            assert_eq!(end(k), e, "{k}");
+        }
+        assert!(props.iter().any(|p| p["key"] == "navigability" || p["key"].as_str().is_some_and(|k| k.contains("avigab"))), "{props:?}");
+        // The relationship id gives the same relationship.
+        let rid = r["relationship"]["id"].as_str().unwrap().to_string();
+        assert_eq!(run(&mut s, "inspector.get", json!({"id": rid}))["relationship"]["id"], json!(rid));
+    }
+
+    #[test]
+    fn an_er_relationship_tags_cardinalities_on_their_ends() {
+        let mut s = crate::Session::new(vizcraft_diagram::Document::new());
+        run(&mut s, "template.new", json!({"template": "er.schema"}));
+        let c = s.doc.page().unwrap().connectors.iter().find(|c| c.relationship.is_some()).unwrap().id.clone();
+        let r = run(&mut s, "inspector.get", json!({"id": c}));
+        let props = r["properties"].as_array().unwrap();
+        let end = |k: &str| props.iter().find(|p| p["key"] == k).unwrap_or_else(|| panic!("{k} in {props:?}"))["end"].clone();
+        assert_eq!(end("sourceCardinality"), "start");
+        assert_eq!(end("targetCardinality"), "end");
+    }
+
+    #[test]
+    fn a_free_connector_gives_empty_lists_not_an_error() {
+        let mut s = crate::Session::new(vizcraft_diagram::Document::new());
+        let free = s.doc.page().unwrap().connectors.iter().find(|c| c.relationship.is_none()).map(|c| c.id.clone());
+        let id = match free {
+            Some(f) => f,
+            None => s.run("connector.add", &json!({"from": {"x": 0, "y": 0}, "to": {"x": 90, "y": 0}})).unwrap()["id"].as_str().unwrap().to_string(),
+        };
+        let r = run(&mut s, "inspector.get", json!({"id": id}));
+        assert!(r["relationship"].is_null());
+        assert!(r["properties"].as_array().unwrap().is_empty() && r["relationships"].as_array().unwrap().is_empty());
+        assert_eq!(r["connector"]["id"], json!(id));
     }
 }

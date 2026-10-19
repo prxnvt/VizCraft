@@ -59,6 +59,7 @@ pub mod table;
 pub mod template;
 pub mod text;
 pub mod topology;
+pub mod uml;
 pub mod validate;
 pub mod variant;
 pub mod view;
@@ -138,6 +139,7 @@ pub fn registry() -> Registry {
     v.extend(topology::specs());
     v.extend(sequence::specs());
     v.extend(er::specs());
+    v.extend(uml::specs());
     Registry::new(v)
 }
 

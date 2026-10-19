@@ -55,6 +55,15 @@ fn matches(p: &Pattern, query: &str, audience: &str) -> bool {
     text && (audience.is_empty() || p.audience.iter().any(|a| a == audience))
 }
 
+/// Every available pattern regardless of the pane's search, the active pack's first (the insert
+/// picker lists these).
+pub fn all(app: &CraftApp) -> Vec<&'static Pattern> {
+    let first = active_pack(app);
+    let mut list = vizcraft_patterns::list(vizcraft_notation::catalog(), None, None);
+    list.sort_by_key(|p| p.pack != first);
+    list
+}
+
 /// The patterns to list, grouped by pack: the active pack first, then the others in catalog
 /// order. Each group is (pack name, patterns).
 pub fn groups(app: &CraftApp) -> Vec<(String, Vec<&'static Pattern>)> {
