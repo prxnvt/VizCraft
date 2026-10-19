@@ -19,6 +19,7 @@ pub mod edit_text;
 pub mod ink;
 pub mod insertion;
 pub mod keys;
+pub mod labels;
 pub mod links;
 pub mod membership;
 pub mod nets;
@@ -189,7 +190,15 @@ pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D
             text_block::double_click(app, vp, p);
         }
     } else if response.double_clicked_by(egui::PointerButton::Primary) && matches!(app.tool, Tool::Pointer | Tool::Lasso) {
-        if let (Some(p), Some(page)) = (response.interact_pointer_pos(), app.session.doc.page())
+        if let Some(p) = response.interact_pointer_pos()
+            && let Some((id, part)) = labels::label_at(app, ui, vp, p)
+        {
+            // A connector label is hit by its own box, before the (thin) line.
+            match part.end() {
+                Some(end) => edit_text::start_editing_label(app, &id, end),
+                None => edit_text::start_editing(app, dg::Hit::Connector(id)),
+            }
+        } else if let (Some(p), Some(page)) = (response.interact_pointer_pos(), app.session.doc.page())
             && let Some(h) = dg::hit(page, point(vp.screen_to_world(p)), f64::from(HIT / zoom))
         {
             edit_text::start_editing_at(app, h, point(vp.screen_to_world(p)));

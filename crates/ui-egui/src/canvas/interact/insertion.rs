@@ -292,6 +292,7 @@ pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D
         && matches!(app.tool, Tool::Pointer | Tool::Lasso)
         && let (Some(p), Some(page)) = (response.interact_pointer_pos(), app.session.doc.page())
         && dg::hit(page, point(vp.screen_to_world(p)), f64::from(super::HIT / vp.zoom)).is_none()
+        && super::labels::label_at(app, ui, vp, p).is_none()
     {
         crate::insert_picker::open(app, point(vp.screen_to_world(p)), "");
         took = true;

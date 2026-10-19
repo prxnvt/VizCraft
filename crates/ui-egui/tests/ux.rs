@@ -335,3 +335,79 @@ fn a_connector_drawn_between_two_actions_is_a_control_flow() {
     assert_eq!(rel.type_id, "uml.ControlFlow");
     assert_eq!(app.session.undo_label(), Some("Add Connector"));
 }
+
+fn double_click(h: &mut Harness<'_, CraftApp>, p: Pos2) {
+    h.event(Event::PointerMoved(p));
+    h.run_steps(1);
+    for _ in 0..2 {
+        h.event(Event::PointerButton { pos: p, button: PointerButton::Primary, pressed: true, modifiers: Modifiers::NONE });
+        h.run_steps(1);
+        h.event(Event::PointerButton { pos: p, button: PointerButton::Primary, pressed: false, modifiers: Modifiers::NONE });
+        h.run_steps(1);
+    }
+    h.run_steps(2);
+}
+
+fn to_screen(h: &Harness<'_, CraftApp>, p: vizcraft_diagram::Point) -> Pos2 {
+    let app = h.state();
+    let vp = app.canvas.viewport(&app.session.view).expect("the canvas has been laid out");
+    vp.world_to_screen(pos2(p.x as f32, p.y as f32))
+}
+
+#[test]
+fn double_clicking_a_wide_label_beside_a_thin_line_edits_it() {
+    let mut h = from_template("flowchart.decision");
+    let a = run(&mut h, "element.create", json!({"type": "flowchart.Process", "name": "Top", "x": 3000, "y": 3000}));
+    let b = run(&mut h, "element.create", json!({"type": "flowchart.Process", "name": "Bottom", "x": 3000, "y": 3400}));
+    let (a, b) = (a["shape"].as_str().unwrap().to_string(), b["shape"].as_str().unwrap().to_string());
+    let r = run(&mut h, "insert.connect", json!({"from": a, "to": b}));
+    let cid = r["connector"].as_str().unwrap().to_string();
+    run(&mut h, "connector.setText", json!({"id": cid, "text": "A rather wide label for a thin line"}));
+    run(&mut h, "view.pan", json!({"x": 3050, "y": 3250}));
+    run(&mut h, "edit.selectNone", json!({}));
+    let page = h.state().session.doc.page().unwrap();
+    let g = vizcraft_diagram::connector_geometry(page, page.connector(&cid).unwrap());
+    let mid = to_screen(&h, g.label_pos);
+    // Well to the side of the vertical line, still inside the label's box.
+    double_click(&mut h, mid + vec2(45.0, 0.0));
+    let ed = h.state().canvas.editing.clone().expect("the label opens for editing");
+    assert_eq!(ed.id(), cid);
+    assert_eq!(ed.label, None);
+    assert!(ed.text.starts_with("A rather wide"));
+}
+
+#[test]
+fn double_clicking_near_an_association_end_edits_the_multiplicity() {
+    let mut h = from_template("uml.classDiagram");
+    let (cid, rid) = {
+        let app = h.state();
+        let doc = &app.session.doc;
+        let c = doc
+            .page()
+            .unwrap()
+            .connectors
+            .iter()
+            .find(|c| c.relationship.as_deref().and_then(|r| doc.model.relationship(r)).is_some_and(|r| r.type_id == "uml.Association"))
+            .expect("the template draws an association");
+        (c.id.clone(), c.relationship.clone().unwrap())
+    };
+    run(&mut h, "relationship.setProperty", json!({"id": rid, "key": "targetMultiplicity", "value": null}));
+    run(&mut h, "connector.setEndLabels", json!({"ids": [cid], "end": ""}));
+    let page = h.state().session.doc.page().unwrap();
+    let g = vizcraft_diagram::connector_geometry(page, page.connector(&cid).unwrap());
+    let (a, b) = (g.polyline[g.polyline.len() - 2], *g.polyline.last().unwrap());
+    // A point 8 percent of the last segment back from the end shape, on the route.
+    let near = vizcraft_diagram::Point::new(b.x + (a.x - b.x) * 0.08, b.y + (a.y - b.y) * 0.08);
+    let c = near;
+    run(&mut h, "view.pan", json!({"x": c.x, "y": c.y}));
+    run(&mut h, "edit.selectNone", json!({}));
+    let at = to_screen(&h, near);
+    double_click(&mut h, at);
+    let ed = h.state().canvas.editing.clone().expect("an empty end label opens for editing");
+    assert!(ed.label.is_some());
+    type_text(&mut h, "0..*");
+    key(&mut h, Key::Enter);
+    let app = h.state();
+    let rel = app.session.doc.model.relationship(&rid).unwrap();
+    assert_eq!(rel.properties.get("targetMultiplicity").and_then(|v| v.as_str()), Some("0..*"), "{:?}", rel.properties);
+}

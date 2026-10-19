@@ -81,7 +81,7 @@ pub fn text_format(st: &Style, font: egui::FontId) -> TextFormat {
 }
 
 /// A connector label: the style's format, centred, wrapped to `wrap` screen points.
-pub(super) fn label_layout(painter: &Painter, text: &str, st: &Style, font: egui::FontId, wrap: f32) -> Arc<egui::Galley> {
+pub(in crate::canvas) fn label_layout(painter: &Painter, text: &str, st: &Style, font: egui::FontId, wrap: f32) -> Arc<egui::Galley> {
     let mut job = LayoutJob::single_section(text.to_string(), text_format(st, font));
     job.wrap.max_width = wrap.max(1.0);
     job.halign = Align::Center;
