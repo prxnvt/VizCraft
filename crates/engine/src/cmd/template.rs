@@ -36,7 +36,7 @@ pub const SHEET_PRESETS: &str = "sheet.presets";
 pub const SYMBOL_CHOICES: &[&str] = &["iec", "ansi", "jic", "ieee", "isa", "iso"];
 
 /// The sheet presets offered when no `sheet.presets` command is registered, ISO A3 first.
-pub const SHEET_CHOICES: &[&str] = &["iso.a3.landscape", "ansi.b.landscape"];
+pub const SHEET_CHOICES: &[&str] = &["iso.a3.landscape", "asme.b.landscape"];
 
 /// The orientation a two-part sheet preset id (`iso.a3`) is completed with.
 const DEFAULT_ORIENTATION: &str = "landscape";
@@ -123,12 +123,17 @@ fn choices_param(v: &Value) -> Result<Choices, EngineError> {
     Ok(c)
 }
 
-/// A sheet preset id with its orientation: `iso.a3` becomes `iso.a3.landscape`.
+/// A sheet preset id with its orientation: `iso.a3` becomes `iso.a3.landscape`. `ansi.` is
+/// read as `asme.`, since the ANSI sheet sizes are the ASME Y14.1 ones and people use both names.
 fn full_sheet(sheet: &str) -> Result<String, EngineError> {
     if !tpl::is_sheet_id(sheet) {
         return Err(EngineError::Params(format!("`{}` is not a sheet preset id (`<standard>.<size>[.<orientation>]`)", short(sheet))));
     }
-    Ok(if sheet.split('.').count() == 2 { format!("{sheet}.{DEFAULT_ORIENTATION}") } else { sheet.to_string() })
+    let sheet = match sheet.strip_prefix("ansi.") {
+        Some(rest) => format!("asme.{rest}"),
+        None => sheet.to_string(),
+    };
+    Ok(if sheet.split('.').count() == 2 { format!("{sheet}.{DEFAULT_ORIENTATION}") } else { sheet })
 }
 
 /// The variant and sheet a template is drawn with. Variant: the caller's choice (an id of the

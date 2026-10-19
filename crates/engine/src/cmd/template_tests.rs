@@ -199,20 +199,22 @@ fn hooks_run_when_registered_and_are_skipped_otherwise() {
     engtest();
     let mut s = blank();
     let r = run(&mut s, "template.new", json!({"template": "engtest.schematic"}));
-    assert_eq!(r["applied"], json!([]));
-    assert_eq!(r["skipped"], json!(["sheet.set", "page.setModule", "engtest.later", "sheet.titleBlock", "key.insert"]));
+    // The sheet and module hooks are real commands now (b6e-sheets, b6e-substrate); the key waits for b6-topology.
+    assert_eq!(r["applied"], json!(["sheet.set", "page.setModule", "sheet.titleBlock"]));
+    assert_eq!(r["skipped"], json!(["engtest.later", "key.insert"]));
     assert_eq!(r["sheet"], "iso.a3.landscape");
 
     let mut s = with_hooks(&["key.insert", "sheet.titleBlock"]);
     let r = run(&mut s, "template.new", json!({"template": "engtest.schematic"}));
-    assert_eq!(r["applied"], json!(["sheet.titleBlock", "key.insert"]));
-    assert_eq!(r["skipped"], json!(["sheet.set", "page.setModule", "engtest.later"]));
+    assert_eq!(r["applied"], json!(["sheet.set", "page.setModule", "sheet.titleBlock", "key.insert"]));
+    assert_eq!(r["skipped"], json!(["engtest.later"]));
     assert_eq!(s.doc.page().unwrap().name, "Page-1++", "both hooks ran once, in the real run");
     assert_eq!(s.undo_depth(), 1);
 
-    let mut s = with_hooks(&["sheet.set", "page.setModule"]);
+    // Faking sheet.set means no sheet is made, so the title block hook is faked with it.
+    let mut s = with_hooks(&["sheet.set", "page.setModule", "sheet.titleBlock"]);
     let r = run(&mut s, "template.new", json!({"template": "engtest.schematic", "sheet": "asme.d.landscape"}));
-    assert_eq!(r["applied"], json!(["sheet.set", "page.setModule"]));
+    assert_eq!(r["applied"], json!(["sheet.set", "page.setModule", "sheet.titleBlock"]));
     assert_eq!(s.doc.standards.sheet, "asme.d.landscape");
     let txn = s.transactions().back().unwrap();
     assert!(txn.commands.iter().any(|c| c == "page.setModule"), "{:?}", txn.commands);
@@ -239,16 +241,18 @@ fn the_variant_follows_the_choice_and_the_project_standards() {
     assert_eq!(s.undo_label(), Some("New Page from Plain"));
     run(&mut s, "template.standards", json!({"symbols": "iec", "sheet": "ansi.b"}));
     let r = run(&mut s, "template.addPage", json!({"template": "engtest.schematic"}));
-    assert_eq!((r["variant"].as_str(), r["sheet"].as_str()), (Some("engtest.iec"), Some("ansi.b.landscape")));
+    assert_eq!((r["variant"].as_str(), r["sheet"].as_str()), (Some("engtest.iec"), Some("asme.b.landscape")));
     // A family name works as the choice, and "" is the default drawing.
     let r = run(&mut s, "template.addPage", json!({"template": "engtest.plain", "variant": "jic"}));
     assert_eq!(r["variant"], "engtest.jic");
     let r = run(&mut s, "template.addPage", json!({"template": "engtest.plain", "variant": ""}));
     assert_eq!(r["variant"], "");
-    assert_eq!(s.doc.pages.len(), 5);
+    // Foreground pages only: a page with a sheet also gets its generated frame page.
+    let drawn = |s: &Session| s.doc.pages.iter().filter(|p| !p.is_background).count();
+    assert_eq!(drawn(&s), 5);
     // Each added page was one step.
     run(&mut s, "edit.undo", json!({}));
-    assert_eq!(s.doc.pages.len(), 4);
+    assert_eq!(drawn(&s), 4);
 }
 
 #[test]
@@ -268,11 +272,12 @@ fn standards_read_set_and_offer_choices() {
     assert_eq!(r["symbols"], "iec");
     assert_eq!(r["sheet"], "iso.a3.landscape");
     assert_eq!(r["symbolChoices"][0], "iec");
-    assert_eq!(r["sheetChoices"], json!(["iso.a3.landscape", "ansi.b.landscape"]));
+    assert_eq!(r["sheetChoices"][0], "iso.a3.landscape", "ISO A3 first");
+    assert!(r["sheetChoices"].as_array().unwrap().contains(&json!("asme.b.landscape")), "ASME offered too");
     assert!(!s.can_undo(), "reading is not a step");
     run(&mut s, "template.standards", json!({"symbols": "ansi", "sheet": "ansi.b.landscape"}));
     assert_eq!(s.undo_label(), Some("Project Standards"));
-    assert_eq!((s.doc.standards.symbols.as_str(), s.doc.standards.sheet.as_str()), ("ansi", "ansi.b.landscape"));
+    assert_eq!((s.doc.standards.symbols.as_str(), s.doc.standards.sheet.as_str()), ("ansi", "asme.b.landscape"), "ansi. is read as asme.");
     run(&mut s, "template.standards", json!({"symbols": "", "sheet": ""}));
     assert_eq!(s.doc.standards, Standards::default());
     for bad in [json!({"symbols": "IEC 60617"}), json!({"sheet": "A4"}), json!({"symbols": 3})] {
