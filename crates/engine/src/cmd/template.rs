@@ -57,7 +57,7 @@ pub fn specs() -> Vec<CommandSpec> {
             r#"{"audience"?: string, "pack"?: pack id, "query"?: string} -> {"templates": [{"id", "label", "description", "pack", "packName", "audience", "keywords", "viewpoint", "codeForms", "key", "titleBlock", "variant", "variants": [{"id", "label", "family"}], "sheet", "module"}]}; catalog order; the query matches label, keywords, id and description, ignoring case"#,
         ),
         CommandSpec::new("template.new", "New from Template", "File > New", new).params(
-            r#"{"template": template id, "path"?: file to save to, "variant"?: variant id, symbol family ("jic") or "" for the default drawing, "sheet"?: "<standard>.<size>[.<orientation>]" or "" for none} -> {"template", "page", "variant", "sheet", "applied": [command], "skipped": [command], "primary", "items", "path"?}; replaces the document with a new one drawn from the template (one undo step back to a blank page) and records the variant's family and the sheet as the project's standards; variant default: the template's, else the pack's IEC variant, else the default drawing"#,
+            r#"{"template": template id, "path"?: file to save to, "variant"?: variant id, symbol family ("jic") or "" for the default drawing, "sheet"?: "<standard>.<size>[.<orientation>]" or "" for none, "standards"?: {"symbols"?: symbol family, "sheet"?: sheet preset id}} -> {"template", "page", "variant", "sheet", "applied": [command], "skipped": [command], "primary", "items", "path"?}; replaces the document with a new one drawn from the template (one undo step back to a blank page) and records the project's standards: the given `standards`, else the variant's family when it is one of template.standards' symbolChoices and the sheet; with `standards` the variant follows its family when the pack draws it and the sheet its sheet when the template has one; variant default: the template's, else the pack's IEC variant, else the default drawing"#,
         ),
         CommandSpec::new("template.addPage", "New Page from Template", "Insert > Pages", add_page).params(
             r#"{"template": template id, "variant"?: variant id or family, "sheet"?: sheet preset id or "", "name"?: page name} -> {"template", "page", "variant", "sheet", "applied", "skipped", "primary", "items"}; adds a page drawn from the template in one undo step; variant and sheet default to the project's standards"#,
@@ -66,7 +66,7 @@ pub fn specs() -> Vec<CommandSpec> {
             r#"{"symbols"?: symbol family, "sheet"?: sheet preset id} -> {"symbols", "sheet", "symbolChoices", "sheetChoices"}; with neither it reads them; setting is one undo step; "" restores the default (IEC, ISO A3 landscape); sheetChoices come from sheet.presets when that command is registered"#,
         ),
         CommandSpec::new("template.preview", "Preview Template", "File > New", preview).params(
-            r#"{"template": template id, "variant"?: variant id or family, "sheet"?: sheet preset id or ""} -> {"template", "svg", "width", "height"}; draws the template in a scratch document and returns its first page as SVG text; changes nothing"#,
+            r#"{"template": template id, "variant"?: variant id or family, "sheet"?: sheet preset id or "", "standards"?: {"symbols"?, "sheet"?}} -> {"template", "variant", "sheet", "svg", "width", "height"}; draws the template in a scratch document, choosing as template.new does, and returns its first page as SVG text; changes nothing"#,
         ),
     ]
 }
@@ -98,6 +98,13 @@ pub fn build(template: &Template, choices: &Choices) -> Result<Document, EngineE
     let base = Session::new(Document::new());
     let (variant, sheet) = resolve(pack, t, choices, None)?;
     Ok(plan(&base, Document::new(), false, t, &variant, &sheet, Vec::new())?.doc)
+}
+
+/// The variant and sheet `template.new` would draw template `id` with, given `choices` and, when
+/// the caller passes them, the project's `standards` (as `template.new`'s `standards` param).
+pub fn resolved(id: &str, choices: &Choices, project: Option<&Standards>) -> Result<(String, String), EngineError> {
+    let (pack, t) = lookup(id)?;
+    resolve(pack, t, choices, project)
 }
 
 /// The template id param, checked against the catalog.
@@ -357,14 +364,32 @@ fn new(s: &mut Session, v: &Value) -> CmdResult {
     if path.as_ref().is_some_and(|p| p.is_empty() || p.len() > MAX_PATH) {
         return Err(EngineError::Params(format!("`path` must be 1 to {MAX_PATH} bytes")));
     }
-    let (variant, sheet) = resolve(pack, t, &choices, None)?;
-    // The project's standards are the first step, so they are part of the one undo step.
+    let given = standards_param(s, v)?;
+    let project = given.as_ref().map(as_project);
+    let (variant, sheet) = resolve(pack, t, &choices, project.as_ref())?;
+    // The project's standards are the first step, so they are part of the one undo step. Given
+    // ones are written as given; otherwise the variant's family, but only a symbol family the
+    // standards offer (a notation such as `ie` or `chen` is not one), and the sheet drawn.
+    let (given_symbols, given_sheet) = given.unwrap_or_default();
     let mut std = Map::new();
-    if !variant.is_empty() {
-        std.insert("symbols".into(), json!(tpl::family_of(&variant)));
+    let family = tpl::family_of(&variant);
+    match given_symbols {
+        Some(sym) => {
+            std.insert("symbols".into(), json!(sym));
+        }
+        None if !variant.is_empty() && SYMBOL_CHOICES.contains(&family) => {
+            std.insert("symbols".into(), json!(family));
+        }
+        None => {}
     }
-    if !sheet.is_empty() {
-        std.insert("sheet".into(), json!(sheet));
+    match given_sheet {
+        Some(sh) => {
+            std.insert("sheet".into(), json!(sh));
+        }
+        None if !sheet.is_empty() => {
+            std.insert("sheet".into(), json!(sheet));
+        }
+        None => {}
     }
     let prelude = if std.is_empty() { Vec::new() } else { vec![("template.standards".to_string(), Value::Object(std))] };
     // A dry run first: a template that fails leaves the user's document and history alone.
@@ -399,7 +424,8 @@ fn add_page(s: &mut Session, v: &Value) -> CmdResult {
 fn preview(s: &mut Session, v: &Value) -> CmdResult {
     let (pack, t) = template_param(v)?;
     let choices = choices_param(v)?;
-    let (variant, sheet) = resolve(pack, t, &choices, None)?;
+    let project = standards_param(s, v)?.as_ref().map(as_project);
+    let (variant, sheet) = resolve(pack, t, &choices, project.as_ref())?;
     let p = plan(s, Document::new(), false, t, &variant, &sheet, Vec::new())?;
     let index = p.doc.active_index();
     let bytes = vizcraft_formats::svg::export_page(&p.doc, index).map_err(|e| EngineError::Failed(e.to_string()))?;
@@ -410,7 +436,7 @@ fn preview(s: &mut Session, v: &Value) -> CmdResult {
     // The text is for embedding, so it starts at the root element, without the XML declaration.
     let svg = svg.find("<svg").and_then(|i| svg.get(i..)).unwrap_or(&svg).to_string();
     let (width, height) = svg_size(&svg);
-    Ok(json!({"template": t.id, "svg": svg, "width": width, "height": height}))
+    Ok(json!({"template": t.id, "variant": variant, "sheet": sheet, "svg": svg, "width": width, "height": height}))
 }
 
 /// The `width` and `height` of an SVG's root element (0 when absent).
@@ -445,10 +471,12 @@ fn sheet_presets(s: &mut Session) -> Option<Vec<String>> {
     (!ids.is_empty()).then_some(ids)
 }
 
-fn standards(s: &mut Session, v: &Value) -> CmdResult {
+/// The `symbols` and `sheet` of `v`, checked: a family name of lowercase letters, digits and `_`,
+/// and a sheet preset id (completed with its orientation, and one of `presets` when given). ""
+/// is kept, meaning the default. Absent stays `None`.
+fn checked_standards(v: &Value, presets: Option<&[String]>) -> Result<(Option<String>, Option<String>), EngineError> {
     let symbols = opt_str(v, "symbols")?;
     let sheet = opt_str(v, "sheet")?;
-    let presets = sheet_presets(s);
     if let Some(sym) = symbols
         && !sym.is_empty()
         && (sym.len() > MAX_STANDARD || !sym.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_'))
@@ -459,15 +487,39 @@ fn standards(s: &mut Session, v: &Value) -> CmdResult {
         Some("") => Some(String::new()),
         Some(sh) => {
             let full = full_sheet(sh)?;
-            if presets.as_ref().is_some_and(|p| !p.contains(&full)) {
+            if presets.is_some_and(|p| !p.contains(&full)) {
                 return Err(EngineError::Params(format!("`{}` is not a sheet preset; sheet.presets lists them", short(sh))));
             }
             Some(full)
         }
         None => None,
     };
+    Ok((symbols.map(str::to_string), sheet))
+}
+
+/// The `standards` param of `template.new` and `template.preview`, checked as
+/// `template.standards` checks its own: `None` when absent, else the given symbols and sheet.
+fn standards_param(s: &mut Session, v: &Value) -> Result<Option<(Option<String>, Option<String>)>, EngineError> {
+    match v.get("standards") {
+        None | Some(Value::Null) => Ok(None),
+        Some(o @ Value::Object(_)) => {
+            let presets = sheet_presets(s);
+            checked_standards(o, presets.as_deref()).map(Some)
+        }
+        Some(_) => Err(EngineError::Params("`standards` must be an object {\"symbols\"?, \"sheet\"?}".into())),
+    }
+}
+
+/// The project standards a `standards` param stands for (an absent field reads as unset).
+fn as_project(given: &(Option<String>, Option<String>)) -> Standards {
+    Standards { symbols: given.0.clone().unwrap_or_default(), sheet: given.1.clone().unwrap_or_default() }
+}
+
+fn standards(s: &mut Session, v: &Value) -> CmdResult {
+    let presets = sheet_presets(s);
+    let (symbols, sheet) = checked_standards(v, presets.as_deref())?;
     if let Some(sym) = symbols {
-        s.doc.standards.symbols = sym.to_string();
+        s.doc.standards.symbols = sym;
     }
     if let Some(sh) = sheet {
         s.doc.standards.sheet = sh;
@@ -493,10 +545,18 @@ fn matches(pack: &Pack, t: &Template, audience: Option<&str>, query: Option<&str
 fn list(_s: &mut Session, v: &Value) -> CmdResult {
     let audience = opt_str(v, "audience")?;
     let pack_id = opt_str(v, "pack")?;
-    let query = opt_str(v, "query")?.map(str::trim).filter(|q| !q.is_empty());
-    if query.is_some_and(|q| q.len() > MAX_QUERY) {
+    let query = opt_str(v, "query")?;
+    if query.is_some_and(|q| q.trim().len() > MAX_QUERY) {
         return Err(EngineError::Params(format!("`query` is longer than {MAX_QUERY} bytes")));
     }
+    Ok(json!({"templates": listing(audience, pack_id, query)}))
+}
+
+/// The templates `template.list` lists for these filters, in catalog order, each as its row.
+/// For callers that filter as the person types (a gallery), so nothing is recorded into a macro.
+/// A blank query matches everything.
+pub fn listing(audience: Option<&str>, pack_id: Option<&str>, query: Option<&str>) -> Vec<Value> {
+    let query = query.map(str::trim).filter(|q| !q.is_empty());
     let mut out = Vec::new();
     for pack in cat().packs().iter().filter(|p| pack_id.is_none_or(|id| p.id == id)) {
         let variants: Vec<Value> = pack.variants.iter().map(|x| json!({"id": x.id, "label": x.label, "family": tpl::family_of(&x.id)})).collect();
@@ -521,7 +581,7 @@ fn list(_s: &mut Session, v: &Value) -> CmdResult {
             }));
         }
     }
-    Ok(json!({"templates": out}))
+    out
 }
 
 #[cfg(test)]

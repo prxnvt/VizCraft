@@ -394,3 +394,92 @@ fn template_new_saves_when_given_a_path_and_is_not_recorded() {
     assert_eq!(t.doc.model.elements.len(), 6);
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn new_takes_the_project_standards_and_writes_them_in_the_one_step() {
+    let mut s = Session::new(crate::sample::sample_document());
+    let r = run(&mut s, "template.new", json!({"template": "flowchart.decision", "standards": {"symbols": "jic", "sheet": "ansi.b"}}));
+    assert_eq!((s.doc.standards.symbols.as_str(), s.doc.standards.sheet.as_str()), ("jic", "asme.b.landscape"));
+    assert_eq!(r["sheet"], "", "the template has no sheet, so the page has none");
+    assert!(s.doc.page().unwrap().sheet.is_none());
+    assert_eq!(s.undo_depth(), 1);
+
+    let mut s = blank();
+    let r = run(&mut s, "template.new", json!({"template": "network.physical", "standards": {"sheet": "asme.b"}}));
+    assert_eq!(r["sheet"], "asme.b.landscape");
+    let sheet = s.doc.pages.iter().find_map(|p| p.sheet).unwrap();
+    assert_eq!(sheet.standard, vizcraft_diagram::sheet::SheetStandard::AsmeY14_1);
+
+    let mut s = blank();
+    let r = run(&mut s, "template.new", json!({"template": "er.schema", "standards": {"symbols": "iec"}}));
+    assert_eq!(r["variant"], "er.ie", "ER has no IEC drawing, so the template's own notation");
+    assert_eq!(s.doc.standards.symbols, "iec");
+}
+
+#[test]
+fn new_without_standards_records_only_a_symbol_family() {
+    let mut s = blank();
+    let r = run(&mut s, "template.new", json!({"template": "er.schema"}));
+    assert_eq!(r["variant"], "er.ie");
+    assert_eq!(s.doc.standards.symbols, "", "`ie` is a notation, not a symbol family");
+    run(&mut s, "template.new", json!({"template": "er.conceptual"}));
+    assert_eq!(s.doc.standards.symbols, "");
+    engtest();
+    run(&mut s, "template.new", json!({"template": "engtest.plain", "variant": "jic"}));
+    assert_eq!(s.doc.standards.symbols, "jic");
+}
+
+#[test]
+fn junk_standards_are_rejected_before_anything_changes() {
+    let mut s = Session::new(crate::sample::sample_document());
+    run(&mut s, "shape.add", json!({"stencil": "basic.rectangle", "x": 0, "y": 0}));
+    let (before, depth, rev) = (s.doc.clone(), s.undo_depth(), s.rev());
+    for bad in [json!(5), json!({"symbols": "A B"}), json!({"sheet": "x"}), json!({"sheet": "iso.z9"}), json!({"symbols": 5, "sheet": []})] {
+        let p = json!({"template": "flowchart.decision", "standards": bad});
+        assert!(s.run("template.new", &p).is_err(), "{p}");
+        assert!(s.run("template.preview", &p).is_err(), "{p}");
+    }
+    assert_eq!(s.doc, before);
+    assert_eq!((s.undo_depth(), s.rev()), (depth, rev));
+}
+
+#[test]
+fn preview_reports_its_choices_and_follows_the_standards() {
+    let mut s = blank();
+    let r = run(&mut s, "template.preview", json!({"template": "network.physical", "standards": {"sheet": "asme.c"}}));
+    assert_eq!((r["variant"].as_str(), r["sheet"].as_str()), (Some(""), Some("asme.c.landscape")));
+    let r = run(&mut s, "template.preview", json!({"template": "er.conceptual"}));
+    assert_eq!(r["variant"], "er.chen");
+}
+
+#[test]
+fn resolved_matches_what_template_new_draws_for_every_template() {
+    for standards in [None, Some(Standards { symbols: "jic".into(), sheet: "asme.b.landscape".into() })] {
+        for id in shipped() {
+            let mut s = blank();
+            let mut p = json!({"template": id});
+            if let Some(st) = &standards {
+                p["standards"] = json!({"symbols": st.symbols, "sheet": st.sheet});
+            }
+            let r = run(&mut s, "template.new", p);
+            let (variant, sheet) = resolved(&id, &Choices::default(), standards.as_ref()).unwrap();
+            assert_eq!((r["variant"].as_str(), r["sheet"].as_str()), (Some(variant.as_str()), Some(sheet.as_str())), "{id}");
+        }
+    }
+    assert!(resolved("nope.nope", &Choices::default(), None).is_err());
+}
+
+#[test]
+fn listing_is_what_template_list_returns() {
+    let mut s = blank();
+    for (audience, pack, query) in [(None, None, None), (Some("software"), None, Some(" er ")), (None, Some("flowchart"), Some("deploy"))] {
+        let mut p = json!({});
+        for (k, v) in [("audience", audience), ("pack", pack), ("query", query)] {
+            if let Some(v) = v {
+                p[k] = json!(v);
+            }
+        }
+        let r = run(&mut s, "template.list", p);
+        assert_eq!(r["templates"], json!(listing(audience, pack, query)));
+    }
+}
