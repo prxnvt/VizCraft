@@ -202,6 +202,12 @@ fn kind_preview(painter: &egui::Painter, k: &vizcraft_notation::ConnectorType, r
 
 /// One list row: a small preview and the label. The connector kind in use is drawn checked.
 fn item_row(app: &mut CraftApp, ui: &mut Ui, item: &Item) {
+    item_row_in(app, ui, item, false);
+}
+
+/// [`item_row`], with the pack's name dimmed at the right when `show_pack` is set. The accessible
+/// label stays the row's own label.
+fn item_row_in(app: &mut CraftApp, ui: &mut Ui, item: &Item, show_pack: bool) {
     let t = Tokens::get(ui.ctx());
     let (r, resp) = ui.allocate_exact_size(vec2(ui.available_width(), ROW_H), Sense::click_and_drag());
     let label = item.label.as_str();
@@ -223,6 +229,9 @@ fn item_row(app: &mut CraftApp, ui: &mut Ui, item: &Item) {
         What::Builder(b) => builder_preview(ui.painter(), b.name, art),
     }
     ui.painter().with_clip_rect(r).text(pos2(r.left() + 40.0, r.center().y), egui::Align2::LEFT_CENTER, label, regular(12.0), t.text);
+    if show_pack && !item.pack.is_empty() {
+        ui.painter().with_clip_rect(r).text(pos2(r.right() - 6.0, r.center().y), egui::Align2::RIGHT_CENTER, &item.pack, regular(11.0), t.text_dim);
+    }
     let tip = match what {
         What::Master(m) => m.label,
         What::Kind(_) => "Draw connectors of this kind",
@@ -332,8 +341,11 @@ fn shapes(app: &mut CraftApp, ui: &mut Ui) {
             ui.label(egui::RichText::new("Results").font(semibold(12.0)).color(t.text));
             ui.add_space(2.0);
             ui.spacing_mut().item_spacing = vec2(0.0, 1.0);
-            for item in hits {
-                item_row(app, ui, item);
+            // Two hits with the same label (Flowchart's and UML's Decision) are told apart by the
+            // pack named, dimmed, at the right of the row.
+            let shared: Vec<bool> = hits.iter().map(|a| hits.iter().filter(|b| b.label == a.label).count() > 1).collect();
+            for (item, shared) in hits.into_iter().zip(shared) {
+                item_row_in(app, ui, item, shared);
             }
         }
         return;

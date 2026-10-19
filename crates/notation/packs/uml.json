@@ -2677,6 +2677,7 @@
           "types": [
             "uml.InitialNode",
             "uml.Action",
+            "uml.Decision",
             "uml.ForkNode",
             "uml.JoinNode",
             "uml.ActivityFinal",

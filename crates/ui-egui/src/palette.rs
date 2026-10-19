@@ -75,6 +75,9 @@ pub struct Item {
     pub label: String,
     /// What the row does.
     pub what: What,
+    /// The name of the pack the row comes from, shown beside a search hit whose label another hit
+    /// shares; empty when it has none.
+    pub pack: String,
     /// Lowercased words searched besides the label and id.
     keywords: Vec<String>,
 }
@@ -148,20 +151,27 @@ fn master_item(cat: &'static Catalog, m: &'static Master, label: Option<&str>) -
     let type_id = cat.type_for_master(m.id);
     let mut keywords: Vec<String> = m.keywords.iter().flat_map(|k| words_of(k)).collect();
     keywords.extend(words_of(m.category));
-    Item { id: m.id, type_id, label: label.filter(|l| !l.is_empty()).unwrap_or(m.label).to_string(), what: What::Master(m), keywords }
+    let pack = pack_name(cat, m.id);
+    Item { id: m.id, type_id, label: label.filter(|l| !l.is_empty()).unwrap_or(m.label).to_string(), what: What::Master(m), pack, keywords }
+}
+
+/// The display name of the pack that owns id `id` (`<pack>.<name>`), or empty.
+fn pack_name(cat: &Catalog, id: &str) -> String {
+    id.split_once('.').and_then(|(p, _)| cat.pack(p)).map(|p| p.name.clone()).unwrap_or_default()
 }
 
 fn kind_item(t: &'static ConnectorType) -> Item {
     let mut keywords: Vec<String> = t.keywords.iter().flat_map(|k| words_of(k)).collect();
     keywords.extend(words_of(&t.category));
-    Item { id: t.id.as_str(), type_id: None, label: t.label.clone(), what: What::Kind(t), keywords }
+    let pack = pack_name(vizcraft_notation::catalog(), &t.id);
+    Item { id: t.id.as_str(), type_id: None, label: t.label.clone(), what: What::Kind(t), pack, keywords }
 }
 
 fn builder_item(spec: &'static BuilderSpec) -> Item {
     let mut keywords = words_of(spec.description);
     keywords.extend(spec.sources.iter().flat_map(|(standard, _)| words_of(standard)));
     keywords.extend(["engineering", "symbol", "glyph"].map(str::to_string));
-    Item { id: spec.name, type_id: None, label: spec.label.to_string(), what: What::Builder(spec), keywords }
+    Item { id: spec.name, type_id: None, label: spec.label.to_string(), what: What::Builder(spec), pack: String::new(), keywords }
 }
 
 /// The closed preview section: one row per glyph builder.
