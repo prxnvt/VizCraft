@@ -12,6 +12,7 @@
 //! hit testing and routing stay in one place.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
+pub mod builders;
 mod connectors;
 pub mod ports;
 mod search;
@@ -19,6 +20,7 @@ mod search;
 use std::sync::{Mutex, PoisonError};
 
 use vizcraft_diagram::geom::{Path, Point, Transform};
+use vizcraft_diagram::glyph_state::GlyphState;
 use vizcraft_diagram::{Color, Freeform, Shape, ShapeKind, Style};
 use vizcraft_notation::{Catalog, Glyph, Pack};
 
@@ -48,8 +50,11 @@ pub struct Master {
     /// subpaths fill, open ones are lines. `None` for a glyph drawn by its kind.
     pub path: Option<Path>,
     /// Connection points, normalized, from the ports of the glyph's element type (port `i` at
-    /// point `i`); empty to use the kind's own.
+    /// point `i`), or from the builder for a builder glyph; empty to use the kind's own.
     pub ports: Vec<Point>,
+    /// For a builder glyph: the builder, its port ids and slots as drawn with the glyph's
+    /// defaults (no shape overrides). Copied onto every shape drawn from this master.
+    pub glyph: Option<GlyphState>,
 }
 
 /// A named group of masters.
@@ -111,7 +116,10 @@ fn set_from_pack(pack: &Pack) -> StencilSet {
         .iter()
         .map(|g| {
             let mut m = master_from_glyph(g);
-            m.ports = pack.element_type(&g.element_type).map(|t| ports::points_of(&t.ports)).unwrap_or_default();
+            // A builder places its own ports; the type's ports name them.
+            if m.glyph.is_none() {
+                m.ports = pack.element_type(&g.element_type).map(|t| ports::points_of(&t.ports)).unwrap_or_default();
+            }
             if !categories.contains(&m.category) {
                 categories.push(m.category);
             }
@@ -122,29 +130,47 @@ fn set_from_pack(pack: &Pack) -> StencilSet {
 }
 
 /// A master from a glyph. The loader has already checked outline names and colours, so the
-/// fallbacks only guard against a pack built without the loader.
+/// fallbacks only guard against a pack built without the loader. A builder glyph is built once
+/// with its defaults at its standard's module: the drawing normalized to the unit box, the size
+/// its true size, the ports from the builder.
 fn master_from_glyph(g: &Glyph) -> Master {
     let d = Style::DEFAULT;
     let style = Style { fill: Color::parse(&g.fill).unwrap_or(d.fill), line: Color::parse(&g.line).unwrap_or(d.line), ..d };
     let keywords: Vec<&'static str> = g.keywords.iter().map(|k| leak(k)).collect();
-    // A path that does not read (a pack built without the loader) draws as the frame.
-    let path = (g.outline == vizcraft_notation::loader::PATH_OUTLINE)
-        .then(|| vizcraft_notation::glyph_path::glyph_outline(&g.path, &g.detail).ok())
-        .flatten();
-    let kind =
-        if g.outline == vizcraft_notation::loader::PATH_OUTLINE { ShapeKind::Freeform } else { ShapeKind::from_name(&g.outline).unwrap_or_default() };
-    Master {
+    let mut m = Master {
         id: leak(&g.id),
         label: leak(&g.label),
         category: leak(&g.category),
-        kind,
+        kind: ShapeKind::from_name(&g.outline).unwrap_or_default(),
         w: g.w,
         h: g.h,
         style,
         keywords: keywords.leak(),
-        path,
+        path: None,
         ports: Vec::new(),
+        glyph: None,
+    };
+    if g.outline == vizcraft_notation::loader::PATH_OUTLINE {
+        m.kind = ShapeKind::Freeform;
+        // A path that does not read (a pack built without the loader) draws as the frame.
+        m.path = vizcraft_notation::glyph_path::glyph_outline(&g.path, &g.detail).ok();
+    } else if g.outline == vizcraft_notation::loader::BUILDER_OUTLINE {
+        // An unknown builder (a pack built without the engine's check) draws as the frame.
+        if let Ok(b) = builders::build(&g.builder, &g.params, None) {
+            m.kind = ShapeKind::Freeform;
+            m.w = b.width();
+            m.h = b.height();
+            m.path = Some(b.path().transformed(&Transform::scale(1.0 / m.w.max(1e-9), 1.0 / m.h.max(1e-9))));
+            m.ports = builders::apply::points_of(&b);
+            m.glyph = Some(GlyphState {
+                builder: g.builder.clone(),
+                params: Default::default(),
+                ports: b.ports.iter().map(|p| p.id.clone()).collect(),
+                labels: builders::apply::labels_of(&b),
+            });
+        }
     }
+    m
 }
 
 /// Every built-in stencil set, in display order.
@@ -192,7 +218,9 @@ impl Master {
     }
 
     /// Draw `s` as this master: its kind, path (scaled from the unit box onto the shape's
-    /// size), connection points and style. The id, frame, text, data and glue are kept.
+    /// size, keeping the box, so a glyph with a margin keeps it), connection points, style and
+    /// builder state. The id, frame, text, data and glue are kept, and so are the shape's own
+    /// builder parameters when the master is drawn by the same builder.
     pub fn redraw(&self, s: &mut Shape) {
         s.kind = self.kind;
         s.stencil = self.id.to_string();
@@ -201,9 +229,14 @@ impl Master {
             let (w, h) = (s.w.max(1e-6), s.h.max(1e-6));
             let local = p.transformed(&Transform::scale(w, h));
             let closed = local.els.iter().any(|e| matches!(e, vizcraft_diagram::geom::PathEl::Close));
-            Freeform::new(&local, closed)
+            Freeform::in_frame(&local, closed, w, h)
         });
         s.connection_points = if self.ports.is_empty() { self.kind.connection_points() } else { self.ports.clone() };
+        let kept = s.glyph.take().filter(|old| self.glyph.as_ref().is_some_and(|g| g.builder == old.builder)).map(|old| old.params);
+        s.glyph = self.glyph.clone().map(|mut g| {
+            g.params = kept.unwrap_or_default();
+            g
+        });
         s.sanitize();
     }
 }
@@ -329,6 +362,7 @@ mod tests {
                 keywords,
                 path: None,
                 ports: Vec::new(),
+                glyph: None,
             };
             assert_eq!(**m, want, "{id}");
         }

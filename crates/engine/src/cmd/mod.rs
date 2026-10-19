@@ -22,6 +22,7 @@ pub mod element;
 pub mod file;
 pub mod find;
 pub mod generate;
+pub mod glyph;
 pub mod help;
 pub mod ink;
 pub mod insert;
@@ -107,6 +108,7 @@ pub fn registry() -> Registry {
     v.extend(document::specs());
     v.extend(notation::specs());
     v.extend(variant::specs());
+    v.extend(glyph::specs());
     v.extend(insert::specs());
     v.extend(suggest::specs());
     v.extend(protect::specs());

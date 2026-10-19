@@ -8,6 +8,7 @@
 mod assets;
 mod ico;
 mod layers;
+mod provenance;
 mod version;
 
 use std::path::{Path, PathBuf};
@@ -19,7 +20,8 @@ usage: cargo xtask <task>
 tasks:
   ci              fmt --check, clippy -D warnings, test, assets, layers, wasm (stops at first failure)
   layers          enforce the crate dependency layering (docs/architecture.md, Layers)
-  assets          check that every file under assets/ and packaging/ has a row in ATTRIBUTION.md
+  assets          check that every file under assets/ and packaging/ has a row in ATTRIBUTION.md, and every
+                  drawn glyph and glyph builder states its provenance
   wasm            cargo check --target wasm32-unknown-unknown for the engine, ui-egui and *-web crates
   ico <out.ico> <in.png>...
                   pack square PNGs (<= 256 px) into a Windows .ico (used by packaging/icons.sh)
@@ -27,13 +29,20 @@ tasks:
   help            this text
 ";
 
+/// `assets`: every asset file attributed, and every drawn glyph and builder with its provenance.
+fn cmd_assets() -> Result<(), String> {
+    let root = root();
+    assets::run(&root)?;
+    provenance::run(&root)
+}
+
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let rest: Vec<&str> = args.iter().skip(1).map(String::as_str).collect();
     let result = match args.first().map(String::as_str) {
         Some("ci") => cmd_ci(),
         Some("layers") => cmd_layers(),
-        Some("assets") => assets::run(&root()),
+        Some("assets") => cmd_assets(),
         Some("wasm") => cmd_wasm().map(|_| ()),
         Some("ico") => ico::run(&rest),
         Some("version") => version::run(&root()),
@@ -192,7 +201,7 @@ fn cmd_ci() -> Result<(), String> {
                 pass(run(c, "cargo test --workspace"))
             }),
         ),
-        ("assets", Box::new(move || pass(assets::run(&root())))),
+        ("assets", Box::new(move || pass(cmd_assets()))),
         ("layers", Box::new(move || pass(cmd_layers()))),
         ("wasm", Box::new(cmd_wasm)),
     ];

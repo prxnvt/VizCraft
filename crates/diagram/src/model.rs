@@ -400,6 +400,10 @@ pub struct Shape {
     /// [`crate::shape_fields::Orient`]); text stays upright.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
     pub orient: crate::shape_fields::Orient,
+    /// For a shape drawn by a parametric glyph builder: the builder, the shape's parameter
+    /// overrides, its port ids and its text slots (see [`crate::glyph_state`]).
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub glyph: Option<crate::glyph_state::GlyphState>,
 }
 
 impl Default for Shape {
@@ -434,6 +438,7 @@ impl Default for Shape {
             language: String::new(),
             data_graphic: None,
             orient: crate::shape_fields::Orient::NONE,
+            glyph: None,
         }
     }
 }
@@ -487,6 +492,9 @@ impl Shape {
         truncate(&mut self.name, Self::MAX_NAME);
         sanitize_language(&mut self.language);
         self.orient.sanitize();
+        if let Some(g) = &mut self.glyph {
+            g.sanitize();
+        }
     }
     /// Longest screen tip kept, in bytes.
     pub const MAX_SCREEN_TIP: usize = 4096;

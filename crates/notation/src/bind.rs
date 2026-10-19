@@ -157,20 +157,38 @@ struct Glue {
     target: String,
     source_point: Option<usize>,
     target_point: Option<usize>,
+    /// The port ids a glyph builder gave the glued shapes' connection points, which win over
+    /// the types' ports.
+    source_glyph: Option<String>,
+    target_glyph: Option<String>,
 }
 
-fn glue_of(shape_el: &HashMap<&str, &str>, c: &Connector) -> Option<Glue> {
+fn glue_of(shape_el: &HashMap<&str, &str>, glyph_ports: &HashMap<&str, &[String]>, c: &Connector) -> Option<Glue> {
     let (End::Glued { shape: s, point: sp, .. }, End::Glued { shape: t, point: tp, .. }) = (&c.start, &c.end) else { return None };
+    let built = |shape: &str, point: Option<usize>| glyph_ports.get(shape).and_then(|ports| ports.get(point?)).cloned();
     Some(Glue {
         source: (*shape_el.get(s.as_str())?).to_string(),
         target: (*shape_el.get(t.as_str())?).to_string(),
         source_point: *sp,
         target_point: *tp,
+        source_glyph: built(s, *sp),
+        target_glyph: built(t, *tp),
     })
 }
 
-/// The port an end attaches to: by connection-point index when the element's type declares ports.
-fn port(doc: &Document, index: &HashMap<String, usize>, cat: &Catalog, element: &str, point: Option<usize>) -> Option<String> {
+/// The port an end attaches to: the glyph builder's port id at the glued point when the shape
+/// has one, else by connection-point index when the element's type declares ports.
+fn port(
+    doc: &Document,
+    index: &HashMap<String, usize>,
+    cat: &Catalog,
+    element: &str,
+    point: Option<usize>,
+    built: &Option<String>,
+) -> Option<String> {
+    if built.is_some() {
+        return built.clone();
+    }
     let e = index.get(element).and_then(|&i| doc.model.elements.get(i))?;
     let (_, t) = cat.element_type(&e.type_id)?;
     t.ports.get(point?).map(|p| p.id.clone())
@@ -202,8 +220,13 @@ fn connectors(doc: &mut Document, cat: &Catalog) {
             if shape_el.is_empty() {
                 continue;
             }
+            let glyph_ports: HashMap<&str, &[String]> = page
+                .shapes
+                .iter()
+                .filter_map(|s| s.glyph.as_ref().filter(|g| !g.ports.is_empty()).map(|g| (s.id.as_str(), g.ports.as_slice())))
+                .collect();
             for (ci, c) in page.connectors.iter().enumerate() {
-                let Some(g) = glue_of(&shape_el, c) else { continue };
+                let Some(g) = glue_of(&shape_el, &glyph_ports, c) else { continue };
                 match c.relationship.as_deref() {
                     Some(r) if rels.contains_key(r) => {
                         let list = by_rel.entry(r).or_default();
@@ -238,8 +261,8 @@ fn connectors(doc: &mut Document, cat: &Catalog) {
     for step in plan {
         match step {
             Bind::Follow(r, g) => {
-                let sp = port(doc, &index, cat, &g.source, g.source_point);
-                let tp = port(doc, &index, cat, &g.target, g.target_point);
+                let sp = port(doc, &index, cat, &g.source, g.source_point, &g.source_glyph);
+                let tp = port(doc, &index, cat, &g.target, g.target_point, &g.target_glyph);
                 if let Some(rel) = rel_index.get(&r).and_then(|&i| doc.model.relationships.get_mut(i)) {
                     set_if_changed(&mut rel.source, g.source);
                     set_if_changed(&mut rel.target, g.target);
@@ -250,8 +273,8 @@ fn connectors(doc: &mut Document, cat: &Catalog) {
             Bind::Copy(pi, ci, r, g) => {
                 let Some(template) = rel_index.get(&r).and_then(|&i| doc.model.relationships.get(i)).cloned() else { continue };
                 let rel = Relationship {
-                    source_port: port(doc, &index, cat, &g.source, g.source_point),
-                    target_port: port(doc, &index, cat, &g.target, g.target_point),
+                    source_port: port(doc, &index, cat, &g.source, g.source_point, &g.source_glyph),
+                    target_port: port(doc, &index, cat, &g.target, g.target_point, &g.target_glyph),
                     source: g.source,
                     target: g.target,
                     ..template
@@ -267,8 +290,8 @@ fn connectors(doc: &mut Document, cat: &Catalog) {
                 let name = connector.map(|c| c.text.clone()).unwrap_or_default();
                 let rel = Relationship {
                     type_id,
-                    source_port: port(doc, &index, cat, &g.source, g.source_point),
-                    target_port: port(doc, &index, cat, &g.target, g.target_point),
+                    source_port: port(doc, &index, cat, &g.source, g.source_point, &g.source_glyph),
+                    target_port: port(doc, &index, cat, &g.target, g.target_point, &g.target_glyph),
                     source: g.source,
                     target: g.target,
                     name: cut_text(name),

@@ -1341,3 +1341,39 @@ fn sheets_document_fields_table_columns_and_per_owner_round_trip() {
     let old = load(&save(&Document::new()).unwrap()).unwrap();
     assert!(old.pages[0].sheet.is_none() && old.properties.fields.is_empty());
 }
+
+#[test]
+fn glyph_builder_state_round_trips_and_old_shapes_write_as_before() {
+    use vizcraft_diagram::glyph_state::{GlyphLabel, GlyphState};
+    let mut doc = Document::new();
+    let mut s = Shape::new("s1", ShapeKind::Freeform, 10.0, 20.0, 19.685, 39.37);
+    let path = vizcraft_diagram::geom::Path::polyline(&[vizcraft_diagram::Point::new(9.8, 0.0), vizcraft_diagram::Point::new(9.8, 14.0)]);
+    s.path = Some(vizcraft_diagram::Freeform::in_frame(&path, false, 19.685, 39.37));
+    s.glyph = Some(GlyphState {
+        builder: "contact".into(),
+        params: [("poles".to_string(), PropValue::Number(3.0)), ("form".to_string(), PropValue::Text("nc".into()))].into_iter().collect(),
+        ports: vec!["11".into(), "12".into()],
+        labels: vec![GlyphLabel { id: "tag".into(), text: "K1".into(), x: 1.2, y: 0.5, size: 11.8, anchor: "start".into() }],
+    });
+    s.sanitize();
+    let plain = Shape::new("s2", ShapeKind::Rectangle, 0.0, 0.0, 50.0, 30.0);
+    if let Some(p) = doc.page_mut() {
+        p.shapes.extend([s, plain]);
+    }
+    let bytes = save(&doc).unwrap();
+    let v = parse(&bytes);
+    let shapes = &v["document"]["pages"][0]["shapes"];
+    assert_eq!(shapes[0]["glyph"]["builder"], "contact");
+    assert_eq!(shapes[0]["glyph"]["params"]["poles"], 3.0);
+    assert_eq!(shapes[0]["path"]["frame"], json!([19.685, 39.37]));
+    assert!(shapes[1].get("glyph").is_none(), "a plain shape writes no glyph field");
+    assert_eq!(load(&bytes).unwrap().pages, doc.pages);
+    // Junk glyph state loads tolerantly.
+    let mut junk = v.clone();
+    junk["document"]["pages"][0]["shapes"][0]["glyph"] = json!({"builder": [1], "params": {"poles": {}, "form": "no"}, "ports": "x", "labels": [5]});
+    let back = load(&serde_json::to_vec(&junk).unwrap()).unwrap();
+    let g = back.page().unwrap().shapes[0].glyph.clone().unwrap();
+    assert_eq!((g.builder.as_str(), g.params.len(), g.ports.len(), g.labels.len()), ("", 1, 0, 0));
+    junk["document"]["pages"][0]["shapes"][0]["glyph"] = json!("not a glyph");
+    assert!(load(&serde_json::to_vec(&junk).unwrap()).unwrap().page().unwrap().shapes[0].glyph.is_none());
+}

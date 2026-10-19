@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="108.268" height="49.213" viewBox="-4.921 -4.921 108.268 49.213">
+  <path d="M0 0 L98.425 0 L98.425 39.37 L0 39.37 Z" fill="#ffffff" fill-rule="evenodd" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M39.37 0 L39.37 39.37 M8.858 25.591 L15.748 13.78 L30.512 13.78 L23.622 25.591 L8.858 25.591" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="45.276" y="25.886" font-family="Inter, sans-serif" font-size="17.717" text-anchor="start" fill="#1f2933">0.02</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="0" cy="19.685" r="1.969"><title>leader</title></circle>
+  </g>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="108.268" height="71.85" viewBox="-4.921 -7.874 108.268 71.85">
+  <path d="M8.32 39.37 L19.685 59.055 L48.098 9.843 M48.098 9.843 L91.405 9.843 M8.32 39.37 L31.05 39.37" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="51.051" y="21.161" font-family="Inter, sans-serif" font-size="9.843" text-anchor="start" fill="#1f2933">Ra 1.6</text>
+  <text x="51.051" y="6.398" font-family="Inter, sans-serif" font-size="9.843" text-anchor="start" fill="#1f2933">ground</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="19.685" cy="59.055" r="1.969"><title>surface</title></circle>
+  </g>
+</svg>

@@ -69,21 +69,27 @@ fn finish(mut pack: Pack) -> Result<Pack, NotationError> {
     if pack.schema_version > SCHEMA_VERSION {
         return Err(NotationError::TooNew { found: pack.schema_version, supported: SCHEMA_VERSION });
     }
-    // A path glyph draws as a freeform shape; the general checks see it as one, and its path
-    // data is read here.
-    let path_glyphs: Vec<usize> = pack.glyphs.iter().enumerate().filter(|(_, g)| g.outline == PATH_OUTLINE).map(|(i, _)| i).collect();
-    for &i in &path_glyphs {
+    // Path and builder glyphs draw as freeform shapes; the general checks see them as such, and
+    // their own fields are read here.
+    let drawn: Vec<(usize, &'static str)> = pack
+        .glyphs
+        .iter()
+        .enumerate()
+        .filter_map(|(i, g)| [PATH_OUTLINE, BUILDER_OUTLINE].into_iter().find(|o| g.outline == *o).map(|o| (i, o)))
+        .collect();
+    for &(i, _) in &drawn {
         if let Some(g) = pack.glyphs.get_mut(i) {
             g.outline = FREEFORM.into();
         }
     }
     let mut problems = crate::validate::check(&pack);
-    for &i in &path_glyphs {
+    for &(i, outline) in &drawn {
         if let Some(g) = pack.glyphs.get_mut(i) {
-            g.outline = PATH_OUTLINE.into();
+            g.outline = outline.into();
         }
     }
     problems.extend(glyph_paths(&pack));
+    problems.extend(builder_glyphs(&pack));
     problems.extend(variants(&pack));
     problems.extend(sheet_fields(&pack));
     if !problems.is_empty() {
@@ -92,10 +98,48 @@ fn finish(mut pack: Pack) -> Result<Pack, NotationError> {
     Ok(pack)
 }
 
+/// Load a pack shipped with VizCraft (see [`crate::catalog::BUILTIN`]): [`load_json`], and every
+/// path and builder glyph must say where its drawing came from ([`provenance`] finds none
+/// missing). A pack read from disk only gets these as warnings, so packs written before the rule
+/// still load.
+pub fn load_shipped(name: &str, text: &str) -> Result<Pack, NotationError> {
+    let pack = load_json(text)?;
+    let missing = provenance(&pack);
+    if !missing.is_empty() {
+        return Err(NotationError::Invalid(missing.into_iter().map(|m| format!("{name}: {m}")).collect()));
+    }
+    Ok(pack)
+}
+
+/// Path and builder glyphs of `pack` that do not say where their drawing came from (an empty
+/// `source`). For a shipped pack these are errors, for a pack from disk warnings.
+pub fn provenance(pack: &Pack) -> Vec<String> {
+    pack.glyphs
+        .iter()
+        .filter(|g| (g.outline == PATH_OUTLINE || g.outline == BUILDER_OUTLINE) && g.source.trim().is_empty())
+        .map(|g| format!("glyph `{}`: a drawn glyph needs a `source` (`own design` or `drawn from ...`)", short(&g.id)))
+        .collect()
+}
+
 /// The `outline` of a glyph drawn by its `path`.
 pub const PATH_OUTLINE: &str = "path";
 
-/// The shape kind a path glyph is drawn as.
+/// The `outline` of a glyph drawn by a Rust builder ([`crate::schema::Glyph::builder`]).
+pub const BUILDER_OUTLINE: &str = "builder";
+
+/// Most builder parameters one glyph may set.
+pub const MAX_GLYPH_PARAMS: usize = 64;
+
+/// Longest builder parameter key, in bytes.
+pub const MAX_PARAM_KEY: usize = 64;
+
+/// Longest text value of a builder parameter, in bytes.
+pub const MAX_PARAM_TEXT: usize = 1024;
+
+/// Longest `source` of a glyph, in bytes.
+pub const MAX_SOURCE: usize = 256;
+
+/// The shape kind a path or builder glyph is drawn as.
 const FREEFORM: &str = "freeform";
 
 /// Most variants one pack may declare.
@@ -179,6 +223,41 @@ fn glyph_paths(pack: &Pack) -> Vec<String> {
             }
         } else if !g.path.is_empty() || !g.detail.is_empty() {
             out.push(format!("{ctx}: `path` and `detail` are read only with outline `path`"));
+        }
+    }
+    out
+}
+
+/// Problems with builder glyphs: a builder or params on a glyph that is not drawn by one, a
+/// builder glyph with no builder, too many params or overlong keys and values, and an overlong
+/// source. Whether the builder exists is checked above this crate (the engine knows the
+/// builders), when a pack is loaded.
+fn builder_glyphs(pack: &Pack) -> Vec<String> {
+    let mut out = Vec::new();
+    for g in &pack.glyphs {
+        let ctx = format!("glyph `{}`", short(&g.id));
+        if g.outline == BUILDER_OUTLINE {
+            if g.builder.trim().is_empty() {
+                out.push(format!("{ctx}: outline `builder` needs a `builder` name"));
+            } else if g.builder.len() > MAX_PARAM_KEY {
+                out.push(format!("{ctx}: the builder name is longer than {MAX_PARAM_KEY} bytes"));
+            }
+            if g.params.len() > MAX_GLYPH_PARAMS {
+                out.push(format!("{ctx}: at most {MAX_GLYPH_PARAMS} params"));
+            }
+            for (k, v) in g.params.iter().take(MAX_GLYPH_PARAMS + 1) {
+                if k.is_empty() || k.len() > MAX_PARAM_KEY {
+                    out.push(format!("{ctx}: param key `{}` must be 1 to {MAX_PARAM_KEY} bytes", short(k)));
+                }
+                if v.as_str().is_some_and(|t| t.len() > MAX_PARAM_TEXT) {
+                    out.push(format!("{ctx}: param `{}` is longer than {MAX_PARAM_TEXT} bytes", short(k)));
+                }
+            }
+        } else if !g.builder.is_empty() || !g.params.is_empty() {
+            out.push(format!("{ctx}: `builder` and `params` are read only with outline `builder`"));
+        }
+        if g.source.len() > MAX_SOURCE {
+            out.push(format!("{ctx}: `source` is longer than {MAX_SOURCE} bytes"));
         }
     }
     out
@@ -345,6 +424,73 @@ check = { kind = "illegalRelationship" }
             })
             .contains("declared twice")
         );
+    }
+
+    /// [`TOML_PACK`] with a builder glyph that has a source.
+    fn builder_pack() -> serde_json::Value {
+        let mut v = serde_json::to_value(load_toml(TOML_PACK).unwrap()).unwrap();
+        v["glyphs"].as_array_mut().unwrap().push(serde_json::json!({
+            "id": "tiny.contact", "label": "Contact", "category": "Shapes", "outline": "builder", "w": 40, "h": 40,
+            "fill": "#ffffff", "line": "#000000", "builder": "contact", "params": {"standard": "jic", "poles": 2},
+            "source": "own design"
+        }));
+        v
+    }
+
+    #[test]
+    fn builder_glyphs_load_and_bad_ones_are_reported() {
+        let good = builder_pack();
+        let p = load_json(&good.to_string()).unwrap();
+        let g = p.glyph("tiny.contact").unwrap();
+        assert_eq!((g.outline.as_str(), g.builder.as_str(), g.params.len(), g.source.as_str()), ("builder", "contact", 2, "own design"));
+        // The new fields are left out of a glyph that does not use them, so old packs write as before.
+        let plain = serde_json::to_value(p.glyph("tiny.box").unwrap()).unwrap();
+        assert!(plain.get("builder").is_none() && plain.get("params").is_none() && plain.get("source").is_none(), "{plain}");
+        let problems = |edit: &dyn Fn(&mut serde_json::Value)| {
+            let mut v = good.clone();
+            edit(&mut v);
+            match load_json(&v.to_string()) {
+                Err(NotationError::Invalid(p)) => p.join("; "),
+                other => panic!("{other:?}"),
+            }
+        };
+        assert!(problems(&|v| v["glyphs"][0]["builder"] = "contact".into()).contains("only with outline `builder`"));
+        assert!(problems(&|v| v["glyphs"][0]["params"] = serde_json::json!({"poles": 2})).contains("only with outline `builder`"));
+        assert!(problems(&|v| v["glyphs"][1]["builder"] = "".into()).contains("needs a `builder` name"));
+        assert!(
+            problems(&|v| {
+                let many: serde_json::Map<String, serde_json::Value> = (0..65).map(|i| (format!("k{i}"), serde_json::json!(i))).collect();
+                v["glyphs"][1]["params"] = serde_json::Value::Object(many);
+            })
+            .contains("at most 64 params")
+        );
+        assert!(problems(&|v| v["glyphs"][1]["params"]["k".repeat(65)] = 1.into()).contains("must be 1 to 64 bytes"));
+        assert!(problems(&|v| v["glyphs"][1]["params"]["note"] = "x".repeat(1025).into()).contains("longer than 1024 bytes"));
+        assert!(problems(&|v| v["glyphs"][1]["source"] = "x".repeat(257).into()).contains("`source` is longer"));
+    }
+
+    #[test]
+    fn shipped_packs_need_a_source_on_every_drawn_glyph_and_disk_packs_only_warn() {
+        let mut v = builder_pack();
+        v["glyphs"][1]["source"] = "".into();
+        let text = v.to_string();
+        let p = load_json(&text).expect("a disk pack without a source still loads");
+        assert_eq!(provenance(&p).len(), 1, "with a warning");
+        match load_shipped("tiny.json", &text) {
+            Err(NotationError::Invalid(p)) => {
+                assert!(p.join(";").contains("tiny.json: glyph `tiny.contact`: a drawn glyph needs a `source`"), "{p:?}")
+            }
+            other => panic!("{other:?}"),
+        }
+        // A path glyph needs one too.
+        let mut paths = variant_pack();
+        assert!(load_shipped("tiny.json", &paths.to_string()).is_err());
+        paths["glyphs"][1]["source"] = "own design".into();
+        assert!(load_shipped("tiny.json", &paths.to_string()).is_ok());
+        assert!(load_shipped("tiny.json", &builder_pack().to_string()).is_ok());
+        for (name, text) in crate::catalog::BUILTIN {
+            assert!(load_shipped(name, text).is_ok(), "{name}");
+        }
     }
 
     #[test]

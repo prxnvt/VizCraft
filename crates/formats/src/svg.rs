@@ -55,6 +55,7 @@ use crate::FormatError;
 mod compartments;
 mod data_graphics;
 mod nets;
+pub mod glyph_labels;
 pub mod pictures;
 mod ports;
 
@@ -268,6 +269,37 @@ fn split_subpaths(p: &Path) -> (Path, Path) {
     (closed, open)
 }
 
+/// Whether the one ring of `p` crosses itself, where even-odd and nonzero fills differ. A ring
+/// too long to check cheaply counts as crossing, so it is written even-odd.
+fn crosses_itself(p: &Path) -> bool {
+    const MAX_SEGMENTS: usize = 512;
+    let Some(ring) = p.flatten(0.25).into_iter().next() else { return false };
+    let pts = &ring.points;
+    let n = pts.len();
+    if n > MAX_SEGMENTS {
+        return true;
+    }
+    let seg = |i: usize| (pts.get(i).copied().unwrap_or_default(), pts.get((i + 1) % n).copied().unwrap_or_default());
+    let cross =
+        |a: vizcraft_diagram::Point, b: vizcraft_diagram::Point, c: vizcraft_diagram::Point| (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+    for i in 0..n {
+        let (a, b) = seg(i);
+        // Neighbouring segments share an end; only segments two or more apart can cross.
+        for j in (i + 2)..n {
+            if i == 0 && j == n - 1 {
+                continue;
+            }
+            let (c, d) = seg(j);
+            let (d1, d2) = (cross(a, b, c), cross(a, b, d));
+            let (d3, d4) = (cross(c, d, a), cross(c, d, b));
+            if ((d1 > 1e-9 && d2 < -1e-9) || (d1 < -1e-9 && d2 > 1e-9)) && ((d3 > 1e-9 && d4 < -1e-9) || (d3 < -1e-9 && d4 > 1e-9)) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 fn shape_svg(out: &mut String, cx: &mut Ctx, s: &Shape) {
     let _ = writeln!(out, "  <g id=\"{}\">", escape(&s.id));
     let st = &s.style;
@@ -276,9 +308,12 @@ fn shape_svg(out: &mut String, cx: &mut Ctx, s: &Shape) {
     // subpaths are lines: SVG would fill an open subpath too, so they go in a path of their own.
     let (outline, lines, rule) = if s.kind == ShapeKind::Freeform {
         let (closed, open) = split_subpaths(&outline);
-        // One ring fills the same either way; the rule is written only where it matters.
+        // Closed rings fill even-odd, as on the canvas: a ring inside another is a hole, and a
+        // ring that crosses itself (a star) leaves its overlap empty. PNG and PDF draw from this
+        // SVG, so they follow. The rule is written only where it changes the fill.
         let rings = closed.els.iter().filter(|e| matches!(e, PathEl::MoveTo(_))).count();
-        (closed, open, if rings > 1 { " fill-rule=\"evenodd\"" } else { "" })
+        let rule = if rings > 1 || crosses_itself(&closed) { " fill-rule=\"evenodd\"" } else { "" };
+        (closed, open, rule)
     } else {
         (outline, Path::new(), "")
     };
@@ -326,6 +361,7 @@ fn shape_svg(out: &mut String, cx: &mut Ctx, s: &Shape) {
     if let Some(detail) = s.detail_world() {
         let _ = writeln!(out, "    <path d=\"{}\" fill=\"none\"{}/>", path_data(&detail), stroke(st));
     }
+    glyph_labels::labels_svg(out, s);
     if s.container.is_some() {
         decor_svg(out, &vizcraft_diagram::container::decor(s));
     }

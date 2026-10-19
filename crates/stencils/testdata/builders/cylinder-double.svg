@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="118.11" height="68.898" viewBox="-4.921 -4.921 118.11 68.898">
+  <path d="M0 9.843 L78.74 9.843 L78.74 49.213 L0 49.213 Z" fill="#ffffff" fill-rule="evenodd" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M27.559 9.843 L27.559 49.213 M31.496 9.843 L31.496 49.213 M31.496 26.575 L108.268 26.575 L108.268 32.48 L31.496 32.48 M9.843 49.213 L9.843 59.055 M68.898 49.213 L68.898 59.055" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="12.795" y="56.545" font-family="Inter, sans-serif" font-size="6.89" text-anchor="start" fill="#1f2933">A</text>
+  <text x="71.85" y="56.545" font-family="Inter, sans-serif" font-size="6.89" text-anchor="start" fill="#1f2933">B</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="9.843" cy="59.055" r="1.969"><title>A</title></circle>
+    <circle cx="68.898" cy="59.055" r="1.969"><title>B</title></circle>
+  </g>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="201.8" height="90" viewBox="-5 -5 201.8 90">
+  <path d="M0 80 L3 71 L7.8 74.6 Z M30 16 L44 20 L30 24 Z" fill="#ffffff" fill-rule="evenodd" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M0 80 L30 40 M0.75 77.75 L1.95 78.65 M1.5 75.5 L3.9 77.3 M2.25 73.25 L5.85 75.95 M3 71 L7.8 74.6 M0 80 L5.4 72.8 M30 40 L150 40 M71 55 L80 40 L89 55 M76 40 L76 26 M84 40 L84 26 M35 40 C35 42.761 32.761 45 30 45 C27.239 45 25 42.761 25 40 C25 37.239 27.239 35 30 35 C32.761 35 35 37.239 35 40 M30 40 L30 16 M160 30 L150 40 L160 50" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="163" y="44.2" font-family="Inter, sans-serif" font-size="12" text-anchor="start" fill="#1f2933">GTAW</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="0" cy="80" r="2"><title>arrow</title></circle>
+  </g>
+</svg>

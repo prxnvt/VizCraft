@@ -149,8 +149,9 @@ pub struct Glyph {
     pub label: String,
     /// Category in the Shapes pane; categories show in order of first appearance.
     pub category: String,
-    /// Outline: a `ShapeKind` name from `vizcraft-diagram` (`diamond`, `terminator`), or `path`
-    /// for an outline drawn by [`Glyph::path`].
+    /// Outline: a `ShapeKind` name from `vizcraft-diagram` (`diamond`, `terminator`), `path`
+    /// for an outline drawn by [`Glyph::path`], or `builder` for a symbol drawn by
+    /// [`Glyph::builder`].
     pub outline: String,
     /// With outline `path`: the outline as SVG-style path data in a unit box (`0 0` to `1 1`):
     /// `M`, `L`, `C`, `Q` and `Z`, absolute coordinates. Closed subpaths fill even-odd, open ones
@@ -173,6 +174,21 @@ pub struct Glyph {
     pub keywords: Vec<String>,
     /// Element type a shape placed from this glyph becomes; empty for free drawing.
     pub element_type: String,
+    /// With outline `builder`: the name of the Rust builder that draws the symbol from the
+    /// element's properties and the page's standard (`contact`, `valve`). See
+    /// `vizcraft_stencils::builders`.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub builder: String,
+    /// With outline `builder`: the builder's parameter defaults for this glyph (a JIC contact
+    /// is the `contact` builder with `standard` `jic`). The element's properties and the shape's
+    /// own overrides win over these.
+    #[serde(skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub params: std::collections::BTreeMap<String, PropValue>,
+    /// Where the drawing came from, at most 256 bytes: `own design`, or `drawn from ...` naming
+    /// the written description of the public notation it follows. Required on every path and
+    /// builder glyph of a shipped pack.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub source: String,
 }
 
 /// A connector type: a named route, pair of line ends and line style, applied to a connector as

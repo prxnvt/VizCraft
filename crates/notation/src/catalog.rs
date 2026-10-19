@@ -62,7 +62,7 @@ impl Catalog {
         let mut packs = Vec::new();
         let mut errors = Vec::new();
         for (name, text) in BUILTIN {
-            match crate::loader::load_json(text) {
+            match crate::loader::load_shipped(name, text) {
                 Ok(p) => packs.push(p),
                 Err(e) => errors.push(format!("{name}: {e}")),
             }

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="108.268" height="68.898" viewBox="-4.921 -4.921 108.268 68.898">
+  <path d="M8.32 39.37 L19.685 59.055 L48.098 9.843 M48.098 9.843 L91.405 9.843 M37.402 53.15 L45.276 53.15 M41.339 53.15 L41.339 45.276" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="51.051" y="21.161" font-family="Inter, sans-serif" font-size="9.843" text-anchor="start" fill="#1f2933">Rz 6.3</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="19.685" cy="59.055" r="1.969"><title>surface</title></circle>
+  </g>
+</svg>

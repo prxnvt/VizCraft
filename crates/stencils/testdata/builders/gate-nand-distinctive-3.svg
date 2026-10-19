@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="70" viewBox="-5 -5 80 70">
+  <path d="M35 55 L10 55 L10 5 L35 5 L39.877 5.48 L44.567 6.903 L48.889 9.213 L52.678 12.322 L55.787 16.111 L58.097 20.433 L59.52 25.123 L60 30 L59.52 34.877 L58.097 39.567 L55.787 43.889 L52.678 47.678 L48.889 50.787 L44.567 53.097 L39.877 54.52 Z M67 30 C67 31.933 65.433 33.5 63.5 33.5 C61.567 33.5 60 31.933 60 30 C60 28.067 61.567 26.5 63.5 26.5 C65.433 26.5 67 28.067 67 30 Z" fill="#ffffff" fill-rule="evenodd" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M0 10 L10 10 M0 30 L10 30 M0 50 L10 50 M67 30 L70 30" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <g class="ports" fill="#c2410c">
+    <circle cx="0" cy="10" r="2"><title>A</title></circle>
+    <circle cx="0" cy="30" r="2"><title>B</title></circle>
+    <circle cx="0" cy="50" r="2"><title>C</title></circle>
+    <circle cx="70" cy="30" r="2"><title>Y</title></circle>
+  </g>
+</svg>
