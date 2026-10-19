@@ -25,3 +25,28 @@ pub(super) fn badge_svg(out: &mut String, c: &Connector, g: &ConnectorGeometry) 
     let st = Style { font_size: size, font_color: Color::WHITE, bold: true, ..Style::DEFAULT };
     text_svg(out, &[b.text], b.center.x, b.center.y + size * 0.35, Anchor::Middle, &st, "");
 }
+
+#[cfg(test)]
+mod tests {
+    use vizcraft_diagram::{Connector, Document, End, Point, Shape, ShapeKind, Style};
+
+    use crate::svg::export_page;
+
+    /// The badge placement reads its label box from `connector_look::label_size`; the SVG draws
+    /// the box with its own copy of the formula, so the two must agree.
+    #[test]
+    fn the_svg_label_box_is_as_wide_as_label_size() {
+        let mut doc = Document::new();
+        let mut c = Connector::new("c", End::free(Point::new(0.0, 100.0)), End::free(Point::new(300.0, 100.0)));
+        c.text = "gateway route".into();
+        c.step = 1;
+        if let Some(p) = doc.page_mut() {
+            p.shapes.push(Shape::new("s", ShapeKind::Rectangle, 0.0, 0.0, 10.0, 10.0));
+            p.connectors.push(c.clone());
+        }
+        doc.sanitize();
+        let svg = String::from_utf8(export_page(&doc, 0).unwrap()).unwrap();
+        let (w, _) = vizcraft_diagram::connector_look::label_size(&c.text, &Style::default());
+        assert!(svg.contains(&format!("width=\"{}\" height=", super::num(w))), "{svg}");
+    }
+}

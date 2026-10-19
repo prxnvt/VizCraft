@@ -240,7 +240,7 @@ pub(super) fn compartment_text(painter: &Painter, vp: &Viewport2D, s: &Shape, sk
                 let text: Vec<&str> = c.text.lines().take(fit).collect();
                 band_text(painter, vp, &text.join("\n"), &st, &band_block(vp, s, band.body, c.align, VAlign::Top));
             }
-            CompartmentKind::List if band.header.is_some() => table_text(painter, vp, s, c, &band, &st),
+            CompartmentKind::List if !band.columns.is_empty() => table_text(painter, vp, s, c, &band, &st),
             CompartmentKind::List => {
                 for (row, r) in c.rows.iter().zip(&band.rows) {
                     band_text(painter, vp, row, &st, &band_block(vp, s, *r, c.align, VAlign::Middle));
@@ -251,23 +251,21 @@ pub(super) fn compartment_text(painter: &Painter, vp: &Viewport2D, s: &Shape, sk
     }
 }
 
-/// `text` cut to about `width` world units at `font_size` (an average glyph is about 0.55 em),
-/// as the SVG export cuts table cells.
-fn fit(text: &str, width: f64, font_size: f64) -> String {
-    let max = ((width / (font_size.max(1.0) * 0.55)).floor().max(0.0) as usize).min(text.chars().count());
-    text.chars().take(max).collect()
-}
-
 /// A table band's header titles (bold) and each row's tab-separated cells, left-aligned in their
-/// columns and cut to the column's width, as the SVG export writes them.
+/// columns and cut to the column's width (`fit_cell`), as the SVG export writes them. Each cell is
+/// also clipped to its column, so a real glyph wider than the estimate never spills over.
 fn table_text(painter: &Painter, vp: &Viewport2D, s: &Shape, c: &cp::Compartment, band: &cp::Band, st: &Style) {
     let n = c.columns.len();
     let spans: Vec<(f64, f64)> = band.columns.windows(2).map(|w| (w.first().copied().unwrap_or(0.0), w.get(1).copied().unwrap_or(0.0))).collect();
     let line = |r: DRect, texts: Vec<&str>, style: &Style| {
         for ((x0, x1), t) in spans.iter().zip(texts) {
-            let t = fit(t, x1 - x0 - 2.0 * cp::PAD_X, style.font_size);
+            let t = cp::fit_cell(t, x1 - x0 - 2.0 * cp::PAD_X, style.font_size);
             let cell = DRect::new(*x0, r.y0, *x1, r.y1);
-            band_text(painter, vp, &t, style, &band_block(vp, s, cell, HAlign::Left, VAlign::Middle));
+            let tf = s.transform();
+            let corners = [(cell.x0, cell.y0), (cell.x1, cell.y0), (cell.x1, cell.y1), (cell.x0, cell.y1)]
+                .map(|(x, y)| vp.world_to_screen(pos(tf.apply(vizcraft_diagram::Point::new(x, y)))));
+            let clip = egui::Rect::from_points(&corners).intersect(painter.clip_rect());
+            band_text(&painter.with_clip_rect(clip), vp, &t, style, &band_block(vp, s, cell, HAlign::Left, VAlign::Middle));
         }
     };
     if let Some(h) = band.header {

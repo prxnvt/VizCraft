@@ -160,6 +160,12 @@ pub fn shape(painter: &Painter, vp: &Viewport2D, s: &Shape, cache: &mut FillCach
     // Soft edges blur the outline too (SVG blurs the whole shape): draw it lighter.
     let line_c = if st.soft_edges > 0.0 { line_c.gamma_multiply(0.5) } else { line_c };
     outline(painter, vp, st, &fill.rings, line_c);
+    // A double outline: the inner line, inset from the first, as the SVG export draws it.
+    if st.compound == vizcraft_diagram::Compound::Double
+        && let Some(inner) = vizcraft_diagram::connector_look::inner_outline(s)
+    {
+        outline(painter, vp, st, &flatten(&inner.transformed(&s.transform()), tol), line_c);
+    }
     if let Some(detail) = s.detail_world() {
         outline(painter, vp, st, &flatten(&detail, tol), line_c);
     }
@@ -169,10 +175,12 @@ pub fn shape(painter: &Painter, vp: &Viewport2D, s: &Shape, cache: &mut FillCach
         bands.iter().filter(|b| b.compartment.is_some()).map(|b| (vec![at(b.rect.x0, b.rect.y0), at(b.rect.x1, b.rect.y0)], false)).collect();
     // A table's rule under its header row and between its columns, as the SVG export draws them.
     for b in bands.iter().filter(|b| b.compartment.is_some()) {
-        let Some(h) = b.header else { continue };
-        separators.push((vec![at(h.x0, h.y1), at(h.x1, h.y1)], false));
+        if let Some(h) = b.header {
+            separators.push((vec![at(h.x0, h.y1), at(h.x1, h.y1)], false));
+        }
+        // The column rules run the whole band, as the SVG export draws them.
         for x in b.columns.iter().skip(1).take(b.columns.len().saturating_sub(2)) {
-            separators.push((vec![at(*x, h.y0), at(*x, b.rect.y1)], false));
+            separators.push((vec![at(*x, b.rect.y0), at(*x, b.rect.y1)], false));
         }
     }
     outline(painter, vp, st, &separators, line_c);

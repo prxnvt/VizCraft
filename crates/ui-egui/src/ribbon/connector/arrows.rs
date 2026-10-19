@@ -1,4 +1,4 @@
-//! Connector > Arrows: the start and end arrowheads, each a menu of all fourteen ends with the
+//! Connector > Arrows: the start and end arrowheads, each a menu of every end (`Arrow::EVERY`) with the
 //! connector's current one checked. Every row runs `connector.setArrows`.
 
 use serde_json::json;
@@ -27,6 +27,8 @@ macro_rules! entries {
             entries!(@one $param, $field, Arrow::CrowsFootCircle, "Crow's foot with circle"),
             entries!(@one $param, $field, Arrow::BarCircle, "Bar with circle"),
             entries!(@one $param, $field, Arrow::Slash, "Slash"),
+            entries!(@one $param, $field, Arrow::DoubleBar, "Double bar"),
+            entries!(@one $param, $field, Arrow::Dot, "Dot"),
         ]
     };
     (@one $param:literal, $field:ident, $arrow:expr, $label:literal) => {
@@ -60,8 +62,8 @@ pub(in crate::ribbon) fn group() -> Group {
 mod tests {
     use super::*;
 
-    /// Every end in the order of [`Arrow::ALL`], with the words the menus show.
-    const ARROW_LABELS: [(Arrow, &str); 14] = [
+    /// Every end in the order of [`Arrow::EVERY`], with the words the menus show.
+    const ARROW_LABELS: [(Arrow, &str); 16] = [
         (Arrow::None, "None"),
         (Arrow::Triangle, "Triangle"),
         (Arrow::Open, "Open arrow"),
@@ -76,17 +78,20 @@ mod tests {
         (Arrow::CrowsFootCircle, "Crow's foot with circle"),
         (Arrow::BarCircle, "Bar with circle"),
         (Arrow::Slash, "Slash"),
+        (Arrow::DoubleBar, "Double bar"),
+        (Arrow::Dot, "Dot"),
     ];
 
     #[test]
     fn the_label_table_and_both_menus_list_every_end_in_order() {
         let all: Vec<Arrow> = ARROW_LABELS.iter().map(|(a, _)| *a).collect();
-        assert_eq!(all, Arrow::ALL.to_vec());
+        assert_eq!(all, Arrow::EVERY.to_vec());
+        assert_eq!(all[..14], Arrow::ALL, "the picker list is the first fourteen");
         for menu in [start_menu(), end_menu()] {
             let labels: Vec<&str> = menu.iter().map(|e| e.label).collect();
             assert_eq!(labels, ARROW_LABELS.iter().map(|(_, l)| *l).collect::<Vec<_>>());
         }
         let params: Vec<String> = start_menu().iter().map(|e| e.params["start"].as_str().unwrap_or_default().to_string()).collect();
-        assert_eq!(params, Arrow::ALL.iter().map(|a| a.name().to_string()).collect::<Vec<_>>());
+        assert_eq!(params, Arrow::EVERY.iter().map(|a| a.name().to_string()).collect::<Vec<_>>());
     }
 }
