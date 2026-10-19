@@ -40,7 +40,7 @@ pub fn specs() -> Vec<CommandSpec> {
         })
         .key("Mod+W"),
         CommandSpec::new("file.export", "Export...", "File", export).key("Mod+Shift+E").params(
-            r#"{"path"?: string, "format"?: "svg"|"png"|"pdf"|"drawio", "page"?: id|name|index, "pages"?: "active"|"all"|[id|name|index], "scale"?: number, "print"?: bool} -> {exported, path, format, page, pages, paths} (svg: one page; png: the active page unless `page` or `pages` names others, several pages write name-1.png, name-2.png and so on, listed in `paths`; pdf: one vector page per document page, every foreground page by default, fonts embedded; png: `scale` pixels per unit, 0.25 to 4, default 1; drawio: every page; `print` leaves out non-printing shapes and layers, otherwise the export matches the screen; format from the extension when omitted)"#,
+            r#"{"path"?: string, "format"?: "svg"|"png"|"pdf"|"drawio"|"mermaid"|"plantuml", "page"?: id|name|index, "pages"?: "active"|"all"|[id|name|index], "scale"?: number, "print"?: bool} -> {exported, path, format, page, pages, paths, warnings} (mermaid (.mmd, .mermaid) and plantuml (.puml, .plantuml): the page as UML text, picked by its viewpoint, with warnings for what the text cannot hold; svg: one page; png: the active page unless `page` or `pages` names others, several pages write name-1.png, name-2.png and so on, listed in `paths`; pdf: one vector page per document page, every foreground page by default, fonts embedded; png: `scale` pixels per unit, 0.25 to 4, default 1; drawio: every page; `print` leaves out non-printing shapes and layers, otherwise the export matches the screen; format from the extension when omitted)"#,
         ),
         CommandSpec::new("file.import", "Import...", "File", import).key("Mod+Shift+I").params(IMPORT_PARAMS),
         CommandSpec::new("file.reimport", "Re-import", "File", merge::reimport)
@@ -134,7 +134,13 @@ fn export(s: &mut Session, v: &Value) -> CmdResult {
     let fail = |e: vizcraft_formats::FormatError| EngineError::Failed(format!("{path}: {e}"));
     let first = pages.first().copied().unwrap_or(0);
     // (file name, bytes) for every file to write, all made before any is written.
+    let mut warnings: Vec<String> = Vec::new();
     let files: Vec<(String, Vec<u8>)> = match format {
+        "mermaid" | "plantuml" => {
+            let (bytes, w) = crate::io::export_text_page(path, Some(format), &s.doc, first)?;
+            warnings = w;
+            vec![(path.to_string(), bytes)]
+        }
         "pdf" => vec![(path.to_string(), vizcraft_formats::pdf::export_pages(&s.doc, &pages, &opts).map_err(fail)?)],
         "png" if pages.len() > 1 => {
             let (stem, ext) = numbered_stem(path);
@@ -156,7 +162,7 @@ fn export(s: &mut Session, v: &Value) -> CmdResult {
     s.status = format!("Exported {path}");
     let ids: Vec<String> = pages.iter().filter_map(|&i| s.doc.pages.get(i).map(|p| p.id.clone())).collect();
     let paths: Vec<&String> = files.iter().map(|(n, _)| n).collect();
-    Ok(json!({"exported": true, "path": path, "format": format, "page": ids.first(), "pages": ids, "paths": paths}))
+    Ok(json!({"exported": true, "path": path, "format": format, "page": ids.first(), "pages": ids, "paths": paths, "warnings": warnings}))
 }
 
 /// `path` split for numbered files: `out/plan.png` gives (`out/plan`, `.png`); a name without an

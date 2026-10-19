@@ -22,10 +22,12 @@ pub mod drawio;
 pub mod mermaid;
 pub mod native;
 pub mod pdf;
+pub mod plantuml;
 pub mod png;
 pub mod svg;
 pub mod table;
 pub mod tables;
+pub mod uml;
 pub mod xlsx;
 
 use vizcraft_diagram::Page;

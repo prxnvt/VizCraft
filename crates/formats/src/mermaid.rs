@@ -16,9 +16,11 @@
 //! label that ends in ` #<tag>` where the tag holds a digit (`Pump #P-101`); the suffix is taken
 //! off the label. The tag is kept in the shape's `ext` under [`crate::csv::TAG_KEY`].
 
+mod class;
 mod common;
 mod graph;
 mod sequence;
+mod state;
 #[cfg(test)]
 mod tests;
 
@@ -37,10 +39,26 @@ pub fn import(text: &str) -> Result<Imported, FormatError> {
     }
     let mut page = match &parsed.diagram {
         Diagram::Sequence(seq) => sequence::build(seq, &mut warnings),
+        Diagram::Class(d) => class::build(d, &mut warnings)?,
+        Diagram::State(d) => state::build(d, &mut warnings)?,
         other => graph::build(&other.to_graph(), &mut warnings)?,
     };
     carry_tags(text, &mut page);
     Ok(Imported { pages: vec![page], warnings: warnings.finish() })
+}
+
+/// Write page `page` of `doc` as Mermaid text, picked by the page's viewpoint (or, with none,
+/// the kinds of element it draws): UML class and state machine pages. Returns the text and the
+/// warnings about what the text cannot hold.
+pub fn export(doc: &vizcraft_diagram::Document, page: usize) -> Result<(String, Vec<String>), FormatError> {
+    let p = crate::uml::read(doc, page)?;
+    match p.viewpoint.as_str() {
+        "uml.ClassDiagram" => class::write(doc, page),
+        "uml.StateMachineDiagram" => state::write(doc, page),
+        _ if p.has_any(crate::uml::STATE_TYPES) => state::write(doc, page),
+        _ if p.has_any(&["Class", "Interface", "Enumeration"]) => class::write(doc, page),
+        _ => Err(FormatError::Encode("Mermaid export writes UML class and state machine pages; this page is neither".into())),
+    }
 }
 
 /// Longest tag read from a comment or a label suffix, in bytes.
