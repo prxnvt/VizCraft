@@ -49,9 +49,9 @@ use crate::{Catalog, legal};
 /// 9. A bound connector whose relationship type declares `endLabels` shows those properties
 ///    beside its ends; an end label the command changed writes back to its properties first.
 /// 10. A bound shape whose `parent` changed (or that is newly bound), of a type that declares
-///    `allowedParents`, takes as owner the element of the container shape it now sits in when
-///    that type is allowed, and loses the owner it had from a container it left for the top
-///    ([`crate::nesting::owners`]).
+///     `allowedParents`, takes as owner the element of the container shape it now sits in when
+///     that type is allowed, and loses the owner it had from a container it left for the top
+///     ([`crate::nesting::owners`]).
 ///
 /// Details of each step:
 ///
