@@ -218,7 +218,10 @@ fn edit_text_command(app: &mut CraftApp, p: &Value) -> Result<Value, String> {
         Some(id) => id.to_string(),
         None => match app.session.sel.items.as_slice() {
             [one] => one.clone(),
-            _ => return Err("select one shape or connector, or give `id`".to_string()),
+            _ => {
+                app.status("Select one shape or connector to edit".to_string());
+                return Ok(json!({"editing": false}));
+            }
         },
     };
     let target = if page.shape(&id).is_some() {
@@ -226,7 +229,7 @@ fn edit_text_command(app: &mut CraftApp, p: &Value) -> Result<Value, String> {
     } else if page.connector(&id).is_some() {
         dg::Hit::Connector(id.clone())
     } else {
-        return Err(format!("`{}` is not a shape or connector on this page", id.chars().take(64).collect::<String>()));
+        return Ok(json!({"editing": false, "reason": "not a shape or connector on this page"}));
     };
     super::edit_text::start_editing(app, target);
     Ok(json!({"editing": app.canvas.editing.is_some(), "id": id}))
