@@ -299,7 +299,7 @@ mod tests {
         let ids: Vec<_> = search("start").iter().map(|m| m.id).collect();
         assert_eq!(ids, vec!["flowchart.terminator"]);
         assert!(search("DATABASE").iter().any(|m| m.id == "flowchart.database"));
-        assert_eq!(search("").iter().filter(|m| !m.id.starts_with("sheet.")).count(), 22);
+        assert_eq!(search("").iter().filter(|m| m.id.starts_with("basic.") || m.id.starts_with("flowchart.")).count(), 22);
         assert!(search("nothing-like-this").is_empty());
     }
 
@@ -348,7 +348,7 @@ mod tests {
                 &["jump", "page", "continue"],
             ),
         ];
-        let built: Vec<&Master> = sets().iter().filter(|s| s.id != "sheet").flat_map(|s| s.masters.iter()).collect();
+        let built: Vec<&Master> = sets().iter().filter(|s| s.id == "basic" || s.id == "flowchart").flat_map(|s| s.masters.iter()).collect();
         assert_eq!(built.len(), old.len());
         for (m, (id, label, category, kind, w, h, (fill, line), keywords)) in built.iter().zip(old) {
             let want = Master {
@@ -366,7 +366,7 @@ mod tests {
             };
             assert_eq!(**m, want, "{id}");
         }
-        let heads: Vec<_> = sets().iter().filter(|s| s.id != "sheet").map(|s| (s.id, s.name, s.categories)).collect();
+        let heads: Vec<_> = sets().iter().filter(|s| s.id == "basic" || s.id == "flowchart").map(|s| (s.id, s.name, s.categories)).collect();
         assert_eq!(heads, vec![("basic", "Basic Shapes", &["Shapes"][..]), ("flowchart", "Flowchart", &["Steps", "Data", "Links"][..])]);
     }
 
@@ -376,6 +376,8 @@ mod tests {
         let mut packs = vizcraft_notation::catalog().packs().to_vec();
         packs.push(empty);
         let sets = build(&Catalog::new(packs));
-        assert_eq!(sets.iter().map(|s| s.id).collect::<Vec<_>>(), ["basic", "flowchart", "sheet"]);
+        let ids: Vec<&str> = sets.iter().map(|s| s.id).collect();
+        assert_eq!(ids.get(..3), Some(&["basic", "flowchart", "sheet"][..]));
+        assert!(!ids.contains(&"empty"));
     }
 }

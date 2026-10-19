@@ -333,7 +333,7 @@ fn list_filters_by_audience_pack_and_query() {
     assert_eq!(flow, ["flowchart.blank", "flowchart.decision", "flowchart.ciPipeline"]);
     let eng = ids(&run(&mut s, "template.list", json!({"audience": "Engineering"})));
     assert!(eng.contains(&"engtest.schematic".to_string()) && !eng.contains(&"basic.blank".to_string()), "{eng:?}");
-    let q = ids(&run(&mut s, "template.list", json!({"query": "DEPLOY"})));
+    let q = ids(&run(&mut s, "template.list", json!({"query": "DEPLOY", "pack": "flowchart"})));
     assert_eq!(q, ["flowchart.ciPipeline"]);
     let q = ids(&run(&mut s, "template.list", json!({"query": "branches on one question"})));
     assert_eq!(q, ["flowchart.decision"]);

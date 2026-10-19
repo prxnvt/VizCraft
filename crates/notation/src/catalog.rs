@@ -24,6 +24,7 @@ pub const BUILTIN: &[(&str, &str)] = &[
     ("flowchart.json", include_str!("../packs/flowchart.json")),
     ("drawing.json", include_str!("../packs/drawing.json")),
     ("sheet.json", include_str!("../packs/sheet.json")),
+    ("uml.json", include_str!("../packs/uml.json")),
 ];
 
 /// The environment variable naming a folder of pack files (`*.json`, `*.toml`) loaded with the
@@ -292,7 +293,7 @@ mod tests {
         let c = Catalog::builtin();
         assert!(c.errors().is_empty(), "{:?}", c.errors());
         let ids: Vec<_> = c.packs().iter().map(|p| p.id.as_str()).collect();
-        assert_eq!(ids, ["basic", "flowchart", "drawing", "sheet"]);
+        assert_eq!(ids, ["basic", "flowchart", "drawing", "sheet", "uml"]);
         let basic = c.pack("basic").unwrap();
         assert_eq!((basic.glyphs.len(), basic.element_types.len()), (10, 0));
         let f = c.pack("flowchart").unwrap();
