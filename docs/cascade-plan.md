@@ -52,7 +52,8 @@ worktree. Report in at most 15 lines: commits, command ids added, doc rows to ch
 | 3 Workspace (ROADMAP 4B) | 1, 2A pages, 2B Shape Data pane, 2C (conformance profile and `Issue.fixes`, connector kinds, `describe`, disk packs) | 4 |
 | 4 Visio extras | 1, 2A, 2B, 2C board frame (`b4-fixes`); inside the block `b4-pictures` needs `b4-shapeops` merged | 3 |
 | 5 Generators and glyphs (ROADMAP 5A, 5B) | 1, 3 dock, 4 table reader (`b4-datagfx`) | late 3 and 4 |
-| 7 First deep packs (ROADMAP 6) | 5 (glyphs for drawing, patterns and codegen for generator pieces) | 8 once a track's first pack lands |
+| 6 Templates and the engineering workspace (proposed) | 5 (path glyphs, variants, end labels, layout primitives, patterns, re-import) | 7 once the UML and C4 packs land |
+| 7 First deep packs (ROADMAP 6) | 5 (glyphs for drawing, patterns and codegen for generator pieces); 6 if approved (C4, ER and UML move there) | 8 once a track's first pack lands |
 | 8 Second-wave packs and interop (ROADMAP 7 plus new standards) | 7 per track | 9 |
 | 9 General pack and broad interop (ROADMAP 8) | 2B containers, 5 patterns | 8 |
 
@@ -1330,6 +1331,23 @@ fix deletes it, in one undo step; that a CSV with `id` and `tag` columns round-t
 their R lanes and `toTable` returns the same rows; that a parent-id table builds a tree and a
 reparented element syncs back; that an ambiguous model refuses; a kittest test for Sync;
 `hostile_params_never_panic` green with junk tables; `cargo xtask ci` green.
+
+## Block 6: templates and the engineering workspace (proposed, not approved)
+
+Proposed on 2026-10-19 in
+[docs/research/swe-diagramming-ux.md](research/swe-diagramming-ux.md), which holds the UX
+review, the standards digest, the template catalogue, the branch table and the decisions the
+block needs. In one paragraph: a template system (pack viewpoint plus seeded skeleton, layout,
+key and code form) behind a New gallery with previews, an engineering workspace preset, a Code
+pane that keeps Mermaid, DBML or Structurizr DSL text and the canvas in sync, an Analyze group
+(dependencies, cycles, unreachable, single points of failure, metrics, model diff), and the first
+engineering packs: C4, UML (class, sequence, state, activity, use case, component, deployment,
+package), entity-relationship in four notations, generic cloud and network topology, and data
+flow with trust boundaries. Nine branches (`b6-templates`, `b6-analysis`, `b6-uml`,
+`b6-sequence`, `b6-er`, `b6-topology`, `b6-ux` in wave 1; `b6-c4`, `b6-code` in wave 2), ports
+8061 to 8069, after Block 5 is merged. If approved, C4, ER and UML leave Block 7's enterprise
+track and the cloud and network packs leave Block 8; the briefs are then written against the
+merged Block 5 code.
 
 ## Block 7: first deep packs (ROADMAP Cascade 6, three tracks)
 
