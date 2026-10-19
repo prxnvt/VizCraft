@@ -7,10 +7,14 @@
 //! lines or one line per list row, aligned left, centre or right with the band's padding. A
 //! rotated shape turns the whole set about its centre. Rows past a squeezed band's bottom are
 //! left out, as on the canvas.
+//!
+//! A table (a list with columns) draws a rule under its header row and between its columns,
+//! the column titles bold, and each row's tab-separated cells left-aligned in their columns, cut
+//! to the column's width (estimated from the font size, as the layout estimates heights).
 
 use std::fmt::Write as _;
 
-use vizcraft_diagram::compartment::{CompartmentKind, LINE_HEIGHT, PAD_X, layout};
+use vizcraft_diagram::compartment::{Band, Compartment, CompartmentKind, LINE_HEIGHT, PAD_X, cells, layout};
 use vizcraft_diagram::{HAlign, Point, Rect, Shape, Style};
 
 use super::{Anchor, num, paint, stroke, text_svg};
@@ -52,6 +56,23 @@ pub(super) fn compartments_svg(out: &mut String, s: &Shape) {
         }
         let (a, z) = (world(Point::new(b.rect.x0, b.rect.y0)), world(Point::new(b.rect.x1, b.rect.y0)));
         let _ = writeln!(out, "    <path d=\"M{} {} L{} {}\" fill=\"none\"{}{transform}/>", num(a.x), num(a.y), num(z.x), num(z.y), stroke(&s.style));
+        if let Some(h) = b.header {
+            let (a, z) = (world(Point::new(h.x0, h.y1)), world(Point::new(h.x1, h.y1)));
+            let _ =
+                writeln!(out, "    <path d=\"M{} {} L{} {}\" fill=\"none\"{}{transform}/>", num(a.x), num(a.y), num(z.x), num(z.y), stroke(&s.style));
+            for x in b.columns.iter().skip(1).take(b.columns.len().saturating_sub(2)) {
+                let (a, z) = (world(Point::new(*x, h.y0)), world(Point::new(*x, b.rect.y1)));
+                let _ = writeln!(
+                    out,
+                    "    <path d=\"M{} {} L{} {}\" fill=\"none\"{}{transform}/>",
+                    num(a.x),
+                    num(a.y),
+                    num(z.x),
+                    num(z.y),
+                    stroke(&s.style)
+                );
+            }
+        }
     }
     for b in &bands {
         let Some(comp) = b.compartment.and_then(|i| s.compartments.get(i)) else { continue };
@@ -75,6 +96,7 @@ pub(super) fn compartments_svg(out: &mut String, s: &Shape) {
                 let w = world(Point::new(x, b.body.y0 + lh / 2.0));
                 text_svg(out, &lines, w.x, w.y + st.font_size * 0.35, anchor, &st, &transform);
             }
+            CompartmentKind::List if b.header.is_some() => table_svg(out, s, comp, b, &st, &transform),
             CompartmentKind::List => {
                 for (row, r) in comp.rows.iter().zip(&b.rows) {
                     if row.trim().is_empty() {
@@ -86,6 +108,36 @@ pub(super) fn compartments_svg(out: &mut String, s: &Shape) {
             }
             _ => {}
         }
+    }
+}
+
+/// `text` cut to about `width` world units at `font_size` (an average glyph is about 0.55 em).
+fn fit(text: &str, width: f64, font_size: f64) -> String {
+    let max = ((width / (font_size.max(1.0) * 0.55)).floor().max(0.0) as usize).min(text.chars().count());
+    text.chars().take(max).collect()
+}
+
+/// A table band's header titles and cells.
+fn table_svg(out: &mut String, s: &Shape, comp: &Compartment, b: &Band, st: &Style, transform: &str) {
+    let world = |p: Point| Point::new(p.x + s.x, p.y + s.y);
+    let n = comp.columns.len();
+    let spans: Vec<(f64, f64)> = b.columns.windows(2).map(|w| (w.first().copied().unwrap_or(0.0), w.get(1).copied().unwrap_or(0.0))).collect();
+    let mut line = |y: f64, texts: Vec<&str>, style: &Style| {
+        for ((x0, x1), t) in spans.iter().zip(texts) {
+            let t = fit(t, x1 - x0 - 2.0 * PAD_X, style.font_size);
+            if t.trim().is_empty() {
+                continue;
+            }
+            let w = world(Point::new(x0 + PAD_X, y));
+            text_svg(out, &[t], w.x, w.y + style.font_size * 0.35, Anchor::Start, style, transform);
+        }
+    };
+    if let Some(h) = b.header {
+        let bold = Style { bold: true, ..st.clone() };
+        line(h.center().y, comp.columns.iter().map(|c| c.title.as_str()).collect(), &bold);
+    }
+    for (row, r) in comp.rows.iter().zip(&b.rows) {
+        line(r.center().y, cells(row, n), st);
     }
 }
 
@@ -131,6 +183,38 @@ mod tests {
     <text text-anchor="start" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="16" y="90.6">+ total: money</tspan></text>
     <text text-anchor="start" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="16" y="113">+ pay()</tspan></text>
     <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="90" y="44.6">Order</tspan></text>
+  </g>
+</svg>"##;
+        assert_eq!(body(&svg), want);
+    }
+
+    #[test]
+    fn golden_table_with_columns() {
+        use vizcraft_diagram::compartment::Column;
+        let mut doc = Document::new();
+        let mut s = Shape::new("t", ShapeKind::Rectangle, 0.0, 0.0, 200.0, 70.0);
+        s.text = "Parts".into();
+        let mut rows = Compartment::new("rows", CompartmentKind::List);
+        rows.columns = vec![Column { title: "ITEM".into(), width: 1.0 }, Column { title: "DESCRIPTION".into(), width: 3.0 }];
+        rows.rows = vec!["1\tHousing".into(), "2\tA description far too long to fit its column".into()];
+        s.compartments = vec![rows];
+        if let Some(p) = doc.page_mut() {
+            p.shapes.push(s);
+        }
+        doc.sanitize();
+        let svg = String::from_utf8(export_page(&doc, 0).unwrap()).unwrap();
+        let want = r##"  <g id="t">
+    <path d="M0 0 L200 0 L200 70 L0 70 Z" fill="#ffffff" stroke="#3a4a5c" stroke-width="1.5"/>
+    <path d="M0 22.4 L200 22.4" fill="none" stroke="#3a4a5c" stroke-width="1.5"/>
+    <path d="M0 40.8 L200 40.8" fill="none" stroke="#3a4a5c" stroke-width="1.5"/>
+    <path d="M50 26.4 L50 70" fill="none" stroke="#3a4a5c" stroke-width="1.5"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="12" font-weight="bold" fill="#1e2630" xml:space="preserve"><tspan x="6" y="37.8">ITEM</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="12" font-weight="bold" fill="#1e2630" xml:space="preserve"><tspan x="56" y="37.8">DESCRIPTION</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="6" y="52.2">1</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="56" y="52.2">Housing</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="6" y="66.6">2</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="56" y="66.6">A description far to</tspan></text>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="100" y="15.4">Parts</tspan></text>
   </g>
 </svg>"##;
         assert_eq!(body(&svg), want);

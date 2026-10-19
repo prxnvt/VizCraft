@@ -48,6 +48,7 @@ pub mod routing;
 pub mod script;
 pub mod shape;
 pub mod shapeop;
+pub mod sheet;
 pub mod suggest;
 pub mod table;
 pub mod text;
@@ -55,6 +56,7 @@ pub mod validate;
 pub mod variant;
 pub mod view;
 pub mod wire;
+pub mod xref;
 
 use std::collections::HashSet;
 
@@ -89,6 +91,8 @@ pub fn registry() -> Registry {
     v.extend(datalink::specs());
     v.extend(describe::specs());
     v.extend(design::specs());
+    v.extend(sheet::specs());
+    v.extend(xref::specs());
     v.extend(layout::specs());
     v.extend(model::specs());
     v.extend(element::specs());

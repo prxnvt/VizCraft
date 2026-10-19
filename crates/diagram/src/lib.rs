@@ -58,10 +58,12 @@ pub mod routing_policy;
 mod serde_util;
 pub mod shape_fields;
 pub mod shapeop;
+pub mod sheet;
 pub mod snap;
 pub mod style_fields;
 pub mod text_fields;
 pub mod theme;
+pub mod title_block;
 pub mod views;
 
 pub use arrows::{ArrowGeometry, outline};

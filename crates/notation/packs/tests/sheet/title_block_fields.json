@@ -1,0 +1,52 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "model": {
+      "schemaVersion": 1,
+      "packs": [
+        {
+          "id": "sheet",
+          "version": "1.0.0"
+        }
+      ],
+      "elements": [],
+      "relationships": []
+    },
+    "document": {
+      "title": "",
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "width": 1653.5433070866143,
+          "height": 1169.2913385826773,
+          "shapes": [],
+          "sheet": {
+            "standard": "iso5457",
+            "size": "a3"
+          },
+          "board": "fixed"
+        }
+      ],
+      "properties": {
+        "title": "Pump skid",
+        "fields": {
+          "legalOwner": "Works Ltd",
+          "identificationNumber": "DWG-0000-1111-22222",
+          "dateOfIssue": "2026-10-19",
+          "creator": "Ada",
+          "documentType": "drawing"
+        }
+      }
+    }
+  },
+  "expect": [
+    {
+      "rule": "sheet.mandatoryFields"
+    },
+    {
+      "rule": "sheet.fieldLength"
+    }
+  ]
+}

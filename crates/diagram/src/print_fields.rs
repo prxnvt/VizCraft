@@ -1,5 +1,5 @@
-//! Fields in header and footer text: `{page}`, `{pages}`, `{pageName}`, `{title}` and `{date}`,
-//! expanded when a page is exported or printed.
+//! Fields in header and footer text: `{page}`, `{pages}`, `{pageName}`, `{title}`, `{date}`,
+//! `{sheet}` and `{sheets}`, expanded when a page is exported or printed.
 //!
 //! Field names are matched without regard to case and may carry spaces inside the braces
 //! (`{ Page Name }`). `{{` and `}}` write a literal brace. An unknown name, or a brace that is not
@@ -24,6 +24,10 @@ pub struct FieldValues {
     pub title: String,
     /// The date, as the caller formats it (`{date}`).
     pub date: String,
+    /// The page's sheet number (`{sheet}`; the page number on a page without a sheet).
+    pub sheet: u32,
+    /// How many sheets the document has (`{sheets}`).
+    pub sheets: u32,
 }
 
 impl FieldValues {
@@ -36,7 +40,15 @@ impl FieldValues {
         let page_number = doc.pages.iter().take(page_index.saturating_add(1)).filter(|p| same_kind(p)).count().max(1);
         let page_count = doc.pages.iter().filter(|p| same_kind(p)).count().max(1);
         let title = if doc.properties.title.trim().is_empty() { doc.title.clone() } else { doc.properties.title.clone() };
-        FieldValues { page_name: page.map(|p| p.name.clone()).unwrap_or_default(), page_number, page_count, title, date: date.to_string() }
+        FieldValues {
+            page_name: page.map(|p| p.name.clone()).unwrap_or_default(),
+            page_number,
+            page_count,
+            title,
+            date: date.to_string(),
+            sheet: crate::sheet::sheet_number(doc, page_index),
+            sheets: crate::sheet::sheet_count(doc),
+        }
     }
 
     /// The value of field `name` (already trimmed and lowercased, spaces removed), or `None`.
@@ -47,6 +59,8 @@ impl FieldValues {
             "pagename" | "name" => self.page_name.clone(),
             "title" => self.title.clone(),
             "date" => self.date.clone(),
+            "sheet" => self.sheet.to_string(),
+            "sheets" => self.sheets.to_string(),
             _ => return None,
         })
     }
@@ -111,7 +125,20 @@ mod tests {
     use super::*;
 
     fn values() -> FieldValues {
-        FieldValues { page_name: "Plant".into(), page_number: 2, page_count: 5, title: "Works".into(), date: "2026-10-17".into() }
+        FieldValues {
+            page_name: "Plant".into(),
+            page_number: 2,
+            page_count: 5,
+            title: "Works".into(),
+            date: "2026-10-17".into(),
+            sheet: 3,
+            sheets: 4,
+        }
+    }
+
+    #[test]
+    fn sheet_fields_expand() {
+        assert_eq!(expand("Sheet {sheet} of {Sheets}", &values()), "Sheet 3 of 4");
     }
 
     #[test]

@@ -15,6 +15,9 @@
 //! | `{{title}}` | The document title (the title property, else the file title, else "Untitled") |
 //! | `{{width}}`, `{{height}}` | The shape's size in the page's units, drawing scale applied |
 //! | `{{data:key}}` | The shape's data value for `key`; empty when the shape has none |
+//! | `{{zone}}` | The sheet zone of the shape's centre (`B4`); empty off the frame or with no sheet |
+//! | `{{sheet}}`, `{{sheets}}` | The page's sheet number and the sheet count (see `crate::sheet`) |
+//! | `{{doc:key}}` | A document property (see [`doc_value`]) |
 //!
 //! Names are case sensitive; anything else between braces is left as typed. On a background
 //! page the page fields name the foreground page being drawn over it, so a footer on a background
@@ -62,6 +65,14 @@ pub enum Field {
     Height,
     /// A shape data value by key.
     Data(String),
+    /// The sheet zone of the shape's centre.
+    Zone,
+    /// The sheet number.
+    Sheet,
+    /// The number of sheets.
+    Sheets,
+    /// A document property by key.
+    Doc(String),
 }
 
 /// Every field name with its label, in menu order (`data` takes a key).
@@ -75,10 +86,18 @@ pub const FIELDS: &[(&str, &str)] = &[
     ("width", "Shape Width"),
     ("height", "Shape Height"),
     ("data", "Shape Data"),
+    ("zone", "Zone"),
+    ("sheet", "Sheet Number"),
+    ("sheets", "Sheet Count"),
+    ("doc", "Document Property"),
 ];
 
+/// Longest document property key a `{{doc:key}}` field takes.
+pub const MAX_DOC_KEY: usize = 64;
+
 impl Field {
-    /// The field named `name`, with `key` for `data` (which needs a non-empty key without braces).
+    /// The field named `name`, with `key` for `data` (which needs a non-empty key without braces)
+    /// and `doc` (a key of letters, digits and `_`).
     pub fn parse(name: &str, key: Option<&str>) -> Option<Field> {
         Some(match name {
             "date" => Field::Date,
@@ -96,6 +115,16 @@ impl Field {
                 }
                 Field::Data(k.to_string())
             }
+            "zone" => Field::Zone,
+            "sheet" => Field::Sheet,
+            "sheets" => Field::Sheets,
+            "doc" => {
+                let k = key?.trim();
+                if k.is_empty() || k.len() > MAX_DOC_KEY || !k.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+                    return None;
+                }
+                Field::Doc(k.to_string())
+            }
             _ => return None,
         })
     }
@@ -104,6 +133,7 @@ impl Field {
     fn from_inner(inner: &str) -> Option<Field> {
         match inner.split_once(':') {
             Some(("data", key)) => Field::parse("data", Some(key)),
+            Some(("doc", key)) => Field::parse("doc", Some(key)),
             Some(_) => None,
             None => Field::parse(inner, None),
         }
@@ -121,6 +151,10 @@ impl Field {
             Field::Width => "width",
             Field::Height => "height",
             Field::Data(k) => return format!("{OPEN}data:{k}{CLOSE}"),
+            Field::Zone => "zone",
+            Field::Sheet => "sheet",
+            Field::Sheets => "sheets",
+            Field::Doc(k) => return format!("{OPEN}doc:{k}{CLOSE}"),
         };
         format!("{OPEN}{name}{CLOSE}")
     }
@@ -270,6 +304,43 @@ fn value(f: &Field, shape: &Shape, ctx: &FieldCtx<'_>) -> String {
             format!("{} {}", number(v), units_name(units))
         }
         Field::Data(key) => data_value(doc, shape, key).unwrap_or_default(),
+        Field::Zone => page.and_then(|p| crate::sheet::zone_of(p, shape.center())).map(|z| z.to_string()).unwrap_or_default(),
+        Field::Sheet => crate::sheet::sheet_number(doc, ctx.page_index).to_string(),
+        Field::Sheets => crate::sheet::sheet_count(doc).to_string(),
+        Field::Doc(key) => doc_value(doc, ctx.page_index, key),
+    }
+}
+
+/// Element type of revision records (the `sheet` pack's `sheet.Revision`), read by the
+/// `revisionIndex` fallback.
+pub const REVISION_TYPE: &str = "sheet.Revision";
+
+/// A document property for `{{doc:key}}`: `title` reads the title property (else the document
+/// title), `creator` falls back to the author property, `revisionIndex` to the `rev` of the last
+/// revision record in the model, `paperSize` to the size of page `page_index`'s sheet; any other
+/// key reads `properties.fields`. Empty when unset.
+pub fn doc_value(doc: &Document, page_index: usize, key: &str) -> String {
+    let props = &doc.properties;
+    let field = props.fields.get(key).filter(|v| !v.is_empty()).cloned();
+    match key {
+        "title" => {
+            if props.title.trim().is_empty() {
+                doc.title.clone()
+            } else {
+                props.title.clone()
+            }
+        }
+        "author" => props.author.clone(),
+        "subject" => props.subject.clone(),
+        "keywords" => props.keywords.clone(),
+        "creator" => field.unwrap_or_else(|| props.author.clone()),
+        "revisionIndex" => field.unwrap_or_else(|| {
+            doc.model.elements.iter().rev().find(|e| e.type_id == REVISION_TYPE).and_then(|e| e.prop("rev")).map(|v| v.display()).unwrap_or_default()
+        }),
+        "paperSize" => field.unwrap_or_else(|| {
+            doc.pages.get(page_index).and_then(|p| p.sheet.as_ref()).map(|s| s.size.name().to_ascii_uppercase()).unwrap_or_default()
+        }),
+        _ => field.unwrap_or_default(),
     }
 }
 

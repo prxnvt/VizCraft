@@ -350,6 +350,9 @@ impl<'a> Ctx<'a> {
             Check::CrossesShape | Check::UngluedEnd | Check::Overlap | Check::OffBoard | Check::TextOverflow => {
                 crate::drawing::run(self.doc, rule, out)
             }
+            Check::DocumentFields { .. } | Check::RevisionSequence | Check::BalloonRows | Check::CrossReferences | Check::StaleTag => {
+                crate::sheet_pass::check(self.doc, self.cat, pack, rule, out)
+            }
             Check::Unknown => {}
         }
     }

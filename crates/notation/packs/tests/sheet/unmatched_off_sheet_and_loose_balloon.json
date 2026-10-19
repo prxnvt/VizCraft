@@ -1,0 +1,74 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "model": {
+      "schemaVersion": 1,
+      "packs": [
+        {
+          "id": "sheet",
+          "version": "1.0.0"
+        }
+      ],
+      "elements": [
+        {
+          "id": "o1",
+          "type": "sheet.OffSheet",
+          "tag": "7"
+        },
+        {
+          "id": "b1",
+          "type": "sheet.Balloon"
+        }
+      ],
+      "relationships": []
+    },
+    "document": {
+      "title": "",
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "width": 1100.0,
+          "height": 850.0,
+          "shapes": [
+            {
+              "id": "so1",
+              "kind": "rectangle",
+              "x": 100,
+              "y": 100,
+              "w": 50,
+              "h": 50,
+              "text": "",
+              "element": "o1"
+            },
+            {
+              "id": "sb1",
+              "kind": "rectangle",
+              "x": 300,
+              "y": 100,
+              "w": 50,
+              "h": 50,
+              "text": "",
+              "element": "b1"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "expect": [
+    {
+      "rule": "sheet.unmatchedOffSheet",
+      "items": [
+        "so1"
+      ]
+    },
+    {
+      "rule": "sheet.balloonRows",
+      "items": [
+        "sb1"
+      ]
+    }
+  ]
+}

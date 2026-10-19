@@ -28,6 +28,8 @@ fn registry_ids_are_unique_and_prefixed() {
                 "container",
                 "lane",
                 "callout",
+                "sheet",
+                "xref",
                 "compartment",
                 "connector",
                 "page",
@@ -130,6 +132,8 @@ fn hostile_params_never_panic() {
         json!({"ids": ["s2"], "turns": 1e300, "axis": "z", "heal": 3, "module": -3, "shape": "s2", "connector": "c8"}),
         json!({"ids": ["s2"], "turns": -7, "axis": "y", "heal": true, "module": "iso2_5mm", "nets": ["x", 5], "at": "c8", "net": null}),
         json!({"net": "n1", "nets": [], "name": "x".repeat(70_000), "number": 5, "label": [], "properties": {"a": {}}, "scheme": "page", "band": 0}),
+        json!({"sheet": "iso.a9.sideways", "standard": 5, "size": "zz", "zones": {"cols": 1e9, "rows": "a"}, "number": 1e300, "key": "\u{0}", "value": [1], "part": "s2", "kind": "fancy", "description": "x".repeat(5000)}),
+        json!({"sheet": "asme.e.portrait", "zones": {"cols": 99, "rows": 24}, "number": 9999, "key": "title", "value": "x".repeat(70_000), "x": 1e308, "y": -1e308, "index": 1e20, "all": true, "scope": "\u{0}"}),
         nested_batches(40),
     ];
     for spec in reg.all() {

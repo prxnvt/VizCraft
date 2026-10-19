@@ -19,6 +19,12 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("doc.setProperties", "Document Properties", "File > Info", set_properties).params(
             r#"{"title"?: string, "subject"?: string, "author"?: string, "keywords"?: string, "description"?: string} -> {"properties": {...}}; sets the given properties, "" clears one"#,
         ),
+        CommandSpec::new("doc.setProperty", "Document Property", "File > Info", set_property).params(
+            r#"{"key": a document property a loaded pack declares (see doc.properties), "value": string|number|bool|null} -> {"key", "value", "issue"?}; null or "" clears it; a value over the field's length is kept and reported"#,
+        ),
+        CommandSpec::new("doc.properties", "Document Properties List", "File > Info", list_properties).params(
+            r#"{} -> {"properties": [{"key", "label", "group", "required", "maxChars", "kind", "values", "value", "issue"?, "pack"}]}; the title block fields every loaded pack declares; read-only"#,
+        ),
         CommandSpec::new("doc.inspectHidden", "Inspect Document", "File > Info", inspect)
             .params(r#"{} -> {"counts": {"comments", "hiddenShapes", "hiddenLayers", "screenTips", "dataRows", "images", "properties"}, "total": n}; read-only"#),
         CommandSpec::new("doc.removeHidden", "Remove Hidden Data", "File > Info", remove).params(
@@ -56,6 +62,101 @@ fn set_properties(s: &mut Session, v: &Value) -> CmdResult {
     Ok(json!({"properties": properties_json(&s.doc.properties)}))
 }
 
+/// The declaration of document property `key` in a loaded pack, with the pack's id.
+fn declared(key: &str) -> Option<(&'static str, &'static vizcraft_notation::PropertySchema)> {
+    vizcraft_notation::catalog().packs().iter().find_map(|p| p.document_properties.iter().find(|d| d.key == key).map(|d| (p.id.as_str(), d)))
+}
+
+/// What is wrong with a stored value, if anything: too long, or not one of an enum's values.
+fn value_issue(d: &vizcraft_notation::PropertySchema, value: &str) -> Option<String> {
+    let n = value.chars().count();
+    if let Some(max) = d.max_chars.filter(|m| n > *m as usize) {
+        return Some(format!("{n} characters; at most {max} fit"));
+    }
+    if d.kind == vizcraft_notation::PropKind::Enum && !value.is_empty() && !d.values.iter().any(|x| x == value) {
+        return Some(format!("not one of {}", d.values.join(", ")));
+    }
+    None
+}
+
+fn set_property(s: &mut Session, v: &Value) -> CmdResult {
+    use vizcraft_notation::PropKind;
+    let key = crate::p::req_str(v, "key")?;
+    let (_, d) = declared(key)
+        .ok_or_else(|| EngineError::Params(format!("no loaded pack declares the document property `{}`; see doc.properties", short(key))))?;
+    let value = match v.get("value") {
+        None => return Err(EngineError::Params("`value` is required (null clears it)".into())),
+        Some(Value::Null) => String::new(),
+        Some(Value::String(t)) => match d.kind {
+            PropKind::Text | PropKind::Enum => t.clone(),
+            _ => return Err(EngineError::Params(format!("`{key}` takes a {}", kind_name(d.kind)))),
+        },
+        Some(Value::Number(n)) => match (d.kind, n.as_f64()) {
+            (PropKind::Number, Some(f)) if f.is_finite() => n.to_string(),
+            (PropKind::Integer, Some(f)) if f.is_finite() && f.fract() == 0.0 => n.to_string(),
+            _ => return Err(EngineError::Params(format!("`{key}` takes a {}", kind_name(d.kind)))),
+        },
+        Some(Value::Bool(b)) if d.kind == PropKind::Bool => b.to_string(),
+        Some(_) => return Err(EngineError::Params(format!("`{key}` takes a {}", kind_name(d.kind)))),
+    };
+    if d.kind == PropKind::Enum && !value.is_empty() && !d.values.contains(&value) {
+        return Err(EngineError::Params(format!("`{key}` must be one of {}", d.values.join(", "))));
+    }
+    let props = &mut s.doc.properties;
+    if key == "title" {
+        props.title = value.clone();
+    } else if value.is_empty() {
+        props.fields.remove(key);
+    } else {
+        if !props.fields.contains_key(key) && props.fields.len() >= DocProperties::MAX_FIELDS {
+            return Err(EngineError::Params(format!("a document keeps at most {} named properties", DocProperties::MAX_FIELDS)));
+        }
+        props.fields.insert(key.to_string(), value.clone());
+    }
+    props.sanitize();
+    let stored = if key == "title" { props.title.clone() } else { props.fields.get(key).cloned().unwrap_or_default() };
+    let mut out = json!({"key": key, "value": stored});
+    if let (Some(i), Some(o)) = (value_issue(d, &stored), out.as_object_mut()) {
+        o.insert("issue".into(), json!(i));
+    }
+    Ok(out)
+}
+
+fn kind_name(k: vizcraft_notation::PropKind) -> &'static str {
+    use vizcraft_notation::PropKind;
+    match k {
+        PropKind::Text => "string",
+        PropKind::Number => "number",
+        PropKind::Integer => "whole number",
+        PropKind::Bool => "boolean",
+        PropKind::Enum => "string from its values",
+    }
+}
+
+fn list_properties(s: &mut Session, _: &Value) -> CmdResult {
+    let page = s.doc.pages.iter().position(|p| !p.is_background && p.sheet.is_some()).unwrap_or_else(|| s.doc.active_index());
+    let mut seen = std::collections::HashSet::new();
+    let mut out = Vec::new();
+    for pack in vizcraft_notation::catalog().packs() {
+        for d in &pack.document_properties {
+            if !seen.insert(d.key.clone()) {
+                continue;
+            }
+            let value = vizcraft_diagram::text_fields::doc_value(&s.doc, page, &d.key);
+            let mut row = json!({
+                "key": d.key, "label": d.label, "group": d.group, "required": d.required, "maxChars": d.max_chars,
+                "kind": kind_name(d.kind), "values": d.values, "value": value, "pack": pack.id,
+            });
+            let issue = if d.required && value.trim().is_empty() { Some("required".to_string()) } else { value_issue(d, &value) };
+            if let (Some(i), Some(o)) = (issue, row.as_object_mut()) {
+                o.insert("issue".into(), json!(i));
+            }
+            out.push(row);
+        }
+    }
+    Ok(json!({"properties": out}))
+}
+
 /// How many items of each kind of hidden data the document holds.
 fn counts(s: &Session) -> [usize; 7] {
     let doc = &s.doc;
@@ -68,7 +169,7 @@ fn counts(s: &Session) -> [usize; 7] {
         shapes().filter(|sh| !sh.screen_tip.is_empty()).count(),
         shapes().map(|sh| sh.data.rows.len()).sum(),
         doc.images.len(),
-        [&p.title, &p.author, &p.subject, &p.keywords, &p.description].iter().filter(|t| !t.is_empty()).count(),
+        [&p.title, &p.author, &p.subject, &p.keywords, &p.description].iter().filter(|t| !t.is_empty()).count() + p.fields.len(),
     ]
 }
 

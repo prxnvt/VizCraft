@@ -70,6 +70,11 @@ pub struct Pack {
     /// `View.module`. None by default.
     #[serde(skip_serializing_if = "vizcraft_model::Module::is_none")]
     pub module: vizcraft_model::Module,
+    /// Document properties the pack declares (the ISO 7200 title block fields): `doc.setProperty`
+    /// accepts their keys, `doc.properties` lists them and title blocks show them through
+    /// `{{doc:key}}` fields. `required` marks a mandatory field and `maxChars` its length limit.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub document_properties: Vec<PropertySchema>,
 }
 
 /// A rendering variant of a pack: which glyph draws each element type and which connector type
@@ -274,6 +279,12 @@ pub struct PropertySchema {
     pub default: Option<PropValue>,
     /// What the property means.
     pub description: String,
+    /// Most characters the value may have (a title block cell's room); `None` for no limit.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_chars: Option<u32>,
+    /// Group the Inspector shows the property under (`Identification`); empty for none.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub group: String,
 }
 
 /// Direction of a port.
@@ -348,6 +359,30 @@ pub struct CompartmentDecl {
     /// Property keys whose values fill the compartment, one `name: value` row (or line) each,
     /// in this order; a key the element has no value for (and no schema default) is left out.
     pub from_properties: Vec<String>,
+    /// A table filled from the model instead (a revision table, a parts list): one row per
+    /// element the query selects, cells separated by tabs (see `crate::sheet_pass`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub query: Option<TableQuery>,
+}
+
+/// A table a list compartment shows: elements of `types`, one row each, with `columns` read as
+/// in `vizcraft_model::query::list` (`tag`, `name` or a property key).
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct TableQuery {
+    /// Element types listed (pack-qualified). An element of the compartment's own type may
+    /// override them with its `types` property (comma-separated).
+    pub types: Vec<String>,
+    /// Column keys, in order.
+    pub columns: Vec<String>,
+    /// Header titles, one per column (the column key when missing).
+    pub headers: Vec<String>,
+    /// Column widths in world units, one per column (an even share when missing).
+    pub widths: Vec<f64>,
+    /// The column key rows are sorted by (numbers numerically, revisions in order); empty keeps
+    /// model order.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub sort_by: String,
 }
 
 impl ElementType {
@@ -376,6 +411,25 @@ pub struct RelationshipType {
     /// relationships (reachability, paths, cycles, islands).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub inverse_of: Option<String>,
+    /// What the relationship means to drawings: a cross reference labels both ends with each
+    /// other's sheet and zone (see `crate::sheet_pass`).
+    #[serde(skip_serializing_if = "is_plain")]
+    pub kind: RelationshipKind,
+}
+
+/// What a relationship type means to drawings.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum RelationshipKind {
+    /// An ordinary relationship.
+    #[default]
+    Plain,
+    /// A cross reference: each end shows where the other is.
+    CrossReference,
+}
+
+fn is_plain(k: &RelationshipKind) -> bool {
+    *k == RelationshipKind::Plain
 }
 
 impl Default for RelationshipType {
@@ -387,6 +441,7 @@ impl Default for RelationshipType {
             properties: Vec::new(),
             end_arrow: "triangle".into(),
             inverse_of: None,
+            kind: RelationshipKind::Plain,
         }
     }
 }
@@ -756,6 +811,24 @@ pub enum Check {
     OffBoard,
     /// Drawing: text taller than its block at the shape's font size.
     TextOverflow,
+    /// Sheets: a document property the pack declares `required` left empty, or with `length`, a
+    /// value longer than its `maxChars`. Runs when a page has a sheet.
+    DocumentFields {
+        /// Check lengths instead of mandatory fields.
+        #[serde(default)]
+        length: bool,
+    },
+    /// Sheets: revision records (`sheet.Revision`) whose letters skip or repeat a step of the
+    /// revision scheme.
+    RevisionSequence,
+    /// Sheets: a balloon that calls out no part (or several), or a listed part with no balloon.
+    BalloonRows,
+    /// Sheets: a cross-reference relationship with an end that is drawn nowhere, so its label
+    /// cannot say where the partner is.
+    CrossReferences,
+    /// Sheets: a tag composed from its sheet, zone, rung or owner that no longer matches (the
+    /// element moved); `sheet.renumber` recomposes it.
+    StaleTag,
     /// A check this build does not know (from a newer pack); skipped, and reported by the loader.
     #[default]
     #[serde(other)]

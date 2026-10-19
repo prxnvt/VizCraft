@@ -513,6 +513,7 @@ fn tag_catalog() -> crate::Catalog {
         kind: CompartmentKind::List,
         title: Some("Fields".into()),
         from_properties: vec!["flow".into(), "service".into(), "head".into(), "missing".into()],
+        query: None,
     };
     let tag = ElementType {
         id: "test.Tag".into(),
@@ -560,6 +561,6 @@ fn declared_list_compartments_fill_rows_from_properties() {
     let s = &doc.pages[0].shapes[0];
     assert_eq!(s.compartments[0].rows[0], "Flow: 15 m3/h");
     assert_eq!(s.compartments.len(), 3);
-    // The built-in packs declare none: a flowchart view gets no compartments.
-    assert!(catalog().packs().iter().all(|p| p.element_types.iter().all(|t| t.compartments.is_empty())));
+    // The built-in flowchart pack declares none: a flowchart view gets no compartments.
+    assert!(catalog().pack("flowchart").is_some_and(|p| p.element_types.iter().all(|t| t.compartments.is_empty())));
 }

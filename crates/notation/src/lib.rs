@@ -20,6 +20,7 @@
 //! - [`cases`]: pack test cases (a document, a profile and the issues expected).
 //! - [`bind`]: the sync pass that keeps model and views in step after every command;
 //!   [`bind_nets`]: its net pass, which keeps nets, wire segments and junctions consistent.
+//! - [`sheet_pass`]: the drawing-sheet part of that pass (tables, balloons, cross references).
 //!
 //! No egui and no engine; wasm safe.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
@@ -36,6 +37,7 @@ pub mod legal;
 pub mod loader;
 pub mod rules;
 pub mod schema;
+pub mod sheet_pass;
 pub mod validate;
 
 pub use catalog::{Catalog, catalog};

@@ -1,7 +1,7 @@
 //! Document-wide data beyond pages: file properties, review comments, the image store and
 //! document protection. All plain data.
 
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 
@@ -29,19 +29,42 @@ pub struct DocProperties {
     /// Longer description.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "String::is_empty")]
     pub description: String,
+    /// Named document properties that packs declare (`legalOwner`, `identificationNumber`, the
+    /// ISO 7200 and ASME title block fields): plain keys, at most [`DocProperties::MAX_FIELDS`],
+    /// values capped at [`DocProperties::MAX_SHORT`]. Title blocks show them through
+    /// `{{doc:key}}` fields.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "BTreeMap::is_empty")]
+    pub fields: BTreeMap<String, String>,
 }
 
 impl DocProperties {
     /// Longest title, author, subject or keywords kept, in bytes; the description takes
     /// [`MAX_TEXT`].
     pub const MAX_SHORT: usize = 1024;
+    /// Most named properties kept.
+    pub const MAX_FIELDS: usize = 64;
+    /// Longest named property key kept.
+    pub const MAX_KEY: usize = 64;
 
-    /// Cap every property's length.
+    /// Whether `key` may name a property in `fields`: letters, digits and `_`, at most
+    /// [`DocProperties::MAX_KEY`] bytes.
+    pub fn is_field_key(key: &str) -> bool {
+        !key.is_empty() && key.len() <= Self::MAX_KEY && key.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+    }
+
+    /// Cap every property's length, and the named properties' count and keys.
     pub fn sanitize(&mut self) {
         for s in [&mut self.title, &mut self.author, &mut self.subject, &mut self.keywords] {
             truncate(s, Self::MAX_SHORT);
         }
         truncate(&mut self.description, MAX_TEXT);
+        self.fields.retain(|k, _| Self::is_field_key(k));
+        while self.fields.len() > Self::MAX_FIELDS {
+            self.fields.pop_last();
+        }
+        for v in self.fields.values_mut() {
+            truncate(v, Self::MAX_SHORT);
+        }
     }
 }
 

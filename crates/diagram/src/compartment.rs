@@ -5,7 +5,9 @@
 //! `Shape::compartments` is a band below it, separated by the outline's line:
 //!
 //! - **Paragraph**: one block of text.
-//! - **List**: one row per entry (an attribute, a field, a checklist item).
+//! - **List**: one row per entry (an attribute, a field, a checklist item). A list with
+//!   [`Compartment::columns`] is a table: a header row of column titles, and each row's cells
+//!   separated by tabs, drawn in the columns (a revision table, a parts list).
 //! - **Slot**: a region that owns child shapes. A member names the shape as its `parent` (the
 //!   container contract: it moves with the shape through [`crate::arrange`] and is selected on its
 //!   own) and is listed in the slot's `members`; after every move or resize it is clamped into the
@@ -50,6 +52,8 @@ pub const LINE_HEIGHT: f64 = 1.2;
 pub const PAD: f64 = 4.0;
 /// Space left and right of a band's text, in world units.
 pub const PAD_X: f64 = 6.0;
+/// Most columns one table compartment keeps.
+pub const MAX_COLUMNS: usize = 16;
 /// Height of an empty slot region with automatic height.
 pub const SLOT_MIN: f64 = 40.0;
 /// Space kept between a slot's edge and its members.
@@ -157,6 +161,22 @@ pub struct Compartment {
     /// A slot's member shapes (each has the shape as its `parent`).
     #[serde(deserialize_with = "lenient_vec", skip_serializing_if = "Vec::is_empty")]
     pub members: Vec<String>,
+    /// A list's table columns, at most [`MAX_COLUMNS`]; empty for a plain list. Each row's cells
+    /// are separated by tabs.
+    #[serde(deserialize_with = "lenient_vec", skip_serializing_if = "Vec::is_empty")]
+    pub columns: Vec<Column>,
+}
+
+/// One column of a table compartment.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct Column {
+    /// The header title.
+    #[serde(deserialize_with = "lenient")]
+    pub title: String,
+    /// The width in world units; the columns are scaled together to the shape's width.
+    #[serde(deserialize_with = "lenient")]
+    pub width: f64,
 }
 
 impl Default for Compartment {
@@ -174,6 +194,7 @@ impl Default for Compartment {
             fill: None,
             font_color: None,
             members: Vec::new(),
+            columns: Vec::new(),
         }
     }
 }
@@ -208,6 +229,14 @@ impl Compartment {
         self.members.retain(|m| !m.is_empty() && seen.insert(m.clone()));
         if self.kind != CompartmentKind::Slot {
             self.members.clear();
+        }
+        self.columns.truncate(MAX_COLUMNS);
+        for c in &mut self.columns {
+            truncate(&mut c.title, MAX_TITLE);
+            c.width = if c.width.is_finite() && c.width > 0.0 { c.width.min(MAX_EXTENT) } else { 1.0 };
+        }
+        if self.kind != CompartmentKind::List {
+            self.columns.clear();
         }
     }
     /// The editable body: a paragraph's text, a list's rows one per line, nothing for a slot.
@@ -295,6 +324,11 @@ pub struct Band {
     /// A list's rows, one rectangle per row, top to bottom (rows past the band's bottom are left
     /// out).
     pub rows: Vec<Rect>,
+    /// A table's header row, above the rows; `None` for a plain list.
+    pub header: Option<Rect>,
+    /// A table's column edges, left to right from 0 to the shape's width (one more than the
+    /// columns); empty for a plain list.
+    pub columns: Vec<f64>,
 }
 
 impl Band {
@@ -328,7 +362,7 @@ pub fn natural_height(s: &Shape, c: &Compartment) -> f64 {
     let title = if c.title.is_some() { lh } else { 0.0 };
     match c.kind {
         CompartmentKind::Paragraph => 2.0 * PAD + title + count_lines(&c.text) as f64 * lh,
-        CompartmentKind::List => 2.0 * PAD + title + c.rows.len().max(1) as f64 * lh,
+        CompartmentKind::List => 2.0 * PAD + title + (c.rows.len().max(1) + usize::from(!c.columns.is_empty())) as f64 * lh,
         CompartmentKind::Slot => title + SLOT_MIN,
     }
 }
@@ -363,7 +397,7 @@ pub fn layout(s: &Shape) -> Vec<Band> {
     let main_h = (h - used).max(0.0);
     let mut out = Vec::with_capacity(heights.len() + 1);
     let main = Rect::new(0.0, 0.0, w, main_h);
-    out.push(Band { compartment: None, rect: main, title: None, body: main, rows: Vec::new() });
+    out.push(Band { compartment: None, rect: main, title: None, body: main, rows: Vec::new(), header: None, columns: Vec::new() });
     let mut y = main_h;
     for (i, (c, nat)) in s.compartments.iter().zip(&heights).enumerate() {
         let bh = nat * k;
@@ -377,17 +411,44 @@ pub fn layout(s: &Shape) -> Vec<Band> {
             t
         });
         let body = Rect::new(0.0, top.min(rect.y1), w, (rect.y1 - pad).max(top.min(rect.y1)));
+        let table = c.kind == CompartmentKind::List && !c.columns.is_empty();
+        let header = table.then(|| Rect::new(0.0, body.y0, w, (body.y0 + lh).min(rect.y1.max(body.y0))));
+        let first = if table { 1 } else { 0 };
         let rows = if c.kind == CompartmentKind::List {
             (0..c.rows.len())
-                .map(|r| Rect::new(0.0, body.y0 + r as f64 * lh, w, body.y0 + (r + 1) as f64 * lh))
+                .map(|r| Rect::new(0.0, body.y0 + (r + first) as f64 * lh, w, body.y0 + (r + first + 1) as f64 * lh))
                 .take_while(|r| r.y1 <= rect.y1 + 0.5)
                 .collect()
         } else {
             Vec::new()
         };
-        out.push(Band { compartment: Some(i), rect, title, body, rows });
+        let columns = if table { column_edges(&c.columns, w) } else { Vec::new() };
+        out.push(Band { compartment: Some(i), rect, title, body, rows, header, columns });
         y = rect.y1;
     }
+    out
+}
+
+/// Column edges from 0 to `w`: the widths scaled together to fill the width.
+fn column_edges(cols: &[Column], w: f64) -> Vec<f64> {
+    let total: f64 = cols.iter().map(|c| if c.width.is_finite() && c.width > 0.0 { c.width } else { 1.0 }).sum();
+    let k = if total > 0.0 { w / total } else { 0.0 };
+    let mut x = 0.0;
+    let mut out = vec![0.0];
+    for c in cols {
+        x += if c.width.is_finite() && c.width > 0.0 { c.width } else { 1.0 } * k;
+        out.push(x.min(w));
+    }
+    if let Some(last) = out.last_mut() {
+        *last = w;
+    }
+    out
+}
+
+/// The cells of a table row: its text split at tabs, padded or cut to `n` cells.
+pub fn cells(row: &str, n: usize) -> Vec<&str> {
+    let mut out: Vec<&str> = row.split('\t').take(n).collect();
+    out.resize(n, "");
     out
 }
 

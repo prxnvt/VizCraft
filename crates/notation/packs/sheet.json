@@ -1,0 +1,766 @@
+{
+  "schemaVersion": 1,
+  "id": "sheet",
+  "version": "1.0.0",
+  "name": "Drawing Sheet",
+  "description": "Drawing sheets: ISO 5457 and ASME Y14.1 frames with zones, the ISO 7200 title block fields as document properties, revision tables, parts lists with balloons, off-sheet references and cross references. ISO is the default; ASME is always offered.",
+  "audience": [
+    "industrial",
+    "engineering"
+  ],
+  "glyphs": [
+    {
+      "id": "sheet.revision",
+      "label": "Revision",
+      "category": "Revisions",
+      "outline": "rectangle",
+      "w": 160,
+      "h": 40,
+      "fill": "#ffffff",
+      "line": "#1e2630",
+      "keywords": [
+        "revision",
+        "change",
+        "rev"
+      ],
+      "elementType": "sheet.Revision",
+      "source": "own design"
+    },
+    {
+      "id": "sheet.revisionTable",
+      "label": "Revision Table",
+      "category": "Revisions",
+      "outline": "rectangle",
+      "w": 420,
+      "h": 90,
+      "fill": "#ffffff",
+      "line": "#1e2630",
+      "keywords": [
+        "revision",
+        "history",
+        "table"
+      ],
+      "elementType": "sheet.RevisionTable",
+      "source": "own design"
+    },
+    {
+      "id": "sheet.revisionTableAsme",
+      "label": "Revision Table (ASME)",
+      "category": "Revisions",
+      "outline": "rectangle",
+      "w": 420,
+      "h": 90,
+      "fill": "#f7f8fa",
+      "line": "#1e2630",
+      "keywords": [
+        "revision",
+        "history",
+        "table",
+        "asme"
+      ],
+      "elementType": "sheet.RevisionTable",
+      "source": "own design"
+    },
+    {
+      "id": "sheet.part",
+      "label": "Part",
+      "category": "Parts",
+      "outline": "rectangle",
+      "w": 160,
+      "h": 50,
+      "fill": "#ffffff",
+      "line": "#1e2630",
+      "keywords": [
+        "part",
+        "item",
+        "component"
+      ],
+      "elementType": "sheet.Part",
+      "source": "own design"
+    },
+    {
+      "id": "sheet.partsList",
+      "label": "Parts List",
+      "category": "Parts",
+      "outline": "rectangle",
+      "w": 420,
+      "h": 90,
+      "fill": "#ffffff",
+      "line": "#1e2630",
+      "keywords": [
+        "parts list",
+        "bill of materials",
+        "bom",
+        "item list"
+      ],
+      "elementType": "sheet.PartsList",
+      "source": "own design"
+    },
+    {
+      "id": "sheet.partsListAsme",
+      "label": "Parts List (ASME)",
+      "category": "Parts",
+      "outline": "rectangle",
+      "w": 420,
+      "h": 90,
+      "fill": "#f7f8fa",
+      "line": "#1e2630",
+      "keywords": [
+        "parts list",
+        "bill of materials",
+        "bom",
+        "asme"
+      ],
+      "elementType": "sheet.PartsList",
+      "source": "own design"
+    },
+    {
+      "id": "sheet.balloon",
+      "label": "Balloon",
+      "category": "Parts",
+      "outline": "ellipse",
+      "w": 36,
+      "h": 36,
+      "fill": "#ffffff",
+      "line": "#1e2630",
+      "keywords": [
+        "balloon",
+        "item number",
+        "callout"
+      ],
+      "elementType": "sheet.Balloon",
+      "source": "own design"
+    },
+    {
+      "id": "sheet.balloonAsme",
+      "label": "Balloon (ASME)",
+      "category": "Parts",
+      "outline": "ellipse",
+      "w": 44,
+      "h": 44,
+      "fill": "#ffffff",
+      "line": "#1e2630",
+      "keywords": [
+        "balloon",
+        "find number",
+        "callout",
+        "asme"
+      ],
+      "elementType": "sheet.Balloon",
+      "source": "own design"
+    },
+    {
+      "id": "sheet.offSheet",
+      "label": "Off-sheet Reference",
+      "category": "References",
+      "outline": "offPageReference",
+      "w": 50,
+      "h": 50,
+      "fill": "#ffffff",
+      "line": "#1e2630",
+      "keywords": [
+        "off-sheet",
+        "continuation",
+        "continued",
+        "reference"
+      ],
+      "elementType": "sheet.OffSheet",
+      "source": "own design"
+    },
+    {
+      "id": "sheet.offSheetAsme",
+      "label": "Off-sheet Reference (ASME)",
+      "category": "References",
+      "outline": "parallelogram",
+      "w": 80,
+      "h": 36,
+      "fill": "#ffffff",
+      "line": "#1e2630",
+      "keywords": [
+        "off-sheet",
+        "continuation",
+        "asme"
+      ],
+      "elementType": "sheet.OffSheet",
+      "source": "own design"
+    }
+  ],
+  "connectorTypes": [],
+  "elementTypes": [
+    {
+      "id": "sheet.Revision",
+      "label": "Revision",
+      "description": "One revision of the drawing: its letter, the zone it changed, what changed, when and who approved it. Revision tables list them.",
+      "glyph": "sheet.revision",
+      "properties": [
+        {
+          "key": "rev",
+          "label": "Revision",
+          "kind": "text"
+        },
+        {
+          "key": "zone",
+          "label": "Zone",
+          "kind": "text"
+        },
+        {
+          "key": "description",
+          "label": "Description",
+          "kind": "text"
+        },
+        {
+          "key": "date",
+          "label": "Date",
+          "kind": "text"
+        },
+        {
+          "key": "approved",
+          "label": "Approved by",
+          "kind": "text"
+        }
+      ]
+    },
+    {
+      "id": "sheet.RevisionTable",
+      "label": "Revision Table",
+      "description": "A table of the drawing's revisions, filled from the Revision elements.",
+      "glyph": "sheet.revisionTable",
+      "compartments": [
+        {
+          "id": "rows",
+          "kind": "list",
+          "query": {
+            "types": [
+              "sheet.Revision"
+            ],
+            "columns": [
+              "zone",
+              "rev",
+              "description",
+              "date",
+              "approved"
+            ],
+            "headers": [
+              "ZONE",
+              "REV",
+              "DESCRIPTION",
+              "DATE",
+              "APPROVED"
+            ],
+            "widths": [
+              50,
+              40,
+              190,
+              70,
+              70
+            ],
+            "sortBy": "rev"
+          }
+        }
+      ]
+    },
+    {
+      "id": "sheet.Part",
+      "label": "Part",
+      "description": "One item of an assembly; its tag is the item number.",
+      "glyph": "sheet.part",
+      "properties": [
+        {
+          "key": "quantity",
+          "label": "Quantity",
+          "kind": "integer",
+          "default": 1
+        },
+        {
+          "key": "partNumber",
+          "label": "Part number",
+          "kind": "text"
+        },
+        {
+          "key": "description",
+          "label": "Description",
+          "kind": "text"
+        },
+        {
+          "key": "material",
+          "label": "Material",
+          "kind": "text"
+        }
+      ]
+    },
+    {
+      "id": "sheet.PartsList",
+      "label": "Parts List",
+      "description": "A table of the parts, filled from the Part elements and sorted by item number.",
+      "glyph": "sheet.partsList",
+      "properties": [
+        {
+          "key": "types",
+          "label": "Listed types",
+          "kind": "text",
+          "default": "sheet.Part",
+          "description": "Element types the list shows, separated by commas."
+        }
+      ],
+      "compartments": [
+        {
+          "id": "rows",
+          "kind": "list",
+          "query": {
+            "types": [
+              "sheet.Part"
+            ],
+            "columns": [
+              "tag",
+              "quantity",
+              "partNumber",
+              "description",
+              "material"
+            ],
+            "headers": [
+              "ITEM",
+              "QTY",
+              "PART NUMBER",
+              "DESCRIPTION",
+              "MATERIAL"
+            ],
+            "widths": [
+              40,
+              40,
+              100,
+              160,
+              80
+            ],
+            "sortBy": "tag"
+          }
+        }
+      ]
+    },
+    {
+      "id": "sheet.Balloon",
+      "label": "Balloon",
+      "description": "An item number in a circle, with a leader to the part it calls out. It shows the part's item number.",
+      "glyph": "sheet.balloon"
+    },
+    {
+      "id": "sheet.OffSheet",
+      "label": "Off-sheet Reference",
+      "description": "Where a line continues on another sheet; two references with the same tag are partners and each shows where the other is.",
+      "glyph": "sheet.offSheet",
+      "properties": [
+        {
+          "key": "xrefLabel",
+          "label": "Location label",
+          "kind": "enum",
+          "values": [
+            "on",
+            "off"
+          ],
+          "default": "on"
+        }
+      ]
+    }
+  ],
+  "relationshipTypes": [
+    {
+      "id": "sheet.CallsOut",
+      "label": "Calls out",
+      "description": "A balloon names the part its leader points at.",
+      "endArrow": "none"
+    },
+    {
+      "id": "sheet.Continues",
+      "label": "Continues",
+      "description": "A line continues from one off-sheet reference to its partner.",
+      "endArrow": "none",
+      "kind": "crossReference"
+    },
+    {
+      "id": "sheet.References",
+      "label": "References",
+      "description": "A cross reference between any two elements (a contact and its coil): each end is labelled with the other's sheet and zone.",
+      "endArrow": "none",
+      "kind": "crossReference"
+    }
+  ],
+  "connections": [
+    {
+      "source": [
+        "sheet.Balloon"
+      ],
+      "relationship": "sheet.CallsOut",
+      "target": [
+        "sheet.Part"
+      ],
+      "outMax": 1
+    },
+    {
+      "source": [
+        "sheet.OffSheet"
+      ],
+      "relationship": "sheet.Continues",
+      "target": [
+        "sheet.OffSheet"
+      ]
+    },
+    {
+      "source": [
+        "*"
+      ],
+      "relationship": "sheet.References",
+      "target": [
+        "*"
+      ]
+    }
+  ],
+  "palette": [],
+  "viewpoints": [],
+  "identifiers": [
+    {
+      "id": "sheet.item",
+      "types": [
+        "sheet.Part"
+      ],
+      "format": "{n}",
+      "unique": true,
+      "autoNumber": true
+    },
+    {
+      "id": "sheet.revision",
+      "types": [
+        "sheet.Revision"
+      ],
+      "format": "{rev}",
+      "unique": true,
+      "autoNumber": false
+    },
+    {
+      "id": "sheet.offSheet",
+      "types": [
+        "sheet.OffSheet"
+      ],
+      "format": "{n}",
+      "unique": false,
+      "paired": true,
+      "autoNumber": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "sheet.mandatoryFields",
+      "description": "The title block's mandatory fields are filled in.",
+      "severity": "warning",
+      "mode": "live",
+      "reference": "ISO 7200:2004, data fields in title blocks: mandatory fields",
+      "check": {
+        "kind": "documentFields"
+      }
+    },
+    {
+      "id": "sheet.fieldLength",
+      "description": "Title block fields fit their cells.",
+      "severity": "warning",
+      "mode": "live",
+      "reference": "ISO 7200:2004, data fields in title blocks: recommended number of characters",
+      "check": {
+        "kind": "documentFields",
+        "length": true
+      }
+    },
+    {
+      "id": "sheet.revisionSequence",
+      "description": "Revisions follow each other in the revision scheme's order, without gaps or repeats.",
+      "severity": "warning",
+      "mode": "live",
+      "reference": "ASME Y14.35, revision identifiers; ISO 7200 revision index",
+      "check": {
+        "kind": "revisionSequence"
+      }
+    },
+    {
+      "id": "sheet.balloonRows",
+      "description": "Each balloon calls out one listed part, and each part has a balloon.",
+      "severity": "warning",
+      "mode": "live",
+      "reference": "ASME Y14.34, parts lists and find numbers; ISO 6433, item references",
+      "check": {
+        "kind": "balloonRows"
+      }
+    },
+    {
+      "id": "sheet.unresolvedXref",
+      "description": "A cross reference points at an element drawn somewhere.",
+      "severity": "warning",
+      "mode": "live",
+      "reference": "VizCraft house rule: a cross reference can be followed",
+      "check": {
+        "kind": "crossReferences"
+      }
+    },
+    {
+      "id": "sheet.unmatchedOffSheet",
+      "description": "An off-sheet reference has a partner with the same tag.",
+      "severity": "warning",
+      "mode": "live",
+      "reference": "VizCraft house rule: a continued line continues somewhere",
+      "check": {
+        "kind": "unmatchedPair",
+        "scope": "sheet.offSheet"
+      }
+    },
+    {
+      "id": "sheet.duplicateItem",
+      "description": "Item numbers are unique.",
+      "severity": "error",
+      "mode": "live",
+      "reference": "ASME Y14.34, find numbers",
+      "check": {
+        "kind": "duplicateIdentifier",
+        "scope": "sheet.item"
+      }
+    },
+    {
+      "id": "sheet.staleTag",
+      "description": "A tag composed from its sheet, zone or rung still matches where the element is; run sheet.renumber to update it.",
+      "severity": "info",
+      "mode": "live",
+      "reference": "VizCraft house rule: composed tags are updated on request",
+      "check": {
+        "kind": "staleTag"
+      }
+    }
+  ],
+  "rulesets": [],
+  "variants": [
+    {
+      "id": "sheet.iso5457",
+      "label": "ISO 5457",
+      "description": "ISO tables and balloons.",
+      "glyphs": {
+        "sheet.RevisionTable": "sheet.revisionTable",
+        "sheet.PartsList": "sheet.partsList",
+        "sheet.Balloon": "sheet.balloon",
+        "sheet.OffSheet": "sheet.offSheet"
+      }
+    },
+    {
+      "id": "sheet.asmeY14_1",
+      "label": "ASME Y14.1",
+      "description": "ASME tables, larger find-number balloons and off-sheet flags.",
+      "glyphs": {
+        "sheet.RevisionTable": "sheet.revisionTableAsme",
+        "sheet.PartsList": "sheet.partsListAsme",
+        "sheet.Balloon": "sheet.balloonAsme",
+        "sheet.OffSheet": "sheet.offSheetAsme"
+      }
+    }
+  ],
+  "documentProperties": [
+    {
+      "key": "legalOwner",
+      "label": "Legal owner",
+      "kind": "text",
+      "group": "Identification",
+      "required": true,
+      "description": "The organization that owns the document."
+    },
+    {
+      "key": "identificationNumber",
+      "label": "Identification number",
+      "kind": "text",
+      "group": "Identification",
+      "maxChars": 16,
+      "required": true
+    },
+    {
+      "key": "revisionIndex",
+      "label": "Revision index",
+      "kind": "text",
+      "group": "Identification",
+      "maxChars": 2,
+      "description": "Falls back to the last revision's letter."
+    },
+    {
+      "key": "dateOfIssue",
+      "label": "Date of issue",
+      "kind": "text",
+      "group": "Identification",
+      "maxChars": 10,
+      "required": true,
+      "description": "YYYY-MM-DD."
+    },
+    {
+      "key": "title",
+      "label": "Title",
+      "kind": "text",
+      "group": "Description",
+      "maxChars": 30,
+      "required": true
+    },
+    {
+      "key": "supplementaryTitle",
+      "label": "Supplementary title",
+      "kind": "text",
+      "group": "Description",
+      "maxChars": 60
+    },
+    {
+      "key": "approvalPerson",
+      "label": "Approved by",
+      "kind": "text",
+      "group": "Responsibility",
+      "maxChars": 20,
+      "required": true
+    },
+    {
+      "key": "creator",
+      "label": "Created by",
+      "kind": "text",
+      "group": "Responsibility",
+      "maxChars": 20,
+      "required": true,
+      "description": "Falls back to the author property."
+    },
+    {
+      "key": "documentType",
+      "label": "Document type",
+      "kind": "enum",
+      "values": [
+        "drawing",
+        "assembly drawing",
+        "detail drawing",
+        "diagram",
+        "circuit diagram",
+        "flow diagram",
+        "layout",
+        "list",
+        "parts list",
+        "schedule",
+        "specification",
+        "manual"
+      ],
+      "group": "Description",
+      "maxChars": 30,
+      "required": true
+    },
+    {
+      "key": "responsibleDepartment",
+      "label": "Responsible department",
+      "kind": "text",
+      "group": "Responsibility",
+      "maxChars": 10
+    },
+    {
+      "key": "technicalReference",
+      "label": "Technical reference",
+      "kind": "text",
+      "group": "Responsibility",
+      "maxChars": 20
+    },
+    {
+      "key": "classification",
+      "label": "Classification",
+      "kind": "text",
+      "group": "Status"
+    },
+    {
+      "key": "documentStatus",
+      "label": "Document status",
+      "kind": "text",
+      "group": "Status",
+      "maxChars": 20
+    },
+    {
+      "key": "language",
+      "label": "Language",
+      "kind": "text",
+      "group": "Status",
+      "maxChars": 4
+    },
+    {
+      "key": "paperSize",
+      "label": "Paper size",
+      "kind": "text",
+      "group": "Status",
+      "maxChars": 4,
+      "description": "Falls back to the sheet's size."
+    },
+    {
+      "key": "drawingNumber",
+      "label": "Drawing number",
+      "kind": "text",
+      "group": "ASME"
+    },
+    {
+      "key": "cageCode",
+      "label": "CAGE code",
+      "kind": "text",
+      "group": "ASME",
+      "maxChars": 5
+    },
+    {
+      "key": "scale",
+      "label": "Scale",
+      "kind": "text",
+      "group": "ASME"
+    },
+    {
+      "key": "material",
+      "label": "Material",
+      "kind": "text",
+      "group": "ASME"
+    },
+    {
+      "key": "finish",
+      "label": "Finish",
+      "kind": "text",
+      "group": "ASME"
+    },
+    {
+      "key": "weight",
+      "label": "Weight",
+      "kind": "text",
+      "group": "ASME"
+    },
+    {
+      "key": "drawnDate",
+      "label": "Drawn date",
+      "kind": "text",
+      "group": "ASME"
+    },
+    {
+      "key": "checkedBy",
+      "label": "Checked by",
+      "kind": "text",
+      "group": "ASME"
+    },
+    {
+      "key": "checkedDate",
+      "label": "Checked date",
+      "kind": "text",
+      "group": "ASME"
+    },
+    {
+      "key": "approvedDate",
+      "label": "Approved date",
+      "kind": "text",
+      "group": "ASME"
+    },
+    {
+      "key": "xrefFormat",
+      "label": "Cross reference format",
+      "kind": "text",
+      "group": "Cross references",
+      "default": "/{sheet}.{zone}",
+      "description": "How a partner on another sheet is shown: {sheet}, {zone}, {page} and {tag}."
+    },
+    {
+      "key": "xrefSameSheet",
+      "label": "Cross reference on the same sheet",
+      "kind": "text",
+      "group": "Cross references",
+      "default": "{zone}",
+      "description": "How a partner on the same sheet is shown."
+    }
+  ]
+}

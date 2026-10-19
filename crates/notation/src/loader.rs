@@ -85,6 +85,7 @@ fn finish(mut pack: Pack) -> Result<Pack, NotationError> {
     }
     problems.extend(glyph_paths(&pack));
     problems.extend(variants(&pack));
+    problems.extend(sheet_fields(&pack));
     if !problems.is_empty() {
         return Err(NotationError::Invalid(problems));
     }
@@ -111,6 +112,63 @@ fn short(t: &str) -> String {
 
 /// Problems with path glyphs: path data that does not read, and path data on a glyph that
 /// does not draw with it.
+/// Most document properties one pack declares.
+pub const MAX_DOCUMENT_PROPERTIES: usize = 64;
+
+/// Most columns a table query names.
+pub const MAX_QUERY_COLUMNS: usize = 16;
+
+/// The drawing-sheet fields: document properties (keys, limits), compartment table queries
+/// (types, columns, widths) and nothing to check on a relationship kind beyond its name, which
+/// serde already read.
+fn sheet_fields(pack: &Pack) -> Vec<String> {
+    let mut out = Vec::new();
+    if pack.document_properties.len() > MAX_DOCUMENT_PROPERTIES {
+        out.push(format!("at most {MAX_DOCUMENT_PROPERTIES} document properties"));
+    }
+    let mut seen = std::collections::HashSet::new();
+    for p in pack.document_properties.iter().take(MAX_DOCUMENT_PROPERTIES) {
+        let ctx = format!("document property `{}`", short(&p.key));
+        if !vizcraft_diagram::DocProperties::is_field_key(&p.key) {
+            out.push(format!("{ctx}: the key must be letters, digits and `_`, at most {} bytes", vizcraft_diagram::DocProperties::MAX_KEY));
+        }
+        if !seen.insert(p.key.as_str()) {
+            out.push(format!("{ctx}: declared twice"));
+        }
+        if p.max_chars == Some(0) {
+            out.push(format!("{ctx}: `maxChars` must be at least 1"));
+        }
+        if p.kind == crate::schema::PropKind::Enum && p.values.is_empty() {
+            out.push(format!("{ctx}: an enum needs values"));
+        }
+    }
+    for t in &pack.element_types {
+        for c in &t.compartments {
+            let Some(q) = &c.query else { continue };
+            let ctx = format!("element type `{}`, compartment `{}`", short(&t.id), short(&c.id));
+            if c.kind != vizcraft_diagram::CompartmentKind::List {
+                out.push(format!("{ctx}: a table query needs a list compartment"));
+            }
+            if q.columns.is_empty() || q.columns.len() > MAX_QUERY_COLUMNS {
+                out.push(format!("{ctx}: a table query needs 1 to {MAX_QUERY_COLUMNS} columns"));
+            }
+            if q.headers.len() > q.columns.len() || q.widths.len() > q.columns.len() {
+                out.push(format!("{ctx}: more headers or widths than columns"));
+            }
+            if q.widths.iter().any(|w| !w.is_finite() || *w <= 0.0) {
+                out.push(format!("{ctx}: column widths must be positive numbers"));
+            }
+            if q.types.is_empty() {
+                out.push(format!("{ctx}: a table query lists at least one element type"));
+            }
+            if !q.sort_by.is_empty() && !q.columns.contains(&q.sort_by) {
+                out.push(format!("{ctx}: `sortBy` must be one of the columns"));
+            }
+        }
+    }
+    out
+}
+
 fn glyph_paths(pack: &Pack) -> Vec<String> {
     let mut out = Vec::new();
     for g in &pack.glyphs {
