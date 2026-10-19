@@ -4267,6 +4267,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.21",
+ "vizcraft-analysis",
  "vizcraft-codegen",
  "vizcraft-diagram",
  "vizcraft-formats",

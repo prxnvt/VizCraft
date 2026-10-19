@@ -164,7 +164,7 @@ impl Analysis for Dependencies {
         "Dependencies"
     }
     fn params(&self) -> &'static str {
-        r#"{"id": element, "direction"?: "downstream"|"upstream"|"both", "depth"?: 1..1024, "types"?: [relationship type], "elements"?: [element type], "containment"?: bool} -> {"elements", "relationships", "levels": [[ids]]}; downstream follows source to target; levels[0] is the element itself"#
+        r#"{"id"?: element or a shape drawing one (default: the primary selection), "direction"?: "downstream"|"upstream"|"both", "depth"?: 1..1024, "types"?: [relationship type], "elements"?: [element type], "containment"?: bool} -> {"elements", "relationships", "levels": [[ids]]}; downstream follows source to target; levels[0] is the element itself"#
     }
     fn run(&self, cx: &Context, v: &Value) -> Result<AnalysisResult, AnalysisError> {
         let g = graph(cx, v)?;
@@ -287,7 +287,7 @@ impl Analysis for Unreachable {
         "Unreachable Elements"
     }
     fn params(&self) -> &'static str {
-        r#"{"from"?: [element], "types"?: [relationship type], "elements"?: [element type], "containment"?: bool} -> {"elements", "roots"}; elements nothing in from reaches downstream; with no from, the roots are the elements with no incoming link, so a cycle nothing feeds is unreachable"#
+        r#"{"from"?: [element or shape], "types"?: [relationship type], "elements"?: [element type], "containment"?: bool} -> {"elements", "roots"}; elements nothing in from reaches downstream; with no from, the roots are the elements with no incoming link, so a cycle nothing feeds is unreachable"#
     }
     fn run(&self, cx: &Context, v: &Value) -> Result<AnalysisResult, AnalysisError> {
         let g = graph(cx, v)?;
@@ -416,7 +416,7 @@ impl Analysis for PathAnalysis {
         "Path"
     }
     fn params(&self) -> &'static str {
-        r#"{"from": element, "to": element, "direction"?: "downstream"|"upstream"|"both", "types"?: [relationship type], "elements"?: [element type], "containment"?: bool} -> {"elements", "relationships", "length"}; the path with the fewest links; an error when there is none"#
+        r#"{"from": element or shape, "to": element or shape, "direction"?: "downstream"|"upstream"|"both", "types"?: [relationship type], "elements"?: [element type], "containment"?: bool} -> {"elements", "relationships", "length"}; the path with the fewest links; an error when there is none"#
     }
     fn run(&self, cx: &Context, v: &Value) -> Result<AnalysisResult, AnalysisError> {
         let g = graph(cx, v)?;

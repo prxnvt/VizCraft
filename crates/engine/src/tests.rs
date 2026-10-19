@@ -46,6 +46,7 @@ fn registry_ids_are_unique_and_prefixed() {
                 "insert",
                 "suggest",
                 "table",
+                "analyze",
                 "pattern",
                 "link",
                 "comment",
