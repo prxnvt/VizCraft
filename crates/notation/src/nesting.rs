@@ -377,12 +377,17 @@ pub(crate) fn check(doc: &Document, cat: &Catalog, pack: &Pack, rule: &RuleDecl,
                 if !wanted {
                     continue;
                 }
+                // One issue per relationship, naming every end that is on no port.
+                let mut loose: Vec<String> = Vec::new();
                 for (end, port) in [(r.source.as_str(), &r.source_port), (r.target.as_str(), &r.target_port)] {
                     let Some(el) = elements.get(end) else { continue };
                     if port.is_none() && has_ports(cat, &el.type_id) {
-                        let what = format!("{} meets {} on no port.", rel_label(cat, &r.type_id), el_label(cat, el));
-                        out.push(issue(doc, rule, what, vec![r.id.clone()], None));
+                        loose.push(el_label(cat, el));
                     }
+                }
+                if !loose.is_empty() {
+                    let what = format!("{} meets {} on no port.", rel_label(cat, &r.type_id), loose.join(" and "));
+                    out.push(issue(doc, rule, what, vec![r.id.clone()], None));
                 }
             }
         }

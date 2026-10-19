@@ -198,6 +198,7 @@ fn labels_and_port_ends_are_checked() {
     assert!(labels.iter().any(|i| i.message.contains("has no label")));
     let ports = run(&d, &cat, "nt.ports");
     assert_eq!(ports.len(), 1, "{ports:?}");
+    assert!(ports[0].message.contains("Device \"D2\"") || ports[0].message.contains("d2"), "{}", ports[0].message);
     assert!(ports[0].message.contains("on no port"));
     assert_eq!(ports[0].severity, Severity::Warning);
 }

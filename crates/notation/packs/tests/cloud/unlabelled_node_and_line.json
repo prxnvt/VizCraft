@@ -1,0 +1,429 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "model": {
+      "schemaVersion": 1,
+      "packs": [
+        {
+          "id": "cloud",
+          "version": "1.0.0"
+        }
+      ],
+      "elements": [
+        {
+          "id": "u",
+          "type": "cloud.User",
+          "name": "Visitor"
+        },
+        {
+          "id": "x",
+          "type": "cloud.ExternalService"
+        }
+      ],
+      "relationships": [
+        {
+          "id": "r4",
+          "type": "cloud.Request",
+          "source": "u",
+          "target": "x"
+        }
+      ]
+    },
+    "document": {
+      "title": "",
+      "core": {
+        "author": "VizCraft User",
+        "lastModifiedBy": "VizCraft User",
+        "created": "2026-10-19T17:46:16Z",
+        "modified": "2026-10-19T17:46:16Z",
+        "revision": 1
+      },
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "width": 1100.0,
+          "height": 850.0,
+          "board": "infinite",
+          "shapes": [
+            {
+              "id": "s2",
+              "stencil": "cloud.user",
+              "kind": "freeform",
+              "x": 0.0,
+              "y": 0.0,
+              "w": 70.0,
+              "h": 90.0,
+              "angleDeg": 0.0,
+              "text": "Visitor",
+              "style": {
+                "fill": "#eef1f4",
+                "line": "#46535f",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "u",
+              "path": {
+                "els": [
+                  {
+                    "moveTo": {
+                      "x": 35.0,
+                      "y": 3.6
+                    }
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 44.800000000000004,
+                        "y": 3.6
+                      },
+                      {
+                        "x": 50.4,
+                        "y": 12.600000000000001
+                      },
+                      {
+                        "x": 50.4,
+                        "y": 24.3
+                      }
+                    ]
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 50.4,
+                        "y": 36.0
+                      },
+                      {
+                        "x": 44.800000000000004,
+                        "y": 45.0
+                      },
+                      {
+                        "x": 35.0,
+                        "y": 45.0
+                      }
+                    ]
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 25.2,
+                        "y": 45.0
+                      },
+                      {
+                        "x": 19.6,
+                        "y": 36.0
+                      },
+                      {
+                        "x": 19.6,
+                        "y": 24.3
+                      }
+                    ]
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 19.6,
+                        "y": 12.600000000000001
+                      },
+                      {
+                        "x": 25.2,
+                        "y": 3.6
+                      },
+                      {
+                        "x": 35.0,
+                        "y": 3.6
+                      }
+                    ]
+                  },
+                  "close",
+                  {
+                    "moveTo": {
+                      "x": 4.2,
+                      "y": 90.0
+                    }
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 4.2,
+                        "y": 62.99999999999999
+                      },
+                      {
+                        "x": 18.2,
+                        "y": 50.400000000000006
+                      },
+                      {
+                        "x": 35.0,
+                        "y": 50.400000000000006
+                      }
+                    ]
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 51.8,
+                        "y": 50.400000000000006
+                      },
+                      {
+                        "x": 65.8,
+                        "y": 62.99999999999999
+                      },
+                      {
+                        "x": 65.8,
+                        "y": 90.0
+                      }
+                    ]
+                  },
+                  "close"
+                ],
+                "closed": true,
+                "frame": [
+                  70.0,
+                  90.0
+                ]
+              }
+            },
+            {
+              "id": "s3",
+              "stencil": "cloud.externalService",
+              "kind": "freeform",
+              "x": 300.0,
+              "y": 0.0,
+              "w": 130.0,
+              "h": 70.0,
+              "angleDeg": 0.0,
+              "text": "",
+              "style": {
+                "fill": "#f4f4f4",
+                "line": "#5d6670",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "x",
+              "path": {
+                "els": [
+                  {
+                    "moveTo": {
+                      "x": 10.4,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 119.60000000000001,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 126.53333333333335,
+                        "y": 0.0
+                      },
+                      {
+                        "x": 130.0,
+                        "y": 1.8666666666666671
+                      },
+                      {
+                        "x": 130.0,
+                        "y": 5.6000000000000005
+                      }
+                    ]
+                  },
+                  {
+                    "lineTo": {
+                      "x": 130.0,
+                      "y": 64.4
+                    }
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 130.0,
+                        "y": 68.13333333333334
+                      },
+                      {
+                        "x": 126.53333333333335,
+                        "y": 70.0
+                      },
+                      {
+                        "x": 119.60000000000001,
+                        "y": 70.0
+                      }
+                    ]
+                  },
+                  {
+                    "lineTo": {
+                      "x": 10.4,
+                      "y": 70.0
+                    }
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 3.4666666666666672,
+                        "y": 70.0
+                      },
+                      {
+                        "x": 0.0,
+                        "y": 68.13333333333334
+                      },
+                      {
+                        "x": 0.0,
+                        "y": 64.4
+                      }
+                    ]
+                  },
+                  {
+                    "lineTo": {
+                      "x": 0.0,
+                      "y": 5.6000000000000005
+                    }
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 0.0,
+                        "y": 1.8666666666666671
+                      },
+                      {
+                        "x": 3.4666666666666672,
+                        "y": 0.0
+                      },
+                      {
+                        "x": 10.4,
+                        "y": 0.0
+                      }
+                    ]
+                  },
+                  "close",
+                  {
+                    "moveTo": {
+                      "x": 98.8,
+                      "y": 8.4
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 119.60000000000001,
+                      "y": 8.4
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 119.60000000000001,
+                      "y": 21.0
+                    }
+                  },
+                  {
+                    "moveTo": {
+                      "x": 119.60000000000001,
+                      "y": 8.4
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 101.4,
+                      "y": 19.6
+                    }
+                  }
+                ],
+                "closed": true,
+                "frame": [
+                  130.0,
+                  70.0
+                ]
+              }
+            }
+          ],
+          "connectors": [
+            {
+              "id": "c5",
+              "start": {
+                "shape": "s2"
+              },
+              "end": {
+                "shape": "s3"
+              },
+              "route": "orthogonal",
+              "startArrow": "none",
+              "endArrow": "triangle",
+              "text": "",
+              "style": {
+                "fill": "#00000000",
+                "line": "#3a4a5c",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "relationship": "r4"
+            }
+          ],
+          "view": {
+            "viewpoint": "cloud.Topology"
+          }
+        }
+      ],
+      "idSeq": 5,
+      "conformance": {
+        "enabled": true,
+        "rulesets": [
+          "cloud.topology"
+        ]
+      }
+    }
+  },
+  "expect": [
+    {
+      "rule": "cloud.nodeLabelled"
+    },
+    {
+      "rule": "cloud.lineLabelled"
+    }
+  ]
+}

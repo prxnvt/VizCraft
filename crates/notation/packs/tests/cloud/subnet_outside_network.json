@@ -1,0 +1,448 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "model": {
+      "schemaVersion": 1,
+      "packs": [
+        {
+          "id": "cloud",
+          "version": "1.0.0"
+        }
+      ],
+      "elements": [
+        {
+          "id": "net",
+          "type": "cloud.VirtualNetwork",
+          "name": "Main"
+        },
+        {
+          "id": "priv",
+          "type": "cloud.PrivateSubnet",
+          "name": "Loose"
+        },
+        {
+          "id": "vm",
+          "type": "cloud.Compute",
+          "name": "Worker",
+          "owner": "priv"
+        }
+      ]
+    },
+    "document": {
+      "title": "",
+      "core": {
+        "author": "VizCraft User",
+        "lastModifiedBy": "VizCraft User",
+        "created": "2026-10-19T17:46:16Z",
+        "modified": "2026-10-19T17:46:16Z",
+        "revision": 1
+      },
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "width": 1100.0,
+          "height": 850.0,
+          "board": "infinite",
+          "shapes": [
+            {
+              "id": "s2",
+              "stencil": "cloud.virtualNetwork",
+              "kind": "rectangle",
+              "x": 0.0,
+              "y": 0.0,
+              "w": 400.0,
+              "h": 300.0,
+              "angleDeg": 0.0,
+              "text": "Main",
+              "style": {
+                "fill": "#f8fcf9",
+                "line": "#3d7a52",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false,
+                "cornerRadius": 6.0
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "net",
+              "textBlock": {
+                "dx": 0.0,
+                "dy": -136.0,
+                "w": 400.0,
+                "h": 28.0,
+                "angleDeg": 0.0
+              },
+              "behavior": {
+                "container": true,
+                "nonPrinting": false,
+                "hidden": false,
+                "noGlue": false,
+                "noSnap": false
+              },
+              "container": {
+                "role": "container",
+                "margin": 20.0,
+                "headingPosition": "top",
+                "headingStyle": "band",
+                "headingSize": 28.0,
+                "band": "#e2f1e6",
+                "style": "pack",
+                "autoFit": false,
+                "locked": false,
+                "vertical": false,
+                "leader": true,
+                "side": "auto"
+              }
+            },
+            {
+              "id": "s3",
+              "stencil": "cloud.privateSubnet",
+              "kind": "rectangle",
+              "x": 500.0,
+              "y": 0.0,
+              "w": 250.0,
+              "h": 200.0,
+              "angleDeg": 0.0,
+              "text": "Loose",
+              "style": {
+                "fill": "#f7fbfd",
+                "line": "#2f7391",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "priv",
+              "textBlock": {
+                "dx": 0.0,
+                "dy": -86.0,
+                "w": 250.0,
+                "h": 28.0,
+                "angleDeg": 0.0
+              },
+              "behavior": {
+                "container": true,
+                "nonPrinting": false,
+                "hidden": false,
+                "noGlue": false,
+                "noSnap": false
+              },
+              "container": {
+                "role": "container",
+                "margin": 20.0,
+                "headingPosition": "top",
+                "headingStyle": "band",
+                "headingSize": 28.0,
+                "band": "#dceef6",
+                "style": "pack",
+                "autoFit": false,
+                "locked": false,
+                "vertical": false,
+                "leader": true,
+                "side": "auto"
+              }
+            },
+            {
+              "id": "s4",
+              "stencil": "cloud.compute",
+              "kind": "freeform",
+              "x": 540.0,
+              "y": 60.0,
+              "w": 120.0,
+              "h": 70.0,
+              "angleDeg": 0.0,
+              "text": "Worker",
+              "style": {
+                "fill": "#e7eef8",
+                "line": "#36597f",
+                "lineWidth": 1.5,
+                "fontSize": 12.0,
+                "fontColor": "#1e2630",
+                "bold": false,
+                "italic": false
+              },
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "vm",
+              "parent": "s3",
+              "path": {
+                "els": [
+                  {
+                    "moveTo": {
+                      "x": 9.6,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 110.4,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 116.80000000000001,
+                        "y": 0.0
+                      },
+                      {
+                        "x": 120.0,
+                        "y": 1.8666666666666671
+                      },
+                      {
+                        "x": 120.0,
+                        "y": 5.6000000000000005
+                      }
+                    ]
+                  },
+                  {
+                    "lineTo": {
+                      "x": 120.0,
+                      "y": 64.4
+                    }
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 120.0,
+                        "y": 68.13333333333334
+                      },
+                      {
+                        "x": 116.80000000000001,
+                        "y": 70.0
+                      },
+                      {
+                        "x": 110.4,
+                        "y": 70.0
+                      }
+                    ]
+                  },
+                  {
+                    "lineTo": {
+                      "x": 9.6,
+                      "y": 70.0
+                    }
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 3.2000000000000006,
+                        "y": 70.0
+                      },
+                      {
+                        "x": 0.0,
+                        "y": 68.13333333333334
+                      },
+                      {
+                        "x": 0.0,
+                        "y": 64.4
+                      }
+                    ]
+                  },
+                  {
+                    "lineTo": {
+                      "x": 0.0,
+                      "y": 5.6000000000000005
+                    }
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 0.0,
+                        "y": 1.8666666666666671
+                      },
+                      {
+                        "x": 3.2000000000000006,
+                        "y": 0.0
+                      },
+                      {
+                        "x": 9.6,
+                        "y": 0.0
+                      }
+                    ]
+                  },
+                  "close",
+                  {
+                    "moveTo": {
+                      "x": 7.199999999999999,
+                      "y": 7.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 24.0,
+                      "y": 7.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 24.0,
+                      "y": 22.400000000000002
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 7.199999999999999,
+                      "y": 22.400000000000002
+                    }
+                  },
+                  {
+                    "moveTo": {
+                      "x": 10.799999999999999,
+                      "y": 7.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 10.799999999999999,
+                      "y": 3.5
+                    }
+                  },
+                  {
+                    "moveTo": {
+                      "x": 15.600000000000001,
+                      "y": 7.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 15.600000000000001,
+                      "y": 3.5
+                    }
+                  },
+                  {
+                    "moveTo": {
+                      "x": 20.400000000000002,
+                      "y": 7.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 20.400000000000002,
+                      "y": 3.5
+                    }
+                  },
+                  {
+                    "moveTo": {
+                      "x": 10.799999999999999,
+                      "y": 22.400000000000002
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 10.799999999999999,
+                      "y": 25.9
+                    }
+                  },
+                  {
+                    "moveTo": {
+                      "x": 15.600000000000001,
+                      "y": 22.400000000000002
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 15.600000000000001,
+                      "y": 25.9
+                    }
+                  },
+                  {
+                    "moveTo": {
+                      "x": 20.400000000000002,
+                      "y": 22.400000000000002
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 20.400000000000002,
+                      "y": 25.9
+                    }
+                  }
+                ],
+                "closed": true,
+                "frame": [
+                  120.0,
+                  70.0
+                ]
+              }
+            }
+          ],
+          "connectors": [],
+          "view": {
+            "viewpoint": "cloud.Topology"
+          }
+        }
+      ],
+      "idSeq": 4,
+      "conformance": {
+        "enabled": true,
+        "rulesets": [
+          "cloud.topology"
+        ]
+      }
+    }
+  },
+  "expect": [
+    {
+      "rule": "cloud.nesting"
+    },
+    {
+      "rule": "cloud.nesting"
+    }
+  ]
+}
