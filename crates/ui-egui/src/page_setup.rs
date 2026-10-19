@@ -74,6 +74,11 @@ pub struct PageSetup {
     pub scale_units: String,
     /// Grow the page to fit the drawing.
     pub auto_size: bool,
+    /// The drawing sheet as `<standard>.<size>` (`iso.a3`, `asme.b`); empty for none. OK runs
+    /// `sheet.set` with it in the chosen orientation, after `page.setup`.
+    pub sheet: String,
+    /// The page had a sheet when the dialog opened (choosing none then removes it).
+    pub had_sheet: bool,
 }
 
 impl PageSetup {
@@ -91,6 +96,8 @@ impl PageSetup {
                 scale_drawing: 1.0,
                 scale_units: "in".into(),
                 auto_size: false,
+                sheet: String::new(),
+                had_sheet: false,
             };
         };
         PageSetup {
@@ -104,6 +111,21 @@ impl PageSetup {
             scale_drawing: p.drawing_scale.drawing,
             scale_units: units_name(p.drawing_scale.units),
             auto_size: p.auto_size,
+            sheet: p.sheet.map(|s| format!("{}.{}", s.standard.short(), s.size.name())).unwrap_or_default(),
+            had_sheet: p.sheet.is_some(),
+        }
+    }
+
+    /// The `sheet.set` params OK sends after `page.setup`, if any: the chosen sheet in the
+    /// chosen orientation, or `off` when the page loses its sheet.
+    pub fn sheet_params(&self) -> Option<Value> {
+        let orientation = if self.portrait { "portrait" } else { "landscape" };
+        if !self.sheet.is_empty() {
+            Some(json!({"page": self.page, "sheet": format!("{}.{orientation}", self.sheet)}))
+        } else if self.had_sheet {
+            Some(json!({"page": self.page, "off": true}))
+        } else {
+            None
         }
     }
 
@@ -197,6 +219,7 @@ pub fn fields(ui: &mut Ui, d: &mut PageSetup) {
         ui.label(dim("Units"));
         units_combo(ui, "page_setup_units", &mut d.units);
         ui.end_row();
+        sheet_rows(ui, &dim, d);
         ui.label(dim("Drawing scale"));
         ui.horizontal(|ui| {
             ui.add(egui::DragValue::new(&mut d.scale_page).speed(0.1).range(0.000_001..=1.0e6).max_decimals(3));
@@ -211,9 +234,53 @@ pub fn fields(ui: &mut Ui, d: &mut PageSetup) {
     });
 }
 
-/// OK: run `page.setup` with the dialog's settings.
+/// The Sheet standard and Sheet size rows: every standard offered (ISO 5457 first, ASME
+/// Y14.1, or none), and the sizes of the chosen one.
+fn sheet_rows(ui: &mut Ui, dim: &dyn Fn(&str) -> egui::RichText, d: &mut PageSetup) {
+    use vizcraft_diagram::sheet::{PAPER_SIZES, SheetStandard};
+    let standard = d.sheet.split_once('.').and_then(|(s, _)| SheetStandard::parse(s));
+    ui.label(dim("Sheet standard"));
+    let shown = standard.map_or("None", |s| s.label());
+    egui::ComboBox::from_id_salt("page_setup_sheet_standard").selected_text(shown).width(160.0).show_ui(ui, |ui| {
+        if ui.selectable_label(standard.is_none(), "None").clicked() {
+            d.sheet.clear();
+        }
+        for st in [SheetStandard::Iso5457, SheetStandard::AsmeY14_1] {
+            if ui.selectable_label(standard == Some(st), st.label()).clicked() && standard != Some(st) {
+                let first = PAPER_SIZES.iter().filter(|p| p.standard == st).map(|p| p.size.name()).collect::<Vec<_>>();
+                // ISO A3 and ANSI B: the usual engineering sheet of each standard.
+                let size = if st == SheetStandard::Iso5457 { "a3" } else { "b" };
+                let size = if first.contains(&size) { size } else { first.first().copied().unwrap_or(size) };
+                d.sheet = format!("{}.{size}", st.short());
+                d.board = Board::Fixed;
+            }
+        }
+    });
+    ui.end_row();
+    ui.label(dim("Sheet size"));
+    ui.add_enabled_ui(standard.is_some(), |ui| {
+        let current = d.sheet.split_once('.').map(|(_, z)| z.to_string()).unwrap_or_default();
+        let name = PAPER_SIZES.iter().find(|p| Some(p.standard) == standard && p.size.name() == current).map_or("-", |p| p.name);
+        egui::ComboBox::from_id_salt("page_setup_sheet_size").selected_text(name).width(160.0).show_ui(ui, |ui| {
+            for p in PAPER_SIZES.iter().filter(|p| Some(p.standard) == standard) {
+                if ui.selectable_label(p.size.name() == current, p.name).clicked() {
+                    d.sheet = format!("{}.{}", p.standard.short(), p.size.name());
+                }
+            }
+        });
+    });
+    ui.end_row();
+}
+
+/// OK: run `page.setup` with the dialog's settings, then `sheet.set` for the drawing sheet.
 pub fn apply(app: &mut CraftApp, d: &PageSetup) {
     if let Err(e) = app.run("page.setup", d.params()) {
+        app.status(e);
+        return;
+    }
+    if let Some(p) = d.sheet_params()
+        && let Err(e) = app.run("sheet.set", p)
+    {
         app.status(e);
     }
 }
@@ -247,5 +314,22 @@ mod tests {
         assert_eq!((p.width, p.height, p.orientation, p.units, p.auto_size), (850.0, 1100.0, Orientation::Portrait, Units::Millimeters, true));
         assert_eq!(p.board, Board::Fixed);
         assert!(app.dialog.is_none(), "applying never reopens the dialog");
+    }
+
+    #[test]
+    fn a_sheet_chosen_in_the_dialog_is_set_and_none_removes_it() {
+        let mut app = CraftApp::new(vizcraft_engine::Session::new(vizcraft_engine::Document::new()), crate::Services::default());
+        let mut d = PageSetup::new(&app);
+        assert!(d.sheet_params().is_none(), "no sheet, none chosen: nothing to set");
+        d.board = Board::Fixed;
+        d.sheet = "asme.b".into();
+        apply(&mut app, &d);
+        let sh = app.session.doc.page().unwrap().sheet.unwrap();
+        assert_eq!(sh.preset_id(), "asme.b.landscape");
+        let mut d = PageSetup::new(&app);
+        assert_eq!((d.sheet.as_str(), d.had_sheet), ("asme.b", true));
+        d.sheet.clear();
+        apply(&mut app, &d);
+        assert!(app.session.doc.page().unwrap().sheet.is_none());
     }
 }

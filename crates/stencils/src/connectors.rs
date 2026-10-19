@@ -239,10 +239,14 @@ mod tests {
     }
 
     #[test]
-    fn the_catalog_lists_the_basic_and_flowchart_kinds_in_order() {
+    fn the_catalog_lists_the_basic_flowchart_and_sheet_kinds_in_order() {
         // Other packs add their kinds after these.
-        let all: Vec<&str> = connector_kinds().iter().map(|k| k.id).filter(|id| id.starts_with("basic.") || id.starts_with("flowchart.")).collect();
-        assert_eq!(all, ["basic.line", "basic.arrow", "basic.twoWay", "basic.dependency", "basic.bus", "basic.signal", "flowchart.flow"]);
+        let core = |id: &&str| id.starts_with("basic.") || id.starts_with("flowchart.") || id.starts_with("sheet.");
+        let all: Vec<&str> = connector_kinds().iter().map(|k| k.id).filter(core).collect();
+        assert_eq!(
+            all,
+            ["basic.line", "basic.arrow", "basic.twoWay", "basic.dependency", "basic.bus", "basic.signal", "flowchart.flow", "sheet.leader"]
+        );
         let dep = connector_kind("basic.dependency").unwrap();
         assert_eq!((dep.dash, dep.end_arrow, dep.start_arrow), (Dash::Dashed, Arrow::Open, Arrow::None));
         let bus = connector_kind("basic.bus").unwrap();

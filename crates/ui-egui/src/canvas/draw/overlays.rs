@@ -176,6 +176,38 @@ fn align_lines(app: &CraftApp, painter: &egui::Painter, vp: &Viewport2D, real: &
     }
 }
 
+/// While a wire drag is in progress: the pin, junction or wire point it would end on, and the
+/// alignment lines of its end (see `interact::wire::align_lines`): module crosses in the accent
+/// colour, lines to the pins it lines up with in red, as a move draws them.
+fn wire_overlay(app: &CraftApp, painter: &egui::Painter, vp: &Viewport2D, real: &Page, t: &Tokens) {
+    let Some(Drag::Wire { from, to, .. }) = app.canvas.drag.as_ref() else { return };
+    for l in interact::wire::align_lines(real, from, *to, vp.zoom) {
+        let (a, b) = if l.vertical {
+            (dg::Point::new(l.at, l.from), dg::Point::new(l.at, l.to))
+        } else {
+            (dg::Point::new(l.from, l.at), dg::Point::new(l.to, l.at))
+        };
+        let (a, b) = (vp.world_to_screen(pos(a)), vp.world_to_screen(pos(b)));
+        let colour = if l.kind == snap::Kind::Module { t.accent.gamma_multiply(0.7) } else { t.red };
+        painter.extend(egui::Shape::dashed_line(&[a, b], Stroke::new(1.0, colour), 4.0, 3.0));
+    }
+    for end in [from.clone(), interact::wire::target(real, *to, vp.zoom)] {
+        match &end {
+            interact::wire::WireEnd::Pin(s, i) => {
+                if let Some(s) = real.shape(s) {
+                    connection_marks(painter, vp, s, t.accent, Some(*i));
+                }
+            }
+            interact::wire::WireEnd::Junction(_) | interact::wire::WireEnd::OnWire(..) => {
+                if let Some(p) = end.pos(real) {
+                    painter.circle_stroke(vp.world_to_screen(pos(p)), 6.0, Stroke::new(2.0, t.accent));
+                }
+            }
+            interact::wire::WireEnd::Free(_) => {}
+        }
+    }
+}
+
 /// Selection, handles, hover, connection points, connector targets and the marquee.
 pub fn overlay(app: &CraftApp, painter: &egui::Painter, vp: &Viewport2D, page: &Page, real: &Page, t: &Tokens) {
     let accent = t.accent;
@@ -183,6 +215,7 @@ pub fn overlay(app: &CraftApp, painter: &egui::Painter, vp: &Viewport2D, page: &
     let drag = app.canvas.drag.as_ref();
     guides(app, painter, vp, page, t);
     align_lines(app, painter, vp, real, t);
+    wire_overlay(app, painter, vp, real, t);
     // With Connection Points on, every visible shape shows its points, faintly.
     if app.session.view.aids.connection_points {
         let visible = vp.visible_world_rect();
@@ -202,7 +235,7 @@ pub fn overlay(app: &CraftApp, painter: &egui::Painter, vp: &Viewport2D, page: &
     let target = drag.and_then(|d| interact::drag_target(real, d, vp.zoom));
     let show_points = match (drag, app.tool) {
         (Some(Drag::Connect { .. } | Drag::Reglue { .. }), _) => target.as_ref().and_then(End::shape).map(str::to_string),
-        (None, crate::Tool::Pointer | crate::Tool::Lasso | crate::Tool::Connector) => app.canvas.hover_shape.clone(),
+        (None, crate::Tool::Pointer | crate::Tool::Lasso | crate::Tool::Connector | crate::Tool::Wire { .. }) => app.canvas.hover_shape.clone(),
         _ => None,
     };
     if let Some(s) = show_points.as_deref().and_then(|id| page.shape(id)) {

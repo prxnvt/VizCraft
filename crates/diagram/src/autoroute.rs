@@ -329,26 +329,74 @@ pub fn unroutable(page: &Page) -> Vec<String> {
 pub fn refresh(doc: &mut Document, before: &Document) {
     for page in &mut doc.pages {
         let old = before.pages.iter().find(|p| p.id == page.id);
-        let ids = stale(page, old);
+        let mut ids = stale(page, old);
         if ids.is_empty() {
             continue;
         }
         // Bends a person or a file chose may stay; a route the router stored before the change
         // is the router's to redo. Judged on the page before, where the ends were.
-        let keep: HashSet<String> = ids
-            .iter()
-            .filter(|id| {
-                let was = old.and_then(|o| Some((o, o.connector(id)?)));
-                match (was, page.connector(id)) {
-                    (Some((o, c)), Some(now)) if c.waypoints == now.waypoints => !crate::route::stored_route(o, c),
-                    (_, Some(now)) => !crate::route::stored_route(page, now),
-                    _ => false,
-                }
-            })
-            .cloned()
-            .collect();
+        let keep_of = |page: &Page, ids: &[String]| -> HashSet<String> {
+            ids.iter()
+                .filter(|id| {
+                    let was = old.and_then(|o| Some((o, o.connector(id)?)));
+                    match (was, page.connector(id)) {
+                        (Some((o, c)), Some(now)) if c.waypoints == now.waypoints => !crate::route::stored_route(o, c),
+                        (_, Some(now)) => !crate::route::stored_route(page, now),
+                        _ => false,
+                    }
+                })
+                .cloned()
+                .collect()
+        };
+        let keep = keep_of(page, &ids);
         route_with(page, Some(&ids), &Options::default(), &keep);
+        // Runs are spread apart only among connectors routed together, so a new route can lie on
+        // an untouched connector's run (two wires sharing a channel look joined). Route the
+        // connectors it landed on again together with it, once.
+        let shared = sharing_runs(page, &ids);
+        if !shared.is_empty() {
+            ids.extend(shared);
+            let keep = keep_of(page, &ids);
+            route_with(page, Some(&ids), &Options::default(), &keep);
+        }
     }
+}
+
+/// Routed connectors not in `ids` whose drawn line shares a run with one of the `ids`: a
+/// horizontal or vertical segment of each on the same line, overlapping for more than a
+/// tolerance.
+fn sharing_runs(page: &Page, ids: &[String]) -> Vec<String> {
+    let lazy = LazyField::new(page);
+    let mine: HashSet<&str> = ids.iter().map(String::as_str).collect();
+    let lines = |c: &Connector| crate::route::polyline_in(page, c, &lazy);
+    let moved: Vec<Vec<Point>> = page.connectors.iter().filter(|c| mine.contains(c.id.as_str())).map(lines).collect();
+    let boxes: Vec<Rect> = moved.iter().filter_map(|pts| Rect::bounding(pts.iter().copied())).collect();
+    page.connectors
+        .iter()
+        .filter(|c| !mine.contains(c.id.as_str()) && routes(page, c))
+        .filter(|c| {
+            let pts = lines(c);
+            let Some(bb) = Rect::bounding(pts.iter().copied()) else { return false };
+            moved.iter().zip(&boxes).any(|(m, mb)| mb.inflate(CROSSING_TOLERANCE).intersects(&bb) && share_run(m, &pts))
+        })
+        .map(|c| c.id.clone())
+        .collect()
+}
+
+/// Whether polylines `a` and `b` have an axis-aligned segment each on the same line (within the
+/// crossing tolerance) whose extents overlap by more than one page unit.
+fn share_run(a: &[Point], b: &[Point]) -> bool {
+    const MIN_OVERLAP: f64 = 1.0;
+    let overlap = |a0: f64, a1: f64, b0: f64, b1: f64| a0.max(a1).min(b0.max(b1)) - a0.min(a1).max(b0.min(b1)) > MIN_OVERLAP;
+    a.windows(2).any(|s| {
+        b.windows(2).any(|t| {
+            let (p, q, u, v) = (s[0], s[1], t[0], t[1]);
+            let horizontal = |p: Point, q: Point| (p.y - q.y).abs() <= CROSSING_TOLERANCE;
+            let vertical = |p: Point, q: Point| (p.x - q.x).abs() <= CROSSING_TOLERANCE;
+            (horizontal(p, q) && horizontal(u, v) && (p.y - u.y).abs() <= CROSSING_TOLERANCE && overlap(p.x, q.x, u.x, v.x))
+                || (vertical(p, q) && vertical(u, v) && (p.x - u.x).abs() <= CROSSING_TOLERANCE && overlap(p.y, q.y, u.y, v.y))
+        })
+    })
 }
 
 /// What about a shape matters to routing.

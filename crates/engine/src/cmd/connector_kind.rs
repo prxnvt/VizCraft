@@ -177,8 +177,9 @@ mod tests {
         let mut s = Session::new(vizcraft_diagram::Document::new());
         let all = s.run("connector.kinds", &json!({})).unwrap();
         let all = all["kinds"].as_array().unwrap();
-        // Basic and Flowchart kinds; other packs add their own after them.
-        assert_eq!(all.iter().filter(|k| k["id"].as_str().is_some_and(|i| i.starts_with("basic.") || i.starts_with("flowchart."))).count(), 7);
+        // Basic, Flowchart and the sheet pack's balloon leader; other packs add their own after them.
+        let core = |i: &str| i.starts_with("basic.") || i.starts_with("flowchart.") || i.starts_with("sheet.");
+        assert_eq!(all.iter().filter(|k| k["id"].as_str().is_some_and(core)).count(), 8);
         assert_eq!(all[0]["id"], "basic.line");
         let flow = all.iter().find(|k| k["id"] == "flowchart.flow").unwrap();
         assert_eq!((flow["endArrow"].as_str(), flow["relationship"].as_str()), (Some("triangle"), Some("flowchart.Flow")));

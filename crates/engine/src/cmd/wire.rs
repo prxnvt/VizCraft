@@ -10,7 +10,7 @@
 use serde_json::{Value, json};
 use vizcraft_diagram::net::{NetIndex, project, split_at};
 use vizcraft_diagram::snap::{module_step, round_to};
-use vizcraft_diagram::{Arrow, Connector, End, Point, Route, route_polyline};
+use vizcraft_diagram::{Arrow, Avoid, Connector, End, Point, Route, route_polyline};
 use vizcraft_model::{Module, Net, NetKind, View};
 
 use super::model::{check_len, page_param};
@@ -21,7 +21,7 @@ use crate::{CmdResult, CommandSpec, EngineError, Session, p};
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("wire.draw", "Draw Wire", "Insert > Wire", draw).params(
-            r#"{"from": end, "to": end, "points"?: [{"x", "y"}], "kind"?: "wire"|"potential"|"pipe"|"fluid"|"signal", "net"?: id} -> {"id", "net", "junctions": [id]}; an end is {"shape", "point"} (a pin), {"connector", "x", "y"} (splits that wire at a new junction), {"junction"} or {"x", "y"}; free points and bends snap to the page's module; the wire joins the net at either end, else a new net of kind (default wire; pipe and fluid junctions draw no dot)"#,
+            r#"{"from": end, "to": end, "points"?: [{"x", "y"}], "kind"?: "wire"|"potential"|"pipe"|"fluid"|"signal", "net"?: id} -> {"id", "net", "junctions": [id]}; an end is {"shape", "point"} (a pin), {"connector", "x", "y"} (splits that wire at a new junction), {"junction"} or {"x", "y"}; free points and bends snap to the page's module; without points the wire routes around shapes like any connector unless the page's routing never avoids them, and with points it keeps those bends; the wire joins the net at either end, else a new net of kind (default wire; pipe and fluid junctions draw no dot)"#,
         ),
         CommandSpec::new("wire.splice", "Splice Into Wire", "Insert > Wire", splice).params(
             r#"{"shape": id, "connector"?: id} -> {"connectors": [id, id], "shape"}; the device's two outermost pins are projected onto the wire (default: the nearest segment), the stretch between them is cut away and the halves are glued to the pins, both keeping the net; refused when the pins fall on different runs of the wire"#,
@@ -138,6 +138,9 @@ fn draw(s: &mut Session, v: &Value) -> CmdResult {
     let to = end_spec(v, "to")?;
     let module = s.doc.page().and_then(module_step);
     let points: Vec<Point> = points_param(v)?.into_iter().map(|p| snap(p, module)).collect();
+    // A wire drawn without bends routes around shapes, as every connector does, unless the page
+    // is set never to avoid them; bends someone placed are kept exactly as drawn.
+    let avoid = points.is_empty() && s.doc.page().is_some_and(|p| p.routing.avoid == Avoid::Always);
     let kind = match super::opt_str(v, "kind")? {
         None => None,
         Some(k) => Some(NetKind::from_name(k).ok_or_else(|| EngineError::Params(format!("unknown net kind `{}`", short(k))))?),
@@ -192,6 +195,7 @@ fn draw(s: &mut Session, v: &Value) -> CmdResult {
         start_arrow: Arrow::None,
         end_arrow: Arrow::None,
         waypoints: points,
+        avoid,
         net: Some(net.clone()),
         ..Connector::new(id.clone(), start, end)
     };
@@ -249,7 +253,16 @@ fn splice(s: &mut Session, v: &Value) -> CmdResult {
     if wire.touches(&shape_id) {
         return Err(EngineError::Params(format!("`{}` is already glued to `{}`", short(&wire_id), short(&shape_id))));
     }
-    let poly = route_polyline(page, &wire);
+    // A wire that routes around shapes has already turned aside from the device set down on it;
+    // the pins are matched against the route it takes without the device.
+    let poly = if wire.avoid {
+        let mut probe = page.clone();
+        probe.shapes.retain(|sh| sh.id != shape_id);
+        vizcraft_diagram::autoroute::reroute(&mut probe, Some(std::slice::from_ref(&wire_id)));
+        probe.connector(&wire_id).map(|c| route_polyline(&probe, c)).unwrap_or_else(|| route_polyline(page, &wire))
+    } else {
+        route_polyline(page, &wire)
+    };
     let (Some(qa), Some(qb)) = (project(&poly, pa), project(&poly, pb)) else {
         return Err(EngineError::Params("the wire has no route to splice into".into()));
     };
@@ -266,7 +279,6 @@ fn splice(s: &mut Session, v: &Value) -> CmdResult {
     head.waypoints = poly.get(1..=qa.segment).unwrap_or_default().to_vec();
     head.end_arrow = Arrow::None;
     head.end_label.clear();
-    head.avoid = false;
     let mut tail = wire.clone();
     tail.id = tail_id.clone();
     tail.start = End::point(shape_id.clone(), second);
@@ -275,7 +287,11 @@ fn splice(s: &mut Session, v: &Value) -> CmdResult {
     tail.start_label.clear();
     tail.text.clear();
     tail.relationship = None;
-    tail.avoid = false;
+    if wire.avoid {
+        // Both halves are routed afresh to the device's pins.
+        head.waypoints.clear();
+        tail.waypoints.clear();
+    }
     let page = page_mut(s)?;
     if let Some(slot) = page.connector_mut(&wire_id) {
         *slot = head;

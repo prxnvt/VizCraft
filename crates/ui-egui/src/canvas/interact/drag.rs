@@ -161,6 +161,8 @@ pub fn preview_page(page: &Page, drag: &Drag, zoom: f32) -> Option<Page> {
             p.connectors.push(Connector::new(PREVIEW_ID, from.clone(), end));
             vec![PREVIEW_ID.to_string()]
         }
+        // Wires are not rerouted around shapes, so the preview needs no search.
+        Drag::Wire { from, to, pipe } => return Some(super::wire::preview(page, from, *to, *pipe, zoom)),
         Drag::Reglue { id, start, to } => {
             let end = target_end(page, *to, zoom);
             if let Some(c) = p.connector_mut(id) {
@@ -230,6 +232,10 @@ pub(super) fn finish(app: &mut CraftApp, drag: Drag, zoom: f32) {
             });
             if movable && (d.x != 0.0 || d.y != 0.0) {
                 super::membership::commit_move(app, &ids, d);
+                // A device moved onto a wire is spliced into it.
+                if let [one] = ids.as_slice() {
+                    super::wire::splice_if_on_wire(app, one);
+                }
             }
         }
         Drag::Resize { id, handle, to, keep_aspect } => {
@@ -256,6 +262,7 @@ pub(super) fn finish(app: &mut CraftApp, drag: Drag, zoom: f32) {
                 );
             }
         }
+        Drag::Wire { from, to, pipe } => super::wire::finish(app, from, to, pipe, zoom),
         Drag::TextBox { from, to } => super::tools::add_text_box(app, from, Some(dg::Rect::from_points(from, to))),
         Drag::TextBlock { id, grab, to, shift } => super::text_block::finish(app, &id, &grab, to, shift),
         Drag::Reglue { id, start, to } => {

@@ -9,8 +9,8 @@
 //! Layout: this module holds the constants, [`Drag`] and the per-frame [`pointer`] dispatch and
 //! cursor; [`select`] handles clicks and the marquee, [`drag`] handle geometry, previews and
 //! commits, [`connect`] connector ends, [`tools`] what a press starts per tool, [`edit_text`]
-//! in-place text editing, [`keys`] the canvas keys and [`membership`] container membership on
-//! moves and drops.
+//! in-place text editing, [`keys`] the canvas keys, [`membership`] container membership on
+//! moves and drops, and [`wire`] the Wire and Pipe tools.
 
 pub mod connect;
 pub mod crop;
@@ -21,10 +21,13 @@ pub mod insertion;
 pub mod keys;
 pub mod links;
 pub mod membership;
+pub mod nets;
 pub mod painter;
 pub mod select;
 pub mod text_block;
 pub mod tools;
+pub mod wire;
+pub mod xref;
 
 use egui::{Key, Response, Ui};
 use serde_json::{Value, json};
@@ -80,6 +83,8 @@ pub enum Drag {
     TextBox { from: Point, to: Point },
     /// Moving, resizing or turning a shape's text block with the Text Block tool.
     TextBlock { id: String, grab: text_block::BlockGrab, to: Point, shift: bool },
+    /// Drawing a wire (a pipe with `pipe`) from `from` with the Wire tool.
+    Wire { from: wire::WireEnd, to: Point, pipe: bool },
 }
 
 fn round(v: f64) -> f64 {
@@ -103,10 +108,16 @@ pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D
     // Hover: what is under the pointer, and the shape whose connection points to show.
     app.canvas.hover = None;
     app.canvas.hover_shape = None;
+    app.canvas.pointer_world = None;
     if let (Some(hp), Some(page)) = (response.hover_pos(), app.session.doc.page()) {
         let w = point(vp.screen_to_world(hp));
         app.canvas.hover = dg::hit(page, w, f64::from(HIT / zoom));
         app.canvas.hover_shape = dg::shape_at(page, w, f64::from(GRAB / zoom)).map(|s| s.id.clone());
+        app.canvas.pointer_world = Some(w);
+    }
+    nets::hover(app);
+    if xref::pointer(app, response) {
+        return;
     }
     if insertion::pointer(app, ui, response, vp) {
         return;
@@ -145,7 +156,12 @@ pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D
         let w = point(vp.screen_to_world(p));
         match &mut app.canvas.drag {
             Some(
-                Drag::Marquee { to, .. } | Drag::Move { to, .. } | Drag::Connect { to, .. } | Drag::Reglue { to, .. } | Drag::TextBox { to, .. },
+                Drag::Marquee { to, .. }
+                | Drag::Move { to, .. }
+                | Drag::Connect { to, .. }
+                | Drag::Reglue { to, .. }
+                | Drag::TextBox { to, .. }
+                | Drag::Wire { to, .. },
             ) => *to = w,
             Some(Drag::TextBlock { to, shift, .. }) => {
                 *to = w;
@@ -182,6 +198,7 @@ pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D
         && let Some(p) = response.interact_pointer_pos()
     {
         commit_editing(app);
+        nets::click(app);
         click(app, vp, p, m);
     }
     cursor(app, ui, response, vp);
@@ -193,9 +210,9 @@ fn cursor(app: &CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D) {
     }
     let icon = match (&app.canvas.drag, app.tool) {
         (Some(Drag::Move { .. }), _) => egui::CursorIcon::Grabbing,
-        (Some(Drag::Connect { .. } | Drag::Reglue { .. }), _) => egui::CursorIcon::Crosshair,
+        (Some(Drag::Connect { .. } | Drag::Reglue { .. } | Drag::Wire { .. }), _) => egui::CursorIcon::Crosshair,
         (Some(_), _) => return,
-        (None, Tool::Connector) => egui::CursorIcon::Crosshair,
+        (None, Tool::Connector | Tool::Wire { .. }) => egui::CursorIcon::Crosshair,
         (None, Tool::Text) => egui::CursorIcon::Text,
         (None, Tool::FormatPainter { .. }) => egui::CursorIcon::Copy,
         (None, Tool::TextBlock) => egui::CursorIcon::Move,

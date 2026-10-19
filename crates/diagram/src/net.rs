@@ -26,8 +26,12 @@ use crate::route::route_polyline;
 /// The stencil that marks a shape as a junction.
 pub const JUNCTION_STENCIL: &str = "vizcraft.junction";
 
-/// Diameter of a junction dot, in line widths.
-pub const JUNCTION_WIDTHS: f64 = 3.0;
+/// Diameter of a junction dot, in line widths. Six widths (9 page units on a 1.5 wide wire,
+/// about 2.3 mm) reads as a dot at 100 percent and stays clearly wider than a crossing, where
+/// three widths looked like a thickening of the line; drafting practice draws the dot at about
+/// five times the line width or more. Every renderer draws the junction as an ordinary shape of
+/// this size, so the canvas, SVG and PDF stay in step.
+pub const JUNCTION_WIDTHS: f64 = 6.0;
 
 /// Whether `s` is a junction.
 pub fn is_junction(s: &Shape) -> bool {
@@ -219,7 +223,8 @@ pub fn project(pts: &[Point], p: Point) -> Option<Projection> {
 /// Split connector `connector` of `page` at the point of its route nearest `at`: a junction
 /// `junction_id` ([`junction`], dotted when `dot`) goes there, the connector keeps the run up
 /// to it (its bends before the cut become explicit bends) and a new connector `new_id` takes the
-/// rest, copying the style, kind, net and marker; both halves are point-glued to the junction.
+/// rest, copying the style, kind, net, marker and avoid flag; both halves are point-glued to the
+/// junction, and halves of a wire that routes around shapes go on doing so.
 /// The end arrow and end label move to the new half. Returns the junction's centre, or `None`
 /// (and no change) when the connector is missing, the ids are taken, or the cut falls on an end.
 pub fn split_at(page: &mut Page, connector: &str, at: Point, new_id: &str, junction_id: &str, dot: bool) -> Option<Point> {
@@ -244,14 +249,17 @@ pub fn split_at(page: &mut Page, connector: &str, at: Point, new_id: &str, junct
     tail.start_label.clear();
     tail.text.clear();
     tail.relationship = None;
-    tail.avoid = false;
+    // A wire that routes around shapes has its halves routed afresh from the junction; the
+    // router's old bends, cut in two, would be kept as if someone had drawn them.
+    if tail.avoid {
+        tail.waypoints.clear();
+    }
     let j = junction(junction_id, q, dot, c.style.line_width, c.style.effective_line());
     let c = page.connector_mut(connector)?;
     c.end = End::point(junction_id, 0);
-    c.waypoints = before;
+    c.waypoints = if c.avoid { Vec::new() } else { before };
     c.end_arrow = crate::Arrow::None;
     c.end_label.clear();
-    c.avoid = false;
     page.shapes.push(j);
     page.connectors.push(tail);
     Some(q)
@@ -316,7 +324,12 @@ pub fn join(page: &mut Page, a: &str, b: &str, via: &str) -> bool {
     ca.end = cb.end.clone();
     ca.end_arrow = cb.end_arrow;
     ca.end_label = std::mem::take(&mut cb.end_label);
-    ca.avoid = false;
+    // The joined wire keeps routing around shapes only if both halves did, and is then routed
+    // afresh rather than through the stitched bends.
+    ca.avoid = ca.avoid && cb.avoid;
+    if ca.avoid {
+        ca.waypoints.clear();
+    }
     if let Some(slot) = page.connector_mut(a) {
         *slot = ca;
     }

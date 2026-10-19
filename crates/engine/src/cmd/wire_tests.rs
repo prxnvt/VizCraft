@@ -31,7 +31,9 @@ fn wire_and_device() -> (Session, String, String) {
 #[test]
 fn splice_then_heal_gives_back_the_original_route() {
     let (mut s, w, dev) = wire_and_device();
-    let before = route_polyline(&s.doc.pages[0], s.doc.pages[0].connector(&w).unwrap());
+    // The wire as drawn, before the device was set down on it (it routes around the device until
+    // the splice glues it in).
+    let before = vec![Point::new(0.0, 100.0), Point::new(400.0, 100.0)];
     let r = one_step(&mut s, "wire.splice", json!({"shape": dev}));
     let halves: Vec<String> = r["connectors"].as_array().unwrap().iter().map(|x| x.as_str().unwrap().to_string()).collect();
     let page = &s.doc.pages[0];
@@ -47,6 +49,60 @@ fn splice_then_heal_gives_back_the_original_route() {
     assert_eq!(page.connectors.len(), 1);
     assert_eq!(route_polyline(page, page.connector(&w).unwrap()), before, "the route is the one before the splice");
     assert_eq!(s.doc.model.nets.len(), 1, "the half's net went with it");
+}
+
+/// Whether any run of `poly` passes through the inside of `r` (shrunk a little, so a run along
+/// an edge or ending on it does not count).
+fn crosses(poly: &[Point], r: vizcraft_diagram::Rect) -> bool {
+    let inner = r.inflate(-1.0);
+    poly.windows(2).any(|s| {
+        (0..=20).any(|i| {
+            let t = f64::from(i) / 20.0;
+            inner.contains(Point::new(s[0].x + (s[1].x - s[0].x) * t, s[0].y + (s[1].y - s[0].y) * t))
+        })
+    })
+}
+
+#[test]
+fn a_wire_drawn_without_bends_routes_around_shapes_and_drawn_bends_are_kept() {
+    // Found by the user: a wire ran straight through a valve on its way to a pin, where a
+    // connector routes around the shape.
+    let mut s = blank();
+    let add = |s: &mut Session, x: f64, y: f64, w: f64, h: f64| {
+        let r = run(s, "shape.add", json!({"stencil": "basic.rectangle", "x": x, "y": y, "w": w, "h": h}));
+        r["id"].as_str().unwrap().to_string()
+    };
+    let a = add(&mut s, 0.0, 0.0, 40.0, 40.0);
+    let b = add(&mut s, 400.0, 0.0, 40.0, 40.0);
+    let wall = add(&mut s, 180.0, -100.0, 40.0, 240.0);
+    for id in [&a, &b] {
+        s.doc.pages[0].shape_mut(id).unwrap().connection_points = vec![Point::new(1.0, 0.5), Point::new(0.0, 0.5)];
+    }
+    let w = run(&mut s, "wire.draw", json!({"from": {"shape": a, "point": 0}, "to": {"shape": b, "point": 1}}));
+    let page = &s.doc.pages[0];
+    let c = page.connector(w["id"].as_str().unwrap()).unwrap();
+    assert!(c.avoid, "a wire without bends avoids shapes");
+    let poly = route_polyline(page, c);
+    assert!(!crosses(&poly, page.shape(&wall).unwrap().bounds()), "the wire goes around the wall: {poly:?}");
+    // Splitting it at a junction keeps both halves routing around shapes.
+    let mid = poly.windows(2).max_by(|x, y| x[0].distance(x[1]).total_cmp(&y[0].distance(y[1]))).map(|s| s[0].midpoint(s[1])).unwrap();
+    run(&mut s, "wire.draw", json!({"from": {"connector": w["id"], "x": mid.x, "y": mid.y}, "to": {"x": mid.x, "y": mid.y - 300.0}}));
+    let net = w["net"].as_str().unwrap();
+    let halves: Vec<_> = s.doc.pages[0].connectors.iter().filter(|c| c.net.as_deref() == Some(net) && c.id != w["id"].as_str().unwrap()).collect();
+    assert!(s.doc.pages[0].connector(w["id"].as_str().unwrap()).unwrap().avoid && halves.iter().any(|c| c.avoid));
+    // Bends someone placed are kept as drawn, through the wall if that is what they drew.
+    let kept = run(
+        &mut s,
+        "wire.draw",
+        json!({"from": {"x": 0, "y": 300}, "to": {"x": 400, "y": 320}, "points": [{"x": 200, "y": 300}, {"x": 200, "y": 320}]}),
+    );
+    let c = s.doc.pages[0].connector(kept["id"].as_str().unwrap()).unwrap();
+    assert!(!c.avoid);
+    assert_eq!(c.waypoints, vec![Point::new(200.0, 300.0), Point::new(200.0, 320.0)]);
+    // A page set never to avoid shapes draws wires that keep their straight runs.
+    run(&mut s, "page.setRouting", json!({"avoid": "never"}));
+    let straight = run(&mut s, "wire.draw", json!({"from": {"x": 0, "y": 500}, "to": {"x": 400, "y": 500}}));
+    assert!(!s.doc.pages[0].connector(straight["id"].as_str().unwrap()).unwrap().avoid);
 }
 
 #[test]
@@ -85,6 +141,21 @@ fn splice_refuses_pins_on_different_runs_and_heal_refuses_two_named_nets() {
     assert!(e.contains("named"), "{e}");
     let r = run(&mut s, "shape.delete", json!({"ids": [dev]}));
     assert!(r.get("healed").is_none(), "the default delete does not heal two named nets either");
+}
+
+#[test]
+fn rotate_and_mirror_report_the_shapes_they_turned_as_primary() {
+    let (mut s, w, dev) = wire_and_device();
+    // Something else is selected; the command names the device by id.
+    run(&mut s, "edit.select", json!({"ids": [w]}));
+    let r = run(&mut s, "shape.rotate", json!({"ids": [dev], "turns": 1}));
+    assert_eq!(r["primary"], json!(dev), "{r}");
+    assert_eq!(r["shapes"], json!([dev]));
+    let r = run(&mut s, "shape.mirror", json!({"ids": [dev], "axis": "x"}));
+    assert_eq!(r["primary"], json!(dev), "{r}");
+    assert_eq!(r["shapes"], json!([dev]));
+    let r = run(&mut s, "shape.rotate", json!({"ids": [dev], "angle": 90}));
+    assert_eq!(r["primary"], json!(dev), "{r}");
 }
 
 #[test]
@@ -213,4 +284,40 @@ fn the_default_orientation_leaves_the_sample_bit_identical() {
     assert_eq!(String::from_utf8(svg).unwrap(), include_str!("../../testdata/sample-oriented-default.svg"));
     let drawio = vizcraft_formats::drawio::save(&s.doc).unwrap();
     assert_eq!(String::from_utf8(drawio).unwrap(), include_str!("../../testdata/sample-oriented-default.drawio"));
+}
+
+/// Whether two polylines run along the same horizontal or vertical line for more than a unit.
+fn shared_run(a: &[Point], b: &[Point]) -> bool {
+    let over = |a0: f64, a1: f64, b0: f64, b1: f64| a0.max(a1).min(b0.max(b1)) - a0.min(a1).max(b0.min(b1)) > 1.0;
+    a.windows(2).any(|s| {
+        b.windows(2).any(|t| {
+            let (p, q, u, v) = (s[0], s[1], t[0], t[1]);
+            (p.y == q.y && u.y == v.y && (p.y - u.y).abs() < 0.5 && over(p.x, q.x, u.x, v.x))
+                || (p.x == q.x && u.x == v.x && (p.x - u.x).abs() < 0.5 && over(p.y, q.y, u.y, v.y))
+        })
+    })
+}
+
+#[test]
+fn a_new_wire_does_not_run_on_top_of_another() {
+    // Found by the user: a second wire from an instrument bubble to a valve port was routed alone
+    // and took the same channel as the first wire, so two nets looked joined.
+    let mut s = blank();
+    let b = run(&mut s, "glyph.insert", json!({"builder": "bubble", "x": 640, "y": 200}))["id"].as_str().unwrap().to_string();
+    let v = run(&mut s, "glyph.insert", json!({"builder": "valve", "x": 560, "y": 300}))["id"].as_str().unwrap().to_string();
+    let w1 = run(&mut s, "wire.draw", json!({"from": {"shape": b, "point": 0}, "to": {"shape": v, "point": 0}}))["id"].as_str().unwrap().to_string();
+    let w2 = run(&mut s, "wire.draw", json!({"from": {"shape": b, "point": 1}, "to": {"shape": v, "point": 3}}))["id"].as_str().unwrap().to_string();
+    let page = &s.doc.pages[0];
+    let (r1, r2) = (route_polyline(page, page.connector(&w1).unwrap()), route_polyline(page, page.connector(&w2).unwrap()));
+    assert!(!shared_run(&r1, &r2), "the two wires share a run: {r1:?} {r2:?}");
+    // Spread apart in the order that keeps them from crossing: the wire leaving the bubble's side
+    // runs inside the one that wraps over its top.
+    let cross = |p: Point, q: Point, u: Point, v: Point| {
+        let side = |a: Point, b: Point, c: Point| ((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)).signum();
+        side(p, q, u) * side(p, q, v) < 0.0 && side(u, v, p) * side(u, v, q) < 0.0
+    };
+    let crossings =
+        r1.windows(2).flat_map(|s| r2.windows(2).map(move |t| (s[0], s[1], t[0], t[1]))).filter(|&(p, q, u, v)| cross(p, q, u, v)).count();
+    assert_eq!(crossings, 0, "the two wires cross: {r1:?} {r2:?}");
+    assert!(vizcraft_diagram::autoroute::crossings(page).is_empty(), "and neither crosses a shape");
 }

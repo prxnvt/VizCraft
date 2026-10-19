@@ -7,10 +7,16 @@
 //! A page with no view lists every pack's groups, each pack closed under its name, and Drawing
 //! open. Everything is read from the notation catalog each time, so a pack loaded at run time
 //! appears at once.
+//!
+//! Until the electrical, process and fluid power packs ship glyphs drawn by the parametric
+//! builders, a closed "Engineering symbols (preview)" section offers one row per builder
+//! (`vizcraft_stencils::builders`), each placing a free symbol with its defaults through
+//! `glyph.insert`. Those packs replace it.
 
 use serde_json::{Value, json};
 use vizcraft_notation::{Catalog, ConnectorType, Pack, Viewpoint};
 use vizcraft_stencils::Master;
+use vizcraft_stencils::builders::{self, BuilderSpec};
 
 use crate::CraftApp;
 
@@ -21,6 +27,41 @@ pub enum What {
     Master(&'static Master),
     /// A connector kind: sets the connector tool's kind.
     Kind(&'static ConnectorType),
+    /// A parametric glyph builder: places a free symbol it draws (`glyph.insert`).
+    Builder(&'static BuilderSpec),
+}
+
+/// Id of the preview section of builder symbols.
+pub const PREVIEW_SECTION: &str = "engineeringPreview";
+
+/// The drag-and-drop payload prefix that names a builder instead of a master (`glyph:contact`).
+pub const BUILDER_DRAG: &str = "glyph:";
+
+/// A builder's symbol drawn with its defaults: the outline in page units (fills, then lines) and
+/// its size, built once for the palette's previews and the insert position.
+pub struct BuilderPreview {
+    /// The outline, origin top left, in page units.
+    pub path: vizcraft_diagram::Path,
+    /// Width in page units.
+    pub w: f64,
+    /// Height in page units.
+    pub h: f64,
+}
+
+/// The default drawing of builder `name`, or `None` for an unknown builder or one that cannot
+/// build with its defaults.
+pub fn builder_preview(name: &str) -> Option<&'static BuilderPreview> {
+    static CACHE: std::sync::OnceLock<Vec<(&'static str, BuilderPreview)>> = std::sync::OnceLock::new();
+    let all = CACHE.get_or_init(|| {
+        builders::specs()
+            .iter()
+            .filter_map(|s| {
+                let b = builders::build(s.name, &Default::default(), None).ok()?;
+                Some((s.name, BuilderPreview { path: b.path(), w: b.width(), h: b.height() }))
+            })
+            .collect()
+    });
+    all.iter().find(|(n, _)| *n == name).map(|(_, p)| p)
 }
 
 /// One row of the palette.
@@ -116,6 +157,24 @@ fn kind_item(t: &'static ConnectorType) -> Item {
     Item { id: t.id.as_str(), type_id: None, label: t.label.clone(), what: What::Kind(t), keywords }
 }
 
+fn builder_item(spec: &'static BuilderSpec) -> Item {
+    let mut keywords = words_of(spec.description);
+    keywords.extend(spec.sources.iter().flat_map(|(standard, _)| words_of(standard)));
+    keywords.extend(["engineering", "symbol", "glyph"].map(str::to_string));
+    Item { id: spec.name, type_id: None, label: spec.label.to_string(), what: What::Builder(spec), keywords }
+}
+
+/// The closed preview section: one row per glyph builder.
+fn preview_section() -> Section {
+    let items: Vec<Item> = builders::specs().iter().map(builder_item).collect();
+    Section {
+        id: PREVIEW_SECTION.into(),
+        label: Some("Engineering symbols (preview)".into()),
+        groups: vec![Group { id: "engineering.symbols".into(), label: "Symbols".into(), items, tiles: false }],
+        open: false,
+    }
+}
+
 /// The pack's palette groups. With a viewpoint, a type it does not list is left out (`*` lists
 /// every type of the pack, an empty list any type), and a group left empty is dropped.
 fn pack_groups(cat: &'static Catalog, pack: &'static Pack, vp: Option<&Viewpoint>) -> Vec<Group> {
@@ -172,6 +231,7 @@ pub fn build(viewpoint: Option<&str>, filter: bool) -> Palette {
         groups.extend(connector_group(cat, Some(pack)));
         groups.extend(drawing_group(cat));
         sections.push(Section { id: "scope".into(), label: None, groups, open: true });
+        sections.push(preview_section());
     } else {
         for pack in cat.packs().iter().filter(|p| p.id != "basic") {
             let mut groups = pack_groups(cat, pack, None);
@@ -183,6 +243,7 @@ pub fn build(viewpoint: Option<&str>, filter: bool) -> Palette {
                 sections.push(Section { id: pack.id.clone(), label: Some(pack.name.clone()), groups, open: false });
             }
         }
+        sections.push(preview_section());
         if let Some(d) = drawing_group(cat) {
             sections.push(Section { id: "drawing".into(), label: None, groups: vec![d], open: true });
         }
@@ -278,7 +339,7 @@ mod tests {
     #[test]
     fn a_flowchart_view_lists_steps_data_links_connectors_drawing() {
         let p = build(Some("flowchart.Flowchart"), true);
-        assert_eq!(labels(&p), ["Steps", "Data", "Links", "Connectors", "Drawing"]);
+        assert_eq!(labels(&p), ["Steps", "Data", "Links", "Connectors", "Drawing", "Symbols"]);
         let kinds: Vec<&str> = p.groups().find(|g| g.id == "connectors").unwrap().items.iter().map(|i| i.id).collect();
         assert_eq!(kinds[0], "flowchart.flow");
         assert!(kinds.contains(&"basic.arrow"));
@@ -292,6 +353,21 @@ mod tests {
         assert!(!flow.open && flow.label.as_deref() == Some("Flowchart"));
         let last = p.sections.last().unwrap();
         assert!(last.open && last.label.is_none() && last.groups[0].id == "drawing");
+    }
+
+    #[test]
+    fn the_preview_section_lists_every_builder_with_a_drawing() {
+        for p in [build(None, true), build(Some("flowchart.Flowchart"), true)] {
+            let sec = p.sections.iter().find(|s| s.id == PREVIEW_SECTION).unwrap();
+            assert!(!sec.open && sec.label.as_deref() == Some("Engineering symbols (preview)"));
+            let ids: Vec<&str> = sec.groups[0].items.iter().map(|i| i.id).collect();
+            assert_eq!(ids, ["contact", "coil", "bubble", "valve", "cylinder", "pump", "gate", "fcf", "weld", "texture"]);
+            for id in ids {
+                let b = builder_preview(id).unwrap_or_else(|| panic!("{id} builds with its defaults"));
+                assert!(b.w > 0.0 && b.h > 0.0 && !b.path.els.is_empty(), "{id}");
+            }
+            assert!(p.search("coil").iter().any(|i| i.id == "coil"));
+        }
     }
 
     #[test]

@@ -1,7 +1,9 @@
 //! Insert > Text: the Text Box tool, the Symbol dialog and fields.
 //!
-//! The Field menu lists every field, then the data keys of the selected shape (its element's
-//! properties and its own data values). While the selected shape's text was just being edited,
+//! The Field menu lists every field, then a Document Property submenu with the keys
+//! `doc.properties` lists (the title block fields), then the data keys of the selected shape (its
+//! element's properties and its own data values). The keyed fields `data` and `doc` show only
+//! with their keys. While the selected shape's text was just being edited,
 //! the field goes in where the caret stopped.
 
 use serde_json::{Value, json};
@@ -23,6 +25,23 @@ fn data_keys(app: &CraftApp) -> Vec<String> {
     keys
 }
 
+/// The document property keys `doc.properties` lists, as (key, label, group), read when the
+/// menu opens.
+fn doc_keys(app: &mut CraftApp) -> Vec<(String, String, String)> {
+    let r = app.session.run("doc.properties", &json!({})).unwrap_or_default();
+    r["properties"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|p| {
+            let key = p["key"].as_str()?.to_string();
+            let label = p["label"].as_str().filter(|l| !l.is_empty()).unwrap_or(&key).to_string();
+            Some((key, label, p["group"].as_str().unwrap_or_default().to_string()))
+        })
+        .collect()
+}
+
 /// `text.insertField` params, with `at` when the selected item's last edit left a caret.
 fn field_params(app: &CraftApp, mut p: Value) -> Value {
     if let (Some((id, at)), [sel]) = (&app.canvas.last_caret, app.session.sel.items.as_slice())
@@ -37,10 +56,29 @@ fn field_params(app: &CraftApp, mut p: Value) -> Value {
 /// The Field menu button.
 fn field_menu(app: &mut CraftApp, ui: &mut egui::Ui) {
     widgets::menu_button(ui, app, "field", "Field", "Insert Field", true, |ui, app| {
-        for (name, label) in FIELDS.iter().filter(|(n, _)| *n != "data") {
+        for (name, label) in FIELDS.iter().filter(|(n, _)| !matches!(*n, "data" | "doc")) {
             let p = field_params(app, json!({"field": name}));
             widgets::menu_item(ui, app, label, "text.insertField", p, None);
         }
+        ui.separator();
+        let props = doc_keys(app);
+        ui.menu_button("Document Property", |ui| {
+            if props.is_empty() {
+                ui.add_enabled(false, egui::Button::new("No document properties"));
+            }
+            let mut group = String::new();
+            for (key, label, g) in props {
+                if g != group {
+                    if !group.is_empty() {
+                        ui.separator();
+                    }
+                    ui.label(egui::RichText::new(&g).small());
+                    group = g;
+                }
+                let p = field_params(app, json!({"field": "doc", "key": key}));
+                widgets::menu_item(ui, app, &label, "text.insertField", p, None);
+            }
+        });
         ui.separator();
         let keys = data_keys(app);
         if keys.is_empty() {

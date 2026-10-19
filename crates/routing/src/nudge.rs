@@ -66,6 +66,9 @@ struct Member {
     /// Across coordinates of the far ends of the two neighbouring segments.
     prev_far: f64,
     next_far: f64,
+    /// Along coordinates where the two neighbouring segments join this one.
+    prev_at: f64,
+    next_at: f64,
     margin: f64,
     /// First and last segments carry the ends, so they move only when their ends may slide; fixed
     /// ones still take part in groups so that interior segments move off them.
@@ -138,6 +141,8 @@ fn members(routes: &[Routed], axis: Axis) -> Vec<Member> {
                 hi,
                 prev_far: axis.across(p),
                 next_far: axis.across(n),
+                prev_at: axis.along(a),
+                next_at: axis.along(b),
                 margin,
                 fixed,
                 slide: if fixed { None } else { slide },
@@ -230,16 +235,58 @@ fn pass(routes: &mut [Routed], obstacles: &[Option<Rect>], spacing: f64, axis: A
     }
 }
 
+/// Groups larger than this skip the pairwise score (it costs the square of the group size) and are
+/// ordered by the neighbour rule alone.
+const MAX_SCORED: usize = 64;
+
+/// Which side of `other` segment `m` must take so the two do not cross, from where their
+/// neighbours turn off (`c` is the shared line): -1 for the smaller side, 1 for the larger, 0 when
+/// neither says. A neighbour that turns off strictly inside the other's extent crosses it unless
+/// its segment lies on the side it turns toward; each such end votes.
+fn side_vote(m: &Member, other: &Member, c: f64) -> i64 {
+    if std::ptr::eq(m, other) {
+        return 0;
+    }
+    let turn = |far: f64| -> i64 {
+        if near(far, c) {
+            0
+        } else if far < c {
+            -1
+        } else {
+            1
+        }
+    };
+    let inside = |at: f64, s: &Member| at > s.lo + eps_for(s.lo, at) && at < s.hi - eps_for(at, s.hi);
+    let mut vote: i64 = 0;
+    for (at, far) in [(m.prev_at, m.prev_far), (m.next_at, m.next_far)] {
+        if inside(at, other) {
+            vote += turn(far);
+        }
+    }
+    for (at, far) in [(other.prev_at, other.prev_far), (other.next_at, other.next_far)] {
+        if inside(at, m) {
+            vote -= turn(far);
+        }
+    }
+    vote.signum()
+}
+
 fn place(group: &[Member], obstacles: &[Option<Rect>], spacing: f64, axis: Axis, routes: &[Routed], moves: &mut Vec<(usize, usize, f64)>) {
     let c = group.first().map_or(0.0, |m| m.across);
     let has_fixed = group.iter().any(|m| m.fixed);
     // Order members so that a segment whose neighbours lie toward smaller coordinates sits on the
-    // smaller side, which avoids many needless crossings; ties go by route order.
-    let mut order: Vec<&Member> = group.iter().filter(|m| !m.fixed).collect();
+    // smaller side, which avoids many needless crossings; the pairwise score below settles the
+    // cases that rule gets wrong, and ties go by route order.
+    let order: Vec<&Member> = group.iter().filter(|m| !m.fixed).collect();
     if order.is_empty() || (!has_fixed && order.len() < 2) {
         return;
     }
-    order.sort_by(|a, b| (a.prev_far + a.next_far).total_cmp(&(b.prev_far + b.next_far)).then(a.route.cmp(&b.route)).then(a.seg.cmp(&b.seg)));
+    let scores: Vec<i64> = order.iter().map(|m| if order.len() <= MAX_SCORED { order.iter().map(|o| side_vote(m, o, c)).sum() } else { 0 }).collect();
+    let mut order: Vec<(&Member, i64)> = order.into_iter().zip(scores).collect();
+    order.sort_by(|(a, sa), (b, sb)| {
+        sa.cmp(sb).then((a.prev_far + a.next_far).total_cmp(&(b.prev_far + b.next_far))).then(a.route.cmp(&b.route)).then(a.seg.cmp(&b.seg))
+    });
+    let order: Vec<&Member> = order.into_iter().map(|(m, _)| m).collect();
     let (mut lo, mut hi) = (f64::NEG_INFINITY, f64::INFINITY);
     for m in &order {
         let (l, h) = channel(m, obstacles, axis);

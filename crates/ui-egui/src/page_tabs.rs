@@ -6,6 +6,11 @@
 //! background page (`page.add`, `page.duplicate`, `page.delete`, `page.setBackground`). Every
 //! action runs a command by id; the strip holds no document logic. The rename in progress lives
 //! in egui's memory, not in the app, since it is pure UI state.
+//!
+//! Generated decoration pages (a drawing sheet's frame and title block, a page border; see
+//! `vizcraft_diagram::decor`) get no tab: they are drawn under the page they decorate and are
+//! rebuilt from it, so there is nothing to edit there. They stay reachable by command
+//! (`page.setActive`), and the tab shows while such a page is the active one.
 
 use egui::{Id, Rect, Sense, Ui, UiBuilder, WidgetInfo, WidgetType, pos2, vec2};
 use serde_json::{Value, json};
@@ -22,6 +27,8 @@ const TAB_PAD: f32 = 12.0;
 
 /// One page as the strip shows it.
 struct TabInfo {
+    /// The page's index in the document.
+    index: usize,
     id: String,
     name: String,
     background: bool,
@@ -59,14 +66,16 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui, rect: Rect) {
     let tabs: Vec<TabInfo> = doc
         .pages
         .iter()
-        .map(|p| TabInfo { id: p.id.clone(), name: p.name.clone(), background: p.is_background, assigned: p.background.clone() })
+        .enumerate()
+        .filter(|(i, p)| *i == active || !vizcraft_diagram::decor::is_generated(p))
+        .map(|(index, p)| TabInfo { index, id: p.id.clone(), name: p.name.clone(), background: p.is_background, assigned: p.background.clone() })
         .collect();
     let foreground = tabs.iter().filter(|p| !p.background).count();
     egui::ScrollArea::horizontal().id_salt("page_tabs_scroll").max_height(STRIP_H).show(&mut child, |ui| {
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing = vec2(1.0, 0.0);
-            for (i, tab) in tabs.iter().enumerate() {
-                page_tab(app, ui, &tabs, i, tab, i == active, foreground, &t);
+            for tab in &tabs {
+                page_tab(app, ui, &tabs, tab.index, tab, tab.index == active, foreground, &t);
             }
             ui.add_space(4.0);
             ui.allocate_ui(vec2(28.0, STRIP_H), |ui| {
@@ -208,6 +217,21 @@ mod tests {
         let doc = &h.state().session.doc;
         assert_eq!(doc.pages.len(), 3);
         assert_eq!(doc.active_index(), 1, "the new page goes after the active one");
+    }
+
+    #[test]
+    fn a_sheets_generated_frame_page_has_no_tab_but_stays_reachable() {
+        let mut h = harness();
+        h.state_mut().run("sheet.set", json!({})).unwrap();
+        h.run_steps(3);
+        let doc = &h.state().session.doc;
+        let frame = doc.pages.iter().find(|p| vizcraft_diagram::decor::is_generated(p)).expect("the sheet's frame page").name.clone();
+        assert!(h.query_by_label(&format!("Page {frame}")).is_none(), "no tab for {frame}");
+        assert!(h.query_by_label("Page Second").is_some());
+        let id = h.state().session.doc.pages.iter().find(|p| p.name == frame).unwrap().id.clone();
+        h.state_mut().run("page.setActive", json!({"page": id})).unwrap();
+        h.run_steps(3);
+        assert!(h.query_by_label(&format!("Page {frame}")).is_some(), "the active frame page shows its tab");
     }
 
     #[test]

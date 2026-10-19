@@ -240,6 +240,7 @@ pub(super) fn compartment_text(painter: &Painter, vp: &Viewport2D, s: &Shape, sk
                 let text: Vec<&str> = c.text.lines().take(fit).collect();
                 band_text(painter, vp, &text.join("\n"), &st, &band_block(vp, s, band.body, c.align, VAlign::Top));
             }
+            CompartmentKind::List if band.header.is_some() => table_text(painter, vp, s, c, &band, &st),
             CompartmentKind::List => {
                 for (row, r) in c.rows.iter().zip(&band.rows) {
                     band_text(painter, vp, row, &st, &band_block(vp, s, *r, c.align, VAlign::Middle));
@@ -247,6 +248,61 @@ pub(super) fn compartment_text(painter: &Painter, vp: &Viewport2D, s: &Shape, sk
             }
             CompartmentKind::Slot => {}
         }
+    }
+}
+
+/// `text` cut to about `width` world units at `font_size` (an average glyph is about 0.55 em),
+/// as the SVG export cuts table cells.
+fn fit(text: &str, width: f64, font_size: f64) -> String {
+    let max = ((width / (font_size.max(1.0) * 0.55)).floor().max(0.0) as usize).min(text.chars().count());
+    text.chars().take(max).collect()
+}
+
+/// A table band's header titles (bold) and each row's tab-separated cells, left-aligned in their
+/// columns and cut to the column's width, as the SVG export writes them.
+fn table_text(painter: &Painter, vp: &Viewport2D, s: &Shape, c: &cp::Compartment, band: &cp::Band, st: &Style) {
+    let n = c.columns.len();
+    let spans: Vec<(f64, f64)> = band.columns.windows(2).map(|w| (w.first().copied().unwrap_or(0.0), w.get(1).copied().unwrap_or(0.0))).collect();
+    let line = |r: DRect, texts: Vec<&str>, style: &Style| {
+        for ((x0, x1), t) in spans.iter().zip(texts) {
+            let t = fit(t, x1 - x0 - 2.0 * cp::PAD_X, style.font_size);
+            let cell = DRect::new(*x0, r.y0, *x1, r.y1);
+            band_text(painter, vp, &t, style, &band_block(vp, s, cell, HAlign::Left, VAlign::Middle));
+        }
+    };
+    if let Some(h) = band.header {
+        let bold = Style { bold: true, ..st.clone() };
+        line(h, c.columns.iter().map(|c| c.title.as_str()).collect(), &bold);
+    }
+    for (row, r) in c.rows.iter().zip(&band.rows) {
+        line(*r, cp::cells(row, n), st);
+    }
+}
+
+/// The text slots of a shape drawn by a glyph builder (`Shape.glyph.labels`): each at its point
+/// in the shape's frame carried by the shape's transform (quarter turns and mirror included),
+/// the text itself upright, in the shape's font colour. The same rule as the SVG export's
+/// `glyph_labels::anchor`.
+pub(super) fn glyph_labels(painter: &Painter, vp: &Viewport2D, s: &Shape) {
+    let Some(g) = &s.glyph else { return };
+    let t = s.transform();
+    for l in g.labels.iter().filter(|l| !l.text.trim().is_empty()) {
+        let at = t.apply(vizcraft_diagram::Point::new(l.x * s.w, l.y * s.h));
+        if !at.is_finite() {
+            continue;
+        }
+        let st = Style { font_size: l.size, font_color: s.style.font_color, ..Style::DEFAULT };
+        let Some(font) = style_font(&st, vp.zoom) else { continue };
+        let galley = painter.layout_no_wrap(l.text.clone(), font, color(st.font_color));
+        let size = galley.size();
+        let p = vp.world_to_screen(pos(at));
+        // The slot's y is the middle of the text; x is its start, middle or end.
+        let x = match l.anchor.as_str() {
+            "start" => p.x,
+            "end" => p.x - size.x,
+            _ => p.x - size.x / 2.0,
+        };
+        painter.galley(pos2(x, p.y - size.y / 2.0), galley, color(st.font_color));
     }
 }
 

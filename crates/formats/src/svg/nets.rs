@@ -93,11 +93,11 @@ mod tests {
     fn golden_junction_dot_wire_number_and_markers() {
         let doc = wired();
         let out = svg(&doc);
-        // The junction is an ordinary filled circle in the line colour, 3 line widths across.
+        // The junction is an ordinary filled circle in the line colour, 6 line widths across.
         let dot = out.split("<g id=\"j1\">\n").nth(1).unwrap().lines().next().unwrap();
         let line = vizcraft_diagram::Style::DEFAULT.line.to_hex();
         assert!(dot.ends_with(&format!("fill=\"{line}\" stroke=\"none\"/>")), "{dot}");
-        assert!(dot.starts_with("    <path d=\"M102.25 200 C"), "a 4.5 wide dot centred on the tee: {dot}");
+        assert!(dot.starts_with("    <path d=\"M104.5 200 C"), "a 9 wide dot centred on the tee: {dot}");
         let nets = nets_group(&out);
         // Double slash on a 96 long line at width 1.5: a gap of 18, five marks of two strokes.
         let pn = nets.lines().find(|l| l.contains("data-connector=\"pn\"")).unwrap();

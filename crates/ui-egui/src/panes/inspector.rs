@@ -234,8 +234,9 @@ fn inspector(app: &mut CraftApp, ui: &mut Ui) {
     ui.separator();
 
     let (ids, rows) = selection_rows(app);
+    let extra = Extra::gather(app, ui.ctx(), &ids);
     match st.tab {
-        InspectorTab::Properties => properties_tab(app, ui, &t, &st, &ids, &rows, &mut runs),
+        InspectorTab::Properties => properties_tab(app, ui, &t, &st, &ids, &rows, &extra, &mut runs),
         InspectorTab::Format => format_tab(app, ui, &t, &ids, &mut runs),
     }
     app.ui.inspector.show_document = false;
@@ -244,18 +245,25 @@ fn inspector(app: &mut CraftApp, ui: &mut Ui) {
     }
 }
 
-fn properties_tab(app: &CraftApp, ui: &mut Ui, t: &Tokens, st: &InspectorState, ids: &[String], rows: &[PaneRow], runs: &mut Runs) {
+#[allow(clippy::too_many_arguments)]
+fn properties_tab(app: &CraftApp, ui: &mut Ui, t: &Tokens, st: &InspectorState, ids: &[String], rows: &[PaneRow], extra: &Extra, runs: &mut Runs) {
     let expert = st.mode == InspectorMode::Expert;
     let desc = match ids {
         [one] => describe(&app.session, one).ok(),
         _ => None,
     };
-    if ids.is_empty() {
+    if let Some((id, net)) = &extra.connector {
+        section(ui, "connector-net", "Net", false, |ui| net_section(ui, t, id, net.as_ref(), runs));
+    } else if ids.is_empty() {
         ui.label(RichText::new("Select a shape to inspect it.").color(t.text_dim));
     }
     if let Some(d) = &desc {
         if d.get("element").is_some_and(|e| !e.is_null()) {
             section(ui, "identity", "Identity", false, |ui| identity(app, ui, t, d, expert, runs));
+        }
+        // A symbol's parameters are what an engineer edits most, so they come first.
+        if let Some(sym) = &extra.symbol {
+            section(ui, "symbol", "Symbol", false, |ui| symbol_section(ui, t, d, sym, runs));
         }
         section(ui, "properties", "Properties", false, |ui| properties(app, ui, t, d, ids, rows, expert, runs));
         if d["element"].is_object() {
@@ -270,7 +278,10 @@ fn properties_tab(app: &CraftApp, ui: &mut Ui, t: &Tokens, st: &InspectorState, 
     } else if !ids.is_empty() {
         section(ui, "properties", "Properties", false, |ui| properties(app, ui, t, &Value::Null, ids, rows, expert, runs));
     }
-    section(ui, "document", "Document properties", st.show_document, |ui| document(app, ui, t, runs));
+    if app.session.doc.page().is_some_and(|p| p.sheet.is_some()) {
+        section(ui, "sheet", "Sheet", false, |ui| sheet_section(app, ui, t, ids));
+    }
+    section(ui, "document", "Document properties", st.show_document, |ui| document(app, ui, t, &extra.doc_props, runs));
 }
 
 /// A two-column row: dim label, then the widget.
@@ -587,9 +598,10 @@ fn shape_section(app: &CraftApp, ui: &mut Ui, t: &Tokens, s: &Value, expert: boo
     });
 }
 
-fn document(app: &CraftApp, ui: &mut Ui, t: &Tokens, runs: &mut Runs) {
+fn document(app: &CraftApp, ui: &mut Ui, t: &Tokens, props: &Value, runs: &mut Runs) {
     ui.label(RichText::new("Document title").small().color(t.text_dim));
-    let title = app.session.doc.title.clone();
+    // The one title: the title property when set, else the plain document title (old files).
+    let title = vizcraft_diagram::text_fields::doc_value(&app.session.doc, app.session.doc.active_index(), "title");
     if let Some(new) = text_cell(ui, "document|title", &title, "", 220.0) {
         runs.push(("edit.setTitle", json!({"title": new})));
     }
@@ -613,6 +625,363 @@ fn document(app: &CraftApp, ui: &mut Ui, t: &Tokens, runs: &mut Runs) {
             });
         }
     });
+    let has_sheet = app.session.doc.pages.iter().any(|p| p.sheet.is_some());
+    doc_property_form(ui, t, props, has_sheet, runs);
+}
+
+/// What the Inspector reads through read-only commands (`glyph.params`, `doc.properties`), kept
+/// in egui's memory with the document revision it was read at, so a frame runs a command only
+/// after the document or the selection changed.
+pub struct Extra {
+    /// `glyph.params` of the one selected shape, when a glyph builder draws it.
+    pub symbol: Option<Value>,
+    /// The one selected connector and its net as `net.of` gives it (`None` off any net).
+    pub connector: Option<(String, Option<Value>)>,
+    /// `doc.properties`: the title block fields every loaded pack declares.
+    pub doc_props: Value,
+}
+
+impl Extra {
+    /// Read what the Inspector shows for `ids` (the selected shapes) and the selected connector.
+    pub fn gather(app: &mut CraftApp, ctx: &egui::Context, ids: &[String]) -> Extra {
+        let rev = app.session.rev();
+        let sel_connector = match app.session.sel.items.as_slice() {
+            [one] if app.session.doc.page().is_some_and(|p| p.connector(one).is_some()) => Some(one.clone()),
+            _ => None,
+        };
+        // Only a shape a builder draws is asked for its parameters: `glyph.params` on any other
+        // shape fails, and a failed command run leaves its error in the status bar.
+        let symbol_id = match ids {
+            [one] if drawn_by_builder(app, one) => Some(one.clone()),
+            _ => None,
+        };
+        let mut read = |key: String, command: &str, params: Value| -> Value {
+            let id = egui::Id::new(("inspector-read", key));
+            if let Some((r, v)) = ctx.data(|d| d.get_temp::<(u64, Value)>(id))
+                && r == rev
+            {
+                return v;
+            }
+            let v = app.session.run(command, &params).unwrap_or(Value::Null);
+            ctx.data_mut(|d| d.insert_temp(id, (rev, v.clone())));
+            v
+        };
+        let symbol = symbol_id.map(|one| read(format!("glyph|{one}"), "glyph.params", json!({"id": one}))).filter(|v| v.is_object());
+        let doc_props = read("doc".into(), "doc.properties", json!({}));
+        let connector = sel_connector.map(|one| {
+            let net = read(format!("net|{one}"), "net.of", json!({"connector": one}));
+            let net = Some(net["net"].clone()).filter(Value::is_object);
+            (one, net)
+        });
+        Extra { symbol, connector, doc_props }
+    }
+}
+
+/// Whether a glyph builder draws shape `id` on the active page (its own `Shape.glyph`, or its
+/// element type's glyph), the same test `glyph.params` makes.
+fn drawn_by_builder(app: &CraftApp, id: &str) -> bool {
+    let doc = &app.session.doc;
+    let Some(page) = doc.page() else { return false };
+    let Some(s) = page.shape(id) else { return false };
+    let element = s.element.as_deref().and_then(|e| doc.model.element(e));
+    let variant = vizcraft_stencils::builders::sync::page_variant(page);
+    vizcraft_stencils::builders::apply::resolve(s, element, vizcraft_notation::catalog(), variant).is_some()
+}
+
+/// What `ui.inspect` reports under `inspector`: the symbol parameters of the one selected shape
+/// (`{id, builder, params: {key: {value, from}}}`), the active page's sheet (`{preset, standard,
+/// size, orientation, zones: {cols, rows}, titleBlock, number, count}`) and the zone of the
+/// selected shape's centre.
+pub fn inspect_fields(app: &CraftApp) -> Value {
+    let doc = &app.session.doc;
+    let page = doc.page();
+    let one = match app.session.sel.items.as_slice() {
+        [one] => page.and_then(|p| p.shape(one)),
+        _ => None,
+    };
+    let symbol = one.zip(page).and_then(|(s, p)| {
+        let element = s.element.as_deref().and_then(|e| doc.model.element(e));
+        let variant = vizcraft_stencils::builders::sync::page_variant(p);
+        let r = vizcraft_stencils::builders::apply::resolve(s, element, vizcraft_notation::catalog(), variant)?;
+        let params: serde_json::Map<String, Value> = r
+            .layers
+            .iter()
+            .map(|(k, v, from)| {
+                let value = match v {
+                    vizcraft_diagram::vizcraft_model::PropValue::Bool(b) => json!(b),
+                    vizcraft_diagram::vizcraft_model::PropValue::Number(n) => json!(n),
+                    vizcraft_diagram::vizcraft_model::PropValue::Text(t) => json!(t),
+                };
+                (k.to_string(), json!({"value": value, "from": from.name()}))
+            })
+            .collect();
+        Some(json!({"id": s.id, "builder": r.spec.name, "params": params}))
+    });
+    let sheet = page.and_then(|p| p.sheet).map(|sh| {
+        let i = doc.active_index();
+        json!({
+            "preset": sh.preset_id(), "standard": sh.standard.label(), "size": sh.size.paper().name,
+            "orientation": if sh.orientation == vizcraft_diagram::Orientation::Portrait { "portrait" } else { "landscape" },
+            "zones": {"cols": sh.zones.cols, "rows": sh.zones.rows}, "titleBlock": sh.title_block.name(),
+            "number": vizcraft_diagram::sheet::sheet_number(doc, i), "count": vizcraft_diagram::sheet::sheet_count(doc),
+        })
+    });
+    let zone = one
+        .zip(page)
+        .and_then(|(s, p)| vizcraft_diagram::sheet::zone_of(p, vizcraft_diagram::geom::Point::new(s.x + s.w / 2.0, s.y + s.h / 2.0)))
+        .map(|z| z.to_string());
+    json!({"symbol": symbol, "sheet": sheet, "zone": zone})
+}
+
+/// The selected connector's net: its number and name edited in place through `net.set`, its
+/// kind and pins, and a link to the Nets tab; a connector off any net can start one.
+fn net_section(ui: &mut Ui, t: &Tokens, connector: &str, net: Option<&Value>, runs: &mut Runs) {
+    let Some(net) = net else {
+        ui.label(RichText::new("This connector is on no net.").color(t.text_dim));
+        if ui.button("Make a wire net").on_hover_text("Make this connector the first segment of a new net").clicked() {
+            runs.push(("net.assign", json!({"ids": [connector], "kind": "wire"})));
+        }
+        return;
+    };
+    let id = net["id"].as_str().unwrap_or_default().to_string();
+    egui::Grid::new("inspector-net").num_columns(2).spacing([6.0, 4.0]).show(ui, |ui| {
+        field(ui, t, "Net", |ui| {
+            ui.label(RichText::new(&id).monospace());
+        });
+        field(ui, t, "Number", |ui| {
+            let number = net["number"].as_str().unwrap_or_default();
+            if let Some(n) = text_cell(ui, &format!("net|{id}|number"), number, "none", 100.0) {
+                runs.push(("net.set", json!({"net": id, "number": n.trim()})));
+            }
+        });
+        field(ui, t, "Name", |ui| {
+            let name = net["name"].as_str().unwrap_or_default();
+            if let Some(n) = text_cell(ui, &format!("net|{id}|name"), name, "potential, e.g. L1", 100.0) {
+                runs.push(("net.set", json!({"net": id, "name": n.trim()})));
+            }
+        });
+        field(ui, t, "Kind", |ui| {
+            ui.label(net["kind"].as_str().unwrap_or_default());
+        });
+        field(ui, t, "Pins", |ui| {
+            ui.label(net["pins"].as_array().map_or(0, Vec::len).to_string());
+        });
+        field(ui, t, "Segments", |ui| {
+            ui.label(net["segments"].as_array().map_or(0, Vec::len).to_string());
+        });
+    });
+    if ui.button("Show in Nets").on_hover_text("Open the Nets tab of the dock on this net").clicked() {
+        runs.push(("ui.nets", json!({"net": id})));
+    }
+}
+
+/// The parameters of a symbol drawn by a glyph builder (`glyph.params`), one editor per
+/// parameter kind. A key the element owns (its value came from the element, or the element's
+/// type declares it) is written with `element.setProperty`, so the model keeps it; any other is
+/// the shape's own override, written with `glyph.setParams`.
+fn symbol_section(ui: &mut Ui, t: &Tokens, d: &Value, sym: &Value, runs: &mut Runs) {
+    let shape = sym["id"].as_str().unwrap_or_default().to_string();
+    let element = d["element"]["id"].as_str().map(str::to_string);
+    let declared: Vec<&str> =
+        d["properties"].as_array().map(|a| a.iter().filter(|p| p["source"] == "schema").filter_map(|p| p["key"].as_str()).collect()).unwrap_or_default();
+    let builder = sym["builder"].as_str().unwrap_or_default();
+    let glyph = sym["glyph"].as_str().unwrap_or("");
+    let what = if glyph.is_empty() { format!("Drawn by the {builder} builder") } else { format!("Drawn by the {builder} builder ({glyph})") };
+    ui.label(RichText::new(what).small().color(t.text_dim));
+    let params = sym["params"].as_array().cloned().unwrap_or_default();
+    egui::Grid::new("inspector-symbol").num_columns(3).spacing([6.0, 4.0]).striped(true).show(ui, |ui| {
+        for p in &params {
+            let key = p["key"].as_str().unwrap_or_default();
+            let spec = &p["spec"];
+            let from = p["from"].as_str().unwrap_or("default");
+            let label = spec["label"].as_str().filter(|l| !l.is_empty()).unwrap_or(key);
+            let tip = format!("Key: {key}\nFrom: {from}\n{}", spec["description"].as_str().unwrap_or_default());
+            ui.label(RichText::new(label).color(if from == "default" { t.text_dim } else { t.text })).on_hover_text(tip);
+            let owned = element.as_ref().filter(|_| from == "element" || declared.contains(&key));
+            if let Some(v) = param_editor(ui, t, &format!("{shape}|sym|{key}"), spec, &p["value"]) {
+                match owned {
+                    Some(el) => runs.push(("element.setProperty", json!({"id": el, "key": key, "value": v}))),
+                    None => runs.push(("glyph.setParams", json!({"ids": [shape], "params": {key: v}}))),
+                }
+            }
+            if from == "shape" && owned.is_none() {
+                if ui.small_button("x").on_hover_text("Clear this shape's override").clicked() {
+                    runs.push(("glyph.setParams", json!({"ids": [shape], "params": {key: null}})));
+                }
+            } else {
+                ui.label("");
+            }
+            ui.end_row();
+        }
+    });
+    if ui.button("Rebuild").on_hover_text("Redraw the symbol at its true size from its parameters").clicked() {
+        runs.push(("glyph.rebuild", json!({"ids": [shape]})));
+    }
+}
+
+/// The editor for one builder parameter, by its spec kind (`choice`, `int`, `number`, `bool`,
+/// `text`); returns the value to set.
+fn param_editor(ui: &mut Ui, t: &Tokens, salt: &str, spec: &Value, value: &Value) -> Option<Value> {
+    match spec["kind"].as_str().unwrap_or("text") {
+        "bool" => {
+            let mut on = value.as_bool().unwrap_or(false);
+            let label = spec["label"].as_str().unwrap_or_default().to_string();
+            let resp = ui.checkbox(&mut on, "");
+            resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Checkbox, true, on, label.clone()));
+            resp.changed().then_some(Value::Bool(on))
+        }
+        "choice" => {
+            let current = value.as_str().unwrap_or_default().to_string();
+            let mut out = None;
+            egui::ComboBox::from_id_salt(("inspector-choice", salt)).selected_text(current.clone()).width(120.0).show_ui(ui, |ui| {
+                for c in spec["choices"].as_array().map(Vec::as_slice).unwrap_or_default().iter().filter_map(Value::as_str) {
+                    if ui.selectable_label(current == c, c).clicked() && current != c {
+                        out = Some(json!(c));
+                    }
+                }
+            });
+            out
+        }
+        kind @ ("int" | "number") => {
+            let mut v = value.as_f64().unwrap_or(0.0);
+            let min = spec["min"].as_f64().unwrap_or(f64::MIN);
+            let max = spec["max"].as_f64().unwrap_or(f64::MAX);
+            let label = spec["label"].as_str().unwrap_or_default().to_string();
+            let int = kind == "int";
+            let drag = egui::DragValue::new(&mut v).range(min..=max).speed(if int { 0.1 } else { 0.05 }).max_decimals(if int { 0 } else { 2 });
+            let resp = ui.add(drag);
+            resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::DragValue, true, label.clone()));
+            // A drag commits when it ends, so a slow drag is one change, not one per frame.
+            let done = resp.drag_stopped() || (resp.changed() && !resp.dragged());
+            (done && v.is_finite() && Some(v) != value.as_f64()).then(|| if int { json!(v.round() as i64) } else { json!(v) })
+        }
+        _ => {
+            let shown = value.as_str().unwrap_or_default();
+            let _ = t;
+            text_cell(ui, salt, shown, "", 120.0).map(Value::String)
+        }
+    }
+}
+
+/// The active page's drawing sheet: standard, size and orientation, the zone grid, the sheet
+/// number and the zone the selection sits in. Changed from Design > Sheet.
+fn sheet_section(app: &CraftApp, ui: &mut Ui, t: &Tokens, ids: &[String]) {
+    let doc = &app.session.doc;
+    let Some(page) = doc.page() else { return };
+    let Some(sh) = page.sheet else { return };
+    let paper = sh.size.paper();
+    let orientation = if sh.orientation == vizcraft_diagram::Orientation::Portrait { "portrait" } else { "landscape" };
+    egui::Grid::new("inspector-sheet").num_columns(2).spacing([6.0, 4.0]).show(ui, |ui| {
+        field(ui, t, "Standard", |ui| {
+            ui.label(sh.standard.label());
+        });
+        field(ui, t, "Size", |ui| {
+            ui.label(format!("{} {orientation}", paper.name)).on_hover_text(format!("Preset {}", sh.preset_id()));
+        });
+        field(ui, t, "Zones", |ui| {
+            ui.label(format!("{} columns by {} rows", sh.zones.cols, sh.zones.rows));
+        });
+        field(ui, t, "Sheet", |ui| {
+            let i = doc.active_index();
+            ui.label(format!("{} of {}", vizcraft_diagram::sheet::sheet_number(doc, i), vizcraft_diagram::sheet::sheet_count(doc)));
+        });
+        field(ui, t, "Title block", |ui| {
+            ui.label(match sh.title_block {
+                vizcraft_diagram::sheet::TitleBlockKind::Iso7200 => "ISO 7200",
+                vizcraft_diagram::sheet::TitleBlockKind::Asme => "ASME Y14.1",
+                vizcraft_diagram::sheet::TitleBlockKind::None => "None",
+            });
+        });
+        if let Some(s) = ids.first().and_then(|id| page.shape(id)) {
+            let c = vizcraft_diagram::geom::Point::new(s.x + s.w / 2.0, s.y + s.h / 2.0);
+            if let Some(z) = vizcraft_diagram::sheet::zone_of(page, c) {
+                field(ui, t, "Zone", |ui| {
+                    ui.label(z.to_string()).on_hover_text("The zone of the selected shape's centre");
+                });
+            }
+        }
+    });
+}
+
+/// The document property form: the title block fields `doc.properties` lists, grouped as the
+/// packs group them, each edited through `doc.setProperty`. A required field left empty and a
+/// value over its length are marked in red. Open by default once a page has a drawing sheet.
+fn doc_property_form(ui: &mut Ui, t: &Tokens, props: &Value, has_sheet: bool, runs: &mut Runs) {
+    let rows = props["properties"].as_array().cloned().unwrap_or_default();
+    if rows.is_empty() {
+        return;
+    }
+    egui::CollapsingHeader::new(format!("Title block fields ({})", rows.len()))
+        // Keyed by whether a sheet exists, so the form opens by itself once the page gets one.
+        .id_salt(("inspector-doc-fields", has_sheet))
+        .default_open(has_sheet)
+        .show(ui, |ui| {
+            let mut group = String::new();
+            for r in &rows {
+                let key = r["key"].as_str().unwrap_or_default();
+                if key == "title" {
+                    // The title is edited above.
+                    continue;
+                }
+                let g = r["group"].as_str().unwrap_or_default();
+                if g != group {
+                    group = g.to_string();
+                    ui.add_space(2.0);
+                    ui.label(RichText::new(if g.is_empty() { "Other" } else { g }).small().strong().color(t.text_dim));
+                }
+                ui.horizontal(|ui| {
+                    let mut label = r["label"].as_str().filter(|l| !l.is_empty()).unwrap_or(key).to_string();
+                    if r["required"] == true {
+                        label.push_str(" *");
+                    }
+                    let issue = r["issue"].as_str();
+                    let color = if issue.is_some() { t.red } else { t.text };
+                    let tip = format!(
+                        "Key: {key}{}{}",
+                        r["maxChars"].as_u64().map(|m| format!("\nAt most {m} characters")).unwrap_or_default(),
+                        issue.map(|i| format!("\n{i}")).unwrap_or_default()
+                    );
+                    ui.add_sized([110.0, 18.0], egui::Label::new(RichText::new(label).color(color)).truncate()).on_hover_text(tip);
+                    if let Some(v) = doc_field_editor(ui, key, r) {
+                        runs.push(("doc.setProperty", json!({"key": key, "value": v})));
+                    }
+                });
+            }
+        });
+}
+
+/// The editor for one document property row; returns the value to set (`null` clears).
+fn doc_field_editor(ui: &mut Ui, key: &str, r: &Value) -> Option<Value> {
+    let value = r["value"].as_str().unwrap_or_default().to_string();
+    let values: Vec<&str> = r["values"].as_array().map(|a| a.iter().filter_map(Value::as_str).collect()).unwrap_or_default();
+    if !values.is_empty() {
+        let mut out = None;
+        let shown = if value.is_empty() { "(none)" } else { value.as_str() };
+        egui::ComboBox::from_id_salt(("inspector-doc-enum", key)).selected_text(shown).width(130.0).show_ui(ui, |ui| {
+            if ui.selectable_label(value.is_empty(), "(none)").clicked() {
+                out = Some(Value::Null);
+            }
+            for v in values {
+                if ui.selectable_label(value == v, v).clicked() {
+                    out = Some(json!(v));
+                }
+            }
+        });
+        return out;
+    }
+    if r["kind"] == "boolean" {
+        let mut on = value == "true";
+        return ui.checkbox(&mut on, "").changed().then_some(Value::Bool(on));
+    }
+    let text = text_cell(ui, &format!("document|{key}"), &value, "", 130.0)?;
+    let text = text.trim().to_string();
+    if text.is_empty() {
+        return Some(Value::Null);
+    }
+    Some(match r["kind"].as_str() {
+        Some("number" | "whole number") => text.parse::<f64>().ok().filter(|f| f.is_finite()).map_or(json!(text), |f| json!(f)),
+        _ => json!(text),
+    })
 }
 
 fn hex(c: vizcraft_diagram::Color) -> String {

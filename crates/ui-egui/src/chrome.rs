@@ -120,6 +120,9 @@ pub fn status_bar(app: &mut CraftApp, ui: &mut Ui) {
                     ui.add(egui::Label::new(egui::RichText::new(s).font(regular(11.5)).color(t.text_dim)).sense(Sense::click()))
                 };
                 st(ui, "Ready");
+                for item in crate::canvas::status_items(app) {
+                    st(ui, &item);
+                }
                 if let Some((msg, at)) = &app.status_msg
                     && crate::now_ms() - at < 6000.0
                 {

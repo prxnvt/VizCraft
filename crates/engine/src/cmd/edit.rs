@@ -75,10 +75,10 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("edit.selectByType", "Select by Type", "Home > Editing", select_by_type)
             .params(r#"{"kind": "shapes"|"connectors"|"groups"|"text"|"layer", "layer"?: id|name}"#),
         CommandSpec::new("edit.setTitle", "Document Title", "Properties", |s, v| {
-            s.doc.title = p::req_str(v, "title")?.to_string();
+            super::document::write_title(&mut s.doc, p::req_str(v, "title")?);
             Ok(json!({"title": s.doc.title}))
         })
-        .params(r#"{"title": string}"#),
+        .params(r#"{"title": string} (the same title as doc.setProperty {key: "title"}: the title block, exports and the window show it)"#),
     ]
 }
 

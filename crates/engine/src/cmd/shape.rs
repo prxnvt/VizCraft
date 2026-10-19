@@ -25,10 +25,10 @@ pub fn specs() -> Vec<CommandSpec> {
             .when(has_shapes),
         CommandSpec::new("shape.resize", "Resize", "Home > Arrange", resize).params(r#"{"id": string, "x"?: n, "y"?: n, "w": n, "h": n}"#).when(has_shapes),
         CommandSpec::new("shape.rotate", "Rotate", "Home > Arrange", rotate)
-            .params(r#"{"ids"?: [string], "angle"?: degrees (absolute), "turns"?: int (relative quarter turns, clockwise)} -> {"rotated", "angle", "orient"?}; one of angle and turns is required; turns turn the glyph (pins and outline) in right angles and keep its text upright; groups take only angle"#)
+            .params(r#"{"ids"?: [string], "angle"?: degrees (absolute), "turns"?: int (relative quarter turns, clockwise)} -> {"rotated", "angle", "orient"?, "shapes", "primary"}; primary is the first shape turned; one of angle and turns is required; turns turn the glyph (pins and outline) in right angles and keep its text upright; groups take only angle"#)
             .when(has_shapes),
         CommandSpec::new("shape.mirror", "Mirror", "Home > Arrange", mirror)
-            .params(r#"{"ids"?: [string], "axis": "x" (left and right swap) | "y" (top and bottom swap)} -> {"mirrored", "orient": [{"id", "turns", "mirror"}]}; mirrors the glyph in its frame, pins included, text kept upright; groups are left alone"#)
+            .params(r#"{"ids"?: [string], "axis": "x" (left and right swap) | "y" (top and bottom swap)} -> {"mirrored", "orient": [{"id", "turns", "mirror"}], "shapes", "primary"}; primary is the first shape mirrored; mirrors the glyph in its frame, pins included, text kept upright; groups are left alone"#)
             .when(has_shapes),
         CommandSpec::new("shape.setText", "Edit Text", "Home > Font", set_text).params(r#"{"id": string, "text": string}; on a shape of an element, renames the element and every view of it"#).when(has_shapes),
         CommandSpec::new("shape.setStyle", "Shape Style", "Home > Shape Styles", set_style)
@@ -232,10 +232,23 @@ fn rotate(s: &mut Session, v: &Value) -> CmdResult {
         }
     }
     if turns.is_some() {
-        with_sel(s, json!({"rotated": ids, "angle": out, "orient": orients}))
+        let turned: Vec<String> = orients.iter().filter_map(|o| o["id"].as_str().map(str::to_string)).collect();
+        turned_result(s, json!({"rotated": ids, "angle": out, "orient": orients}), &turned)
     } else {
-        with_sel(s, json!({"rotated": ids, "angle": out}))
+        turned_result(s, json!({"rotated": ids, "angle": out}), &ids)
     }
+}
+
+/// The result of a rotate or mirror: the selection fields, but `primary` names the first shape
+/// the command turned (not whatever was selected before), and `shapes` lists them all, so a
+/// caller that passed `ids` reads back what it acted on.
+fn turned_result(s: &Session, extra: Value, turned: &[String]) -> CmdResult {
+    let mut r = with_sel(s, extra)?;
+    if let Some(o) = r.as_object_mut() {
+        o.insert("primary".into(), json!(turned.first()));
+        o.insert("shapes".into(), json!(turned));
+    }
+    Ok(r)
 }
 
 fn mirror(s: &mut Session, v: &Value) -> CmdResult {
@@ -257,7 +270,7 @@ fn mirror(s: &mut Session, v: &Value) -> CmdResult {
             done.push(id.clone());
         }
     }
-    with_sel(s, json!({"mirrored": done, "orient": orients}))
+    turned_result(s, json!({"mirrored": done, "orient": orients}), &done)
 }
 
 fn set_text(s: &mut Session, v: &Value) -> CmdResult {
