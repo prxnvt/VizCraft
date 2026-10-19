@@ -481,7 +481,8 @@ fn design_tab_relayout_menu_and_route_button_run_their_commands() {
     let mut h = harness_at(1200.0, "Design");
     let shapes = |h: &Harness| h.state().session.doc.page().map(|p| p.shapes.clone()).unwrap_or_default();
     let before = shapes(&h);
-    h.get_by_label("Re-Layout").click();
+    // Re-Layout is a split button: the arrow opens the menu, the main part runs the first layout.
+    h.get_by_label("Re-Layout options").click();
     h.run_steps(3);
     h.get_by_label_contains("Tree, Left to Right").click();
     h.run_steps(3);

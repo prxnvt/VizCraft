@@ -813,3 +813,53 @@ fn relationship_ends_edit_navigability_then_fix_ends() {
     let c = h.state().session.doc.page().unwrap().connector(&cid).unwrap().clone();
     assert!(c.start_arrow != vizcraft_diagram::Arrow::None && c.end_arrow != vizcraft_diagram::Arrow::None, "both ends open now");
 }
+
+fn menu_labels(h: &Harness<'_, CraftApp>) -> Vec<String> {
+    let r = vizcraft_ui_egui::control::inspect(h.state(), &h.ctx);
+    r["menu"]["rows"].as_array().map(|rows| rows.iter().map(|x| x["label"].as_str().unwrap_or_default().to_string()).collect()).unwrap_or_default()
+}
+
+fn positions(h: &Harness<'_, CraftApp>) -> Vec<(f64, f64)> {
+    h.state().session.doc.page().unwrap().shapes.iter().map(|s| (s.x, s.y)).collect()
+}
+
+#[test]
+fn re_layout_lists_the_notations_layouts_first_and_the_main_click_lays_out() {
+    use egui_kittest::kittest::Queryable;
+    let mut h = from_template("uml.stateMachine");
+    run(&mut h, "ui.tab", json!({"tab": "Design"}));
+    let choices = vizcraft_ui_egui::notation_layout::layout_choices(h.state());
+    assert!(!choices.is_empty(), "the state machine templates declare a layout");
+    h.get_by_label("Re-Layout options").click();
+    h.run_steps(4);
+    let rows = menu_labels(&h);
+    assert_eq!(rows[0], choices[0].label, "the notation's layouts come first: {rows:?}");
+    assert!(rows.iter().any(|r| r == "Radial") && rows.iter().any(|r| r.starts_with("Tree, ")), "the generic list follows: {rows:?}");
+    assert!(rows.iter().position(|r| r == &choices[0].label) < rows.iter().position(|r| r == "Radial"));
+    key(&mut h, Key::Escape);
+    h.run_steps(2);
+    // Scramble, then the main click runs the first notation layout.
+    for s in 0..3 {
+        let id = h.state().session.doc.page().unwrap().shapes[s].id.clone();
+        run(&mut h, "shape.move", json!({"ids": [id], "dx": 300 * (s as i64 + 1), "dy": -200}));
+    }
+    let scrambled = positions(&h);
+    h.get_by_label("Re-Layout").click();
+    h.run_steps(4);
+    assert_ne!(positions(&h), scrambled, "the main click ran the layout");
+    assert_eq!(h.state().session.undo_label(), Some("Re-Layout"));
+}
+
+#[test]
+fn insert_direction_menu_shows_what_auto_resolves_to_and_sets_the_direction() {
+    use egui_kittest::kittest::Queryable;
+    let mut h = from_template("flowchart.decision");
+    run(&mut h, "ui.tab", json!({"tab": "Design"}));
+    h.get_by_label("Insert Direction").click();
+    h.run_steps(4);
+    let rows = menu_labels(&h);
+    assert_eq!(rows, vec!["Auto (down)", "Right", "Down", "Left", "Up"], "a flowchart flows downwards");
+    h.get_by_label("Left").click();
+    h.run_steps(3);
+    assert_eq!(h.state().ui.insert_direction, "left");
+}
