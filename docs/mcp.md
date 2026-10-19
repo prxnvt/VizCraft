@@ -98,6 +98,10 @@ params. Agents use them through `command_run` and `command_batch`:
 | `shape.rotate {turns}`, `shape.mirror` | Quarter turns and mirroring with text kept upright; the result names the turned shapes in `primary` and `shapes` |
 | `sheet.*`, `doc.setProperty`, `doc.properties`, `xref.*` | Drawing sheets with zones and title blocks, ISO 7200 document properties, cross references; `sheet.revise` with no description opens the Revise dialog in the app |
 | `glyph.*` | Parametric symbols: list builders, draw one as SVG, place one as a free symbol (`glyph.insert`), read and set a placed symbol's parameters |
+| `uml.addMember`, `uml.setMember`, `uml.removeMember`, `uml.moveMember` | A class's attribute, operation or literal rows, stored canonically; bad multiplicities come back in `problems` |
+| `inspector.get` on a connector or relationship | The relationship, its type and ends, with each property tagged `end: start, end or null` |
+| `page.setRouting {clearance}` | The routing clearance (0 to 100, or `auto` for the symbol grid step or 10); the result gives `clearanceUsed` |
+| `connector.add {relationship: "auto"}` | Makes the drawn connector the relationship the rules allow first between its ends |
 | `key.*`, `connector.setStep`, `connector.renumberSteps`, `topology.toMermaid` | Generated keys, numbered step badges, Mermaid architecture text |
 | `sequence.*` | Sequence diagrams edited by order: lifelines, messages, replies, fragments, moves up, down, left and right (`id` defaults to the selection), activation mode and per-message activation, Mermaid or PlantUML text |
 | `er.*` | Entity-relationship columns and cardinalities, DBML or Mermaid ER text; `file.import {format: "dbml"}` reads DBML |

@@ -241,7 +241,9 @@ Built on the integration branch `claude/engineering-diagramming-standards-305d6b
 | Analysis (frontend) | Analyze and Compare groups on the Model tab, canvas highlights, the Analysis dock tab, Compare with ghosts of removed items | `crates/ui-egui`, `crates/engine` | done (wave 3 `b6-analyze-ui`) |
 | Templates (frontend) | The New gallery with previews and the standards bar, Add Page from template, the engineering workspace preset, every command-line file in its own window | `crates/ui-egui`, `crates/engine`, `apps/vizcraft` | done (wave 3 `b6-gallery`) |
 | Sequence editing (frontend) | Sequence pages edited on the canvas (reorder, columns, stem-to-stem messages, fragments and guards), the Sequence tab and Inspector group, labels above the line and fragment geometry clear of stems | `crates/ui-egui`, `crates/diagram`, `crates/layout`, `crates/engine` | done (wave 3 `b6-sequence-ui`) |
-| Software frontend | sequence editing, keyboard insertion and row editing, drawing follow-ups, connector stand-off | `crates/ui-egui`, small engine hunks | planned (wave 3) |
+| Keyboard insertion and row editing (frontend) | Tab, Enter and `/` insertion, label and end-label editing, model-writing band edits, Model Tree relationship rows, Inspector ends, UML members and ER columns, notation-aware Re-Layout, the Steps tool and Key group | `crates/ui-egui`, `crates/engine`, `crates/notation` | done (wave 3 `b6-ux`) |
+| Connector routing (engine) | Stand-off clearance as a page option, square ends, no shared runs, fan-out, label clearance, layouts that leave room for routes, a quality check over every template | `crates/diagram`, `crates/routing`, `crates/layout`, `crates/engine` | done (wave 3 `b6-routing`) |
+| Drawing follow-ups | ER cells and headers, step badges on the canvas, names below figures, italics in PNG, Fork and Join icons | | in progress (wave 3 `b6-polish`) |
 | Packs on the substrate | C4, code forms, electrical, process, fluid power, mechanical | | planned (wave 4) |
 
 ## Cascade 6: audience packs

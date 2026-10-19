@@ -1519,7 +1519,13 @@ full suite after each; snapshots regenerated after the last merge and again afte
 State: `b6e-frontend` merged into the integration branch on 2026-10-19 (two connector kind count
 tests kept both sides as a prefix filter; snapshots regenerated; the cloud topology and DFD key
 goldens re-blessed for the title block padding and the routing refresh), `cargo xtask ci` green;
-its docs rows written into ROADMAP, parity, mcp and control-protocol. Briefs written on 2026-10-19 against the integration branch at f11c203 for the engine and
+its docs rows written into ROADMAP, parity, mcp and control-protocol. Then merged in this order,
+`cargo xtask ci` green after each and docs rows written: `b6-analyze-ui`, `b6-gallery`, `b6-sequence-ui`
+(icons and `UI_COMMANDS` keep-both), `b6-ux` (keep-both in the Inspector, icons and the canvas
+double-click; a sequence message gets no Relationship section), `b6-routing` (snapshots taken from the
+branch, then regenerated). `b6-polish` was still running. From this wave on the owner does the
+purely visual and few-click checks by hand: agents skip in-app walkthroughs and end their report
+with an owner checklist. Briefs written on 2026-10-19 against the integration branch at f11c203 for the engine and
 the `b6e-frontend` worktree for `crates/ui-egui`, one per branch in
 [docs/briefs/b6-wave3/](briefs/b6-wave3/), each a planning agent's draft headed by resolutions.
 The branches start after `b6e-frontend` (the engineering drawing UI, the frontend half of wave 1's
