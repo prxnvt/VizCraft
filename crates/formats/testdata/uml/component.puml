@@ -1,0 +1,15 @@
+@startuml
+component "Web Shop" as e2
+component "Ordering" as e4
+component "Billing" as e6
+interface "OrderApi" as e8 {
+  +place(cart: Cart): OrderId
+}
+interface "BillingApi" as e10 {
+  +charge(order: OrderId): Receipt
+}
+e4 ..|> e8
+e6 ..|> e10
+e2 ..> e8 : <<use>>
+e4 ..> e10 : <<use>>
+@enduml

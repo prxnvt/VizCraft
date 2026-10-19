@@ -1,0 +1,14 @@
+@startuml
+rectangle "Online Shop" as e2 {
+  usecase "Place order" as e7
+  usecase "Track order" as e9
+  usecase "Pay" as e11
+  usecase "Ship order" as e13
+}
+actor "Customer" as e3
+actor "Clerk" as e5
+e3 -- e7
+e3 -- e9
+e5 -- e13
+e7 ..> e11 : <<include>>
+@enduml

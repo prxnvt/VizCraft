@@ -50,14 +50,49 @@ fn type_of(s: &Shape, fallback: &str) -> String {
         .unwrap_or_else(|| fallback.to_string())
 }
 
-/// Read the imported page as a model. Containers and groups (subgraphs) are not elements, and a
-/// shape whose id cannot be a model id is left out; both are counted in a warning.
+/// An imported property value typed by the schema of `type_id` (`true` for a bool property,
+/// a number for a numeric one); text otherwise, or when it does not read.
+fn typed_value(type_id: &str, key: &str, text: &str, relationship: bool) -> PropValue {
+    use vizcraft_notation::PropKind;
+    let kind = if relationship {
+        cat().relationship_type(type_id).and_then(|(_, t)| t.property(key)).map(|p| p.kind)
+    } else {
+        cat().element_type(type_id).and_then(|(_, t)| t.property(key)).map(|p| p.kind)
+    };
+    let t = text.trim();
+    match kind {
+        Some(PropKind::Bool) if t == "true" || t == "false" => PropValue::Bool(t == "true"),
+        Some(PropKind::Number | PropKind::Integer) if t.parse::<f64>().is_ok_and(f64::is_finite) => {
+            PropValue::Number(t.parse::<f64>().unwrap_or(0.0))
+        }
+        _ => PropValue::Text(cut(text, MAX_TEXT)),
+    }
+}
+
+/// The relationship type for an imported connector: its `import.type` when the catalog knows it,
+/// else the one its connector kind names, else the connection table's choice for the ends.
+fn relationship_type_of(c: &Connector, source_type: &str, target_type: &str) -> Option<String> {
+    if let Some(t) = c.ext.get(TYPE_KEY).filter(|t| cat().relationship_type(t).is_some()) {
+        return Some(t.clone());
+    }
+    let from_kind = (!c.kind.is_empty())
+        .then(|| cat().packs().iter().find_map(|p| p.connector_type(&c.kind)).and_then(|k| k.relationship_type.clone()))
+        .flatten()
+        .filter(|t| cat().relationship_type(t).is_some());
+    from_kind.or_else(|| vizcraft_notation::legal::relationship_for(cat(), source_type, target_type).map(|(t, _)| t))
+}
+
+/// Read the imported page as a model. Containers and groups (subgraphs) are not elements unless
+/// they carry `import.type` (a package, a composite state); members take the nearest such shape
+/// above them as their owner. A shape whose id cannot be a model id is left out; both are
+/// counted in a warning.
 fn read_incoming(page: &Page, fallback: &str, warnings: &mut Vec<String>) -> Incoming {
     let mut inc = Incoming { model: Model::new(), shapes: HashMap::new(), connectors: HashMap::new() };
     let (mut frames, mut odd) = (0usize, 0usize);
     let mut seen: HashSet<&str> = HashSet::new();
     for s in page.shapes.iter().take(vizcraft_model::MAX_ELEMENTS) {
-        if container::is_container(s) || ar::is_group(s) {
+        let typed = s.ext.get(TYPE_KEY).is_some_and(|t| cat().element_type(t).is_some());
+        if (container::is_container(s) || ar::is_group(s)) && !typed {
             frames += 1;
             continue;
         }
@@ -66,11 +101,13 @@ fn read_incoming(page: &Page, fallback: &str, warnings: &mut Vec<String>) -> Inc
             continue;
         }
         let mut e = Element::new(s.id.clone(), type_of(s, fallback));
-        e.name = cut(s.text.trim(), MAX_TEXT);
+        // A `«keyword»` line above the name is drawing, not part of the name.
+        e.name = cut(vizcraft_notation::bind::strip_keyword(&s.text).trim(), MAX_TEXT);
         e.tag = s.ext.get(TAG_KEY).map(|t| cut(t.trim(), MAX_TAG)).unwrap_or_default();
         for (k, v) in s.ext.iter().filter_map(|(k, v)| k.strip_prefix(PROP_PREFIX).map(|k| (k, v))) {
             if !k.is_empty() && k.len() <= MAX_KEY && e.properties.len() < MAX_PROPERTIES {
-                e.properties.insert(k.to_string(), PropValue::Text(cut(v, MAX_TEXT)));
+                let value = typed_value(&e.type_id, k, v, false);
+                e.properties.insert(k.to_string(), value);
             }
         }
         let mut shape = s.clone();
@@ -86,20 +123,45 @@ fn read_incoming(page: &Page, fallback: &str, warnings: &mut Vec<String>) -> Inc
     if odd > 0 {
         warnings.push(format!("{odd} shapes have no usable id and were not merged"));
     }
+    // Owners: the nearest ancestor shape that became an element.
+    let parents: HashMap<&str, Option<&str>> = page.shapes.iter().map(|s| (s.id.as_str(), s.parent.as_deref())).collect();
+    let ids: HashSet<String> = inc.model.elements.iter().map(|e| e.id.clone()).collect();
+    for e in &mut inc.model.elements {
+        let mut at = parents.get(e.id.as_str()).copied().flatten();
+        for _ in 0..vizcraft_model::MAX_DEPTH {
+            let Some(p) = at else { break };
+            if p == e.id {
+                break;
+            }
+            if ids.contains(p) {
+                e.owner = Some(p.to_string());
+                break;
+            }
+            at = parents.get(p).copied().flatten();
+        }
+    }
     let types: HashMap<&str, &str> = inc.model.elements.iter().map(|e| (e.id.as_str(), e.type_id.as_str())).collect();
     let mut untyped = 0usize;
     for (i, c) in page.connectors.iter().take(vizcraft_model::MAX_RELATIONSHIPS).enumerate() {
         let (Some(a), Some(b)) = (c.start.shape(), c.end.shape()) else { continue };
         let (Some(ta), Some(tb)) = (types.get(a), types.get(b)) else { continue };
-        let Some((rt, _)) = vizcraft_notation::legal::relationship_for(cat(), ta, tb) else {
+        let Some(rt) = relationship_type_of(c, ta, tb) else {
             untyped += 1;
             continue;
         };
         // Not a plain id, so it can never collide with an element id in the id map.
         let id = format!("#r{i}");
         let mut r = Relationship::new(id.clone(), rt, a, b);
-        r.name = cut(c.text.trim(), MAX_TEXT);
-        inc.connectors.insert(id, c.clone());
+        r.name = cut(vizcraft_notation::bind::strip_keyword(&c.text).trim(), MAX_TEXT);
+        for (k, v) in c.ext.iter().filter_map(|(k, v)| k.strip_prefix(PROP_PREFIX).map(|k| (k, v))) {
+            if !k.is_empty() && k.len() <= MAX_KEY && r.properties.len() < MAX_PROPERTIES {
+                let value = typed_value(&r.type_id, k, v, true);
+                r.properties.insert(k.to_string(), value);
+            }
+        }
+        let mut drawn = c.clone();
+        drawn.ext.retain(|k, _| k != TYPE_KEY && !k.starts_with(PROP_PREFIX));
+        inc.connectors.insert(id, drawn);
         inc.model.relationships.push(r);
     }
     if untyped > 0 {
@@ -193,6 +255,17 @@ pub(crate) fn merge(
     let ch = sync::diff(&s.doc.model, &inc.model, &record.elements, &record.relationships);
     let ids = new_ids(s, &ch);
     let applied = sync::apply(&mut s.doc.model, &inc.model, &ch, &ids).map_err(model_err)?;
+    // Matched relationships take the incoming properties (multiplicities, guards).
+    for r in &inc.model.relationships {
+        let Some(rid) = applied.relationships.get(&r.id) else { continue };
+        if let Some(cur) = s.doc.model.relationship_mut(rid) {
+            for (k, v) in &r.properties {
+                if cur.properties.len() < MAX_PROPERTIES || cur.properties.contains_key(k) {
+                    cur.properties.insert(k.clone(), v.clone());
+                }
+            }
+        }
+    }
 
     // New elements get their type's defaults, a tag where the scope numbers them, and the pack.
     let added: Vec<String> = ch.added.iter().filter_map(|id| applied.elements.get(id).cloned()).collect();
@@ -235,6 +308,7 @@ pub(crate) fn merge(
     let had_shapes = page_has(s);
     let mut kept_shapes: Vec<String> = Vec::new();
     let mut new_shapes: Vec<String> = Vec::new();
+    let mut drawn_as: HashMap<&str, String> = HashMap::new();
     for e in &inc.model.elements {
         let Some(mid) = applied.elements.get(&e.id) else { continue };
         if let Some(sh) = s.doc.pages.get(index).and_then(|p| view_on(p, mid)) {
@@ -247,8 +321,19 @@ pub(crate) fn merge(
         shape.text = s.doc.model.element(mid).map(|x| x.name.clone()).unwrap_or_default();
         shape.sanitize();
         new_shapes.push(shape.id.clone());
+        drawn_as.insert(e.id.as_str(), shape.id.clone());
         if let Some(p) = s.doc.pages.get_mut(index) {
             p.shapes.push(shape);
+        }
+    }
+    // New members stay inside their new owner's container shape, as the source drew them.
+    for e in &inc.model.elements {
+        let (Some(own), Some(o)) = (drawn_as.get(e.id.as_str()), e.owner.as_deref().and_then(|o| drawn_as.get(o))) else { continue };
+        if let Some(p) = s.doc.pages.get_mut(index)
+            && p.shape(o).is_some_and(container::is_container)
+            && let Some(sh) = p.shapes.iter_mut().find(|x| &x.id == own)
+        {
+            sh.parent = Some(o.clone());
         }
     }
     let mut new_connectors: Vec<String> = Vec::new();

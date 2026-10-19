@@ -252,8 +252,8 @@ mod tests {
         assert_eq!((r["relationship"]["id"].as_str(), r["relationship"]["endArrow"].as_str()), (Some("flowchart.Flow"), Some("triangle")));
         let e = s.run("notation.describe", &json!({"pack": "flowchart", "type": "flowchart.Ghost"})).unwrap_err().to_string();
         assert!(e.contains("flowchart.Ghost"), "{e}");
-        let e = s.run("notation.describe", &json!({"pack": "uml"})).unwrap_err().to_string();
-        assert!(e.contains("uml"), "{e}");
+        let e = s.run("notation.describe", &json!({"pack": "nopack"})).unwrap_err().to_string();
+        assert!(e.contains("nopack"), "{e}");
         for bad in [json!({}), json!({"pack": 3}), json!({"pack": "flowchart", "type": 1}), json!({"pack": "x".repeat(100_000)})] {
             assert!(s.run("notation.describe", &bad).is_err(), "{bad}");
         }

@@ -1,0 +1,96 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "model": {
+      "schemaVersion": 1,
+      "packs": [
+        {
+          "id": "uml",
+          "version": "1.0.0"
+        }
+      ],
+      "elements": [
+        {
+          "id": "a",
+          "type": "uml.Class",
+          "name": "Order",
+          "properties": {
+            "attributes": "+id: String\n-lines: Line [1..*]",
+            "operations": "+total(): Money"
+          }
+        },
+        {
+          "id": "b",
+          "type": "uml.Class",
+          "name": "Line",
+          "properties": {
+            "attributes": "+qty: Integer = 1"
+          }
+        },
+        {
+          "id": "i",
+          "type": "uml.Interface",
+          "name": "Priced",
+          "properties": {
+            "operations": "+price(): Money"
+          }
+        },
+        {
+          "id": "p",
+          "type": "uml.Class",
+          "name": "Document",
+          "properties": {
+            "isAbstract": true
+          }
+        }
+      ],
+      "relationships": [
+        {
+          "id": "r1",
+          "type": "uml.Composition",
+          "source": "a",
+          "target": "b",
+          "properties": {
+            "sourceMultiplicity": "1",
+            "targetMultiplicity": "1..*"
+          }
+        },
+        {
+          "id": "r2",
+          "type": "uml.Realization",
+          "source": "b",
+          "target": "i"
+        },
+        {
+          "id": "r3",
+          "type": "uml.Generalization",
+          "source": "a",
+          "target": "p"
+        },
+        {
+          "id": "r4",
+          "type": "uml.Association",
+          "source": "b",
+          "target": "p",
+          "properties": {
+            "targetMultiplicity": "0..1"
+          }
+        }
+      ]
+    },
+    "document": {
+      "title": "",
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "shapes": [],
+          "connectors": []
+        }
+      ],
+      "idSeq": 100
+    }
+  },
+  "expect": []
+}

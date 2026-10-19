@@ -1,0 +1,38 @@
+classDiagram
+  class Item["Item"] {
+    <<abstract>>
+    +String title
+    #Integer copies
+    +isAvailable() Boolean
+  }
+  class Book["Book"] {
+    +String isbn
+    +List~String~ authors
+  }
+  class Loan["Loan"] {
+    +Date due
+    +renew(days: Integer) Date
+    +count()$ Integer
+  }
+  class Lendable["Lendable"] {
+    <<interface>>
+    +lend(member: Member) Loan
+  }
+  class Status["Status"] {
+    <<enumeration>>
+    ACTIVE
+    OVERDUE
+    RETURNED
+  }
+  namespace people {
+    class Member["Member"] {
+      +String name
+      -String[0..1] email
+    }
+  }
+  Item <|-- Book
+  Lendable <|.. Book
+  Member "1" --> "0..*" Loan : borrows
+  Loan "0..*" -- "1" Item
+  Item *-- Status
+  Loan ..> Status

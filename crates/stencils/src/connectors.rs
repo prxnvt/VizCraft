@@ -267,7 +267,7 @@ mod tests {
         assert_eq!(ids("").len(), connector_kinds().len());
         assert_eq!(search_connector_kinds("", 3).len(), 3);
         assert_eq!(ids("arrow").first(), Some(&"basic.arrow"));
-        assert_eq!(ids("dependency"), ["basic.dependency"]);
+        assert_eq!(ids("dependency").first(), Some(&"basic.dependency"));
         assert_eq!(ids("thick"), ["basic.bus"]);
         assert_eq!(ids("flow").first(), Some(&"flowchart.flow"));
         assert!(ids("nothing-like-this").is_empty());

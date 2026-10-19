@@ -337,7 +337,7 @@ impl<'a> Ctx<'a> {
             Check::MinOutgoing { types, relationship, min } => self.min_count(pack, rule, types, relationship, *min, true, out),
             Check::MinIncoming { types, relationship, min } => self.min_count(pack, rule, types, relationship, *min, false, out),
             Check::ExclusiveDirections { types, relationship } => self.exclusive(pack, rule, types, relationship, out),
-            Check::Unreachable { from, relationship } => self.unreachable(pack, rule, from, relationship, out),
+            Check::Unreachable { from, relationship, types } => self.unreachable(pack, rule, from, relationship, types, out),
             Check::ForbiddenCycle { relationship } => self.cycles(rule, relationship, out),
             Check::RequiredPath { from, to, relationship } => self.required_path(pack, rule, from, to, relationship, out),
             Check::Connected { types, relationship } => self.connected(pack, rule, types, relationship, out),
@@ -355,6 +355,9 @@ impl<'a> Ctx<'a> {
             }
             Check::NestingAllowed { .. } | Check::Labelled { .. } | Check::EndsOnPorts { .. } => {
                 crate::nesting::check(self.doc, self.cat, pack, rule, out)
+            }
+            Check::EndMarkerMatchesProperty { .. } | Check::MultiplicitySyntax { .. } | Check::MaxPerOwner { .. } | Check::UniqueMembers { .. } => {
+                crate::rules_uml::check(self.doc, self.cat, pack, rule, out)
             }
             Check::Unknown => {}
         }
@@ -633,7 +636,7 @@ impl<'a> Ctx<'a> {
 
     /// Elements of this pack that no walk along the relationship type reaches from a start: an
     /// element of a `from` type with no incoming relationship of that type.
-    fn unreachable(&self, pack: &Pack, rule: &RuleDecl, from: &[String], relationship: &str, out: &mut Vec<Issue>) {
+    fn unreachable(&self, pack: &Pack, rule: &RuleDecl, from: &[String], relationship: &str, types: &[String], out: &mut Vec<Issue>) {
         let model = &self.doc.model;
         // Followed through the reasoner, so inverse relationship types count backwards.
         let g = self.facts.graph(relationship);
@@ -646,7 +649,8 @@ impl<'a> Ctx<'a> {
         let reached = crate::infer::reach(&g, starts);
         let starts: Vec<String> = if from.is_empty() { Vec::new() } else { from.iter().map(|t| self.type_label(t)).collect() };
         let start = if starts.is_empty() { "a start".to_string() } else { format!("a starting {}", starts.join(" or ")) };
-        for e in model.elements.iter().filter(|e| self.facts.of_pack(&e.type_id, pack) && !reached.contains(e.id.as_str())) {
+        let checked = |t: &str| if types.is_empty() { self.facts.of_pack(t, pack) } else { self.facts.lists(pack, types, t) };
+        for e in model.elements.iter().filter(|e| checked(&e.type_id) && !reached.contains(e.id.as_str())) {
             let what = format!("{} cannot be reached from {start}.", self.el_label(&e.id));
             out.push(self.issue(rule, what, vec![e.id.clone()]));
         }

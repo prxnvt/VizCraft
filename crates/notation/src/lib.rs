@@ -40,9 +40,12 @@ pub mod legal;
 pub mod loader;
 pub mod nesting;
 pub mod rules;
+pub mod rules_uml;
 pub mod schema;
+pub mod sections;
 pub mod sheet_pass;
 pub mod template;
+pub mod uml_text;
 pub mod validate;
 
 pub use catalog::{Catalog, catalog};

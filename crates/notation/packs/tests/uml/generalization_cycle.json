@@ -1,0 +1,58 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "model": {
+      "schemaVersion": 1,
+      "packs": [
+        {
+          "id": "uml",
+          "version": "1.0.0"
+        }
+      ],
+      "elements": [
+        {
+          "id": "a",
+          "type": "uml.Class",
+          "name": "A"
+        },
+        {
+          "id": "b",
+          "type": "uml.Class",
+          "name": "B"
+        }
+      ],
+      "relationships": [
+        {
+          "id": "r1",
+          "type": "uml.Generalization",
+          "source": "a",
+          "target": "b"
+        },
+        {
+          "id": "r2",
+          "type": "uml.Generalization",
+          "source": "b",
+          "target": "a"
+        }
+      ]
+    },
+    "document": {
+      "title": "",
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "shapes": [],
+          "connectors": []
+        }
+      ],
+      "idSeq": 100
+    }
+  },
+  "expect": [
+    {
+      "rule": "uml.generalizationCycle"
+    }
+  ]
+}

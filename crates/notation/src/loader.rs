@@ -66,6 +66,7 @@ pub fn load(name: &str, bytes: &[u8]) -> Result<Pack, NotationError> {
 }
 
 fn finish(mut pack: Pack) -> Result<Pack, NotationError> {
+    let sections = crate::sections::flatten(&mut pack);
     if pack.schema_version > SCHEMA_VERSION {
         return Err(NotationError::TooNew { found: pack.schema_version, supported: SCHEMA_VERSION });
     }
@@ -82,7 +83,8 @@ fn finish(mut pack: Pack) -> Result<Pack, NotationError> {
             g.outline = FREEFORM.into();
         }
     }
-    let mut problems = crate::validate::check(&pack);
+    let mut problems = sections;
+    problems.extend(crate::validate::check(&pack));
     for &(i, outline) in &drawn {
         if let Some(g) = pack.glyphs.get_mut(i) {
             g.outline = outline.into();

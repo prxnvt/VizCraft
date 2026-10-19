@@ -43,8 +43,12 @@ use crate::{Catalog, legal};
 /// 7. Packs of every element and relationship type in use are recorded in `doc.model.packs`.
 /// 8. A bound shape whose element type declares compartments (`ElementType::compartments`)
 ///    gets each one it lacks (appended in declaration order), and a declared list's rows (a
-///    paragraph's lines) become the element's named properties as `name: value`.
-/// 9. A bound shape whose `parent` changed (or that is newly bound), of a type that declares
+///    paragraph's lines) become the element's named properties as `name: value`, or with
+///    `rowsFrom`, the lines of that property read as member rows and written in the page
+///    variant's member style.
+/// 9. A bound connector whose relationship type declares `endLabels` shows those properties
+///    beside its ends; an end label the command changed writes back to its properties first.
+/// 10. A bound shape whose `parent` changed (or that is newly bound), of a type that declares
 ///    `allowedParents`, takes as owner the element of the container shape it now sits in when
 ///    that type is allowed, and loses the owner it had from a container it left for the top
 ///    ([`crate::nesting::owners`]).
@@ -60,8 +64,10 @@ use crate::{Catalog, legal};
 ///   end's element type declares ports, a connector glued at connection point `i` sets that end's
 ///   port to the id of port `i` (dynamic glue or an index past the ports: none); a type with no
 ///   ports clears the port.
-/// - Step 5 decides between text and name per element (and relationship): a name changed by the
-///   command wins; else a view whose text the command changed gives the name; else a new item
+/// - Step 5 decides between text and name per element (and relationship): a leading `«...»`
+///   line is taken off the text first, and the view shows the type's `keyword` (or the
+///   element's `stereotype` property) as `«keyword»` on a line above the name. A name changed
+///   by the command wins; else a view whose text the command changed gives the name; else a new item
 ///   with no name takes its first non-empty view text; else the name stays. Every view then shows
 ///   the name.
 /// - Step 6 changes style only when a match changes, so hand styling wins otherwise. Per style
@@ -78,7 +84,14 @@ use crate::{Catalog, legal};
 ///   the element's, else the schema default; a property with neither is left out. Rows change
 ///   only when the text differs, so the pass stays idempotent; the shape grows to fit when its
 ///   content no longer does. A declaration with no `fromProperties` only ensures the compartment
-///   exists, and the user's own compartments are left alone.
+///   exists, and the user's own compartments are left alone. A `rowsFrom` declaration reads its
+///   property through `crate::uml_text::parse_member` and writes rows with `format_member` in
+///   the style of the page variant's `memberVisibility` option (`symbols` by default, `keywords`
+///   or `hidden`); the option `members: suppressed` leaves the rows empty.
+/// - Step 9 joins the values of the `endLabels` keys (else their schema defaults) with a space.
+///   A connector end label that differs from `before` while the relationship's properties for
+///   that end did not change writes back: the last word to the last key, and so on, the first
+///   key taking the rest; an empty part removes the property.
 pub fn sync(doc: &mut Document, before: &Document, cat: &Catalog) {
     vizcraft_diagram::views::sanitize_refs(doc);
     // Wiring needs no elements, so the net pass runs before the early return below.
@@ -92,10 +105,11 @@ pub fn sync(doc: &mut Document, before: &Document, cat: &Catalog) {
     copies(doc, before, cat);
     connectors(doc, cat);
     drop_unviewed(doc, before);
-    names(doc, before);
+    names(doc, before, cat);
     styles(doc, before, cat);
     record_packs(doc, cat);
     compartments(doc, cat);
+    end_labels(doc, before, cat);
     crate::sheet_pass::run(doc, cat);
     crate::nesting::owners(doc, before, cat);
 }
@@ -381,12 +395,38 @@ fn agreed_name(name: &str, before_name: Option<&str>, views: &[(&str, &str)], be
     name.to_string()
 }
 
+/// A view text without a leading `«keyword»` line (the whole text when that is all it holds).
+pub fn strip_keyword(text: &str) -> &str {
+    let (first, rest) = text.split_once('\n').unwrap_or((text, ""));
+    let first = first.trim_end_matches('\r');
+    if first.starts_with('\u{ab}') && first.ends_with('\u{bb}') { rest } else { text }
+}
+
+/// What a view shows for `name` under `keyword`: `«keyword»` above the name.
+fn with_keyword(name: &str, keyword: Option<&String>) -> String {
+    match keyword {
+        Some(k) if name.is_empty() => format!("\u{ab}{k}\u{bb}"),
+        Some(k) => format!("\u{ab}{k}\u{bb}\n{name}"),
+        None => name.to_string(),
+    }
+}
+
+/// The keyword an element's views show: its `stereotype` property, else its type's keyword.
+fn element_keyword(cat: &Catalog, e: &Element) -> Option<String> {
+    if let Some(PropValue::Text(t)) = e.prop("stereotype")
+        && !t.trim().is_empty()
+    {
+        return Some(t.trim().to_string());
+    }
+    cat.element_type(&e.type_id).map(|(_, t)| t.keyword.clone()).filter(|k| !k.is_empty())
+}
+
 /// Step 5: names and view texts agree.
-fn names(doc: &mut Document, before: &Document) {
+fn names(doc: &mut Document, before: &Document, cat: &Catalog) {
     let before_shape_text: HashMap<&str, &str> =
-        before.pages.iter().flat_map(|p| p.shapes.iter()).map(|s| (s.id.as_str(), s.text.as_str())).collect();
+        before.pages.iter().flat_map(|p| p.shapes.iter()).map(|s| (s.id.as_str(), strip_keyword(&s.text))).collect();
     let before_conn_text: HashMap<&str, &str> =
-        before.pages.iter().flat_map(|p| p.connectors.iter()).map(|c| (c.id.as_str(), c.text.as_str())).collect();
+        before.pages.iter().flat_map(|p| p.connectors.iter()).map(|c| (c.id.as_str(), strip_keyword(&c.text))).collect();
     let before_el: HashMap<&str, &str> = before.model.elements.iter().map(|e| (e.id.as_str(), e.name.as_str())).collect();
     let before_rel: HashMap<&str, &str> = before.model.relationships.iter().map(|r| (r.id.as_str(), r.name.as_str())).collect();
 
@@ -399,12 +439,12 @@ fn names(doc: &mut Document, before: &Document) {
         for page in &doc.pages {
             for s in &page.shapes {
                 if let Some(e) = s.element.as_deref() {
-                    shape_views.entry(e).or_default().push((s.id.as_str(), s.text.as_str()));
+                    shape_views.entry(e).or_default().push((s.id.as_str(), strip_keyword(&s.text)));
                 }
             }
             for c in &page.connectors {
                 if let Some(r) = c.relationship.as_deref() {
-                    conn_views.entry(r).or_default().push((c.id.as_str(), c.text.as_str()));
+                    conn_views.entry(r).or_default().push((c.id.as_str(), strip_keyword(&c.text)));
                 }
             }
         }
@@ -422,6 +462,20 @@ fn names(doc: &mut Document, before: &Document) {
     if el_names.is_empty() && rel_names.is_empty() {
         return;
     }
+    let el_kw: HashMap<String, String> = doc
+        .model
+        .elements
+        .iter()
+        .filter(|e| el_names.contains_key(&e.id))
+        .filter_map(|e| element_keyword(cat, e).map(|k| (e.id.clone(), k)))
+        .collect();
+    let rel_kw: HashMap<String, String> = doc
+        .model
+        .relationships
+        .iter()
+        .filter(|r| rel_names.contains_key(&r.id))
+        .filter_map(|r| cat.relationship_type(&r.type_id).map(|(_, t)| t.keyword.clone()).filter(|k| !k.is_empty()).map(|k| (r.id.clone(), k)))
+        .collect();
     for e in &mut doc.model.elements {
         if let Some(n) = el_names.get(&e.id)
             && e.name != *n
@@ -438,17 +492,23 @@ fn names(doc: &mut Document, before: &Document) {
     }
     for page in &mut doc.pages {
         for s in &mut page.shapes {
-            if let Some(n) = s.element.as_deref().and_then(|e| el_names.get(e))
-                && s.text != *n
+            if let Some(e) = s.element.as_deref()
+                && let Some(n) = el_names.get(e)
             {
-                s.text = n.clone();
+                let shown = with_keyword(&cut_text(n.clone()), el_kw.get(e));
+                if s.text != shown {
+                    s.text = shown;
+                }
             }
         }
         for c in &mut page.connectors {
-            if let Some(n) = c.relationship.as_deref().and_then(|r| rel_names.get(r))
-                && c.text != *n
+            if let Some(r) = c.relationship.as_deref()
+                && let Some(n) = rel_names.get(r)
             {
-                c.text = n.clone();
+                let shown = with_keyword(&cut_text(n.clone()), rel_kw.get(r));
+                if c.text != shown {
+                    c.text = shown;
+                }
             }
         }
     }
@@ -461,6 +521,7 @@ struct Fields {
     line: Option<Color>,
     font_color: Option<Color>,
     line_width: Option<f64>,
+    italic: Option<bool>,
 }
 
 impl Fields {
@@ -479,6 +540,7 @@ struct Matches {
     line: Option<StyleId>,
     font_color: Option<StyleId>,
     line_width: Option<StyleId>,
+    italic: Option<StyleId>,
 }
 
 /// Whether `cs` matches element `e` (the property's schema default stands in for a missing value).
@@ -512,6 +574,9 @@ fn matches_for(cat: &Catalog, e: &Element) -> Matches {
             }
             if m.line_width.is_none() && cs.line_width.is_some() {
                 m.line_width = id;
+            }
+            if m.italic.is_none() && cs.italic.is_some() {
+                m.italic = id;
             }
         }
     }
@@ -555,6 +620,11 @@ fn fields_for(cat: &Catalog, e: &Element, now: Matches, was: Option<Matches>) ->
         line: colour(pick(now.line, was.map(|w| w.line)), |cs| cs.line.as_ref(), glyph_line),
         font_color: colour(pick(now.font_color, was.map(|w| w.font_color)), |cs| cs.font_color.as_ref(), d.font_color),
         line_width: width,
+        italic: match pick(now.italic, was.map(|w| w.italic)) {
+            None => None,
+            Some(None) => Some(d.italic),
+            Some(Some(id)) => style_at(cat, id).and_then(|cs| cs.italic),
+        },
     }
 }
 
@@ -599,6 +669,9 @@ fn styles(doc: &mut Document, before: &Document, cat: &Catalog) {
             if let Some(v) = f.line_width {
                 set_if_changed(&mut s.style.line_width, v);
             }
+            if let Some(v) = f.italic {
+                set_if_changed(&mut s.style.italic, v);
+            }
         }
     }
 }
@@ -609,8 +682,10 @@ fn compartments(doc: &mut Document, cat: &Catalog) {
     if cat.packs().iter().all(|p| p.element_types.iter().all(|t| t.compartments.is_empty())) {
         return;
     }
-    // Per element: the declarations of its type with their filled lines.
+    // Per element: the declarations of its type with their filled lines, or member rows that
+    // each page writes in its own style.
     let mut plans: HashMap<&str, Vec<(&crate::schema::CompartmentDecl, Option<Vec<String>>)>> = HashMap::new();
+    let mut members: HashMap<(&str, &str), Vec<crate::uml_text::Member>> = HashMap::new();
     for e in &doc.model.elements {
         let Some((_, t)) = cat.element_type(&e.type_id) else { continue };
         if t.compartments.is_empty() {
@@ -637,15 +712,32 @@ fn compartments(doc: &mut Document, cat: &Catalog) {
                 (d, lines)
             })
             .collect();
+        for d in t.compartments.iter().filter(|d| !d.rows_from.is_empty()) {
+            let text = match e.properties.get(&d.rows_from).or_else(|| t.property(&d.rows_from).and_then(|p| p.default.as_ref())) {
+                Some(PropValue::Text(x)) => x.as_str(),
+                _ => "",
+            };
+            let rows = crate::uml_text::rows(text).take(cp::MAX_ROWS).map(crate::uml_text::parse_member).collect();
+            members.insert((e.id.as_str(), d.id.as_str()), rows);
+        }
         plans.insert(e.id.as_str(), decls);
     }
     if plans.is_empty() {
         return;
     }
     for page in &mut doc.pages {
+        let options = page.view.as_ref().and_then(|v| cat.variant(&v.variant)).map(|(_, v)| &v.options);
+        let option = |k: &str| options.and_then(|o| o.get(k)).map(String::as_str).unwrap_or_default();
+        let shown = crate::uml_text::Shown::from_option(option("memberVisibility"));
+        let suppressed = option("members") == "suppressed";
         for s in &mut page.shapes {
-            let Some(decls) = s.element.as_deref().and_then(|e| plans.get(e)) else { continue };
+            let Some(el) = s.element.as_deref() else { continue };
+            let Some(decls) = plans.get(el) else { continue };
             for (d, lines) in decls {
+                let typed: Option<Vec<String>> = members
+                    .get(&(el, d.id.as_str()))
+                    .map(|rows| if suppressed { Vec::new() } else { rows.iter().map(|m| crate::uml_text::format_member(m, shown)).collect() });
+                let lines = if typed.is_some() { &typed } else { lines };
                 if !s.compartments.iter().any(|c| c.id == d.id) {
                     if s.compartments.len() >= cp::MAX_COMPARTMENTS {
                         continue;
@@ -666,6 +758,92 @@ fn compartments(doc: &mut Document, cat: &Catalog) {
             if need > s.h {
                 s.h = need;
                 s.sanitize();
+            }
+        }
+    }
+}
+
+/// The label an end shows: the values of `keys` (else their schema defaults) joined by a space.
+fn end_label(r: &Relationship, keys: &[String], t: &crate::schema::RelationshipType) -> String {
+    let parts: Vec<String> = keys
+        .iter()
+        .filter_map(|k| r.prop(k).or_else(|| t.property(k).and_then(|p| p.default.as_ref())).map(PropValue::display))
+        .map(|v| v.trim().to_string())
+        .filter(|v| !v.is_empty())
+        .collect();
+    cut_text(parts.join(" "))
+}
+
+/// `label` split over `keys` (see step 9 in [`sync`]): the last word to the last key, the
+/// first key taking what is left.
+fn split_label(label: &str, keys: &[String]) -> Vec<(String, String)> {
+    let mut words: Vec<&str> = label.split_whitespace().collect();
+    let mut out = Vec::with_capacity(keys.len());
+    for (i, k) in keys.iter().enumerate().rev() {
+        let part = if i == 0 { words.join(" ") } else { words.pop().unwrap_or_default().to_string() };
+        if i == 0 {
+            words.clear();
+        }
+        out.push((k.clone(), part));
+    }
+    out
+}
+
+/// Step 9: end labels show the relationship's end properties; edited ones write back.
+fn end_labels(doc: &mut Document, before: &Document, cat: &Catalog) {
+    if cat.packs().iter().all(|p| p.relationship_types.iter().all(|t| t.end_labels.is_empty())) {
+        return;
+    }
+    let before_conn: HashMap<&str, (&str, &str)> =
+        before.pages.iter().flat_map(|p| p.connectors.iter()).map(|c| (c.id.as_str(), (c.start_label.as_str(), c.end_label.as_str()))).collect();
+    let before_rel: HashMap<&str, &Relationship> = before.model.relationships.iter().map(|r| (r.id.as_str(), r)).collect();
+    // Write-backs first: (relationship id, key, value).
+    let mut writes: Vec<(String, String, String)> = Vec::new();
+    let mut written: HashSet<(String, bool)> = HashSet::new();
+    for c in doc.pages.iter().flat_map(|p| p.connectors.iter()) {
+        let Some(rid) = c.relationship.as_deref() else { continue };
+        let Some(r) = doc.model.relationship(rid) else { continue };
+        let Some((_, t)) = cat.relationship_type(&r.type_id) else { continue };
+        let (Some(was), Some(rb)) = (before_conn.get(c.id.as_str()), before_rel.get(rid)) else { continue };
+        for (start, keys, now, then) in [(true, &t.end_labels.start, &c.start_label, was.0), (false, &t.end_labels.end, &c.end_label, was.1)] {
+            if keys.is_empty() || now == then || written.contains(&(rid.to_string(), start)) {
+                continue;
+            }
+            if keys.iter().any(|k| rb.prop(k) != r.prop(k)) {
+                continue;
+            }
+            written.insert((rid.to_string(), start));
+            writes.extend(split_label(now, keys).into_iter().map(|(k, v)| (rid.to_string(), k, v)));
+        }
+    }
+    for (rid, k, v) in writes {
+        let Some(r) = doc.model.relationships.iter_mut().find(|r| r.id == rid) else { continue };
+        if v.is_empty() {
+            r.properties.remove(&k);
+        } else if r.properties.len() < vizcraft_model::MAX_PROPERTIES || r.properties.contains_key(&k) {
+            r.properties.insert(k, PropValue::Text(cut_text(v)));
+        }
+    }
+    let labels: HashMap<&str, (String, String)> = doc
+        .model
+        .relationships
+        .iter()
+        .filter_map(|r| {
+            let (_, t) = cat.relationship_type(&r.type_id)?;
+            (!t.end_labels.is_empty()).then(|| (r.id.as_str(), (end_label(r, &t.end_labels.start, t), end_label(r, &t.end_labels.end, t))))
+        })
+        .collect();
+    if labels.is_empty() {
+        return;
+    }
+    for page in &mut doc.pages {
+        for c in &mut page.connectors {
+            let Some((a, b)) = c.relationship.as_deref().and_then(|r| labels.get(r)) else { continue };
+            if c.start_label != *a {
+                c.start_label = a.clone();
+            }
+            if c.end_label != *b {
+                c.end_label = b.clone();
             }
         }
     }

@@ -1,0 +1,19 @@
+stateDiagram-v2
+  %% A door controller, written by hand for the UML round trip.
+  state "Closed" as closed
+  closed : entry / lock
+  state "Open" as open
+  open : do / beep
+  state "Moving" as moving {
+    [*] --> opening
+    state "Opening" as opening
+    state "Closing" as closing
+    opening --> closing : reverse
+  }
+  state check <<choice>>
+  [*] --> closed
+  closed --> moving : button [authorized]
+  moving --> check : stop
+  check --> open : [fully open]
+  check --> closed : [fully closed] / log
+  open --> [*] : shutdown

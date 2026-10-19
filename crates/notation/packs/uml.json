@@ -1,0 +1,3624 @@
+{
+  "schemaVersion": 1,
+  "id": "uml",
+  "version": "1.0.0",
+  "name": "UML",
+  "description": "UML 2.5.1 structure and behaviour diagrams: class, component, package, deployment, use case, activity and state machine, with typed member rows, the relationship ends of the standard, its constraints as rules and starting templates.",
+  "audience": [
+    "software"
+  ],
+  "glyphs": [
+    {
+      "id": "uml.note",
+      "label": "Note",
+      "category": "Notes",
+      "outline": "path",
+      "w": 140,
+      "h": 70,
+      "fill": "#fdf8e1",
+      "line": "#8a7a33",
+      "keywords": [
+        "comment",
+        "uml"
+      ],
+      "elementType": "uml.Note",
+      "path": "M0 0 L0.85 0 L1 0.22 L1 1 L0 1 Z",
+      "detail": "M0.85 0 L0.85 0.22 L1 0.22",
+      "source": "drawn from UML 2.5.1 (OMG formal/17-12-05), 7.2.4 Comment notation: a rectangle with its upper right corner bent"
+    }
+  ],
+  "connectorTypes": [
+    {
+      "id": "uml.association",
+      "label": "Association",
+      "category": "Associations",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "solid",
+      "lineWidth": 1.25,
+      "line": "#34495e",
+      "keywords": [
+        "link",
+        "uml"
+      ],
+      "relationshipType": "uml.Association"
+    },
+    {
+      "id": "uml.directedAssociation",
+      "label": "Directed Association",
+      "category": "Associations",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "open",
+      "dash": "solid",
+      "lineWidth": 1.25,
+      "line": "#34495e",
+      "keywords": [
+        "navigable",
+        "uml"
+      ],
+      "relationshipType": "uml.Association"
+    },
+    {
+      "id": "uml.composition",
+      "label": "Composition",
+      "category": "Associations",
+      "route": "orthogonal",
+      "startArrow": "diamond",
+      "endArrow": "none",
+      "dash": "solid",
+      "lineWidth": 1.25,
+      "line": "#34495e",
+      "keywords": [
+        "whole",
+        "part",
+        "uml"
+      ],
+      "relationshipType": "uml.Composition"
+    },
+    {
+      "id": "uml.aggregation",
+      "label": "Aggregation",
+      "category": "Associations",
+      "route": "orthogonal",
+      "startArrow": "hollowDiamond",
+      "endArrow": "none",
+      "dash": "solid",
+      "lineWidth": 1.25,
+      "line": "#34495e",
+      "keywords": [
+        "shared",
+        "uml"
+      ],
+      "relationshipType": "uml.Aggregation"
+    },
+    {
+      "id": "uml.generalization",
+      "label": "Generalization",
+      "category": "Relationships",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "hollowTriangle",
+      "dash": "solid",
+      "lineWidth": 1.25,
+      "line": "#34495e",
+      "keywords": [
+        "inheritance",
+        "extends",
+        "uml"
+      ],
+      "relationshipType": "uml.Generalization"
+    },
+    {
+      "id": "uml.realization",
+      "label": "Realization",
+      "category": "Relationships",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "hollowTriangle",
+      "dash": "dashed",
+      "lineWidth": 1.25,
+      "line": "#34495e",
+      "keywords": [
+        "implements",
+        "interface",
+        "uml"
+      ],
+      "relationshipType": "uml.Realization"
+    },
+    {
+      "id": "uml.dependency",
+      "label": "UML Dependency",
+      "category": "Relationships",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "open",
+      "dash": "dashed",
+      "lineWidth": 1.25,
+      "line": "#34495e",
+      "keywords": [
+        "depends",
+        "uml"
+      ],
+      "relationshipType": "uml.Dependency"
+    },
+    {
+      "id": "uml.usage",
+      "label": "Usage",
+      "category": "Relationships",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "open",
+      "dash": "dashed",
+      "lineWidth": 1.25,
+      "line": "#34495e",
+      "keywords": [
+        "use",
+        "uses",
+        "uml"
+      ],
+      "relationshipType": "uml.Usage"
+    },
+    {
+      "id": "uml.anchor",
+      "label": "Note Anchor",
+      "category": "Notes",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "dashed",
+      "lineWidth": 1.25,
+      "line": "#34495e",
+      "keywords": [
+        "comment",
+        "uml"
+      ],
+      "relationshipType": "uml.Anchor"
+    },
+    {
+      "id": "uml.realizationPlain",
+      "label": "Realization (plain line)",
+      "category": "Relationships",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "solid",
+      "lineWidth": 1.25,
+      "line": "#34495e",
+      "keywords": [
+        "lollipop",
+        "provided",
+        "uml"
+      ]
+    }
+  ],
+  "elementTypes": [
+    {
+      "id": "uml.Note",
+      "label": "Note",
+      "description": "A comment attached to elements with note anchors.",
+      "glyph": "uml.note"
+    }
+  ],
+  "relationshipTypes": [
+    {
+      "id": "uml.Association",
+      "label": "Association",
+      "description": "A structural link between classifiers, with a role and multiplicity at each end.",
+      "endArrow": "none",
+      "properties": [
+        {
+          "key": "sourceRole",
+          "label": "Source role",
+          "kind": "text"
+        },
+        {
+          "key": "sourceMultiplicity",
+          "label": "Source multiplicity",
+          "kind": "text"
+        },
+        {
+          "key": "targetRole",
+          "label": "Target role",
+          "kind": "text"
+        },
+        {
+          "key": "targetMultiplicity",
+          "label": "Target multiplicity",
+          "kind": "text"
+        },
+        {
+          "key": "navigability",
+          "label": "Navigability",
+          "kind": "enum",
+          "values": [
+            "unspecified",
+            "target",
+            "source",
+            "both"
+          ],
+          "default": "unspecified"
+        }
+      ],
+      "endLabels": {
+        "start": [
+          "sourceRole",
+          "sourceMultiplicity"
+        ],
+        "end": [
+          "targetRole",
+          "targetMultiplicity"
+        ]
+      }
+    },
+    {
+      "id": "uml.Composition",
+      "label": "Composition",
+      "description": "A whole that owns its parts: the source is the whole, the target the part.",
+      "endArrow": "none",
+      "properties": [
+        {
+          "key": "sourceRole",
+          "label": "Source role",
+          "kind": "text"
+        },
+        {
+          "key": "sourceMultiplicity",
+          "label": "Source multiplicity",
+          "kind": "text"
+        },
+        {
+          "key": "targetRole",
+          "label": "Target role",
+          "kind": "text"
+        },
+        {
+          "key": "targetMultiplicity",
+          "label": "Target multiplicity",
+          "kind": "text"
+        },
+        {
+          "key": "navigability",
+          "label": "Navigability",
+          "kind": "enum",
+          "values": [
+            "unspecified",
+            "target",
+            "source",
+            "both"
+          ],
+          "default": "unspecified"
+        }
+      ],
+      "endLabels": {
+        "start": [
+          "sourceRole",
+          "sourceMultiplicity"
+        ],
+        "end": [
+          "targetRole",
+          "targetMultiplicity"
+        ]
+      }
+    },
+    {
+      "id": "uml.Aggregation",
+      "label": "Aggregation",
+      "description": "A shared whole and part: the source is the whole, the target the part.",
+      "endArrow": "none",
+      "properties": [
+        {
+          "key": "sourceRole",
+          "label": "Source role",
+          "kind": "text"
+        },
+        {
+          "key": "sourceMultiplicity",
+          "label": "Source multiplicity",
+          "kind": "text"
+        },
+        {
+          "key": "targetRole",
+          "label": "Target role",
+          "kind": "text"
+        },
+        {
+          "key": "targetMultiplicity",
+          "label": "Target multiplicity",
+          "kind": "text"
+        },
+        {
+          "key": "navigability",
+          "label": "Navigability",
+          "kind": "enum",
+          "values": [
+            "unspecified",
+            "target",
+            "source",
+            "both"
+          ],
+          "default": "unspecified"
+        }
+      ],
+      "endLabels": {
+        "start": [
+          "sourceRole",
+          "sourceMultiplicity"
+        ],
+        "end": [
+          "targetRole",
+          "targetMultiplicity"
+        ]
+      }
+    },
+    {
+      "id": "uml.Generalization",
+      "label": "Generalization",
+      "description": "The source specializes the target (the child points at the parent).",
+      "endArrow": "hollowTriangle"
+    },
+    {
+      "id": "uml.Realization",
+      "label": "Realization",
+      "description": "The source implements the contract of the target interface.",
+      "endArrow": "hollowTriangle"
+    },
+    {
+      "id": "uml.Dependency",
+      "label": "Dependency",
+      "description": "The source needs the target to be complete.",
+      "endArrow": "open"
+    },
+    {
+      "id": "uml.Usage",
+      "label": "Usage",
+      "description": "The source uses the target to work.",
+      "endArrow": "open",
+      "keyword": "use"
+    },
+    {
+      "id": "uml.Anchor",
+      "label": "Note Anchor",
+      "description": "Attaches a note to an element.",
+      "endArrow": "none"
+    }
+  ],
+  "connections": [
+    {
+      "source": [
+        "uml.Class",
+        "uml.Interface",
+        "uml.Enumeration",
+        "uml.Component",
+        "uml.Actor",
+        "uml.UseCase",
+        "uml.Node",
+        "uml.Artifact",
+        "uml.Subject"
+      ],
+      "relationship": "uml.Association",
+      "target": [
+        "uml.Class",
+        "uml.Interface",
+        "uml.Enumeration",
+        "uml.Component",
+        "uml.Actor",
+        "uml.UseCase",
+        "uml.Node",
+        "uml.Artifact",
+        "uml.Subject"
+      ]
+    },
+    {
+      "source": [
+        "uml.Class",
+        "uml.Interface",
+        "uml.Enumeration",
+        "uml.Component",
+        "uml.Actor",
+        "uml.UseCase",
+        "uml.Node",
+        "uml.Artifact",
+        "uml.Subject"
+      ],
+      "relationship": "uml.Composition",
+      "target": [
+        "uml.Class",
+        "uml.Interface",
+        "uml.Enumeration",
+        "uml.Component",
+        "uml.Actor",
+        "uml.UseCase",
+        "uml.Node",
+        "uml.Artifact",
+        "uml.Subject"
+      ],
+      "inMax": 1
+    },
+    {
+      "source": [
+        "uml.Class",
+        "uml.Interface",
+        "uml.Enumeration",
+        "uml.Component",
+        "uml.Actor",
+        "uml.UseCase",
+        "uml.Node",
+        "uml.Artifact",
+        "uml.Subject"
+      ],
+      "relationship": "uml.Aggregation",
+      "target": [
+        "uml.Class",
+        "uml.Interface",
+        "uml.Enumeration",
+        "uml.Component",
+        "uml.Actor",
+        "uml.UseCase",
+        "uml.Node",
+        "uml.Artifact",
+        "uml.Subject"
+      ]
+    },
+    {
+      "source": [
+        "uml.Class"
+      ],
+      "relationship": "uml.Generalization",
+      "target": [
+        "uml.Class"
+      ]
+    },
+    {
+      "source": [
+        "uml.Interface"
+      ],
+      "relationship": "uml.Generalization",
+      "target": [
+        "uml.Interface"
+      ]
+    },
+    {
+      "source": [
+        "uml.Actor"
+      ],
+      "relationship": "uml.Generalization",
+      "target": [
+        "uml.Actor"
+      ]
+    },
+    {
+      "source": [
+        "uml.UseCase"
+      ],
+      "relationship": "uml.Generalization",
+      "target": [
+        "uml.UseCase"
+      ]
+    },
+    {
+      "source": [
+        "uml.Component"
+      ],
+      "relationship": "uml.Generalization",
+      "target": [
+        "uml.Component"
+      ]
+    },
+    {
+      "source": [
+        "uml.Node"
+      ],
+      "relationship": "uml.Generalization",
+      "target": [
+        "uml.Node"
+      ]
+    },
+    {
+      "source": [
+        "uml.Class",
+        "uml.Component",
+        "uml.Enumeration"
+      ],
+      "relationship": "uml.Realization",
+      "target": [
+        "uml.Interface"
+      ]
+    },
+    {
+      "source": [
+        "*"
+      ],
+      "relationship": "uml.Dependency",
+      "target": [
+        "*"
+      ]
+    },
+    {
+      "source": [
+        "*"
+      ],
+      "relationship": "uml.Usage",
+      "target": [
+        "*"
+      ]
+    },
+    {
+      "source": [
+        "uml.Note"
+      ],
+      "relationship": "uml.Anchor",
+      "target": [
+        "*"
+      ]
+    }
+  ],
+  "palette": [
+    {
+      "id": "uml.notes",
+      "label": "Notes",
+      "types": [
+        "uml.Note"
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "uml.illegal",
+      "description": "UML allows this relationship only between certain kinds of element.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "illegalRelationship"
+      },
+      "reference": "UML 2.5.1, 9.9.17 InterfaceRealization (a realization targets an interface) and the relationship tables of clauses 7 to 19"
+    },
+    {
+      "id": "uml.multiplicity",
+      "description": "A part belongs to at most one whole at a time.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "multiplicity"
+      },
+      "reference": "UML 2.5.1, 9.5.3 composite aggregation: a part is included in at most one composite object at a time"
+    },
+    {
+      "id": "uml.generalizationCycle",
+      "description": "A classifier cannot be its own ancestor.",
+      "severity": "error",
+      "mode": "batch",
+      "check": {
+        "kind": "forbiddenCycle",
+        "relationship": "uml.Generalization"
+      },
+      "reference": "UML 2.5.1, 9.9.4.6 Classifier constraint no_cycles_in_generalization"
+    },
+    {
+      "id": "uml.multiplicitySyntax",
+      "description": "A multiplicity is written n, *, n..m or n..* with n at most m.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "multiplicitySyntax",
+        "types": [],
+        "properties": [
+          "sourceMultiplicity",
+          "targetMultiplicity"
+        ],
+        "members": [
+          "attributes"
+        ]
+      },
+      "reference": "UML 2.5.1, 7.5.4 MultiplicityElement notation and 7.8.8.8 constraint upper_ge_lower"
+    },
+    {
+      "id": "uml.uniqueMembers",
+      "description": "Attribute names in one classifier must be distinct.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "uniqueMembers",
+        "types": [
+          "uml.Class",
+          "uml.Interface"
+        ],
+        "property": "attributes"
+      },
+      "reference": "UML 2.5.1, 7.8.12.8 Namespace constraint members_distinguishable"
+    },
+    {
+      "id": "uml.navigability",
+      "description": "The association's ends should show its navigability.",
+      "severity": "info",
+      "mode": "live",
+      "check": {
+        "kind": "endMarkerMatchesProperty",
+        "relationship": "uml.Association",
+        "property": "navigability",
+        "markers": [
+          {
+            "value": "unspecified",
+            "start": "none",
+            "end": "none"
+          },
+          {
+            "value": "target",
+            "start": "none",
+            "end": "open"
+          },
+          {
+            "value": "source",
+            "start": "open",
+            "end": "none"
+          },
+          {
+            "value": "both",
+            "start": "open",
+            "end": "open"
+          }
+        ]
+      },
+      "reference": "UML 2.5.1, 11.5.4 Association notation: an open arrowhead marks a navigable end"
+    },
+    {
+      "id": "uml.propertyType",
+      "description": "UML property values must fit their types.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "propertyType",
+        "types": []
+      }
+    },
+    {
+      "id": "uml.viewpoint",
+      "description": "This kind of UML element does not belong on this kind of diagram.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "viewpointType"
+      }
+    },
+    {
+      "id": "uml.dangling",
+      "description": "Every UML connector should join two elements.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "danglingConnector"
+      }
+    }
+  ],
+  "rulesets": [
+    {
+      "id": "uml.uml251",
+      "label": "UML 2.5.1",
+      "description": "The well-formedness constraints of UML 2.5.1 (OMG formal/17-12-05) that a drawing can show, plus house rules for consistent diagrams.",
+      "rules": [
+        "uml.illegal",
+        "uml.multiplicity",
+        "uml.generalizationCycle",
+        "uml.multiplicitySyntax",
+        "uml.uniqueMembers",
+        "uml.navigability",
+        "uml.propertyType",
+        "uml.viewpoint",
+        "uml.dangling"
+      ]
+    }
+  ],
+  "conditionalStyles": [],
+  "variants": [
+    {
+      "id": "uml.keywords",
+      "label": "Visibility in words",
+      "description": "Member rows spell visibility out (public, private) instead of using symbols.",
+      "options": {
+        "memberVisibility": "keywords"
+      }
+    },
+    {
+      "id": "uml.lollipop",
+      "label": "Lollipop interfaces",
+      "description": "Interfaces drawn as balls on plain realization lines.",
+      "glyphs": {
+        "uml.Interface": "uml.interfaceBall"
+      },
+      "connectors": {
+        "uml.Realization": "uml.realizationPlain"
+      }
+    },
+    {
+      "id": "uml.nameOnly",
+      "label": "Names only",
+      "description": "Classifiers show their names with the member compartments left empty.",
+      "options": {
+        "members": "suppressed"
+      }
+    }
+  ],
+  "templates": [],
+  "sections": [
+    {
+      "id": "class",
+      "label": "Class",
+      "glyphs": [
+        {
+          "id": "uml.class",
+          "label": "Class",
+          "category": "Classes",
+          "outline": "rectangle",
+          "w": 220,
+          "h": 80,
+          "fill": "#f4f7fb",
+          "line": "#34495e",
+          "keywords": [
+            "type",
+            "object",
+            "uml"
+          ],
+          "elementType": "uml.Class"
+        },
+        {
+          "id": "uml.interface",
+          "label": "Interface",
+          "category": "Classes",
+          "outline": "rectangle",
+          "w": 220,
+          "h": 80,
+          "fill": "#eef6f0",
+          "line": "#2f6a4f",
+          "keywords": [
+            "contract",
+            "protocol",
+            "uml"
+          ],
+          "elementType": "uml.Interface"
+        },
+        {
+          "id": "uml.enumeration",
+          "label": "Enumeration",
+          "category": "Classes",
+          "outline": "rectangle",
+          "w": 160,
+          "h": 80,
+          "fill": "#f6f1fa",
+          "line": "#5b3f7a",
+          "keywords": [
+            "enum",
+            "literal",
+            "uml"
+          ],
+          "elementType": "uml.Enumeration"
+        },
+        {
+          "id": "uml.interfaceBall",
+          "label": "Interface (ball)",
+          "category": "Classes",
+          "outline": "ellipse",
+          "w": 28,
+          "h": 28,
+          "fill": "#eef6f0",
+          "line": "#2f6a4f",
+          "keywords": [
+            "lollipop",
+            "provided",
+            "uml"
+          ],
+          "elementType": "uml.Interface"
+        }
+      ],
+      "elementTypes": [
+        {
+          "id": "uml.Class",
+          "label": "Class",
+          "description": "A classifier with attributes and operations.",
+          "glyph": "uml.class",
+          "properties": [
+            {
+              "key": "attributes",
+              "label": "Attributes",
+              "kind": "text",
+              "description": "One attribute per line: visibility name: Type [multiplicity] = default."
+            },
+            {
+              "key": "operations",
+              "label": "Operations",
+              "kind": "text",
+              "description": "One operation per line: visibility name(parameters): Return."
+            },
+            {
+              "key": "stereotype",
+              "label": "Stereotype",
+              "kind": "text",
+              "description": "Shown as a keyword above the name; empty for none."
+            },
+            {
+              "key": "isAbstract",
+              "label": "Abstract",
+              "kind": "bool",
+              "default": false
+            }
+          ],
+          "compartments": [
+            {
+              "id": "attrs",
+              "kind": "list",
+              "rowsFrom": "attributes"
+            },
+            {
+              "id": "ops",
+              "kind": "list",
+              "rowsFrom": "operations"
+            }
+          ]
+        },
+        {
+          "id": "uml.Interface",
+          "label": "Interface",
+          "description": "A contract of operations that classes and components realize.",
+          "glyph": "uml.interface",
+          "keyword": "interface",
+          "properties": [
+            {
+              "key": "attributes",
+              "label": "Attributes",
+              "kind": "text",
+              "description": "One attribute per line: visibility name: Type [multiplicity] = default."
+            },
+            {
+              "key": "operations",
+              "label": "Operations",
+              "kind": "text",
+              "description": "One operation per line: visibility name(parameters): Return."
+            },
+            {
+              "key": "stereotype",
+              "label": "Stereotype",
+              "kind": "text",
+              "description": "Shown as a keyword above the name; empty for none."
+            }
+          ],
+          "compartments": [
+            {
+              "id": "attrs",
+              "kind": "list",
+              "rowsFrom": "attributes"
+            },
+            {
+              "id": "ops",
+              "kind": "list",
+              "rowsFrom": "operations"
+            }
+          ]
+        },
+        {
+          "id": "uml.Enumeration",
+          "label": "Enumeration",
+          "description": "A data type whose values are listed literals.",
+          "glyph": "uml.enumeration",
+          "keyword": "enumeration",
+          "properties": [
+            {
+              "key": "literals",
+              "label": "Literals",
+              "kind": "text",
+              "description": "One literal per line."
+            },
+            {
+              "key": "stereotype",
+              "label": "Stereotype",
+              "kind": "text"
+            }
+          ],
+          "compartments": [
+            {
+              "id": "literals",
+              "kind": "list",
+              "rowsFrom": "literals"
+            }
+          ]
+        }
+      ],
+      "conditionalStyles": [
+        {
+          "types": [
+            "uml.Class"
+          ],
+          "property": "isAbstract",
+          "equals": true,
+          "italic": true
+        }
+      ],
+      "palette": [
+        {
+          "id": "uml.classes",
+          "label": "Classes",
+          "types": [
+            "uml.Class",
+            "uml.Interface",
+            "uml.Enumeration"
+          ]
+        }
+      ],
+      "viewpoints": [
+        {
+          "id": "uml.ClassDiagram",
+          "label": "Class Diagram",
+          "description": "Classes, interfaces and enumerations with their relationships.",
+          "types": [
+            "uml.Class",
+            "uml.Interface",
+            "uml.Enumeration",
+            "uml.Package",
+            "uml.Note"
+          ],
+          "relationships": [
+            "uml.Association",
+            "uml.Composition",
+            "uml.Aggregation",
+            "uml.Generalization",
+            "uml.Realization",
+            "uml.Dependency",
+            "uml.Usage",
+            "uml.Anchor"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "uml.interfaceRealized",
+          "description": "An interface no classifier realizes is not yet provided by anything.",
+          "severity": "info",
+          "mode": "batch",
+          "check": {
+            "kind": "minIncoming",
+            "types": [
+              "uml.Interface"
+            ],
+            "relationship": "uml.Realization",
+            "min": 1
+          },
+          "reference": "UML 2.5.1, 10.4.4 Interface notation (provided interfaces); an approximation"
+        }
+      ],
+      "rulesets": [
+        {
+          "id": "uml.uml251",
+          "rules": [
+            "uml.interfaceRealized"
+          ]
+        }
+      ],
+      "templates": [
+        {
+          "id": "uml.classDiagram",
+          "label": "Class Diagram",
+          "description": "A small order model: classes with typed attributes and operations, an interface and its realization, composition and multiplicities.",
+          "viewpoint": "uml.ClassDiagram",
+          "keywords": [
+            "class",
+            "domain model",
+            "object",
+            "uml"
+          ],
+          "codeForms": [
+            "mermaid.class",
+            "plantuml"
+          ],
+          "seed": [
+            {
+              "command": "element.create",
+              "as": "party",
+              "params": {
+                "type": "uml.Class",
+                "name": "Party",
+                "x": 0,
+                "y": 0,
+                "properties": {
+                  "isAbstract": true,
+                  "attributes": "+name: String"
+                }
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "customer",
+              "params": {
+                "type": "uml.Class",
+                "name": "Customer",
+                "x": 0,
+                "y": 0,
+                "properties": {
+                  "attributes": "+email: String\n-loyaltyPoints: Integer = 0",
+                  "operations": "+placeOrder(): Order"
+                }
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "order",
+              "params": {
+                "type": "uml.Class",
+                "name": "Order",
+                "x": 0,
+                "y": 0,
+                "properties": {
+                  "attributes": "+number: String\n+placed: Date\n-lines: OrderLine [1..*]",
+                  "operations": "+total(): Money\n{static} +nextNumber(): String"
+                }
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "line",
+              "params": {
+                "type": "uml.Class",
+                "name": "OrderLine",
+                "x": 0,
+                "y": 0,
+                "properties": {
+                  "attributes": "+quantity: Integer = 1"
+                }
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "product",
+              "params": {
+                "type": "uml.Class",
+                "name": "Product",
+                "x": 0,
+                "y": 0,
+                "properties": {
+                  "attributes": "+sku: String\n+price: Money"
+                }
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "payment",
+              "params": {
+                "type": "uml.Interface",
+                "name": "PaymentMethod",
+                "x": 0,
+                "y": 0,
+                "properties": {
+                  "operations": "+authorize(amount: Money): Boolean"
+                }
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "card",
+              "params": {
+                "type": "uml.Class",
+                "name": "CardPayment",
+                "x": 0,
+                "y": 0,
+                "properties": {
+                  "attributes": "-cardNumber: String"
+                }
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${customer.id}",
+                "to": "${party.id}",
+                "type": "uml.Generalization"
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${customer.id}",
+                "to": "${order.id}",
+                "type": "uml.Association",
+                "properties": {
+                  "sourceMultiplicity": "1",
+                  "targetMultiplicity": "0..*",
+                  "targetRole": "orders"
+                }
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${order.id}",
+                "to": "${line.id}",
+                "type": "uml.Composition",
+                "properties": {
+                  "sourceMultiplicity": "1",
+                  "targetMultiplicity": "1..*"
+                }
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${line.id}",
+                "to": "${product.id}",
+                "type": "uml.Association",
+                "properties": {
+                  "targetMultiplicity": "1"
+                }
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${order.id}",
+                "to": "${payment.id}",
+                "type": "uml.Usage"
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${card.id}",
+                "to": "${payment.id}",
+                "type": "uml.Realization"
+              }
+            }
+          ],
+          "layout": {
+            "algorithm": "layered",
+            "direction": "TB"
+          }
+        }
+      ]
+    },
+    {
+      "id": "component",
+      "label": "Component",
+      "glyphs": [
+        {
+          "id": "uml.component",
+          "label": "Component",
+          "category": "Components",
+          "outline": "path",
+          "w": 180,
+          "h": 90,
+          "fill": "#eef3fa",
+          "line": "#2e5a87",
+          "keywords": [
+            "module",
+            "service",
+            "uml"
+          ],
+          "elementType": "uml.Component",
+          "path": "M0 0 L1 0 L1 1 L0 1 Z",
+          "detail": "M0.86 0.08 L0.97 0.08 L0.97 0.24 L0.86 0.24 Z M0.83 0.11 L0.89 0.11 L0.89 0.14 L0.83 0.14 Z M0.83 0.18 L0.89 0.18 L0.89 0.21 L0.83 0.21 Z",
+          "source": "drawn from UML 2.5.1 (OMG formal/17-12-05), 11.6.4 Component notation: a classifier rectangle with the component icon in its upper right corner"
+        }
+      ],
+      "elementTypes": [
+        {
+          "id": "uml.Component",
+          "label": "Component",
+          "description": "A replaceable part of a system that provides and requires interfaces.",
+          "glyph": "uml.component",
+          "container": true,
+          "keyword": "component",
+          "properties": [
+            {
+              "key": "stereotype",
+              "label": "Stereotype",
+              "kind": "text"
+            }
+          ]
+        }
+      ],
+      "palette": [
+        {
+          "id": "uml.components",
+          "label": "Components",
+          "types": [
+            "uml.Component",
+            "uml.Interface"
+          ]
+        }
+      ],
+      "viewpoints": [
+        {
+          "id": "uml.ComponentDiagram",
+          "label": "Component Diagram",
+          "description": "Components with the interfaces they provide and require.",
+          "types": [
+            "uml.Component",
+            "uml.Interface",
+            "uml.Class",
+            "uml.Package",
+            "uml.Artifact",
+            "uml.Note"
+          ],
+          "relationships": [
+            "uml.Realization",
+            "uml.Usage",
+            "uml.Dependency",
+            "uml.Association",
+            "uml.Composition",
+            "uml.Manifest",
+            "uml.Anchor"
+          ]
+        }
+      ],
+      "templates": [
+        {
+          "id": "uml.component",
+          "label": "Component Diagram",
+          "description": "Three components wired through the interfaces they provide and use.",
+          "viewpoint": "uml.ComponentDiagram",
+          "keywords": [
+            "component",
+            "architecture",
+            "service",
+            "uml"
+          ],
+          "codeForms": [
+            "plantuml"
+          ],
+          "seed": [
+            {
+              "command": "element.create",
+              "as": "web",
+              "params": {
+                "type": "uml.Component",
+                "name": "Web Shop",
+                "x": 0,
+                "y": 0
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "ordering",
+              "params": {
+                "type": "uml.Component",
+                "name": "Ordering",
+                "x": 0,
+                "y": 0
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "billing",
+              "params": {
+                "type": "uml.Component",
+                "name": "Billing",
+                "x": 0,
+                "y": 0
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "orderApi",
+              "params": {
+                "type": "uml.Interface",
+                "name": "OrderApi",
+                "x": 0,
+                "y": 0,
+                "properties": {
+                  "operations": "+place(cart: Cart): OrderId"
+                }
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "billingApi",
+              "params": {
+                "type": "uml.Interface",
+                "name": "BillingApi",
+                "x": 0,
+                "y": 0,
+                "properties": {
+                  "operations": "+charge(order: OrderId): Receipt"
+                }
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${ordering.id}",
+                "to": "${orderApi.id}",
+                "type": "uml.Realization"
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${billing.id}",
+                "to": "${billingApi.id}",
+                "type": "uml.Realization"
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${web.id}",
+                "to": "${orderApi.id}",
+                "type": "uml.Usage"
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${ordering.id}",
+                "to": "${billingApi.id}",
+                "type": "uml.Usage"
+              }
+            }
+          ],
+          "layout": {
+            "algorithm": "layered",
+            "direction": "LR"
+          }
+        }
+      ]
+    },
+    {
+      "id": "package",
+      "label": "Package",
+      "glyphs": [
+        {
+          "id": "uml.package",
+          "label": "Package",
+          "category": "Packages",
+          "outline": "path",
+          "w": 180,
+          "h": 110,
+          "fill": "#f7f4ec",
+          "line": "#6b5a2e",
+          "keywords": [
+            "namespace",
+            "folder",
+            "uml"
+          ],
+          "elementType": "uml.Package",
+          "path": "M0 0 L0.4 0 L0.4 0.14 L1 0.14 L1 1 L0 1 Z",
+          "detail": "M0 0.14 L0.4 0.14",
+          "source": "drawn from UML 2.5.1 (OMG formal/17-12-05), 12.2.4 Package notation: a large rectangle with a small rectangle (a tab) attached to its upper left"
+        }
+      ],
+      "elementTypes": [
+        {
+          "id": "uml.Package",
+          "label": "Package",
+          "description": "A namespace that groups packageable elements.",
+          "glyph": "uml.package",
+          "container": true
+        }
+      ],
+      "relationshipTypes": [
+        {
+          "id": "uml.PackageImport",
+          "label": "Package Import",
+          "description": "The source namespace imports the public names of the target package.",
+          "endArrow": "open",
+          "keyword": "import"
+        },
+        {
+          "id": "uml.PackageMerge",
+          "label": "Package Merge",
+          "description": "The source package is extended by the contents of the target package.",
+          "endArrow": "open",
+          "keyword": "merge"
+        }
+      ],
+      "connectorTypes": [
+        {
+          "id": "uml.import",
+          "label": "Package Import",
+          "category": "Packages",
+          "route": "orthogonal",
+          "startArrow": "none",
+          "endArrow": "open",
+          "dash": "dashed",
+          "lineWidth": 1.25,
+          "line": "#34495e",
+          "keywords": [
+            "import",
+            "uml"
+          ],
+          "relationshipType": "uml.PackageImport"
+        },
+        {
+          "id": "uml.merge",
+          "label": "Package Merge",
+          "category": "Packages",
+          "route": "orthogonal",
+          "startArrow": "none",
+          "endArrow": "open",
+          "dash": "dashed",
+          "lineWidth": 1.25,
+          "line": "#34495e",
+          "keywords": [
+            "merge",
+            "uml"
+          ],
+          "relationshipType": "uml.PackageMerge"
+        }
+      ],
+      "connections": [
+        {
+          "source": [
+            "uml.Package"
+          ],
+          "relationship": "uml.PackageImport",
+          "target": [
+            "uml.Package"
+          ]
+        },
+        {
+          "source": [
+            "uml.Package"
+          ],
+          "relationship": "uml.PackageMerge",
+          "target": [
+            "uml.Package"
+          ]
+        }
+      ],
+      "palette": [
+        {
+          "id": "uml.packages",
+          "label": "Packages",
+          "types": [
+            "uml.Package"
+          ]
+        }
+      ],
+      "viewpoints": [
+        {
+          "id": "uml.PackageDiagram",
+          "label": "Package Diagram",
+          "description": "Packages and the imports, merges and dependencies between them.",
+          "types": [
+            "uml.Package",
+            "uml.Class",
+            "uml.Interface",
+            "uml.Note"
+          ],
+          "relationships": [
+            "uml.PackageImport",
+            "uml.PackageMerge",
+            "uml.Dependency",
+            "uml.Anchor"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "uml.importCycle",
+          "description": "Packages should not import each other in a circle.",
+          "severity": "warning",
+          "mode": "batch",
+          "check": {
+            "kind": "forbiddenCycle",
+            "relationship": "uml.PackageImport"
+          },
+          "reference": "UML 2.5.1, 12.2.3 PackageImport semantics; a house rule against circular layering"
+        }
+      ],
+      "rulesets": [
+        {
+          "id": "uml.uml251",
+          "rules": [
+            "uml.importCycle"
+          ]
+        }
+      ],
+      "templates": [
+        {
+          "id": "uml.package",
+          "label": "Package Diagram",
+          "description": "A layered application: user interface, domain and persistence packages with their imports.",
+          "viewpoint": "uml.PackageDiagram",
+          "keywords": [
+            "package",
+            "layers",
+            "namespace",
+            "uml"
+          ],
+          "codeForms": [
+            "plantuml"
+          ],
+          "seed": [
+            {
+              "command": "element.create",
+              "as": "ui",
+              "params": {
+                "type": "uml.Package",
+                "name": "ui",
+                "x": 0,
+                "y": 0
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "domain",
+              "params": {
+                "type": "uml.Package",
+                "name": "domain",
+                "x": 0,
+                "y": 0
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "persistence",
+              "params": {
+                "type": "uml.Package",
+                "name": "persistence",
+                "x": 0,
+                "y": 0
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "util",
+              "params": {
+                "type": "uml.Package",
+                "name": "util",
+                "x": 0,
+                "y": 0
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${ui.id}",
+                "to": "${domain.id}",
+                "type": "uml.PackageImport"
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${persistence.id}",
+                "to": "${domain.id}",
+                "type": "uml.PackageImport"
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${domain.id}",
+                "to": "${util.id}",
+                "type": "uml.PackageImport"
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${ui.id}",
+                "to": "${persistence.id}",
+                "type": "uml.Dependency"
+              }
+            }
+          ],
+          "layout": {
+            "algorithm": "layered",
+            "direction": "TB"
+          }
+        }
+      ]
+    },
+    {
+      "id": "deployment",
+      "label": "Deployment",
+      "glyphs": [
+        {
+          "id": "uml.node",
+          "label": "Node",
+          "category": "Deployment",
+          "outline": "path",
+          "w": 200,
+          "h": 130,
+          "fill": "#eef1f4",
+          "line": "#3d4f61",
+          "keywords": [
+            "server",
+            "machine",
+            "uml"
+          ],
+          "elementType": "uml.Node",
+          "path": "M0 0.14 L0.14 0 L1 0 L1 0.86 L0.86 1 L0 1 Z",
+          "detail": "M0 0.14 L0.86 0.14 L1 0 M0.86 0.14 L0.86 1",
+          "source": "drawn from UML 2.5.1 (OMG formal/17-12-05), 19.5.4 Node notation: a perspective view of a cube"
+        },
+        {
+          "id": "uml.device",
+          "label": "Device",
+          "category": "Deployment",
+          "outline": "path",
+          "w": 200,
+          "h": 130,
+          "fill": "#eef1f4",
+          "line": "#3d4f61",
+          "keywords": [
+            "hardware",
+            "machine",
+            "uml"
+          ],
+          "elementType": "uml.Device",
+          "path": "M0 0.14 L0.14 0 L1 0 L1 0.86 L0.86 1 L0 1 Z",
+          "detail": "M0 0.14 L0.86 0.14 L1 0 M0.86 0.14 L0.86 1",
+          "source": "drawn from UML 2.5.1 (OMG formal/17-12-05), 19.5.4 Node notation (Device is a Node with the keyword device)"
+        },
+        {
+          "id": "uml.executionEnvironment",
+          "label": "Execution Environment",
+          "category": "Deployment",
+          "outline": "path",
+          "w": 200,
+          "h": 130,
+          "fill": "#f3f5f7",
+          "line": "#3d4f61",
+          "keywords": [
+            "runtime",
+            "container",
+            "platform",
+            "uml"
+          ],
+          "elementType": "uml.ExecutionEnvironment",
+          "path": "M0 0.14 L0.14 0 L1 0 L1 0.86 L0.86 1 L0 1 Z",
+          "detail": "M0 0.14 L0.86 0.14 L1 0 M0.86 0.14 L0.86 1",
+          "source": "drawn from UML 2.5.1 (OMG formal/17-12-05), 19.5.4 Node notation (ExecutionEnvironment is a Node with the keyword executionEnvironment)"
+        },
+        {
+          "id": "uml.artifact",
+          "label": "Artifact",
+          "category": "Deployment",
+          "outline": "path",
+          "w": 160,
+          "h": 60,
+          "fill": "#ffffff",
+          "line": "#3d4f61",
+          "keywords": [
+            "file",
+            "binary",
+            "jar",
+            "uml"
+          ],
+          "elementType": "uml.Artifact",
+          "path": "M0 0 L1 0 L1 1 L0 1 Z",
+          "detail": "M0.86 0.08 L0.93 0.08 L0.97 0.13 L0.97 0.26 L0.86 0.26 Z M0.93 0.08 L0.93 0.13 L0.97 0.13",
+          "source": "drawn from UML 2.5.1 (OMG formal/17-12-05), 19.3.4 Artifact notation: a classifier rectangle with the keyword artifact and a document icon in the corner"
+        }
+      ],
+      "elementTypes": [
+        {
+          "id": "uml.Node",
+          "label": "Node",
+          "description": "A computational resource artifacts are deployed on.",
+          "glyph": "uml.node",
+          "container": true
+        },
+        {
+          "id": "uml.Device",
+          "label": "Device",
+          "description": "A physical computational resource.",
+          "glyph": "uml.device",
+          "container": true,
+          "extends": "uml.Node",
+          "keyword": "device"
+        },
+        {
+          "id": "uml.ExecutionEnvironment",
+          "label": "Execution Environment",
+          "description": "A software platform inside a node that runs deployed artifacts.",
+          "glyph": "uml.executionEnvironment",
+          "container": true,
+          "extends": "uml.Node",
+          "keyword": "executionEnvironment"
+        },
+        {
+          "id": "uml.Artifact",
+          "label": "Artifact",
+          "description": "A physical piece of information such as a file or a binary.",
+          "glyph": "uml.artifact",
+          "keyword": "artifact"
+        }
+      ],
+      "relationshipTypes": [
+        {
+          "id": "uml.Deploy",
+          "label": "Deployment",
+          "description": "The source artifact is deployed on the target node.",
+          "endArrow": "open",
+          "keyword": "deploy"
+        },
+        {
+          "id": "uml.Manifest",
+          "label": "Manifestation",
+          "description": "The source artifact embodies the target element.",
+          "endArrow": "open",
+          "keyword": "manifest"
+        },
+        {
+          "id": "uml.CommunicationPath",
+          "label": "Communication Path",
+          "description": "Nodes that exchange signals and messages.",
+          "endArrow": "none"
+        }
+      ],
+      "connectorTypes": [
+        {
+          "id": "uml.deploy",
+          "label": "Deployment",
+          "category": "Deployment",
+          "route": "orthogonal",
+          "startArrow": "none",
+          "endArrow": "open",
+          "dash": "dashed",
+          "lineWidth": 1.25,
+          "line": "#34495e",
+          "keywords": [
+            "deploy",
+            "uml"
+          ],
+          "relationshipType": "uml.Deploy"
+        },
+        {
+          "id": "uml.manifest",
+          "label": "Manifestation",
+          "category": "Deployment",
+          "route": "orthogonal",
+          "startArrow": "none",
+          "endArrow": "open",
+          "dash": "dashed",
+          "lineWidth": 1.25,
+          "line": "#34495e",
+          "keywords": [
+            "manifest",
+            "uml"
+          ],
+          "relationshipType": "uml.Manifest"
+        },
+        {
+          "id": "uml.communicationPath",
+          "label": "Communication Path",
+          "category": "Deployment",
+          "route": "orthogonal",
+          "startArrow": "none",
+          "endArrow": "none",
+          "dash": "solid",
+          "lineWidth": 1.25,
+          "line": "#34495e",
+          "keywords": [
+            "network",
+            "link",
+            "uml"
+          ],
+          "relationshipType": "uml.CommunicationPath"
+        }
+      ],
+      "connections": [
+        {
+          "source": [
+            "uml.Artifact"
+          ],
+          "relationship": "uml.Deploy",
+          "target": [
+            "uml.Node"
+          ]
+        },
+        {
+          "source": [
+            "uml.Artifact"
+          ],
+          "relationship": "uml.Manifest",
+          "target": [
+            "uml.Component",
+            "uml.Class"
+          ]
+        },
+        {
+          "source": [
+            "uml.Node"
+          ],
+          "relationship": "uml.CommunicationPath",
+          "target": [
+            "uml.Node"
+          ]
+        }
+      ],
+      "palette": [
+        {
+          "id": "uml.deployment",
+          "label": "Deployment",
+          "types": [
+            "uml.Node",
+            "uml.Device",
+            "uml.ExecutionEnvironment",
+            "uml.Artifact"
+          ]
+        }
+      ],
+      "viewpoints": [
+        {
+          "id": "uml.DeploymentDiagram",
+          "label": "Deployment Diagram",
+          "description": "Nodes and the artifacts deployed on them.",
+          "types": [
+            "uml.Node",
+            "uml.Artifact",
+            "uml.Component",
+            "uml.Note"
+          ],
+          "relationships": [
+            "uml.Deploy",
+            "uml.Manifest",
+            "uml.CommunicationPath",
+            "uml.Dependency",
+            "uml.Anchor"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "uml.artifactDeployed",
+          "description": "An artifact with no deployment is not placed on any node (nesting it in a node shows the same).",
+          "severity": "info",
+          "mode": "batch",
+          "check": {
+            "kind": "minOutgoing",
+            "types": [
+              "uml.Artifact"
+            ],
+            "relationship": "uml.Deploy",
+            "min": 1
+          },
+          "reference": "UML 2.5.1, 19.4 Deployments; an approximation"
+        }
+      ],
+      "rulesets": [
+        {
+          "id": "uml.uml251",
+          "rules": [
+            "uml.artifactDeployed"
+          ]
+        }
+      ],
+      "templates": [
+        {
+          "id": "uml.deployment",
+          "label": "Deployment Diagram",
+          "description": "A web server and a database server with the artifacts deployed on them.",
+          "viewpoint": "uml.DeploymentDiagram",
+          "keywords": [
+            "deployment",
+            "infrastructure",
+            "server",
+            "uml"
+          ],
+          "codeForms": [
+            "plantuml"
+          ],
+          "seed": [
+            {
+              "command": "element.create",
+              "as": "webNode",
+              "params": {
+                "type": "uml.Device",
+                "name": "Web server",
+                "x": 0,
+                "y": 0
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "dbNode",
+              "params": {
+                "type": "uml.Device",
+                "name": "Database server",
+                "x": 400,
+                "y": 0
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "war",
+              "params": {
+                "type": "uml.Artifact",
+                "name": "shop.war",
+                "x": 20,
+                "y": 60,
+                "owner": "${webNode.id}"
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "sql",
+              "params": {
+                "type": "uml.Artifact",
+                "name": "schema.sql",
+                "x": 420,
+                "y": 60,
+                "owner": "${dbNode.id}"
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${war.id}",
+                "to": "${webNode.id}",
+                "type": "uml.Deploy"
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${sql.id}",
+                "to": "${dbNode.id}",
+                "type": "uml.Deploy"
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${webNode.id}",
+                "to": "${dbNode.id}",
+                "type": "uml.CommunicationPath",
+                "name": "TCP/IP"
+              }
+            }
+          ],
+          "layout": {
+            "primitive": "nested",
+            "roles": {
+              "containers": [
+                {
+                  "id": "${webNode.shape}",
+                  "members": [
+                    "${war.shape}"
+                  ]
+                },
+                {
+                  "id": "${dbNode.shape}",
+                  "members": [
+                    "${sql.shape}"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "usecase",
+      "label": "Use Case",
+      "glyphs": [
+        {
+          "id": "uml.actor",
+          "label": "Actor",
+          "category": "Use Cases",
+          "outline": "path",
+          "w": 44,
+          "h": 84,
+          "fill": "#ffffff",
+          "line": "#2b3a4a",
+          "keywords": [
+            "user",
+            "role",
+            "person",
+            "uml"
+          ],
+          "elementType": "uml.Actor",
+          "path": "M0.61 0.12 C0.61 0.181 0.561 0.23 0.5 0.23 C0.439 0.23 0.39 0.181 0.39 0.12 C0.39 0.059 0.439 0.01 0.5 0.01 C0.561 0.01 0.61 0.059 0.61 0.12 Z",
+          "detail": "M0.5 0.23 L0.5 0.62 M0.12 0.36 L0.88 0.36 M0.5 0.62 L0.16 0.98 M0.5 0.62 L0.84 0.98",
+          "source": "drawn from UML 2.5.1 (OMG formal/17-12-05), 18.2.4 Actor notation: a stick man figure"
+        },
+        {
+          "id": "uml.useCase",
+          "label": "Use Case",
+          "category": "Use Cases",
+          "outline": "ellipse",
+          "w": 170,
+          "h": 70,
+          "fill": "#f2f6fb",
+          "line": "#2e5a87",
+          "keywords": [
+            "goal",
+            "scenario",
+            "uml"
+          ],
+          "elementType": "uml.UseCase"
+        },
+        {
+          "id": "uml.subject",
+          "label": "Subject",
+          "category": "Use Cases",
+          "outline": "rectangle",
+          "w": 360,
+          "h": 260,
+          "fill": "#ffffff",
+          "line": "#2b3a4a",
+          "keywords": [
+            "system boundary",
+            "uml"
+          ],
+          "elementType": "uml.Subject"
+        }
+      ],
+      "elementTypes": [
+        {
+          "id": "uml.Actor",
+          "label": "Actor",
+          "description": "A role a user or another system plays toward the subject.",
+          "glyph": "uml.actor"
+        },
+        {
+          "id": "uml.UseCase",
+          "label": "Use Case",
+          "description": "A behaviour the subject offers its actors.",
+          "glyph": "uml.useCase"
+        },
+        {
+          "id": "uml.Subject",
+          "label": "Subject",
+          "description": "The system whose use cases are shown: the boundary rectangle.",
+          "glyph": "uml.subject",
+          "container": true
+        }
+      ],
+      "relationshipTypes": [
+        {
+          "id": "uml.Include",
+          "label": "Include",
+          "description": "The base use case always includes the target use case.",
+          "endArrow": "open",
+          "keyword": "include"
+        },
+        {
+          "id": "uml.Extend",
+          "label": "Extend",
+          "description": "The source use case may extend the target use case.",
+          "endArrow": "open",
+          "keyword": "extend"
+        }
+      ],
+      "connectorTypes": [
+        {
+          "id": "uml.include",
+          "label": "Include",
+          "category": "Use Cases",
+          "route": "orthogonal",
+          "startArrow": "none",
+          "endArrow": "open",
+          "dash": "dashed",
+          "lineWidth": 1.25,
+          "line": "#34495e",
+          "keywords": [
+            "include",
+            "uml"
+          ],
+          "relationshipType": "uml.Include"
+        },
+        {
+          "id": "uml.extend",
+          "label": "Extend",
+          "category": "Use Cases",
+          "route": "orthogonal",
+          "startArrow": "none",
+          "endArrow": "open",
+          "dash": "dashed",
+          "lineWidth": 1.25,
+          "line": "#34495e",
+          "keywords": [
+            "extend",
+            "uml"
+          ],
+          "relationshipType": "uml.Extend"
+        }
+      ],
+      "connections": [
+        {
+          "source": [
+            "uml.UseCase"
+          ],
+          "relationship": "uml.Include",
+          "target": [
+            "uml.UseCase"
+          ]
+        },
+        {
+          "source": [
+            "uml.UseCase"
+          ],
+          "relationship": "uml.Extend",
+          "target": [
+            "uml.UseCase"
+          ]
+        }
+      ],
+      "palette": [
+        {
+          "id": "uml.useCases",
+          "label": "Use Cases",
+          "types": [
+            "uml.Actor",
+            "uml.UseCase",
+            "uml.Subject"
+          ]
+        }
+      ],
+      "viewpoints": [
+        {
+          "id": "uml.UseCaseDiagram",
+          "label": "Use Case Diagram",
+          "description": "Actors, the use cases they take part in and the subject's boundary.",
+          "types": [
+            "uml.Actor",
+            "uml.UseCase",
+            "uml.Subject",
+            "uml.Note"
+          ],
+          "relationships": [
+            "uml.Association",
+            "uml.Include",
+            "uml.Extend",
+            "uml.Generalization",
+            "uml.Anchor"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "uml.useCaseReached",
+          "description": "Every use case should serve an actor, directly or through other use cases.",
+          "severity": "info",
+          "mode": "batch",
+          "check": {
+            "kind": "unreachable",
+            "from": [
+              "uml.Actor"
+            ],
+            "relationship": "",
+            "types": [
+              "uml.UseCase"
+            ]
+          },
+          "reference": "UML 2.5.1, 18.1.3 Use cases semantics: a use case is performed for its actors"
+        }
+      ],
+      "rulesets": [
+        {
+          "id": "uml.uml251",
+          "rules": [
+            "uml.useCaseReached"
+          ]
+        }
+      ],
+      "templates": [
+        {
+          "id": "uml.useCase",
+          "label": "Use Case Diagram",
+          "description": "A customer and a clerk with the use cases of an online shop.",
+          "viewpoint": "uml.UseCaseDiagram",
+          "keywords": [
+            "use case",
+            "requirements",
+            "actor",
+            "uml"
+          ],
+          "codeForms": [
+            "plantuml"
+          ],
+          "seed": [
+            {
+              "command": "element.create",
+              "as": "shop",
+              "params": {
+                "type": "uml.Subject",
+                "name": "Online Shop"
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "customer",
+              "params": {
+                "type": "uml.Actor",
+                "name": "Customer",
+                "x": 0,
+                "y": 0
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "clerk",
+              "params": {
+                "type": "uml.Actor",
+                "name": "Clerk",
+                "x": 0,
+                "y": 0
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "place",
+              "params": {
+                "type": "uml.UseCase",
+                "name": "Place order",
+                "x": 0,
+                "y": 0,
+                "owner": "${shop.id}"
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "track",
+              "params": {
+                "type": "uml.UseCase",
+                "name": "Track order",
+                "x": 0,
+                "y": 0,
+                "owner": "${shop.id}"
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "pay",
+              "params": {
+                "type": "uml.UseCase",
+                "name": "Pay",
+                "x": 0,
+                "y": 0,
+                "owner": "${shop.id}"
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "ship",
+              "params": {
+                "type": "uml.UseCase",
+                "name": "Ship order",
+                "x": 0,
+                "y": 0,
+                "owner": "${shop.id}"
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${customer.id}",
+                "to": "${place.id}",
+                "type": "uml.Association"
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${customer.id}",
+                "to": "${track.id}",
+                "type": "uml.Association"
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${clerk.id}",
+                "to": "${ship.id}",
+                "type": "uml.Association"
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${place.id}",
+                "to": "${pay.id}",
+                "type": "uml.Include"
+              }
+            }
+          ],
+          "layout": {
+            "algorithm": "layered",
+            "direction": "LR"
+          }
+        }
+      ]
+    },
+    {
+      "id": "activity",
+      "label": "Activity",
+      "glyphs": [
+        {
+          "id": "uml.initialNode",
+          "label": "Initial Node",
+          "category": "Activity",
+          "outline": "ellipse",
+          "w": 24,
+          "h": 24,
+          "fill": "#25303b",
+          "line": "#25303b",
+          "keywords": [
+            "begin",
+            "uml"
+          ],
+          "elementType": "uml.InitialNode"
+        },
+        {
+          "id": "uml.activityFinal",
+          "label": "Activity Final",
+          "category": "Activity",
+          "outline": "path",
+          "w": 28,
+          "h": 28,
+          "fill": "#25303b",
+          "line": "#25303b",
+          "keywords": [
+            "end",
+            "finish",
+            "uml"
+          ],
+          "elementType": "uml.ActivityFinal",
+          "path": "M0.8 0.5 C0.8 0.666 0.666 0.8 0.5 0.8 C0.334 0.8 0.2 0.666 0.2 0.5 C0.2 0.334 0.334 0.2 0.5 0.2 C0.666 0.2 0.8 0.334 0.8 0.5 Z",
+          "detail": "M0.98 0.5 C0.98 0.765 0.765 0.98 0.5 0.98 C0.235 0.98 0.02 0.765 0.02 0.5 C0.02 0.235 0.235 0.02 0.5 0.02 C0.765 0.02 0.98 0.235 0.98 0.5 Z",
+          "source": "drawn from UML 2.5.1 (OMG formal/17-12-05), 15.3.4 ActivityFinalNode notation: a solid circle with a hollow circle around it"
+        },
+        {
+          "id": "uml.flowFinal",
+          "label": "Flow Final",
+          "category": "Activity",
+          "outline": "path",
+          "w": 28,
+          "h": 28,
+          "fill": "#ffffff",
+          "line": "#25303b",
+          "keywords": [
+            "end",
+            "uml"
+          ],
+          "elementType": "uml.FlowFinal",
+          "path": "M0.98 0.5 C0.98 0.765 0.765 0.98 0.5 0.98 C0.235 0.98 0.02 0.765 0.02 0.5 C0.02 0.235 0.235 0.02 0.5 0.02 C0.765 0.02 0.98 0.235 0.98 0.5 Z",
+          "detail": "M0.16 0.16 L0.84 0.84 M0.84 0.16 L0.16 0.84",
+          "source": "drawn from UML 2.5.1 (OMG formal/17-12-05), 15.3.4 FlowFinalNode notation: a circle with an X inside"
+        },
+        {
+          "id": "uml.action",
+          "label": "Action",
+          "category": "Activity",
+          "outline": "roundedRectangle",
+          "w": 150,
+          "h": 60,
+          "fill": "#f2f6fb",
+          "line": "#2e5a87",
+          "keywords": [
+            "step",
+            "task",
+            "uml"
+          ],
+          "elementType": "uml.Action"
+        },
+        {
+          "id": "uml.objectNode",
+          "label": "Object Node",
+          "category": "Activity",
+          "outline": "rectangle",
+          "w": 140,
+          "h": 50,
+          "fill": "#ffffff",
+          "line": "#2e5a87",
+          "keywords": [
+            "object",
+            "data",
+            "uml"
+          ],
+          "elementType": "uml.ObjectNode"
+        },
+        {
+          "id": "uml.decision",
+          "label": "Decision Node",
+          "category": "Activity",
+          "outline": "diamond",
+          "w": 44,
+          "h": 44,
+          "fill": "#ffffff",
+          "line": "#2e5a87",
+          "keywords": [
+            "branch",
+            "merge",
+            "uml"
+          ],
+          "elementType": "uml.Decision"
+        },
+        {
+          "id": "uml.forkNode",
+          "label": "Fork",
+          "category": "Activity",
+          "outline": "rectangle",
+          "w": 100,
+          "h": 8,
+          "fill": "#25303b",
+          "line": "#25303b",
+          "keywords": [
+            "parallel",
+            "split",
+            "uml"
+          ],
+          "elementType": "uml.ForkNode"
+        },
+        {
+          "id": "uml.joinNode",
+          "label": "Join",
+          "category": "Activity",
+          "outline": "rectangle",
+          "w": 100,
+          "h": 8,
+          "fill": "#25303b",
+          "line": "#25303b",
+          "keywords": [
+            "parallel",
+            "synchronize",
+            "uml"
+          ],
+          "elementType": "uml.JoinNode"
+        },
+        {
+          "id": "uml.partition",
+          "label": "Partition",
+          "category": "Activity",
+          "outline": "rectangle",
+          "w": 260,
+          "h": 400,
+          "fill": "#ffffff",
+          "line": "#3d4f61",
+          "keywords": [
+            "swimlane",
+            "lane",
+            "uml"
+          ],
+          "elementType": "uml.Partition"
+        },
+        {
+          "id": "uml.sendSignal",
+          "label": "Send Signal",
+          "category": "Activity",
+          "outline": "path",
+          "w": 150,
+          "h": 60,
+          "fill": "#f2f6fb",
+          "line": "#2e5a87",
+          "keywords": [
+            "signal",
+            "message",
+            "uml"
+          ],
+          "elementType": "uml.SendSignal",
+          "path": "M0 0 L0.82 0 L1 0.5 L0.82 1 L0 1 Z",
+          "source": "drawn from UML 2.5.1 (OMG formal/17-12-05), 16.3.4 SendSignalAction notation: a convex pentagon"
+        },
+        {
+          "id": "uml.acceptEvent",
+          "label": "Accept Event",
+          "category": "Activity",
+          "outline": "path",
+          "w": 150,
+          "h": 60,
+          "fill": "#f2f6fb",
+          "line": "#2e5a87",
+          "keywords": [
+            "event",
+            "receive",
+            "wait",
+            "uml"
+          ],
+          "elementType": "uml.AcceptEvent",
+          "path": "M0 0 L1 0 L1 1 L0 1 L0.18 0.5 Z",
+          "source": "drawn from UML 2.5.1 (OMG formal/17-12-05), 16.10.4 AcceptEventAction notation: a concave pentagon"
+        },
+        {
+          "id": "uml.timeEvent",
+          "label": "Time Event",
+          "category": "Activity",
+          "outline": "path",
+          "w": 30,
+          "h": 40,
+          "fill": "#ffffff",
+          "line": "#25303b",
+          "keywords": [
+            "timer",
+            "wait",
+            "hourglass",
+            "uml"
+          ],
+          "elementType": "uml.TimeEvent",
+          "path": "M0 0 L1 0 L0 1 L1 1 Z",
+          "source": "drawn from UML 2.5.1 (OMG formal/17-12-05), 16.10.4 AcceptEventAction notation for a time event: an hourglass"
+        }
+      ],
+      "elementTypes": [
+        {
+          "id": "uml.InitialNode",
+          "label": "Initial Node",
+          "description": "Where control enters the activity.",
+          "glyph": "uml.initialNode"
+        },
+        {
+          "id": "uml.ActivityFinal",
+          "label": "Activity Final",
+          "description": "Ends the whole activity.",
+          "glyph": "uml.activityFinal"
+        },
+        {
+          "id": "uml.FlowFinal",
+          "label": "Flow Final",
+          "description": "Ends one flow, leaving the others running.",
+          "glyph": "uml.flowFinal"
+        },
+        {
+          "id": "uml.Action",
+          "label": "Action",
+          "description": "One step of the activity.",
+          "glyph": "uml.action"
+        },
+        {
+          "id": "uml.ObjectNode",
+          "label": "Object Node",
+          "description": "An object flowing between actions.",
+          "glyph": "uml.objectNode"
+        },
+        {
+          "id": "uml.Decision",
+          "label": "Decision",
+          "description": "Chooses one outgoing flow by its guard; also merges flows.",
+          "glyph": "uml.decision"
+        },
+        {
+          "id": "uml.ForkNode",
+          "label": "Fork",
+          "description": "Splits one flow into concurrent flows.",
+          "glyph": "uml.forkNode"
+        },
+        {
+          "id": "uml.JoinNode",
+          "label": "Join",
+          "description": "Waits for concurrent flows and joins them.",
+          "glyph": "uml.joinNode"
+        },
+        {
+          "id": "uml.Partition",
+          "label": "Partition",
+          "description": "A swimlane grouping the actions one participant performs.",
+          "glyph": "uml.partition",
+          "container": true
+        },
+        {
+          "id": "uml.SendSignal",
+          "label": "Send Signal",
+          "description": "Sends a signal.",
+          "glyph": "uml.sendSignal"
+        },
+        {
+          "id": "uml.AcceptEvent",
+          "label": "Accept Event",
+          "description": "Waits for an event.",
+          "glyph": "uml.acceptEvent"
+        },
+        {
+          "id": "uml.TimeEvent",
+          "label": "Time Event",
+          "description": "Waits for a time.",
+          "glyph": "uml.timeEvent"
+        }
+      ],
+      "relationshipTypes": [
+        {
+          "id": "uml.ControlFlow",
+          "label": "Control Flow",
+          "description": "Control passes from the source node to the target node.",
+          "endArrow": "open",
+          "properties": [
+            {
+              "key": "guard",
+              "label": "Guard",
+              "kind": "text",
+              "description": "The condition shown in brackets."
+            }
+          ]
+        }
+      ],
+      "connectorTypes": [
+        {
+          "id": "uml.controlFlow",
+          "label": "Control Flow",
+          "category": "Activity",
+          "route": "orthogonal",
+          "startArrow": "none",
+          "endArrow": "open",
+          "dash": "solid",
+          "lineWidth": 1.25,
+          "line": "#34495e",
+          "keywords": [
+            "flow",
+            "edge",
+            "uml"
+          ],
+          "relationshipType": "uml.ControlFlow"
+        }
+      ],
+      "connections": [
+        {
+          "source": [
+            "uml.InitialNode",
+            "uml.Action",
+            "uml.ObjectNode",
+            "uml.Decision",
+            "uml.ForkNode",
+            "uml.JoinNode",
+            "uml.SendSignal",
+            "uml.AcceptEvent",
+            "uml.TimeEvent"
+          ],
+          "relationship": "uml.ControlFlow",
+          "target": [
+            "uml.Action",
+            "uml.ObjectNode",
+            "uml.Decision",
+            "uml.ForkNode",
+            "uml.JoinNode",
+            "uml.ActivityFinal",
+            "uml.FlowFinal",
+            "uml.SendSignal",
+            "uml.AcceptEvent",
+            "uml.TimeEvent"
+          ]
+        }
+      ],
+      "palette": [
+        {
+          "id": "uml.activity",
+          "label": "Activity",
+          "types": [
+            "uml.InitialNode",
+            "uml.Action",
+            "uml.ForkNode",
+            "uml.JoinNode",
+            "uml.ActivityFinal",
+            "uml.FlowFinal",
+            "uml.ObjectNode",
+            "uml.SendSignal",
+            "uml.AcceptEvent",
+            "uml.TimeEvent",
+            "uml.Partition"
+          ]
+        }
+      ],
+      "viewpoints": [
+        {
+          "id": "uml.ActivityDiagram",
+          "label": "Activity Diagram",
+          "description": "Actions, the control flow between them and the nodes that route it.",
+          "types": [
+            "uml.InitialNode",
+            "uml.ActivityFinal",
+            "uml.FlowFinal",
+            "uml.Action",
+            "uml.ObjectNode",
+            "uml.Decision",
+            "uml.ForkNode",
+            "uml.JoinNode",
+            "uml.Partition",
+            "uml.SendSignal",
+            "uml.AcceptEvent",
+            "uml.TimeEvent",
+            "uml.Note"
+          ],
+          "relationships": [
+            "uml.ControlFlow",
+            "uml.Anchor"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "uml.actionReached",
+          "description": "Every action should be reachable from an initial node.",
+          "severity": "warning",
+          "mode": "batch",
+          "check": {
+            "kind": "unreachable",
+            "from": [
+              "uml.InitialNode"
+            ],
+            "relationship": "uml.ControlFlow",
+            "types": [
+              "uml.Action"
+            ]
+          },
+          "reference": "UML 2.5.1, 15.2.3 Activity semantics: tokens start at initial nodes"
+        },
+        {
+          "id": "uml.joinInflows",
+          "description": "A join synchronizes two or more flows.",
+          "severity": "warning",
+          "mode": "live",
+          "check": {
+            "kind": "minIncoming",
+            "types": [
+              "uml.JoinNode"
+            ],
+            "relationship": "uml.ControlFlow",
+            "min": 2
+          },
+          "reference": "UML 2.5.1, 15.3.3.4 JoinNode semantics"
+        }
+      ],
+      "rulesets": [
+        {
+          "id": "uml.uml251",
+          "rules": [
+            "uml.actionReached",
+            "uml.joinInflows"
+          ]
+        }
+      ],
+      "templates": [
+        {
+          "id": "uml.activity",
+          "label": "Activity Diagram",
+          "description": "An order handled from receipt to shipping, with packing and billing in parallel.",
+          "viewpoint": "uml.ActivityDiagram",
+          "keywords": [
+            "activity",
+            "workflow",
+            "process",
+            "uml"
+          ],
+          "codeForms": [
+            "plantuml"
+          ],
+          "seed": [
+            {
+              "command": "element.create",
+              "as": "init",
+              "params": {
+                "type": "uml.InitialNode",
+                "name": "",
+                "x": 0,
+                "y": 0
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "receive",
+              "params": {
+                "type": "uml.Action",
+                "name": "Receive order",
+                "x": 0,
+                "y": 0
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "fork",
+              "params": {
+                "type": "uml.ForkNode",
+                "name": "",
+                "x": 0,
+                "y": 0
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "pack",
+              "params": {
+                "type": "uml.Action",
+                "name": "Pack goods",
+                "x": 0,
+                "y": 0
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "bill",
+              "params": {
+                "type": "uml.Action",
+                "name": "Send invoice",
+                "x": 0,
+                "y": 0
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "join",
+              "params": {
+                "type": "uml.JoinNode",
+                "name": "",
+                "x": 0,
+                "y": 0
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "ship",
+              "params": {
+                "type": "uml.Action",
+                "name": "Ship order",
+                "x": 0,
+                "y": 0
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "done",
+              "params": {
+                "type": "uml.ActivityFinal",
+                "name": "",
+                "x": 0,
+                "y": 0
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${init.id}",
+                "to": "${receive.id}",
+                "type": "uml.ControlFlow"
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${receive.id}",
+                "to": "${fork.id}",
+                "type": "uml.ControlFlow"
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${fork.id}",
+                "to": "${pack.id}",
+                "type": "uml.ControlFlow"
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${fork.id}",
+                "to": "${bill.id}",
+                "type": "uml.ControlFlow"
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${pack.id}",
+                "to": "${join.id}",
+                "type": "uml.ControlFlow"
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${bill.id}",
+                "to": "${join.id}",
+                "type": "uml.ControlFlow"
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${join.id}",
+                "to": "${ship.id}",
+                "type": "uml.ControlFlow"
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${ship.id}",
+                "to": "${done.id}",
+                "type": "uml.ControlFlow"
+              }
+            }
+          ],
+          "layout": {
+            "algorithm": "layered",
+            "direction": "TB"
+          }
+        }
+      ]
+    },
+    {
+      "id": "statemachine",
+      "label": "State Machine",
+      "glyphs": [
+        {
+          "id": "uml.stateMachine",
+          "label": "State Machine",
+          "category": "States",
+          "outline": "roundedRectangle",
+          "w": 420,
+          "h": 300,
+          "fill": "#ffffff",
+          "line": "#3d4f61",
+          "keywords": [
+            "behavior",
+            "lifecycle",
+            "uml"
+          ],
+          "elementType": "uml.StateMachine"
+        },
+        {
+          "id": "uml.region",
+          "label": "Region",
+          "category": "States",
+          "outline": "rectangle",
+          "w": 380,
+          "h": 200,
+          "fill": "#ffffff",
+          "line": "#8a97a6",
+          "keywords": [
+            "concurrent",
+            "orthogonal",
+            "uml"
+          ],
+          "elementType": "uml.Region"
+        },
+        {
+          "id": "uml.state",
+          "label": "State",
+          "category": "States",
+          "outline": "roundedRectangle",
+          "w": 140,
+          "h": 60,
+          "fill": "#f2f6fb",
+          "line": "#2e5a87",
+          "keywords": [
+            "status",
+            "mode",
+            "uml"
+          ],
+          "elementType": "uml.State"
+        },
+        {
+          "id": "uml.initial",
+          "label": "Initial",
+          "category": "States",
+          "outline": "ellipse",
+          "w": 22,
+          "h": 22,
+          "fill": "#25303b",
+          "line": "#25303b",
+          "keywords": [
+            "pseudostate",
+            "uml"
+          ],
+          "elementType": "uml.Initial"
+        },
+        {
+          "id": "uml.final",
+          "label": "Final State",
+          "category": "States",
+          "outline": "path",
+          "w": 28,
+          "h": 28,
+          "fill": "#25303b",
+          "line": "#25303b",
+          "keywords": [
+            "end",
+            "done",
+            "uml"
+          ],
+          "elementType": "uml.Final",
+          "path": "M0.8 0.5 C0.8 0.666 0.666 0.8 0.5 0.8 C0.334 0.8 0.2 0.666 0.2 0.5 C0.2 0.334 0.334 0.2 0.5 0.2 C0.666 0.2 0.8 0.334 0.8 0.5 Z",
+          "detail": "M0.98 0.5 C0.98 0.765 0.765 0.98 0.5 0.98 C0.235 0.98 0.02 0.765 0.02 0.5 C0.02 0.235 0.235 0.02 0.5 0.02 C0.765 0.02 0.98 0.235 0.98 0.5 Z",
+          "source": "drawn from UML 2.5.1 (OMG formal/17-12-05), 14.2.4 FinalState notation: a circle surrounding a small solid filled circle"
+        },
+        {
+          "id": "uml.choice",
+          "label": "Choice",
+          "category": "States",
+          "outline": "diamond",
+          "w": 36,
+          "h": 36,
+          "fill": "#ffffff",
+          "line": "#2e5a87",
+          "keywords": [
+            "branch",
+            "pseudostate",
+            "uml"
+          ],
+          "elementType": "uml.Choice"
+        },
+        {
+          "id": "uml.junction",
+          "label": "Junction",
+          "category": "States",
+          "outline": "ellipse",
+          "w": 16,
+          "h": 16,
+          "fill": "#25303b",
+          "line": "#25303b",
+          "keywords": [
+            "pseudostate",
+            "uml"
+          ],
+          "elementType": "uml.Junction"
+        },
+        {
+          "id": "uml.fork",
+          "label": "Fork",
+          "category": "States",
+          "outline": "rectangle",
+          "w": 90,
+          "h": 8,
+          "fill": "#25303b",
+          "line": "#25303b",
+          "keywords": [
+            "pseudostate",
+            "split",
+            "uml"
+          ],
+          "elementType": "uml.Fork"
+        },
+        {
+          "id": "uml.join",
+          "label": "Join",
+          "category": "States",
+          "outline": "rectangle",
+          "w": 90,
+          "h": 8,
+          "fill": "#25303b",
+          "line": "#25303b",
+          "keywords": [
+            "pseudostate",
+            "synchronize",
+            "uml"
+          ],
+          "elementType": "uml.Join"
+        },
+        {
+          "id": "uml.shallowHistory",
+          "label": "Shallow History",
+          "category": "States",
+          "outline": "path",
+          "w": 30,
+          "h": 30,
+          "fill": "#ffffff",
+          "line": "#25303b",
+          "keywords": [
+            "pseudostate",
+            "resume",
+            "uml"
+          ],
+          "elementType": "uml.ShallowHistory",
+          "path": "M0.98 0.5 C0.98 0.765 0.765 0.98 0.5 0.98 C0.235 0.98 0.02 0.765 0.02 0.5 C0.02 0.235 0.235 0.02 0.5 0.02 C0.765 0.02 0.98 0.235 0.98 0.5 Z",
+          "detail": "M0.33 0.3 L0.33 0.7 M0.6 0.3 L0.6 0.7 M0.33 0.5 L0.6 0.5",
+          "source": "drawn from UML 2.5.1 (OMG formal/17-12-05), 14.2.4 Pseudostate notation: shallow history is a small circle containing H"
+        },
+        {
+          "id": "uml.deepHistory",
+          "label": "Deep History",
+          "category": "States",
+          "outline": "path",
+          "w": 30,
+          "h": 30,
+          "fill": "#ffffff",
+          "line": "#25303b",
+          "keywords": [
+            "pseudostate",
+            "resume",
+            "uml"
+          ],
+          "elementType": "uml.DeepHistory",
+          "path": "M0.98 0.5 C0.98 0.765 0.765 0.98 0.5 0.98 C0.235 0.98 0.02 0.765 0.02 0.5 C0.02 0.235 0.235 0.02 0.5 0.02 C0.765 0.02 0.98 0.235 0.98 0.5 Z",
+          "detail": "M0.33 0.3 L0.33 0.7 M0.6 0.3 L0.6 0.7 M0.33 0.5 L0.6 0.5 M0.74 0.3 L0.74 0.46 M0.67 0.34 L0.81 0.42 M0.81 0.34 L0.67 0.42",
+          "source": "drawn from UML 2.5.1 (OMG formal/17-12-05), 14.2.4 Pseudostate notation: deep history is a small circle containing H*"
+        },
+        {
+          "id": "uml.terminate",
+          "label": "Terminate",
+          "category": "States",
+          "outline": "path",
+          "w": 24,
+          "h": 24,
+          "fill": "#ffffff",
+          "line": "#25303b",
+          "keywords": [
+            "pseudostate",
+            "abort",
+            "uml"
+          ],
+          "elementType": "uml.Terminate",
+          "path": "M0 0 L1 1 M1 0 L0 1",
+          "source": "drawn from UML 2.5.1 (OMG formal/17-12-05), 14.2.4 Pseudostate notation: terminate is a cross"
+        }
+      ],
+      "elementTypes": [
+        {
+          "id": "uml.StateMachine",
+          "label": "State Machine",
+          "description": "The behaviour that holds the regions, states and transitions.",
+          "glyph": "uml.stateMachine",
+          "container": true
+        },
+        {
+          "id": "uml.Region",
+          "label": "Region",
+          "description": "A concurrent part of a state machine or composite state.",
+          "glyph": "uml.region",
+          "container": true
+        },
+        {
+          "id": "uml.State",
+          "label": "State",
+          "description": "A situation the object stays in while it waits or does something.",
+          "glyph": "uml.state",
+          "container": true,
+          "properties": [
+            {
+              "key": "entry",
+              "label": "entry",
+              "kind": "text"
+            },
+            {
+              "key": "do",
+              "label": "do",
+              "kind": "text"
+            },
+            {
+              "key": "exit",
+              "label": "exit",
+              "kind": "text"
+            }
+          ],
+          "compartments": [
+            {
+              "id": "behaviors",
+              "kind": "paragraph",
+              "fromProperties": [
+                "entry",
+                "do",
+                "exit"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "uml.Initial",
+          "label": "Initial",
+          "description": "The default entry of a region.",
+          "glyph": "uml.initial"
+        },
+        {
+          "id": "uml.Final",
+          "label": "Final State",
+          "description": "The region is complete.",
+          "glyph": "uml.final"
+        },
+        {
+          "id": "uml.Choice",
+          "label": "Choice",
+          "description": "A dynamic branch: guards are evaluated when it is reached.",
+          "glyph": "uml.choice"
+        },
+        {
+          "id": "uml.Junction",
+          "label": "Junction",
+          "description": "A static branch or merge of transitions.",
+          "glyph": "uml.junction"
+        },
+        {
+          "id": "uml.Fork",
+          "label": "Fork",
+          "description": "Splits a transition into concurrent regions.",
+          "glyph": "uml.fork"
+        },
+        {
+          "id": "uml.Join",
+          "label": "Join",
+          "description": "Merges transitions from concurrent regions.",
+          "glyph": "uml.join"
+        },
+        {
+          "id": "uml.ShallowHistory",
+          "label": "Shallow History",
+          "description": "Resumes the most recent direct substate.",
+          "glyph": "uml.shallowHistory"
+        },
+        {
+          "id": "uml.DeepHistory",
+          "label": "Deep History",
+          "description": "Resumes the most recent nested configuration.",
+          "glyph": "uml.deepHistory"
+        },
+        {
+          "id": "uml.Terminate",
+          "label": "Terminate",
+          "description": "Ends the state machine's object.",
+          "glyph": "uml.terminate"
+        }
+      ],
+      "relationshipTypes": [
+        {
+          "id": "uml.Transition",
+          "label": "Transition",
+          "description": "The object moves from the source state to the target state.",
+          "endArrow": "open",
+          "properties": [
+            {
+              "key": "trigger",
+              "label": "Trigger",
+              "kind": "text"
+            },
+            {
+              "key": "guard",
+              "label": "Guard",
+              "kind": "text"
+            },
+            {
+              "key": "effect",
+              "label": "Effect",
+              "kind": "text"
+            }
+          ]
+        }
+      ],
+      "connectorTypes": [
+        {
+          "id": "uml.transition",
+          "label": "Transition",
+          "category": "States",
+          "route": "orthogonal",
+          "startArrow": "none",
+          "endArrow": "open",
+          "dash": "solid",
+          "lineWidth": 1.25,
+          "line": "#34495e",
+          "keywords": [
+            "event",
+            "change",
+            "uml"
+          ],
+          "relationshipType": "uml.Transition"
+        }
+      ],
+      "connections": [
+        {
+          "source": [
+            "uml.State",
+            "uml.Initial",
+            "uml.Choice",
+            "uml.Junction",
+            "uml.Fork",
+            "uml.Join",
+            "uml.ShallowHistory",
+            "uml.DeepHistory"
+          ],
+          "relationship": "uml.Transition",
+          "target": [
+            "uml.State",
+            "uml.Final",
+            "uml.Choice",
+            "uml.Junction",
+            "uml.Fork",
+            "uml.Join",
+            "uml.ShallowHistory",
+            "uml.DeepHistory",
+            "uml.Terminate"
+          ]
+        }
+      ],
+      "palette": [
+        {
+          "id": "uml.states",
+          "label": "States",
+          "types": [
+            "uml.State",
+            "uml.Initial",
+            "uml.Final",
+            "uml.Choice",
+            "uml.Junction",
+            "uml.Fork",
+            "uml.Join",
+            "uml.ShallowHistory",
+            "uml.DeepHistory",
+            "uml.Terminate",
+            "uml.Region",
+            "uml.StateMachine"
+          ]
+        }
+      ],
+      "viewpoints": [
+        {
+          "id": "uml.StateMachineDiagram",
+          "label": "State Machine Diagram",
+          "description": "States, pseudostates and the transitions between them.",
+          "types": [
+            "uml.StateMachine",
+            "uml.Region",
+            "uml.State",
+            "uml.Initial",
+            "uml.Final",
+            "uml.Choice",
+            "uml.Junction",
+            "uml.Fork",
+            "uml.Join",
+            "uml.ShallowHistory",
+            "uml.DeepHistory",
+            "uml.Terminate",
+            "uml.Note"
+          ],
+          "relationships": [
+            "uml.Transition",
+            "uml.Anchor"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "uml.oneInitial",
+          "description": "A region has at most one initial pseudostate.",
+          "severity": "error",
+          "mode": "live",
+          "check": {
+            "kind": "maxPerOwner",
+            "types": [
+              "uml.Initial"
+            ],
+            "within": [
+              "uml.Region",
+              "uml.State",
+              "uml.StateMachine"
+            ],
+            "max": 1
+          },
+          "reference": "UML 2.5.1, 14.5.10.6 Region constraint initial_vertex"
+        },
+        {
+          "id": "uml.stateReached",
+          "description": "Every state should be reachable from an initial pseudostate.",
+          "severity": "warning",
+          "mode": "batch",
+          "check": {
+            "kind": "unreachable",
+            "from": [
+              "uml.Initial"
+            ],
+            "relationship": "uml.Transition",
+            "types": [
+              "uml.State",
+              "uml.Final",
+              "uml.Choice",
+              "uml.Junction",
+              "uml.Fork",
+              "uml.Join",
+              "uml.ShallowHistory",
+              "uml.DeepHistory",
+              "uml.Terminate"
+            ]
+          },
+          "reference": "UML 2.5.1, 14.2.3 State machine semantics: a region is entered at its initial pseudostate"
+        },
+        {
+          "id": "uml.deadEnd",
+          "description": "A state with no way out can never be left.",
+          "severity": "info",
+          "mode": "batch",
+          "check": {
+            "kind": "minOutgoing",
+            "types": [
+              "uml.State"
+            ],
+            "relationship": "uml.Transition",
+            "min": 1
+          },
+          "reference": "House rule; a composite state left by its final state is an exception"
+        },
+        {
+          "id": "uml.choiceOutflows",
+          "description": "A choice needs at least two outgoing transitions.",
+          "severity": "warning",
+          "mode": "live",
+          "check": {
+            "kind": "minOutgoing",
+            "types": [
+              "uml.Choice"
+            ],
+            "relationship": "uml.Transition",
+            "min": 2
+          },
+          "reference": "UML 2.5.1, 14.5.6.7 Pseudostate constraint choice_vertex"
+        },
+        {
+          "id": "uml.joinTransitions",
+          "description": "A join merges two or more transitions.",
+          "severity": "warning",
+          "mode": "live",
+          "check": {
+            "kind": "minIncoming",
+            "types": [
+              "uml.Join"
+            ],
+            "relationship": "uml.Transition",
+            "min": 2
+          },
+          "reference": "UML 2.5.1, 14.5.6.7 Pseudostate constraint join_vertex"
+        }
+      ],
+      "rulesets": [
+        {
+          "id": "uml.uml251",
+          "rules": [
+            "uml.oneInitial",
+            "uml.stateReached",
+            "uml.deadEnd",
+            "uml.choiceOutflows",
+            "uml.joinTransitions"
+          ]
+        }
+      ],
+      "templates": [
+        {
+          "id": "uml.stateMachine",
+          "label": "State Machine Diagram",
+          "description": "The life of an order from pending to shipped or cancelled.",
+          "viewpoint": "uml.StateMachineDiagram",
+          "keywords": [
+            "state",
+            "lifecycle",
+            "transition",
+            "uml"
+          ],
+          "codeForms": [
+            "mermaid.state",
+            "plantuml"
+          ],
+          "seed": [
+            {
+              "command": "element.create",
+              "as": "machine",
+              "params": {
+                "type": "uml.StateMachine",
+                "name": "Order"
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "init",
+              "params": {
+                "type": "uml.Initial",
+                "name": "",
+                "x": 0,
+                "y": 0,
+                "owner": "${machine.id}"
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "pending",
+              "params": {
+                "type": "uml.State",
+                "name": "Pending",
+                "x": 0,
+                "y": 0,
+                "properties": {
+                  "entry": "reserve stock"
+                },
+                "owner": "${machine.id}"
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "paid",
+              "params": {
+                "type": "uml.State",
+                "name": "Paid",
+                "x": 0,
+                "y": 0,
+                "owner": "${machine.id}"
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "shipped",
+              "params": {
+                "type": "uml.State",
+                "name": "Shipped",
+                "x": 0,
+                "y": 0,
+                "owner": "${machine.id}"
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "cancelled",
+              "params": {
+                "type": "uml.State",
+                "name": "Cancelled",
+                "x": 0,
+                "y": 0,
+                "properties": {
+                  "entry": "release stock"
+                },
+                "owner": "${machine.id}"
+              }
+            },
+            {
+              "command": "element.create",
+              "as": "done",
+              "params": {
+                "type": "uml.Final",
+                "name": "",
+                "x": 0,
+                "y": 0,
+                "owner": "${machine.id}"
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${init.id}",
+                "to": "${pending.id}",
+                "type": "uml.Transition"
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${pending.id}",
+                "to": "${paid.id}",
+                "type": "uml.Transition",
+                "name": "pay",
+                "properties": {
+                  "trigger": "pay"
+                }
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${pending.id}",
+                "to": "${cancelled.id}",
+                "type": "uml.Transition",
+                "name": "cancel",
+                "properties": {
+                  "trigger": "cancel"
+                }
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${paid.id}",
+                "to": "${shipped.id}",
+                "type": "uml.Transition",
+                "name": "ship",
+                "properties": {
+                  "trigger": "ship"
+                }
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${shipped.id}",
+                "to": "${done.id}",
+                "type": "uml.Transition"
+              }
+            },
+            {
+              "command": "relationship.create",
+              "params": {
+                "from": "${cancelled.id}",
+                "to": "${done.id}",
+                "type": "uml.Transition"
+              }
+            }
+          ],
+          "layout": {
+            "algorithm": "layered",
+            "direction": "LR"
+          }
+        }
+      ]
+    }
+  ]
+}

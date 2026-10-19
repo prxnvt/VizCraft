@@ -26,6 +26,12 @@ pub const MAX_ID_LEN: usize = 128;
 /// Longest rule reference (the standard and clause), in bytes.
 pub const MAX_REFERENCE: usize = 1_000;
 
+/// Longest `keyword` of a type, and longest variant option key or value, in bytes.
+pub const MAX_KEYWORD: usize = 64;
+
+/// Most options one variant may set.
+pub const MAX_VARIANT_OPTIONS: usize = 16;
+
 /// Problems with `pack`, in plain words; empty when it is consistent. Checks that every id is
 /// qualified with the pack's own prefix (or another pack's, for references), that ids are unique,
 /// that every reference (glyph, type, relationship, scope, viewpoint) resolves, that colours parse,
@@ -223,6 +229,7 @@ impl<'a> Checker<'a> {
         self.rules();
         self.rulesets();
         self.modules();
+        self.variant_options();
     }
 
     fn glyphs(&mut self) {
@@ -377,6 +384,12 @@ impl<'a> Checker<'a> {
                 }
             }
             self.properties(&ctx, &t.properties);
+            self.keyword(&ctx, &t.keyword);
+            for c in capped(&t.compartments) {
+                if !c.rows_from.is_empty() && !is_key(&c.rows_from) {
+                    self.problem(format!("{ctx}: compartment `{}`: `rowsFrom` must be a property key", short(&c.id)));
+                }
+            }
             let mut ports = HashSet::new();
             for p in self.list(&ctx, &t.ports) {
                 if p.id.is_empty() || !ports.insert(p.id.as_str()) {
@@ -406,6 +419,32 @@ impl<'a> Checker<'a> {
                 }
             }
             self.properties(&ctx, &t.properties);
+            self.keyword(&ctx, &t.keyword);
+            for k in capped(&t.end_labels.start).iter().chain(capped(&t.end_labels.end)) {
+                self.key(&ctx, k);
+            }
+        }
+    }
+
+    /// A `keyword`: at most [`MAX_KEYWORD`] bytes on one line.
+    fn keyword(&mut self, ctx: &str, keyword: &str) {
+        if keyword.len() > MAX_KEYWORD || keyword.chars().any(char::is_control) {
+            self.problem(format!("{ctx}: the keyword must be one line of at most {MAX_KEYWORD} bytes"));
+        }
+    }
+
+    /// Variant options: few, short, one line each.
+    fn variant_options(&mut self) {
+        let pack = self.pack;
+        for v in capped(&pack.variants) {
+            if v.options.len() > MAX_VARIANT_OPTIONS {
+                self.problem(format!("variant `{}`: at most {MAX_VARIANT_OPTIONS} options", short(&v.id)));
+            }
+            for (k, val) in v.options.iter().take(MAX_VARIANT_OPTIONS + 1) {
+                if !is_key(k) || k.len() > MAX_KEYWORD || val.len() > MAX_KEYWORD || val.chars().any(char::is_control) {
+                    self.problem(format!("variant `{}`: option `{}` needs a key and value of at most {MAX_KEYWORD} bytes", short(&v.id), short(k)));
+                }
+            }
         }
     }
 
@@ -508,9 +547,10 @@ impl<'a> Checker<'a> {
                     self.type_list(&ctx, types);
                     self.reference(&ctx, Kind::Relationship, relationship);
                 }
-                Check::Unreachable { from, relationship } => {
+                Check::Unreachable { from, relationship, types } => {
                     self.type_list(&ctx, from);
-                    self.reference(&ctx, Kind::Relationship, relationship);
+                    self.type_list(&ctx, types);
+                    self.any_relationship(&ctx, relationship);
                 }
                 Check::ForbiddenCycle { relationship } | Check::PortDirection { relationship } | Check::PortFanIn { relationship, .. } => {
                     self.any_relationship(&ctx, relationship)
@@ -549,6 +589,35 @@ impl<'a> Checker<'a> {
                 Check::CrossesShape | Check::UngluedEnd | Check::Overlap | Check::OffBoard | Check::TextOverflow => {}
                 Check::DocumentFields { .. } | Check::RevisionSequence | Check::BalloonRows | Check::CrossReferences | Check::StaleTag => {}
                 Check::NestingAllowed { .. } | Check::Labelled { .. } | Check::EndsOnPorts { .. } => {}
+                Check::EndMarkerMatchesProperty { relationship, property, markers } => {
+                    self.reference(&ctx, Kind::Relationship, relationship);
+                    self.key(&ctx, property);
+                    for m in self.list(&ctx, markers) {
+                        for a in [&m.start, &m.end].into_iter().flatten() {
+                            if Arrow::from_name(a).is_none() {
+                                self.problem(format!("{ctx}: unknown arrow `{}`", short(a)));
+                            }
+                        }
+                    }
+                }
+                Check::MultiplicitySyntax { types, properties, members } => {
+                    for t in self.list(&ctx, types) {
+                        if t != "*" && !self.rels.contains(t.as_str()) {
+                            self.reference(&ctx, Kind::ElementType, t);
+                        }
+                    }
+                    for k in self.list(&ctx, properties).iter().chain(capped(members)) {
+                        self.key(&ctx, k);
+                    }
+                }
+                Check::MaxPerOwner { types, within, .. } => {
+                    self.type_list(&ctx, types);
+                    self.type_list(&ctx, within);
+                }
+                Check::UniqueMembers { types, property } => {
+                    self.type_list(&ctx, types);
+                    self.key(&ctx, property);
+                }
                 Check::Unknown => self.problem(format!("{ctx}: unknown check kind (the pack needs a newer VizCraft)")),
             }
         }

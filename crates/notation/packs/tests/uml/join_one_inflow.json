@@ -1,0 +1,85 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "model": {
+      "schemaVersion": 1,
+      "packs": [
+        {
+          "id": "uml",
+          "version": "1.0.0"
+        }
+      ],
+      "elements": [
+        {
+          "id": "i",
+          "type": "uml.InitialNode",
+          "name": ""
+        },
+        {
+          "id": "a1",
+          "type": "uml.Action",
+          "name": "Prepare"
+        },
+        {
+          "id": "j",
+          "type": "uml.JoinNode",
+          "name": ""
+        },
+        {
+          "id": "a2",
+          "type": "uml.Action",
+          "name": "Serve"
+        },
+        {
+          "id": "f",
+          "type": "uml.ActivityFinal",
+          "name": ""
+        }
+      ],
+      "relationships": [
+        {
+          "id": "c1",
+          "type": "uml.ControlFlow",
+          "source": "i",
+          "target": "a1"
+        },
+        {
+          "id": "c2",
+          "type": "uml.ControlFlow",
+          "source": "a1",
+          "target": "j"
+        },
+        {
+          "id": "c3",
+          "type": "uml.ControlFlow",
+          "source": "j",
+          "target": "a2"
+        },
+        {
+          "id": "c4",
+          "type": "uml.ControlFlow",
+          "source": "a2",
+          "target": "f"
+        }
+      ]
+    },
+    "document": {
+      "title": "",
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "shapes": [],
+          "connectors": []
+        }
+      ],
+      "idSeq": 100
+    }
+  },
+  "expect": [
+    {
+      "rule": "uml.joinInflows"
+    }
+  ]
+}

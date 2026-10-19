@@ -119,6 +119,12 @@ fn create(s: &mut Session, v: &Value) -> CmdResult {
     if let Some(arrow) = end_arrow(&type_id) {
         c.end_arrow = arrow;
     }
+    // The connector type that draws the relationship (UML ends, dashes) under the page's
+    // variant, when the pack names one.
+    let variant = s.doc.pages.get(page).and_then(|p| p.view.as_ref()).map(|v| v.variant.clone()).unwrap_or_default();
+    if let Some(k) = vizcraft_stencils::connector_kind_for_relationship(&type_id, &variant) {
+        k.apply(&mut c);
+    }
     c.text = name;
     c.relationship = Some(id.clone());
     c.sanitize();

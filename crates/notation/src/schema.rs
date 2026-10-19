@@ -77,6 +77,45 @@ pub struct Pack {
     /// `{{doc:key}}` fields. `required` marks a mandatory field and `maxChars` its length limit.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub document_properties: Vec<PropertySchema>,
+    /// Sections of a large pack (UML's class, component, state machine and so on): each adds its
+    /// lists to the pack's own when the pack loads (see [`crate::sections::flatten`]), so a loaded
+    /// pack always has flat lists and no sections.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub sections: Vec<PackSection>,
+}
+
+/// One section of a pack: lists appended to the pack's own when it loads. A ruleset whose id
+/// the pack (or an earlier section) already declares extends that ruleset's rules.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct PackSection {
+    /// Section id: lowercase letters, digits and `_`, unique in the pack.
+    pub id: String,
+    /// Name of the section.
+    pub label: String,
+    /// Glyphs added.
+    pub glyphs: Vec<Glyph>,
+    /// Connector types added.
+    pub connector_types: Vec<ConnectorType>,
+    /// Element types added.
+    pub element_types: Vec<ElementType>,
+    /// Relationship types added.
+    pub relationship_types: Vec<RelationshipType>,
+    /// Connection-table rows added.
+    pub connections: Vec<Connection>,
+    /// Conditional styles added.
+    pub conditional_styles: Vec<ConditionalStyle>,
+    /// Palette groups added.
+    pub palette: Vec<PaletteGroup>,
+    /// Viewpoints added.
+    pub viewpoints: Vec<Viewpoint>,
+    /// Rules added.
+    pub rules: Vec<RuleDecl>,
+    /// Rulesets added, or extended when the id exists.
+    pub rulesets: Vec<Ruleset>,
+    /// Templates added.
+    #[serde(deserialize_with = "crate::template::entries")]
+    pub templates: Vec<crate::template::Template>,
 }
 
 /// A rendering variant of a pack: which glyph draws each element type and which connector type
@@ -99,6 +138,11 @@ pub struct Variant {
     /// `inch0_1`); `variant.set` copies it onto the page. None keeps the page's module.
     #[serde(skip_serializing_if = "vizcraft_model::Module::is_none")]
     pub module: vizcraft_model::Module,
+    /// Drawing options the sync pass reads on pages drawn with this variant, at most 16 short
+    /// entries: `memberVisibility` (`symbols`, `keywords` or `hidden`) and `members`
+    /// (`suppressed` leaves member rows empty).
+    #[serde(skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub options: std::collections::BTreeMap<String, String>,
 }
 
 impl Pack {
@@ -371,6 +415,10 @@ pub struct ElementType {
     /// does not nest by drawing. See [`crate::nesting`].
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub allowed_parents: Vec<String>,
+    /// A keyword the views show as `«keyword»` on a line above the name (`interface`), at most
+    /// 64 bytes; an element's own `stereotype` property wins over it. Empty for none.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub keyword: String,
 }
 
 /// A compartment an element type declares for its views (`vizcraft_diagram::compartment`).
@@ -390,6 +438,10 @@ pub struct CompartmentDecl {
     /// element the query selects, cells separated by tabs (see `crate::sheet_pass`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub query: Option<TableQuery>,
+    /// Typed rows: the text of this property, one row per line, each read as a member row and
+    /// written in the page's member style (see `crate::uml_text`). Empty for none.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub rows_from: String,
 }
 
 /// A table a list compartment shows: elements of `types`, one row each, with `columns` read as
@@ -442,6 +494,32 @@ pub struct RelationshipType {
     /// other's sheet and zone (see `crate::sheet_pass`).
     #[serde(skip_serializing_if = "is_plain")]
     pub kind: RelationshipKind,
+    /// A keyword the connector shows as `«keyword»` above its name (`use`, `include`), at most
+    /// 64 bytes. Empty for none.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub keyword: String,
+    /// Properties shown beside the ends of its connectors (multiplicities, roles).
+    #[serde(skip_serializing_if = "EndLabels::is_empty")]
+    pub end_labels: EndLabels,
+}
+
+/// The properties a connector shows beside its ends: the values of the listed keys, joined by a
+/// space (role first, then multiplicity). Editing an end label writes it back: the last word to
+/// the last key, and so on, the first key taking what is left.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct EndLabels {
+    /// Keys shown at the start (source) end.
+    pub start: Vec<String>,
+    /// Keys shown at the end (target) end.
+    pub end: Vec<String>,
+}
+
+impl EndLabels {
+    /// Whether no key is shown at either end.
+    pub fn is_empty(&self) -> bool {
+        self.start.is_empty() && self.end.is_empty()
+    }
 }
 
 /// What a relationship type means to drawings.
@@ -469,6 +547,8 @@ impl Default for RelationshipType {
             end_arrow: "triangle".into(),
             inverse_of: None,
             kind: RelationshipKind::Plain,
+            keyword: String::new(),
+            end_labels: EndLabels::default(),
         }
     }
 }
@@ -525,6 +605,9 @@ pub struct ConditionalStyle {
     pub font_color: Option<String>,
     /// Line width.
     pub line_width: Option<f64>,
+    /// Italic text (an abstract class name).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub italic: Option<bool>,
 }
 
 /// A palette group.
@@ -726,9 +809,12 @@ pub enum Check {
         /// Start types.
         #[serde(default)]
         from: Vec<String>,
-        /// Relationship type followed.
+        /// Relationship type followed (empty: every relationship).
         #[serde(default)]
         relationship: String,
+        /// Elements checked (empty: every element of the pack).
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        types: Vec<String>,
     },
     /// A cycle along `relationship` (one issue per cycle, with every element and relationship in
     /// it). Inverse relationship types count, reversed.
@@ -879,8 +965,74 @@ pub enum Check {
         #[serde(default)]
         relationship: String,
     },
+    /// A relationship of this type whose connector ends do not show what its `property` says:
+    /// the first marker whose `value` equals the property (or its default) names the arrow each
+    /// end should have. The fix runs `connector.setArrows`.
+    EndMarkerMatchesProperty {
+        /// Relationship type checked.
+        #[serde(default)]
+        relationship: String,
+        /// Property key read.
+        #[serde(default)]
+        property: String,
+        /// Value to ends.
+        #[serde(default)]
+        markers: Vec<EndMarker>,
+    },
+    /// A multiplicity that does not read (`n`, `*`, `n..m`, `n..*` with n at most m): in the
+    /// `properties` of elements and relationships of these types, and in the member rows of
+    /// their `members` properties.
+    MultiplicitySyntax {
+        /// Element or relationship types checked (empty: every type of the pack).
+        #[serde(default)]
+        types: Vec<String>,
+        /// Property keys holding one multiplicity each.
+        #[serde(default)]
+        properties: Vec<String>,
+        /// Property keys holding member rows, one per line.
+        #[serde(default)]
+        members: Vec<String>,
+    },
+    /// More than `max` elements of these types under one owner: the nearest ancestor whose type
+    /// is in `within`; elements with none are grouped by the page they are first drawn on.
+    MaxPerOwner {
+        /// Types counted.
+        #[serde(default)]
+        types: Vec<String>,
+        /// Owner types.
+        #[serde(default)]
+        within: Vec<String>,
+        /// Most allowed.
+        #[serde(default)]
+        max: u32,
+    },
+    /// Two member rows of one element's `property` naming the same attribute (operations may
+    /// overload, so rows with a parameter list are skipped).
+    UniqueMembers {
+        /// Types checked.
+        #[serde(default)]
+        types: Vec<String>,
+        /// Property key holding member rows.
+        #[serde(default)]
+        property: String,
+    },
     /// A check this build does not know (from a newer pack); skipped, and reported by the loader.
     #[default]
     #[serde(other)]
     Unknown,
+}
+
+/// One row of [`Check::EndMarkerMatchesProperty`]: for this property value, the arrows the
+/// connector's ends should have (`None`: either end is fine).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct EndMarker {
+    /// The property value.
+    pub value: String,
+    /// Arrow name at the start.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start: Option<String>,
+    /// Arrow name at the end.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end: Option<String>,
 }

@@ -190,16 +190,17 @@ fn class_diagram_has_member_rows_and_uml_markers() {
     let p = page(src);
     assert_eq!(p.shapes.len(), 3);
     assert_eq!(p.connectors.len(), 2);
+    // Classes are drawn as UML classes: the name, then member compartments (b6-uml).
     let animal = shape(&p, "Animal");
-    let lines: Vec<&str> = animal.text.lines().collect();
-    assert_eq!(lines.first().copied(), Some("<<abstract>>"));
-    assert!(lines.contains(&"Animal") && lines.contains(&"+String name") && lines.contains(&"+eat() : void"), "{lines:?}");
+    assert_eq!((animal.text.as_str(), animal.stencil.as_str(), animal.style.italic), ("Animal", "uml.class", true));
+    let rows: Vec<&str> = animal.compartments.iter().flat_map(|c| c.rows.iter().map(String::as_str)).collect();
+    assert_eq!(rows, ["+name: String", "+eat(): void"]);
     assert!(animal.h > 70.0);
     let inherit = p.connectors.iter().find(|c| glued(&c.end) == "Dog" || glued(&c.start) == "Dog").unwrap();
-    assert!(inherit.start_arrow == Arrow::Triangle || inherit.end_arrow == Arrow::Triangle);
+    assert_eq!((glued(&inherit.start), inherit.end_arrow), ("Dog", Arrow::HollowTriangle), "the child points at the parent");
     let has = p.connectors.iter().find(|c| c.text.contains("has")).unwrap();
-    assert_eq!(has.text, "1 has many");
-    assert!(has.start_arrow == Arrow::Diamond || has.end_arrow == Arrow::Diamond);
+    assert_eq!((has.text.as_str(), has.start_label.as_str(), has.end_label.as_str()), ("has", "1", "many"));
+    assert_eq!(has.start_arrow, Arrow::Diamond);
     assert_no_overlap(&p);
 }
 

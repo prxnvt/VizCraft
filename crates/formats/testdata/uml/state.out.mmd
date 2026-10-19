@@ -1,0 +1,18 @@
+stateDiagram-v2
+  state "Moving" as moving {
+    state "Opening" as opening
+    state "Closing" as closing
+    [*] --> opening
+  }
+  state "Closed" as closed
+  closed : entry / lock
+  state "Open" as open
+  open : do / beep
+  state check <<choice>>
+  opening --> closing : reverse
+  [*] --> closed
+  closed --> moving : button [authorized]
+  moving --> check : stop
+  check --> open : [fully open]
+  check --> closed : [fully closed] / log
+  open --> [*] : shutdown

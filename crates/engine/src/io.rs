@@ -21,7 +21,7 @@ const NATIVE_EXTENSIONS: [&str; 3] = ["craft.json", "vizcraft", "json"];
 const DRAWIO_EXTENSIONS: [&str; 2] = ["drawio.xml", "drawio"];
 
 /// Export formats `export_bytes` knows, by name.
-pub const EXPORT_FORMATS: [&str; 4] = ["svg", "png", "pdf", "drawio"];
+pub const EXPORT_FORMATS: [&str; 6] = ["svg", "png", "pdf", "drawio", "mermaid", "plantuml"];
 
 /// Formats `import_bytes` knows, by name.
 pub const IMPORT_FORMATS: [&str; 3] = ["drawio", "mermaid", "csv"];
@@ -124,6 +124,12 @@ pub fn export_format(name: &str, format: Option<&str>) -> Result<&'static str, E
         Some(f) => f.trim().trim_start_matches('.').to_ascii_lowercase(),
         None => extension(name).to_ascii_lowercase(),
     };
+    // Text forms answer to their usual extensions too.
+    let wanted = match wanted.as_str() {
+        "mmd" => "mermaid".to_string(),
+        "puml" => "plantuml".to_string(),
+        _ => wanted,
+    };
     EXPORT_FORMATS
         .iter()
         .find(|f| **f == wanted)
@@ -146,8 +152,21 @@ pub fn export_page_bytes(name: &str, format: Option<&str>, doc: &Document, page_
         "png" => vizcraft_formats::png::render_page(doc, page_index, scale).map(|(png, _, _)| png).map_err(|e| fail(name, e)),
         "pdf" => vizcraft_formats::pdf::export_pages(doc, &[page_index], &Default::default()).map_err(|e| fail(name, e)),
         "drawio" => vizcraft_formats::drawio::save(doc).map_err(|e| fail(name, e)),
+        f @ ("mermaid" | "plantuml") => export_text_page(name, Some(f), doc, page_index).map(|(b, _)| b),
         other => Err(EngineError::Failed(format!("{name}: cannot export as `{other}`"))),
     }
+}
+
+/// Export page `page_index` of `doc` as Mermaid or PlantUML text (the format from `format` or
+/// the extension of `name`): the bytes and the warnings about what the text cannot hold.
+pub fn export_text_page(name: &str, format: Option<&str>, doc: &Document, page_index: usize) -> Result<(Vec<u8>, Vec<String>), EngineError> {
+    let (text, warnings) = match export_format(name, format)? {
+        "mermaid" => vizcraft_formats::mermaid::export(doc, page_index),
+        "plantuml" => vizcraft_formats::plantuml::write(doc, page_index),
+        other => return Err(EngineError::Failed(format!("{name}: `{other}` is not a text format"))),
+    }
+    .map_err(|e| fail(name, e))?;
+    Ok((text.into_bytes(), warnings))
 }
 
 /// `name` without a document extension (`Plans.vizcraft`, `Plans.craft.json` and `Plans.drawio`

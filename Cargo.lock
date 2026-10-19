@@ -4294,6 +4294,7 @@ dependencies = [
  "vizcraft-drawio",
  "vizcraft-layout",
  "vizcraft-mermaid",
+ "vizcraft-notation",
  "vizcraft-stencils",
 ]
 

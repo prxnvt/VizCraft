@@ -1,0 +1,11 @@
+@startuml
+start
+:Receive order;
+fork
+  :Pack goods;
+fork again
+  :Send invoice;
+end fork
+:Ship order;
+stop
+@enduml
