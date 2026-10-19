@@ -151,6 +151,12 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         r#"{"open"?: bool, "tab"?: "problems|search|activity|tables|generate", "height"?: number} -> {"open", "height", "tab", "rows"}; naming a tab opens the dock on it, naming nothing toggles it"#,
     ),
     (
+        "ui.generate",
+        "Generate Settings",
+        "",
+        r#"{"spec"?: path, "target"?: target id, "output"?: folder, "run"?: "preview|generate|check"} -> {"spec", "target", "output", "files": [{"path", "action"}], "issues", "log", "result"?}; sets the Generate tab's fields, opens the dock on it and optionally runs the button"#,
+    ),
+    (
         "ui.search",
         "Search the Dock",
         "",

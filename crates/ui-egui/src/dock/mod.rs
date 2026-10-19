@@ -7,7 +7,7 @@
 //! with `edit.undo`. The UI-only commands are `ui.dock` and `ui.search` ([`ui_command`]).
 
 pub(crate) mod activity;
-mod generate;
+pub mod generate;
 pub(crate) mod problems;
 pub(crate) mod search;
 pub(crate) mod tables;
@@ -144,6 +144,8 @@ pub struct DockState {
     pub(crate) depths: Option<(u64, usize, usize)>,
     /// Tables: the view, its parameters and the cell being edited.
     pub tables: tables::TablesState,
+    /// Generate: the fields, the last plan and the run log.
+    pub generate: generate::GenerateState,
 }
 
 /// Draw the dock when it is open. Call after the side panes and before the central panel.
@@ -216,7 +218,7 @@ pub fn inspect(app: &CraftApp) -> Value {
         DockTab::Search => d.state.hits.len(),
         DockTab::Activity => app.session.transactions().len(),
         DockTab::Tables => tables::inspect(app)["count"].as_u64().unwrap_or(0) as usize,
-        DockTab::Generate => 0,
+        DockTab::Generate => generate::rows(app),
     };
     json!({"open": d.open, "height": d.height, "tab": d.tab.name(), "rows": rows})
 }
@@ -234,6 +236,8 @@ pub fn ui_command(app: &mut CraftApp, id: &str, p: &Value) -> Option<Result<Valu
         "ui.search" => Some(search::command(app, p)),
         "ui.tables" => Some(tables::command(app, p)),
         "validate.run" => problems::on_run(app, p),
+        "ui.generate" => Some(generate::command(app, p)),
+        "generate.preview" | "generate.run" | "generate.check" => generate::on_run(app, id, p),
         _ => None,
     }
 }

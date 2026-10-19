@@ -61,7 +61,8 @@ fn registry_ids_are_unique_and_prefixed() {
                 "report",
                 "picture",
                 "ink",
-                "variant"
+                "variant",
+                "generate"
             ]
             .contains(&prefix),
             "{}: unexpected prefix",

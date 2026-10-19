@@ -202,6 +202,11 @@ pub const NAMES: &[&str] = &[
     // Notation drawing
     "variant",
     "endLabels",
+    // Generate
+    "generate",
+    "generatePreview",
+    "generateCheck",
+    "generateTarget",
 ];
 
 /// Reference size of the design grid, in points. At this size the stroke is `BASE_STROKE`.
@@ -1316,6 +1321,31 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
             pen.line(&[(5.5, 10.0), (14.5, 10.0)]);
             pen.line_c(&[(7.5, 4.0), (7.5, 7.5)], a);
             pen.line_c(&[(11.0, 4.0), (12.5, 7.5), (14.0, 4.0)], a);
+        }
+        "generate" => {
+            // A page with code lines and a spark: the model becoming files.
+            pen.closed(&[(3.0, 2.5), (11.5, 2.5), (14.5, 5.5), (14.5, 17.5), (3.0, 17.5)], c);
+            pen.line(&[(5.5, 7.0), (10.0, 7.0)]);
+            pen.line(&[(5.5, 10.0), (12.0, 10.0)]);
+            pen.line(&[(5.5, 13.0), (9.0, 13.0)]);
+            pen.fill(&[(16.5, 9.0), (17.5, 12.0), (19.5, 13.0), (17.5, 14.0), (16.5, 17.0), (15.5, 14.0), (13.5, 13.0), (15.5, 12.0)], a);
+        }
+        "generatePreview" => {
+            pen.closed(&[(3.0, 2.5), (11.5, 2.5), (14.5, 5.5), (14.5, 17.5), (3.0, 17.5)], c);
+            pen.line_c(&[(5.5, 7.0), (10.0, 7.0)], a);
+            pen.line(&[(5.5, 10.0), (9.0, 10.0)]);
+            pen.circle(13.5, 13.0, 3.2, a);
+            pen.line_c(&[(15.8, 15.3), (18.5, 18.0)], a);
+        }
+        "generateCheck" => {
+            pen.closed(&[(3.0, 2.5), (11.5, 2.5), (14.5, 5.5), (14.5, 17.5), (3.0, 17.5)], c);
+            pen.line(&[(5.5, 7.0), (10.0, 7.0)]);
+            pen.line_c(&[(9.5, 13.5), (12.5, 16.5), (18.5, 9.5)], a);
+        }
+        "generateTarget" => {
+            pen.line(&[(7.0, 5.0), (2.5, 10.0), (7.0, 15.0)]);
+            pen.line(&[(13.0, 5.0), (17.5, 10.0), (13.0, 15.0)]);
+            pen.line_c(&[(11.5, 3.5), (8.5, 16.5)], a);
         }
         _ => {
             // Fallback: a rounded tile with the first letter.

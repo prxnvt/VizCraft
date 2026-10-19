@@ -42,6 +42,7 @@ mod container;
 mod data;
 mod design;
 mod developer;
+mod generate;
 mod help;
 mod home;
 mod ink;
@@ -399,6 +400,7 @@ pub fn tabs(app: &CraftApp) -> Vec<Tab> {
         data::tab(),
         process::tab(),
         model::tab(),
+        generate::tab(),
         review::tab(),
         view::tab(),
         developer::tab(),

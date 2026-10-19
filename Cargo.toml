@@ -25,6 +25,7 @@ vizcraft-layout = { path = "crates/layout" }
 vizcraft-routing = { path = "crates/routing" }
 vizcraft-model = { path = "crates/model" }
 vizcraft-notation = { path = "crates/notation" }
+vizcraft-codegen = { path = "crates/codegen" }
 
 # foundation
 thiserror = "2"
@@ -43,6 +44,11 @@ i_overlay = { version = "9", default-features = false }
 # out of the web build).
 csv = "1.4"
 calamine = { version = "0.36", default-features = false }
+
+# Code generation: SHA-256 checksums for the manifest and unified diffs and three-way merges for
+# regenerated files; both pure Rust, MIT or Apache, building for wasm.
+sha2 = "0.10"
+diffy = "0.4"
 
 # testing
 proptest = "1"
