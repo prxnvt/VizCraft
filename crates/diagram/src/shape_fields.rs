@@ -344,6 +344,11 @@ pub struct Freeform {
     /// Whether any subpath is closed (filled). An outline with none draws its lines only.
     #[serde(deserialize_with = "lenient")]
     pub closed: bool,
+    /// The frame size `[w, h]` the commands were drawn in, when they do not fill it (a glyph
+    /// drawn in its unit box with a margin, a built symbol): the outline then scales from this
+    /// box, so the margins stay. `None` fits the path's bounds to the frame.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub frame: Option<[f64; 2]>,
 }
 
 impl Freeform {
@@ -352,7 +357,15 @@ impl Freeform {
 
     /// A freeform from `path` (already in local coordinates), sanitised.
     pub fn new(path: &Path, closed: bool) -> Freeform {
-        let mut f = Freeform { els: path.els.clone(), closed };
+        let mut f = Freeform { els: path.els.clone(), closed, frame: None };
+        f.sanitize();
+        f
+    }
+
+    /// A freeform from `path`, drawn in a `w` by `h` frame that it need not fill (see
+    /// [`Freeform::frame`]), sanitised.
+    pub fn in_frame(path: &Path, closed: bool, w: f64, h: f64) -> Freeform {
+        let mut f = Freeform { els: path.els.clone(), closed, frame: Some([w, h]) };
         f.sanitize();
         f
     }
@@ -363,6 +376,7 @@ impl Freeform {
     /// has none (files from before subpaths could mix). `closed` then says whether any subpath
     /// is closed.
     pub fn sanitize(&mut self) {
+        self.frame = self.frame.filter(|[w, h]| w.is_finite() && h.is_finite() && *w > 1e-9 && *h > 1e-9 && *w <= MAX_EXTENT && *h <= MAX_EXTENT);
         self.els.truncate(Self::MAX_ELS);
         let close_all = self.closed && !self.els.iter().any(|e| matches!(e, PathEl::Close));
         let fix = |p: Point| Point::new(finite(p.x, 0.0).clamp(-MAX_EXTENT, MAX_EXTENT), finite(p.y, 0.0).clamp(-MAX_EXTENT, MAX_EXTENT));
@@ -427,12 +441,16 @@ impl Freeform {
         Path { els: self.els.clone() }
     }
 
-    /// The outline for a `w` by `h` frame: the stored path with its bounds stretched onto the
-    /// frame, so it follows a resize. A side of the path with no extent (a straight line) is moved,
-    /// not stretched. An empty path is the frame's rectangle.
+    /// The outline for a `w` by `h` frame: the stored path scaled from its drawing frame when it
+    /// has one, else with its bounds stretched onto the frame, so it follows a resize. A side of
+    /// the path with no extent (a straight line) is moved, not stretched. An empty path is the
+    /// frame's rectangle.
     pub fn outline(&self, w: f64, h: f64) -> Path {
         let (w, h) = (finite(w, 0.0).clamp(0.0, MAX_EXTENT), finite(h, 0.0).clamp(0.0, MAX_EXTENT));
         let path = self.path();
+        if let Some([fw, fh]) = self.frame.filter(|_| !path.is_empty()) {
+            return path.transformed(&Transform::scale(w / fw.max(1e-9), h / fh.max(1e-9)));
+        }
         let Some(b) = path.bounds() else {
             return Path::polygon(&[Point::new(0.0, 0.0), Point::new(w, 0.0), Point::new(w, h), Point::new(0.0, h)]);
         };
@@ -465,12 +483,31 @@ mod freeform_tests {
         let old = Freeform::new(&Path::polyline(&[p(0.0, 0.0), p(5.0, 0.0), p(5.0, 5.0)]), true);
         assert_eq!((old.closed, old.els.last()), (true, Some(&PathEl::Close)));
         // A closed flag over subpaths that are all open is corrected.
-        let mut lie = Freeform { els: Path::polyline(&[p(0.0, 0.0), p(5.0, 5.0)]).els, closed: true };
+        let mut lie = Freeform { els: Path::polyline(&[p(0.0, 0.0), p(5.0, 5.0)]).els, closed: true, frame: None };
         lie.els.push(PathEl::MoveTo(p(9.0, 9.0)));
         lie.els.push(PathEl::LineTo(p(9.0, 1.0)));
         lie.els.push(PathEl::Close);
         lie.els.splice(0..0, [PathEl::MoveTo(p(1.0, 1.0)), PathEl::LineTo(p(2.0, 2.0))]);
         lie.sanitize();
         assert!(lie.closed);
+    }
+
+    #[test]
+    fn a_path_drawn_in_a_frame_keeps_its_margins_and_scales_from_the_frame() {
+        // A diamond inset from a 10 by 10 frame: its bounds are 2..8.
+        let diamond = Path::polygon(&[p(5.0, 2.0), p(8.0, 5.0), p(5.0, 8.0), p(2.0, 5.0)]);
+        let framed = Freeform::in_frame(&diamond, true, 10.0, 10.0);
+        let b = framed.outline(20.0, 10.0).bounds().unwrap();
+        assert_eq!((b.x0, b.x1, b.y0, b.y1), (4.0, 16.0, 2.0, 8.0), "scaled from the frame, the margin kept");
+        let b = Freeform::new(&diamond, true).outline(20.0, 10.0).bounds().unwrap();
+        assert_eq!((b.x0, b.x1, b.y0, b.y1), (0.0, 20.0, 0.0, 10.0), "without a frame the bounds stretch onto it");
+        // A junk frame is dropped, and an old file without one reads as before.
+        let mut junk = Freeform { frame: Some([f64::NAN, 0.0]), ..framed.clone() };
+        junk.sanitize();
+        assert_eq!(junk.frame, None);
+        let json = serde_json::to_value(Freeform::new(&diamond, true)).unwrap();
+        assert!(json.get("frame").is_none());
+        let back: Freeform = serde_json::from_value(serde_json::to_value(&framed).unwrap()).unwrap();
+        assert_eq!(back, framed);
     }
 }

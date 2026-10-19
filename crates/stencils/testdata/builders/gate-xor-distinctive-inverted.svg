@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="50" viewBox="-5 -5 80 50">
+  <path d="M14 5 L20.04 5.15 L25.76 5.6 L31.16 6.35 L36.24 7.4 L41 8.75 L45.44 10.4 L49.56 12.35 L53.36 14.6 L56.84 17.15 L60 20 L56.84 22.85 L53.36 25.4 L49.56 27.65 L45.44 29.6 L41 31.25 L36.24 32.6 L31.16 33.65 L25.76 34.4 L20.04 34.85 L14 35 L15.833 32.5 L17.333 30 L18.5 27.5 L19.333 25 L19.833 22.5 L20 20 L19.833 17.5 L19.333 15 L18.5 12.5 L17.333 10 L15.833 7.5 Z M13.333 10 C13.333 11.657 11.99 13 10.333 13 C8.676 13 7.333 11.657 7.333 10 C7.333 8.343 8.676 7 10.333 7 C11.99 7 13.333 8.343 13.333 10 Z" fill="#ffffff" fill-rule="evenodd" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M10 5 L11.833 7.5 L13.333 10 L14.5 12.5 L15.333 15 L15.833 17.5 L16 20 L15.833 22.5 L15.333 25 L14.5 27.5 L13.333 30 L11.833 32.5 L10 35 M0 10 L7.333 10 M0 30 L13.333 30 M60 20 L70 20" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <g class="ports" fill="#c2410c">
+    <circle cx="0" cy="10" r="2"><title>A</title></circle>
+    <circle cx="0" cy="30" r="2"><title>B</title></circle>
+    <circle cx="70" cy="20" r="2"><title>Y</title></circle>
+  </g>
+</svg>

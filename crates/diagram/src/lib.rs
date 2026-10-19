@@ -39,6 +39,7 @@ pub mod data_graphic;
 pub mod decor;
 pub mod doc_fields;
 pub mod geom;
+pub mod glyph_state;
 pub mod hit;
 pub mod import_record;
 pub mod ink;

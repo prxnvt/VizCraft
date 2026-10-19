@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="255.906" height="49.213" viewBox="-4.921 -4.921 255.906 49.213">
+  <path d="M0 0 L246.063 0 L246.063 39.37 L0 39.37 Z" fill="#ffffff" fill-rule="evenodd" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M39.37 0 L39.37 39.37 M127.953 0 L127.953 39.37 M167.323 0 L167.323 39.37 M206.693 0 L206.693 39.37 M26.575 19.685 C26.575 23.49 23.49 26.575 19.685 26.575 C15.88 26.575 12.795 23.49 12.795 19.685 C12.795 15.88 15.88 12.795 19.685 12.795 C23.49 12.795 26.575 15.88 26.575 19.685 M8.858 19.685 L30.512 19.685 M19.685 8.858 L19.685 30.512 M122.047 19.685 C122.047 24.034 118.522 27.559 114.173 27.559 C109.825 27.559 106.299 24.034 106.299 19.685 C106.299 15.336 109.825 11.811 114.173 11.811 C118.522 11.811 122.047 15.336 122.047 19.685" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="45.276" y="25.886" font-family="Inter, sans-serif" font-size="17.717" text-anchor="start" fill="#1f2933">Ø0.05</text>
+  <text x="114.173" y="23.474" font-family="Inter, sans-serif" font-size="10.827" text-anchor="middle" fill="#1f2933">M</text>
+  <text x="147.638" y="25.886" font-family="Inter, sans-serif" font-size="17.717" text-anchor="middle" fill="#1f2933">A</text>
+  <text x="187.008" y="25.886" font-family="Inter, sans-serif" font-size="17.717" text-anchor="middle" fill="#1f2933">B</text>
+  <text x="226.378" y="25.886" font-family="Inter, sans-serif" font-size="17.717" text-anchor="middle" fill="#1f2933">C</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="0" cy="19.685" r="1.969"><title>leader</title></circle>
+  </g>
+</svg>

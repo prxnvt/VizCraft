@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="88.583" height="88.583" viewBox="-4.921 -4.921 88.583 88.583">
+  <path d="M68.898 39.37 C68.898 55.678 55.678 68.898 39.37 68.898 C23.062 68.898 9.843 55.678 9.843 39.37 C9.843 23.062 23.062 9.843 39.37 9.843 C55.678 9.843 68.898 23.062 68.898 39.37 Z M39.37 9.843 L45.276 20.669 L33.465 20.669 Z" fill="#ffffff" fill-rule="evenodd" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M40.846 12.549 L37.894 12.549 M42.323 15.256 L36.417 15.256 M43.799 17.963 L34.941 17.963 M45.276 20.669 L33.465 20.669 M39.37 9.843 L39.37 20.669 M9.843 37.402 L0 37.402 M9.843 41.339 L0 41.339 M39.37 0 L39.37 9.843 M39.37 78.74 L39.37 68.898" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="42.323" y="7.333" font-family="Inter, sans-serif" font-size="6.89" text-anchor="start" fill="#1f2933">P</text>
+  <text x="42.323" y="76.23" font-family="Inter, sans-serif" font-size="6.89" text-anchor="start" fill="#1f2933">S</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="39.37" cy="0" r="1.969"><title>P</title></circle>
+    <circle cx="39.37" cy="78.74" r="1.969"><title>S</title></circle>
+  </g>
+</svg>

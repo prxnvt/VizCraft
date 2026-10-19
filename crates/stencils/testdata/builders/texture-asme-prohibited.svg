@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="60" height="70" viewBox="-5 -5 60 70">
+  <path d="M8.453 40 L20 60 L48.868 10 M26 48 C26 51.314 23.314 54 20 54 C16.686 54 14 51.314 14 48 C14 44.686 16.686 42 20 42 C23.314 42 26 44.686 26 48" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="27" y="35.5" font-family="Inter, sans-serif" font-size="10" text-anchor="end" fill="#1f2933">63</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="20" cy="60" r="2"><title>surface</title></circle>
+  </g>
+</svg>

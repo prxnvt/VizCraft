@@ -57,9 +57,30 @@ pub fn port_marks(shape: &Shape, type_id: &str) -> Vec<PortMark> {
 }
 
 /// [`port_marks`] against catalog `cat`.
+///
+/// A shape drawn by a glyph builder marks the builder's ports instead (`Shape.glyph.ports`):
+/// each takes its direction and label from the type's port with the same id, else `inOut` and
+/// its id.
 pub fn port_marks_in(cat: &Catalog, shape: &Shape, type_id: &str) -> Vec<PortMark> {
     let Some((_, t)) = cat.element_type(type_id) else { return Vec::new() };
     let half = side(shape.style.line_width) / 2.0;
+    if let Some(ids) = shape.glyph.as_ref().map(|g| &g.ports).filter(|p| !p.is_empty()) {
+        return ids
+            .iter()
+            .take(MAX_MARKS)
+            .enumerate()
+            .filter_map(|(i, id)| {
+                let c = shape.connection_point_world(i)?;
+                if !c.is_finite() || c.x.abs() > MAX_EXTENT || c.y.abs() > MAX_EXTENT {
+                    return None;
+                }
+                let declared = t.ports.iter().find(|p| &p.id == id);
+                let label = declared.map(|p| if p.label.is_empty() { p.id.clone() } else { p.label.clone() }).unwrap_or_else(|| id.clone());
+                let direction = declared.map(|p| p.direction).unwrap_or(PortDirection::InOut);
+                Some(PortMark { rect: Rect::new(c.x - half, c.y - half, c.x + half, c.y + half), label, direction })
+            })
+            .collect();
+    }
     t.ports
         .iter()
         .take(MAX_MARKS)
@@ -136,5 +157,14 @@ mod tests {
         let mut few = s.clone();
         few.connection_points.truncate(1);
         assert_eq!(port_marks_in(&cat, &few, t).len(), 1);
+        // A builder's port ids win: the type's port of the same id gives direction and label.
+        let mut built = s.clone();
+        built.glyph = Some(vizcraft_diagram::glyph_state::GlyphState { ports: vec!["out".into(), "x9".into()], ..Default::default() });
+        let marks = port_marks_in(&cat, &built, t);
+        assert_eq!(
+            marks.iter().map(|m| (m.label.as_str(), m.direction)).collect::<Vec<_>>(),
+            [("Out", PortDirection::Out), ("x9", PortDirection::InOut)]
+        );
+        assert_eq!(marks[0].rect.center(), Point::new(100.0, 130.0), "at connection point 0");
     }
 }

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="150" height="50" viewBox="-5 -5 150 50">
+  <path d="M0 0 L140 0 L140 40 L0 40 Z M20 13 L19.553 19.485 L15.081 17.249 Z M28 13 L27.553 19.485 L23.081 17.249 Z" fill="#ffffff" fill-rule="evenodd" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M40 0 L40 40 M90 0 L90 40 M10 29 L30 29 M12 29 L18.5 16 M19.888 14.621 L18.77 14.062 M19.776 16.242 L17.54 15.124 M19.665 17.863 L16.31 16.186 M19.553 19.485 L15.081 17.249 M20 13 L17.317 18.367 M20 29 L26.5 16 M27.888 14.621 L26.77 14.062 M27.776 16.242 L25.54 15.124 M27.665 17.863 L24.31 16.186 M27.553 19.485 L23.081 17.249 M28 13 L25.317 18.367" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="46" y="26.3" font-family="Inter, sans-serif" font-size="18" text-anchor="start" fill="#1f2933">0.1</text>
+  <text x="115" y="26.3" font-family="Inter, sans-serif" font-size="18" text-anchor="middle" fill="#1f2933">A-B</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="0" cy="20" r="2"><title>leader</title></circle>
+  </g>
+</svg>

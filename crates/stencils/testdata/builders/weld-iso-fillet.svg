@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="167.323" height="88.583" viewBox="-4.921 -4.921 167.323 88.583">
+  <path d="M0 78.74 L2.953 69.882 L7.677 73.425 Z" fill="#ffffff" fill-rule="evenodd" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M0 78.74 L29.528 39.37 M0.738 76.526 L1.919 77.411 M1.476 74.311 L3.839 76.083 M2.215 72.096 L5.758 74.754 M2.953 69.882 L7.677 73.425 M0 78.74 L5.315 71.654 M29.528 39.37 L147.638 39.37 M39.37 45.276 L44.291 45.276 M47.244 45.276 L52.165 45.276 M55.118 45.276 L60.039 45.276 M62.992 45.276 L67.913 45.276 M70.866 45.276 L75.787 45.276 M78.74 45.276 L83.661 45.276 M86.614 45.276 L91.535 45.276 M94.488 45.276 L99.409 45.276 M102.362 45.276 L107.283 45.276 M110.236 45.276 L115.157 45.276 M118.11 45.276 L123.031 45.276 M125.984 45.276 L130.906 45.276 M133.858 45.276 L137.795 45.276 M70.866 39.37 L70.866 23.622 L86.614 39.37 M70.866 45.276 L70.866 61.024 L86.614 45.276" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="64.961" y="35.63" font-family="Inter, sans-serif" font-size="11.811" text-anchor="end" fill="#1f2933">a5</text>
+  <text x="92.52" y="35.63" font-family="Inter, sans-serif" font-size="11.811" text-anchor="start" fill="#1f2933">100</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="0" cy="78.74" r="1.969"><title>arrow</title></circle>
+  </g>
+</svg>

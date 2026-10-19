@@ -396,6 +396,10 @@ pub struct Shape {
     /// The data graphic the shape shows (an id in [`Document::data_graphics`]).
     #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
     pub data_graphic: Option<String>,
+    /// For a shape drawn by a parametric glyph builder: the builder, the shape's parameter
+    /// overrides, its port ids and its text slots (see [`crate::glyph_state`]).
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub glyph: Option<crate::glyph_state::GlyphState>,
 }
 
 impl Default for Shape {
@@ -429,6 +433,7 @@ impl Default for Shape {
             name: String::new(),
             language: String::new(),
             data_graphic: None,
+            glyph: None,
         }
     }
 }
@@ -481,6 +486,9 @@ impl Shape {
         }
         truncate(&mut self.name, Self::MAX_NAME);
         sanitize_language(&mut self.language);
+        if let Some(g) = &mut self.glyph {
+            g.sanitize();
+        }
     }
     /// Longest screen tip kept, in bytes.
     pub const MAX_SCREEN_TIP: usize = 4096;
