@@ -93,9 +93,25 @@ pub fn load(bytes: &[u8]) -> Result<Document, FormatError> {
             page.height = height;
             page.board = board;
         }
+        take_nets(&mut doc, index);
     }
     doc.sanitize();
     Ok(doc)
+}
+
+/// Move the nets a VizCraft export carried in page `index`'s model attribute `vizcraftNets` into
+/// the document's model (nets it already has, or whose id another item holds, are skipped; the
+/// load's sanitize then clears segments naming a net that did not come back).
+fn take_nets(doc: &mut Document, index: usize) {
+    let key = format!("{}{}", read::EXT_MODEL, read::NETS_ATTR);
+    let Some(json) = doc.pages.get_mut(index).and_then(|p| p.ext.remove(&key)) else { return };
+    let items: Vec<serde_json::Value> = serde_json::from_str(&json).unwrap_or_default();
+    for v in items.into_iter().take(vizcraft_diagram::vizcraft_model::net::MAX_NETS) {
+        let Ok(net) = serde_json::from_value::<vizcraft_diagram::vizcraft_model::Net>(v) else { continue };
+        if !net.id.is_empty() && !doc.contains_id(&net.id) {
+            doc.model.nets.push(net);
+        }
+    }
 }
 
 /// Write a document as a `.drawio` file, one uncompressed diagram per page.
@@ -103,7 +119,7 @@ pub fn save(doc: &Document) -> Result<Vec<u8>, FormatError> {
     let mut file = vizcraft_drawio::DrawioFile::new();
     file.attributes.set("host", "VizCraft");
     for page in &doc.pages {
-        let xml = page_xml(page)?;
+        let xml = vizcraft_drawio::write_model(&write::model_from_page_with_nets(page, &doc.model.nets));
         file.pages.push(vizcraft_drawio::Page::new(Some(page.id.clone()), Some(page.name.clone()), xml));
     }
     Ok(vizcraft_drawio::write_file_with(&file, vizcraft_drawio::WriteOptions { compress: Some(false) }))

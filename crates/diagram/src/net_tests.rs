@@ -130,7 +130,7 @@ fn labels_go_once_on_the_longest_segment_or_on_each() {
     page.connectors.push(wire("e1", free(0.0, 400.0), free(100.0, 400.0), Some("n2")));
     page.connectors.push(wire("e2", free(0.0, 500.0), free(100.0, 500.0), Some("n2")));
     page.connectors.push(wire("off", free(0.0, 600.0), free(100.0, 600.0), Some("n3")));
-    let spots = label_spots(&doc, 0);
+    let spots = label_spots(&doc, &doc.pages[0]);
     let on: Vec<(&str, &str)> = spots.iter().map(|s| (s.connector.as_str(), s.text.as_str())).collect();
     assert_eq!(on, [("long", "2003"), ("e1", "L1"), ("e2", "L1")]);
     let vertical = &spots[0];
@@ -138,7 +138,7 @@ fn labels_go_once_on_the_longest_segment_or_on_each() {
     assert!(vertical.pos.x < 100.0 && (vertical.pos.y - 150.0).abs() < 1e-9, "beside the line: {:?}", vertical.pos);
     assert_eq!(spots[1].angle, 0.0);
     assert!(spots[1].pos.y < 400.0, "above a horizontal run");
-    assert!(label_spots(&doc, 9).is_empty());
+    assert!(label_spots(&Document::new(), &doc.pages[0]).is_empty(), "no nets in the model, no labels");
 }
 
 #[test]

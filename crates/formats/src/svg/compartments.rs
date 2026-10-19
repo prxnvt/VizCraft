@@ -23,13 +23,23 @@ pub(super) fn compartments_svg(out: &mut String, s: &Shape) {
     }
     let c = s.center();
     let transform = if s.angle_deg != 0.0 { format!(" transform=\"rotate({} {} {})\"", num(s.angle_deg), num(c.x), num(c.y)) } else { String::new() };
-    let world = |p: Point| Point::new(p.x + s.x, p.y + s.y);
+    // Positions follow the glyph's quarter turns and mirror; the text drawn at them stays upright
+    // (see `Shape::text_frame`). The default orientation maps nothing, as before.
+    let orient = (!s.orient.is_default()).then(|| s.orient_transform());
+    let world = |p: Point| {
+        let p = orient.as_ref().map_or(p, |t| t.apply(p));
+        Point::new(p.x + s.x, p.y + s.y)
+    };
     let half = (s.style.line_width / 2.0).max(0.0);
     for b in &bands {
         let Some(comp) = b.compartment.and_then(|i| s.compartments.get(i)) else { continue };
         if let Some(fill) = comp.fill.filter(|f| f.a > 0) {
             let bottom = if b.rect.y1 >= s.h - 1e-9 { b.rect.y1 - half } else { b.rect.y1 };
             let r = Rect::new(b.rect.x0 + half, b.rect.y0, b.rect.x1 - half, bottom.max(b.rect.y0));
+            let r = match &orient {
+                Some(t) => Rect::from_points(t.apply(Point::new(r.x0, r.y0)), t.apply(Point::new(r.x1, r.y1))),
+                None => r,
+            };
             let _ = writeln!(
                 out,
                 "    <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\"{}{transform}/>",

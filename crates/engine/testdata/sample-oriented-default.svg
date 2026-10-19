@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="465.622" height="600" viewBox="349.378 15 465.622 600">
+  <title>Sample flowchart</title>
+  <rect x="349.378" y="15" width="465.622" height="600" fill="#ffffff"/>
+  <g id="s2">
+    <path d="M405 40 L495 40 C508.807 40 520 51.193 520 65 L520 65 C520 78.807 508.807 90 495 90 L405 90 C391.193 90 380 78.807 380 65 L380 65 C380 51.193 391.193 40 405 40 Z" fill="#ece7f6" stroke="#5a4b8c" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="450" y="69.2">Start</tspan></text>
+  </g>
+  <g id="s3">
+    <path d="M404.378 119.019 L525.622 189.019 L495.622 240.981 L374.378 170.981 Z" fill="#e4f2ec" stroke="#2d6e58" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" transform="rotate(30 450 180)" xml:space="preserve"><tspan x="450" y="184.2">Gather input</tspan></text>
+  </g>
+  <g id="s4">
+    <path d="M495 315 L450 385 L405 315 L450 245 Z" fill="#fcf0d6" stroke="#956a1a" stroke-width="1.5"/>
+    <path d="M380 308.8 L520 308.8" fill="none" stroke="#956a1a" stroke-width="1.5" transform="rotate(90 450 315)"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" font-weight="bold" fill="#1e2630" transform="rotate(90 450 315)" xml:space="preserve"><tspan x="450" y="324.2">Fields</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" transform="rotate(90 450 315)" xml:space="preserve"><tspan x="386" y="338.6">a</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" transform="rotate(90 450 315)" xml:space="preserve"><tspan x="386" y="353">b</tspan></text>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" transform="rotate(90 450 315)" xml:space="preserve"><tspan x="450" y="293.6">Valid?</tspan></text>
+  </g>
+  <g id="s5">
+    <path d="M380 420 L520 420 L520 480 L380 480 Z" fill="#e4f2ec" stroke="#2d6e58" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="450" y="454.2">Save diagram</tspan></text>
+  </g>
+  <g id="s6">
+    <path d="M405 540 L495 540 C508.807 540 520 551.193 520 565 L520 565 C520 578.807 508.807 590 495 590 L405 590 C391.193 590 380 578.807 380 565 L380 565 C380 551.193 391.193 540 405 540 Z" fill="#ece7f6" stroke="#5a4b8c" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="450" y="569.2">End</tspan></text>
+  </g>
+  <g id="s7">
+    <path d="M650 285 L790 285 L790 345 L650 345 Z" fill="#e4f2ec" stroke="#2d6e58" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="720" y="319.2">Fix input</tspan></text>
+  </g>
+  <g id="c8">
+    <path d="M450 90 L450 122.01 L465 122.01 L465 142.269" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M465 154.019 L460.3 142.269 L469.7 142.269 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c9">
+    <path d="M435 205.981 L435 245 L506.75 245 L506.75 315 L506.75 315" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M495 315 L506.75 310.3 L506.75 319.7 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c10">
+    <path d="M405 315 L395 315 L395 408.25 L450 408.25 L450 408.25" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M450 420 L445.3 408.25 L454.7 408.25 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <rect x="380.6" y="381" width="28.8" height="18" fill="#ffffff"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="395" y="394.2">Yes</tspan></text>
+  </g>
+  <g id="c11">
+    <path d="M450 385 L450 395 L638.25 395 L638.25 315 L638.25 315" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M650 315 L638.25 319.7 L638.25 310.3 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <rect x="574.2" y="386" width="21.6" height="18" fill="#ffffff"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="585" y="399.2">No</tspan></text>
+  </g>
+  <g id="c12">
+    <path d="M720 285 L720 215 L522.372 215" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M510.622 215 L522.372 210.3 L522.372 219.7 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c13">
+    <path d="M450 480 L450 528.25" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M450 540 L445.3 528.25 L454.7 528.25 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+</svg>

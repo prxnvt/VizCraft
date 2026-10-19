@@ -486,10 +486,9 @@ pub fn label_spot(pts: &[Point], font_size: f64, line_width: f64) -> Option<(Poi
     }
 }
 
-/// Every net label on page `page_index` of `doc`: for each net with a number or name whose label
+/// Every net label on `page` (a page of `doc`, whose model holds the nets): for each net with a number or name whose label
 /// mode is not `off`, on its longest segment of the page (`once`) or on every segment (`each`).
-pub fn label_spots(doc: &Document, page_index: usize) -> Vec<LabelSpot> {
-    let Some(page) = doc.pages.get(page_index) else { return Vec::new() };
+pub fn label_spots(doc: &Document, page: &Page) -> Vec<LabelSpot> {
     if doc.model.nets.is_empty() {
         return Vec::new();
     }

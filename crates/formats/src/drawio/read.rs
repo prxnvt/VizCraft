@@ -2,7 +2,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 
-use vizcraft_diagram::{Arrow, Color, Connector, End, Page, Point, Route, Shape, ShapeKind, Style};
+use vizcraft_diagram::{Arrow, Color, Connector, End, LineMarker, Orient, Page, Point, Route, Shape, ShapeKind, Style};
 use vizcraft_drawio::{Cell, GraphModel, Style as DStyle, StyleItem, WrapperKind, parse_color};
 
 use super::Warnings;
@@ -82,10 +82,65 @@ pub(crate) struct VertexLook {
     pub style: Style,
     /// Rotation in degrees.
     pub angle: f64,
+    /// Quarter turns and mirror, from `vizcraftOrient` or a foreign `flipH`/`flipV`.
+    pub orient: Orient,
+    /// Whether the cell is a junction (`vizcraftJunction`).
+    pub junction: bool,
     /// Leftover style and extra font bits, for `ext`.
     pub ext: BTreeMap<String, String>,
     /// Why the cell cannot be shown as a shape (an image), when it cannot.
     pub skip: Option<String>,
+}
+
+/// The style key carrying a shape's orientation: `1` (one quarter turn), `2m` (two turns after a
+/// mirror). Written with the matching draw.io `rotation` and `flipH` so draw.io draws it turned.
+pub(crate) const ORIENT_KEY: &str = "vizcraftOrient";
+/// The style key marking a junction shape.
+pub(crate) const JUNCTION_KEY: &str = "vizcraftJunction";
+/// The edge style key naming a segment's net.
+pub(crate) const NET_KEY: &str = "vizcraftNet";
+/// The edge style key naming a line marker.
+pub(crate) const MARKER_KEY: &str = "vizcraftMarker";
+/// The page model attribute carrying the nets drawn on the page, as JSON.
+pub(crate) const NETS_ATTR: &str = "vizcraftNets";
+
+/// `vizcraftOrient` text for `o`, the reverse of [`parse_orient`].
+pub(crate) fn orient_text(o: Orient) -> String {
+    format!("{}{}", o.turns % 4, if o.mirror { "m" } else { "" })
+}
+
+/// An orientation from `vizcraftOrient` text; `None` when it does not read.
+fn parse_orient(t: &str) -> Option<Orient> {
+    let t = t.trim();
+    let (turns, mirror) = match t.strip_suffix('m') {
+        Some(rest) => (rest, true),
+        None => (t, false),
+    };
+    let turns: u8 = turns.parse().ok().filter(|n| *n < 4)?;
+    Some(Orient { turns, mirror })
+}
+
+/// The orientation of a vertex style, taking the keys it reads: `vizcraftOrient` (a VizCraft
+/// export, whose `rotation` then includes the quarter turns and whose `flipH` is the mirror), else
+/// draw.io's own `flipH` and `flipV`. Returns the orientation and the quarter turns to take out
+/// of the rotation.
+fn take_orient(s: &mut DStyle) -> (Orient, f64) {
+    let ours = s.remove(ORIENT_KEY).and_then(|t| parse_orient(&t));
+    let flip_h = s.remove("flipH").is_some_and(|v| v.trim() == "1");
+    let flip_v = s.remove("flipV").is_some_and(|v| v.trim() == "1");
+    if let Some(o) = ours {
+        return (o, 90.0 * f64::from(o.turns));
+    }
+    let mut o = Orient::NONE;
+    if flip_h {
+        o = o.mirrored(true);
+    }
+    if flip_v {
+        o = o.mirrored(false);
+    }
+    // A foreign flip's turns (a top-to-bottom flip is a mirror and two turns) belong to the
+    // flip, so draw.io's rotation is the free angle as it stands.
+    (o, 0.0)
 }
 
 /// How an edge style maps onto a connector.
@@ -104,6 +159,10 @@ pub(crate) struct EdgeLook {
     pub exit: Option<Point>,
     /// `entryX`/`entryY`, when both are given.
     pub entry: Option<Point>,
+    /// The net the segment belongs to (`vizcraftNet`).
+    pub net: Option<String>,
+    /// The line marker (`vizcraftMarker`).
+    pub marker: LineMarker,
     /// Leftover style and extra font bits, for `ext`.
     pub ext: BTreeMap<String, String>,
 }
@@ -177,6 +236,8 @@ pub(crate) fn vertex_look(style: Option<&DStyle>, warnings: &mut Warnings) -> Ve
             stencil: String::new(),
             style: DRAWIO_SHAPE,
             angle: 0.0,
+            orient: Orient::NONE,
+            junction: false,
             ext,
             skip: Some("images are not supported yet".into()),
         };
@@ -275,8 +336,20 @@ pub(crate) fn vertex_look(style: Option<&DStyle>, warnings: &mut Warnings) -> Ve
     }
     common(&mut s, &mut style, &mut ext);
     let angle = number(s.remove("rotation")).unwrap_or(0.0);
+    let (orient, turned) = take_orient(&mut s);
+    let angle = if turned == 0.0 { angle } else { (angle - turned).rem_euclid(360.0) };
+    let junction = s.remove(JUNCTION_KEY).is_some_and(|v| v.trim() == "1");
     leftover(&s, &mut ext);
-    VertexLook { kind, stencil: master.map_or_else(|| master_for_kind(kind).to_string(), |m| m.id.to_string()), style, angle, ext, skip: None }
+    VertexLook {
+        kind,
+        stencil: master.map_or_else(|| master_for_kind(kind).to_string(), |m| m.id.to_string()),
+        style,
+        angle,
+        orient,
+        junction,
+        ext,
+        skip: None,
+    }
 }
 
 /// The style key naming a connector's kind (`flowchart.flow`), the edge twin of the vertex `vizcraft`
@@ -344,6 +417,8 @@ pub(crate) fn edge_look(style: Option<&DStyle>) -> EdgeLook {
     let (start_hollow, end_hollow) = (take_hollow(&mut s, "startArrow", "startFill"), take_hollow(&mut s, "endArrow", "endFill"));
     let arrows = (arrow(s.remove("startArrow"), Arrow::None, start_hollow), arrow(s.remove("endArrow"), Arrow::Triangle, end_hollow));
     let kind = s.remove(KIND_KEY).unwrap_or_default();
+    let net = s.remove(NET_KEY).map(|n| n.trim().to_string()).filter(|n| !n.is_empty());
+    let marker = s.remove(MARKER_KEY).and_then(|m| LineMarker::from_name(m.trim())).unwrap_or_default();
     let jumps = s.remove("jumpStyle").is_some_and(|v| !matches!(v.trim(), "" | "none"));
     let pair = |s: &mut DStyle, kx: &str, ky: &str| {
         let (x, y) = (number(s.remove(kx)), number(s.remove(ky)));
@@ -355,7 +430,7 @@ pub(crate) fn edge_look(style: Option<&DStyle>) -> EdgeLook {
     common(&mut s, &mut st, &mut ext);
     st.fill = Color::TRANSPARENT;
     leftover(&s, &mut ext);
-    EdgeLook { route, arrows, kind, style: st, jumps, exit, entry, ext }
+    EdgeLook { route, arrows, kind, style: st, jumps, exit, entry, net, marker, ext }
 }
 
 /// Keep a wrapper's kind and attributes (other than the label) in `ext`.
@@ -553,6 +628,11 @@ pub(crate) fn page_from_model(model: &GraphModel, id: String, name: String, warn
         shape.stencil = look.stencil;
         shape.style = look.style;
         shape.angle_deg = look.angle;
+        shape.orient = look.orient;
+        if look.junction {
+            shape.stencil = vizcraft_diagram::net::JUNCTION_STENCIL.to_string();
+            shape.connection_points = vec![Point::new(0.5, 0.5)];
+        }
         shape.text = c.plain_label();
         shape.ext = look.ext;
         wrapper_ext(c, &mut shape.ext);
@@ -634,6 +714,8 @@ pub(crate) fn page_from_model(model: &GraphModel, id: String, name: String, warn
             jumps: look.jumps,
             ext: look.ext,
             relationship: None,
+            net: look.net,
+            marker: look.marker,
             ..Connector::default()
         };
         wrapper_ext(c, &mut conn.ext);

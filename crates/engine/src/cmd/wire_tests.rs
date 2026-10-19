@@ -192,3 +192,25 @@ fn hostile_wire_params_never_panic() {
         }
     }
 }
+
+/// Shapes with the default orientation draw exactly as before orientation existed: the sample
+/// document, with a turned shape and a turned shape with compartments, exports byte for byte the
+/// SVG and draw.io files the build before Block 6E wrote (`testdata/sample-oriented-default.*`).
+#[test]
+fn the_default_orientation_leaves_the_sample_bit_identical() {
+    let mut s = Session::new(crate::sample::sample_document());
+    run(&mut s, "shape.rotate", json!({"ids": ["s3"], "angle": 30}));
+    run(&mut s, "compartment.add", json!({"id": "s4", "kind": "list", "title": "Fields", "rows": ["a", "b"]}));
+    run(&mut s, "shape.rotate", json!({"ids": ["s4"], "angle": 90}));
+    for sh in &s.doc.pages[0].shapes {
+        assert!(sh.orient.is_default());
+        let old = vizcraft_diagram::Transform::rotate_about(Point::new(sh.w / 2.0, sh.h / 2.0), sh.angle_deg)
+            .then(&vizcraft_diagram::Transform::translate(sh.x, sh.y));
+        assert_eq!(sh.transform().m, old.m, "{}", sh.id);
+        assert_eq!(sh.text_rect_oriented(), sh.text_rect(), "{}", sh.id);
+    }
+    let svg = vizcraft_formats::svg::export_page(&s.doc, 0).unwrap();
+    assert_eq!(String::from_utf8(svg).unwrap(), include_str!("../../testdata/sample-oriented-default.svg"));
+    let drawio = vizcraft_formats::drawio::save(&s.doc).unwrap();
+    assert_eq!(String::from_utf8(drawio).unwrap(), include_str!("../../testdata/sample-oriented-default.drawio"));
+}

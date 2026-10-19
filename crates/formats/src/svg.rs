@@ -54,6 +54,7 @@ use crate::FormatError;
 
 mod compartments;
 mod data_graphics;
+mod nets;
 pub mod pictures;
 mod ports;
 
@@ -247,6 +248,7 @@ fn page_items_svg(out: &mut String, cx: &mut Ctx, page: &Page, print: bool, fiel
     for (c, g) in page.connectors.iter().zip(page_geometry(page)) {
         connector_svg(out, c, &g);
     }
+    nets::draw(out, fields.doc, page);
 }
 
 /// A path split into its closed subpaths and its open ones, in order.
@@ -456,10 +458,12 @@ fn styled_lines(text: &str, st: &Style) -> Vec<String> {
 }
 
 /// A shape's text laid out in its text block: margins, indent and alignment applied, rotated
-/// with the shape (and with the text block's own angle).
+/// with the shape (and with the text block's own angle). The block's centre follows the glyph's
+/// quarter turns and mirror (`Shape::text_frame`), but the text itself never turns or mirrors
+/// with them, so it stays upright.
 fn shape_text_svg(out: &mut String, s: &Shape) {
     let st = &s.style;
-    let (local, block_angle) = s.text_rect();
+    let (local, block_angle) = s.text_rect_oriented();
     // The block in unrotated world coordinates; the shape's rotation is a transform on the text.
     let block = Rect::from_xywh(local.x0 + s.x, local.y0 + s.y, local.width(), local.height());
     let m = st.text_margins;
