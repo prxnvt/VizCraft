@@ -135,9 +135,10 @@ Returns one JSON object with everything a script needs to check its work without
 | `tool` | the canvas tool: `pointer`, `connector` or `text` (set with `ui.tool`; `ui.tool {tool: "connector", kind}` also picks the connector kind) |
 | `tree` | the Model Tree pane: `mode` (`model` or `context`), `branch`, `expanded`, `collapsed`, `selected` (set with `ui.tree`) |
 | `palette` | the Palette pane: its query, groups and the rows shown (set with `ui.palette`) |
-| `inspector` | the Inspector pane: `open`, `mode` (`standard` or `expert`), `tab` (`properties` or `format`) (set with `ui.inspector`) |
-| `dock` | the bottom dock: `open`, `height`, `tab` (`problems`, `search`, `activity`, `tables`, `generate`) and the `rows` the tab shows (set with `ui.dock`; `ui.search` fills the Search tab) |
+| `inspector` | the Inspector pane: `open`, `mode` (`standard` or `expert`), `tab` (`properties` or `format`), and `fields` with the `symbol`, `sheet` and `zone` groups when shown (set with `ui.inspector`) |
+| `dock` | the bottom dock: `open`, `height`, `tab` (`problems`, `search`, `activity`, `tables`, `generate`, `nets`) and the `rows` the tab shows (set with `ui.dock`; `ui.search` fills the Search tab) |
 | `menu` | the open ribbon dropdown as `{"title", "rows": [{"label", "id", "enabled", "checked"}]}`, or `null` |
+| `nets` | the Nets dock tab: the nets listed and the selected one (set with `ui.nets`) |
 | `diagram` | a compact summary of the page and the canvas, see below |
 
 `diagram` has these fields:
@@ -149,7 +150,8 @@ Returns one JSON object with everything a script needs to check its work without
 | `selected` | the selected shape and connector ids, in selection order |
 | `hover` | the id of the shape or connector under the pointer, or `null` |
 | `editing` | the id whose text is being edited in place, or `null` |
-| `dragging` | the canvas drag in progress (`marquee`, `move`, `resize`, `rotate`, `connect`, `reglue`), or `null` |
+| `dragging` | the canvas drag in progress (`marquee`, `move`, `resize`, `rotate`, `connect`, `reglue`, `wire`), or `null` |
+| `net`, `zone` | the net under the pointer or held by a click (number and pin count), and the sheet zone under the pointer, or `null` |
 | `canvas` | the canvas rectangle in window points, `[x, y, width, height]`, or `null` before the first frame |
 
 To click a shape, map its world position to window points: the canvas centre shows world point

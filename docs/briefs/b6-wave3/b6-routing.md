@@ -13,6 +13,15 @@ wave 3 brief in this folder (they apply here too: shared-file rules, merge order
 time, the report as your final message, no edits to ROADMAP, parity, mcp, formats,
 control-protocol or the cascade plan).
 
+## Already changed by `b6e-frontend` (merged before you start)
+
+Read `docs/briefs/b6e-frontend/report.md` "Second round" and "Third round": wires drawn without
+bends now set `avoid` and route like connectors; `autoroute::refresh` reroutes connectors whose
+drawn line shares a run with a changed one (`sharing_runs`, `share_run`); `crates/routing/src/nudge.rs`
+gained a pairwise `side_vote` ordering. Build on these, keep their tests (`a_new_wire_does_not_run_on_top_of_another`,
+`a_wire_drawn_without_bends_routes_around_shapes_and_drawn_bends_are_kept`) green, and review the
+nudge change as part of this branch.
+
 ## Goal
 
 Connectors that read cleanly. The user's words: "I don't want connectors/wires to align with the

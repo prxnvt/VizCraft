@@ -95,9 +95,9 @@ params. Agents use them through `command_run` and `command_batch`:
 | `template.*` | List templates, start a document or page from one, set the project's symbol and sheet standards, preview a template as SVG text |
 | `analyze.*`, `model.diff` | Dependencies, cycles, unreachable elements, single points of failure, metrics and paths over the model; `analyze.result` reads the stored result back |
 | `net.*`, `wire.*`, `page.setModule` | Nets with numbers, wires that join at junctions, splice and heal, the symbol grid |
-| `shape.rotate {turns}`, `shape.mirror` | Quarter turns and mirroring with text kept upright |
-| `sheet.*`, `doc.setProperty`, `doc.properties`, `xref.*` | Drawing sheets with zones and title blocks, ISO 7200 document properties, cross references |
-| `glyph.*` | Parametric symbols: list builders, draw one as SVG, read and set a placed symbol's parameters |
+| `shape.rotate {turns}`, `shape.mirror` | Quarter turns and mirroring with text kept upright; the result names the turned shapes in `primary` and `shapes` |
+| `sheet.*`, `doc.setProperty`, `doc.properties`, `xref.*` | Drawing sheets with zones and title blocks, ISO 7200 document properties, cross references; `sheet.revise` with no description opens the Revise dialog in the app |
+| `glyph.*` | Parametric symbols: list builders, draw one as SVG, place one as a free symbol (`glyph.insert`), read and set a placed symbol's parameters |
 | `key.*`, `connector.setStep`, `connector.renumberSteps`, `topology.toMermaid` | Generated keys, numbered step badges, Mermaid architecture text |
 | `sequence.*` | Sequence diagrams edited by order: lifelines, messages, replies, fragments, Mermaid or PlantUML text |
 | `er.*` | Entity-relationship columns and cardinalities, DBML or Mermaid ER text; `file.import {format: "dbml"}` reads DBML |

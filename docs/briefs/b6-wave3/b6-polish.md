@@ -50,6 +50,10 @@ For this branch:
   key and column rows and columns that did not line up. After the `b6e-frontend` merge the canvas
   draws table columns; check that each table shows one header row, aligned PK, name and type
   columns and no blank lines, matching the PNG, in the canvas snapshot `canvas-er-schema`.
+- Seen at the `b6e-frontend` merge: the title block change (captions at the top, values centred)
+  also moved the generated key's left-aligned text flush against the cell's left rule ("Key",
+  "Region" in the `cloud-topology.svg` golden lost their 4-unit inset). Restore the inset for
+  left-aligned cells in `title_block.rs` and re-bless the key goldens.
 - Do not edit the label block in `formats/src/svg.rs` or `diagram/src/route.rs` (`b6-sequence-ui`).
 
 ## Draft brief
