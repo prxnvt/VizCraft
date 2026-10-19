@@ -54,8 +54,8 @@ use crate::FormatError;
 
 mod compartments;
 mod data_graphics;
-mod nets;
 pub mod glyph_labels;
+mod nets;
 pub mod pictures;
 mod ports;
 
