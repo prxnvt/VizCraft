@@ -659,5 +659,54 @@
     "workflow.nOfMJoin",
     "workflow.multipleInstances",
     "workflow.cancelRegion"
+  ],
+  "templates": [
+    {
+      "id": "flowchart.blank",
+      "label": "Blank Flowchart",
+      "description": "An empty flowchart page with the flowchart symbols and checks ready.",
+      "viewpoint": "flowchart.Flowchart",
+      "keywords": ["blank", "empty", "flow", "process"],
+      "codeForms": ["mermaid.flowchart"]
+    },
+    {
+      "id": "flowchart.decision",
+      "label": "Decision Flow",
+      "description": "A short process that branches on one question and comes back together at the end.",
+      "viewpoint": "flowchart.Flowchart",
+      "keywords": ["decision", "branch", "yes", "no", "process", "procedure"],
+      "codeForms": ["mermaid.flowchart"],
+      "seed": [
+        {"command": "shape.add", "as": "start", "params": {"stencil": "flowchart.terminator", "x": 0, "y": 0, "text": "Start"}},
+        {"command": "shape.add", "as": "gather", "params": {"stencil": "flowchart.process", "x": 0, "y": 0, "text": "Gather the inputs"}},
+        {"command": "shape.add", "as": "check", "params": {"stencil": "flowchart.decision", "x": 0, "y": 0, "text": "Inputs complete?"}},
+        {"command": "shape.add", "as": "handle", "params": {"stencil": "flowchart.process", "x": 0, "y": 0, "text": "Handle the request"}},
+        {"command": "shape.add", "as": "ask", "params": {"stencil": "flowchart.process", "x": 0, "y": 0, "text": "Ask for what is missing"}},
+        {"command": "shape.add", "as": "done", "params": {"stencil": "flowchart.terminator", "x": 0, "y": 0, "text": "Done"}},
+        {"command": "relationship.create", "params": {"from": "${start.id}", "to": "${gather.id}"}},
+        {"command": "relationship.create", "params": {"from": "${gather.id}", "to": "${check.id}"}},
+        {"command": "relationship.create", "params": {"from": "${check.id}", "to": "${handle.id}", "name": "Yes"}},
+        {"command": "relationship.create", "params": {"from": "${check.id}", "to": "${ask.id}", "name": "No"}},
+        {"command": "relationship.create", "params": {"from": "${handle.id}", "to": "${done.id}"}},
+        {"command": "relationship.create", "params": {"from": "${ask.id}", "to": "${done.id}"}}
+      ],
+      "layout": {"algorithm": "layered", "direction": "TB"}
+    },
+    {
+      "id": "flowchart.ciPipeline",
+      "label": "Build and Release Pipeline",
+      "description": "A change goes through a build, three checks side by side and a deploy before it is released.",
+      "viewpoint": "flowchart.Flowchart",
+      "keywords": ["ci", "cd", "pipeline", "build", "deploy", "release", "tests"],
+      "codeForms": ["mermaid.flowchart"],
+      "seed": [
+        {"command": "shape.add", "as": "source", "params": {"stencil": "flowchart.terminator", "x": 0, "y": 0, "text": "Change pushed"}},
+        {"command": "pattern.insert", "as": "checks", "params": {"pattern": "workflow.parallelSplit", "args": {"branches": 3, "labels": ["Unit tests", "Lint", "Integration tests"], "split": "Build", "join": "Deploy"}, "x": 200, "y": 0}},
+        {"command": "shape.add", "as": "release", "params": {"stencil": "flowchart.terminator", "x": 900, "y": 0, "text": "Released"}},
+        {"command": "relationship.create", "params": {"from": "${source.id}", "to": "${checks.members.split}"}},
+        {"command": "relationship.create", "params": {"from": "${checks.members.join}", "to": "${release.id}"}}
+      ],
+      "layout": {"primitive": "pipeline", "direction": "LR"}
+    }
   ]
 }

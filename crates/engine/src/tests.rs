@@ -63,7 +63,8 @@ fn registry_ids_are_unique_and_prefixed() {
                 "picture",
                 "ink",
                 "variant",
-                "generate"
+                "generate",
+                "template"
             ]
             .contains(&prefix),
             "{}: unexpected prefix",
@@ -122,6 +123,8 @@ fn hostile_params_never_panic() {
         json!({"script": "not json", "commands": []}),
         json!({"bytes": "!!not base64!!", "id": "s2", "crop": {"x": "a", "w": -1e308}, "points": [[1e308, "x"], {}], "mediaType": "image/gif", "maxDimension": -5, "quality": 1e300, "recolor": 7}),
         json!({"instance": "s2", "direction": "fromTable", "table": {"columns": [5, null], "rows": [[{}], "x", null]}, "path": "/nonexistent/\u{0}.csv", "source": "\u{0}", "merge": "yes", "type": 7}),
+        json!({"template": "flowchart.decision", "variant": 5, "sheet": {}, "path": {}}),
+        json!({"template": "x".repeat(1000)}),
         nested_batches(40),
     ];
     for spec in reg.all() {

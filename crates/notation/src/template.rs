@@ -5,7 +5,9 @@
 //! schema and the checks the loader runs on it.
 //!
 //! The seed is a command list in the `script.run` form. A step marked `optional` is skipped when
-//! its command is not registered, so a template can use a command a later build adds.
+//! its command is not registered, so a template can use a command a later build adds. A step can
+//! name its result (`as`), and a later param string `${name.path}` stands for a value in it, so a
+//! seed can connect shapes whose ids the engine hands out (see [`reference`]).
 //!
 //! Older packs wrote `templates` as a list of id strings; such entries are dropped when the pack
 //! loads, so those packs still load.
@@ -125,6 +127,32 @@ pub struct SeedStep {
     /// Skip the step when the command is not registered, instead of failing.
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub optional: bool,
+    /// A name for the step's result, so later steps and the layout roles can use it: a param
+    /// string `${name.path}` (`${start.id}`, `${split.members.join}`) is replaced by the value at
+    /// that path of the result. Empty: the result is not kept.
+    #[serde(rename = "as", skip_serializing_if = "String::is_empty")]
+    pub name: String,
+}
+
+/// Longest step result name, in bytes.
+pub const MAX_NAME: usize = 64;
+
+/// The reference a whole param string makes to an earlier step's result: `${name.path}` gives
+/// `(name, path)`, the path possibly empty.
+pub fn reference(text: &str) -> Option<(&str, &str)> {
+    let inner = text.strip_prefix("${")?.strip_suffix('}')?;
+    let (name, path) = inner.split_once('.').unwrap_or((inner, ""));
+    (!name.is_empty()).then_some((name, path))
+}
+
+/// Every reference made anywhere inside `v`, in document order.
+fn references<'a>(v: &'a Value, out: &mut Vec<&'a str>) {
+    match v {
+        Value::String(t) => out.extend(reference(t).map(|(n, _)| n)),
+        Value::Array(a) => a.iter().for_each(|x| references(x, out)),
+        Value::Object(o) => o.values().for_each(|x| references(x, out)),
+        _ => {}
+    }
 }
 
 /// How a template lays out its seed: an algorithm (`layout.full`) or a primitive
@@ -266,7 +294,22 @@ fn seed(ctx: &str, t: &Template) -> Vec<String> {
         out.push(format!("{ctx}: the seed has more than {MAX_SEED_STEPS} steps"));
     }
     let mut bytes = 0usize;
+    let mut named: Vec<&str> = Vec::new();
     for (i, step) in t.seed.iter().take(MAX_SEED_STEPS).enumerate() {
+        let mut used = Vec::new();
+        references(&step.params, &mut used);
+        for n in used.into_iter().filter(|n| !named.contains(n)) {
+            out.push(format!("{ctx}: seed[{i}] uses `{}`, which no earlier step names with `as`", short(n)));
+        }
+        if !step.name.is_empty() {
+            if step.name.len() > MAX_NAME || !step.name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+                out.push(format!("{ctx}: seed[{i}] `as` must be at most {MAX_NAME} letters, digits or `_`"));
+            }
+            if step.optional {
+                out.push(format!("{ctx}: seed[{i}] is optional, so it cannot name its result"));
+            }
+            named.push(&step.name);
+        }
         let id = step.command.trim();
         if id.is_empty() || id.len() > MAX_ID || id != step.command {
             out.push(format!("{ctx}: seed[{i}] needs a command id of at most {MAX_ID} bytes"));
@@ -278,6 +321,13 @@ fn seed(ctx: &str, t: &Template) -> Vec<String> {
     }
     if bytes > MAX_SEED_BYTES {
         out.push(format!("{ctx}: the seed params are larger than {MAX_SEED_BYTES} bytes"));
+    }
+    if let Some(l) = &t.layout {
+        let mut used = Vec::new();
+        references(&l.roles, &mut used);
+        for n in used.into_iter().filter(|n| !named.contains(n)) {
+            out.push(format!("{ctx}: the layout roles use `{}`, which no seed step names with `as`", short(n)));
+        }
     }
     out
 }
@@ -396,6 +446,13 @@ mod tests {
                 .contains("at most 128 templates")
         );
         assert!(problems(&|v| v["templates"][0]["keywords"] = json!(["x".repeat(65)])).contains("`keywords` takes"));
+        assert!(problems(&|v| v["templates"][0]["seed"][0]["params"]["text"] = json!("${ghost.id}")).contains("no earlier step names"));
+        assert!(
+            problems(&|v| v["templates"][0]["layout"] = json!({"primitive": "hubSpoke", "roles": {"hub": "${ghost.id}"}}))
+                .contains("layout roles use `ghost`")
+        );
+        assert!(problems(&|v| v["templates"][0]["seed"][1]["as"] = json!("later")).contains("cannot name its result"));
+        assert!(problems(&|v| v["templates"][0]["seed"][0]["as"] = json!("a b")).contains("`as` must be"));
     }
 
     #[test]
@@ -408,6 +465,20 @@ mod tests {
         assert!(load_json(&v.to_string()).unwrap().templates.is_empty());
         v["templates"] = json!([{"id": "tt.x", "label": 5}]);
         assert!(load_json(&v.to_string()).is_err());
+    }
+
+    #[test]
+    fn references_read_whole_strings_only() {
+        assert_eq!(reference("${start.id}"), Some(("start", "id")));
+        assert_eq!(reference("${ci.members.split}"), Some(("ci", "members.split")));
+        assert_eq!(reference("${ci}"), Some(("ci", "")));
+        for no in ["start.id", "${}", "x ${a.id}", "${a.id} x", "$start"] {
+            assert_eq!(reference(no), None, "{no}");
+        }
+        let mut v = pack();
+        v["templates"][0]["seed"][0]["as"] = json!("box");
+        v["templates"][0]["layout"] = json!({"primitive": "hubSpoke", "roles": {"hub": "${box.id}"}});
+        assert!(load_json(&v.to_string()).is_ok());
     }
 
     #[test]
