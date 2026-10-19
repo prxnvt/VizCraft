@@ -167,8 +167,12 @@ pub fn check_pack(pack: &Pack) -> Vec<String> {
             out.push(format!("{ctx}: container corner and margin must be 0 to {MAX_LOOK}, lineWidth 0 to 100"));
         }
     }
+    // A type that only owns in the model (an ER entity owning its columns) has no nested views,
+    // so a variant may redraw it; one that other types nest in by drawing, or that draws as a
+    // container, keeps its glyph.
+    let nests = |id: &str| pack.element_types.iter().any(|t| t.allowed_parents.iter().any(|p| p == id || p == "*"));
     let is_container_type =
-        |id: &str| pack.element_type(id).is_some_and(|t| t.container || pack.glyph(&t.glyph).is_some_and(|g| g.container.is_some()));
+        |id: &str| pack.element_type(id).is_some_and(|t| (t.container && nests(id)) || pack.glyph(&t.glyph).is_some_and(|g| g.container.is_some()));
     for v in &pack.variants {
         for ty in v.glyphs.keys().filter(|ty| is_container_type(ty)) {
             out.push(format!("variant `{}`: maps container type `{}`, which keeps its own glyph", short(&v.id), short(ty)));

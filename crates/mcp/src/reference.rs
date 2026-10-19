@@ -184,7 +184,7 @@ open_mermaid reads these five kinds, detected from the first line:
 | `sequenceDiagram` | Participants in a row with lifelines, messages as horizontal arrows from top to bottom in order |
 | `classDiagram` | One box per class with its members as text, relations as connectors |
 | `stateDiagram` or `stateDiagram-v2` | States and transitions; composite states become a background box |
-| `erDiagram` | One box per entity with its attributes as text, relationships as labelled connectors |
+| `erDiagram` | One ER table per entity (`er.entity`) with key and attribute rows, its columns carried as owned `er.Attribute` elements for a merging import, relationships as crow's-foot connectors with their cardinalities (`--` identifying, `..` not) |
 
 The diagram's own direction is used unless `layout` is given. Node ids are kept, so a node `A`
 can be addressed as `A` afterwards. Statements that are understood but not drawn come back as

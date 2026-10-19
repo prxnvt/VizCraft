@@ -19,6 +19,7 @@ use vizcraft_diagram::import_record::{self, ImportRecord};
 use vizcraft_diagram::{Connector, End, Page, Route, Shape, arrange as ar, container, is_plain_id};
 use vizcraft_formats::Imported;
 use vizcraft_formats::csv::{PROP_PREFIX, TAG_KEY, TYPE_KEY};
+use vizcraft_formats::er::CHILDREN_KEY;
 use vizcraft_model::sync::{self, Changes};
 use vizcraft_model::{Element, MAX_ID, MAX_KEY, MAX_PROPERTIES, MAX_TAG, MAX_TEXT, Model, PropValue, Relationship};
 
@@ -82,6 +83,47 @@ fn relationship_type_of(c: &Connector, source_type: &str, target_type: &str) -> 
     from_kind.or_else(|| vizcraft_notation::legal::relationship_for(cat(), source_type, target_type).map(|(t, _)| t))
 }
 
+/// The elements an imported shape's `import.children` says its element `owner` owns (an ER
+/// table's columns): `[{"id", "type", "name", "props": {key: text}}]`. An entry of a type the
+/// catalog does not know, with no id, or with an id already used is left out and counted in a
+/// warning.
+fn children_of(owner: &str, json: &str, seen: &mut HashSet<String>, warnings: &mut Vec<String>) -> Vec<Element> {
+    let Ok(Value::Array(list)) = serde_json::from_str::<Value>(json) else {
+        warnings.push(format!("the columns of {} do not read", short(owner)));
+        return Vec::new();
+    };
+    let mut out = Vec::new();
+    let mut skipped = 0usize;
+    for v in list.iter().take(vizcraft_model::MAX_ELEMENTS) {
+        let (Some(id), Some(ty)) = (v.get("id").and_then(Value::as_str), v.get("type").and_then(Value::as_str)) else {
+            skipped += 1;
+            continue;
+        };
+        let id = cut(id, MAX_ID);
+        if id.is_empty() || cat().element_type(ty).is_none() || !seen.insert(id.clone()) {
+            skipped += 1;
+            continue;
+        }
+        let mut e = Element::new(id, ty);
+        e.name = cut(v.get("name").and_then(Value::as_str).unwrap_or_default().trim(), MAX_TEXT);
+        e.owner = Some(owner.to_string());
+        if let Some(Value::Object(props)) = v.get("props") {
+            for (k, val) in props {
+                let Some(text) = val.as_str() else { continue };
+                if !k.is_empty() && k.len() <= MAX_KEY && e.properties.len() < MAX_PROPERTIES {
+                    let value = typed_value(&e.type_id, k, text, false);
+                    e.properties.insert(k.clone(), value);
+                }
+            }
+        }
+        out.push(e);
+    }
+    if skipped > 0 {
+        warnings.push(format!("{skipped} owned elements of {} were not merged (unknown type or repeated id)", short(owner)));
+    }
+    out
+}
+
 /// Read the imported page as a model. Containers and groups (subgraphs) are not elements unless
 /// they carry `import.type` (a package, a composite state); members take the nearest such shape
 /// above them as their owner. A shape whose id cannot be a model id is left out; both are
@@ -90,6 +132,7 @@ fn read_incoming(page: &Page, fallback: &str, warnings: &mut Vec<String>) -> Inc
     let mut inc = Incoming { model: Model::new(), shapes: HashMap::new(), connectors: HashMap::new() };
     let (mut frames, mut odd) = (0usize, 0usize);
     let mut seen: HashSet<&str> = HashSet::new();
+    let mut seen_children: HashSet<String> = HashSet::new();
     for s in page.shapes.iter().take(vizcraft_model::MAX_ELEMENTS) {
         // Activation bars, destruction marks and fragments are drawn by the sequence settle pass.
         if s.sequence.as_ref().is_some_and(|p| !p.is_element_view()) {
@@ -114,12 +157,18 @@ fn read_incoming(page: &Page, fallback: &str, warnings: &mut Vec<String>) -> Inc
                 e.properties.insert(k.to_string(), value);
             }
         }
+        let children = s.ext.get(CHILDREN_KEY).map(|json| children_of(&e.id, json, &mut seen_children, warnings)).unwrap_or_default();
         let mut shape = s.clone();
         shape.parent = None;
         shape.element = None;
-        shape.ext.retain(|k, _| k != TAG_KEY && k != TYPE_KEY && !k.starts_with(PROP_PREFIX));
+        shape.ext.retain(|k, _| k != TAG_KEY && k != TYPE_KEY && k != CHILDREN_KEY && !k.starts_with(PROP_PREFIX));
         inc.shapes.insert(e.id.clone(), shape);
         inc.model.elements.push(e);
+        for c in children {
+            if inc.model.elements.len() < vizcraft_model::MAX_ELEMENTS {
+                inc.model.elements.push(c);
+            }
+        }
     }
     if frames > 0 {
         warnings.push(format!("{frames} containers and groups are not model elements and were not merged"));

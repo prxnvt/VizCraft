@@ -18,7 +18,9 @@
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
 pub mod csv;
+pub mod dbml;
 pub mod drawio;
+pub mod er;
 pub mod mermaid;
 pub mod native;
 pub mod pdf;

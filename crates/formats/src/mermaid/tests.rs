@@ -211,12 +211,21 @@ fn er_diagram_has_attributes_and_cardinalities() {
     let p = page(src);
     assert_eq!(p.shapes.len(), 3);
     assert_eq!(p.connectors.len(), 2);
+    // Entities are ER tables: the name on the shape, the columns as owned elements to merge and
+    // as preview rows.
     let customer = shape(&p, "CUSTOMER");
-    assert!(customer.text.starts_with("CUSTOMER\n") && customer.text.contains("name"), "{}", customer.text);
-    let places = p.connectors.iter().find(|c| c.text.contains("places")).unwrap();
-    assert_eq!(places.text, "1 places 0..*");
-    assert_eq!((places.start_arrow, places.end_arrow), (Arrow::None, Arrow::None));
-    assert_eq!(places.ext.get("mermaid.endMarker").map(String::as_str), Some("zeroOrMore"));
+    assert_eq!((customer.text.as_str(), customer.stencil.as_str()), ("CUSTOMER", "er.entity"));
+    assert_eq!(customer.ext.get("import.type").map(String::as_str), Some("er.Entity"));
+    let kids: serde_json::Value = serde_json::from_str(customer.ext.get(crate::er::CHILDREN_KEY).unwrap()).unwrap();
+    assert_eq!((kids[0]["id"].as_str(), kids[0]["props"]["pk"].as_str()), (Some("CUSTOMER.name"), Some("true")));
+    assert_eq!(customer.compartments[0].rows, ["PK\tname\tstring"]);
+    // `--` is identifying, so ORDER's child is a weak entity; the ends are the cardinalities.
+    let places = p.connectors.iter().find(|c| c.text == "places").unwrap();
+    assert_eq!((places.start_arrow, places.end_arrow), (Arrow::DoubleBar, Arrow::CrowsFootCircle));
+    assert_eq!(places.ext.get("import.type").map(String::as_str), Some("er.Identifying"));
+    assert_eq!(places.ext.get("import.prop.sourceCardinality").map(String::as_str), Some("one"));
+    assert_eq!(places.ext.get("import.prop.targetCardinality").map(String::as_str), Some("zeroOrMore"));
+    assert_eq!(shape(&p, "ORDER").ext.get("import.type").map(String::as_str), Some("er.WeakEntity"));
     assert_eq!((glued(&places.start), glued(&places.end)), ("CUSTOMER", "ORDER"));
     assert_no_overlap(&p);
 }

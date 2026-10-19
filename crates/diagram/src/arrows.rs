@@ -41,6 +41,10 @@ pub enum Arrow {
     /// A short slanted stroke across the line near the end (BPMN's default-flow marker, drawn
     /// at the source end). The line runs through it.
     Slash,
+    /// Two bars across the line (one and only one, Information Engineering).
+    DoubleBar,
+    /// A small filled dot on the line end (the IDEF1X child end).
+    Dot,
 }
 
 crate::serde_util::named_enum!(Arrow, Arrow::None, {
@@ -58,6 +62,8 @@ crate::serde_util::named_enum!(Arrow, Arrow::None, {
     Arrow::CrowsFootCircle => "crowsFootCircle",
     Arrow::BarCircle => "barCircle",
     Arrow::Slash => "slash",
+    Arrow::DoubleBar => "doubleBar",
+    Arrow::Dot => "dot",
 });
 
 impl Arrow {
@@ -77,6 +83,26 @@ impl Arrow {
         Arrow::CrowsFootCircle,
         Arrow::BarCircle,
         Arrow::Slash,
+    ];
+    /// Every end there is: [`Arrow::ALL`] (the picker list) plus the notation ends the pickers
+    /// do not offer yet.
+    pub const EVERY: [Arrow; 16] = [
+        Arrow::None,
+        Arrow::Triangle,
+        Arrow::Open,
+        Arrow::Diamond,
+        Arrow::Circle,
+        Arrow::HollowTriangle,
+        Arrow::HollowDiamond,
+        Arrow::Bar,
+        Arrow::OpenCircle,
+        Arrow::CrowsFoot,
+        Arrow::CrowsFootBar,
+        Arrow::CrowsFootCircle,
+        Arrow::BarCircle,
+        Arrow::Slash,
+        Arrow::DoubleBar,
+        Arrow::Dot,
     ];
 }
 
@@ -176,6 +202,11 @@ pub fn outline(arrow: Arrow, tip: Point, dir: Vec2, line_width: f64) -> Option<A
             let lean = dir * (half * 0.6);
             geometry(vec![Path::polyline(&[c - side - lean, c + side + lean])], false, 0.0)
         }
+        Arrow::DoubleBar => geometry(vec![bar(tip, dir, len * 0.25, half), bar(tip, dir, len * 0.55, half)], false, 0.0),
+        Arrow::Dot => {
+            let r = len * 0.3;
+            geometry(vec![circle(tip - dir * r, r)], true, 2.0 * r)
+        }
     }
 }
 
@@ -215,7 +246,7 @@ mod tests {
 
     #[test]
     fn names_round_trip_and_unknown_names_are_none() {
-        for a in Arrow::ALL {
+        for a in Arrow::EVERY {
             assert_eq!(Arrow::from_name(a.name()), Some(a));
         }
         assert_eq!(Arrow::from_name("hollowTriangle"), Some(Arrow::HollowTriangle));
@@ -228,7 +259,7 @@ mod tests {
 
     #[test]
     fn every_end_stays_behind_the_tip_and_trims_the_line() {
-        for a in Arrow::ALL.into_iter().filter(|a| *a != Arrow::None) {
+        for a in Arrow::EVERY.into_iter().filter(|a| *a != Arrow::None) {
             let g = outline(a, TIP, DIR, 1.0).unwrap();
             assert!(!g.paths.is_empty(), "{a:?}");
             assert!(g.trim >= 0.0, "{a:?}");
@@ -244,13 +275,13 @@ mod tests {
 
     #[test]
     fn only_solid_heads_are_filled() {
-        let filled: Vec<Arrow> = Arrow::ALL.into_iter().filter(|a| outline(*a, TIP, DIR, 1.0).is_some_and(|g| g.filled)).collect();
-        assert_eq!(filled, vec![Arrow::Triangle, Arrow::Diamond, Arrow::Circle]);
+        let filled: Vec<Arrow> = Arrow::EVERY.into_iter().filter(|a| outline(*a, TIP, DIR, 1.0).is_some_and(|g| g.filled)).collect();
+        assert_eq!(filled, vec![Arrow::Triangle, Arrow::Diamond, Arrow::Circle, Arrow::Dot]);
     }
 
     #[test]
     fn heads_grow_with_line_width_and_survive_junk_widths() {
-        for a in Arrow::ALL.into_iter().filter(|a| *a != Arrow::None) {
+        for a in Arrow::EVERY.into_iter().filter(|a| *a != Arrow::None) {
             let thin = outline(a, TIP, DIR, 1.0).unwrap();
             let thick = outline(a, TIP, DIR, 6.0).unwrap();
             assert!(thick.trim > thin.trim || thin.trim == 0.0, "{a:?}");
@@ -268,6 +299,20 @@ mod tests {
         let b = g.paths[0].bounds().unwrap();
         assert!(b.x0 < b.x1 && b.x1 < TIP.x, "slanted and behind the tip: {b:?}");
         assert_eq!(Arrow::from_name("slash"), Some(Arrow::Slash));
+    }
+
+    #[test]
+    fn double_bar_draws_two_bars_and_dot_a_small_filled_circle() {
+        let g = outline(Arrow::DoubleBar, TIP, DIR, 1.0).unwrap();
+        assert_eq!((g.paths.len(), g.filled, g.trim), (2, false, 0.0));
+        let xs: Vec<f64> = g.paths.iter().map(|p| p.bounds().unwrap().x0).collect();
+        assert!(xs[0] > xs[1] && xs[1] < TIP.x, "two bars behind the tip: {xs:?}");
+        let d = outline(Arrow::Dot, TIP, DIR, 1.0).unwrap();
+        let b = d.paths[0].bounds().unwrap();
+        let big = outline(Arrow::Circle, TIP, DIR, 1.0).unwrap().paths[0].bounds().unwrap();
+        assert!(d.filled && b.height() < big.height(), "smaller than the end circle");
+        assert_eq!(Arrow::from_name("doubleBar"), Some(Arrow::DoubleBar));
+        assert_eq!(Arrow::ALL.len(), 14, "the picker list stays as it was");
     }
 
     #[test]

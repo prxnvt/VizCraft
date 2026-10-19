@@ -87,9 +87,21 @@ fn sort_key(v: &str) -> (u8, u64, usize, String) {
     (2, 0, 0, t.to_lowercase())
 }
 
+/// The value of `key` on `e`, else its schema default.
+fn value_or_default<'a>(cat: &'a Catalog, e: &'a Element, key: &str) -> Option<&'a vizcraft_model::PropValue> {
+    e.prop(key).or_else(|| cat.element_type(&e.type_id).and_then(|(_, t)| t.property(key)).and_then(|p| p.default.as_ref()))
+}
+
 /// The rows a table query gives for the element `owner` (whose `types` property may override
-/// the listed types).
+/// the listed types): with `owned`, only elements it owns; with a `filter`, only elements whose
+/// property (or its default) matches; cells mapped through `values`.
 pub fn table_rows(doc: &Document, cat: &Catalog, owner: &Element, q: &TableQuery) -> Vec<String> {
+    rows_of(doc.model.elements.iter(), cat, owner, q)
+}
+
+/// [`table_rows`] over `candidates` (every element, or the owner's children when the query is
+/// `owned`).
+fn rows_of<'a>(candidates: impl Iterator<Item = &'a Element>, cat: &Catalog, owner: &Element, q: &TableQuery) -> Vec<String> {
     let override_types: Vec<String> = owner
         .prop("types")
         .and_then(|v| v.as_str().map(str::to_string))
@@ -97,14 +109,30 @@ pub fn table_rows(doc: &Document, cat: &Catalog, owner: &Element, q: &TableQuery
         .unwrap_or_default();
     let types = if override_types.is_empty() { &q.types } else { &override_types };
     let cols: Vec<&String> = q.columns.iter().take(cp::MAX_COLUMNS).collect();
-    let mut rows: Vec<(Vec<String>, String)> = doc
-        .model
-        .elements
-        .iter()
+    let shown = |col: &str, e: &Element| -> String {
+        let raw = cell(e, col);
+        match q.values.get(col) {
+            Some(map) => {
+                let v = if raw.is_empty() { value_or_default(cat, e, col).map(|v| v.display()).unwrap_or_default() } else { raw };
+                map.get(&v).cloned().unwrap_or_default()
+            }
+            None => raw,
+        }
+    };
+    let mut rows: Vec<(Vec<String>, String)> = candidates
         .filter(|e| e.id != owner.id && crate::infer::chain_of(cat, &e.type_id).iter().any(|t| types.iter().any(|x| x == t)))
+        .filter(|e| !q.owned || e.owner.as_deref() == Some(owner.id.as_str()))
+        .filter(|e| match &q.filter {
+            None => true,
+            Some(f) => match (&f.equals, value_or_default(cat, e, &f.property)) {
+                (None, v) => v.is_some(),
+                (Some(_), None) => false,
+                (Some(a), Some(b)) => a == b,
+            },
+        })
         .take(cp::MAX_ROWS)
         .map(|e| {
-            let cells: Vec<String> = cols.iter().map(|c| cell(e, c).replace(['\t', '\n', '\r'], " ")).collect();
+            let cells: Vec<String> = cols.iter().map(|c| shown(c, e).replace(['\t', '\n', '\r'], " ")).collect();
             let key = if q.sort_by.is_empty() { String::new() } else { cell(e, &q.sort_by) };
             (cells, key)
         })
@@ -115,44 +143,97 @@ pub fn table_rows(doc: &Document, cat: &Catalog, owner: &Element, q: &TableQuery
     rows.into_iter().map(|(c, _)| c.join("\t")).collect()
 }
 
-/// Step 1: fill query compartments.
+/// The columns of a table query's compartment.
+fn query_columns(q: &TableQuery) -> Vec<Column> {
+    q.columns
+        .iter()
+        .take(cp::MAX_COLUMNS)
+        .enumerate()
+        .map(|(i, c)| Column {
+            title: q.headers.get(i).cloned().unwrap_or_else(|| c.clone()),
+            width: q.widths.get(i).copied().filter(|w| w.is_finite() && *w > 0.0).unwrap_or(80.0),
+        })
+        .collect()
+}
+
+/// Step 1: fill query compartments, with the declarations of each page's rendering variant
+/// (`Catalog::compartments_in`).
 fn tables(doc: &mut Document, cat: &Catalog) {
-    let mut plans: HashMap<String, Vec<(String, Vec<Column>, Vec<String>)>> = HashMap::new();
+    let has_query = |d: &crate::schema::CompartmentDecl| d.query.is_some();
+    if cat.packs().iter().all(|p| {
+        p.element_types.iter().all(|t| !t.compartments.iter().any(has_query))
+            && p.variants.iter().all(|v| !v.compartments.values().flatten().any(has_query))
+    }) {
+        return;
+    }
+    // Filled tables per (element, variant): (compartment id, columns, rows).
+    type Plan = Vec<(String, Vec<Column>, Vec<String>, bool)>;
+    let mut plans: HashMap<(String, String), Plan> = HashMap::new();
+    let by_id: HashMap<&str, &Element> = doc.model.elements.iter().map(|e| (e.id.as_str(), e)).collect();
+    let mut children: HashMap<&str, Vec<&Element>> = HashMap::new();
     for e in &doc.model.elements {
-        let Some((_, t)) = cat.element_type(&e.type_id) else { continue };
-        for d in &t.compartments {
-            let Some(q) = &d.query else { continue };
-            let cols: Vec<Column> = q
-                .columns
+        if let Some(o) = e.owner.as_deref() {
+            children.entry(o).or_default().push(e);
+        }
+    }
+    for page in &doc.pages {
+        let variant = page.view.as_ref().map(|v| v.variant.clone()).unwrap_or_default();
+        for s in &page.shapes {
+            let Some(e) = s.element.as_deref().and_then(|id| by_id.get(id).copied()) else { continue };
+            let key = (e.id.clone(), variant.clone());
+            if plans.contains_key(&key) {
+                continue;
+            }
+            let plan: Plan = cat
+                .compartments_in(&e.type_id, &variant)
                 .iter()
-                .take(cp::MAX_COLUMNS)
-                .enumerate()
-                .map(|(i, c)| Column {
-                    title: q.headers.get(i).cloned().unwrap_or_else(|| c.clone()),
-                    width: q.widths.get(i).copied().filter(|w| w.is_finite() && *w > 0.0).unwrap_or(80.0),
+                .filter_map(|d| {
+                    let q = d.query.as_ref()?;
+                    let rows = if q.owned {
+                        rows_of(children.get(e.id.as_str()).map(|v| v.iter().copied()).into_iter().flatten(), cat, e, q)
+                    } else {
+                        table_rows(doc, cat, e, q)
+                    };
+                    Some((d.id.clone(), query_columns(q), rows, q.owned))
                 })
                 .collect();
-            plans.entry(e.id.clone()).or_default().push((d.id.clone(), cols, table_rows(doc, cat, e, q)));
+            if !plan.is_empty() {
+                plans.insert(key, plan);
+            }
         }
     }
     if plans.is_empty() {
         return;
     }
     for page in &mut doc.pages {
+        let variant = page.view.as_ref().map(|v| v.variant.clone()).unwrap_or_default();
         for s in &mut page.shapes {
-            let Some(plan) = s.element.as_deref().and_then(|e| plans.get(e)) else { continue };
-            for (id, cols, rows) in plan {
+            let Some(plan) = s.element.clone().and_then(|e| plans.get(&(e, variant.clone()))) else { continue };
+            let mut centred = false;
+            for (id, cols, rows, owned) in plan {
                 let Some(c) = s.compartments.iter_mut().find(|c| &c.id == id && c.kind == CompartmentKind::List) else { continue };
                 set_if_changed(&mut c.columns, cols.clone());
                 set_if_changed(&mut c.rows, rows.clone());
                 c.sanitize();
+                centred |= *owned;
             }
-            let need = cp::fit_height(s);
-            if need > s.h {
-                s.h = need;
-                s.sanitize();
-            }
+            grow_to_fit(s, centred);
         }
+    }
+}
+
+/// Grow `s` to fit its main text and compartments when they no longer fit. A shape whose rows
+/// list what its element owns (an ER table's columns) grows about its centre, so redrawing it in
+/// another notation (`variant.set` keeps centres) and back does not walk it down the page; any
+/// other shape grows downward.
+pub fn grow_to_fit(s: &mut Shape, centred: bool) {
+    let need = cp::fit_height(s);
+    if need > s.h {
+        if centred {
+            s.y -= (need - s.h) / 2.0;
+        }
+        s.h = need;
+        s.sanitize();
     }
 }
 

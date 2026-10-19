@@ -42,6 +42,7 @@
 
 use std::fmt::Write as _;
 
+use vizcraft_diagram::connector_look::LabelFrame;
 use vizcraft_diagram::jumps::page_geometry;
 use vizcraft_diagram::print_fields::{FieldValues, expand};
 use vizcraft_diagram::text_fields::{FieldCtx, expand_shape, system_now_secs};
@@ -359,6 +360,11 @@ fn shape_svg(out: &mut String, cx: &mut Ctx, s: &Shape) {
     if !lines.is_empty() {
         let _ = writeln!(out, "    <path d=\"{}\" fill=\"none\"{}/>", path_data(&lines), stroke(st));
     }
+    if st.compound == vizcraft_diagram::Compound::Double
+        && let Some(inner) = vizcraft_diagram::connector_look::inner_outline(s)
+    {
+        let _ = writeln!(out, "    <path d=\"{}\" fill=\"none\"{}/>", path_data(&inner.transformed(&s.transform())), stroke(st));
+    }
     if let Some(detail) = s.detail_world() {
         let _ = writeln!(out, "    <path d=\"{}\" fill=\"none\"{}/>", path_data(&detail), stroke(st));
     }
@@ -409,8 +415,12 @@ fn connector_svg(out: &mut String, c: &Connector, g: &ConnectorGeometry) {
     let st = &c.style;
     let line_color = st.effective_line();
     let _ = writeln!(out, "  <g id=\"{}\">", escape(&c.id));
-    let line = g.line.rounded_corners(st.corner_radius);
-    let _ = writeln!(out, "    <path d=\"{}\" fill=\"none\"{} stroke-linejoin=\"round\"/>", path_data(&line), stroke(st));
+    if c.halves.is_plain() {
+        let line = g.line.rounded_corners(st.corner_radius);
+        let _ = writeln!(out, "    <path d=\"{}\" fill=\"none\"{} stroke-linejoin=\"round\"/>", path_data(&line), stroke(st));
+    } else {
+        halves_svg(out, c, g);
+    }
     for head in g.start_head.iter().chain(g.end_head.iter()) {
         let fill = if head.filled { paint("fill", line_color) } else { " fill=\"none\"".to_string() };
         // Heads keep a visible outline even on a zero-width line, so they never vanish.
@@ -430,14 +440,20 @@ fn connector_svg(out: &mut String, c: &Connector, g: &ConnectorGeometry) {
         let bw = longest * st.font_size * CHAR_WIDTH + st.font_size * 0.6;
         let bh = lines.len().max(1) as f64 * st.font_size * LINE_HEIGHT + st.font_size * 0.3;
         let p = g.label_pos;
-        let _ = writeln!(
-            out,
-            "    <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" fill=\"#ffffff\"/>",
-            num(p.x - bw / 2.0),
-            num(p.y - bh / 2.0),
-            num(bw),
-            num(bh)
-        );
+        if c.label_frame == LabelFrame::Box {
+            let _ = writeln!(
+                out,
+                "    <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" fill=\"#ffffff\"/>",
+                num(p.x - bw / 2.0),
+                num(p.y - bh / 2.0),
+                num(bw),
+                num(bh)
+            );
+        } else {
+            let frame = vizcraft_diagram::connector_look::label_frame_path(p, bw, bh, c.label_frame);
+            let solid = Style { dash: vizcraft_diagram::Dash::Solid, ..st.clone() };
+            let _ = writeln!(out, "    <path d=\"{}\" fill=\"#ffffff\"{} stroke-linejoin=\"round\"/>", path_data(&frame), stroke(&solid));
+        }
         let lh = st.font_size * LINE_HEIGHT;
         let first = p.y - (lines.len().max(1) as f64 - 1.0) * lh / 2.0 + st.font_size * 0.35;
         text_svg(out, &lines, p.x, first, Anchor::Middle, st, "");
@@ -445,6 +461,26 @@ fn connector_svg(out: &mut String, c: &Connector, g: &ConnectorGeometry) {
     end_labels_svg(out, c, g);
     step_badges::badge_svg(out, c, g);
     out.push_str("  </g>\n");
+}
+
+/// A line drawn half by half (`Connector.halves`): each half with its own dash, and as two
+/// parallel lines where it is double. Corner rounding is left out on split lines.
+fn halves_svg(out: &mut String, c: &Connector, g: &ConnectorGeometry) {
+    let st = &c.style;
+    let pts: Vec<vizcraft_diagram::Point> = g.line.flatten(0.5).into_iter().flat_map(|p| p.points).collect();
+    let (a, b) = vizcraft_diagram::connector_look::split_half(&pts);
+    for (half, look) in [(a, c.halves.start), (b, c.halves.end)] {
+        let hs = Style { dash: look.dash.unwrap_or(st.dash), ..st.clone() };
+        let lines = if look.double {
+            let (l, r) = vizcraft_diagram::connector_look::parallel(&half, st.line_width.max(1.0) * 1.5);
+            vec![l, r]
+        } else {
+            vec![half]
+        };
+        for l in lines.iter().filter(|l| l.len() >= 2) {
+            let _ = writeln!(out, "    <path d=\"{}\" fill=\"none\"{} stroke-linejoin=\"round\"/>", path_data(&Path::polyline(l)), stroke(&hs));
+        }
+    }
 }
 
 /// The labels beside each end (`start_label`, `end_label`): a little outside the line, past the
@@ -1084,5 +1120,81 @@ mod glyph_tests {
         assert_eq!(body.matches("fill=\"#ffffff\"/>").count(), 2, "one white box per end label: {body}");
         // Beside the line, not on it: both labels sit above or below y = 100.
         assert!(!body.contains("y=\"104.2\""), "{body}");
+    }
+}
+
+#[cfg(test)]
+mod look_tests {
+    use vizcraft_diagram::connector_look::{Half, Halves, LabelFrame};
+    use vizcraft_diagram::{Arrow, Compound, Dash, End, Point, ShapeKind};
+
+    use super::*;
+
+    fn items(doc: &Document) -> String {
+        let svg = export_page(doc, 0).map(|b| String::from_utf8_lossy(&b).into_owned()).unwrap_or_default();
+        let start = svg.find("  <g id=").unwrap_or(0);
+        svg.get(start..).unwrap_or_default().trim().to_string()
+    }
+
+    fn fixed() -> Document {
+        let mut doc = Document::new();
+        if let Some(p) = doc.page_mut() {
+            p.board = vizcraft_diagram::Board::Fixed;
+            p.width = 300.0;
+            p.height = 200.0;
+        }
+        doc
+    }
+
+    const DOUBLE_GOLDEN: &str = r##"<g id="weak">
+    <path d="M20 20 L120 20 L120 80 L20 80 Z" fill="#ffffff" stroke="#3a4a5c" stroke-width="1.5"/>
+    <path d="M23.75 23.75 L116.25 23.75 L116.25 76.25 L23.75 76.25 Z" fill="none" stroke="#3a4a5c" stroke-width="1.5"/>
+  </g>
+</svg>"##;
+
+    #[test]
+    fn golden_double_rectangle_draws_an_inset_outline() {
+        let mut doc = fixed();
+        let mut s = Shape::new("weak", ShapeKind::Rectangle, 20.0, 20.0, 100.0, 60.0);
+        s.style.compound = Compound::Double;
+        doc.pages[0].shapes.push(s);
+        assert_eq!(items(&doc), DOUBLE_GOLDEN);
+    }
+
+    const HALVES_GOLDEN: &str = r##"<g id="c">
+    <path d="M20 100 L100 100" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-dasharray="6 4.5" stroke-linejoin="round"/>
+    <path d="M100 102.25 L180 102.25" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M100 97.75 L180 97.75" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+</svg>"##;
+
+    #[test]
+    fn golden_half_dashed_half_double_connector() {
+        let mut doc = fixed();
+        let mut c = Connector::new("c", End::free(Point::new(20.0, 100.0)), End::free(Point::new(180.0, 100.0)));
+        c.route = vizcraft_diagram::Route::Straight;
+        c.end_arrow = Arrow::None;
+        c.halves = Halves { start: Half { dash: Some(Dash::Dashed), double: false }, end: Half { dash: None, double: true } };
+        doc.pages[0].connectors.push(c);
+        assert_eq!(items(&doc), HALVES_GOLDEN);
+    }
+
+    const DIAMOND_GOLDEN: &str = r##"<g id="c">
+    <path d="M20 100 L180 100" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M100 76 L142 100 L100 124 L58 100 Z" fill="#ffffff" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="100" y="104.2">owns</tspan></text>
+  </g>
+</svg>"##;
+
+    #[test]
+    fn golden_diamond_label_frame() {
+        let mut doc = fixed();
+        let mut c = Connector::new("c", End::free(Point::new(20.0, 100.0)), End::free(Point::new(180.0, 100.0)));
+        c.route = vizcraft_diagram::Route::Straight;
+        c.end_arrow = Arrow::None;
+        c.text = "owns".into();
+        c.label_frame = LabelFrame::Diamond;
+        doc.pages[0].connectors.push(c);
+        assert_eq!(items(&doc), DIAMOND_GOLDEN);
     }
 }

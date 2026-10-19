@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="445.788" height="656.8" viewBox="-62.894 -41.8 445.788 656.8">
+  <title>Page-1</title>
+  <rect x="-62.894" y="-41.8" width="445.788" height="656.8" fill="#ffffff"/>
+  <g id="s3">
+    <path d="M90 67.2 L230 67.2 L230 123.2 L90 123.2 Z" fill="#eef4fb" stroke="#2c4a6b" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="160" y="99.4">customers</tspan></text>
+  </g>
+  <g id="s8">
+    <path d="M90 281.1 L230 281.1 L230 337.1 L90 337.1 Z" fill="#eef4fb" stroke="#2c4a6b" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="160" y="313.3">orders</tspan></text>
+  </g>
+  <g id="s13">
+    <path d="M90 495 L230 495 L230 551 L90 551 Z" fill="#eef4fb" stroke="#2c4a6b" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="160" y="527.2">order_items</tspan></text>
+  </g>
+  <g id="s21">
+    <path d="M215 5.2 C215 17.35 190.376 27.2 160 27.2 C129.624 27.2 105 17.35 105 5.2 C105 -6.95 129.624 -16.8 160 -16.8 C190.376 -16.8 215 -6.95 215 5.2 Z" fill="#fdf6e3" stroke="#7a5c1e" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" text-decoration="underline" fill="#1e2630" xml:space="preserve"><tspan x="160" y="9.4">id</tspan></text>
+  </g>
+  <g id="s23">
+    <path d="M357.894 140.2 C357.894 152.35 333.27 162.2 302.894 162.2 C272.519 162.2 247.894 152.35 247.894 140.2 C247.894 128.05 272.519 118.2 302.894 118.2 C333.27 118.2 357.894 128.05 357.894 140.2 Z" fill="#fdf6e3" stroke="#7a5c1e" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="302.894" y="144.4">email</tspan></text>
+  </g>
+  <g id="s25">
+    <path d="M72.106 140.2 C72.106 152.35 47.481 162.2 17.106 162.2 C-13.27 162.2 -37.894 152.35 -37.894 140.2 C-37.894 128.05 -13.27 118.2 17.106 118.2 C47.481 118.2 72.106 128.05 72.106 140.2 Z" fill="#fdf6e3" stroke="#7a5c1e" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="17.106" y="144.4">name</tspan></text>
+  </g>
+  <g id="s27">
+    <path d="M215 219.1 C215 231.25 190.376 241.1 160 241.1 C129.624 241.1 105 231.25 105 219.1 C105 206.95 129.624 197.1 160 197.1 C190.376 197.1 215 206.95 215 219.1 Z" fill="#fdf6e3" stroke="#7a5c1e" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" text-decoration="underline" fill="#1e2630" xml:space="preserve"><tspan x="160" y="223.3">id</tspan></text>
+  </g>
+  <g id="s29">
+    <path d="M357.894 354.1 C357.894 366.25 333.27 376.1 302.894 376.1 C272.519 376.1 247.894 366.25 247.894 354.1 C247.894 341.95 272.519 332.1 302.894 332.1 C333.27 332.1 357.894 341.95 357.894 354.1 Z" fill="#fdf6e3" stroke="#7a5c1e" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="302.894" y="358.3">customer_id</tspan></text>
+  </g>
+  <g id="s31">
+    <path d="M72.106 354.1 C72.106 366.25 47.481 376.1 17.106 376.1 C-13.27 376.1 -37.894 366.25 -37.894 354.1 C-37.894 341.95 -13.27 332.1 17.106 332.1 C47.481 332.1 72.106 341.95 72.106 354.1 Z" fill="#fdf6e3" stroke="#7a5c1e" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="17.106" y="358.3">placed_at</tspan></text>
+  </g>
+  <g id="s33">
+    <path d="M215 433 C215 445.15 190.376 455 160 455 C129.624 455 105 445.15 105 433 C105 420.85 129.624 411 160 411 C190.376 411 215 420.85 215 433 Z" fill="#fdf6e3" stroke="#7a5c1e" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" text-decoration="underline" fill="#1e2630" xml:space="preserve"><tspan x="160" y="437.2">id</tspan></text>
+  </g>
+  <g id="s35">
+    <path d="M357.894 568 C357.894 580.15 333.27 590 302.894 590 C272.519 590 247.894 580.15 247.894 568 C247.894 555.85 272.519 546 302.894 546 C333.27 546 357.894 555.85 357.894 568 Z" fill="#fdf6e3" stroke="#7a5c1e" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="302.894" y="572.2">order_id</tspan></text>
+  </g>
+  <g id="s37">
+    <path d="M72.106 568 C72.106 580.15 47.481 590 17.106 590 C-13.27 590 -37.894 580.15 -37.894 568 C-37.894 555.85 -13.27 546 17.106 546 C47.481 546 72.106 555.85 72.106 568 Z" fill="#fdf6e3" stroke="#7a5c1e" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="17.106" y="572.2">quantity</tspan></text>
+  </g>
+  <g id="c18">
+    <path d="M230 95.2 L230 202.15" fill="none" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
+    <path d="M228.125 202.15 L228.125 309.1" fill="none" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
+    <path d="M231.875 202.15 L231.875 309.1" fill="none" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
+    <path d="M230 178.15 L286.4 202.15 L230 226.15 L173.6 202.15 Z" fill="#ffffff" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="230" y="206.35">places</tspan></text>
+    <rect x="211.375" y="109.325" width="14.4" height="18" fill="#ffffff"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="218.575" y="122.525">1</tspan></text>
+    <rect x="234.225" y="276.975" width="14.4" height="18" fill="#ffffff"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="241.425" y="290.175">N</tspan></text>
+  </g>
+  <g id="c20">
+    <path d="M228.125 309.1 L228.125 416.05" fill="none" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
+    <path d="M231.875 309.1 L231.875 416.05" fill="none" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
+    <path d="M228.125 416.05 L228.125 523" fill="none" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
+    <path d="M231.875 416.05 L231.875 523" fill="none" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
+    <path d="M230 392.05 L300.8 416.05 L230 440.05 L159.2 416.05 Z" fill="#ffffff" stroke="#2c3e50" stroke-width="1.25" stroke-linejoin="round"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="230" y="420.25">contains</tspan></text>
+    <rect x="211.375" y="323.225" width="14.4" height="18" fill="#ffffff"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="218.575" y="336.425">1</tspan></text>
+    <rect x="234.225" y="490.875" width="14.4" height="18" fill="#ffffff"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="241.425" y="504.075">N</tspan></text>
+  </g>
+  <g id="c22">
+    <path d="M160 67.2 L160 27.2" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c24">
+    <path d="M230 95.2 L247.894 140.2" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c26">
+    <path d="M90 95.2 L72.106 140.2" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c28">
+    <path d="M160 281.1 L160 241.1" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c30">
+    <path d="M230 309.1 L247.894 354.1" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c32">
+    <path d="M90 309.1 L72.106 354.1" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c34">
+    <path d="M160 495 L160 455" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c36">
+    <path d="M230 523 L247.894 568" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c38">
+    <path d="M90 523 L72.106 568" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+</svg>

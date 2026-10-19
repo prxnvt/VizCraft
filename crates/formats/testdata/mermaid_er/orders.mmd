@@ -1,0 +1,19 @@
+erDiagram
+    %% Written by hand for the Mermaid ER tests.
+    CUSTOMER ||--o{ ORDER : places
+    CUSTOMER {
+        string name PK
+        string email UK "used to sign in"
+    }
+    ORDER ||--|{ LINE-ITEM : contains
+    ORDER {
+        int orderNumber PK
+        string customerName FK
+    }
+    LINE-ITEM {
+        string productCode PK, FK
+        int quantity
+        float pricePerUnit
+    }
+    CUSTOMER }|..|{ DELIVERY-ADDRESS : uses
+    PRODUCT |o..o| LINE-ITEM : "is ordered in"

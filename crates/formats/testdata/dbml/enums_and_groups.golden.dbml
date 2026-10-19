@@ -1,0 +1,24 @@
+Enum core.job_status {
+  created [note: 'Waiting to be processed']
+  running
+  "in progress"
+  done
+}
+
+Table core.jobs {
+  id int [pk]
+  status core.job_status [not null]
+  owner_id int
+}
+
+Table core.owners {
+  id int [pk]
+  name varchar [note: 'It\'s the owner\'s name']
+}
+
+Ref: core.jobs.owner_id > core.owners.id
+
+TableGroup work {
+  core.jobs
+  core.owners
+}

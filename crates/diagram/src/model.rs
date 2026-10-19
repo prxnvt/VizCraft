@@ -199,6 +199,9 @@ pub struct Style {
     /// Glow around the outline; `None` for no glow.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
     pub glow: Option<Glow>,
+    /// One outline or a double one (unused by connectors).
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
+    pub compound: crate::style_fields::Compound,
 }
 
 fn is_transparent(c: &Color) -> bool {
@@ -253,6 +256,7 @@ impl Style {
             shadow: None,
             soft_edges: 0.0,
             glow: None,
+            compound: crate::style_fields::Compound::Single,
         }
     }
 
@@ -841,6 +845,14 @@ pub struct Connector {
     /// every other connector.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
     pub message: Option<crate::sequence::Message>,
+    /// How each half of the line is drawn (dash and double line per half, for ER notations); the
+    /// default draws the whole line with `style.dash`.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
+    pub halves: crate::connector_look::Halves,
+    /// The frame around the label text (a Chen relationship diamond); the default is the plain
+    /// label box.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
+    pub label_frame: crate::connector_look::LabelFrame,
 }
 
 impl Default for Connector {
@@ -866,6 +878,8 @@ impl Default for Connector {
             marker: crate::line_marks::LineMarker::None,
             step: 0,
             message: None,
+            halves: crate::connector_look::Halves::default(),
+            label_frame: crate::connector_look::LabelFrame::Box,
         }
     }
 }

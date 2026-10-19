@@ -1,0 +1,20 @@
+erDiagram
+    CUSTOMER {
+        string name PK
+        string email UK "used to sign in"
+    }
+    ORDER {
+        int orderNumber PK
+        string customerName FK
+    }
+    LINE-ITEM {
+        string productCode PK, FK
+        int quantity
+        float pricePerUnit
+    }
+    DELIVERY-ADDRESS
+    PRODUCT
+    CUSTOMER ||--o{ ORDER : "places"
+    ORDER ||--|{ LINE-ITEM : "contains"
+    CUSTOMER }|..|{ DELIVERY-ADDRESS : "uses"
+    PRODUCT |o..o| LINE-ITEM : "is ordered in"

@@ -93,6 +93,7 @@ fn finish(mut pack: Pack) -> Result<Pack, NotationError> {
     problems.extend(glyph_paths(&pack));
     problems.extend(builder_glyphs(&pack));
     problems.extend(variants(&pack));
+    problems.extend(look_fields(&pack));
     problems.extend(sheet_fields(&pack));
     problems.extend(crate::template::check(&pack));
     problems.extend(crate::nesting::check_pack(&pack));
@@ -297,6 +298,106 @@ fn variants(pack: &Pack) -> Vec<String> {
             }
             if pack.connector_type(k).is_none() {
                 out.push(format!("{ctx}: `{}` is not a connector type of this pack", short(k)));
+            }
+        }
+        if v.satellites.len() > MAX_SATELLITE_TYPES {
+            out.push(format!("{ctx}: at most {MAX_SATELLITE_TYPES} satellite types"));
+        }
+        for t in v.satellites.iter().take(MAX_SATELLITE_TYPES) {
+            if pack.element_type(t).is_none() {
+                out.push(format!("{ctx}: satellite `{}` is not an element type of this pack", short(t)));
+            }
+        }
+        for (t, decls) in &v.compartments {
+            if pack.element_type(t).is_none() {
+                out.push(format!("{ctx}: compartments for `{}`, which is not an element type of this pack", short(t)));
+            }
+            if decls.len() > vizcraft_diagram::compartment::MAX_COMPARTMENTS {
+                out.push(format!("{ctx}: `{}` has more compartments than a shape holds", short(t)));
+            }
+            for d in decls {
+                if !vizcraft_diagram::compartment::is_valid_id(&d.id) {
+                    out.push(format!("{ctx}: compartment id `{}` is not usable", short(&d.id)));
+                }
+            }
+        }
+    }
+    out
+}
+
+/// Most satellite types one variant lists.
+pub const MAX_SATELLITE_TYPES: usize = 8;
+
+/// Most rules on one end of a connector type's `ends`.
+pub const MAX_END_RULES: usize = 16;
+
+/// Most values one end rule maps.
+pub const MAX_END_VALUES: usize = 32;
+
+/// Longest end label an end rule sets, in bytes.
+pub const MAX_END_LABEL: usize = 32;
+
+/// Whether `key` is a usable property key: ASCII letters, digits and `_`.
+fn is_key(key: &str) -> bool {
+    !key.is_empty() && key.len() <= 128 && key.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+}
+
+/// The ER look fields: glyph `compound`, connector type `labelFrame` and `ends`, and the
+/// `owned`, `filter` and `values` of compartment table queries.
+fn look_fields(pack: &Pack) -> Vec<String> {
+    use vizcraft_diagram::connector_look::LabelFrame;
+    use vizcraft_diagram::{Arrow, Compound, Dash};
+    let mut out = Vec::new();
+    for g in &pack.glyphs {
+        if !g.compound.is_empty() && Compound::from_name(&g.compound).is_none() {
+            out.push(format!("glyph `{}`: compound `{}` is not `single` or `double`", short(&g.id), short(&g.compound)));
+        }
+    }
+    for k in &pack.connector_types {
+        let ctx = format!("connector type `{}`", short(&k.id));
+        if !k.label_frame.is_empty() && LabelFrame::from_name(&k.label_frame).is_none() {
+            out.push(format!("{ctx}: label frame `{}` is not `box`, `diamond` or `doubleDiamond`", short(&k.label_frame)));
+        }
+        let Some(ends) = &k.ends else { continue };
+        for rules in [&ends.start, &ends.end] {
+            if rules.len() > MAX_END_RULES {
+                out.push(format!("{ctx}: at most {MAX_END_RULES} end rules per end"));
+            }
+            for r in rules.iter().take(MAX_END_RULES) {
+                if !is_key(&r.property) || r.when.as_ref().is_some_and(|w| !is_key(&w.property)) {
+                    out.push(format!("{ctx}: end rule property `{}` must be letters, digits and `_`", short(&r.property)));
+                }
+                if r.values.len() > MAX_END_VALUES || r.when.as_ref().is_some_and(|w| w.any.len() > MAX_END_VALUES) {
+                    out.push(format!("{ctx}: at most {MAX_END_VALUES} values per end rule"));
+                }
+                for look in r.values.values().take(MAX_END_VALUES) {
+                    if look.arrow.as_deref().is_some_and(|a| Arrow::from_name(a).is_none()) {
+                        out.push(format!("{ctx}: unknown arrow `{}`", short(look.arrow.as_deref().unwrap_or_default())));
+                    }
+                    if look.dash.as_deref().is_some_and(|d| Dash::from_name(d).is_none()) {
+                        out.push(format!("{ctx}: unknown dash `{}`", short(look.dash.as_deref().unwrap_or_default())));
+                    }
+                    if look.label.as_ref().is_some_and(|l| l.len() > MAX_END_LABEL) {
+                        out.push(format!("{ctx}: end labels are at most {MAX_END_LABEL} bytes"));
+                    }
+                }
+            }
+        }
+    }
+    let decls =
+        pack.element_types.iter().flat_map(|t| t.compartments.iter()).chain(pack.variants.iter().flat_map(|v| v.compartments.values().flatten()));
+    for d in decls {
+        let Some(q) = &d.query else { continue };
+        let ctx = format!("compartment `{}`", short(&d.id));
+        if q.filter.as_ref().is_some_and(|f| !is_key(&f.property)) {
+            out.push(format!("{ctx}: the filter property must be letters, digits and `_`"));
+        }
+        if q.values.len() > MAX_QUERY_COLUMNS || q.values.values().any(|m| m.len() > MAX_END_VALUES) {
+            out.push(format!("{ctx}: too many shown values"));
+        }
+        for col in q.values.keys() {
+            if !q.columns.contains(col) {
+                out.push(format!("{ctx}: shown values for `{}`, which is not a column", short(col)));
             }
         }
     }

@@ -73,7 +73,8 @@ fn registry_ids_are_unique_and_prefixed() {
                 "template",
                 "key",
                 "topology",
-                "sequence"
+                "sequence",
+                "er"
             ]
             .contains(&prefix),
             "{}: unexpected prefix",
@@ -148,6 +149,11 @@ fn hostile_params_never_panic() {
         json!({"id": {}, "step": {}, "exclude": "cloud.User", "steps": false, "all": true, "page": "\u{0}"}),
         json!({"id": "x".repeat(1000), "before": 5, "after": [], "operator": "zz", "ids": [null]}),
         json!({"from": "s1", "to": "s1", "sort": 9, "in": {"fragment": 3}}),
+        json!({"entity": "s2", "name": "x".repeat(70_000), "dataType": 5, "pk": "yes", "references": [], "ids": [{}], "source": "many", "target": 1, "format": "dbml", "page": 1e300}),
+        json!({"entity": {}, "name": "", "format": "sql", "ids": ["c8", 5], "source": "one", "target": "zeroOrMore"}),
+        json!({"entity": "s2", "name": "id", "pk": true, "id": "x".repeat(500), "format": "mermaid", "page": "\u{0}"}),
+        json!({"primitive": "er", "roles": {"satellites": 5}}),
+        json!({"primitive": "er", "roles": {"satellites": [{"owner": "s2", "members": ["s2", "s2"]}, {"owner": 7}]}}),
         nested_batches(40),
     ];
     for spec in reg.all() {

@@ -7,6 +7,7 @@
 
 use std::sync::{Mutex, PoisonError};
 
+use vizcraft_diagram::connector_look::{Halves, LabelFrame};
 use vizcraft_diagram::vizcraft_model::NetKind;
 use vizcraft_diagram::{Arrow, Color, Connector, Dash, LineMarker, Route, Style};
 use vizcraft_notation::{Catalog, ConnectorType};
@@ -53,11 +54,13 @@ pub struct ConnectorKind {
     pub net: Option<NetKind>,
     /// Marks repeated along the line.
     pub marker: LineMarker,
+    /// The frame around the label (a Chen relationship's diamond).
+    pub label_frame: LabelFrame,
 }
 
 impl ConnectorKind {
-    /// Draw `c` as this kind: its route, ends, dash, width, line colour, jumps and line marker
-    /// are replaced and `kind` is set. Glue, text, bends, avoidance, net membership and every
+    /// Draw `c` as this kind: its route, ends, dash, width, line colour, jumps, line marker and
+    /// label frame are replaced, its halves drawn whole, and `kind` is set. Glue, text, bends, avoidance, net membership and every
     /// other style field stay.
     pub fn apply(&self, c: &mut Connector) {
         c.kind = self.id.to_string();
@@ -69,6 +72,9 @@ impl ConnectorKind {
         c.style.line_width = self.line_width;
         c.style.line = self.line;
         c.marker = self.marker;
+        c.label_frame = self.label_frame;
+        // Halves come from the end pass for the kinds that read them; another kind draws whole.
+        c.halves = Halves::default();
         c.sanitize();
     }
 }
@@ -96,6 +102,7 @@ fn kind_from(t: &ConnectorType) -> ConnectorKind {
         relationship_type: t.relationship_type.as_deref().map(leak),
         net: t.net.as_deref().and_then(NetKind::from_name),
         marker: LineMarker::from_name(&t.marker).unwrap_or_default(),
+        label_frame: LabelFrame::from_name(&t.label_frame).unwrap_or_default(),
     }
 }
 

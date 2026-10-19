@@ -53,6 +53,11 @@ use crate::{Catalog, legal};
 ///     that type is allowed, and loses the owner it had from a container it left for the top
 ///     ([`crate::nesting::owners`]).
 ///
+/// Between steps 6 and 7, the end pass ([`crate::end_pass`]) draws the ends of connectors whose
+/// kind reads them from the relationship's properties, and the satellite pass
+/// ([`crate::satellites`]) draws owned elements around their owner where the page's variant asks
+/// for it. Step 3 makes no relationship of a satellite's line.
+///
 /// Details of each step:
 ///
 /// - Step 2 keeps the element on the first shape (z order) that already drew it in `before`, else
@@ -107,6 +112,8 @@ pub fn sync(doc: &mut Document, before: &Document, cat: &Catalog) {
     drop_unviewed(doc, before);
     names(doc, before, cat);
     styles(doc, before, cat);
+    crate::end_pass::ends(doc, cat);
+    crate::satellites::satellites(doc, cat);
     record_packs(doc, cat);
     compartments(doc, cat);
     end_labels(doc, before, cat);
@@ -245,6 +252,10 @@ fn connectors(doc: &mut Document, cat: &Catalog) {
                 .filter_map(|s| s.glyph.as_ref().filter(|g| !g.ports.is_empty()).map(|g| (s.id.as_str(), g.ports.as_slice())))
                 .collect();
             for (ci, c) in page.connectors.iter().enumerate() {
+                // A satellite's line draws ownership, not a relationship.
+                if c.ext.contains_key(crate::satellites::EXT_SATELLITE_OF) {
+                    continue;
+                }
                 let Some(g) = glue_of(&shape_el, &glyph_ports, c) else { continue };
                 match c.relationship.as_deref() {
                     Some(r) if rels.contains_key(r) => {
@@ -676,68 +687,64 @@ fn styles(doc: &mut Document, before: &Document, cat: &Catalog) {
     }
 }
 
-/// Step 8: declared compartments on bound shapes, filled from the element's properties.
+/// Step 8: declared compartments on bound shapes, filled from the element's properties. The
+/// declarations are those of the page's rendering variant (`Catalog::compartments_in`); a
+/// compartment another declaration of the type has but this one does not is removed, and the
+/// user's own compartments are left alone.
 fn compartments(doc: &mut Document, cat: &Catalog) {
     use vizcraft_diagram::compartment::{self as cp, Compartment, CompartmentKind};
-    if cat.packs().iter().all(|p| p.element_types.iter().all(|t| t.compartments.is_empty())) {
+    if cat.packs().iter().all(|p| p.element_types.iter().all(|t| t.compartments.is_empty()) && p.variants.iter().all(|v| v.compartments.is_empty())) {
         return;
     }
-    // Per element: the declarations of its type with their filled lines, or member rows that
-    // each page writes in its own style.
-    let mut plans: HashMap<&str, Vec<(&crate::schema::CompartmentDecl, Option<Vec<String>>)>> = HashMap::new();
-    let mut members: HashMap<(&str, &str), Vec<crate::uml_text::Member>> = HashMap::new();
-    for e in &doc.model.elements {
-        let Some((_, t)) = cat.element_type(&e.type_id) else { continue };
-        if t.compartments.is_empty() {
-            continue;
-        }
-        let decls = t
-            .compartments
-            .iter()
-            .filter(|d| cp::is_valid_id(&d.id))
-            .take(cp::MAX_COMPARTMENTS)
-            .map(|d| {
-                let lines = (!d.from_properties.is_empty()).then(|| {
-                    d.from_properties
-                        .iter()
-                        .take(cp::MAX_ROWS)
-                        .filter_map(|key| {
-                            let schema = t.property(key);
-                            let value = e.properties.get(key).or_else(|| schema.and_then(|p| p.default.as_ref()))?;
-                            let name = schema.map(|p| p.label.trim()).filter(|l| !l.is_empty()).unwrap_or(key);
-                            Some(format!("{name}: {}", value.display()))
-                        })
-                        .collect()
-                });
-                (d, lines)
-            })
-            .collect();
-        for d in t.compartments.iter().filter(|d| !d.rows_from.is_empty()) {
-            let text = match e.properties.get(&d.rows_from).or_else(|| t.property(&d.rows_from).and_then(|p| p.default.as_ref())) {
-                Some(PropValue::Text(x)) => x.as_str(),
-                _ => "",
-            };
-            let rows = crate::uml_text::rows(text).take(cp::MAX_ROWS).map(crate::uml_text::parse_member).collect();
-            members.insert((e.id.as_str(), d.id.as_str()), rows);
-        }
-        plans.insert(e.id.as_str(), decls);
-    }
-    if plans.is_empty() {
-        return;
-    }
+    let index = element_index(doc);
+    let model = &doc.model;
     for page in &mut doc.pages {
-        let options = page.view.as_ref().and_then(|v| cat.variant(&v.variant)).map(|(_, v)| &v.options);
+        let variant = page.view.as_ref().map(|v| v.variant.clone()).unwrap_or_default();
+        let options = cat.variant(&variant).map(|(_, v)| &v.options);
         let option = |k: &str| options.and_then(|o| o.get(k)).map(String::as_str).unwrap_or_default();
         let shown = crate::uml_text::Shown::from_option(option("memberVisibility"));
         let suppressed = option("members") == "suppressed";
         for s in &mut page.shapes {
-            let Some(el) = s.element.as_deref() else { continue };
-            let Some(decls) = plans.get(el) else { continue };
-            for (d, lines) in decls {
-                let typed: Option<Vec<String>> = members
-                    .get(&(el, d.id.as_str()))
-                    .map(|rows| if suppressed { Vec::new() } else { rows.iter().map(|m| crate::uml_text::format_member(m, shown)).collect() });
-                let lines = if typed.is_some() { &typed } else { lines };
+            let Some(e) = s.element.as_deref().and_then(|el| index.get(el)).and_then(|&i| model.elements.get(i)) else { continue };
+            let Some((_, t)) = cat.element_type(&e.type_id) else { continue };
+            let decls = cat.compartments_in(&e.type_id, &variant);
+            if decls.is_empty() && !s.compartments.iter().any(|c| cat.declares_compartment(&e.type_id, &c.id)) {
+                continue;
+            }
+            // A shape that loses its compartments keeps its size: `variant.set` gives it the
+            // variant's master size already.
+            s.compartments.retain(|c| decls.iter().any(|d| d.id == c.id) || !cat.declares_compartment(&e.type_id, &c.id));
+            for d in decls.iter().filter(|d| cp::is_valid_id(&d.id)).take(cp::MAX_COMPARTMENTS) {
+                let lines: Option<Vec<String>> = if !d.rows_from.is_empty() {
+                    let text = match e.properties.get(&d.rows_from).or_else(|| t.property(&d.rows_from).and_then(|p| p.default.as_ref())) {
+                        Some(PropValue::Text(x)) => x.as_str(),
+                        _ => "",
+                    };
+                    Some(if suppressed {
+                        Vec::new()
+                    } else {
+                        crate::uml_text::rows(text)
+                            .take(cp::MAX_ROWS)
+                            .map(crate::uml_text::parse_member)
+                            .map(|m| crate::uml_text::format_member(&m, shown))
+                            .collect()
+                    })
+                } else if !d.from_properties.is_empty() {
+                    Some(
+                        d.from_properties
+                            .iter()
+                            .take(cp::MAX_ROWS)
+                            .filter_map(|key| {
+                                let schema = t.property(key);
+                                let value = e.properties.get(key).or_else(|| schema.and_then(|p| p.default.as_ref()))?;
+                                let name = schema.map(|p| p.label.trim()).filter(|l| !l.is_empty()).unwrap_or(key);
+                                Some(format!("{name}: {}", value.display()))
+                            })
+                            .collect(),
+                    )
+                } else {
+                    None
+                };
                 if !s.compartments.iter().any(|c| c.id == d.id) {
                     if s.compartments.len() >= cp::MAX_COMPARTMENTS {
                         continue;
@@ -748,17 +755,14 @@ fn compartments(doc: &mut Document, cat: &Catalog) {
                 }
                 let (Some(lines), Some(c)) = (lines, s.compartments.iter_mut().find(|c| c.id == d.id)) else { continue };
                 match c.kind {
-                    CompartmentKind::List => set_if_changed(&mut c.rows, lines.clone()),
+                    CompartmentKind::List => set_if_changed(&mut c.rows, lines),
                     CompartmentKind::Paragraph => set_if_changed(&mut c.text, lines.join("\n")),
                     CompartmentKind::Slot => {}
                 }
                 c.sanitize();
             }
-            let need = cp::fit_height(s);
-            if need > s.h {
-                s.h = need;
-                s.sanitize();
-            }
+            let centred = decls.iter().any(|d| d.query.as_ref().is_some_and(|q| q.owned));
+            crate::sheet_pass::grow_to_fit(s, centred);
         }
     }
 }

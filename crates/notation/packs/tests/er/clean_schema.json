@@ -1,0 +1,105 @@
+{
+  "document": {
+    "format": "vizcraft",
+    "version": 4,
+    "model": {
+      "schemaVersion": 1,
+      "packs": [
+        {
+          "id": "er",
+          "version": "1.0.0"
+        }
+      ],
+      "elements": [
+        {
+          "id": "t1",
+          "type": "er.Entity",
+          "name": "customers"
+        },
+        {
+          "id": "c1",
+          "type": "er.Attribute",
+          "name": "id",
+          "owner": "t1",
+          "properties": {
+            "dataType": "integer",
+            "pk": true
+          }
+        },
+        {
+          "id": "t2",
+          "type": "er.Entity",
+          "name": "orders"
+        },
+        {
+          "id": "c2",
+          "type": "er.Attribute",
+          "name": "id",
+          "owner": "t2",
+          "properties": {
+            "dataType": "integer",
+            "pk": true
+          }
+        },
+        {
+          "id": "c3",
+          "type": "er.Attribute",
+          "name": "customer_id",
+          "owner": "t2",
+          "properties": {
+            "dataType": "integer",
+            "fk": true,
+            "references": "customers.id"
+          }
+        }
+      ],
+      "relationships": [
+        {
+          "id": "r1",
+          "type": "er.Relationship",
+          "source": "t1",
+          "target": "t2",
+          "properties": {
+            "sourceCardinality": "one",
+            "targetCardinality": "zeroOrMore"
+          }
+        }
+      ]
+    },
+    "document": {
+      "title": "",
+      "pages": [
+        {
+          "id": "p1",
+          "name": "Page-1",
+          "shapes": [
+            {
+              "id": "s1",
+              "kind": "rectangle",
+              "x": 0,
+              "y": 0,
+              "w": 200,
+              "h": 80,
+              "element": "t1"
+            },
+            {
+              "id": "s2",
+              "kind": "rectangle",
+              "x": 400,
+              "y": 0,
+              "w": 200,
+              "h": 80,
+              "element": "t2"
+            }
+          ],
+          "connectors": [],
+          "view": {
+            "viewpoint": "er.Physical"
+          }
+        }
+      ],
+      "idSeq": 100
+    }
+  },
+  "expect": []
+}

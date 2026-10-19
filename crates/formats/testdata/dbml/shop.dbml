@@ -1,0 +1,47 @@
+// A small shop, written by hand for the DBML reader tests.
+Project shop {
+  database_type: 'PostgreSQL'
+  Note: 'Orders and the people who place them'
+}
+
+Table users as U {
+  id integer [primary key, increment]
+  email varchar(255) [unique, not null, note: 'Login name']
+  "full name" varchar
+  created_at timestamp [default: `now()`]
+  Note: 'People who can sign in'
+}
+
+Table orders [headercolor: #3498DB] {
+  id integer [pk, increment] // the order number
+  user_id integer [not null, ref: > U.id]
+  status varchar(20) [default: 'new']
+  total decimal(10, 2) [default: 0]
+  placed_at timestamp
+
+  indexes {
+    placed_at
+    (user_id, placed_at) [name: 'by_user', unique]
+  }
+}
+
+/* Lines of an order. */
+Table order_items {
+  order_id integer [pk]
+  product_id integer [pk]
+  quantity int [not null, default: 1]
+}
+
+Table products {
+  id integer [pk]
+  name varchar
+  note text [note: '''
+    Free text shown
+    on the product page
+  ''']
+}
+
+Ref: order_items.order_id > orders.id [delete: cascade]
+Ref product_line {
+  order_items.product_id > products.id [delete: restrict, update: no action]
+}

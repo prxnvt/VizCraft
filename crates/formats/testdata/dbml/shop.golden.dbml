@@ -1,0 +1,44 @@
+Table users as U {
+  id integer [pk, increment]
+  email varchar(255) [not null, unique, note: 'Login name']
+  "full name" varchar
+  created_at timestamp [default: `now()`]
+
+  Note: 'People who can sign in'
+}
+
+Table orders {
+  id integer [pk, increment]
+  user_id integer [not null]
+  status varchar(20) [default: 'new']
+  total decimal(10,2) [default: 0]
+  placed_at timestamp
+
+  indexes {
+    placed_at
+    (user_id, placed_at) [name: 'by_user', unique]
+  }
+}
+
+Table order_items {
+  order_id integer [not null]
+  product_id integer [not null]
+  quantity int [not null, default: 1]
+
+  indexes {
+    (order_id, product_id) [pk]
+  }
+}
+
+Table products {
+  id integer [pk]
+  name varchar
+  note text [note: '''
+Free text shown
+on the product page
+''']
+}
+
+Ref: orders.user_id > users.id
+Ref: order_items.order_id > orders.id [delete: cascade]
+Ref product_line: order_items.product_id > products.id [delete: restrict, update: no action]

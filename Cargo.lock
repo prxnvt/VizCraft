@@ -4271,6 +4271,7 @@ dependencies = [
  "vizcraft-codegen",
  "vizcraft-diagram",
  "vizcraft-formats",
+ "vizcraft-layout",
  "vizcraft-model",
  "vizcraft-notation",
  "vizcraft-patterns",

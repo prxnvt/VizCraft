@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="680" height="690" viewBox="0 0 680 690">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="680" height="790" viewBox="0 0 680 790">
   <title>Page-1</title>
-  <rect x="0" y="0" width="680" height="690" fill="#ffffff"/>
+  <rect x="0" y="0" width="680" height="790" fill="#ffffff"/>
   <g id="c_triangle_1">
     <path d="M50.5 40 L309.5 40" fill="none" stroke="#3a4a5c" stroke-width="1" stroke-linejoin="round"/>
     <path d="M40 40 L50.5 35.8 L50.5 44.2 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1" stroke-linejoin="round"/>
@@ -131,5 +131,25 @@
     <path d="M370 640 L650 640" fill="none" stroke="#3a4a5c" stroke-width="4" stroke-linejoin="round"/>
     <path d="M392.32 647.2 L383.68 632.8" fill="none" stroke="#3a4a5c" stroke-width="4" stroke-linejoin="round"/>
     <path d="M627.68 632.8 L636.32 647.2" fill="none" stroke="#3a4a5c" stroke-width="4" stroke-linejoin="round"/>
+  </g>
+  <g id="c_doubleBar_1">
+    <path d="M40 690 L320 690" fill="none" stroke="#3a4a5c" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M42.625 685.8 L42.625 694.2 M45.775 685.8 L45.775 694.2" fill="none" stroke="#3a4a5c" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M317.375 694.2 L317.375 685.8 M314.225 694.2 L314.225 685.8" fill="none" stroke="#3a4a5c" stroke-width="1" stroke-linejoin="round"/>
+  </g>
+  <g id="c_doubleBar_4">
+    <path d="M370 690 L650 690" fill="none" stroke="#3a4a5c" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M374.5 682.8 L374.5 697.2 M379.9 682.8 L379.9 697.2" fill="none" stroke="#3a4a5c" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M645.5 697.2 L645.5 682.8 M640.1 697.2 L640.1 682.8" fill="none" stroke="#3a4a5c" stroke-width="4" stroke-linejoin="round"/>
+  </g>
+  <g id="c_dot_1">
+    <path d="M46.3 740 L313.7 740" fill="none" stroke="#3a4a5c" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M46.3 740 C46.3 741.74 44.89 743.15 43.15 743.15 C41.41 743.15 40 741.74 40 740 C40 738.26 41.41 736.85 43.15 736.85 C44.89 736.85 46.3 738.26 46.3 740 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M320 740 C320 741.74 318.59 743.15 316.85 743.15 C315.11 743.15 313.7 741.74 313.7 740 C313.7 738.26 315.11 736.85 316.85 736.85 C318.59 736.85 320 738.26 320 740 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1" stroke-linejoin="round"/>
+  </g>
+  <g id="c_dot_4">
+    <path d="M380.8 740 L639.2 740" fill="none" stroke="#3a4a5c" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M380.8 740 C380.8 742.982 378.382 745.4 375.4 745.4 C372.418 745.4 370 742.982 370 740 C370 737.018 372.418 734.6 375.4 734.6 C378.382 734.6 380.8 737.018 380.8 740 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M650 740 C650 742.982 647.582 745.4 644.6 745.4 C641.618 745.4 639.2 742.982 639.2 740 C639.2 737.018 641.618 734.6 644.6 734.6 C647.582 734.6 650 737.018 650 740 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="4" stroke-linejoin="round"/>
   </g>
 </svg>

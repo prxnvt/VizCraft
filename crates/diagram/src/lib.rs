@@ -35,6 +35,7 @@ pub mod autoroute;
 pub mod board;
 pub mod compartment;
 pub mod conformance;
+pub mod connector_look;
 pub mod container;
 pub mod data;
 pub mod data_graphic;
@@ -89,7 +90,7 @@ pub use routing_policy::{Avoid, RoutingPolicy, StraightFallback};
 pub use serde_util::base64;
 pub use shape_fields::{Behavior, CropRect, Freeform, Hyperlink, ImageRef, LinkKind, Locks, Orient, TextBlock};
 pub use style_fields::{
-    Bullets, Dash, Glow, Gradient, GradientKind, GradientStop, HAlign, LineCap, Margins, Shadow, TextCase, TextDirection, VAlign,
+    Bullets, Compound, Dash, Glow, Gradient, GradientKind, GradientStop, HAlign, LineCap, Margins, Shadow, TextCase, TextDirection, VAlign,
 };
 pub use views::ViewItems;
 pub use vizcraft_model;
