@@ -28,7 +28,7 @@ pub(in crate::ribbon) fn group() -> Group {
     Group::new(
         "Steps",
         vec![
-            Button { id: "ui.tool", icon: "steps", label: "Steps", size: Size::Big, params: tool_params, checked: Some(tool_armed) },
+            Button { id: "ui.tool", icon: "steps", label: "Steps Tool", size: Size::Big, params: tool_params, checked: Some(tool_armed) },
             Stack(vec![
                 Small { id: "connector.renumberSteps", icon: "numberShapes" },
                 Button { id: "connector.setStep", icon: "close", label: "Clear Step", size: Size::Small, params: clear_params, checked: None },
