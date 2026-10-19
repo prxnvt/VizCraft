@@ -256,7 +256,9 @@ fn properties_tab(app: &CraftApp, ui: &mut Ui, t: &Tokens, st: &InspectorState, 
         [one] => describe(&app.session, one).ok(),
         _ => None,
     };
+    // A sequence message is edited in the Sequence group, so it gets no Relationship section.
     if let Some((id, _)) = &extra.connector
+        && !super::sequence_section::is_message(app)
         && let Some(rel) = &extra.relationship
     {
         section(ui, "relationship", "Relationship", false, |ui| relationship::section(app, ui, t, rel, id, runs));
