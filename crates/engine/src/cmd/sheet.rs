@@ -18,6 +18,9 @@ use super::model::{NewElement, cat, create_element, model_err, place_shape, req_
 use super::{num, opt_bool, opt_str, select, short, with_sel};
 use crate::{CmdResult, CommandSpec, EngineError, Session};
 
+/// The connector type of a balloon's leader (the `sheet` pack's).
+pub const LEADER: &str = "sheet.leader";
+
 /// Return the sheet commands.
 pub fn specs() -> Vec<CommandSpec> {
     vec![
@@ -39,7 +42,7 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("sheet.zoneAt", "Zone at Point", "Design > Sheet", zone_at)
             .params(r#"{"page"?: id|name|index, "x": number, "y": number} -> {"zone": "B4"|null, "row", "col"}; read-only"#),
         CommandSpec::new("sheet.revise", "Revise", "Design > Sheet", revise).params(
-            r#"{"description": string, "approved"?: string, "date"?: "YYYY-MM-DD" (default today), "zone"?: string} -> {"rev", "element"}; adds a sheet.Revision with the next letter of the sheet's revision scheme and sets the revisionIndex property"#,
+            r#"{"description": string, "approved"?: string, "date"?: "YYYY-MM-DD" (default today), "zone"?: string} -> {"rev", "element"}; without a description the UI opens the Revise dialog and nothing changes; adds a sheet.Revision with the next letter of the sheet's revision scheme and sets the revisionIndex property"#,
         ),
         CommandSpec::new("sheet.balloon", "Balloon", "Design > Sheet", balloon).params(
             r#"{"part": element or shape id, "page"?: id|name|index, "x"?: number, "y"?: number} -> {"balloon", "shape", "relationship", "connector"}; places a balloon calling out the part with a glued leader"#,
@@ -336,7 +339,12 @@ fn text_param(v: &Value, k: &str) -> Result<Option<String>, EngineError> {
 }
 
 fn revise(s: &mut Session, v: &Value) -> CmdResult {
-    let description = text_param(v, "description")?.ok_or_else(|| EngineError::Params("`description` (string) is required".into()))?;
+    let Some(description) = text_param(v, "description")?.filter(|d| !d.trim().is_empty()) else {
+        // No description: the UI asks for the revision's fields (the ribbon's Revise button);
+        // programmatic callers pass them. Nothing changes.
+        s.ui_requests.push(json!({"open": "revise"}));
+        return Ok(json!({"rev": null, "element": null}));
+    };
     let scheme = revision_scheme(&s.doc);
     let prev = s
         .doc
@@ -394,8 +402,12 @@ fn balloon(s: &mut Session, v: &Value) -> CmdResult {
     s.doc.model.add_relationship(rel).map_err(model_err)?;
     let cid = s.doc.next_id("c");
     let mut c = Connector::new(cid.clone(), End::dynamic(shape.clone()), End::dynamic(part_view));
-    c.route = Route::Straight;
-    c.end_arrow = vizcraft_diagram::Arrow::Circle;
+    // The leader is the pack's connector type, so it lists, restyles and exports like any kind;
+    // a catalog without it still gets a straight leader with a dot at the part.
+    if super::connector_kind::apply_kind(&mut c, LEADER).is_err() {
+        c.route = Route::Straight;
+        c.end_arrow = vizcraft_diagram::Arrow::Circle;
+    }
     c.relationship = Some(rid.clone());
     c.sanitize();
     if let Some(p) = s.doc.pages.get_mut(i) {

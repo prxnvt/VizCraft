@@ -138,8 +138,17 @@ fn mm(v: f64) -> f64 {
     if v.is_finite() { v.clamp(0.0, 10_000.0) } else { 0.0 }
 }
 
+/// Gap between a cell's rules and its text, in millimetres. The text shapes have no margins of
+/// their own (the default four world units would shift text by a different amount at every
+/// sheet scale), so this is the only inset.
+pub const PAD_MM: f64 = 1.0;
+
+/// Gap between a caption's top and its cell's top rule, in millimetres.
+const CAPTION_TOP_MM: f64 = 0.4;
+
 fn text_style(size_mm: f64, bold: bool, align: HAlign, v: VAlign) -> Style {
     Style {
+        text_margins: crate::style_fields::Margins { left: 0.0, top: 0.0, right: 0.0, bottom: 0.0 },
         fill: Color::TRANSPARENT,
         line: Color::TRANSPARENT,
         line_width: 0.0,
@@ -173,19 +182,21 @@ pub fn shapes(block: &Block, origin: Point, units_per_mm: f64, id: impl Fn(&str)
     push("border", at(0.0, 0.0, block.w_mm, block.h_mm), Style { fill: Color::WHITE, line: INK, line_width: 0.7 * k, ..Style::DEFAULT }, "");
     for (i, s) in block.slots.iter().take(MAX_SLOTS).enumerate() {
         push(&format!("cell{i}"), at(s.x, s.y, s.w, s.h), cell.clone(), "");
-        let pad = 1.0;
+        let pad = PAD_MM;
         if !s.label.is_empty() {
             push(
                 &format!("label{i}"),
-                at(s.x + pad, s.y + 0.3, (s.w - 2.0 * pad).max(1.0), CAPTION_MM),
+                at(s.x + pad, s.y + CAPTION_TOP_MM, (s.w - 2.0 * pad).max(1.0), CAPTION_MM),
                 text_style(1.8, false, HAlign::Left, VAlign::Top),
                 &s.label,
             );
         }
-        let top = if s.label.is_empty() { 0.0 } else { CAPTION_MM };
+        // The value sits in the band under the caption, centred in it, so a short 8 mm cell
+        // (Size, Sheet) keeps a clear gap between its caption and its value.
+        let top = if s.label.is_empty() { 0.0 } else { CAPTION_TOP_MM + CAPTION_MM };
         push(
             &format!("text{i}"),
-            at(s.x + pad, s.y + top, (s.w - 2.0 * pad).max(1.0), (s.h - top).max(1.0)),
+            at(s.x + pad, s.y + top, (s.w - 2.0 * pad).max(1.0), (s.h - top - CAPTION_TOP_MM).max(1.0)),
             text_style(s.size, s.bold, HAlign::Left, VAlign::Middle),
             &s.text,
         );

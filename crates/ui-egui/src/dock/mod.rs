@@ -1,4 +1,4 @@
-//! The bottom dock: Problems, Search, Activity and the Tables and Generate slots.
+//! The bottom dock: Problems, Search, Activity, Tables, Nets and Generate.
 //!
 //! [`DockLayout`] (open, height, tab) is persisted in `UiState.dock`; [`show`] draws the dock as a
 //! bottom panel after the side panes and before the canvas, so it sits between them. The panel's
@@ -8,6 +8,7 @@
 
 pub(crate) mod activity;
 pub mod generate;
+pub mod nets;
 pub(crate) mod problems;
 pub(crate) mod search;
 pub(crate) mod tables;
@@ -39,13 +40,15 @@ pub enum DockTab {
     Activity,
     /// Lists and relationship matrices over the model.
     Tables,
+    /// The nets of the model: numbers, members, Go to.
+    Nets,
     /// Generator preview and run log (filled by a later block).
     Generate,
 }
 
 impl DockTab {
     /// Every tab in strip order.
-    pub const ALL: [DockTab; 5] = [DockTab::Problems, DockTab::Search, DockTab::Activity, DockTab::Tables, DockTab::Generate];
+    pub const ALL: [DockTab; 6] = [DockTab::Problems, DockTab::Search, DockTab::Activity, DockTab::Tables, DockTab::Nets, DockTab::Generate];
 
     /// The name used in params and `ui.inspect`.
     pub fn name(self) -> &'static str {
@@ -54,6 +57,7 @@ impl DockTab {
             DockTab::Search => "search",
             DockTab::Activity => "activity",
             DockTab::Tables => "tables",
+            DockTab::Nets => "nets",
             DockTab::Generate => "generate",
         }
     }
@@ -71,6 +75,7 @@ impl DockTab {
             DockTab::Search => "Search",
             DockTab::Activity => "Activity",
             DockTab::Tables => "Tables",
+            DockTab::Nets => "Nets",
             DockTab::Generate => "Generate",
         }
     }
@@ -144,6 +149,8 @@ pub struct DockState {
     pub(crate) depths: Option<(u64, usize, usize)>,
     /// Tables: the view, its parameters and the cell being edited.
     pub tables: tables::TablesState,
+    /// Nets: the selected net and the number being edited.
+    pub nets: nets::NetsState,
     /// Generate: the fields, the last plan and the run log.
     pub generate: generate::GenerateState,
 }
@@ -176,6 +183,7 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
             DockTab::Search => search::show(app, ui),
             DockTab::Activity => activity::show(app, ui),
             DockTab::Tables => tables::show(app, ui),
+            DockTab::Nets => nets::show(app, ui),
             DockTab::Generate => generate::show(app, ui),
         }
     });
@@ -218,6 +226,7 @@ pub fn inspect(app: &CraftApp) -> Value {
         DockTab::Search => d.state.hits.len(),
         DockTab::Activity => app.session.transactions().len(),
         DockTab::Tables => tables::inspect(app)["count"].as_u64().unwrap_or(0) as usize,
+        DockTab::Nets => app.session.doc.model.nets.len(),
         DockTab::Generate => generate::rows(app),
     };
     json!({"open": d.open, "height": d.height, "tab": d.tab.name(), "rows": rows})
@@ -226,7 +235,7 @@ pub fn inspect(app: &CraftApp) -> Value {
 /// `ui.dock` and `ui.search`, and the person's `validate.run` (Check opens the dock); `None` for any
 /// other id.
 ///
-/// - `ui.dock {open?: bool, tab?: "problems"|"search"|"activity"|"tables"|"generate", height?}`:
+/// - `ui.dock {open?: bool, tab?: "problems"|"search"|"activity"|"tables"|"nets"|"generate", height?}`:
 ///   with `open` absent, naming a tab opens the dock on it and naming none toggles it
 /// - `ui.search {query, scope?: "page"|"document"}`: fill the Search tab, run the search and show it;
 ///   the reply lists the hits
@@ -235,6 +244,7 @@ pub fn ui_command(app: &mut CraftApp, id: &str, p: &Value) -> Option<Result<Valu
         "ui.dock" => Some(dock_command(app, p)),
         "ui.search" => Some(search::command(app, p)),
         "ui.tables" => Some(tables::command(app, p)),
+        "ui.nets" => Some(nets::command(app, p)),
         "validate.run" => problems::on_run(app, p),
         "ui.generate" => Some(generate::command(app, p)),
         "generate.preview" | "generate.run" | "generate.check" => generate::on_run(app, id, p),
@@ -246,7 +256,7 @@ fn dock_command(app: &mut CraftApp, p: &Value) -> Result<Value, String> {
     let tab = match p.get("tab").and_then(Value::as_str) {
         None => None,
         Some(name) => {
-            Some(DockTab::parse(name).ok_or_else(|| format!("unknown dock tab {name:?} (problems, search, activity, tables or generate)"))?)
+            Some(DockTab::parse(name).ok_or_else(|| format!("unknown dock tab {name:?} (problems, search, activity, tables, nets or generate)"))?)
         }
     };
     if let Some(h) = p.get("height").and_then(Value::as_f64) {

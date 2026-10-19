@@ -66,6 +66,10 @@ pub enum Dialog {
     Spelling(crate::spelling_dialog::State),
     /// A pattern's form (`crate::pattern_dialog`), opened by `ui.patterns {pattern}`.
     Pattern(crate::pattern_dialog::State),
+    /// Revise (`crate::revise_dialog`), opened by `sheet.revise` without a description.
+    Revise(crate::revise_dialog::State),
+    /// The Valve builder (`crate::valve_dialog`), opened by `ui.valve`.
+    Valve(Box<crate::valve_dialog::State>),
 }
 
 impl Dialog {
@@ -92,6 +96,8 @@ impl Dialog {
             Dialog::ShapeName(_) => "shapeName",
             Dialog::Spelling(_) => "spelling",
             Dialog::Pattern(_) => "pattern",
+            Dialog::Revise(_) => "revise",
+            Dialog::Valve(_) => "valve",
         }
     }
 
@@ -117,6 +123,9 @@ impl Dialog {
             "numberShapes" | "arrayShapes" | "moveShapes" | "saveMacro" => Dialog::Addon(crate::addon_dialog::State::open(name, app)?),
             "shapeName" => Dialog::ShapeName(crate::shape_name_dialog::open(app)),
             "spelling" => Dialog::Spelling(crate::spelling_dialog::open(app)),
+            "revise" => Dialog::Revise(crate::revise_dialog::open(app)),
+            // Filled from `glyph.builders` on the first frame, which needs the session mutably.
+            "valve" => Dialog::Valve(Box::default()),
             _ => return None,
         })
     }
@@ -143,6 +152,8 @@ impl Dialog {
             Dialog::ShapeName(_) => "Shape Name".into(),
             Dialog::Spelling(_) => "Spelling".into(),
             Dialog::Pattern(s) => crate::pattern_dialog::title(s),
+            Dialog::Revise(_) => "Revise".into(),
+            Dialog::Valve(_) => "Valve".into(),
         }
     }
 
@@ -158,6 +169,8 @@ impl Dialog {
             Dialog::Spelling(_) => 440.0,
             Dialog::DataGraphic(_) => 520.0,
             Dialog::Pattern(_) => 440.0,
+            Dialog::Revise(_) => 380.0,
+            Dialog::Valve(_) => 520.0,
             _ => 360.0,
         }
     }
@@ -356,6 +369,20 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
             crate::addon_dialog::body(ui, app, s);
             let (ok, cancel) = buttons(ui, s.ok_label(), Some("Cancel"), keys);
             crate::addon_dialog::finish(app, s, ok, cancel)
+        }
+        Dialog::Revise(s) => {
+            crate::revise_dialog::body(ui, s);
+            let (ok, cancel) = buttons(ui, "Add Revision", Some("Cancel"), keys);
+            crate::revise_dialog::finish(app, s, ok, cancel)
+        }
+        Dialog::Valve(s) => {
+            if !s.loaded {
+                **s = crate::valve_dialog::open(app);
+            }
+            crate::valve_dialog::body(app, ui, s);
+            let ok_label = if s.target.is_empty() { "Place" } else { "Update" };
+            let (ok, cancel) = buttons(ui, ok_label, Some("Cancel"), keys);
+            crate::valve_dialog::finish(app, s, ok, cancel)
         }
         Dialog::ShapeName(s) => {
             crate::shape_name_dialog::body(ui, s);
