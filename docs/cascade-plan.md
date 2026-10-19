@@ -932,7 +932,8 @@ workbook assembled in the test from hand-written XML parts (no file from another
 
 ## Block 5: generators and glyphs (7 branches, 5 agents at a time)
 
-State: briefs written on 2026-10-18 against main at 5bfa7fa (Block 4 merged). ROADMAP Cascades 5A
+State: done. All seven branches merged into main on 2026-10-19 with `cargo xtask ci` green; the
+follow-ups are recorded in the main session's notes for the Block 7 briefs. Briefs written on 2026-10-18 against main at 5bfa7fa (Block 4 merged). ROADMAP Cascades 5A
 and 5B plus the notation-drawing foundation every pack in Block 7 needs. `b5-fixes` is new in this
 block: it holds the Block 3 and Block 4 follow-ups that no other branch owns, the way `b4-fixes`
 did for Block 2C. The first five branches start together; `b5-patterns` starts when `b5-fixes` and

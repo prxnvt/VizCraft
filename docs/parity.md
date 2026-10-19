@@ -272,7 +272,7 @@ When a feature lands, change its State in the same commit as the code. States:
 | `pattern.insert` | 5A | planned | One command with a discoverable parameter schema, also over MCP |
 | `pattern.reparameterize` | 5A | planned | Change parameters later, keeping manual label edits |
 | Pattern provenance | 5A | planned | The inserted group records pattern id and parameter values |
-| Table-driven pattern sync | 5B | planned | Both ways where unambiguous: RACI to swimlanes, parent-id table to org chart, cause-and-effect table to matrix |
+| Table-driven pattern sync | 5B | done (B5) | Both ways where unambiguous: RACI to swimlanes, parent-id table to org chart, cause-and-effect table to matrix; `pattern.sync {instance, direction: fromTable or toTable, table? or path?}` over the `table.raciLanes`, `table.tree` and `table.matrix` patterns; an ambiguous model (two lanes, two parents, two relationships in one cell) is refused as `pattern.syncAmbiguous` |
 | Layout primitives | 5A | done (B5) | `layout.primitive {primitive: pipeline, bands, chain, matrix, nested, hubSpoke, rings, timeline or voter, ids?, roles?, direction?, nodeSpacing?, layerSpacing?}`; pinned nodes (`layout.incremental` pins what it keeps) and `layout.full {keepOrder}` for model order |
 | Single PID loop | 6 | planned | Tag, loop number, controller type; layered with feedback return; ST FB call and I/O entries |
 | Cascade, ratio, feedforward plus feedback, split range, selector/override | 6 | planned | Industrial P&ID; layered with nested inner loop; ST skeleton per loop |
@@ -312,7 +312,7 @@ When a feature lands, change its State in the same commit as the code. States:
 | Construct-support matrices | 5B | done (B5) | Each target declares its matrix; unsupported constructs raise issues, or are flattened on opt-in |
 | Standard intermediates | 6, 7 | planned | SVD, DBC, OpenAPI, AsyncAPI, protobuf, PLCopen XML rather than runtimes |
 | Fidelity tests by re-import | 6 | planned | DDL, SCXML, SVD and OpenAPI output re-imported in tests and compared with the model |
-| Re-import contract | 5B | planned | Model ids kept; geometry kept for existing ids; new elements placed with `layout.incremental`; removed ones flagged |
+| Re-import contract | 5B | done (B5) | `file.import {.., merge?, source?, type?}` and `file.reimport {source?, page?, layout?, direction?, routing?, type?}`: imported elements keep model ids (CSV `id` column, Mermaid node ids), geometry is kept for existing ids, new elements are placed with the pinned incremental layout, removed ones raise `import.removed` issues; `Document.imports` records each source |
 | Table exports | 5B | planned | CSV, XLSX, Markdown |
 | Embedded targets | 6, 7 | planned | Statechart C and Rust, C headers, SVD, ld `MEMORY`, packet code, WaveJSON (6); interface headers, task tables, ROS 2 skeletons, DBC (7) |
 | Enterprise targets | 6, 7 | planned | Structurizr DSL, DDL, DBML, migrations, ORM entities, class skeletons, BPMN XML, OpenAPI, AsyncAPI, protobuf, STRIDE lists (6); PlantUML, D2, DOT, ArchiMate exchange, HTML site (7) |
