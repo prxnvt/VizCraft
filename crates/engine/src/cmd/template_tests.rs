@@ -199,9 +199,9 @@ fn hooks_run_when_registered_and_are_skipped_otherwise() {
     engtest();
     let mut s = blank();
     let r = run(&mut s, "template.new", json!({"template": "engtest.schematic"}));
-    // The sheet and module hooks are real commands now (b6e-sheets, b6e-substrate); the key waits for b6-topology.
-    assert_eq!(r["applied"], json!(["sheet.set", "page.setModule", "sheet.titleBlock"]));
-    assert_eq!(r["skipped"], json!(["engtest.later", "key.insert"]));
+    // Every hook is a real command now (b6e-sheets, b6e-substrate, b6-topology).
+    assert_eq!(r["applied"], json!(["sheet.set", "page.setModule", "sheet.titleBlock", "key.insert"]));
+    assert_eq!(r["skipped"], json!(["engtest.later"]));
     assert_eq!(r["sheet"], "iso.a3.landscape");
 
     let mut s = with_hooks(&["key.insert", "sheet.titleBlock"]);
@@ -214,7 +214,7 @@ fn hooks_run_when_registered_and_are_skipped_otherwise() {
     // Faking sheet.set means no sheet is made, so the title block hook is faked with it.
     let mut s = with_hooks(&["sheet.set", "page.setModule", "sheet.titleBlock"]);
     let r = run(&mut s, "template.new", json!({"template": "engtest.schematic", "sheet": "asme.d.landscape"}));
-    assert_eq!(r["applied"], json!(["sheet.set", "page.setModule", "sheet.titleBlock"]));
+    assert_eq!(r["applied"], json!(["sheet.set", "page.setModule", "sheet.titleBlock", "key.insert"]));
     assert_eq!(s.doc.standards.sheet, "asme.d.landscape");
     let txn = s.transactions().back().unwrap();
     assert!(txn.commands.iter().any(|c| c == "page.setModule"), "{:?}", txn.commands);
