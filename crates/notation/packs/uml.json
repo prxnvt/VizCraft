@@ -129,7 +129,7 @@
     },
     {
       "id": "uml.dependency",
-      "label": "Dependency",
+      "label": "UML Dependency",
       "category": "Relationships",
       "route": "orthogonal",
       "startArrow": "none",
@@ -2412,7 +2412,7 @@
         },
         {
           "id": "uml.decision",
-          "label": "Decision",
+          "label": "Decision Node",
           "category": "Activity",
           "outline": "diamond",
           "w": 44,
@@ -2676,7 +2676,6 @@
           "types": [
             "uml.InitialNode",
             "uml.Action",
-            "uml.Decision",
             "uml.ForkNode",
             "uml.JoinNode",
             "uml.ActivityFinal",
