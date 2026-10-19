@@ -361,6 +361,9 @@ pub struct Shape {
     /// Where the text sits; `None` is the shape's own frame.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
     pub text_block: Option<TextBlock>,
+    /// Where the text goes when there is no `text_block`: on the shape (the default) or under it.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
+    pub text_place: crate::shape_fields::TextPlace,
     /// Hyperlinks, at most [`Hyperlink::MAX_PER_SHAPE`].
     #[serde(deserialize_with = "lenient_vec", skip_serializing_if = "Vec::is_empty")]
     pub links: Vec<Hyperlink>,
@@ -433,6 +436,7 @@ impl Default for Shape {
             layers: Vec::new(),
             parent: None,
             text_block: None,
+            text_place: crate::shape_fields::TextPlace::Inside,
             links: Vec::new(),
             screen_tip: String::new(),
             locks: Locks::default(),
@@ -513,10 +517,17 @@ impl Shape {
     /// Longest shape name kept, in bytes.
     pub const MAX_NAME: usize = 256;
     /// The text block in the shape's unrotated local frame (`(0, 0)` to `(w, h)`) with its own
-    /// rotation relative to the shape: the stored [`TextBlock`], the main band above the
-    /// compartments, or the whole frame.
+    /// rotation relative to the shape: the stored [`TextBlock`], else a block under the frame when
+    /// `text_place` is below, else the main band above the compartments, or the whole frame.
     pub fn text_rect(&self) -> (Rect, f64) {
         match &self.text_block {
+            None if self.text_place == crate::shape_fields::TextPlace::Below => {
+                use crate::shape_fields::TextPlace;
+                let w = finite(self.w, 0.0).max(TextPlace::BELOW_MIN_WIDTH);
+                let h = 2.0 * finite(self.style.font_size, 12.0).clamp(1.0, Style::MAX_FONT_SIZE) * crate::compartment::LINE_HEIGHT;
+                let top = self.h + TextPlace::BELOW_GAP;
+                (Rect::from_xywh(self.w / 2.0 - w / 2.0, top, w, h), 0.0)
+            }
             None if !self.compartments.is_empty() => (crate::compartment::main_rect(self), 0.0),
             Some(t) => {
                 let c = Point::new(self.w / 2.0 + t.dx, self.h / 2.0 + t.dy);

@@ -353,6 +353,11 @@ fn look_fields(pack: &Pack) -> Vec<String> {
             out.push(format!("glyph `{}`: compound `{}` is not `single` or `double`", short(&g.id), short(&g.compound)));
         }
     }
+    for g in &pack.glyphs {
+        if !g.text_place.is_empty() && vizcraft_diagram::shape_fields::TextPlace::from_name(&g.text_place).is_none() {
+            out.push(format!("glyph `{}`: textPlace `{}` is not `inside` or `below`", short(&g.id), short(&g.text_place)));
+        }
+    }
     for k in &pack.connector_types {
         let ctx = format!("connector type `{}`", short(&k.id));
         if !k.label_frame.is_empty() && LabelFrame::from_name(&k.label_frame).is_none() {
@@ -458,6 +463,17 @@ check = { kind = "illegalRelationship" }
         for (name, text) in crate::catalog::BUILTIN {
             assert!(load(name, text.as_bytes()).is_ok(), "{name}");
         }
+    }
+
+    #[test]
+    fn text_place_accepts_inside_and_below_and_rejects_anything_else() {
+        for ok in ["inside", "below"] {
+            let text = TOML_PACK.replace("elementType = \"tiny.Box\"", &format!("elementType = \"tiny.Box\"\ntextPlace = \"{ok}\""));
+            assert!(load("tiny.toml", text.as_bytes()).is_ok(), "{ok}");
+        }
+        let text = TOML_PACK.replace("elementType = \"tiny.Box\"", "elementType = \"tiny.Box\"\ntextPlace = \"left\"");
+        let err = load("tiny.toml", text.as_bytes()).unwrap_err().to_string();
+        assert!(err.contains("textPlace"), "{err}");
     }
 
     #[test]

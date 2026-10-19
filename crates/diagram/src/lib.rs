@@ -88,7 +88,7 @@ pub use page_fields::{DrawingScale, Guide, GuideOrientation, HeaderFooter, Layer
 pub use route::{Arrowhead, ConnectorGeometry, EndPoint, Ends, arrowhead, connector_geometry, resolve_ends, route_path, route_polyline};
 pub use routing_policy::{Avoid, RoutingPolicy, StraightFallback};
 pub use serde_util::base64;
-pub use shape_fields::{Behavior, CropRect, Freeform, Hyperlink, ImageRef, LinkKind, Locks, Orient, TextBlock};
+pub use shape_fields::{Behavior, CropRect, Freeform, Hyperlink, ImageRef, LinkKind, Locks, Orient, TextBlock, TextPlace};
 pub use style_fields::{
     Bullets, Compound, Dash, Glow, Gradient, GradientKind, GradientStop, HAlign, LineCap, Margins, Shadow, TextCase, TextDirection, VAlign,
 };

@@ -1438,3 +1438,20 @@ fn double_outlines_connector_halves_and_label_frames_round_trip_and_old_files_lo
     assert_eq!(old.pages[0].shapes[0].style.compound, Compound::Single);
     assert!(old.pages[0].connectors.iter().all(|c| c.halves.is_plain() && c.label_frame == LabelFrame::Box));
 }
+
+#[test]
+fn text_place_round_trips_and_old_files_load_as_inside() {
+    use vizcraft_diagram::shape_fields::TextPlace;
+    let mut doc = with_data();
+    doc.pages[0].shapes[0].text_place = TextPlace::Below;
+    let bytes = save(&doc).unwrap();
+    let v = parse(&bytes);
+    let shapes = &v["document"]["pages"][0]["shapes"];
+    assert_eq!(shapes[0]["textPlace"], "below");
+    assert!(shapes[1].get("textPlace").is_none(), "the default is left out");
+    assert_eq!(load(&bytes).unwrap(), doc);
+    let mut plain = parse(&bytes);
+    plain["document"]["pages"][0]["shapes"][0].as_object_mut().unwrap().remove("textPlace");
+    let back = load(&serde_json::to_vec(&plain).unwrap()).unwrap();
+    assert_eq!(back.pages[0].shapes[0].text_place, TextPlace::Inside);
+}

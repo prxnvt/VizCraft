@@ -252,6 +252,10 @@ pub struct Glyph {
     /// first, an ER weak entity).
     #[serde(skip_serializing_if = "String::is_empty")]
     pub compound: String,
+    /// Where a shape placed from this glyph draws its text: `inside` (empty is the same) or
+    /// `below` (under the frame, for a figure such as an actor).
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub text_place: String,
 }
 
 /// A connector type: a named route, pair of line ends and line style, applied to a connector as

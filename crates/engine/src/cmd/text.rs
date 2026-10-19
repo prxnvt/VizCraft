@@ -16,6 +16,7 @@
 use serde_json::{Value, json};
 use vizcraft_diagram::text_fields::{CaseChange, FIELDS, Field, TEXT_BOX_STENCIL, change_case};
 use vizcraft_diagram::{Bullets, Color, HAlign, Margins, Shape, ShapeKind, Style, TextBlock, TextCase, TextDirection, VAlign};
+use vizcraft_diagram::shape_fields::TextPlace;
 
 use super::compartment as band;
 use super::{Kinds, MAX_DELTA, has_shapes, num, opt_bool, opt_str, page_mut, req_num, select, short, targets, with_sel};
@@ -37,7 +38,7 @@ pub fn specs() -> Vec<CommandSpec> {
             .params(r#"{"ids"?: [string], "hAlign"?: "left"|"center"|"right"|"justify", "vAlign"?: "top"|"middle"|"bottom", "bullets"?: "none"|"disc"|"dash"|"number"|bool, "indent"?: n, "direction"?: "ltr"|"rtl"|"vertical", "margins"?: n|{"left"?, "top"?, "right"?, "bottom"?}, "compartment"?: id}; with compartment, hAlign only"#)
             .when(has_shapes),
         CommandSpec::new("text.setBlock", "Text Block", "Home > Tools", set_block)
-            .params(r#"{"id": string, "dx"?: n, "dy"?: n, "w"?: n, "h"?: n, "angle"?: degrees, "reset"?: bool} -> {"id", "textBlock"}; dx, dy offset the block centre from the frame centre; reset puts the text back in the frame"#)
+            .params(r#"{"id": string, "dx"?: n, "dy"?: n, "w"?: n, "h"?: n, "angle"?: degrees, "position"?: "inside"|"below", "reset"?: bool} -> {"id", "textBlock", "textPlace"}; dx, dy offset the block centre from the frame centre; position puts the text on the frame or under it (when there is no block); reset puts the text back in the frame"#)
             .when(has_shapes),
         CommandSpec::new("text.insertSymbol", "Symbol", "Insert > Text", insert_symbol)
             .params(r#"{"ids"?: [string], "symbol"?: string, "at"?: n, "compartment"?: id} -> {"ids"}; appended, or inserted at character `at`; no symbol opens the Symbol dialog"#)
@@ -390,14 +391,22 @@ fn set_block(s: &mut Session, v: &Value) -> CmdResult {
     let reset = opt_bool(v, "reset")?.unwrap_or(false);
     let d = |k: &str| -> Result<Option<f64>, EngineError> { Ok(num(v, k)?.map(|x| x.clamp(-MAX_DELTA, MAX_DELTA))) };
     let (dx, dy, w, h, angle) = (d("dx")?, d("dy")?, d("w")?, d("h")?, d("angle")?);
-    if !reset && dx.is_none() && dy.is_none() && w.is_none() && h.is_none() && angle.is_none() {
-        return Err(EngineError::Params("give at least one of dx, dy, w, h, angle, or reset: true".into()));
+    let position = match opt_str(v, "position")? {
+        None => None,
+        Some(n) => Some(TextPlace::from_name(n).ok_or_else(|| bad("position", "\"inside\" or \"below\""))?),
+    };
+    let block_given = dx.is_some() || dy.is_some() || w.is_some() || h.is_some() || angle.is_some();
+    if !reset && !block_given && position.is_none() {
+        return Err(EngineError::Params("give at least one of dx, dy, w, h, angle, position, or reset: true".into()));
     }
     super::layer::ensure_unlocked(s, [id])?;
     let sh = page_mut(s)?.shape_mut(id).ok_or_else(|| EngineError::Params(format!("`{}` is not a shape on this page", short(id))))?;
+    if let Some(p) = position {
+        sh.text_place = p;
+    }
     if reset {
         sh.text_block = None;
-    } else {
+    } else if block_given {
         let mut b = sh.text_block.unwrap_or(TextBlock { dx: 0.0, dy: 0.0, w: sh.w, h: sh.h, angle_deg: 0.0 });
         b.dx = dx.unwrap_or(b.dx);
         b.dy = dy.unwrap_or(b.dy);
@@ -407,7 +416,7 @@ fn set_block(s: &mut Session, v: &Value) -> CmdResult {
         sh.text_block = Some(b);
     }
     sh.sanitize();
-    let out = json!({"id": sh.id, "textBlock": sh.text_block});
+    let out = json!({"id": sh.id, "textBlock": sh.text_block, "textPlace": sh.text_place});
     with_sel(s, out)
 }
 
@@ -624,6 +633,22 @@ mod tests {
         assert_eq!(shape(&s, "a").text_block, None);
         assert!(s.run("text.setBlock", &json!({"id": "a"})).is_err());
         assert!(s.run("text.setBlock", &json!({"id": "c", "dx": 1})).is_err());
+    }
+
+    #[test]
+    fn position_puts_the_text_below_the_frame_and_undoes() {
+        let mut s = session();
+        let r = s.run("text.setBlock", &json!({"id": "a", "position": "below"})).unwrap();
+        assert_eq!(r["textPlace"], "below");
+        let sh = shape(&s, "a");
+        assert_eq!(sh.text_block, None, "position alone makes no block");
+        let (rect, _) = sh.text_rect();
+        assert!(rect.y0 > sh.h && rect.width() >= 160.0);
+        s.run("text.setBlock", &json!({"id": "a", "position": "inside"})).unwrap();
+        assert_eq!(shape(&s, "a").text_rect().0.y0, 0.0);
+        s.run("edit.undo", &json!({})).unwrap();
+        assert_eq!(shape(&s, "a").text_place, TextPlace::Below);
+        assert!(s.run("text.setBlock", &json!({"id": "a", "position": "left"})).is_err());
     }
 
     #[test]

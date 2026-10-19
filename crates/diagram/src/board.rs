@@ -42,7 +42,18 @@ impl Board {
 
 /// Bounds of every shape and connector route on `page`, or `None` when it has none.
 pub fn drawing_bounds(page: &Page) -> Option<Rect> {
-    let shapes = page.shapes.iter().map(|s| s.bounds());
+    // A name drawn under its figure lies outside the outline; count it so an infinite board does
+    // not clip it.
+    let shapes = page.shapes.iter().map(|s| {
+        let b = s.bounds();
+        if s.text_place != crate::shape_fields::TextPlace::Below || s.text.trim().is_empty() || s.text_block.is_some() {
+            return b;
+        }
+        let (r, _) = s.text_rect_oriented();
+        let t = s.transform();
+        let corners = [(r.x0, r.y0), (r.x1, r.y0), (r.x1, r.y1), (r.x0, r.y1)].map(|(x, y)| t.apply(crate::Point::new(x, y)));
+        Rect::bounding(corners).map_or(b, |tb| b.union(&tb))
+    });
     let connectors = page.connectors.iter().filter_map(|c| connector_geometry(page, c).path.bounds());
     shapes.chain(connectors).filter(|r| [r.x0, r.y0, r.x1, r.y1].iter().all(|v| v.is_finite())).reduce(|a, b| a.union(&b))
 }

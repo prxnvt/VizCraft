@@ -1995,6 +1995,7 @@
       "glyphs": [
         {
           "id": "uml.actor",
+          "textPlace": "below",
           "label": "Actor",
           "category": "Use Cases",
           "outline": "path",

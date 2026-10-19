@@ -527,6 +527,25 @@ fn text_rect_is_the_frame_or_the_text_block() {
 }
 
 #[test]
+fn text_below_the_frame_sits_under_it_and_widens_an_infinite_board() {
+    use crate::shape_fields::TextPlace;
+    let mut s = Shape::new("s1", ShapeKind::Rectangle, 10.0, 20.0, 40.0, 80.0);
+    s.text = "Visitor".into();
+    s.text_place = TextPlace::Below;
+    let (r, angle) = s.text_rect();
+    assert_eq!(angle, 0.0);
+    assert_eq!((r.x0, r.y0, r.width()), (20.0 - 80.0, 82.0, 160.0));
+    assert!((r.height() - 2.0 * 12.0 * 1.2).abs() < 1e-9);
+    s.text_block = Some(TextBlock { dx: 0.0, dy: 0.0, w: 10.0, h: 10.0, angle_deg: 0.0 });
+    assert_eq!(s.text_rect().0, Rect::from_xywh(15.0, 35.0, 10.0, 10.0), "an explicit block wins");
+    s.text_block = None;
+    let mut page = Page::new("p1", "Page-1");
+    page.shapes.push(s);
+    let b = crate::board::drawing_bounds(&page).unwrap();
+    assert!(b.y1 >= 20.0 + 82.0 + 28.8 - 1e-9 && b.x0 <= -50.0, "{b:?}");
+}
+
+#[test]
 fn layers_and_hidden_flag_decide_visibility() {
     let mut page = Page::new("p1", "Page-1");
     page.layers = vec![Layer { id: "a".into(), ..Layer::default() }, Layer { id: "b".into(), visible: false, ..Layer::default() }];

@@ -58,6 +58,8 @@ pub struct Master {
     /// For a container glyph: the border and heading its shapes are drawn with. A shape from
     /// such a master is a real container (`Shape.container`, `behavior.container`).
     pub container: Option<vizcraft_notation::nesting::ContainerLook>,
+    /// Where a shape from this master draws its text: on the frame, or under it (a figure).
+    pub text_place: vizcraft_diagram::shape_fields::TextPlace,
 }
 
 /// A named group of masters.
@@ -153,6 +155,7 @@ fn master_from_glyph(g: &Glyph) -> Master {
         ports: Vec::new(),
         glyph: None,
         container: g.container.clone(),
+        text_place: vizcraft_diagram::shape_fields::TextPlace::from_name(&g.text_place).unwrap_or_default(),
     };
     m.style.compound = vizcraft_diagram::Compound::from_name(&g.compound).unwrap_or_default();
     if let Some(look) = &g.container {
@@ -237,6 +240,11 @@ impl Master {
         s.kind = self.kind;
         s.stencil = self.id.to_string();
         s.style = self.style.clone();
+        // A master that puts its name under the figure sets it; one that leaves it inside keeps the
+        // shape's own choice, so a user's `text.setBlock position` survives a redraw.
+        if self.text_place != vizcraft_diagram::shape_fields::TextPlace::Inside {
+            s.text_place = self.text_place;
+        }
         s.path = self.path.as_ref().map(|p| {
             let (w, h) = (s.w.max(1e-6), s.h.max(1e-6));
             let local = p.transformed(&Transform::scale(w, h));
@@ -381,6 +389,7 @@ mod tests {
                 ports: Vec::new(),
                 container: None,
                 glyph: None,
+                text_place: Default::default(),
             };
             assert_eq!(**m, want, "{id}");
         }
