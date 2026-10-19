@@ -285,3 +285,39 @@ fn the_default_orientation_leaves_the_sample_bit_identical() {
     let drawio = vizcraft_formats::drawio::save(&s.doc).unwrap();
     assert_eq!(String::from_utf8(drawio).unwrap(), include_str!("../../testdata/sample-oriented-default.drawio"));
 }
+
+/// Whether two polylines run along the same horizontal or vertical line for more than a unit.
+fn shared_run(a: &[Point], b: &[Point]) -> bool {
+    let over = |a0: f64, a1: f64, b0: f64, b1: f64| a0.max(a1).min(b0.max(b1)) - a0.min(a1).max(b0.min(b1)) > 1.0;
+    a.windows(2).any(|s| {
+        b.windows(2).any(|t| {
+            let (p, q, u, v) = (s[0], s[1], t[0], t[1]);
+            (p.y == q.y && u.y == v.y && (p.y - u.y).abs() < 0.5 && over(p.x, q.x, u.x, v.x))
+                || (p.x == q.x && u.x == v.x && (p.x - u.x).abs() < 0.5 && over(p.y, q.y, u.y, v.y))
+        })
+    })
+}
+
+#[test]
+fn a_new_wire_does_not_run_on_top_of_another() {
+    // Found by the user: a second wire from an instrument bubble to a valve port was routed alone
+    // and took the same channel as the first wire, so two nets looked joined.
+    let mut s = blank();
+    let b = run(&mut s, "glyph.insert", json!({"builder": "bubble", "x": 640, "y": 200}))["id"].as_str().unwrap().to_string();
+    let v = run(&mut s, "glyph.insert", json!({"builder": "valve", "x": 560, "y": 300}))["id"].as_str().unwrap().to_string();
+    let w1 = run(&mut s, "wire.draw", json!({"from": {"shape": b, "point": 0}, "to": {"shape": v, "point": 0}}))["id"].as_str().unwrap().to_string();
+    let w2 = run(&mut s, "wire.draw", json!({"from": {"shape": b, "point": 1}, "to": {"shape": v, "point": 3}}))["id"].as_str().unwrap().to_string();
+    let page = &s.doc.pages[0];
+    let (r1, r2) = (route_polyline(page, page.connector(&w1).unwrap()), route_polyline(page, page.connector(&w2).unwrap()));
+    assert!(!shared_run(&r1, &r2), "the two wires share a run: {r1:?} {r2:?}");
+    // Spread apart in the order that keeps them from crossing: the wire leaving the bubble's side
+    // runs inside the one that wraps over its top.
+    let cross = |p: Point, q: Point, u: Point, v: Point| {
+        let side = |a: Point, b: Point, c: Point| ((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)).signum();
+        side(p, q, u) * side(p, q, v) < 0.0 && side(u, v, p) * side(u, v, q) < 0.0
+    };
+    let crossings =
+        r1.windows(2).flat_map(|s| r2.windows(2).map(move |t| (s[0], s[1], t[0], t[1]))).filter(|&(p, q, u, v)| cross(p, q, u, v)).count();
+    assert_eq!(crossings, 0, "the two wires cross: {r1:?} {r2:?}");
+    assert!(vizcraft_diagram::autoroute::crossings(page).is_empty(), "and neither crosses a shape");
+}

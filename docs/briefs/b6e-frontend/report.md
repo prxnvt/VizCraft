@@ -64,6 +64,20 @@ test now compares against the straight wire as drawn. This reverses the substrat
 decision that wires never follow the page policy: for docs/parity.md and docs/architecture.md,
 a wire routes around shapes unless it was drawn with bends or its page never avoids.
 
+Third round, from the user: two wires of different nets drawn one after the other shared a
+channel and lay on top of each other. Runs are spread apart only among connectors routed in the
+same pass, and `autoroute::refresh` routed the new wire alone. `refresh` now looks, after
+routing the changed connectors, for routed connectors whose drawn line shares a run with them
+(`sharing_runs`, `share_run`) and routes them together once more. The spreading order in
+`crates/routing/src/nudge.rs` also gained a pairwise score (`side_vote`): where a neighbouring
+segment turns off strictly inside another member's extent, it takes the side it turns toward,
+which removes crossings the old neighbour-sum rule caused (groups over 64 skip it). The sort stays
+a total order. Four UI snapshots changed and were checked by eye: the patterns pane and form (the
+four branch lines into the merge no longer cross) and the tables list and matrix (a connector
+that lay on another's run now shows separately). Test `a_new_wire_does_not_run_on_top_of_another`
+(no shared run, no crossing, no shape crossed; fails on the old router). `crates/routing` is not
+owned by this branch; the change is small and the integration session should review it.
+
 ## Engine changes in this branch (all small)
 
 | File | Change |
