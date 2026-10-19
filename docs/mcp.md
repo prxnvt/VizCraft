@@ -85,6 +85,26 @@ so later entries in the same batch can glue connectors to shapes added earlier. 
 engine picks one and returns it. `doc_inspect` already includes a `diagram` summary of the page
 (size, shape and connector counts, selection).
 
+### Command families reached through the generic tools (Blocks 6 and 6E, built)
+
+No dedicated tools were added for these; `command_list` with a prefix shows each family's
+params. Agents use them through `command_run` and `command_batch`:
+
+| Prefix | What it does |
+|---|---|
+| `template.*` | List templates, start a document or page from one, set the project's symbol and sheet standards, preview a template as SVG text |
+| `analyze.*`, `model.diff` | Dependencies, cycles, unreachable elements, single points of failure, metrics and paths over the model; `analyze.result` reads the stored result back |
+| `net.*`, `wire.*`, `page.setModule` | Nets with numbers, wires that join at junctions, splice and heal, the symbol grid |
+| `shape.rotate {turns}`, `shape.mirror` | Quarter turns and mirroring with text kept upright |
+| `sheet.*`, `doc.setProperty`, `doc.properties`, `xref.*` | Drawing sheets with zones and title blocks, ISO 7200 document properties, cross references |
+| `glyph.*` | Parametric symbols: list builders, draw one as SVG, read and set a placed symbol's parameters |
+| `key.*`, `connector.setStep`, `connector.renumberSteps`, `topology.toMermaid` | Generated keys, numbered step badges, Mermaid architecture text |
+| `sequence.*` | Sequence diagrams edited by order: lifelines, messages, replies, fragments, Mermaid or PlantUML text |
+
+`file.export` writes `mermaid` (`.mmd`) and `plantuml` (`.puml`) text for the active page and
+returns `warnings` for what the format cannot hold; `file.import {format: "mermaid", merge: true}`
+reads class, state, sequence and architecture diagrams into the model.
+
 ### Issues on each call (Cascade 4A, built)
 
 When the document carries a notation model, live rules check it after every change and the
