@@ -4199,6 +4199,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "vizcraft-analysis"
+version = "0.1.0"
+dependencies = [
+ "proptest",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "vizcraft-model",
+]
+
+[[package]]
 name = "vizcraft-cli"
 version = "0.1.0"
 dependencies = [

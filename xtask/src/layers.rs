@@ -73,7 +73,7 @@ pub struct Crate {
 /// model and catalog, the file formats, and the leaf libraries they build on (Mermaid parser,
 /// draw.io codec, auto-layout, connector router).
 const MODEL_SUFFIXES: &[&str] =
-    &["-model", "-notation", "-diagram", "-stencils", "-formats", "-mermaid", "-drawio", "-layout", "-routing", "-codegen", "-patterns"];
+    &["-model", "-notation", "-diagram", "-stencils", "-formats", "-mermaid", "-drawio", "-layout", "-routing", "-codegen", "-patterns", "-analysis"];
 
 /// Classify a crate by its name suffix, falling back to its directory for apps.
 pub fn classify(c: &Crate) -> Option<Class> {
@@ -302,6 +302,7 @@ mod tests {
             ]
         );
         assert_eq!(classify(&c("vizcraft-web", "/r/apps/vizcraft-web/Cargo.toml", &[])), Some(Class::App));
+        assert_eq!(classify(&c("vizcraft-analysis", "/r/crates/analysis/Cargo.toml", &[])), Some(Class::Model));
         assert_eq!(classify(&c("vizcraft-mystery", "/r/crates/mystery/Cargo.toml", &[])), None);
     }
 
