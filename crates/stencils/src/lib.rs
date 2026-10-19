@@ -315,7 +315,7 @@ mod tests {
         let ids: Vec<_> = search("start").iter().map(|m| m.id).collect();
         assert_eq!(ids, vec!["flowchart.terminator"]);
         assert!(search("DATABASE").iter().any(|m| m.id == "flowchart.database"));
-        assert_eq!(search("").iter().filter(|m| !m.id.starts_with("sheet.")).count(), 22);
+        assert_eq!(search("").iter().filter(|m| m.id.starts_with("basic.") || m.id.starts_with("flowchart.")).count(), 22);
         assert!(search("nothing-like-this").is_empty());
     }
 
@@ -393,6 +393,8 @@ mod tests {
         let mut packs = vizcraft_notation::catalog().packs().to_vec();
         packs.push(empty);
         let sets = build(&Catalog::new(packs));
-        assert_eq!(sets.iter().map(|s| s.id).collect::<Vec<_>>(), ["basic", "flowchart", "sheet"]);
+        let with_glyphs: Vec<&str> = vizcraft_notation::catalog().packs().iter().filter(|p| !p.glyphs.is_empty()).map(|p| p.id.as_str()).collect();
+        assert_eq!(sets.iter().map(|s| s.id).collect::<Vec<_>>(), with_glyphs);
+        assert!(with_glyphs.starts_with(&["basic", "flowchart", "sheet"]));
     }
 }

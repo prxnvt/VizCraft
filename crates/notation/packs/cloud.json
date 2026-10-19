@@ -11,7 +11,7 @@
   "glyphs": [
     {
       "id": "cloud.cloud",
-      "label": "Cloud",
+      "label": "Cloud Boundary",
       "category": "Boundaries",
       "outline": "rectangle",
       "w": 320,
@@ -19,7 +19,7 @@
       "fill": "#f6f9fd",
       "line": "#4a6d94",
       "keywords": [
-        "cloud",
+        "cloud boundary",
         "boundary",
         "container"
       ],
@@ -216,7 +216,7 @@
     },
     {
       "id": "cloud.group",
-      "label": "Group",
+      "label": "Loose Group",
       "category": "Boundaries",
       "outline": "rectangle",
       "w": 320,
@@ -257,7 +257,7 @@
     },
     {
       "id": "cloud.container",
-      "label": "Container",
+      "label": "Container Service",
       "category": "Services",
       "outline": "path",
       "w": 120,
@@ -544,7 +544,7 @@
   "elementTypes": [
     {
       "id": "cloud.Cloud",
-      "label": "Cloud",
+      "label": "Cloud Boundary",
       "description": "The provider-neutral cloud everything else runs in.",
       "glyph": "cloud.cloud",
       "container": true,
