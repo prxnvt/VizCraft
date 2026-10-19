@@ -15,8 +15,8 @@
 //!
 //! Only modifier combinations and function keys are shortcuts; plain keys and Shift+letter are
 //! typing. Bare Delete and Backspace are the exception: they delete the canvas selection, but
-//! only while no text field has the keyboard (in a field they delete characters). Bare letters
-//! (the engineering keys R, X, Y, W and P, as in electrical CAD) are shortcuts only while the
+//! only while no text field has the keyboard (in a field they delete characters). Canvas keys
+//! (the engineering letters R, X, Y, W and P, as in electrical CAD, and Tab, Enter and `/`) are shortcuts only while the
 //! canvas has the keyboard ([`bare_letters_ok`]): no widget is focused, nothing is being edited
 //! in place, and no dialog, menu, File page, insert picker or presentation is up. On macOS with the native menu bar the host feeds menu key equivalents back through
 //! egui so this rule applies there too.
@@ -97,7 +97,7 @@ fn is_letter(key: Key) -> bool {
     key.name().len() == 1 && key.name().chars().all(|c| c.is_ascii_uppercase())
 }
 
-/// Whether bare-letter shortcuts may fire this frame: the canvas has the keyboard. No widget is
+/// Whether canvas keys (bare letters, Tab, Enter and `/`) may fire this frame: the canvas has the keyboard. No widget is
 /// focused (a text field, a pane's search, the command palette's field), no shape or label is
 /// being edited in place, and no dialog, in-window menu, File page, insert picker or popover,
 /// or presentation owns the keys.
@@ -114,13 +114,17 @@ pub fn bare_letters_ok(app: &CraftApp, ctx: &egui::Context) -> bool {
 }
 
 /// Whether a key press counts as a shortcut at all: a modifier combination, a function key,
-/// bare Delete / Backspace while no text field is focused, or a bare letter while the canvas has
+/// bare Delete / Backspace while no text field is focused, or a canvas key (a bare letter, Tab, Enter or `/`) while the canvas has
 /// the keyboard (`canvas_keys`, see [`bare_letters_ok`]).
 fn is_shortcut_key(key: Key, m: Modifiers, text_focused: bool, canvas_keys: bool) -> bool {
     if matches!(key, Key::Delete | Key::Backspace) && !text_focused {
         return true;
     }
-    if canvas_keys && !text_focused && is_letter(key) && !(m.shift || m.alt || m.ctrl || m.command || m.mac_cmd) {
+    if canvas_keys
+        && !text_focused
+        && (is_letter(key) || matches!(key, Key::Tab | Key::Enter | Key::Slash))
+        && !(m.shift || m.alt || m.ctrl || m.command || m.mac_cmd)
+    {
         return true;
     }
     let fkey = matches!(
@@ -179,6 +183,10 @@ pub fn shortcuts(app: &mut CraftApp, ctx: &egui::Context) {
             continue;
         }
         ctx.input_mut(|i| i.consume_key(m, key));
+        // The `/` that opens the picker must not land in its query as typed text.
+        if key == Key::Slash {
+            ctx.input_mut(|i| i.events.retain(|e| !matches!(e, egui::Event::Text(t) if t == "/")));
+        }
         // Rule 4: a disabled command swallows its key and does nothing.
         if !menus::entry(app, id).enabled {
             continue;
@@ -236,7 +244,18 @@ mod tests {
         assert!(!is_shortcut_key(Key::R, Modifiers::NONE, true, true), "a focused text field types the letter");
         assert!(!is_shortcut_key(Key::Num1, Modifiers::NONE, false, true), "only letters");
         assert!(!is_shortcut_key(Key::Escape, Modifiers::NONE, false, true));
+        for k in [Key::Tab, Key::Enter, Key::Slash] {
+            assert!(is_shortcut_key(k, Modifiers::NONE, false, true), "{k:?} is a canvas key");
+            assert!(!is_shortcut_key(k, Modifiers::NONE, false, false), "{k:?} types elsewhere");
+            assert!(!is_shortcut_key(k, Modifiers::NONE, true, true), "{k:?} stays with a focused field");
+        }
+        assert!(!is_shortcut_key(Key::Tab, Modifiers::SHIFT, false, true), "Shift+Tab walks focus");
+        assert_eq!(key_name(Key::Tab), Some("Tab"));
+        assert_eq!(key_name(Key::Enter), Some("Enter"));
         for (k, id) in [("R", "ui.rotateQuarter"), ("X", "ui.mirrorX"), ("Y", "ui.mirrorY"), ("W", "ui.wire"), ("P", "ui.pipe")] {
+            assert_eq!(command_for(&app(), k), Some(id), "{k}");
+        }
+        for (k, id) in [("Tab", "ui.insertNext"), ("Enter", "ui.insertSibling"), ("/", "ui.insertPicker"), ("F2", "ui.editText")] {
             assert_eq!(command_for(&app(), k), Some(id), "{k}");
         }
     }
@@ -275,8 +294,11 @@ mod tests {
                     Key::Comma,
                     Key::Period,
                     Key::Slash,
+                    Key::Tab,
+                    Key::Enter,
                     Key::Num0,
                     Key::F1,
+                    Key::F2,
                     Key::F7,
                     Key::F12,
                     Key::Space,
