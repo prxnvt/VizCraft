@@ -392,12 +392,13 @@ fn typing_in_the_shapes_search_shows_only_matching_tiles() {
     h.get_by_label("Results");
     let all: Vec<_> = vizcraft_stencils::sets().iter().flat_map(|s| s.masters.iter()).collect();
     for m in &all {
-        let want = usize::from(m.id == "flowchart.decision");
+        // Flowchart's and UML's Decision are two rows with the same label, each naming its pack.
+        let want = if m.label == "Decision" { 2 } else { 0 };
         assert_eq!(tiles(&h, m.label), want, "{} with query decis", m.id);
     }
     // A result tile still inserts on click.
     let n = h.state().session.doc.page().unwrap().shapes.len();
-    h.get_by_role_and_label(egui::accesskit::Role::Button, "Decision").click();
+    h.query_all_by_role_and_label(egui::accesskit::Role::Button, "Decision").next().expect("a Decision row").click();
     h.run_steps(3);
     let page = h.state().session.doc.page().unwrap();
     assert_eq!(page.shapes.len(), n + 1);
