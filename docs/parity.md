@@ -175,20 +175,20 @@ When a feature lands, change its State in the same commit as the code. States:
 | Network | B6 | planned | Physical and logical views over one model, VLAN ids, zones; generic devices drawn originally; no vendor brand icons |
 | Cloud topology | B6 | planned | Vendor-neutral boundary groups with nesting rules, node glyphs, request and event lines, numbered step badges, a key; Mermaid architecture-beta read and write |
 | Data flow | B6 | planned | Yourdon and DeMarco and Gane and Sarson variants, trust boundaries; STRIDE lists in Block 7 |
-| Templates | B6 | planned | `Pack.templates` (viewpoint, seed script, layout, key, code forms), `template.list`, `template.new`, the New gallery with previews and Recent |
+| Templates | B6 | partial | Engine done (B6 wave 1): `Pack.templates` with seeds that name their results, layout, variant, sheet and module, optional hooks (`sheet.set`, `sheet.titleBlock`, `page.setModule`, `key.insert`); `template.list`, `template.new`, `template.addPage`, `template.standards` (`Document.standards`, IEC and ISO A3 by default), `template.preview` (SVG); `vizcraft-cli new`; Basic and Flowchart templates. The New gallery, previews as cards and Recent are the frontend wave |
 | Engineering workspace preset | B6 | planned | `ui.preset {engineering or office}`: rulers, grid, page frame, pane and Home tab defaults |
 | Code pane | B6 | planned | The page as Mermaid, DBML or Structurizr DSL text in sync with the canvas; `code.read`, `code.write`; PlantUML and D2 writers |
-| Analysis | B6 | planned | `analyze.dependencies`, `cycles`, `unreachable`, `spof`, `metrics`, `path` and `model.diff`, with canvas highlights and an Analysis dock tab |
+| Analysis | B6 | partial | Engine done (B6 wave 1): `vizcraft-analysis` crate; `analyze.dependencies`, `cycles`, `unreachable`, `spof`, `metrics`, `path`, `select`, `result`, `clear` and `model.diff` with the result in `Session.analysis`; `vizcraft-cli analyze --check`. Canvas highlights, the Analyze ribbon group, the Analysis dock tab and the Compare page are the frontend wave |
 | Key and title block | B6 | planned | Generated key shapes (`key.insert`, `key.refresh`) and a title block shape with fields |
 | Sequence editing | B6 | planned | Lifeline columns, message rows that reorder, fragments spanning lifelines; Mermaid sequence read and write |
 | Fluid power | B6E | planned | The `fluidpower` pack: ISO 1219 hydraulic and pneumatic circuits, valves built from positions, ports and path tables, ISO 9461 and 5599 port sets, displacement-step chart, port and pressure path rules |
 | Mechanical schematics | B6E | planned | The `mechanical` pack: ISO 3952 kinematic and transmission diagrams, bond graphs, control block diagrams; `mech.mobility`, `mech.ratio` |
-| Sheets and title blocks | B6E | planned | The `sheet` pack: ISO 5457 and ASME Y14.1 frames with zones, ISO 7200 title block fields bound to document properties, revision table, parts list and balloons; ANSI A to E and ISO A0 to A2 presets; `sheet.*` |
+| Sheets and title blocks | B6E | partial | Engine done (B6E wave 1): `Page.sheet` with ISO 5457 and ASME Y14.1 sizes, zones and frames, the title block generator over ISO 7200 document properties, revision tables (`sheet.revise`), parts lists and balloons, `{{zone}}`, `{{sheet}}`, `{{sheets}}`, `{{doc:key}}` fields; `sheet.*`, `doc.setProperty`, `doc.properties`; the `sheet` pack. Ribbon, Page Setup menus, canvas table columns and the sheet palette are the frontend wave; ASME zone data to verify against MIL-STD-100G |
 | Engineering annotation | B6E | planned | The `annotation` pack: feature control frames and datums (ASME Y14.5 or ISO 1101), welding symbols (AWS A2.4 or ISO 2553), surface texture |
 | Reliability | B6E | planned | The `reliability` pack: fault trees, reliability block diagrams, event trees, FMEA table; `rel.cutsets`, `rel.availability` |
 | IDEF0 | B6E | planned | The `idef0` pack: ICOM boxes and decomposition pages with the FIPS 183 rules; IDEF3 and SADT in Block 8 |
-| Nets and junctions | B6E | planned | Wires and pipes as nets with numbers, junctions where a wire ends on a wire, the Wire and Pipe tools on the symbol grid, net highlight; `net.*` |
-| Symbol orientation and parametric glyphs | B6E | planned | Quarter-turn rotation and mirroring with upright labels on R, X and Y; glyphs built from properties (contacts, coils, ISA bubbles, valves, cylinders, pumps, gates, feature control frames, welds) |
+| Nets and junctions | B6E | partial | Engine done (B6E wave 1): `Model.nets`, `Connector.net`, junction shapes, split and heal, the net pass in sync with `net.conflict`, `Session.nets`, wire numbers and line markers in SVG and PDF; `net.*`, `wire.draw`, `wire.splice`, `wire.heal`, `shape.delete {heal}`. The Wire and Pipe tools, W and P keys, net highlight and the Nets dock tab are the frontend wave |
+| Symbol orientation and parametric glyphs | B6E | partial | Engine done (B6E wave 1): `Shape.orient` (quarter turns and mirror, text upright), `shape.rotate {turns}`, `shape.mirror`, `View.module` with snap and `page.setModule`; ten builders (contact, coil, bubble, valve, cylinder, pump, gate, fcf, weld, texture) behind `Glyph.builder`, `Shape.glyph`, rebuilt before bind; `glyph.*`; provenance checked by `cargo xtask assets`; `vizcraft-cli glyph`. Canvas glyph labels, R, X and Y keys and the Inspector Symbol group are the frontend wave |
 | Timeline | 8 | planned | Timeline shapes and template |
 
 ## Review
@@ -262,10 +262,10 @@ When a feature lands, change its State in the same commit as the code. States:
 | Uniqueness checks | 4A | partly done (4A) | Duplicate tags raise a live issue; the Inspector checks a tag as you type through `element.checkTag {id, tag}` (B3) |
 | Composed identifiers | 4A | done | Identifier formats declared by the pack (for example `{letters}-{n:3}`), composed and auto-numbered by the registry |
 | ISA-5.1 tags and composed line numbers | B6E | planned | Configurable formats in the P&ID pack, not hardcoded letter tables |
-| IEC 81346 reference designations | B6E | planned | Electrical pack |
+| IEC 81346 reference designations | B6E | partial | Identifier parts `{owner.tag}`, `{owner:TYPE.tag}`, `{page}`, `{zone}`, `{rung}` and per-owner scopes done (B6E wave 1, `=F1+A2-K3` composes); the electrical pack is wave 4 |
 | Off-page connector pairing | 4A | done | Paired objects, matched by identifier |
 | Unmatched off-page detection | 4A | done | An off-page connector with no continuation raises an issue |
-| Cross-reference display | B6E | planned | `CrossReference` relationships (contact to coil, off-sheet pairs) drawn as sheet and zone on both ends; `xref.list`, `xref.go` |
+| Cross-reference display | B6E | partial | Engine done (B6E wave 1): cross-reference relationship kind, generated labels in the configured form (`/2.C3`), `xref.list`, `xref.go`, unmatched off-sheet issue. Click navigation is the frontend wave |
 | Flowchart rules | 4A | done | Unconnected connectors and dangling decisions, declared in the Flowchart pack; grouped in the `flowchart.iso5807` ruleset with standard references (2C) |
 | Conformance profile | 2C | done | `Document.conformance`: on or off, chosen rulesets (a pack id means every rule of the pack), severity overrides, suppressions by issue key; `validate.setProfile`, `validate.suppress`; a profile the user never set behaves as before (every rule of the packs in use) |
 | Rulesets and references | 2C | done | Packs declare named rulesets; every rule may cite its standard; `notation.rulesets`, `validate.explain {rule}` |

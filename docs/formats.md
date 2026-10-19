@@ -105,6 +105,22 @@ File names: `io::EXTENSION` is `vizcraft`. The engine reads and writes native fi
 ending in `.vizcraft`, `.craft.json` or `.json` (so paths from Cascade 0 keep working), draw.io
 files for names ending in `.drawio` or `.drawio.xml`, and refuses other names.
 
+- **Blocks 6 and 6E fields** (all optional, serde defaults, left out when default, so a file
+  from before them loads and saves back byte for byte; `formats/testdata/pre-6e-sample.vizcraft`
+  checks it): in the model, `nets` (`id`, `kind` wire, potential, pipe, fluid or signal, `name`,
+  `number`, `label` once, each or off, `properties`; a model holding only nets is still
+  written); on the document, `standards {symbols, sheet}` (the project's chosen symbol family and
+  sheet preset) and `properties.fields` (the ISO 7200 and ASME title block values by key); on a
+  page, `view.module` (`iso2_5mm`, `inch0_1` or a number of page units) and `sheet` (`standard`,
+  `size`, `orientation`, `zones`, `number`, `titleBlock`, `revisionScheme`); on a shape, `orient
+  {turns, mirror}` (quarter turns and a mirror, canonical form) and `glyph` (a parametric glyph's
+  `builder`, parameter overrides, port ids and text slots), and on a freeform `frame` (the unit box
+  its path is drawn in); on a connector, `net` (the net id) and `marker` (`doubleSlash`, `cross`,
+  `l`, `circle`, `wave`); on a list compartment, `columns`; on an identifier scope, `perOwner`.
+  Packs gain `templates`, `module`, `documentProperties`, glyph `builder`, `params` and `source`,
+  connector type `net` and `marker`, relationship type `kind` (`crossReference`) and compartment
+  `query`.
+
 ## .drawio
 
 draw.io's file is an `mxfile` XML element with one `<diagram>` element per page. A page holds an
@@ -171,6 +187,12 @@ reads and writes names ending in `.drawio` or `.drawio.xml` as draw.io files, ev
 - **Tests:** a fixture typed by hand from the documented two-vertex model
   (`crates/formats/testdata/drawio-docs-example.drawio`) and a two-page fixture written by our own
   codec with its second page compressed, each loaded, saved and reloaded with equal pages.
+
+- **Blocks 6 and 6E keys:** a shape's orientation is written as `rotation` (its angle plus 90 per
+  quarter turn) and `flipH`, with a `vizcraftOrient` attribute that is read back first; a foreign
+  file's `flipH` and `flipV` read as orientation. A junction carries `vizcraftJunction`; a wire
+  carries `vizcraftNet` and `vizcraftMarker`; the page model carries the nets as JSON in
+  `vizcraftNets`. Other readers ignore these.
 
 ## Mermaid
 
@@ -240,6 +262,11 @@ index) says otherwise (format `svg`, or taken from a `.svg` extension). Export o
   at the label position (box width estimated from the character count).
 - **Escaping:** text and attribute values are XML-escaped; control characters XML forbids are
   dropped. Numbers have at most three decimals and never print as NaN or infinity.
+- **Engineering drawing (Blocks 6 and 6E):** junctions are ordinary shapes (a dot); wire numbers
+  and names are drawn upright beside their segments and line markers repeat along the line;
+  parametric glyph text slots are drawn upright after the outline; a closed ring that crosses
+  itself fills `evenodd`; sheet frames, zone labels, centring marks and title blocks are generated
+  shapes on the decoration page; table compartments draw a header row and column rules.
 - **Not yet:** the selection only, all pages, embedded fonts, layers as groups.
 
 ## PNG

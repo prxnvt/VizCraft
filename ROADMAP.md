@@ -222,6 +222,22 @@ a model-derived table edits in place and exports CSV and XLSX.
 In parallel: runs alongside Cascade 5A; the framework, manifest and command pieces come first, the
 table pieces run beside them.
 
+## Blocks 6 and 6E: templates, analysis and the engineering substrate
+
+Built on the integration branch `claude/engineering-diagramming-standards-305d6b`
+([docs/cascade-plan.md](docs/cascade-plan.md), "How Blocks 6 and 6E run"), backend first.
+
+| Piece | Contents | Crates | State |
+|---|---|---|---|
+| Templates (engine) | `Pack.templates`, the template pipeline with optional hooks, `Document.standards`, `template.*`, `vizcraft-cli new` | `crates/notation`, `crates/diagram`, `crates/engine` | done (wave 1 `b6-templates`); gallery in the frontend wave |
+| Analysis (engine) | `vizcraft-analysis`, `analyze.*`, `model.diff`, `vizcraft-cli analyze` | `crates/analysis`, `crates/engine` | done (wave 1 `b6-analysis`); highlights and dock in the frontend wave |
+| Nets, wires and orientation (engine) | Nets as model objects, junctions, split and heal, line labels and markers, symbol grid module, quarter-turn and mirror orientation; `net.*`, `wire.*`, `page.setModule`, `shape.mirror` | `crates/model`, `crates/diagram`, `crates/notation`, `crates/engine`, `crates/formats` | done (wave 1 `b6e-substrate`); Wire and Pipe tools and keys in the frontend wave |
+| Sheets and cross references (engine) | ISO 5457 and ASME Y14.1 sheets with zones, title blocks, revision tables, parts lists, document properties, composed identifiers, cross references; `sheet.*`, `doc.*`, `xref.*`; the `sheet` pack | `crates/diagram`, `crates/model`, `crates/notation`, `crates/engine`, `crates/formats` | done (wave 1 `b6e-sheets`); ribbon and navigator in the frontend wave |
+| Parametric glyphs (engine) | Ten symbol builders, `Shape.glyph`, rebuild before bind, glyph provenance in `cargo xtask assets`; `glyph.*`, `vizcraft-cli glyph` | `crates/stencils`, `crates/notation`, `crates/diagram`, `crates/engine`, `xtask` | done (wave 1 `b6e-builders`); Inspector Symbol group in the frontend wave |
+| Packs and formats (engine) | UML, ER, sequence, cloud, network and DFD packs | | planned (wave 2) |
+| Frontend | Canvas tools, keys, panes, ribbon groups, dock tabs, New gallery | `crates/ui-egui` | planned (wave 3) |
+| Packs on the substrate | C4, code forms, electrical, process, fluid power, mechanical | | planned (wave 4) |
+
 ## Cascade 6: audience packs
 
 Three tracks run fully in parallel, each a set of notation packs (data in `vizcraft-notation`
