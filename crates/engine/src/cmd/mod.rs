@@ -45,6 +45,7 @@ pub mod script;
 pub mod shape;
 pub mod shapeop;
 pub mod suggest;
+pub mod table;
 pub mod text;
 pub mod validate;
 pub mod view;
@@ -90,6 +91,7 @@ pub fn registry() -> Registry {
     v.extend(validate::specs());
     v.extend(proof::specs());
     v.extend(report::specs());
+    v.extend(table::specs());
     v.extend(document::specs());
     v.extend(notation::specs());
     v.extend(insert::specs());

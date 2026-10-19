@@ -25,6 +25,8 @@ pub mod pdf;
 pub mod png;
 pub mod svg;
 pub mod table;
+pub mod tables;
+pub mod xlsx;
 
 use vizcraft_diagram::Page;
 
