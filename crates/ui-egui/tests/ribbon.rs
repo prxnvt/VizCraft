@@ -593,7 +593,7 @@ fn home_fits_1280_wide_without_a_scroll_arrow() {
 
 #[test]
 fn every_tab_the_organising_pass_touched_fits_1280_wide() {
-    for tab in ["Design", "Insert", "Process"] {
+    for tab in ["Design", "Insert", "Process", "Generate"] {
         let h = harness_at(1280.0, tab);
         assert!(!Overflow::get(&h.ctx).overflows(), "{tab} overflows at 1280");
     }

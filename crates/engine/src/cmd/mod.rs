@@ -20,6 +20,7 @@ pub mod effects;
 pub mod element;
 pub mod file;
 pub mod find;
+pub mod generate;
 pub mod help;
 pub mod ink;
 pub mod insert;
@@ -106,6 +107,7 @@ pub fn registry() -> Registry {
     v.extend(picture::specs());
     v.extend(ink::specs());
     v.extend(help::specs());
+    v.extend(generate::specs());
     Registry::new(v)
 }
 
