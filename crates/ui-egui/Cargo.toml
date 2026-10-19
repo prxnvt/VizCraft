@@ -16,6 +16,8 @@ vizcraft-diagram = { workspace = true }
 vizcraft-stencils = { workspace = true }
 # The Process tab reads the conformance profile in effect and lists the rulesets of the catalog.
 vizcraft-notation = { workspace = true }
+# The Analyze ribbon, canvas highlights and Analysis dock read `Session.analysis` as typed results.
+vizcraft-analysis = { workspace = true }
 egui = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

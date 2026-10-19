@@ -99,6 +99,7 @@ pub fn inspect(app: &CraftApp, ctx: &egui::Context) -> Value {
         "dock": crate::dock::inspect(app),
         "tables": crate::dock::tables::inspect(app),
         "nets": crate::dock::nets::inspect(app),
+        "analysis": crate::dock::analysis::inspect(app),
         "generate": crate::dock::generate::inspect(app),
         "patterns": crate::panes::patterns_inspect(app),
         // The ribbon dropdown that is open, row by row, with each row's check state.
@@ -502,6 +503,7 @@ mod tests {
             "tool",
             "diagram",
             "menu",
+            "analysis",
         ] {
             assert!(v.get(k).is_some(), "{k} missing in {v}");
         }

@@ -169,7 +169,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "ui.dock",
         "Bottom Dock",
         "",
-        r#"{"open"?: bool, "tab"?: "problems|search|activity|tables|nets|generate", "height"?: number} -> {"open", "height", "tab", "rows"}; naming a tab opens the dock on it, naming nothing toggles it"#,
+        r#"{"open"?: bool, "tab"?: "problems|search|activity|tables|nets|analysis|generate", "height"?: number} -> {"open", "height", "tab", "rows"}; naming a tab opens the dock on it, naming nothing toggles it"#,
     ),
     (
         "ui.generate",
@@ -194,6 +194,18 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "Nets",
         "",
         r#"{"net"?: net id, "goto"?: bool} -> {"selected", "editing", "nets": [{"id", "number", "name", "kind", "pins", "segments"}], "members"}; opens the dock on the Nets tab, selects the net there and with goto selects its wires on its page"#,
+    ),
+    (
+        "ui.analysis",
+        "Analysis Options",
+        "",
+        r#"{"depth"?: 1..1024|"all", "types"?: [relationship type] (empty follows every link), "containment"?: bool, "dim"?: bool, "live"?: bool, "filter"?: "all|added|removed|changed", "row"?: id, "goto"?: bool} -> {"kind", "summary", "count", "sections", "rev", "stale", "truncated", "highlighted", "ghosts", "selected", "options", "last"}; sets the Analyze options (a change of depth, types or containment re-runs the last graph analysis), selects a row of the Analysis tab (goto: go to it) and opens the dock there"#,
+    ),
+    (
+        "ui.compareFile",
+        "Compare With File...",
+        "",
+        r#"{} -> the model.diff result with "picked": true, or {"picked": false} (pick a VizCraft document, then model.diff against it)"#,
     ),
     (
         "ui.valve",

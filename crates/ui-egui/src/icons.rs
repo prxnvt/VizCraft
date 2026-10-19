@@ -209,6 +209,17 @@ pub const NAMES: &[&str] = &[
     "generateTarget",
     // Insert > Patterns
     "pattern",
+    // Model > Analyze
+    "upstream",
+    "downstream",
+    "dependencies",
+    "cycle",
+    "unreachable",
+    "spof",
+    "metrics",
+    "path",
+    "compare",
+    "analysisResults",
 ];
 
 /// Reference size of the design grid, in points. At this size the stroke is `BASE_STROKE`.
@@ -1362,6 +1373,80 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
             pen.line(&[(11.5, 4.5), (14.5, 10.0)]);
             pen.line(&[(11.5, 10.0), (14.5, 10.0)]);
             pen.line(&[(11.5, 15.5), (14.5, 10.0)]);
+        }
+        // Model > Analyze
+        "upstream" => {
+            // A start box with an arrow leading up out of it.
+            pen.frect(7.0, 13.0, 13.0, 17.5, a);
+            pen.line(&[(10.0, 13.0), (10.0, 3.0)]);
+            pen.chevron(10.0, 2.5, 0.0, -1.0);
+        }
+        "downstream" => {
+            pen.frect(7.0, 2.5, 13.0, 7.0, a);
+            pen.line(&[(10.0, 7.0), (10.0, 17.0)]);
+            pen.chevron(10.0, 17.5, 0.0, 1.0);
+        }
+        "dependencies" => {
+            // A start box with arrows leading out of it both ways.
+            pen.frect(7.0, 8.0, 13.0, 12.0, a);
+            pen.line(&[(10.0, 8.0), (10.0, 2.5)]);
+            pen.line(&[(7.0, 5.5), (10.0, 2.5), (13.0, 5.5)]);
+            pen.line(&[(10.0, 12.0), (10.0, 17.5)]);
+            pen.line(&[(7.0, 14.5), (10.0, 17.5), (13.0, 14.5)]);
+        }
+        "cycle" => {
+            // Two nodes on a loop that runs round clockwise.
+            pen.arc(10.0, 10.0, 6.0, std::f32::consts::PI, std::f32::consts::PI, c);
+            pen.arc(10.0, 10.0, 6.0, 0.0, std::f32::consts::PI, c);
+            pen.line(&[(8.5, 2.3), (10.5, 4.0), (8.5, 5.7)]);
+            pen.line(&[(11.5, 14.3), (9.5, 16.0), (11.5, 17.7)]);
+            pen.fcircle(4.0, 10.0, 2.2, a);
+            pen.fcircle(16.0, 10.0, 2.2, a);
+        }
+        "unreachable" => {
+            // Two linked nodes and a third that nothing reaches, struck out.
+            pen.rect(2.5, 3.0, 7.5, 7.5, c);
+            pen.rect(2.5, 12.5, 7.5, 17.0, c);
+            pen.line(&[(5.0, 7.5), (5.0, 12.5)]);
+            pen.circle(14.5, 10.0, 3.5, a);
+            pen.line(&[(11.0, 14.0), (18.0, 6.0)]);
+        }
+        "spof" => {
+            // Two pairs of nodes held together by one node in the middle.
+            for (x, y) in [(3.5, 4.5), (3.5, 15.5), (16.5, 4.5), (16.5, 15.5)] {
+                pen.line(&[(x, y), (10.0, 10.0)]);
+                pen.circle(x, y, 1.8, c);
+            }
+            pen.fcircle(10.0, 10.0, 3.0, a);
+        }
+        "metrics" => {
+            pen.frect(3.5, 11.0, 6.5, 17.0, c);
+            pen.frect(8.5, 4.5, 11.5, 17.0, a);
+            pen.frect(13.5, 8.5, 16.5, 17.0, c);
+            pen.line(&[(2.0, 17.5), (18.0, 17.5)]);
+        }
+        "path" => {
+            // From one node to another by a stepped route.
+            pen.circle(4.0, 15.5, 2.0, c);
+            pen.fcircle(16.0, 4.5, 2.2, a);
+            pen.line_c(&[(6.0, 15.5), (10.0, 15.5), (10.0, 4.5), (13.8, 4.5)], a);
+        }
+        "compare" => {
+            // Two pages side by side, one line differing.
+            pen.rect(2.0, 3.0, 9.0, 17.0, c);
+            pen.rect(11.0, 3.0, 18.0, 17.0, c);
+            pen.lines(3.8, 7.2, &[7.0, 10.0, 13.0]);
+            pen.lines(12.8, 16.2, &[7.0, 13.0]);
+            pen.line_c(&[(12.8, 10.0), (16.2, 10.0)], a);
+        }
+        "analysisResults" => {
+            // A panel with a band of marked rows.
+            pen.rect(2.5, 3.0, 17.5, 17.0, c);
+            pen.line(&[(2.5, 7.5), (17.5, 7.5)]);
+            pen.fcircle(5.5, 10.5, 1.4, a);
+            pen.line(&[(8.0, 10.5), (15.5, 10.5)]);
+            pen.fcircle(5.5, 14.0, 1.4, a);
+            pen.line(&[(8.0, 14.0), (13.5, 14.0)]);
         }
         _ => {
             // Fallback: a rounded tile with the first letter.

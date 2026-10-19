@@ -43,6 +43,12 @@ pub struct Tokens {
     pub shadow: Color32,
     pub red: Color32,
     pub green: Color32,
+    /// Analysis highlights: upstream items.
+    pub blue: Color32,
+    /// Analysis highlights: downstream and changed items.
+    pub amber: Color32,
+    /// Analysis highlights: unreachable items.
+    pub violet: Color32,
 }
 
 impl Tokens {
@@ -76,6 +82,9 @@ impl Tokens {
             shadow: Color32::from_black_alpha(40),
             red: Color32::from_rgb(0xD1, 0x3B, 0x3B),
             green: Color32::from_rgb(0x2E, 0x8B, 0x57),
+            blue: Color32::from_rgb(0x2F, 0x6F, 0xD1),
+            amber: Color32::from_rgb(0xB9, 0x7F, 0x0A),
+            violet: Color32::from_rgb(0x8A, 0x5C, 0xC9),
         }
     }
     pub fn dark() -> Self {
@@ -108,6 +117,9 @@ impl Tokens {
             shadow: Color32::from_black_alpha(120),
             red: Color32::from_rgb(0xEE, 0x6A, 0x6A),
             green: Color32::from_rgb(0x5B, 0xC0, 0x8A),
+            blue: Color32::from_rgb(0x6F, 0xA3, 0xF0),
+            amber: Color32::from_rgb(0xE8, 0xB0, 0x4A),
+            violet: Color32::from_rgb(0xB5, 0x92, 0xE6),
         }
     }
     /// The tokens matching the style currently applied to `ctx`.

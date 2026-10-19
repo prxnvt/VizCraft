@@ -241,6 +241,7 @@ pub fn summary(app: &CraftApp) -> Value {
 pub fn status_items(app: &CraftApp) -> Vec<String> {
     let mut out = Vec::new();
     out.extend(interact::nets::status(app));
+    out.extend(draw::highlights::status(app));
     if let (Some(page), Some(p)) = (app.session.doc.page(), app.canvas.pointer_world)
         && let Some(z) = dg::sheet::zone_of(page, p)
     {
@@ -437,6 +438,7 @@ fn paint(app: &mut CraftApp, ui: &Ui, vp: &Viewport2D, t: &Tokens) {
     if let Some(net) = draw::nets::highlighted(app.canvas.net_held.as_deref(), app.canvas.net_hover.as_deref()) {
         draw::nets::highlight(&painter, vp, &app.session.nets, page, net, t);
     }
+    draw::highlights::draw(&painter, vp, &app.session, page, draw::highlights::Opts { dim: app.ui.dock.state.analysis.dim }, t);
     // Data graphic marks go above the connectors and below the overlays.
     draw::data_graphics::marks(&painter, vp, &graphic_marks);
     let _t = vizcraft_engine::trace::span("paint.overlays");

@@ -1,12 +1,14 @@
-//! The bottom dock: Problems, Search, Activity, Tables, Nets and Generate.
+//! The bottom dock: Problems, Search, Activity, Tables, Nets, Analysis and Generate.
 //!
 //! [`DockLayout`] (open, height, tab) is persisted in `UiState.dock`; [`show`] draws the dock as a
 //! bottom panel after the side panes and before the canvas, so it sits between them. The panel's
 //! top edge is the splitter. Everything in it works through commands: Check runs `validate.run`,
 //! a fix runs its command as one `edit.batch`, Suppress runs `validate.suppress`, Activity undoes
 //! with `edit.undo`. The UI-only commands are `ui.dock` and `ui.search` ([`ui_command`]).
+//! Analysis lists the stored result of the last `analyze.*` command or `model.diff`.
 
 pub(crate) mod activity;
+pub mod analysis;
 pub mod generate;
 pub mod nets;
 pub(crate) mod problems;
@@ -42,13 +44,16 @@ pub enum DockTab {
     Tables,
     /// The nets of the model: numbers, members, Go to.
     Nets,
+    /// The result of the last analysis or model compare, with Go to.
+    Analysis,
     /// Generator preview and run log (filled by a later block).
     Generate,
 }
 
 impl DockTab {
     /// Every tab in strip order.
-    pub const ALL: [DockTab; 6] = [DockTab::Problems, DockTab::Search, DockTab::Activity, DockTab::Tables, DockTab::Nets, DockTab::Generate];
+    pub const ALL: [DockTab; 7] =
+        [DockTab::Problems, DockTab::Search, DockTab::Activity, DockTab::Tables, DockTab::Nets, DockTab::Analysis, DockTab::Generate];
 
     /// The name used in params and `ui.inspect`.
     pub fn name(self) -> &'static str {
@@ -58,6 +63,7 @@ impl DockTab {
             DockTab::Activity => "activity",
             DockTab::Tables => "tables",
             DockTab::Nets => "nets",
+            DockTab::Analysis => "analysis",
             DockTab::Generate => "generate",
         }
     }
@@ -76,6 +82,7 @@ impl DockTab {
             DockTab::Activity => "Activity",
             DockTab::Tables => "Tables",
             DockTab::Nets => "Nets",
+            DockTab::Analysis => "Analysis",
             DockTab::Generate => "Generate",
         }
     }
@@ -151,12 +158,15 @@ pub struct DockState {
     pub tables: tables::TablesState,
     /// Nets: the selected net and the number being edited.
     pub nets: nets::NetsState,
+    /// Analysis: the options, the last run and the selected row.
+    pub analysis: analysis::AnalysisState,
     /// Generate: the fields, the last plan and the run log.
     pub generate: generate::GenerateState,
 }
 
 /// Draw the dock when it is open. Call after the side panes and before the central panel.
 pub fn show(app: &mut CraftApp, ui: &mut Ui) {
+    analysis::refresh(app);
     app.ui.dock.sanitize();
     if !app.ui.dock.open {
         return;
@@ -184,6 +194,7 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
             DockTab::Activity => activity::show(app, ui),
             DockTab::Tables => tables::show(app, ui),
             DockTab::Nets => nets::show(app, ui),
+            DockTab::Analysis => analysis::show(app, ui),
             DockTab::Generate => generate::show(app, ui),
         }
     });
@@ -227,6 +238,7 @@ pub fn inspect(app: &CraftApp) -> Value {
         DockTab::Activity => app.session.transactions().len(),
         DockTab::Tables => tables::inspect(app)["count"].as_u64().unwrap_or(0) as usize,
         DockTab::Nets => app.session.doc.model.nets.len(),
+        DockTab::Analysis => analysis::count(&app.session, &d.state.analysis),
         DockTab::Generate => generate::rows(app),
     };
     json!({"open": d.open, "height": d.height, "tab": d.tab.name(), "rows": rows})
@@ -235,7 +247,7 @@ pub fn inspect(app: &CraftApp) -> Value {
 /// `ui.dock` and `ui.search`, and the person's `validate.run` (Check opens the dock); `None` for any
 /// other id.
 ///
-/// - `ui.dock {open?: bool, tab?: "problems"|"search"|"activity"|"tables"|"nets"|"generate", height?}`:
+/// - `ui.dock {open?: bool, tab?: "problems"|"search"|"activity"|"tables"|"nets"|"analysis"|"generate", height?}`:
 ///   with `open` absent, naming a tab opens the dock on it and naming none toggles it
 /// - `ui.search {query, scope?: "page"|"document"}`: fill the Search tab, run the search and show it;
 ///   the reply lists the hits
@@ -248,6 +260,9 @@ pub fn ui_command(app: &mut CraftApp, id: &str, p: &Value) -> Option<Result<Valu
         "validate.run" => problems::on_run(app, p),
         "ui.generate" => Some(generate::command(app, p)),
         "generate.preview" | "generate.run" | "generate.check" => generate::on_run(app, id, p),
+        "ui.analysis" => Some(analysis::command(app, p)),
+        "ui.compareFile" => Some(analysis::compare_file(app)),
+        _ if analysis::RESULT_COMMANDS.contains(&id) => analysis::on_run(app, id, p),
         _ => None,
     }
 }
@@ -255,9 +270,10 @@ pub fn ui_command(app: &mut CraftApp, id: &str, p: &Value) -> Option<Result<Valu
 fn dock_command(app: &mut CraftApp, p: &Value) -> Result<Value, String> {
     let tab = match p.get("tab").and_then(Value::as_str) {
         None => None,
-        Some(name) => {
-            Some(DockTab::parse(name).ok_or_else(|| format!("unknown dock tab {name:?} (problems, search, activity, tables, nets or generate)"))?)
-        }
+        Some(name) => Some(
+            DockTab::parse(name)
+                .ok_or_else(|| format!("unknown dock tab {name:?} (problems, search, activity, tables, nets, analysis or generate)"))?,
+        ),
     };
     if let Some(h) = p.get("height").and_then(Value::as_f64) {
         app.ui.dock.height = h as f32;
