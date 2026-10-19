@@ -220,9 +220,13 @@ fn run(doc: &Document, cat: &Catalog, mode: RuleMode) -> Vec<Issue> {
         let mut found = Vec::new();
         ctx.check(pack, rule, &mut found);
         found.truncate(MAX_PER_RULE);
+        // An override sets every finding's severity; without one a check may have reported a
+        // lighter finding than its rule's (a foreign key of another type is a warning).
         let severity = profile.severity_of(&rule.id, rule.severity);
-        for i in &mut found {
-            i.severity = severity;
+        if severity != rule.severity {
+            for i in &mut found {
+                i.severity = severity;
+            }
         }
         out.extend(found);
     }
@@ -359,6 +363,7 @@ impl<'a> Ctx<'a> {
             Check::EndMarkerMatchesProperty { .. } | Check::MultiplicitySyntax { .. } | Check::MaxPerOwner { .. } | Check::UniqueMembers { .. } => {
                 crate::rules_uml::check(self.doc, self.cat, pack, rule, out)
             }
+            Check::PrimaryKey { .. } | Check::ForeignKey { .. } => crate::er_rules::check(self.doc, self.cat, pack, rule, out),
             Check::Unknown => {}
         }
     }

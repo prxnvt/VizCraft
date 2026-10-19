@@ -33,9 +33,9 @@ pub fn specs() -> Vec<CommandSpec> {
             .when(can_lay_out),
         CommandSpec::new("layout.primitive", "Lay Out As", "Design > Layout", primitive)
             .params(concat!(
-                r#"{"primitive": "pipeline"|"bands"|"chain"|"matrix"|"nested"|"hubSpoke"|"rings"|"timeline"|"voter", "ids"?: [string], "roles"?: {..}, "direction"?: "TB"|"BT"|"LR"|"RL", "nodeSpacing"?: n, "layerSpacing"?: n} -> {"ids", "notes", "bounds"}"#,
-                r#"; roles by primitive: pipeline {"parallel"?: {"from", "to", "members": [id]}} (steps are the other shapes in page order), bands {"bands": [[id]]}, chain {"forward": [id], "compensation"?: [id|null]}, matrix {"rows": [[id|null]]} or {"cols": [[id|null]]}, nested {"containers"?: [{"id", "members": [id], "padding"?, "header"?}]} (default: the containers on the page and their members), hubSpoke {"hub"}, rings {"center", "rings": [[id]]}, timeline {"events"?: [id], "labels"?: [id|null]}, voter {"channels": [[id]], "voter"}"#,
-                r#"; lays out `ids` and every shape the roles name (else the selection when two or more are selected, else the whole page) in one undo step with the unit rules of layout.full, refuses roles that are unknown, repeated or leave a shape without a role, and returns the bounds of what moved; direction defaults to LR, TB for voter"#
+                r#"{"primitive": "pipeline"|"bands"|"chain"|"matrix"|"nested"|"hubSpoke"|"rings"|"timeline"|"voter"|"er", "ids"?: [string], "roles"?: {..}, "direction"?: "TB"|"BT"|"LR"|"RL", "nodeSpacing"?: n, "layerSpacing"?: n} -> {"ids", "notes", "bounds"}"#,
+                r#"; roles by primitive: pipeline {"parallel"?: {"from", "to", "members": [id]}} (steps are the other shapes in page order), bands {"bands": [[id]]}, chain {"forward": [id], "compensation"?: [id|null]}, matrix {"rows": [[id|null]]} or {"cols": [[id|null]]}, nested {"containers"?: [{"id", "members": [id], "padding"?, "header"?}]} (default: the containers on the page and their members), hubSpoke {"hub"}, rings {"center", "rings": [[id]]}, timeline {"events"?: [id], "labels"?: [id|null]}, voter {"channels": [[id]], "voter"}, er {"satellites"?: [{"owner", "members": [id]}]} (default: the Chen attribute satellites on the page are put back on a ring around their entity, which carries them)"#,
+                r#"; lays out `ids` and every shape the roles name (else the selection when two or more are selected, else the whole page) in one undo step with the unit rules of layout.full, refuses roles that are unknown, repeated or leave a shape without a role, and returns the bounds of what moved; direction defaults to LR, TB for voter and er"#
             ))
             .when(can_lay_out),
         CommandSpec::new("layout.route", "Route Connectors", "Design > Layout", route)
@@ -124,7 +124,34 @@ fn creation_order(s: &Session) -> Result<HashMap<String, u32>, EngineError> {
 /// The default direction of a primitive: along a row for chains, bands and timelines, down for
 /// the voter (the direction does not matter to the others).
 fn default_direction(primitive: &str) -> Direction {
-    if primitive == "voter" { Direction::TopBottom } else { Direction::LeftRight }
+    if primitive == "voter" || primitive == "er" { Direction::TopBottom } else { Direction::LeftRight }
+}
+
+/// The default roles of the er primitive: none, after every satellite on the page (a shape
+/// marked `vizcraft.satelliteOf`, whose parent is its entity, so it moves with it) is put back on
+/// the ring around its entity that the er primitive draws.
+fn ring_satellites(page: &mut vizcraft_diagram::Page) {
+    let key = vizcraft_notation::satellites::EXT_SATELLITE_OF;
+    let mut by_owner: Vec<(String, Vec<String>)> = Vec::new();
+    for s in page.shapes.iter().filter(|s| s.parent.is_some()) {
+        let Some(owner) = s.ext.get(key).filter(|o| s.parent.as_ref() == Some(*o)) else { continue };
+        match by_owner.iter_mut().find(|(o, _)| o == owner) {
+            Some((_, list)) => list.push(s.id.clone()),
+            None => by_owner.push((owner.clone(), vec![s.id.clone()])),
+        }
+    }
+    for (owner, members) in by_owner {
+        let Some(o) = page.shape(&owner).map(|o| (o.x, o.y, o.w, o.h)) else { continue };
+        let sizes: Vec<(f64, f64)> = members.iter().filter_map(|m| page.shape(m)).map(|m| (m.w, m.h)).collect();
+        let (offsets, _) = vizcraft_layout::er_ring((o.2, o.3), &sizes);
+        for (m, p) in members.iter().zip(offsets) {
+            if let Some(s) = page.shape_mut(m) {
+                s.x = o.0 + p.x;
+                s.y = o.1 + p.y;
+                s.sanitize();
+            }
+        }
+    }
 }
 
 /// The shapes to lay out with a generated key (`vizcraft_diagram::key`) left where it is: on a
@@ -165,6 +192,9 @@ fn primitive(s: &mut Session, v: &Value) -> CmdResult {
         (selected.len() >= 2).then_some(selected)
     };
     let page = page_mut(s)?;
+    if matches!(&parsed, Primitive::Er { satellites } if satellites.is_empty()) {
+        ring_satellites(page);
+    }
     let ids = without_keys(page, ids);
     let out = autolayout::layout_primitive(page, ids.as_deref(), parsed, &opts).map_err(EngineError::Failed)?;
     let bounds = out.bounds.map(|b| json!({"x": b.x0, "y": b.y0, "width": b.width(), "height": b.height()}));

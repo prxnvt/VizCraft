@@ -168,7 +168,9 @@ pub fn inner_outline(s: &Shape) -> Option<Path> {
         ShapeKind::Freeform => {
             // Scaled about the centre: inside for any outline that is star-shaped about it.
             let (sx, sy) = ((w - 2.0 * d) / w, (h - 2.0 * d) / h);
-            let t = crate::Transform::translate(-w / 2.0, -h / 2.0).then(&crate::Transform::scale(sx, sy)).then(&crate::Transform::translate(w / 2.0, h / 2.0));
+            let t = crate::Transform::translate(-w / 2.0, -h / 2.0)
+                .then(&crate::Transform::scale(sx, sy))
+                .then(&crate::Transform::translate(w / 2.0, h / 2.0));
             Some(s.local_outline().transformed(&t))
         }
         _ => None,
@@ -188,7 +190,9 @@ pub fn label_frame_path(center: Point, w: f64, h: f64, frame: LabelFrame) -> Pat
         LabelFrame::Diamond | LabelFrame::DoubleDiamond => {
             // A diamond through the box's corners has twice the box's width and height.
             let (a, b) = (w.max(h * 0.5) + 6.0, h + 6.0);
-            let diamond = |a: f64, b: f64| Path::polygon(&[Point::new(c.x, c.y - b), Point::new(c.x + a, c.y), Point::new(c.x, c.y + b), Point::new(c.x - a, c.y)]);
+            let diamond = |a: f64, b: f64| {
+                Path::polygon(&[Point::new(c.x, c.y - b), Point::new(c.x + a, c.y), Point::new(c.x, c.y + b), Point::new(c.x - a, c.y)])
+            };
             let mut p = diamond(a, b);
             if frame == LabelFrame::DoubleDiamond {
                 let edge = (a * a + b * b).sqrt();

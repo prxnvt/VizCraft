@@ -28,6 +28,7 @@ pub const BUILTIN: &[(&str, &str)] = &[
     ("network.json", include_str!("../packs/network.json")),
     ("dfd.json", include_str!("../packs/dfd.json")),
     ("uml.json", include_str!("../packs/uml.json")),
+    ("er.json", include_str!("../packs/er.json")),
 ];
 
 /// The environment variable naming a folder of pack files (`*.json`, `*.toml`) loaded with the
@@ -132,6 +133,22 @@ impl Catalog {
             return Some(k.as_str());
         }
         self.packs.iter().flat_map(|p| p.connector_types.iter()).find(|k| k.relationship_type.as_deref() == Some(rel_type)).map(|k| k.id.as_str())
+    }
+    /// The compartments views of `type_id` carry on a page drawn with rendering variant
+    /// `variant` (empty for the default): the variant's list for the type when it has one (an
+    /// empty list: none), else the type's own declarations.
+    pub fn compartments_in(&self, type_id: &str, variant: &str) -> &[crate::schema::CompartmentDecl] {
+        let Some((pack, t)) = self.element_type(type_id) else { return &[] };
+        match pack.variant(variant).and_then(|v| v.compartments.get(type_id)) {
+            Some(list) => list,
+            None => &t.compartments,
+        }
+    }
+    /// Whether some declaration of `type_id` (its own, or any variant's of its pack) has the
+    /// compartment id `id`: such a compartment is the pack's, not the user's.
+    pub fn declares_compartment(&self, type_id: &str, id: &str) -> bool {
+        let Some((pack, t)) = self.element_type(type_id) else { return false };
+        t.compartments.iter().any(|d| d.id == id) || pack.variants.iter().filter_map(|v| v.compartments.get(type_id)).flatten().any(|d| d.id == id)
     }
     /// The rendering variant with this qualified id, with its pack.
     pub fn variant(&self, id: &str) -> Option<(&Pack, &crate::schema::Variant)> {
@@ -296,7 +313,7 @@ mod tests {
         let c = Catalog::builtin();
         assert!(c.errors().is_empty(), "{:?}", c.errors());
         let ids: Vec<_> = c.packs().iter().map(|p| p.id.as_str()).collect();
-        assert_eq!(ids, ["basic", "flowchart", "drawing", "sheet", "cloud", "network", "dfd", "uml"]);
+        assert_eq!(ids, ["basic", "flowchart", "drawing", "sheet", "cloud", "network", "dfd", "uml", "er"]);
         let basic = c.pack("basic").unwrap();
         assert_eq!((basic.glyphs.len(), basic.element_types.len()), (10, 0));
         let f = c.pack("flowchart").unwrap();

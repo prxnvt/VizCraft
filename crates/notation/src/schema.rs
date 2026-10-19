@@ -143,6 +143,15 @@ pub struct Variant {
     /// (`suppressed` leaves member rows empty).
     #[serde(skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub options: std::collections::BTreeMap<String, String>,
+    /// Element types drawn as shapes of their own around their owner's view on pages with this
+    /// variant (Chen draws an entity's attributes as ellipses around it); see
+    /// `crate::satellites`.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub satellites: Vec<String>,
+    /// Compartments per element type that replace the type's own on pages with this variant; an
+    /// empty list removes them (see [`crate::Catalog::compartments_in`]).
+    #[serde(skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub compartments: std::collections::BTreeMap<String, Vec<CompartmentDecl>>,
 }
 
 impl Pack {
@@ -239,6 +248,10 @@ pub struct Glyph {
     /// container master. See [`crate::nesting::ContainerLook`].
     #[serde(skip_serializing_if = "Option::is_none")]
     pub container: Option<crate::nesting::ContainerLook>,
+    /// The outline: `single` (empty is the same) or `double` (a second outline inset inside the
+    /// first, an ER weak entity).
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub compound: String,
 }
 
 /// A connector type: a named route, pair of line ends and line style, applied to a connector as
@@ -281,6 +294,68 @@ pub struct ConnectorType {
     /// `doubleSlash`, `cross`, `l`, `circle`, `wave`).
     #[serde(skip_serializing_if = "is_none_marker")]
     pub marker: String,
+    /// The frame around the label: a `LabelFrame` name from `vizcraft-diagram` (`box`, `diamond`,
+    /// `doubleDiamond`); empty is the box.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub label_frame: String,
+    /// Ends read from the relationship's properties (ER cardinality): the end pass
+    /// (`crate::end_pass`) gives each end of a connector of this kind the look its rules pick.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ends: Option<EndRules>,
+}
+
+/// The rules that pick a connector's end looks from its relationship's properties: for each end,
+/// rules applied in order over the kind's own look, a later rule's fields winning.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct EndRules {
+    /// Rules for the start (source) end and the half of the line nearest it.
+    pub start: Vec<EndRule>,
+    /// Rules for the end (target) end and the half of the line nearest it.
+    pub end: Vec<EndRule>,
+}
+
+/// One end rule: the look for each value of a relationship property (its schema default when
+/// unset). A value the rule does not list changes nothing.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct EndRule {
+    /// Property key read.
+    pub property: String,
+    /// Property value (as text) to the look.
+    pub values: std::collections::BTreeMap<String, EndLook>,
+    /// Apply the rule only when another property has one of some values (Chen's `M` at the
+    /// source of a many-to-many relationship).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub when: Option<EndCondition>,
+}
+
+/// The condition of an [`EndRule`]: `property` (or its schema default) is one of `any`.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct EndCondition {
+    /// Property key read.
+    pub property: String,
+    /// Values that let the rule apply.
+    pub any: Vec<String>,
+}
+
+/// What an end rule sets; `None` fields are left as earlier rules (or the kind) set them.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct EndLook {
+    /// The line end: an `Arrow` name.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub arrow: Option<String>,
+    /// The text beside the end (`1`, `N`, `P`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    /// The dash of this end's half: a `Dash` name.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dash: Option<String>,
+    /// Draw this end's half as a double line.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub double: Option<bool>,
 }
 
 fn is_none_marker(m: &String) -> bool {
@@ -304,6 +379,8 @@ impl Default for ConnectorType {
             relationship_type: None,
             net: None,
             marker: "none".into(),
+            label_frame: String::new(),
+            ends: None,
         }
     }
 }
@@ -462,6 +539,26 @@ pub struct TableQuery {
     /// model order.
     #[serde(skip_serializing_if = "String::is_empty")]
     pub sort_by: String,
+    /// List only elements the compartment's element owns (an entity's columns).
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub owned: bool,
+    /// List only elements whose property (or its schema default) equals a value.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub filter: Option<RowFilter>,
+    /// Per column key, cell text to the text shown (`pk` `true` shows `PK`); a value the map
+    /// does not list shows empty.
+    #[serde(skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub values: std::collections::BTreeMap<String, std::collections::BTreeMap<String, String>>,
+}
+
+/// The filter of a [`TableQuery`]: `property` (or its schema default) equals `equals`.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct RowFilter {
+    /// Property key compared.
+    pub property: String,
+    /// The value it must have; `None`: any value.
+    pub equals: Option<PropValue>,
 }
 
 impl ElementType {
@@ -1015,6 +1112,23 @@ pub enum Check {
         /// Property key holding member rows.
         #[serde(default)]
         property: String,
+    },
+    /// An element of these types (on pages whose viewpoint is in `viewpoints`, all pages when
+    /// empty) that owns no element marked `pk`: a table without a primary key.
+    PrimaryKey {
+        /// Types checked.
+        #[serde(default)]
+        types: Vec<String>,
+        /// Viewpoints whose pages are checked (empty: every page).
+        #[serde(default)]
+        viewpoints: Vec<String>,
+    },
+    /// A column of these types whose `references` (`<entity>.<column>`) names no column, or a
+    /// column whose `dataType` differs from the one it references (a warning-level finding).
+    ForeignKey {
+        /// Column types checked.
+        #[serde(default)]
+        types: Vec<String>,
     },
     /// A check this build does not know (from a newer pack); skipped, and reported by the loader.
     #[default]

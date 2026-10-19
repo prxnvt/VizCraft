@@ -1,0 +1,1975 @@
+{
+  "schemaVersion": 1,
+  "id": "er",
+  "version": "1.0.0",
+  "name": "Entity Relationship",
+  "description": "Entity-relationship data models in four notations (Information Engineering crow's foot, Chen, Barker and IDEF1X) over one model: entities that own typed columns, cardinality on both ends, identifying relationships and weak entities, with conceptual, logical and physical viewpoints, key rules and starting templates.",
+  "audience": [
+    "general",
+    "enterprise"
+  ],
+  "glyphs": [
+    {
+      "id": "er.entity",
+      "label": "ER Entity",
+      "category": "Entity Relationship",
+      "outline": "rectangle",
+      "w": 240,
+      "h": 40,
+      "fill": "#eef4fb",
+      "line": "#2c4a6b",
+      "keywords": [
+        "table",
+        "entity",
+        "er"
+      ],
+      "elementType": "er.Entity"
+    },
+    {
+      "id": "er.weakEntity",
+      "label": "Weak Entity",
+      "category": "Entity Relationship",
+      "outline": "rectangle",
+      "w": 240,
+      "h": 40,
+      "fill": "#f1edf9",
+      "line": "#4b3a73",
+      "keywords": [
+        "dependent",
+        "weak",
+        "er"
+      ],
+      "elementType": "er.WeakEntity"
+    },
+    {
+      "id": "er.attribute",
+      "label": "Attribute",
+      "category": "Entity Relationship",
+      "outline": "ellipse",
+      "w": 110,
+      "h": 44,
+      "fill": "#fdf6e3",
+      "line": "#7a5c1e",
+      "keywords": [
+        "column",
+        "field",
+        "er"
+      ],
+      "elementType": "er.Attribute"
+    },
+    {
+      "id": "er.enum",
+      "label": "Enum",
+      "category": "Entity Relationship",
+      "outline": "rectangle",
+      "w": 160,
+      "h": 40,
+      "fill": "#edf7f0",
+      "line": "#2f6b45",
+      "keywords": [
+        "enumeration",
+        "values",
+        "er"
+      ],
+      "elementType": "er.Enum"
+    },
+    {
+      "id": "er.chenEntity",
+      "label": "Entity (Chen)",
+      "category": "Entity Relationship (Chen)",
+      "outline": "rectangle",
+      "w": 140,
+      "h": 56,
+      "fill": "#eef4fb",
+      "line": "#2c4a6b",
+      "keywords": [
+        "chen",
+        "entity"
+      ]
+    },
+    {
+      "id": "er.chenWeakEntity",
+      "label": "Weak Entity (Chen)",
+      "category": "Entity Relationship (Chen)",
+      "outline": "rectangle",
+      "w": 140,
+      "h": 56,
+      "fill": "#f1edf9",
+      "line": "#4b3a73",
+      "keywords": [
+        "chen",
+        "weak"
+      ],
+      "compound": "double"
+    },
+    {
+      "id": "er.barkerEntity",
+      "label": "Entity (Barker)",
+      "category": "Entity Relationship (Barker)",
+      "outline": "roundedRectangle",
+      "w": 240,
+      "h": 40,
+      "fill": "#eef4fb",
+      "line": "#2c4a6b",
+      "keywords": [
+        "barker",
+        "soft box"
+      ]
+    },
+    {
+      "id": "er.barkerWeakEntity",
+      "label": "Weak Entity (Barker)",
+      "category": "Entity Relationship (Barker)",
+      "outline": "roundedRectangle",
+      "w": 240,
+      "h": 40,
+      "fill": "#f1edf9",
+      "line": "#4b3a73",
+      "keywords": [
+        "barker",
+        "dependent"
+      ]
+    },
+    {
+      "id": "er.dependentEntity",
+      "label": "Dependent Entity (IDEF1X)",
+      "category": "Entity Relationship (IDEF1X)",
+      "outline": "roundedRectangle",
+      "w": 240,
+      "h": 40,
+      "fill": "#f1edf9",
+      "line": "#4b3a73",
+      "keywords": [
+        "idef1x",
+        "identifier dependent"
+      ]
+    }
+  ],
+  "connectorTypes": [
+    {
+      "id": "er.relationship",
+      "label": "Relationship",
+      "category": "Entity Relationship",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "dashed",
+      "lineWidth": 1.25,
+      "line": "#2c3e50",
+      "keywords": [
+        "er",
+        "crow's foot",
+        "non-identifying",
+        "foreign key"
+      ],
+      "relationshipType": "er.Relationship",
+      "ends": {
+        "start": [
+          {
+            "property": "sourceCardinality",
+            "values": {
+              "one": {
+                "arrow": "doubleBar"
+              },
+              "zeroOrOne": {
+                "arrow": "barCircle"
+              },
+              "oneOrMore": {
+                "arrow": "crowsFootBar"
+              },
+              "zeroOrMore": {
+                "arrow": "crowsFootCircle"
+              }
+            }
+          }
+        ],
+        "end": [
+          {
+            "property": "targetCardinality",
+            "values": {
+              "one": {
+                "arrow": "doubleBar"
+              },
+              "zeroOrOne": {
+                "arrow": "barCircle"
+              },
+              "oneOrMore": {
+                "arrow": "crowsFootBar"
+              },
+              "zeroOrMore": {
+                "arrow": "crowsFootCircle"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "er.identifying",
+      "label": "Identifying Relationship",
+      "category": "Entity Relationship",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "solid",
+      "lineWidth": 1.25,
+      "line": "#2c3e50",
+      "keywords": [
+        "er",
+        "crow's foot",
+        "identifying"
+      ],
+      "relationshipType": "er.Identifying",
+      "ends": {
+        "start": [
+          {
+            "property": "sourceCardinality",
+            "values": {
+              "one": {
+                "arrow": "doubleBar"
+              },
+              "zeroOrOne": {
+                "arrow": "barCircle"
+              },
+              "oneOrMore": {
+                "arrow": "crowsFootBar"
+              },
+              "zeroOrMore": {
+                "arrow": "crowsFootCircle"
+              }
+            }
+          }
+        ],
+        "end": [
+          {
+            "property": "targetCardinality",
+            "values": {
+              "one": {
+                "arrow": "doubleBar"
+              },
+              "zeroOrOne": {
+                "arrow": "barCircle"
+              },
+              "oneOrMore": {
+                "arrow": "crowsFootBar"
+              },
+              "zeroOrMore": {
+                "arrow": "crowsFootCircle"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "er.chenRelationship",
+      "label": "Relationship (Chen)",
+      "category": "Entity Relationship (Chen)",
+      "route": "straight",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "solid",
+      "lineWidth": 1.25,
+      "line": "#2c3e50",
+      "keywords": [
+        "er",
+        "chen"
+      ],
+      "relationshipType": "er.Relationship",
+      "ends": {
+        "start": [
+          {
+            "property": "sourceCardinality",
+            "values": {
+              "one": {
+                "label": "1"
+              },
+              "zeroOrOne": {
+                "label": "1"
+              },
+              "oneOrMore": {
+                "label": "N"
+              },
+              "zeroOrMore": {
+                "label": "N"
+              }
+            }
+          },
+          {
+            "property": "sourceCardinality",
+            "values": {
+              "oneOrMore": {
+                "label": "M"
+              },
+              "zeroOrMore": {
+                "label": "M"
+              }
+            },
+            "when": {
+              "property": "targetCardinality",
+              "any": [
+                "oneOrMore",
+                "zeroOrMore"
+              ]
+            }
+          },
+          {
+            "property": "targetCardinality",
+            "values": {
+              "one": {
+                "double": true
+              },
+              "oneOrMore": {
+                "double": true
+              }
+            }
+          }
+        ],
+        "end": [
+          {
+            "property": "targetCardinality",
+            "values": {
+              "one": {
+                "label": "1"
+              },
+              "zeroOrOne": {
+                "label": "1"
+              },
+              "oneOrMore": {
+                "label": "N"
+              },
+              "zeroOrMore": {
+                "label": "N"
+              }
+            }
+          },
+          {
+            "property": "sourceCardinality",
+            "values": {
+              "one": {
+                "double": true
+              },
+              "oneOrMore": {
+                "double": true
+              }
+            }
+          }
+        ]
+      },
+      "labelFrame": "diamond"
+    },
+    {
+      "id": "er.chenIdentifying",
+      "label": "Identifying Relationship (Chen)",
+      "category": "Entity Relationship (Chen)",
+      "route": "straight",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "solid",
+      "lineWidth": 1.25,
+      "line": "#2c3e50",
+      "keywords": [
+        "er",
+        "chen"
+      ],
+      "relationshipType": "er.Identifying",
+      "ends": {
+        "start": [
+          {
+            "property": "sourceCardinality",
+            "values": {
+              "one": {
+                "label": "1"
+              },
+              "zeroOrOne": {
+                "label": "1"
+              },
+              "oneOrMore": {
+                "label": "N"
+              },
+              "zeroOrMore": {
+                "label": "N"
+              }
+            }
+          },
+          {
+            "property": "sourceCardinality",
+            "values": {
+              "oneOrMore": {
+                "label": "M"
+              },
+              "zeroOrMore": {
+                "label": "M"
+              }
+            },
+            "when": {
+              "property": "targetCardinality",
+              "any": [
+                "oneOrMore",
+                "zeroOrMore"
+              ]
+            }
+          },
+          {
+            "property": "targetCardinality",
+            "values": {
+              "one": {
+                "double": true
+              },
+              "oneOrMore": {
+                "double": true
+              }
+            }
+          }
+        ],
+        "end": [
+          {
+            "property": "targetCardinality",
+            "values": {
+              "one": {
+                "label": "1"
+              },
+              "zeroOrOne": {
+                "label": "1"
+              },
+              "oneOrMore": {
+                "label": "N"
+              },
+              "zeroOrMore": {
+                "label": "N"
+              }
+            }
+          },
+          {
+            "property": "sourceCardinality",
+            "values": {
+              "one": {
+                "double": true
+              },
+              "oneOrMore": {
+                "double": true
+              }
+            }
+          }
+        ]
+      },
+      "labelFrame": "doubleDiamond"
+    },
+    {
+      "id": "er.barkerRelationship",
+      "label": "Relationship (Barker)",
+      "category": "Entity Relationship (Barker)",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "solid",
+      "lineWidth": 1.25,
+      "line": "#2c3e50",
+      "keywords": [
+        "er",
+        "barker"
+      ],
+      "relationshipType": "er.Relationship",
+      "ends": {
+        "start": [
+          {
+            "property": "sourceCardinality",
+            "values": {
+              "oneOrMore": {
+                "arrow": "crowsFoot"
+              },
+              "zeroOrMore": {
+                "arrow": "crowsFoot"
+              }
+            }
+          },
+          {
+            "property": "targetCardinality",
+            "values": {
+              "zeroOrOne": {
+                "dash": "dashed"
+              },
+              "zeroOrMore": {
+                "dash": "dashed"
+              }
+            }
+          }
+        ],
+        "end": [
+          {
+            "property": "targetCardinality",
+            "values": {
+              "oneOrMore": {
+                "arrow": "crowsFoot"
+              },
+              "zeroOrMore": {
+                "arrow": "crowsFoot"
+              }
+            }
+          },
+          {
+            "property": "sourceCardinality",
+            "values": {
+              "zeroOrOne": {
+                "dash": "dashed"
+              },
+              "zeroOrMore": {
+                "dash": "dashed"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "er.barkerIdentifying",
+      "label": "Identifying Relationship (Barker)",
+      "category": "Entity Relationship (Barker)",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "solid",
+      "lineWidth": 1.25,
+      "line": "#2c3e50",
+      "keywords": [
+        "er",
+        "barker",
+        "uid bar"
+      ],
+      "relationshipType": "er.Identifying",
+      "ends": {
+        "start": [
+          {
+            "property": "sourceCardinality",
+            "values": {
+              "oneOrMore": {
+                "arrow": "crowsFoot"
+              },
+              "zeroOrMore": {
+                "arrow": "crowsFoot"
+              }
+            }
+          },
+          {
+            "property": "targetCardinality",
+            "values": {
+              "zeroOrOne": {
+                "dash": "dashed"
+              },
+              "zeroOrMore": {
+                "dash": "dashed"
+              }
+            }
+          }
+        ],
+        "end": [
+          {
+            "property": "targetCardinality",
+            "values": {
+              "oneOrMore": {
+                "arrow": "crowsFoot"
+              },
+              "zeroOrMore": {
+                "arrow": "crowsFoot"
+              }
+            }
+          },
+          {
+            "property": "sourceCardinality",
+            "values": {
+              "zeroOrOne": {
+                "dash": "dashed"
+              },
+              "zeroOrMore": {
+                "dash": "dashed"
+              }
+            }
+          },
+          {
+            "property": "targetCardinality",
+            "values": {
+              "oneOrMore": {
+                "arrow": "crowsFootBar"
+              },
+              "zeroOrMore": {
+                "arrow": "crowsFootBar"
+              },
+              "one": {
+                "arrow": "bar"
+              },
+              "zeroOrOne": {
+                "arrow": "bar"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "er.idef1xRelationship",
+      "label": "Non-identifying Relationship (IDEF1X)",
+      "category": "Entity Relationship (IDEF1X)",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "dashed",
+      "lineWidth": 1.25,
+      "line": "#2c3e50",
+      "keywords": [
+        "er",
+        "idef1x"
+      ],
+      "relationshipType": "er.Relationship",
+      "ends": {
+        "start": [
+          {
+            "property": "sourceCardinality",
+            "values": {
+              "zeroOrOne": {
+                "arrow": "hollowDiamond"
+              }
+            }
+          }
+        ],
+        "end": [
+          {
+            "property": "targetCardinality",
+            "values": {
+              "oneOrMore": {
+                "arrow": "dot",
+                "label": "P"
+              },
+              "zeroOrOne": {
+                "arrow": "dot",
+                "label": "Z"
+              },
+              "one": {
+                "arrow": "dot",
+                "label": "1"
+              },
+              "zeroOrMore": {
+                "arrow": "dot"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "er.idef1xIdentifying",
+      "label": "Identifying Relationship (IDEF1X)",
+      "category": "Entity Relationship (IDEF1X)",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "solid",
+      "lineWidth": 1.25,
+      "line": "#2c3e50",
+      "keywords": [
+        "er",
+        "idef1x"
+      ],
+      "relationshipType": "er.Identifying",
+      "ends": {
+        "start": [
+          {
+            "property": "sourceCardinality",
+            "values": {
+              "zeroOrOne": {
+                "arrow": "hollowDiamond"
+              }
+            }
+          }
+        ],
+        "end": [
+          {
+            "property": "targetCardinality",
+            "values": {
+              "oneOrMore": {
+                "arrow": "dot",
+                "label": "P"
+              },
+              "zeroOrOne": {
+                "arrow": "dot",
+                "label": "Z"
+              },
+              "one": {
+                "arrow": "dot",
+                "label": "1"
+              },
+              "zeroOrMore": {
+                "arrow": "dot"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "elementTypes": [
+    {
+      "id": "er.Entity",
+      "label": "Entity",
+      "description": "A thing the data describes, drawn as a table: its columns are the attributes it owns.",
+      "glyph": "er.entity",
+      "container": true,
+      "properties": [
+        {
+          "key": "schema",
+          "label": "Schema",
+          "kind": "text",
+          "description": "The database schema the table is in; empty for the default."
+        },
+        {
+          "key": "alias",
+          "label": "Alias",
+          "kind": "text",
+          "description": "A short name other definitions may use for the table."
+        },
+        {
+          "key": "note",
+          "label": "Note",
+          "kind": "text",
+          "description": "A note on the table."
+        },
+        {
+          "key": "indexes",
+          "label": "Indexes",
+          "kind": "text",
+          "description": "Index definitions, one per line, as DBML writes them inside indexes { }."
+        },
+        {
+          "key": "group",
+          "label": "Group",
+          "kind": "text",
+          "description": "The table group it belongs to."
+        }
+      ],
+      "compartments": [
+        {
+          "id": "keys",
+          "kind": "list",
+          "query": {
+            "types": [
+              "er.Attribute"
+            ],
+            "owned": true,
+            "filter": {
+              "property": "pk",
+              "equals": true
+            },
+            "columns": [
+              "pk",
+              "name",
+              "dataType"
+            ],
+            "headers": [
+              "Key",
+              "Column",
+              "Type"
+            ],
+            "widths": [
+              40,
+              110,
+              90
+            ],
+            "values": {
+              "pk": {
+                "true": "PK"
+              }
+            }
+          }
+        },
+        {
+          "id": "attrs",
+          "kind": "list",
+          "query": {
+            "types": [
+              "er.Attribute"
+            ],
+            "owned": true,
+            "filter": {
+              "property": "pk",
+              "equals": false
+            },
+            "columns": [
+              "fk",
+              "name",
+              "dataType"
+            ],
+            "headers": [
+              "",
+              "Column",
+              "Type"
+            ],
+            "widths": [
+              40,
+              110,
+              90
+            ],
+            "values": {
+              "fk": {
+                "true": "FK"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "er.WeakEntity",
+      "label": "Weak Entity",
+      "description": "An entity identified through another: its key includes its parent's key, by an identifying relationship.",
+      "glyph": "er.weakEntity",
+      "container": true,
+      "extends": "er.Entity",
+      "compartments": [
+        {
+          "id": "keys",
+          "kind": "list",
+          "query": {
+            "types": [
+              "er.Attribute"
+            ],
+            "owned": true,
+            "filter": {
+              "property": "pk",
+              "equals": true
+            },
+            "columns": [
+              "pk",
+              "name",
+              "dataType"
+            ],
+            "headers": [
+              "Key",
+              "Column",
+              "Type"
+            ],
+            "widths": [
+              40,
+              110,
+              90
+            ],
+            "values": {
+              "pk": {
+                "true": "PK"
+              }
+            }
+          }
+        },
+        {
+          "id": "attrs",
+          "kind": "list",
+          "query": {
+            "types": [
+              "er.Attribute"
+            ],
+            "owned": true,
+            "filter": {
+              "property": "pk",
+              "equals": false
+            },
+            "columns": [
+              "fk",
+              "name",
+              "dataType"
+            ],
+            "headers": [
+              "",
+              "Column",
+              "Type"
+            ],
+            "widths": [
+              40,
+              110,
+              90
+            ],
+            "values": {
+              "fk": {
+                "true": "FK"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "er.Attribute",
+      "label": "Attribute",
+      "description": "A column of the entity that owns it.",
+      "glyph": "er.attribute",
+      "properties": [
+        {
+          "key": "dataType",
+          "label": "Type",
+          "kind": "text",
+          "description": "The column's data type (integer, varchar(255))."
+        },
+        {
+          "key": "pk",
+          "label": "Primary key",
+          "kind": "bool",
+          "default": false,
+          "description": "Part of the primary key."
+        },
+        {
+          "key": "fk",
+          "label": "Foreign key",
+          "kind": "bool",
+          "default": false,
+          "description": "Part of a foreign key."
+        },
+        {
+          "key": "unique",
+          "label": "Unique",
+          "kind": "bool",
+          "default": false
+        },
+        {
+          "key": "increment",
+          "label": "Auto increment",
+          "kind": "bool",
+          "default": false
+        },
+        {
+          "key": "nullable",
+          "label": "Nullable",
+          "kind": "bool",
+          "default": true,
+          "description": "May be empty (null); DBML columns are nullable unless marked not null."
+        },
+        {
+          "key": "default",
+          "label": "Default",
+          "kind": "text",
+          "description": "The default value as written in the schema."
+        },
+        {
+          "key": "note",
+          "label": "Note",
+          "kind": "text"
+        },
+        {
+          "key": "references",
+          "label": "References",
+          "kind": "text",
+          "description": "The column this foreign key refers to, as table.column."
+        }
+      ]
+    },
+    {
+      "id": "er.Enum",
+      "label": "Enum",
+      "description": "A named list of allowed values a column type can be.",
+      "glyph": "er.enum",
+      "properties": [
+        {
+          "key": "values",
+          "label": "Values",
+          "kind": "text",
+          "description": "One value per line."
+        },
+        {
+          "key": "schema",
+          "label": "Schema",
+          "kind": "text"
+        }
+      ],
+      "compartments": [
+        {
+          "id": "values",
+          "kind": "list",
+          "rowsFrom": "values"
+        }
+      ]
+    }
+  ],
+  "relationshipTypes": [
+    {
+      "id": "er.Relationship",
+      "label": "Relationship",
+      "description": "A non-identifying relationship from the parent (the referenced entity) to the child (the one holding the foreign key).",
+      "endArrow": "none",
+      "properties": [
+        {
+          "key": "sourceCardinality",
+          "label": "Parent cardinality",
+          "kind": "enum",
+          "values": [
+            "one",
+            "zeroOrOne",
+            "oneOrMore",
+            "zeroOrMore"
+          ],
+          "required": true,
+          "description": "How many entities at this end: one, zero or one, one or more, zero or more."
+        },
+        {
+          "key": "targetCardinality",
+          "label": "Child cardinality",
+          "kind": "enum",
+          "values": [
+            "one",
+            "zeroOrOne",
+            "oneOrMore",
+            "zeroOrMore"
+          ],
+          "required": true,
+          "description": "How many entities at this end: one, zero or one, one or more, zero or more."
+        },
+        {
+          "key": "onDelete",
+          "label": "On delete",
+          "kind": "enum",
+          "values": [
+            "noAction",
+            "restrict",
+            "cascade",
+            "setNull",
+            "setDefault"
+          ],
+          "description": "What deleting the parent row does to the child rows."
+        },
+        {
+          "key": "onUpdate",
+          "label": "On update",
+          "kind": "enum",
+          "values": [
+            "noAction",
+            "restrict",
+            "cascade",
+            "setNull",
+            "setDefault"
+          ],
+          "description": "What changing the parent key does to the child rows."
+        }
+      ]
+    },
+    {
+      "id": "er.Identifying",
+      "label": "Identifying Relationship",
+      "description": "A relationship whose foreign key is part of the child's primary key: the child is identified through the parent.",
+      "endArrow": "none",
+      "properties": [
+        {
+          "key": "sourceCardinality",
+          "label": "Parent cardinality",
+          "kind": "enum",
+          "values": [
+            "one",
+            "zeroOrOne",
+            "oneOrMore",
+            "zeroOrMore"
+          ],
+          "required": true,
+          "description": "How many entities at this end: one, zero or one, one or more, zero or more."
+        },
+        {
+          "key": "targetCardinality",
+          "label": "Child cardinality",
+          "kind": "enum",
+          "values": [
+            "one",
+            "zeroOrOne",
+            "oneOrMore",
+            "zeroOrMore"
+          ],
+          "required": true,
+          "description": "How many entities at this end: one, zero or one, one or more, zero or more."
+        },
+        {
+          "key": "onDelete",
+          "label": "On delete",
+          "kind": "enum",
+          "values": [
+            "noAction",
+            "restrict",
+            "cascade",
+            "setNull",
+            "setDefault"
+          ],
+          "description": "What deleting the parent row does to the child rows."
+        },
+        {
+          "key": "onUpdate",
+          "label": "On update",
+          "kind": "enum",
+          "values": [
+            "noAction",
+            "restrict",
+            "cascade",
+            "setNull",
+            "setDefault"
+          ],
+          "description": "What changing the parent key does to the child rows."
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "source": [
+        "er.Entity"
+      ],
+      "relationship": "er.Relationship",
+      "target": [
+        "er.Entity"
+      ]
+    },
+    {
+      "source": [
+        "er.Entity"
+      ],
+      "relationship": "er.Identifying",
+      "target": [
+        "er.WeakEntity"
+      ]
+    }
+  ],
+  "palette": [
+    {
+      "id": "er.entities",
+      "label": "Entity Relationship",
+      "types": [
+        "er.Entity",
+        "er.WeakEntity",
+        "er.Attribute",
+        "er.Enum"
+      ]
+    }
+  ],
+  "viewpoints": [
+    {
+      "id": "er.Conceptual",
+      "label": "Conceptual",
+      "description": "The things the business talks about and how they relate, without keys or types.",
+      "types": [
+        "er.Entity",
+        "er.WeakEntity",
+        "er.Attribute"
+      ],
+      "relationships": [
+        "er.Relationship",
+        "er.Identifying"
+      ]
+    },
+    {
+      "id": "er.Logical",
+      "label": "Logical",
+      "description": "Entities with their attributes, keys and relationships, independent of a database.",
+      "types": [
+        "er.Entity",
+        "er.WeakEntity",
+        "er.Attribute"
+      ],
+      "relationships": [
+        "er.Relationship",
+        "er.Identifying"
+      ]
+    },
+    {
+      "id": "er.Physical",
+      "label": "Physical",
+      "description": "Tables with typed columns, keys, foreign keys and enums, as a database implements them.",
+      "types": [
+        "er.Entity",
+        "er.WeakEntity",
+        "er.Attribute",
+        "er.Enum"
+      ],
+      "relationships": [
+        "er.Relationship",
+        "er.Identifying"
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "er.illegal",
+      "description": "An identifying relationship must end at a weak entity, and relationships join entities.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "illegalRelationship"
+      },
+      "reference": "Chen 1976, 2.3 weak entity relations; IDEF1X (FIPS 184), 3.3.2 identifying relationships"
+    },
+    {
+      "id": "er.cardinality",
+      "description": "Every relationship needs a cardinality at both ends.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "requiredProperty",
+        "types": []
+      }
+    },
+    {
+      "id": "er.weakEntityIdentified",
+      "description": "A weak entity needs an identifying relationship from its parent.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "minIncoming",
+        "types": [
+          "er.WeakEntity"
+        ],
+        "relationship": "er.Identifying",
+        "min": 1
+      },
+      "reference": "Chen 1976, 2.3; IDEF1X (FIPS 184), 3.2.2 identifier-dependent entities"
+    },
+    {
+      "id": "er.primaryKey",
+      "description": "A table needs a primary key.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "primaryKey",
+        "types": [
+          "er.Entity"
+        ],
+        "viewpoints": [
+          "er.Physical"
+        ]
+      }
+    },
+    {
+      "id": "er.foreignKey",
+      "description": "A foreign key must reference an existing column of the same type.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "foreignKey",
+        "types": [
+          "er.Attribute"
+        ]
+      }
+    },
+    {
+      "id": "er.propertyType",
+      "description": "ER property values must fit their types.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "propertyType",
+        "types": []
+      }
+    },
+    {
+      "id": "er.viewpoint",
+      "description": "This kind of ER element does not belong on this kind of diagram.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "viewpointType"
+      }
+    },
+    {
+      "id": "er.dangling",
+      "description": "Every ER relationship line should join two entities.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "danglingConnector"
+      }
+    }
+  ],
+  "rulesets": [
+    {
+      "id": "er.physical",
+      "label": "Physical data model",
+      "description": "Every ER rule: relationships, cardinality, weak entities, primary keys on physical pages and foreign keys.",
+      "rules": [
+        "er.illegal",
+        "er.cardinality",
+        "er.weakEntityIdentified",
+        "er.propertyType",
+        "er.viewpoint",
+        "er.dangling",
+        "er.primaryKey",
+        "er.foreignKey"
+      ]
+    },
+    {
+      "id": "er.logical",
+      "label": "Logical data model",
+      "description": "Relationships, cardinality, weak entities and foreign keys.",
+      "rules": [
+        "er.illegal",
+        "er.cardinality",
+        "er.weakEntityIdentified",
+        "er.propertyType",
+        "er.viewpoint",
+        "er.dangling",
+        "er.foreignKey"
+      ]
+    },
+    {
+      "id": "er.conceptual",
+      "label": "Conceptual data model",
+      "description": "Relationships, cardinality and weak entities.",
+      "rules": [
+        "er.illegal",
+        "er.cardinality",
+        "er.weakEntityIdentified",
+        "er.propertyType",
+        "er.viewpoint",
+        "er.dangling"
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "id": "er.ie",
+      "label": "Information Engineering",
+      "description": "Crow's foot ends: each end shows its own cardinality; non-identifying lines dashed."
+    },
+    {
+      "id": "er.chen",
+      "label": "Chen",
+      "description": "Entities as plain boxes with attribute ellipses around them, relationships named in diamonds, 1 and N beside the ends and double lines for total participation.",
+      "glyphs": {
+        "er.Entity": "er.chenEntity",
+        "er.WeakEntity": "er.chenWeakEntity"
+      },
+      "connectors": {
+        "er.Relationship": "er.chenRelationship",
+        "er.Identifying": "er.chenIdentifying"
+      },
+      "satellites": [
+        "er.Attribute"
+      ],
+      "compartments": {
+        "er.Entity": [],
+        "er.WeakEntity": []
+      }
+    },
+    {
+      "id": "er.barker",
+      "label": "Barker",
+      "description": "Soft boxes with # for the identifier and * or o for mandatory or optional attributes; a crow's foot for many and a dashed half for optional.",
+      "glyphs": {
+        "er.Entity": "er.barkerEntity",
+        "er.WeakEntity": "er.barkerWeakEntity"
+      },
+      "connectors": {
+        "er.Relationship": "er.barkerRelationship",
+        "er.Identifying": "er.barkerIdentifying"
+      },
+      "compartments": {
+        "er.Entity": [
+          {
+            "id": "keys",
+            "kind": "list",
+            "query": {
+              "types": [
+                "er.Attribute"
+              ],
+              "owned": true,
+              "filter": {
+                "property": "pk",
+                "equals": true
+              },
+              "columns": [
+                "pk",
+                "nullable",
+                "name"
+              ],
+              "headers": [
+                "",
+                "",
+                "Attribute"
+              ],
+              "widths": [
+                30,
+                30,
+                180
+              ],
+              "values": {
+                "pk": {
+                  "true": "#"
+                },
+                "nullable": {
+                  "true": "o",
+                  "false": "*"
+                }
+              }
+            }
+          },
+          {
+            "id": "attrs",
+            "kind": "list",
+            "query": {
+              "types": [
+                "er.Attribute"
+              ],
+              "owned": true,
+              "filter": {
+                "property": "pk",
+                "equals": false
+              },
+              "columns": [
+                "nullable",
+                "name"
+              ],
+              "headers": [
+                "",
+                "Attribute"
+              ],
+              "widths": [
+                30,
+                210
+              ],
+              "values": {
+                "nullable": {
+                  "true": "o",
+                  "false": "*"
+                }
+              }
+            }
+          }
+        ],
+        "er.WeakEntity": [
+          {
+            "id": "keys",
+            "kind": "list",
+            "query": {
+              "types": [
+                "er.Attribute"
+              ],
+              "owned": true,
+              "filter": {
+                "property": "pk",
+                "equals": true
+              },
+              "columns": [
+                "pk",
+                "nullable",
+                "name"
+              ],
+              "headers": [
+                "",
+                "",
+                "Attribute"
+              ],
+              "widths": [
+                30,
+                30,
+                180
+              ],
+              "values": {
+                "pk": {
+                  "true": "#"
+                },
+                "nullable": {
+                  "true": "o",
+                  "false": "*"
+                }
+              }
+            }
+          },
+          {
+            "id": "attrs",
+            "kind": "list",
+            "query": {
+              "types": [
+                "er.Attribute"
+              ],
+              "owned": true,
+              "filter": {
+                "property": "pk",
+                "equals": false
+              },
+              "columns": [
+                "nullable",
+                "name"
+              ],
+              "headers": [
+                "",
+                "Attribute"
+              ],
+              "widths": [
+                30,
+                210
+              ],
+              "values": {
+                "nullable": {
+                  "true": "o",
+                  "false": "*"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "er.idef1x",
+      "label": "IDEF1X",
+      "description": "Identifier-dependent entities with rounded corners, a dot on the child end with P, Z or 1, and dashed non-identifying lines.",
+      "glyphs": {
+        "er.WeakEntity": "er.dependentEntity"
+      },
+      "connectors": {
+        "er.Relationship": "er.idef1xRelationship",
+        "er.Identifying": "er.idef1xIdentifying"
+      }
+    }
+  ],
+  "templates": [
+    {
+      "id": "er.schema",
+      "label": "Database schema",
+      "description": "Three tables with typed columns, primary and foreign keys and two crow's foot relationships.",
+      "viewpoint": "er.Physical",
+      "variant": "er.ie",
+      "keywords": [
+        "database",
+        "schema",
+        "table",
+        "crow's foot",
+        "sql"
+      ],
+      "codeForms": [
+        "dbml",
+        "mermaid.er"
+      ],
+      "seed": [
+        {
+          "command": "element.create",
+          "as": "customers",
+          "params": {
+            "type": "er.Entity",
+            "name": "customers",
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "er.Attribute",
+            "name": "id",
+            "owner": "${customers.id}",
+            "properties": {
+              "dataType": "integer",
+              "pk": true,
+              "nullable": false,
+              "increment": true
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "er.Attribute",
+            "name": "email",
+            "owner": "${customers.id}",
+            "properties": {
+              "dataType": "varchar(255)",
+              "unique": true,
+              "nullable": false
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "er.Attribute",
+            "name": "name",
+            "owner": "${customers.id}",
+            "properties": {
+              "dataType": "varchar(120)"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "orders",
+          "params": {
+            "type": "er.Entity",
+            "name": "orders",
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "er.Attribute",
+            "name": "id",
+            "owner": "${orders.id}",
+            "properties": {
+              "dataType": "integer",
+              "pk": true,
+              "nullable": false,
+              "increment": true
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "er.Attribute",
+            "name": "customer_id",
+            "owner": "${orders.id}",
+            "properties": {
+              "dataType": "integer",
+              "fk": true,
+              "nullable": false,
+              "references": "customers.id"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "er.Attribute",
+            "name": "placed_at",
+            "owner": "${orders.id}",
+            "properties": {
+              "dataType": "timestamp"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "items",
+          "params": {
+            "type": "er.Entity",
+            "name": "order_items",
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "er.Attribute",
+            "name": "id",
+            "owner": "${items.id}",
+            "properties": {
+              "dataType": "integer",
+              "pk": true,
+              "nullable": false
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "er.Attribute",
+            "name": "order_id",
+            "owner": "${items.id}",
+            "properties": {
+              "dataType": "integer",
+              "fk": true,
+              "nullable": false,
+              "references": "orders.id"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "er.Attribute",
+            "name": "quantity",
+            "owner": "${items.id}",
+            "properties": {
+              "dataType": "integer",
+              "nullable": false,
+              "default": "1"
+            }
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${customers.id}",
+            "to": "${orders.id}",
+            "type": "er.Relationship",
+            "properties": {
+              "sourceCardinality": "one",
+              "targetCardinality": "zeroOrMore"
+            },
+            "name": "places"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${orders.id}",
+            "to": "${items.id}",
+            "type": "er.Relationship",
+            "properties": {
+              "sourceCardinality": "one",
+              "targetCardinality": "oneOrMore"
+            },
+            "name": "contains"
+          }
+        }
+      ],
+      "layout": {
+        "primitive": "er"
+      }
+    },
+    {
+      "id": "er.conceptual",
+      "label": "Conceptual model",
+      "description": "Two entities with their attributes around them and a one-to-many relationship, drawn in Chen notation.",
+      "viewpoint": "er.Conceptual",
+      "variant": "er.chen",
+      "keywords": [
+        "chen",
+        "conceptual",
+        "entity"
+      ],
+      "seed": [
+        {
+          "command": "element.create",
+          "as": "customer",
+          "params": {
+            "type": "er.Entity",
+            "name": "Customer",
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "er.Attribute",
+            "name": "customerId",
+            "owner": "${customer.id}",
+            "properties": {
+              "pk": true
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "er.Attribute",
+            "name": "name",
+            "owner": "${customer.id}"
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "order",
+          "params": {
+            "type": "er.Entity",
+            "name": "Order",
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "er.Attribute",
+            "name": "orderNo",
+            "owner": "${order.id}",
+            "properties": {
+              "pk": true
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "er.Attribute",
+            "name": "date",
+            "owner": "${order.id}"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${customer.id}",
+            "to": "${order.id}",
+            "type": "er.Relationship",
+            "properties": {
+              "sourceCardinality": "one",
+              "targetCardinality": "zeroOrMore"
+            },
+            "name": "places"
+          }
+        }
+      ],
+      "layout": {
+        "primitive": "er"
+      }
+    },
+    {
+      "id": "er.logical",
+      "label": "Logical model",
+      "description": "Departments, employees and their dependents with keys, a foreign key and an identifying relationship, drawn in IDEF1X (Barker is a variant away).",
+      "viewpoint": "er.Logical",
+      "variant": "er.idef1x",
+      "keywords": [
+        "idef1x",
+        "barker",
+        "logical",
+        "keys"
+      ],
+      "codeForms": [
+        "dbml"
+      ],
+      "seed": [
+        {
+          "command": "element.create",
+          "as": "dept",
+          "params": {
+            "type": "er.Entity",
+            "name": "Department",
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "er.Attribute",
+            "name": "deptNo",
+            "owner": "${dept.id}",
+            "properties": {
+              "dataType": "integer",
+              "pk": true,
+              "nullable": false
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "er.Attribute",
+            "name": "name",
+            "owner": "${dept.id}",
+            "properties": {
+              "dataType": "text",
+              "nullable": false
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "emp",
+          "params": {
+            "type": "er.Entity",
+            "name": "Employee",
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "er.Attribute",
+            "name": "empNo",
+            "owner": "${emp.id}",
+            "properties": {
+              "dataType": "integer",
+              "pk": true,
+              "nullable": false
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "er.Attribute",
+            "name": "deptNo",
+            "owner": "${emp.id}",
+            "properties": {
+              "dataType": "integer",
+              "fk": true,
+              "references": "Department.deptNo"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "er.Attribute",
+            "name": "name",
+            "owner": "${emp.id}",
+            "properties": {
+              "dataType": "text",
+              "nullable": false
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "dep",
+          "params": {
+            "type": "er.WeakEntity",
+            "name": "Dependent",
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "er.Attribute",
+            "name": "empNo",
+            "owner": "${dep.id}",
+            "properties": {
+              "dataType": "integer",
+              "pk": true,
+              "fk": true,
+              "nullable": false,
+              "references": "Employee.empNo"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "er.Attribute",
+            "name": "name",
+            "owner": "${dep.id}",
+            "properties": {
+              "dataType": "text",
+              "pk": true,
+              "nullable": false
+            }
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${dept.id}",
+            "to": "${emp.id}",
+            "type": "er.Relationship",
+            "properties": {
+              "sourceCardinality": "zeroOrOne",
+              "targetCardinality": "zeroOrMore"
+            },
+            "name": "employs"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${emp.id}",
+            "to": "${dep.id}",
+            "type": "er.Identifying",
+            "properties": {
+              "sourceCardinality": "one",
+              "targetCardinality": "zeroOrMore"
+            },
+            "name": "supports"
+          }
+        }
+      ],
+      "layout": {
+        "primitive": "er"
+      }
+    }
+  ]
+}

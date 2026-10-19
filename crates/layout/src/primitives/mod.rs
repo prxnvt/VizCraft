@@ -19,10 +19,12 @@
 //! | [`Primitive::HubSpoke`] | `radial` | one hub, spokes on a circle whose radius clears the hub and the spokes |
 //! | [`Primitive::Rings`] | `radial` | concentric rings of nodes around a centre |
 //! | [`Primitive::Voter`] | `radial` | N channel chains side by side feeding one voter node after them |
+//! | [`Primitive::Er`] | `er` | entities layered parents first with orthogonal edges and end-marker gaps, satellites on a ring around their owner |
 
 mod band;
 mod chain;
 mod container;
+pub mod er;
 mod grid;
 mod radial;
 
@@ -30,6 +32,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::geom::{self, Bounds};
 use crate::{Direction, Graph, Layout, LayoutError, Notes, Options, Point, Rect, Resize, Sub, SubEdge};
+pub use er::Satellite;
 
 /// A parallel band of a pipeline: `members` fan out after step `from` and join again at `to`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -125,6 +128,13 @@ pub enum Primitive<T = usize> {
         /// The node the channels feed.
         voter: T,
     },
+    /// An entity-relationship drawing: entities layered parents first, satellites around their
+    /// owners.
+    Er {
+        /// The entities with nodes drawn around them (Chen attributes); empty for none.
+        #[serde(default)]
+        satellites: Vec<Satellite<T>>,
+    },
 }
 
 impl<T> Primitive<T> {
@@ -140,6 +150,7 @@ impl<T> Primitive<T> {
             Primitive::Rings { .. } => "rings",
             Primitive::Timeline { .. } => "timeline",
             Primitive::Voter { .. } => "voter",
+            Primitive::Er { .. } => "er",
         }
     }
 
@@ -185,6 +196,12 @@ impl<T> Primitive<T> {
             Primitive::Voter { channels, voter } => {
                 Primitive::Voter { channels: channels.into_iter().map(|c| list(c, &mut g)).collect::<Result<_, _>>()?, voter: g(voter)? }
             }
+            Primitive::Er { satellites } => Primitive::Er {
+                satellites: satellites
+                    .into_iter()
+                    .map(|s| Ok(Satellite { owner: g(s.owner)?, members: list(s.members, &mut g)? }))
+                    .collect::<Result<_, E>>()?,
+            },
         })
     }
 
@@ -228,6 +245,12 @@ impl<T> Primitive<T> {
                 out.extend(channels.iter().flatten());
                 out.push(voter);
             }
+            Primitive::Er { satellites } => {
+                for s in satellites {
+                    out.push(&s.owner);
+                    out.extend(&s.members);
+                }
+            }
         }
         out
     }
@@ -256,6 +279,11 @@ pub fn layout_primitive(graph: &Graph, primitive: &Primitive, options: &Options)
         Primitive::Rings { center, rings } => (radial::rings(graph, *center, rings, &opt)?, Vec::new()),
         Primitive::Timeline { events, labels } => (grid::timeline(graph, events.as_deref(), labels, &opt)?, Vec::new()),
         Primitive::Voter { channels, voter } => (radial::voter(graph, channels, *voter, &opt)?, Vec::new()),
+        Primitive::Er { satellites } => {
+            // The entity edges are routed orthogonally, as the drawing laid them out.
+            opt.orthogonal_edges = true;
+            (er::er(graph, satellites, &opt)?, Vec::new())
+        }
     };
     Ok(finish(graph, pos, resized, &opt, notes))
 }

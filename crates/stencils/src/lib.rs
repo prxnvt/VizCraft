@@ -154,6 +154,7 @@ fn master_from_glyph(g: &Glyph) -> Master {
         glyph: None,
         container: g.container.clone(),
     };
+    m.style.compound = vizcraft_diagram::Compound::from_name(&g.compound).unwrap_or_default();
     if let Some(look) = &g.container {
         m.style.dash = look.dash();
         m.style.corner_radius = look.corner();

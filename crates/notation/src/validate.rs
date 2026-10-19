@@ -618,6 +618,15 @@ impl<'a> Checker<'a> {
                     self.type_list(&ctx, types);
                     self.key(&ctx, property);
                 }
+                Check::PrimaryKey { types, viewpoints } => {
+                    self.type_list(&ctx, types);
+                    for v in self.list(&ctx, viewpoints) {
+                        if self.pack.viewpoint(v).is_none() {
+                            self.problem(format!("{ctx}: `{}` is not a viewpoint of this pack", short(v)));
+                        }
+                    }
+                }
+                Check::ForeignKey { types } => self.type_list(&ctx, types),
                 Check::Unknown => self.problem(format!("{ctx}: unknown check kind (the pack needs a newer VizCraft)")),
             }
         }
