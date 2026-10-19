@@ -60,6 +60,7 @@ pub fn import(text: &str) -> Result<Imported, FormatError> {
             jumps: look.jumps,
             ext: look.ext,
             relationship: None,
+            ..Connector::default()
         };
         c.sanitize();
         page.connectors.push(c);

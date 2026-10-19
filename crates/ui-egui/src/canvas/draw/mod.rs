@@ -13,6 +13,7 @@ pub mod insertion;
 pub mod links;
 pub mod overlays;
 pub mod pictures;
+pub mod ports;
 pub mod shapes;
 pub mod text;
 

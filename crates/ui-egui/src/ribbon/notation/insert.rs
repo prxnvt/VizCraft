@@ -1,5 +1,6 @@
 //! Notation > Insert: one menu per palette group of the active pack. Each item adds the shape of
-//! that element type at the visible centre of the page (`shape.add` with the type's master).
+//! that element type at the visible centre of the page (`shape.add` with the type's master, or
+//! the master of the page's rendering variant).
 
 use serde_json::json;
 
@@ -21,8 +22,11 @@ fn menus(app: &mut CraftApp, ui: &mut egui::Ui) {
                 for g in column {
                     menu_button(ui, app, "shape", &g.label, &g.label, false, |ui, app| {
                         let at = crate::canvas::insert_point(app);
+                        let variant = super::variant::current(app);
                         for item in &g.items {
                             if let crate::palette::What::Master(m) = item.what {
+                                // The page's rendering variant may draw the type with another glyph.
+                                let m = vizcraft_stencils::variant_master(m.id, &variant).unwrap_or(m);
                                 let (x, y) = ((at.x - m.w / 2.0).round(), (at.y - m.h / 2.0).round());
                                 menu_item(ui, app, &item.label, "shape.add", json!({"stencil": m.id, "x": x, "y": y}), None);
                             }

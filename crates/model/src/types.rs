@@ -161,6 +161,23 @@ pub struct View {
     /// Layout algorithm last applied (`layered`), empty when arranged by hand.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "String::is_empty")]
     pub layout: String,
+    /// Pack-qualified rendering variant the page draws its elements with (`er.chen`); empty is
+    /// the pack's default drawing. Capped at [`View::MAX_VARIANT`] bytes when read.
+    #[serde(deserialize_with = "capped_variant", skip_serializing_if = "String::is_empty")]
+    pub variant: String,
+}
+
+impl View {
+    /// Longest variant id kept; real ids are a few words.
+    pub const MAX_VARIANT: usize = 256;
+}
+
+/// A variant id read leniently and cut to [`View::MAX_VARIANT`] bytes at a char boundary, so a
+/// hostile file cannot make the page carry a huge id.
+fn capped_variant<'de, D: serde::Deserializer<'de>>(d: D) -> Result<String, D::Error> {
+    let mut v: String = lenient(d)?;
+    crate::repair::truncate(&mut v, View::MAX_VARIANT);
+    Ok(v)
 }
 
 /// Why a model edit was refused.

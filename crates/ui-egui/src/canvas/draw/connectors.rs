@@ -1,5 +1,5 @@
 //! Drawing connectors: the routed line (dash pattern, line cap, transparency and rounded bends,
-//! as SVG export draws them), arrowheads and the label.
+//! as SVG export draws them), arrowheads, the label and the labels beside each end.
 
 use egui::epaint::TextShape;
 use egui::{Color32, Painter, Stroke};
@@ -43,6 +43,27 @@ pub fn connector(painter: &Painter, vp: &Viewport2D, c: &Connector, g: &Connecto
         let Some(font) = style_font(st, vp.zoom) else { return };
         let galley = label_layout(painter, &c.text, st, font, 200.0 * vp.zoom);
         let centre = vp.world_to_screen(pos(g.label_pos));
+        let at = centre - galley.rect.center().to_vec2();
+        let bg = galley.rect.translate(at.to_vec2()).expand(2.0 * vp.zoom);
+        painter.rect_filled(bg, 2.0 * vp.zoom, PAGE_FILL);
+        painter.add(TextShape::new(at, galley, color(st.font_color)));
+    }
+    end_labels(painter, vp, c, g);
+}
+
+/// The labels beside each end, a little outside the line past the head, on a white box like
+/// the main label (as SVG export places them).
+fn end_labels(painter: &Painter, vp: &Viewport2D, c: &Connector, g: &ConnectorGeometry) {
+    let st = &c.style;
+    for (text, at_start) in [(&c.start_label, true), (&c.end_label, false)] {
+        let text = text.trim();
+        if text.is_empty() {
+            continue;
+        }
+        let Some(p) = vizcraft_diagram::arrows::end_label_anchor(&g.polyline, at_start, st.font_size, st.line_width) else { continue };
+        let Some(font) = style_font(st, vp.zoom) else { return };
+        let galley = label_layout(painter, text, st, font, 200.0 * vp.zoom);
+        let centre = vp.world_to_screen(pos(p));
         let at = centre - galley.rect.center().to_vec2();
         let bg = galley.rect.translate(at.to_vec2()).expand(2.0 * vp.zoom);
         painter.rect_filled(bg, 2.0 * vp.zoom, PAGE_FILL);

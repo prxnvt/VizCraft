@@ -200,7 +200,7 @@ fn property_values_must_fit_their_schema() {
 fn viewpoint_allows_only_its_types() {
     let mut b = Doc::new();
     b.el("a", "Process", "A").el("x", "other.Pump", "Pump");
-    b.doc.pages[0].view = Some(View { viewpoint: "flowchart.Flowchart".into(), layout: String::new() });
+    b.doc.pages[0].view = Some(View { viewpoint: "flowchart.Flowchart".into(), ..View::default() });
     let d = b.build();
     let issues = live(&d, catalog());
     let v = only(&issues, "flowchart.viewpoint");
@@ -488,7 +488,7 @@ fn the_profile_follows_the_notation_until_the_user_sets_it() {
     auto_enable(&mut d, catalog());
     assert!(d.conformance.is_default(), "free drawing stays off");
     // A viewpoint on a page brings its pack's ruleset.
-    d.pages[0].view = Some(View { viewpoint: "flowchart.Flowchart".into(), layout: String::new() });
+    d.pages[0].view = Some(View { viewpoint: "flowchart.Flowchart".into(), ..View::default() });
     auto_enable(&mut d, catalog());
     assert!(d.conformance.enabled && !d.conformance.user_set);
     assert_eq!(d.conformance.rulesets, ["flowchart.iso5807"]);

@@ -366,6 +366,7 @@ fn paint(app: &mut CraftApp, ui: &Ui, vp: &Viewport2D, t: &Tokens) {
             graphic_marks.extend(drawn);
         }
     }
+    draw::ports::draw(&painter, vp, &app.session.doc, page, &visible);
     app.canvas.cache.end_frame();
     drop(shapes_span);
     // Page-level geometry, so connectors with line jumps hop over the ones drawn before them.

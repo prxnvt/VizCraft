@@ -743,6 +743,13 @@ pub struct Connector {
     /// Label text, drawn at the middle of the route.
     #[serde(deserialize_with = "lenient")]
     pub text: String,
+    /// Text beside the start end (a cardinality such as `1` or `N`, a UML multiplicity), drawn
+    /// a little outside the line; empty for none. Capped like `text`.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "String::is_empty")]
+    pub start_label: String,
+    /// Text beside the end end, like `start_label`.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "String::is_empty")]
+    pub end_label: String,
     /// The connector type this was drawn as (`basic.arrow`, `flowchart.flow`), empty for none. The
     /// route, ends and line style are copied from the type when it is applied; this only names it.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "String::is_empty")]
@@ -779,6 +786,8 @@ impl Default for Connector {
             start_arrow: Arrow::None,
             end_arrow: Arrow::Triangle,
             text: String::new(),
+            start_label: String::new(),
+            end_label: String::new(),
             kind: String::new(),
             style: Style { fill: Color::TRANSPARENT, ..Style::DEFAULT },
             waypoints: Vec::new(),
@@ -804,6 +813,8 @@ impl Connector {
             }
         }
         truncate(&mut self.text, MAX_TEXT);
+        truncate(&mut self.start_label, MAX_TEXT);
+        truncate(&mut self.end_label, MAX_TEXT);
         truncate(&mut self.kind, 128);
         self.style.sanitize();
         self.waypoints.truncate(MAX_WAYPOINTS);

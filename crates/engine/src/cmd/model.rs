@@ -325,18 +325,25 @@ pub fn page_param(doc: &Document, v: &Value) -> Result<usize, EngineError> {
 }
 
 /// Add a shape drawing element `id` on page `page` with its top-left at `x, y` (already
-/// clamped), from the master its type's glyph names, its text the element's name. Returns the
-/// shape id.
+/// clamped), from the master its type's glyph names (the page's rendering variant's glyph when
+/// it maps the type), its text the element's name. A type that declares ports gives the shape
+/// its port positions as connection points, so port `i` is point `i`. Returns the shape id.
 pub fn place_shape(doc: &mut Document, id: &str, page: usize, x: f64, y: f64, w: Option<f64>, h: Option<f64>) -> Result<String, EngineError> {
     let e = doc.model.element(id).ok_or_else(|| EngineError::Params(format!("`{}` is not an element", short(id))))?;
-    let master =
-        cat().master_for_type(&e.type_id).ok_or_else(|| EngineError::Params(format!("type `{}` has no glyph to draw it with", short(&e.type_id))))?;
+    let variant = doc.pages.get(page).and_then(|p| p.view.as_ref()).map(|v| v.variant.as_str()).unwrap_or_default();
+    let master = cat()
+        .master_for_type_in(&e.type_id, variant)
+        .ok_or_else(|| EngineError::Params(format!("type `{}` has no glyph to draw it with", short(&e.type_id))))?;
     let name = e.name.clone();
+    let ports = vizcraft_stencils::port_points(&e.type_id);
     let sid = doc.next_id("s");
     let mut shape = vizcraft_stencils::new_shape(master, sid.clone(), x, y, w, h)
         .ok_or_else(|| EngineError::Failed(format!("the stencil `{master}` is missing")))?;
     shape.element = Some(id.to_string());
     shape.text = name;
+    if let Some(points) = ports {
+        shape.connection_points = points;
+    }
     shape.sanitize();
     let page = doc.pages.get_mut(page).ok_or_else(|| EngineError::Params("no such page".into()))?;
     page.shapes.push(shape);
@@ -493,10 +500,12 @@ fn set_viewpoint(s: &mut Session, v: &Value) -> CmdResult {
     };
     let pg = s.doc.pages.get_mut(page).ok_or_else(|| EngineError::Params("no such page".into()))?;
     let layout = pg.view.as_ref().map(|v| v.layout.clone()).unwrap_or_default();
+    // The rendering variant stays with the page across a viewpoint change.
+    let variant = pg.view.as_ref().map(|v| v.variant.clone()).unwrap_or_default();
     pg.view = match &viewpoint {
-        Some(vp) => Some(View { viewpoint: vp.clone(), layout }),
-        None if layout.is_empty() => None,
-        None => Some(View { viewpoint: String::new(), layout }),
+        Some(vp) => Some(View { viewpoint: vp.clone(), layout, variant }),
+        None if layout.is_empty() && variant.is_empty() => None,
+        None => Some(View { viewpoint: String::new(), layout, variant }),
     };
     let id = pg.id.clone();
     Ok(json!({"page": id, "viewpoint": viewpoint}))

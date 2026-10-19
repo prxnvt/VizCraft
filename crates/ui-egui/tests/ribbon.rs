@@ -735,7 +735,7 @@ fn the_arrow_menus_offer_all_thirteen_ends_and_mark_the_current_one() {
     h.get_by_label("Crow's foot with bar").click();
     h.run_steps(3);
     let rows = open_menu(&mut h, "Start Arrow");
-    assert_eq!(rows.len(), 13);
+    assert_eq!(rows.len(), vizcraft_diagram::Arrow::ALL.len());
     assert_eq!(marked(&rows), ["None"]);
     h.get_by_label("Hollow diamond").click();
     h.run_steps(4);

@@ -46,8 +46,8 @@ use vizcraft_diagram::jumps::page_geometry;
 use vizcraft_diagram::print_fields::{FieldValues, expand};
 use vizcraft_diagram::text_fields::{FieldCtx, expand_shape, system_now_secs};
 use vizcraft_diagram::{
-    Color, Connector, ConnectorGeometry, Document, Gradient, GradientKind, HAlign, LineCap, Page, Path, PathEl, Rect, Shape, Style, VAlign,
-    connector_geometry,
+    Color, Connector, ConnectorGeometry, Document, Gradient, GradientKind, HAlign, LineCap, Page, Path, PathEl, Rect, Shape, ShapeKind, Style,
+    VAlign, connector_geometry,
 };
 
 use crate::FormatError;
@@ -55,6 +55,7 @@ use crate::FormatError;
 mod compartments;
 mod data_graphics;
 pub mod pictures;
+mod ports;
 
 /// Space added around content that reaches past the page edge.
 pub const MARGIN: f64 = 20.0;
@@ -242,19 +243,47 @@ fn page_items_svg(out: &mut String, cx: &mut Ctx, page: &Page, print: bool, fiel
         pictures::picture_svg(out, cx, fields.doc, s);
         data_graphics::shape_svg(out, cx, fields.doc, page, &expand_shape(s, fields));
     }
+    ports::ports_svg(out, fields.doc, page, print);
     for (c, g) in page.connectors.iter().zip(page_geometry(page)) {
         connector_svg(out, c, &g);
     }
+}
+
+/// A path split into its closed subpaths and its open ones, in order.
+fn split_subpaths(p: &Path) -> (Path, Path) {
+    let (mut closed, mut open) = (Path::new(), Path::new());
+    let mut i = 0;
+    while i < p.els.len() {
+        let mut j = i + 1;
+        while j < p.els.len() && !matches!(p.els.get(j), Some(PathEl::MoveTo(_))) {
+            j += 1;
+        }
+        let sub = p.els.get(i..j).unwrap_or_default();
+        let into = if sub.iter().any(|e| matches!(e, PathEl::Close)) { &mut closed } else { &mut open };
+        into.els.extend_from_slice(sub);
+        i = j;
+    }
+    (closed, open)
 }
 
 fn shape_svg(out: &mut String, cx: &mut Ctx, s: &Shape) {
     let _ = writeln!(out, "  <g id=\"{}\">", escape(&s.id));
     let st = &s.style;
     let outline = s.outline_world().rounded_corners(st.corner_radius);
+    // A freeform's closed rings fill even-odd (a ring inside another is a hole) and its open
+    // subpaths are lines: SVG would fill an open subpath too, so they go in a path of their own.
+    let (outline, lines, rule) = if s.kind == ShapeKind::Freeform {
+        let (closed, open) = split_subpaths(&outline);
+        // One ring fills the same either way; the rule is written only where it matters.
+        let rings = closed.els.iter().filter(|e| matches!(e, PathEl::MoveTo(_))).count();
+        (closed, open, if rings > 1 { " fill-rule=\"evenodd\"" } else { "" })
+    } else {
+        (outline, Path::new(), "")
+    };
     let d = path_data(&outline);
     let fill = st.effective_fill();
     let gradient = st.gradient.as_ref().filter(|g| g.is_drawable());
-    if let Some(glow) = st.glow.filter(|g| g.radius > 0.0 && g.color.a > 0) {
+    if let Some(glow) = st.glow.filter(|g| g.radius > 0.0 && g.color.a > 0 && !outline.is_empty()) {
         // Approximation: a blurred, wide stroke of the outline in the glow colour.
         let f = cx.blur(glow.radius / 2.0);
         let _ = writeln!(
@@ -272,7 +301,9 @@ fn shape_svg(out: &mut String, cx: &mut Ctx, s: &Shape) {
         } else {
             format!(" fill=\"none\"{} stroke-width=\"{}\"", paint("stroke", sh.color), num(st.line_width.max(1.0)))
         };
-        let _ = writeln!(out, "    <path d=\"{d}\"{paint_attrs} transform=\"translate({} {})\"{filter}/>", num(sh.dx), num(sh.dy));
+        if !outline.is_empty() {
+            let _ = writeln!(out, "    <path d=\"{d}\"{paint_attrs}{rule} transform=\"translate({} {})\"{filter}/>", num(sh.dx), num(sh.dy));
+        }
     }
     let fill_attrs = match gradient {
         Some(g) => {
@@ -284,7 +315,12 @@ fn shape_svg(out: &mut String, cx: &mut Ctx, s: &Shape) {
     };
     // Approximation of soft edges: the shape itself blurred by a fraction of the distance.
     let soft = if st.soft_edges > 0.0 { format!(" filter=\"url(#{})\"", cx.blur(st.soft_edges / 4.0)) } else { String::new() };
-    let _ = writeln!(out, "    <path d=\"{d}\"{fill_attrs}{}{soft}/>", stroke(st));
+    if !outline.is_empty() {
+        let _ = writeln!(out, "    <path d=\"{d}\"{fill_attrs}{rule}{}{soft}/>", stroke(st));
+    }
+    if !lines.is_empty() {
+        let _ = writeln!(out, "    <path d=\"{}\" fill=\"none\"{}/>", path_data(&lines), stroke(st));
+    }
     if let Some(detail) = s.detail_world() {
         let _ = writeln!(out, "    <path d=\"{}\" fill=\"none\"{}/>", path_data(&detail), stroke(st));
     }
@@ -367,7 +403,33 @@ fn connector_svg(out: &mut String, c: &Connector, g: &ConnectorGeometry) {
         let first = p.y - (lines.len().max(1) as f64 - 1.0) * lh / 2.0 + st.font_size * 0.35;
         text_svg(out, &lines, p.x, first, Anchor::Middle, st, "");
     }
+    end_labels_svg(out, c, g);
     out.push_str("  </g>\n");
+}
+
+/// The labels beside each end (`start_label`, `end_label`): a little outside the line, past the
+/// head, on a white box like the main label, one line each.
+fn end_labels_svg(out: &mut String, c: &Connector, g: &ConnectorGeometry) {
+    let st = &c.style;
+    for (text, at_start) in [(&c.start_label, true), (&c.end_label, false)] {
+        let text = text.trim();
+        if text.is_empty() {
+            continue;
+        }
+        let Some(p) = vizcraft_diagram::arrows::end_label_anchor(&g.polyline, at_start, st.font_size, st.line_width) else { continue };
+        let line = text.lines().next().unwrap_or_default().to_string();
+        let bw = line.chars().count() as f64 * st.font_size * CHAR_WIDTH + st.font_size * 0.6;
+        let bh = st.font_size * LINE_HEIGHT + st.font_size * 0.3;
+        let _ = writeln!(
+            out,
+            "    <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" fill=\"#ffffff\"/>",
+            num(p.x - bw / 2.0),
+            num(p.y - bh / 2.0),
+            num(bw),
+            num(bh)
+        );
+        text_svg(out, &[line], p.x, p.y + st.font_size * 0.35, Anchor::Middle, st, "");
+    }
 }
 
 /// Where text lines hang from their x position.
@@ -909,5 +971,76 @@ mod style_tests {
     fn an_empty_infinite_page_exports_a_letter_frame() {
         let svg = String::from_utf8_lossy(&export_page(&Document::new(), 0).unwrap_or_default()).into_owned();
         assert!(svg.contains(r#"width="1100" height="850" viewBox="0 0 1100 850""#), "{svg}");
+    }
+}
+
+#[cfg(test)]
+mod glyph_tests {
+    use vizcraft_diagram::{End, Freeform, Point, ShapeKind};
+
+    use super::*;
+
+    fn page_svg_of(doc: &Document) -> String {
+        let svg = export_page(doc, 0).map(|b| String::from_utf8_lossy(&b).into_owned()).unwrap_or_default();
+        let start = svg.find("  <g id=").unwrap_or(0);
+        svg.get(start..).unwrap_or_default().trim_end().to_string()
+    }
+
+    fn fixed() -> Document {
+        let mut doc = Document::new();
+        if let Some(p) = doc.page_mut() {
+            p.board = vizcraft_diagram::Board::Fixed;
+            p.width = 300.0;
+            p.height = 200.0;
+        }
+        doc
+    }
+
+    const HOLE_GOLDEN: &str = r##"<g id="ring">
+    <path d="M20 20 L120 20 L120 100 L20 100 Z M50 40 L90 40 L90 80 L50 80 Z" fill="#ffffff" fill-rule="evenodd" stroke="#3a4a5c" stroke-width="1.5"/>
+    <path d="M20 30 L120 30" fill="none" stroke="#3a4a5c" stroke-width="1.5"/>
+  </g>
+  <g id="line">
+    <path d="M150 20 L210 60 L150 60" fill="none" stroke="#3a4a5c" stroke-width="1.5"/>
+  </g>
+</svg>"##;
+
+    #[test]
+    fn golden_freeform_with_a_hole_fills_even_odd_and_strokes_its_lines_unfilled() {
+        let mut doc = fixed();
+        let p = |x: f64, y: f64| Point::new(x, y);
+        let mut path = Path::polygon(&[p(0.0, 0.0), p(100.0, 0.0), p(100.0, 80.0), p(0.0, 80.0)]);
+        path.els.extend(Path::polygon(&[p(30.0, 20.0), p(70.0, 20.0), p(70.0, 60.0), p(30.0, 60.0)]).els);
+        path.els.extend(Path::polyline(&[p(0.0, 10.0), p(100.0, 10.0)]).els);
+        let mut s = Shape::new("ring", ShapeKind::Freeform, 20.0, 20.0, 100.0, 80.0);
+        s.path = Some(Freeform::new(&path, true));
+        s.sanitize();
+        // An open freeform: lines only, no fill.
+        let mut line = Shape::new("line", ShapeKind::Freeform, 150.0, 20.0, 60.0, 40.0);
+        line.path = Some(Freeform::new(&Path::polyline(&[p(0.0, 0.0), p(60.0, 40.0), p(0.0, 40.0)]), false));
+        line.sanitize();
+        if let Some(pg) = doc.page_mut() {
+            pg.shapes.extend([s, line]);
+        }
+        let body = page_svg_of(&doc);
+        assert_eq!(body.trim_start(), HOLE_GOLDEN, "{body}");
+        assert!(body.contains("fill-rule=\"evenodd\""));
+    }
+
+    #[test]
+    fn end_labels_are_written_beside_each_end_on_a_white_box() {
+        let mut doc = fixed();
+        let mut c = Connector::new("c", End::free(Point::new(20.0, 100.0)), End::free(Point::new(260.0, 100.0)));
+        c.route = vizcraft_diagram::Route::Straight;
+        c.start_label = "1".into();
+        c.end_label = "N & M".into();
+        if let Some(pg) = doc.page_mut() {
+            pg.connectors.push(c);
+        }
+        let body = page_svg_of(&doc);
+        assert!(body.contains(">1</tspan>") && body.contains(">N &amp; M</tspan>"), "{body}");
+        assert_eq!(body.matches("fill=\"#ffffff\"/>").count(), 2, "one white box per end label: {body}");
+        // Beside the line, not on it: both labels sit above or below y = 100.
+        assert!(!body.contains("y=\"104.2\""), "{body}");
     }
 }

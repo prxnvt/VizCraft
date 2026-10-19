@@ -336,11 +336,12 @@ impl<'de> Deserialize<'de> for Recolor {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Freeform {
-    /// The commands, at most [`Freeform::MAX_ELS`]. Every subpath of a closed outline ends with a
-    /// `Close`; an open one has none.
+    /// The commands, at most [`Freeform::MAX_ELS`]. Subpaths may mix: one that ends with a
+    /// `Close` is filled (even-odd, so a ring inside another is a hole), one without is a line
+    /// drawn over the fill. A path glyph's detail lines are such open subpaths.
     #[serde(deserialize_with = "lenient_vec")]
     pub els: Vec<PathEl>,
-    /// Whether the outline is closed (filled). An open path draws its line only.
+    /// Whether any subpath is closed (filled). An outline with none draws its lines only.
     #[serde(deserialize_with = "lenient")]
     pub closed: bool,
 }
@@ -357,10 +358,13 @@ impl Freeform {
     }
 
     /// Cap the command count, keep every point finite and in range, start every subpath with a
-    /// `MoveTo`, and make the `Close` commands agree with `closed`: a closed outline closes every
-    /// subpath, an open one closes none.
+    /// `MoveTo`, and make the `Close` commands agree with `closed`: an open outline closes no
+    /// subpath; a closed one keeps the `Close` commands it has, or closes every subpath when it
+    /// has none (files from before subpaths could mix). `closed` then says whether any subpath
+    /// is closed.
     pub fn sanitize(&mut self) {
         self.els.truncate(Self::MAX_ELS);
+        let close_all = self.closed && !self.els.iter().any(|e| matches!(e, PathEl::Close));
         let fix = |p: Point| Point::new(finite(p.x, 0.0).clamp(-MAX_EXTENT, MAX_EXTENT), finite(p.y, 0.0).clamp(-MAX_EXTENT, MAX_EXTENT));
         let mut out: Vec<PathEl> = Vec::with_capacity(self.els.len());
         // Whether a subpath is open (has a pen position) and has drawn anything.
@@ -369,7 +373,7 @@ impl Freeform {
         for el in &self.els {
             match *el {
                 PathEl::MoveTo(p) => {
-                    if self.closed && open && drawn {
+                    if close_all && open && drawn {
                         out.push(PathEl::Close);
                     }
                     // A MoveTo right after another replaces it: an empty subpath draws nothing.
@@ -404,10 +408,15 @@ impl Freeform {
         }
         if open && !drawn {
             out.pop();
-        } else if self.closed && open && drawn {
+        } else if close_all && open && drawn {
             out.push(PathEl::Close);
         }
         out.truncate(Self::MAX_ELS);
+        if out.iter().any(|e| matches!(e, PathEl::Close)) {
+            self.closed = true;
+        } else if out.iter().any(|e| matches!(e, PathEl::LineTo(_) | PathEl::CubicTo(..))) {
+            self.closed = false;
+        }
         // Cutting at the cap may leave a dangling MoveTo or an unclosed subpath; neither breaks
         // drawing, which treats a trailing MoveTo as nothing.
         self.els = out;
@@ -431,5 +440,37 @@ impl Freeform {
         let sy = if b.height() > 1e-9 { h / b.height() } else { 1.0 };
         let fit = Transform::translate(-b.x0, -b.y0).then(&Transform::scale(sx, sy));
         path.transformed(&fit)
+    }
+}
+
+#[cfg(test)]
+mod freeform_tests {
+    use super::*;
+
+    fn p(x: f64, y: f64) -> Point {
+        Point::new(x, y)
+    }
+
+    #[test]
+    fn closed_and_open_subpaths_mix_and_keep_their_closes() {
+        let mut path = Path::polygon(&[p(0.0, 0.0), p(10.0, 0.0), p(10.0, 10.0)]);
+        path.els.extend(Path::polyline(&[p(2.0, 5.0), p(8.0, 5.0)]).els);
+        let f = Freeform::new(&path, true);
+        assert!(f.closed);
+        assert_eq!(f.els.iter().filter(|e| matches!(e, PathEl::Close)).count(), 1, "the detail line stays open");
+        let lines = f.path().flatten(0.5);
+        assert_eq!(lines.iter().map(|l| l.closed).collect::<Vec<_>>(), [true, false]);
+        // An open outline closes nothing, and a closed one with no Close (an older file) closes all.
+        assert!(!Freeform::new(&path, false).els.iter().any(|e| matches!(e, PathEl::Close)));
+        let old = Freeform::new(&Path::polyline(&[p(0.0, 0.0), p(5.0, 0.0), p(5.0, 5.0)]), true);
+        assert_eq!((old.closed, old.els.last()), (true, Some(&PathEl::Close)));
+        // A closed flag over subpaths that are all open is corrected.
+        let mut lie = Freeform { els: Path::polyline(&[p(0.0, 0.0), p(5.0, 5.0)]).els, closed: true };
+        lie.els.push(PathEl::MoveTo(p(9.0, 9.0)));
+        lie.els.push(PathEl::LineTo(p(9.0, 1.0)));
+        lie.els.push(PathEl::Close);
+        lie.els.splice(0..0, [PathEl::MoveTo(p(1.0, 1.0)), PathEl::LineTo(p(2.0, 2.0))]);
+        lie.sanitize();
+        assert!(lie.closed);
     }
 }

@@ -5,7 +5,7 @@
 //! A kind is a recipe: [`ConnectorKind::apply`] copies its values onto a connector and records
 //! its id in `Connector.kind`; the geometry of the ends lives in `vizcraft-diagram`.
 
-use std::sync::OnceLock;
+use std::sync::{Mutex, PoisonError};
 
 use vizcraft_diagram::{Arrow, Color, Connector, Dash, Route, Style};
 use vizcraft_notation::{Catalog, ConnectorType};
@@ -90,21 +90,51 @@ fn kind_from(t: &ConnectorType) -> ConnectorKind {
 }
 
 /// One kind per connector type of every pack, in catalog order. The strings are leaked once so
-/// the API can hand out `&'static` data; this runs once per process.
+/// the API can hand out `&'static` data; this runs once per catalog (see [`built`]), and the
+/// catalog is replaced a bounded number of times, so the leak is bounded.
 fn build(cat: &Catalog) -> &'static [ConnectorKind] {
     let kinds: Vec<ConnectorKind> = cat.packs().iter().flat_map(|p| p.connector_types.iter()).map(kind_from).collect();
     kinds.leak()
 }
 
+/// The kinds and their search index, with the catalog stamp they were built from.
+struct Built {
+    stamp: usize,
+    kinds: &'static [ConnectorKind],
+    index: &'static [Entry],
+}
+
+/// The kinds of the current catalog, rebuilt when the catalog changes (a pack was loaded) the
+/// way the stencil sets are, so a pack loaded at run time draws its kinds.
+fn built() -> (&'static [ConnectorKind], &'static [Entry]) {
+    static BUILT: Mutex<Option<Built>> = Mutex::new(None);
+    let stamp = crate::catalog_stamp();
+    let mut slot = BUILT.lock().unwrap_or_else(PoisonError::into_inner);
+    match &*slot {
+        Some(b) if b.stamp == stamp => (b.kinds, b.index),
+        _ => {
+            let kinds = build(vizcraft_notation::catalog());
+            let index: &'static [Entry] = kinds.iter().map(entry).collect::<Vec<_>>().leak();
+            *slot = Some(Built { stamp, kinds, index });
+            (kinds, index)
+        }
+    }
+}
+
 /// Every connector kind, in display order.
 pub fn connector_kinds() -> &'static [ConnectorKind] {
-    static KINDS: OnceLock<&'static [ConnectorKind]> = OnceLock::new();
-    KINDS.get_or_init(|| build(vizcraft_notation::catalog()))
+    built().0
 }
 
 /// The kind with this id (`basic.arrow`).
 pub fn connector_kind(id: &str) -> Option<&'static ConnectorKind> {
     connector_kinds().iter().find(|k| k.id == id)
+}
+
+/// The kind a relationship type is drawn with under rendering variant `variant` (empty for the
+/// default; see `Catalog::connector_type_for_relationship_in`).
+pub fn connector_kind_for_relationship(rel_type: &str, variant: &str) -> Option<&'static ConnectorKind> {
+    vizcraft_notation::catalog().connector_type_for_relationship_in(rel_type, variant).and_then(connector_kind)
 }
 
 /// How well a kind matches, best first.
@@ -142,8 +172,7 @@ fn entry(k: &'static ConnectorKind) -> Entry {
 }
 
 fn index() -> &'static [Entry] {
-    static INDEX: OnceLock<Vec<Entry>> = OnceLock::new();
-    INDEX.get_or_init(|| connector_kinds().iter().map(entry).collect())
+    built().1
 }
 
 fn word_tier(e: &Entry, w: &str) -> Option<Tier> {
