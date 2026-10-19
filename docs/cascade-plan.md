@@ -52,8 +52,8 @@ worktree. Report in at most 15 lines: commits, command ids added, doc rows to ch
 | 3 Workspace (ROADMAP 4B) | 1, 2A pages, 2B Shape Data pane, 2C (conformance profile and `Issue.fixes`, connector kinds, `describe`, disk packs) | 4 |
 | 4 Visio extras | 1, 2A, 2B, 2C board frame (`b4-fixes`); inside the block `b4-pictures` needs `b4-shapeops` merged | 3 |
 | 5 Generators and glyphs (ROADMAP 5A, 5B) | 1, 3 dock, 4 table reader (`b4-datagfx`) | late 3 and 4 |
-| 6 Templates and the engineering workspace (proposed) | 5 (path glyphs, variants, end labels, layout primitives, patterns, re-import) | 7 once the UML and C4 packs land |
-| 7 First deep packs (ROADMAP 6) | 5 (glyphs for drawing, patterns and codegen for generator pieces); 6 if approved (C4, ER and UML move there) | 8 once a track's first pack lands |
+| 6 Templates and the engineering workspace | 5 (path glyphs, variants, end labels, layout primitives, patterns, re-import) | 7 once the UML and C4 packs land |
+| 7 First deep packs (ROADMAP 6) | 5 (glyphs for drawing, patterns and codegen for generator pieces); 6 (the enterprise track builds on the C4, ER, UML and DFD packs) | 8 once a track's first pack lands |
 | 8 Second-wave packs and interop (ROADMAP 7 plus new standards) | 7 per track | 9 |
 | 9 General pack and broad interop (ROADMAP 8) | 2B containers, 5 patterns | 8 |
 
@@ -1332,9 +1332,9 @@ their R lanes and `toTable` returns the same rows; that a parent-id table builds
 reparented element syncs back; that an ambiguous model refuses; a kittest test for Sync;
 `hostile_params_never_panic` green with junk tables; `cargo xtask ci` green.
 
-## Block 6: templates and the engineering workspace (proposed, not approved)
+## Block 6: templates and the engineering workspace (approved, briefs after Block 5)
 
-Proposed on 2026-10-19 in
+Approved by the user on 2026-10-19 as proposed in
 [docs/research/swe-diagramming-ux.md](research/swe-diagramming-ux.md), which holds the UX
 review, the standards digest, the template catalogue, the branch table and the decisions the
 block needs. In one paragraph: a template system (pack viewpoint plus seeded skeleton, layout,
@@ -1345,9 +1345,10 @@ engineering packs: C4, UML (class, sequence, state, activity, use case, componen
 package), entity-relationship in four notations, generic cloud and network topology, and data
 flow with trust boundaries. Nine branches (`b6-templates`, `b6-analysis`, `b6-uml`,
 `b6-sequence`, `b6-er`, `b6-topology`, `b6-ux` in wave 1; `b6-c4`, `b6-code` in wave 2), ports
-8061 to 8069, after Block 5 is merged. If approved, C4, ER and UML leave Block 7's enterprise
-track and the cloud and network packs leave Block 8; the briefs are then written against the
-merged Block 5 code.
+8061 to 8069, after Block 5 is merged. With the approval, C4, ER and UML left Block 7's
+enterprise track and the cloud and network packs left Block 8 (the tables below are updated).
+The briefs are written against the merged Block 5 code, the way Block 5's were against Block 4,
+and only then; the research document's branch table is the scope until that point.
 
 ## Block 7: first deep packs (ROADMAP Cascade 6, three tracks)
 
@@ -1357,7 +1358,7 @@ fit an existing pack:
 | Track | Branches in order | Added from TODO |
 |---|---|---|
 | Systems | statechart and SCXML; statechart code targets; register, memory and packet maps; timing; embedded patterns | none |
-| Enterprise | C4; ER with DDL; UML; BPMN; DFD and threat model; API and events; enterprise patterns | UML pack covers all 14 UML 2.5 diagrams (object, package, profile, composite structure, communication, interaction overview added); ER draws in IE, Chen, Barker and IDEF1X; DFD draws in Yourdon and DeMarco and Gane and Sarson, with Ward and Mellor control flows; Flowchart pack completed to the ISO 5807 symbol set |
+| Enterprise | DDL export and import over the Block 6 ER pack; BPMN; STRIDE threat lists and pytm over the Block 6 DFD pack; API and events; UML code skeletons and the remaining UML diagrams (communication, interaction overview, timing, composite structure, profile) over the Block 6 UML pack; enterprise patterns | DFD gains Ward and Mellor control flows; Flowchart pack completed to the ISO 5807 symbol set. C4, ER in four notations, UML (class, sequence, state, activity, use case, component, deployment, package) and DFD drawing moved to Block 6 on 2026-10-19 |
 | Industrial | P&ID and PFD; industrial lists; loops and I/O; cause-and-effect and logic; SFC and control modules; industrial patterns | Ladder Diagram and Function Block Diagram packs (IEC 61131-3) beside SFC, emitting Structured Text |
 
 ## Block 8: second-wave packs and interop (ROADMAP Cascade 7 plus new standards)
@@ -1368,7 +1369,7 @@ ROADMAP 7 scope, plus the standards in TODO Part 2 that no cascade covered:
 |---|---|
 | Systems | SysML (block definition, internal block, parametric, requirements; shares the component and port model); AADL graphical notation; OPM with generated OPL sentences; FMC; SDL (on the statechart model); Petri nets with a token simulator |
 | Enterprise | DMN (decision requirements diagrams, decision tables, a FEEL subset that evaluates); CMMN; EPC with alternation and connector rules; IDEF0 (ICOM boxes, decomposition) and IDEF3, with SADT as an IDEF0 variant; value stream map with lead time totals; framework matrix view (Zachman-style interrogatives against perspectives, in our own wording) and UAF views over SysML |
-| Industrial and network | Generic cloud architecture pack (region, zone, network, subnet, security group, cluster containers, generic glyphs only); network topology with physical and logical views, VLANs and routing domains |
+| Industrial and network | Electrical and ISA-88/95 per ROADMAP 7. The generic cloud architecture pack and the network topology pack moved to Block 6 on 2026-10-19; this track adds reverse engineering into them (Kubernetes and Compose manifests, Terraform) |
 
 ## Block 9: General pack and broad interop (ROADMAP Cascade 8)
 
@@ -1395,7 +1396,7 @@ Excluded, with the reason, unless you say otherwise:
 | Translate, Thesaurus | External service; no suitable open thesaurus chosen | Spelling only (`b4-review`) |
 | 3-D rotation, bevel, reflection effects | Decorative, against the professional direction | Shadow, soft edges, glow (`b2-styles`) |
 | Share by email, present online, Account and Office themes | Service and account features | App light and dark theme (done) |
-| Cloud provider icon sets | AGENTS.md forbids vendor icons | Generic cloud architecture pack (Block 8) |
+| Cloud provider icon sets | AGENTS.md forbids vendor icons | Generic cloud architecture pack (Block 6) |
 
 Decisions needed before their block starts:
 

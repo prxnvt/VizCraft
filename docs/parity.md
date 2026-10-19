@@ -168,10 +168,18 @@ When a feature lands, change its State in the same commit as the code. States:
 | Flowchart | 1 | done | Flowchart stencil set in the Shapes pane and Insert tab |
 | Cross-functional flowchart | 8 | planned | Template on swimlanes from Cascade 2 |
 | Org chart | 8 | planned | Stencils and a CSV-driven template |
-| UML | 6 | planned | Class, sequence, state, activity, use case |
+| UML | B6 | planned | Class, sequence, state, activity, use case, component, deployment, package (B6); communication, interaction overview, timing, composite structure, profile (7); see docs/research/swe-diagramming-ux.md |
 | BPMN | 6 | planned | Events, activities, gateways, pools and lanes |
-| ER | 6 | planned | Entities and crow's foot relationships |
-| Network | 8 | planned | Generic devices drawn originally; no vendor brand icons |
+| ER | B6 | planned | One pack with Information Engineering, Chen, Barker and IDEF1X variants; typed column rows; DBML read and write; DDL in Block 7 |
+| Network | B6 | planned | Physical and logical views over one model, VLAN ids, zones; generic devices drawn originally; no vendor brand icons |
+| Cloud topology | B6 | planned | Vendor-neutral boundary groups with nesting rules, node glyphs, request and event lines, numbered step badges, a key; Mermaid architecture-beta read and write |
+| Data flow | B6 | planned | Yourdon and DeMarco and Gane and Sarson variants, trust boundaries; STRIDE lists in Block 7 |
+| Templates | B6 | planned | `Pack.templates` (viewpoint, seed script, layout, key, code forms), `template.list`, `template.new`, the New gallery with previews and Recent |
+| Engineering workspace preset | B6 | planned | `ui.preset {engineering or office}`: rulers, grid, page frame, pane and Home tab defaults |
+| Code pane | B6 | planned | The page as Mermaid, DBML or Structurizr DSL text in sync with the canvas; `code.read`, `code.write`; PlantUML and D2 writers |
+| Analysis | B6 | planned | `analyze.dependencies`, `cycles`, `unreachable`, `spof`, `metrics`, `path` and `model.diff`, with canvas highlights and an Analysis dock tab |
+| Key and title block | B6 | planned | Generated key shapes (`key.insert`, `key.refresh`) and a title block shape with fields |
+| Sequence editing | B6 | planned | Lifeline columns, message rows that reorder, fragments spanning lifelines; Mermaid sequence read and write |
 | Timeline | 8 | planned | Timeline shapes and template |
 
 ## Review
@@ -363,7 +371,7 @@ When a feature lands, change its State in the same commit as the code. States:
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| C4 | 6 | planned | Person, system, container, component, deployment; drill-down |
+| C4 | B6 | planned | Landscape, context, container, component, dynamic (numbered steps) and deployment viewpoints; implied relationships; drill-down levels; Structurizr DSL and Mermaid C4 read and write |
 | Structurizr DSL import and export | 6 | planned | |
 | Mermaid C4 import and Mermaid export | 6 | planned | |
 | Compose and Kubernetes skeletons | 6 | planned | From deployment views |

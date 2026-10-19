@@ -6,8 +6,8 @@ and systems engineers draw (UML, entity-relationship, C4, cloud and network topo
 and proposes a block of work, "Block 6: templates and the engineering workspace", that makes
 VizCraft the most direct way for an engineer to get a correct diagram. Recommendations marked
 "(synthesis)" are this report's design proposals; every other claim links its source. The
-sequencing proposal at the end changes Block 7's enterprise track and needs a decision before
-anything starts.*
+sequencing proposal at the end changes Block 7's enterprise track. Approved by the user on
+2026-10-19, sequencing change included; the Block 6 briefs are written once Block 5 is merged.*
 
 ## Summary
 
