@@ -1425,6 +1425,47 @@ dialog, Page Setup, the Variant menu, `variant.set`, `sheet.set`), and switching
 re-placing anything.
 
 
+## Block 6 and 6E wave 1 contracts
+
+State: briefs written on 2026-10-19 against the integration branch after it merged main at
+48d62ac (Block 5 done; `cargo xtask ci` green). Five backend branches, all Opus at medium effort,
+one brief each in [docs/briefs/b6-wave1/](briefs/b6-wave1/): each brief is a planning agent's
+draft written against the code, headed by the resolutions below that override it.
+
+| Branch (port) | Engine scope |
+|---|---|
+| `b6-analysis` (8062) | New `vizcraft-analysis` crate (graph view, Tarjan, reachability, cut points and bridges, paths, metrics, model diff, an `Analysis` trait for later packs); `analyze.*`, `model.diff`, `Session.analysis`; `vizcraft-cli analyze` |
+| `b6e-substrate` (8071) | `Model.nets`, `Connector.net`, junction shapes and splitting, the net pass in sync, `Session.nets`, line labels and markers in the exports, `View.module` and snap, `Shape.orient` with upright text; `net.*`, `wire.draw`, `wire.splice`, `wire.heal`, `shape.rotate {turns}`, `shape.mirror`, `page.setModule` |
+| `b6e-sheets` (8072) | `Page.sheet` with ISO 5457 and ASME Y14.1 geometry and zones, frames on the decoration page, the title block generator, zone, sheet and document fields, ISO 7200 properties, table compartments, the `sheet` pack, composed identifier parts and owner scopes, cross references; `sheet.*`, `doc.setProperty`, `doc.properties`, `xref.*` |
+| `b6e-builders` (8073) | `Glyph.builder`, `Glyph.params`, `Glyph.source`; ten builders in `crates/stencils/src/builders/`; `Shape.glyph`; rebuild before bind; provenance in `cargo xtask assets`; `glyph.*`; `vizcraft-cli glyph` |
+| `b6-templates` (8061) | `Pack.templates` as `Template`, `Document.standards`, the template pipeline with optional hooks, `template.list`, `template.new`, `template.addPage`, `template.standards`, `template.preview`; flowchart and basic templates; `vizcraft-cli new` |
+
+Contracts between the branches:
+
+| Contract | Owner | Used by |
+|---|---|---|
+| `Shape.orient: Orient {turns, mirror}` | substrate | builders (label anchor), sheets |
+| `View.module: Module` (`none`, `iso2_5mm`, `inch0_1`, custom page units; 100 units per inch), `snap::module_step(page)`, `page.setModule {page?, module}` | substrate | builders, templates (hook) |
+| `Model.nets`, `Session.nets: NetIndex` | substrate | analysis (later net analyses) |
+| `Document.standards {symbols, sheet}` | templates | sheets (`sheet.set` default) |
+| `sheet.set {sheet: "<standard>.<size>.<orientation>"}`, `sheet.presets`, `sheet.titleBlock {page?, kind?}` | sheets | templates (hooks) |
+| `title_block::Block` | sheets | `b6-topology` key generator (wave 2) |
+| `key.insert {page?}` | `b6-topology` (wave 2) | templates (hook, skipped while absent) |
+
+Shared files take one hunk per branch, merged by this session: `notation/src/schema.rs` (module
+and connector net fields; glyph builder fields; document properties, relationship kind and
+compartment query; templates), `notation/src/bind.rs` (the net pass first in `sync`, the port
+lookup, the sheet pass after step 8), `notation/src/loader.rs`, `rules.rs`, `model/src/types.rs`
+(nets, module), `model/src/identity.rs` (sheets), `diagram/src/model.rs` (connector net and
+marker, `Shape.orient`, `Shape.glyph`, `Page.sheet`, `Document.standards`), `engine/src/session.rs`
+(`nets`, the rebuild call, `is_transaction`, `analysis`), `engine/src/cmd/mod.rs`,
+`engine/src/tests.rs`, `formats/src/svg.rs`, `formats/src/native_tests.rs`, `cmd/model.rs`
+(`place_shape` module snap), the workspace and engine `Cargo.toml`, `xtask/src/layers.rs`,
+`apps/vizcraft-cli/src/main.rs`. Merge order: analysis, substrate, sheets, builders, templates;
+the full suite runs after every merge and snapshots are regenerated at the end of the wave. The
+wave's checkpoint for the user is a CLI and control-channel checklist, since nothing is drawn by
+the canvas yet.
+
 ## Block 7: first deep packs (ROADMAP Cascade 6, three tracks)
 
 One agent per track at a time, three to five concurrent. ROADMAP 6 scope, plus TODO items that
