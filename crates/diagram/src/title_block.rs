@@ -138,17 +138,21 @@ fn mm(v: f64) -> f64 {
     if v.is_finite() { v.clamp(0.0, 10_000.0) } else { 0.0 }
 }
 
-/// Gap between a cell's rules and its text, in millimetres. The text shapes have no margins of
-/// their own (the default four world units would shift text by a different amount at every
-/// sheet scale), so this is the only inset.
+/// Gap between a cell's rules and its text box, in millimetres. The text shapes have no default
+/// margins (four world units would shift text by a different amount at every sheet scale); a
+/// left-aligned text adds [`INSET_MM`] of its own margin on top, so it never sits against a rule.
 pub const PAD_MM: f64 = 1.0;
+
+/// Extra left margin of a left-aligned cell text, in millimetres.
+pub const INSET_MM: f64 = 1.0;
 
 /// Gap between a caption's top and its cell's top rule, in millimetres.
 const CAPTION_TOP_MM: f64 = 0.4;
 
-fn text_style(size_mm: f64, bold: bool, align: HAlign, v: VAlign) -> Style {
+fn text_style(size_mm: f64, bold: bool, align: HAlign, v: VAlign, k: f64) -> Style {
+    let left = if align == HAlign::Left { INSET_MM * k } else { 0.0 };
     Style {
-        text_margins: crate::style_fields::Margins { left: 0.0, top: 0.0, right: 0.0, bottom: 0.0 },
+        text_margins: crate::style_fields::Margins { left, top: 0.0, right: 0.0, bottom: 0.0 },
         fill: Color::TRANSPARENT,
         line: Color::TRANSPARENT,
         line_width: 0.0,
@@ -187,7 +191,7 @@ pub fn shapes(block: &Block, origin: Point, units_per_mm: f64, id: impl Fn(&str)
             push(
                 &format!("label{i}"),
                 at(s.x + pad, s.y + CAPTION_TOP_MM, (s.w - 2.0 * pad).max(1.0), CAPTION_MM),
-                text_style(1.8, false, HAlign::Left, VAlign::Top),
+                text_style(1.8, false, HAlign::Left, VAlign::Top, k),
                 &s.label,
             );
         }
@@ -197,7 +201,7 @@ pub fn shapes(block: &Block, origin: Point, units_per_mm: f64, id: impl Fn(&str)
         push(
             &format!("text{i}"),
             at(s.x + pad, s.y + top, (s.w - 2.0 * pad).max(1.0), (s.h - top - CAPTION_TOP_MM).max(1.0)),
-            text_style(s.size, s.bold, HAlign::Left, VAlign::Middle),
+            text_style(s.size, s.bold, HAlign::Left, VAlign::Middle, k),
             &s.text,
         );
     }
@@ -207,6 +211,16 @@ pub fn shapes(block: &Block, origin: Point, units_per_mm: f64, id: impl Fn(&str)
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn left_aligned_text_keeps_a_clear_inset_from_its_cells_rule() {
+        let k = 4.0;
+        let shapes = shapes(&iso7200(), Point::new(0.0, 0.0), k, |role| Some(role.to_string()));
+        let (cell, text) = (shapes.iter().find(|s| s.id == "cell0").unwrap(), shapes.iter().find(|s| s.id == "text0").unwrap());
+        // The text starts (box plus margin) at least the pad and the inset inside the rule.
+        let start = text.x + text.style.text_margins.left - cell.x;
+        assert!((start - (PAD_MM + INSET_MM) * k).abs() < 1e-9, "{start}");
+    }
 
     #[test]
     fn layouts_stay_inside_their_blocks_and_every_slot_is_a_field() {
