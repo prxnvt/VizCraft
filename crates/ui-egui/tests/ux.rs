@@ -660,3 +660,156 @@ fn model_tree_lists_relationships_under_an_open_element_and_a_click_selects_the_
     let r = run(&mut h, "ui.tree", json!({"mode": "context"}));
     assert!(!r["relationships"].as_array().unwrap().is_empty(), "{r}");
 }
+
+fn attributes_of(h: &Harness<'_, CraftApp>, el: &str) -> Vec<String> {
+    h.state()
+        .session
+        .doc
+        .model
+        .element(el)
+        .and_then(|e| e.prop("attributes"))
+        .map(|v| v.display().lines().map(str::to_string).collect())
+        .unwrap_or_default()
+}
+
+fn open_inspector_on(h: &mut Harness<'_, CraftApp>, shape: &str) {
+    run(h, "ui.pane", json!({"name": "shapeData", "value": true}));
+    run(h, "ui.inspector", json!({"tab": "properties"}));
+    select(h, &[shape]);
+    h.run_steps(3);
+}
+
+#[test]
+fn members_add_move_and_delete_are_one_undo_step_each() {
+    use egui_kittest::kittest::Queryable;
+    let mut h = from_template("uml.classDiagram");
+    let class = shapes_of(&h, "uml.Class")[0].clone();
+    let el = element_of(&h, &class);
+    run(&mut h, "uml.addMember", json!({"element": el, "list": "attributes", "text": "+a: int"}));
+    run(&mut h, "uml.addMember", json!({"element": el, "list": "attributes", "text": "+b: int"}));
+    open_inspector_on(&mut h, &class);
+    let r = vizcraft_ui_egui::panes::inspector_fields(h.state());
+    let members = &r["members"];
+    assert_eq!(members["element"], json!(el), "{members}");
+    assert!(members["lists"]["attributes"].as_array().unwrap().len() >= 3);
+    let rows = attributes_of(&h, &el);
+    let n = rows.len();
+    // Move the last row up: the Up button of the last row.
+    let ups: Vec<_> = h.query_all_by_label("Move up").collect();
+    assert!(ups.len() >= n, "an Up button per row");
+    ups[1].click();
+    h.run_steps(3);
+    assert_eq!(h.state().session.undo_label(), Some("Move Member"));
+    let moved = attributes_of(&h, &el);
+    assert_eq!(moved[0], rows[1], "the second row moved up");
+    // Delete the first row.
+    h.query_all_by_label("Remove member").next().unwrap().click();
+    h.run_steps(3);
+    assert_eq!(h.state().session.undo_label(), Some("Remove Member"));
+    assert_eq!(attributes_of(&h, &el).len(), n - 1);
+    // Edit a row's text: focus its field, type, Enter.
+    let first = attributes_of(&h, &el)[0].clone();
+    let body = first.trim_start_matches(['+', '-', '#', '~']).to_string();
+    let field = h.get_all_by_value(body.as_str()).next().expect("the row's field");
+    field.focus();
+    h.get_all_by_value(body.as_str()).next().unwrap().type_text("2");
+    h.run_steps(2);
+    key(&mut h, Key::Enter);
+    assert_eq!(h.state().session.undo_label(), Some("Set Member"));
+    assert!(attributes_of(&h, &el)[0].ends_with('2'), "{:?}", attributes_of(&h, &el));
+}
+
+#[test]
+fn columns_grid_adds_a_column_toggles_flags_and_deletes() {
+    use egui_kittest::kittest::Queryable;
+    let mut h = from_template("er.schema");
+    let table = shapes_of(&h, "er.Entity")[0].clone();
+    let el = element_of(&h, &table);
+    open_inspector_on(&mut h, &table);
+    let r = vizcraft_ui_egui::panes::inspector_fields(h.state());
+    let cols = r["columns"]["rows"].as_array().unwrap().clone();
+    assert!(cols.len() >= 2, "{r}");
+    assert_eq!(r["columns"]["element"], json!(el));
+    // Drawing order: key rows first.
+    assert_eq!(cols[0]["pk"], true);
+    // Add through the field: it follows the two cells (name, type) of every column.
+    let n = cols.len();
+    {
+        let fields: Vec<_> = h.query_all_by_role(egui::accesskit::Role::TextInput).collect();
+        let first = cols[0]["name"].as_str().unwrap();
+        let base = fields.iter().position(|f| f.value().as_deref() == Some(first)).expect("the first column's name cell");
+        fields.get(base + 2 * n).expect("the Add column field").focus();
+    }
+    h.run_steps(2);
+    h.event(Event::Text("loyalty".into()));
+    h.run_steps(2);
+    key(&mut h, Key::Enter);
+    let names: Vec<String> = vizcraft_ui_egui::panes::inspector_fields(h.state())["columns"]["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|c| c["name"].as_str().unwrap().to_string())
+        .collect();
+    assert!(names.contains(&"loyalty".to_string()), "{names:?}");
+    assert_eq!(h.state().session.undo_label(), Some("Add Column"));
+    // A flag checkbox toggles through element.setProperty.
+    select(&mut h, &[&table]);
+    let first_fk = vizcraft_ui_egui::panes::inspector_fields(h.state())["columns"]["rows"][0]["fk"].as_bool().unwrap();
+    let label = format!("FK of {}", cols[0]["name"].as_str().unwrap());
+    h.get_by_role_and_label(egui::accesskit::Role::CheckBox, &label).click();
+    h.run_steps(3);
+    let now = vizcraft_ui_egui::panes::inspector_fields(h.state())["columns"]["rows"][0]["fk"].as_bool().unwrap();
+    assert_eq!(now, !first_fk);
+    // Delete removes the column from the model.
+    let before = vizcraft_ui_egui::panes::inspector_fields(h.state())["columns"]["rows"].as_array().unwrap().len();
+    h.query_all_by_label_contains("Delete column").next().expect("a delete button").click();
+    h.run_steps(3);
+    select(&mut h, &[&table]);
+    let after = vizcraft_ui_egui::panes::inspector_fields(h.state())["columns"]["rows"].as_array().unwrap().len();
+    assert_eq!(after, before - 1);
+}
+
+#[test]
+fn relationship_ends_edit_navigability_then_fix_ends() {
+    use egui_kittest::kittest::Queryable;
+    let mut h = from_template("uml.classDiagram");
+    let (cid, rid) = {
+        let app = h.state();
+        let doc = &app.session.doc;
+        let c = doc
+            .page()
+            .unwrap()
+            .connectors
+            .iter()
+            .find(|c| c.relationship.as_deref().and_then(|r| doc.model.relationship(r)).is_some_and(|r| r.type_id == "uml.Association"))
+            .unwrap();
+        (c.id.clone(), c.relationship.clone().unwrap())
+    };
+    run(&mut h, "ui.pane", json!({"name": "shapeData", "value": true}));
+    select(&mut h, &[&cid]);
+    h.run_steps(3);
+    let r = vizcraft_ui_egui::panes::inspector_fields(h.state());
+    assert_eq!(r["relationship"]["id"], json!(rid), "{r}");
+    let ends = &r["relationship"]["ends"];
+    assert!(ends["start"].as_array().unwrap().iter().any(|k| k == "sourceMultiplicity"), "{ends}");
+    assert!(ends["end"].as_array().unwrap().iter().any(|k| k == "targetRole"), "{ends}");
+    // The section shows the end elements' names as headings.
+    let src = r["relationship"]["sourceName"].as_str().unwrap().to_string();
+    assert!(h.query_all_by_label(&src).next().is_some(), "{src} heads a column");
+    // A multiplicity that does not read is still written, with its reason shown under the field.
+    run(&mut h, "relationship.setProperty", json!({"id": rid, "key": "sourceMultiplicity", "value": "3..1"}));
+    h.run_steps(3);
+    assert!(h.query_by_label_contains("lower bound").is_some(), "the reason is shown");
+    run(&mut h, "relationship.setProperty", json!({"id": rid, "key": "sourceMultiplicity", "value": null}));
+    // Navigability no longer matches the drawn ends: the rule reports it and Fix ends repairs it.
+    run(&mut h, "relationship.setProperty", json!({"id": rid, "key": "navigability", "value": "both"}));
+    h.run_steps(3);
+    let r = vizcraft_ui_egui::panes::inspector_fields(h.state());
+    assert!(r["relationship"]["fixEnds"].is_string(), "an end-marker issue offers a fix: {r}");
+    h.get_by_label("Fix ends").click();
+    h.run_steps(3);
+    let r = vizcraft_ui_egui::panes::inspector_fields(h.state());
+    assert!(r["relationship"]["fixEnds"].is_null(), "the fix removed the issue: {r}");
+    let c = h.state().session.doc.page().unwrap().connector(&cid).unwrap().clone();
+    assert!(c.start_arrow != vizcraft_diagram::Arrow::None && c.end_arrow != vizcraft_diagram::Arrow::None, "both ends open now");
+}

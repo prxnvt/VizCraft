@@ -20,6 +20,8 @@ use vizcraft_diagram::data::{self, DataType};
 use vizcraft_engine::cmd::data::{RowView, rows_of};
 use vizcraft_engine::cmd::inspector::{check, describe};
 
+mod columns;
+mod members;
 mod relationship;
 
 use super::{PaneSpec, Side};
@@ -255,6 +257,9 @@ fn properties_tab(app: &CraftApp, ui: &mut Ui, t: &Tokens, st: &InspectorState, 
         _ => None,
     };
     if let Some((id, net)) = &extra.connector {
+        if let Some(rel) = &extra.relationship {
+            section(ui, "relationship", "Relationship", false, |ui| relationship::section(app, ui, t, rel, id, runs));
+        }
         section(ui, "connector-net", "Net", false, |ui| net_section(ui, t, id, net.as_ref(), runs));
     } else if ids.is_empty() {
         ui.label(RichText::new("Select a shape to inspect it.").color(t.text_dim));
@@ -271,6 +276,17 @@ fn properties_tab(app: &CraftApp, ui: &mut Ui, t: &Tokens, st: &InspectorState, 
         // A symbol's parameters are what an engineer edits most, so they come first.
         if let Some(sym) = &extra.symbol {
             section(ui, "symbol", "Symbol", false, |ui| symbol_section(ui, t, d, sym, runs));
+        }
+        // The rows a person edits most (a class's members, a table's columns) come before the
+        // long property list.
+        let type_id = d["element"]["type"].as_str().unwrap_or_default();
+        if !members::lists_of(type_id).is_empty() {
+            section(ui, "members", "Members", false, |ui| members::section(ui, t, d, runs));
+        }
+        if columns::has_table(type_id)
+            && let Some(el) = d["element"]["id"].as_str()
+        {
+            section(ui, "columns", "Columns", false, |ui| columns::section(app, ui, t, el, type_id, runs));
         }
         section(ui, "properties", "Properties", false, |ui| properties(app, ui, t, d, ids, rows, expert, runs));
         if d["element"].is_object() {
@@ -648,6 +664,9 @@ pub struct Extra {
     pub doc_props: Value,
     /// `key.get` of the active page: its key's id, rows and excluded ids (id null without a key).
     pub key: Value,
+    /// `inspector.get` of the one selected connector (its relationship, type and end-tagged
+    /// properties), when one is selected.
+    pub relationship: Option<Value>,
 }
 
 impl Extra {
@@ -683,7 +702,8 @@ impl Extra {
             let net = Some(net["net"].clone()).filter(Value::is_object);
             (one, net)
         });
-        Extra { symbol, connector, doc_props, key }
+        let relationship = connector.as_ref().map(|(one, _)| read(format!("rel|{one}"), "inspector.get", json!({"id": one}))).filter(Value::is_object);
+        Extra { symbol, connector, doc_props, key, relationship }
     }
 }
 
@@ -740,7 +760,10 @@ pub fn inspect_fields(app: &CraftApp) -> Value {
         .zip(page)
         .and_then(|(s, p)| vizcraft_diagram::sheet::zone_of(p, vizcraft_diagram::geom::Point::new(s.x + s.w / 2.0, s.y + s.h / 2.0)))
         .map(|z| z.to_string());
-    json!({"symbol": symbol, "sheet": sheet, "zone": zone})
+    json!({
+        "symbol": symbol, "sheet": sheet, "zone": zone,
+        "relationship": relationship::inspect(app), "members": members::inspect(app), "columns": columns::inspect(app),
+    })
 }
 
 /// The selected connector's net: its number and name edited in place through `net.set`, its
