@@ -136,8 +136,9 @@ Returns one JSON object with everything a script needs to check its work without
 | `tree` | the Model Tree pane: `mode` (`model` or `context`), `branch`, `expanded`, `collapsed`, `selected` (set with `ui.tree`) |
 | `palette` | the Palette pane: its query, groups and the rows shown (set with `ui.palette`) |
 | `inspector` | the Inspector pane: `open`, `mode` (`standard` or `expert`), `tab` (`properties` or `format`), and `fields` with the `symbol`, `sheet` and `zone` groups when shown (set with `ui.inspector`) |
-| `dock` | the bottom dock: `open`, `height`, `tab` (`problems`, `search`, `activity`, `tables`, `generate`, `nets`) and the `rows` the tab shows (set with `ui.dock`; `ui.search` fills the Search tab) |
+| `dock` | the bottom dock: `open`, `height`, `tab` (`problems`, `search`, `activity`, `tables`, `generate`, `nets`, `analysis`) and the `rows` the tab shows (set with `ui.dock`; `ui.search` fills the Search tab) |
 | `menu` | the open ribbon dropdown as `{"title", "rows": [{"label", "id", "enabled", "checked"}]}`, or `null` |
+| `analysis` | the stored analysis as `{kind, summary, count, sections, rev, stale, truncated, highlighted, ghosts, selected, options, last}` (`highlighted` and `ghosts` count what the active page draws), or `null` with no result (set with `ui.analysis`; `ui.compareFile` picks a file and runs `model.diff`) |
 | `nets` | the Nets dock tab: the nets listed and the selected one (set with `ui.nets`) |
 | `diagram` | a compact summary of the page and the canvas, see below |
 

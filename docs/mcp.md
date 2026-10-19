@@ -93,7 +93,7 @@ params. Agents use them through `command_run` and `command_batch`:
 | Prefix | What it does |
 |---|---|
 | `template.*` | List templates, start a document or page from one, set the project's symbol and sheet standards, preview a template as SVG text |
-| `analyze.*`, `model.diff` | Dependencies, cycles, unreachable elements, single points of failure, metrics and paths over the model; `analyze.result` reads the stored result back |
+| `analyze.*`, `model.diff` | Dependencies, cycles, unreachable elements, single points of failure, metrics and paths over the model; `analyze.result` reads the stored result back (with the whole kind detail under `detail` when its keys collide with the result's); `model.diff` also returns `ghosts`, how the compared file drew each removed item (`{id, page, pageName, item, kind, name, rect?, points?}`) |
 | `net.*`, `wire.*`, `page.setModule` | Nets with numbers, wires that join at junctions, splice and heal, the symbol grid |
 | `shape.rotate {turns}`, `shape.mirror` | Quarter turns and mirroring with text kept upright; the result names the turned shapes in `primary` and `shapes` |
 | `sheet.*`, `doc.setProperty`, `doc.properties`, `xref.*` | Drawing sheets with zones and title blocks, ISO 7200 document properties, cross references; `sheet.revise` with no description opens the Revise dialog in the app |
