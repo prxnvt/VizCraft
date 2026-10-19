@@ -514,6 +514,7 @@ fn tag_catalog() -> crate::Catalog {
         title: Some("Fields".into()),
         from_properties: vec!["flow".into(), "service".into(), "head".into(), "missing".into()],
         query: None,
+        ..CompartmentDecl::default()
     };
     let tag = ElementType {
         id: "test.Tag".into(),
