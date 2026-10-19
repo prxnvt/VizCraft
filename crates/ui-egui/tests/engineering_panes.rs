@@ -77,6 +77,22 @@ fn the_symbol_group_edits_a_contacts_poles_and_it_redraws() {
     assert_eq!(ports(&h).len(), 2);
 }
 
+#[test]
+fn selecting_a_plain_shape_leaves_no_symbol_error_in_the_status_bar() {
+    // Regression: the Inspector asked every selected shape for `glyph.params`, and the failed
+    // run on an ordinary shape put "not drawn by a glyph builder" in the status bar.
+    let mut doc = Document::new();
+    doc.page_mut().unwrap().shapes.push(Shape::new("r1", ShapeKind::Rectangle, 100.0, 100.0, 80.0, 40.0));
+    let mut h = harness_with(doc);
+    run(&mut h, "edit.select", json!({"ids": ["r1"]}));
+    h.run_steps(4);
+    // A failed run parks its error in `Session.status` until the next command shows it.
+    let pending = h.state().session.status.clone();
+    let shown = h.state().status_msg.as_ref().map(|(s, _)| s.clone()).unwrap_or_default();
+    assert!(!pending.contains("glyph builder") && !shown.contains("glyph builder"), "status bar: {pending} {shown}");
+    assert!(h.query_by_label("Drawn by the contact builder").is_none());
+}
+
 /// Two boxes joined by a connector that is a wire net's segment, the connector selected.
 fn wired() -> (H, String) {
     let mut doc = Document::new();

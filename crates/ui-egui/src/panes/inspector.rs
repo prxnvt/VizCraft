@@ -649,6 +649,12 @@ impl Extra {
             [one] if app.session.doc.page().is_some_and(|p| p.connector(one).is_some()) => Some(one.clone()),
             _ => None,
         };
+        // Only a shape a builder draws is asked for its parameters: `glyph.params` on any other
+        // shape fails, and a failed command run leaves its error in the status bar.
+        let symbol_id = match ids {
+            [one] if drawn_by_builder(app, one) => Some(one.clone()),
+            _ => None,
+        };
         let mut read = |key: String, command: &str, params: Value| -> Value {
             let id = egui::Id::new(("inspector-read", key));
             if let Some((r, v)) = ctx.data(|d| d.get_temp::<(u64, Value)>(id))
@@ -660,10 +666,7 @@ impl Extra {
             ctx.data_mut(|d| d.insert_temp(id, (rev, v.clone())));
             v
         };
-        let symbol = match ids {
-            [one] => Some(read(format!("glyph|{one}"), "glyph.params", json!({"id": one}))).filter(|v| v.is_object()),
-            _ => None,
-        };
+        let symbol = symbol_id.map(|one| read(format!("glyph|{one}"), "glyph.params", json!({"id": one}))).filter(|v| v.is_object());
         let doc_props = read("doc".into(), "doc.properties", json!({}));
         let connector = sel_connector.map(|one| {
             let net = read(format!("net|{one}"), "net.of", json!({"connector": one}));
@@ -672,6 +675,17 @@ impl Extra {
         });
         Extra { symbol, connector, doc_props }
     }
+}
+
+/// Whether a glyph builder draws shape `id` on the active page (its own `Shape.glyph`, or its
+/// element type's glyph), the same test `glyph.params` makes.
+fn drawn_by_builder(app: &CraftApp, id: &str) -> bool {
+    let doc = &app.session.doc;
+    let Some(page) = doc.page() else { return false };
+    let Some(s) = page.shape(id) else { return false };
+    let element = s.element.as_deref().and_then(|e| doc.model.element(e));
+    let variant = vizcraft_stencils::builders::sync::page_variant(page);
+    vizcraft_stencils::builders::apply::resolve(s, element, vizcraft_notation::catalog(), variant).is_some()
 }
 
 /// What `ui.inspect` reports under `inspector`: the symbol parameters of the one selected shape
