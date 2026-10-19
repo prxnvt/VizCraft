@@ -825,6 +825,10 @@ pub struct Connector {
     /// Marks repeated along the line that say what it carries (see [`crate::line_marks`]).
     #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
     pub marker: crate::line_marks::LineMarker,
+    /// The numbered step this connector shows in a badge (a request order on a topology), 1 to
+    /// [`crate::step_badge::MAX_STEP`]; 0 for none.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "is_default")]
+    pub step: u16,
 }
 
 impl Default for Connector {
@@ -848,6 +852,7 @@ impl Default for Connector {
             relationship: None,
             net: None,
             marker: crate::line_marks::LineMarker::None,
+            step: 0,
         }
     }
 }
@@ -875,6 +880,7 @@ impl Connector {
             *p = Point::new(finite(p.x, 0.0), finite(p.y, 0.0));
         }
         sanitize_ext(&mut self.ext);
+        self.step = self.step.min(crate::step_badge::MAX_STEP);
         if let Some(n) = &mut self.net {
             truncate(n, MAX_ID);
             if n.is_empty() {

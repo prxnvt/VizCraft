@@ -58,6 +58,7 @@ pub mod glyph_labels;
 mod nets;
 pub mod pictures;
 mod ports;
+mod step_badges;
 
 /// Space added around content that reaches past the page edge.
 pub const MARGIN: f64 = 20.0;
@@ -442,6 +443,7 @@ fn connector_svg(out: &mut String, c: &Connector, g: &ConnectorGeometry) {
         text_svg(out, &lines, p.x, first, Anchor::Middle, st, "");
     }
     end_labels_svg(out, c, g);
+    step_badges::badge_svg(out, c, g);
     out.push_str("  </g>\n");
 }
 

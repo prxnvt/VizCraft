@@ -94,9 +94,9 @@ fn quote(t: &str) -> String {
     format!("\"{}\"", cut(&one_line, MAX_LABEL))
 }
 
-/// Shapes that are drawn, not just grouping: everything but group shapes.
+/// Shapes that are drawn, not just grouping: everything but group shapes and generated keys.
 fn solid(page: &Page) -> impl Iterator<Item = &Shape> {
-    page.shapes.iter().filter(|s| !vizcraft_diagram::arrange::is_group(s))
+    page.shapes.iter().filter(|s| !vizcraft_diagram::arrange::is_group(s) && !vizcraft_diagram::key::is_key(s))
 }
 
 fn finite(r: &Rect) -> bool {
@@ -108,7 +108,7 @@ fn crossing(page: &Page, rule: &RuleDecl, out: &mut Vec<Issue>) {
         if out.len() >= MAX_PER_RULE {
             return;
         }
-        let Some(c) = page.connector(&id) else { continue };
+        let Some(c) = page.connector(&id).filter(|c| !vizcraft_diagram::key::is_key_connector(c)) else { continue };
         let what = format!("{} runs through a shape it is not glued to.", connector_label(c));
         let fix = Fix::new("Reroute around shapes", "connector.reroute", json!({"ids": [c.id], "avoid": true}));
         out.push(issue(rule, &what, page, vec![c.id.clone()]).with_fix(fix));
@@ -130,7 +130,7 @@ fn nearest_point(page: &Page, at: Point) -> Option<(&Shape, usize)> {
 }
 
 fn unglued(page: &Page, rule: &RuleDecl, out: &mut Vec<Issue>) {
-    for c in &page.connectors {
+    for c in page.connectors.iter().filter(|c| !vizcraft_diagram::key::is_key_connector(c)) {
         if out.len() >= MAX_PER_RULE {
             return;
         }

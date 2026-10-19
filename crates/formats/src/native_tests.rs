@@ -1395,3 +1395,24 @@ fn project_standards_round_trip_and_an_old_file_loads_with_none() {
     junk["document"]["standards"] = json!(7);
     assert_eq!(load(&serde_json::to_vec(&junk).unwrap()).unwrap().standards, Standards::default());
 }
+
+#[test]
+fn connector_steps_round_trip_and_old_files_load_with_none() {
+    let mut doc = Document::new();
+    let mut c = Connector::new("c1", End::free(vizcraft_diagram::Point::new(0.0, 0.0)), End::free(vizcraft_diagram::Point::new(50.0, 0.0)));
+    c.step = 4;
+    doc.pages[0].connectors.push(c);
+    doc.pages[0].connectors.push(Connector::new(
+        "c2",
+        End::free(vizcraft_diagram::Point::new(0.0, 9.0)),
+        End::free(vizcraft_diagram::Point::new(9.0, 9.0)),
+    ));
+    let bytes = save(&doc).unwrap();
+    let text = String::from_utf8(bytes.clone()).unwrap();
+    assert_eq!(text.matches("\"step\"").count(), 1, "only a set step is written");
+    let back = load(&bytes).unwrap();
+    assert_eq!(back.pages[0].connectors[0].step, 4);
+    assert_eq!(back.pages[0].connectors[1].step, 0);
+    let old = text.replace("\"step\": 4", "\"text\": \"\"");
+    assert_eq!(load(old.as_bytes()).unwrap().pages[0].connectors[0].step, 0);
+}

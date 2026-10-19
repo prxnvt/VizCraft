@@ -55,6 +55,9 @@ pub struct Master {
     /// For a builder glyph: the builder, its port ids and slots as drawn with the glyph's
     /// defaults (no shape overrides). Copied onto every shape drawn from this master.
     pub glyph: Option<GlyphState>,
+    /// For a container glyph: the border and heading its shapes are drawn with. A shape from
+    /// such a master is a real container (`Shape.container`, `behavior.container`).
+    pub container: Option<vizcraft_notation::nesting::ContainerLook>,
 }
 
 /// A named group of masters.
@@ -149,7 +152,15 @@ fn master_from_glyph(g: &Glyph) -> Master {
         path: None,
         ports: Vec::new(),
         glyph: None,
+        container: g.container.clone(),
     };
+    if let Some(look) = &g.container {
+        m.style.dash = look.dash();
+        m.style.corner_radius = look.corner();
+        if let Some(w) = look.line_width() {
+            m.style.line_width = w;
+        }
+    }
     if g.outline == vizcraft_notation::loader::PATH_OUTLINE {
         m.kind = ShapeKind::Freeform;
         // A path that does not read (a pack built without the loader) draws as the frame.
@@ -237,6 +248,11 @@ impl Master {
             g.params = kept.unwrap_or_default();
             g
         });
+        if let Some(look) = &self.container {
+            s.container = Some(look.container(s.container.as_ref()));
+            s.behavior.container = true;
+            vizcraft_diagram::container::refresh(s);
+        }
         s.sanitize();
     }
 }
@@ -348,7 +364,7 @@ mod tests {
                 &["jump", "page", "continue"],
             ),
         ];
-        let built: Vec<&Master> = sets().iter().filter(|s| s.id != "sheet").flat_map(|s| s.masters.iter()).collect();
+        let built: Vec<&Master> = sets().iter().filter(|s| s.id == "basic" || s.id == "flowchart").flat_map(|s| s.masters.iter()).collect();
         assert_eq!(built.len(), old.len());
         for (m, (id, label, category, kind, w, h, (fill, line), keywords)) in built.iter().zip(old) {
             let want = Master {
@@ -362,11 +378,12 @@ mod tests {
                 keywords,
                 path: None,
                 ports: Vec::new(),
+                container: None,
                 glyph: None,
             };
             assert_eq!(**m, want, "{id}");
         }
-        let heads: Vec<_> = sets().iter().filter(|s| s.id != "sheet").map(|s| (s.id, s.name, s.categories)).collect();
+        let heads: Vec<_> = sets().iter().filter(|s| s.id == "basic" || s.id == "flowchart").map(|s| (s.id, s.name, s.categories)).collect();
         assert_eq!(heads, vec![("basic", "Basic Shapes", &["Shapes"][..]), ("flowchart", "Flowchart", &["Steps", "Data", "Links"][..])]);
     }
 
