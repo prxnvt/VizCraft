@@ -85,6 +85,7 @@ fn finish(mut pack: Pack) -> Result<Pack, NotationError> {
     }
     problems.extend(glyph_paths(&pack));
     problems.extend(variants(&pack));
+    problems.extend(crate::template::check(&pack));
     if !problems.is_empty() {
         return Err(NotationError::Invalid(problems));
     }

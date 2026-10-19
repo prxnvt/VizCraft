@@ -1125,6 +1125,10 @@ pub struct Document {
     /// What each merging import brought in, by source (see [`crate::import_record`]).
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub imports: Vec<crate::import_record::ImportRecord>,
+    /// The project's symbol family and sheet preset (see [`crate::standards`]); empty for the
+    /// defaults.
+    #[serde(skip_serializing_if = "is_default")]
+    pub standards: crate::standards::Standards,
 }
 
 /// The on-disk form; turned into a [`Document`] by fixing up anything a file got wrong.
@@ -1164,6 +1168,8 @@ struct DocumentRepr {
     data_links: Vec<crate::data_graphic::DataLink>,
     #[serde(deserialize_with = "lenient_vec")]
     imports: Vec<crate::import_record::ImportRecord>,
+    #[serde(deserialize_with = "lenient")]
+    standards: crate::standards::Standards,
 }
 
 impl From<DocumentRepr> for Document {
@@ -1187,6 +1193,7 @@ impl From<DocumentRepr> for Document {
             data_graphics: r.data_graphics,
             data_links: r.data_links,
             imports: r.imports,
+            standards: r.standards,
         };
         // Pages only: the model is a separate section the caller sets afterwards, so checking view
         // references here would clear every one of them. The caller runs `sanitize` once the
@@ -1224,6 +1231,7 @@ impl Document {
             data_graphics: Vec::new(),
             data_links: Vec::new(),
             imports: Vec::new(),
+            standards: crate::standards::Standards::default(),
         }
     }
     /// Make the document safe to work on: at least one page, every number in range, a sane model,
@@ -1255,6 +1263,7 @@ impl Document {
         crate::master::sanitize_masters(&mut self.masters);
         crate::data_graphic::sanitize_doc(self);
         crate::import_record::sanitize(&mut self.imports);
+        self.standards.sanitize();
         self.sanitize_doc_refs();
     }
     /// Clear references that name nothing: a background that is not another background page, a
