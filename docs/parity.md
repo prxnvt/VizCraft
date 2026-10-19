@@ -52,8 +52,8 @@ When a feature lands, change its State in the same commit as the code. States:
 | Basic and Flowchart stencils | 1 | done | Original shapes defined in code (`vizcraft-stencils`), inserted with `shape.add` |
 | Connection points | 1 | done | Four per built-in shape; shown on hover, connectors drag from and glue to them |
 | Stencil search | 3 | done | Search field in the Palette ranks types, connector kinds and Drawing masters by exact name, word prefix, keyword and substring; `ui.shapesSearch` sets it by id |
-| Freeform shapes and boolean operations | B4 | done (B4) | `ShapeKind::Freeform` with a stored path (`Shape.path`, at most 4096 elements); Developer > Operations: `shapeop.union`, `combine`, `fragment`, `intersect`, `subtract`, `offset {distance}`, `join`, `trim`, each one undo step, results round-trip natively and through draw.io as `vizcraftPath`; the canvas fills holes and hit testing ignores them for now |
-| Locks, behaviour and protection | B4 | done (B4) | `shape.setLocks` (width, height, aspect, position, rotation, delete, select, text), `shape.setBehavior` (container, non-printing, hidden, no glue, no snap), `doc.protect {shapes?, backgrounds?}`; commands and canvas drags refuse what a lock forbids; the select and text locks are stored but not yet enforced by clicks and `shape.setText` |
+| Freeform shapes and boolean operations | B4 | done (B4) | `ShapeKind::Freeform` with a stored path (`Shape.path`, at most 4096 elements); Developer > Operations: `shapeop.union`, `combine`, `fragment`, `intersect`, `subtract`, `offset {distance}`, `join`, `trim`, each one undo step, results round-trip natively and through draw.io as `vizcraftPath`; holes draw and hit-test even-odd since B5 |
+| Locks, behaviour and protection | B4 | done (B4) | `shape.setLocks` (width, height, aspect, position, rotation, delete, select, text), `shape.setBehavior` (container, non-printing, hidden, no glue, no snap), `doc.protect {shapes?, backgrounds?}`; commands and canvas drags refuse what a lock forbids; the select lock keeps clicks and marquees off the shape (glue still reaches it) and the text lock is held by `shape.setText`, `text.*` and the in-place editor since B5 |
 | Shape names | B4 | done (B4) | `shape.rename {id, name}` and the Developer tab's Shape Name dialog |
 | Custom masters (Document Stencil) | B4 | done (B4) | `master.add`, `master.list`, `master.remove`, `master.insert`, `master.export` and `master.import` (a `.vizcraft-stencil` JSON file); the Document Stencil pane with previews |
 | Pictures | B4 | done (B4) | `picture.insert {path? or bytes?, mediaType?, x?, y?, w?, h?}` (PNG, JPEG, SVG; bytes stored once in `Document.images` by content hash), `picture.change`, `picture.crop` (fractions of the source), `picture.adjust {brightness?, contrast?, transparency?, recolor?}`, `picture.reset`, `picture.compress {maxDimension?, quality?}`; the canvas draws through a texture cache and SVG, PNG and PDF export write an `<image>` with a clip path and a colour-matrix filter; Insert > Illustrations > Picture, the Picture contextual tab (Adjust, Picture Styles, Crop tool `ui.tool crop`) |
@@ -67,7 +67,8 @@ When a feature lands, change its State in the same commit as the code. States:
 | Straight, orthogonal and curved connectors | 1 | done | `connector.add`, `connector.setRoute` |
 | Dynamic glue | 1 | done | `connector.glue` naming only a shape; routing is derived from shape geometry |
 | Point glue | 1 | done | `connector.glue` with a connection point index |
-| Arrowheads | 1 | done (13 ends in 2C) | `connector.setArrows`: none, triangle, open, diamond, circle, hollow triangle, hollow diamond, bar, open circle, crow's foot, crow's foot with bar, crow's foot with circle, bar with circle; one geometry table (`diagram::arrows`) draws them on the canvas, in SVG and in PDF |
+| Arrowheads | 1 | done (13 ends in 2C, `slash` in B5) | `connector.setArrows`: none, triangle, open, diamond, circle, hollow triangle, hollow diamond, bar, open circle, crow's foot, crow's foot with bar, crow's foot with circle, bar with circle; one geometry table (`diagram::arrows`) draws them on the canvas, in SVG and in PDF |
+| Connector end labels | B5 | done (B5) | `Connector.start_label` and `end_label` drawn beside each end by the canvas and the exports (Chen cardinalities, UML multiplicities); `connector.setEndLabels {ids?, start?, end?}`; Connector tab End Labels group; draw.io carries them as `vizcraftStartLabel` and `vizcraftEndLabel` |
 | Connector kinds | 2C | done | Named kinds declared by notation packs (`connectorTypes`: route, ends, dash, width, colour, jumps, optional relationship type); `connector.add {kind}`, `connector.setKind`, `connector.kinds`; a kind that names a relationship type wins over the connection table when binding; ribbon gallery in wave 2 |
 | Connector labels | 1 | done | `connector.setText` |
 | Waypoints | 2 | partly done (3) | Stored bends on connectors, set by routing and read from .drawio; dragging bends by hand is planned |
@@ -178,10 +179,10 @@ When a feature lands, change its State in the same commit as the code. States:
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| Comments | B4 | done (B4) | Threads anchored to a page or shape with replies; `comment.add`, `reply`, `edit`, `delete`, `list`, `show`, `next`, `previous`; the Comments pane and Review > Comments; markers on the canvas while the pane is open |
+| Comments | B4 | done (B4) | Threads anchored to a page or shape with replies; `comment.add`, `reply`, `edit`, `delete`, `list`, `show`, `next`, `previous`; the Comments pane and Review > Comments; markers on the canvas while the pane is open reveal their thread; comments on a deleted shape move to the page |
 | Hyperlinks and screen tips | B4 | done (B4) | `link.add {id, kind: url, file, page, shape or element, target, label?}` (Mod+Shift+K opens the Link dialog), `link.set`, `link.remove`, `link.follow` (switches page and selects, or asks the app to open a URL or file), `shape.setScreenTip`; link glyph on the canvas, Mod+click follows, tooltip after a hover |
 | Subprocesses | B4 | done (B4) | `process.createSubprocess {ids?, name?}` moves the selection to a new page behind one linked Predefined Process shape in one undo step; `process.linkSubprocess {id, page}`; Process > Subprocess |
-| Spelling | B4 | done (B4) | `proof.check`, `proof.suggest`, `proof.ignore`, `proof.setLanguage` over a SCOWL en-US word list (`assets/dictionaries`); fields, URLs, paths, capitals and words with digits are skipped; Review > Proofing opens the Spelling dialog, Review > Language sets the proofing language (`Shape.language`, `Document.language`, `none` skips); only `en-US` has a dictionary; F7 is not yet bound |
+| Spelling | B4 | done (B4) | `proof.check`, `proof.suggest`, `proof.ignore`, `proof.setLanguage` over a SCOWL en-US word list (`assets/dictionaries`); fields, URLs, paths, capitals and words with digits are skipped; Review > Proofing opens the Spelling dialog, Review > Language sets the proofing language (`Shape.language`, `Document.language`, `none` skips); only `en-US` has a dictionary; F7 opens the dialog |
 | Shape reports | B4 | done (B4) | `report.list` and `report.run {report: inventory, data or connections, scope, format: csv, html or table, path?}`; the table format places a compartment shape at the frame's right edge; Review > Reporting; XLSX waits for Block 5 |
 | Info page and hidden data | B4 | done (B4) | Backstage > Info: `doc.setProperties`, statistics, `doc.inspectHidden` and `doc.removeHidden {what}` (one undo step) |
 | Validation | 4A | partly done (4A) | Rule sets declared by notation packs, live and batch, with structured issues (`validate.*`); the issues pane is Cascade 4B |
@@ -219,15 +220,17 @@ When a feature lands, change its State in the same commit as the code. States:
 | Patterns tab | 5A | planned | Pattern library filtered by audience and notation, with parameter forms |
 | Typed Inspector | 4B | done (B3) | The Shape Data pane grown into the Inspector (pane key `shapeData`): Identity (name, tag with a live `element.checkTag`), Properties typed by the element schema, shape data rows and page keys, Relationships, Views, Shape and Document properties sections; Standard and Expert modes (`ui.inspector {mode?, tab?}`); Format tab over `shape.setStyle` and `text.setFormat`; `inspector.get {id}` assembles the same report for agents; the Properties pane became the Document section |
 | Problems tab | 4B | done (B3) | Bottom dock tab: live issues merged with the last `validate.run` by key, severity and text filters, click selects on the page, Explain, Suppress and one button per `Issue.fixes` entry, toolbar with Check, Rules, Live Checking, Next and Previous; Check from the ribbon opens it; `ui.dock {open?, tab?, height?}` |
-| Tables tab | 5B | planned | Model-derived lists and matrices, edited in place |
+| Tables tab | 5B | done (B5) | `table.list {type? or pack?, columns?, filter?}` and `table.matrix {rows, cols, relationship? or property?}` as views over the model, edited in place (`table.set`, `table.toggle`), exported with `table.export {format: csv, xlsx or markdown}`; `ui.tables`; XLSX export needs a path, so the web build exports CSV and Markdown only |
 | Search results tab | 4B | done (B3) | Dock tab over `edit.find` with Page or Document scope; click selects; `ui.search {query, scope?}` |
-| Generate tab | 5B | planned | Scaffold preview diff and run log |
+| Generate tab | 5B | done (B5) | Generate dock tab with the preview diff and run log, and a Generate ribbon tab; `ui.generate {spec?, target?, output?, run?}`; the Markdown catalogue target is the first target |
 | Agent activity view | 4B | done (B3) | Activity dock tab lists `Session::transactions()` newest first with origin badge and command ids, and "Undo to before this" |
 | Hover suggest-and-connect | 4B | done (B3) | Four handles outside the hovered shape (while the AutoConnect aid is on); a click runs `insert.next` with the one suggestion or opens a popover of `suggest.next` (legal targets with their relationship, most frequent on the page first); dragging a handle to empty canvas drops a new shape there |
 | Double-click insert picker | 4B | done (B3) | Type-to-filter list of the page's palette types and Drawing primitives; Enter inserts at the point; `ui.insertPicker {x?, y?, query?}` |
 | Keyboard chaining | 4B | done (B3) | Alt+Shift+Arrow runs `insert.next` in that direction with the first suggestion and selects the new shape |
 | Magic connector | 4B | done (B3) | Dragging a handle onto another shape opens the `suggest.connect` choices (illegal pairs last and marked); one legal choice applies at once; `insert.connect {from, to, relationship?}` |
 | Command palette over the model | 4B | done but patterns (B3) | Mod+K or Mod+Shift+P; `suggest.search {query, kinds?}` over commands, element types of the packs in use and elements by name or tag; commands run, types insert at the view centre, elements select and reveal; patterns wait for Cascade 5A |
+| Notation variants | B5 | done (B5) | `Pack.variants` (one drawing per element type per variant), `View.variant` on the page, `variant.list {page?}` and `variant.set {page?, variant}` redraw the page in one undo step keeping shape centres; Variant menu on the notation tab; the ER and DFD packs fill it in Block 7 |
+| Glyph paths and ports | B5 | done (B5) | `Glyph.path` and `Glyph.detail` draw a type's own outline (`notation/src/glyph_path.rs`, `Master.path`); `ElementType.ports` draw as port marks on the canvas and in SVG (`<g class="ports">`) and bind by connection point index; freeform fills are even-odd on the canvas and in SVG, so holes stay empty; connector kinds from a pack loaded at run time now draw |
 | Notation ribbon tabs | 4B | partly done (B3) | One contextual tab per active pack (Insert menus per palette group, Viewpoint menu, Check) and a Model tab; Validate and Generate tabs wait for Cascade 5B |
 | New from notation | 4B | done (B3) | Backstage New page lists packs by audience; choosing one runs `file.new` then `model.setViewpoint` |
 | Drill-down breadcrumbs | 4B | done (B3) | Path bar above the canvas (document, page, owner element for `<element id>/<viewpoint>` views); click switches pages |
@@ -268,7 +271,7 @@ When a feature lands, change its State in the same commit as the code. States:
 | `pattern.reparameterize` | 5A | planned | Change parameters later, keeping manual label edits |
 | Pattern provenance | 5A | planned | The inserted group records pattern id and parameter values |
 | Table-driven pattern sync | 5B | planned | Both ways where unambiguous: RACI to swimlanes, parent-id table to org chart, cause-and-effect table to matrix |
-| Layout primitives | 5A | planned | Pipeline with parallel band, two-row chain, hub and spoke, bands and swimlanes, matrix, nested containers, concentric rings, timeline, N-channel voter |
+| Layout primitives | 5A | done (B5) | `layout.primitive {primitive: pipeline, bands, chain, matrix, nested, hubSpoke, rings, timeline or voter, ids?, roles?, direction?, nodeSpacing?, layerSpacing?}`; pinned nodes (`layout.incremental` pins what it keeps) and `layout.full {keepOrder}` for model order |
 | Single PID loop | 6 | planned | Tag, loop number, controller type; layered with feedback return; ST FB call and I/O entries |
 | Cascade, ratio, feedforward plus feedback, split range, selector/override | 6 | planned | Industrial P&ID; layered with nested inner loop; ST skeleton per loop |
 | Interlock, permissive, cause-and-effect matrix | 6 | planned | Industrial logic; logic tree or matrix; ST Boolean logic per row |
@@ -295,16 +298,16 @@ When a feature lands, change its State in the same commit as the code. States:
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| Generation as commands | 5B | planned | `generate.preview`, `generate.run`, `generate.check`; Generate tab, CLI and MCP |
-| CI check mode | 5B | planned | `vizcraft-cli generate --check` fails when output is stale |
-| Generator spec file | 5B | planned | Target, options, output directory and model scope, versioned in the repository |
-| Ownership manifest | 5B | planned | Every generated file with its last checksum; writes only owned files in the declared directory |
-| Generation gap by default | 5B | planned | Rust: generated module plus a user-implemented trait; C: generated `.c` calling `extern` prototypes |
-| Protected regions keyed by element id | 5B | planned | Only for single-file targets such as a PLC POU |
-| Traceability markers | 5B | planned | `vizcraft:id=<element id>` on every generated construct; rename map |
-| Deterministic output | 5B | planned | Regenerating an unchanged model is byte-identical |
-| No silent overwrite | 5B | planned | Preview diff; three-way merge or stop with an issue when an owned file changed |
-| Construct-support matrices | 5B | planned | Unsupported constructs raise issues, or are flattened on opt-in |
+| Generation as commands | 5B | done (B5) | `generate.targets`, `generate.preview`, `generate.run`, `generate.check {spec? or target, output?, options?, scope?, renames?}`; Generate tab, CLI and MCP |
+| CI check mode | 5B | done (B5) | `vizcraft-cli generate FILE [--spec or --target and --output] [--check or --preview] [--json]` exits 1 when output is stale or a run stopped, 2 for usage |
+| Generator spec file | 5B | done (B5) | Target, options, output directory and model scope, versioned in the repository (`vizcraft-codegen` `spec.rs`); Browse picks it with `pick_open("spec")` |
+| Ownership manifest | 5B | done (B5) | Every generated file with its last checksum (`sha2`); writes only owned files in the declared directory |
+| Generation gap by default | 5B | planned (the Markdown catalogue is a single-file target; the separate-file contract waits for the first code target) | Rust: generated module plus a user-implemented trait; C: generated `.c` calling `extern` prototypes |
+| Protected regions keyed by element id | 5B | done (B5) | Only for single-file targets such as a PLC POU; the Markdown catalogue uses them |
+| Traceability markers | 5B | done (B5) | `vizcraft:id=<element id>` on every generated construct; rename map through `renames` |
+| Deterministic output | 5B | done (B5) | Regenerating an unchanged model is byte-identical |
+| No silent overwrite | 5B | done (B5) | Preview diff; three-way merge (`diffy`) or stop with an issue when an owned file changed |
+| Construct-support matrices | 5B | done (B5) | Each target declares its matrix; unsupported constructs raise issues, or are flattened on opt-in |
 | Standard intermediates | 6, 7 | planned | SVD, DBC, OpenAPI, AsyncAPI, protobuf, PLCopen XML rather than runtimes |
 | Fidelity tests by re-import | 6 | planned | DDL, SCXML, SVD and OpenAPI output re-imported in tests and compared with the model |
 | Re-import contract | 5B | planned | Model ids kept; geometry kept for existing ids; new elements placed with `layout.incremental`; removed ones flagged |

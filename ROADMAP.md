@@ -185,9 +185,9 @@ Patterns are generators with typed parameters that emit model elements, not bare
 |---|---|---|---|
 | Pattern framework | `vizcraft-patterns`: generator definition with typed parameters (counts, labels, mode enums, tag prefixes, a data table), emits elements and relationships, applies a layout primitive, commits as one compound undo step; the inserted group records pattern id and parameter values (provenance) | `crates/patterns` (new) | planned |
 | Pattern commands | `pattern.list` with a discoverable parameter schema, `pattern.insert(name, args)`, `pattern.reparameterize` (for example a saga from four steps to six) keeping manual label edits; reachable over MCP | `crates/engine/src/cmd/pattern.rs` (new), `crates/mcp` | planned |
-| Pins and model order | Pinned nodes and model-order preservation in layered layout, used by `layout.incremental`, re-import and reparameterize | `crates/layout` | planned |
-| Band and chain primitives | Horizontal bands and swimlanes (partitioned layered), pipeline with a parallel band, two-row forward and compensation chain | `crates/layout` | planned |
-| Grid and container primitives | Matrix, nested-container packer, hub and spoke, concentric rings, timeline, N-channel voter | `crates/layout` | planned |
+| Pins and model order | Pinned nodes and model-order preservation in layered layout, used by `layout.incremental`, re-import and reparameterize | `crates/layout` | done (Block 5 `b5-layout`) |
+| Band and chain primitives | Horizontal bands and swimlanes (partitioned layered), pipeline with a parallel band, two-row forward and compensation chain | `crates/layout` | done (Block 5 `b5-layout`) |
+| Grid and container primitives | Matrix, nested-container packer, hub and spoke, concentric rings, timeline, N-channel voter | `crates/layout` | done (Block 5 `b5-layout`) |
 | Patterns tab | Left dock tab filtered by audience and notation; each entry opens a parameter form | `crates/ui-egui/src/panes.rs` | planned |
 | Starter workflow patterns | Workflow Patterns fragments over the Flowchart pack (parallel split, exclusive choice, N-of-M join, multiple instances, cancel region), proving the framework before the audience packs | `crates/patterns` | planned |
 
@@ -204,13 +204,13 @@ Generation is a command, under a contract that never destroys hand-written code 
 
 | Piece | Contents | Lands in | State |
 |---|---|---|---|
-| Generator framework | `vizcraft-codegen`: generator spec file in the repository (target, options, output directory, model scope), target definition with a construct-support matrix, deterministic writer (stable order and formatting) | `crates/codegen` (new) | planned |
-| Ownership manifest and safe writes | Manifest beside the output with the checksum last written; writes only owned files inside the declared directory; on a changed checksum, three-way merge or stop with an issue; rename map so identifiers do not churn | `crates/codegen` | planned |
-| Traceability and regions | `vizcraft:id=<element id>` markers on every generated construct; protected regions keyed by element id for single-file targets only | `crates/codegen` | planned |
-| Generate commands and CLI | `generate.preview`, `generate.run`, `generate.check`; `vizcraft-cli generate --check` for CI; reachable over MCP | `crates/engine/src/cmd/generate.rs` (new), `apps/vizcraft-cli` | planned |
-| Generate dock and ribbon tab | Preview diff and run log in the bottom dock; Generate ribbon tab | `crates/ui-egui` | planned |
-| Table exporters | CSV, XLSX and Markdown writers for model-derived tables | `crates/formats` | planned |
-| Derived table and matrix views | Tables and matrices as views over the model, edited in place, in the Tables tab (lists, relationship matrix, RACI) | `crates/model` (queries), `crates/ui-egui` | planned |
+| Generator framework | `vizcraft-codegen`: generator spec file in the repository (target, options, output directory, model scope), target definition with a construct-support matrix, deterministic writer (stable order and formatting) | `crates/codegen` (new) | done (Block 5 `b5-codegen`; the Markdown catalogue is the first target) |
+| Ownership manifest and safe writes | Manifest beside the output with the checksum last written; writes only owned files inside the declared directory; on a changed checksum, three-way merge or stop with an issue; rename map so identifiers do not churn | `crates/codegen` | done (Block 5 `b5-codegen`) |
+| Traceability and regions | `vizcraft:id=<element id>` markers on every generated construct; protected regions keyed by element id for single-file targets only | `crates/codegen` | done (Block 5 `b5-codegen`) |
+| Generate commands and CLI | `generate.preview`, `generate.run`, `generate.check`; `vizcraft-cli generate --check` for CI; reachable over MCP | `crates/engine/src/cmd/generate.rs` (new), `apps/vizcraft-cli` | done (Block 5 `b5-codegen`) |
+| Generate dock and ribbon tab | Preview diff and run log in the bottom dock; Generate ribbon tab | `crates/ui-egui` | done (Block 5 `b5-codegen`) |
+| Table exporters | CSV, XLSX and Markdown writers for model-derived tables | `crates/formats` | done (Block 5 `b5-tables`) |
+| Derived table and matrix views | Tables and matrices as views over the model, edited in place, in the Tables tab (lists, relationship matrix, RACI) | `crates/model` (queries), `crates/ui-egui` | done (Block 5 `b5-tables`) |
 | Re-import contract | Imported elements keep model ids; re-import updates the model, keeps view geometry for existing ids, places new elements with `layout.incremental` and flags removed ones | `crates/formats`, `crates/model` | planned |
 | Table-driven pattern sync | Patterns generated from a table sync both ways where the mapping is unambiguous (RACI to swimlanes, parent-id table to org chart, cause-and-effect table to matrix) | `crates/patterns`, `crates/model` | planned |
 
