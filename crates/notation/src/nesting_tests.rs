@@ -201,3 +201,30 @@ fn labels_and_port_ends_are_checked() {
     assert!(ports[0].message.contains("on no port"));
     assert_eq!(ports[0].severity, Severity::Warning);
 }
+
+#[test]
+fn the_topology_packs_name_no_vendor_or_product() {
+    const WORDS: &[&str] =
+        &["aws", "amazon", "azure", "google", "gcp", "oracle", "ibm", "alibaba", "kubernetes", "k8s", "docker", "vpc", "ec2", "s3"];
+    for (name, text) in crate::catalog::BUILTIN.iter().filter(|(n, _)| ["cloud.json", "network.json", "dfd.json"].contains(n)) {
+        let lower = text.to_lowercase();
+        // Whole words only, so a path number or a word such as "process" never matches.
+        let words: Vec<&str> = lower.split(|c: char| !c.is_ascii_alphanumeric()).collect();
+        for w in WORDS {
+            assert!(!words.contains(w), "{name} names `{w}`");
+        }
+    }
+}
+
+#[test]
+fn the_topology_packs_load_with_nesting_data() {
+    let c = Catalog::builtin();
+    assert!(c.errors().is_empty(), "{:?}", c.errors());
+    assert_eq!(allowed_parents(&c, "cloud.PublicSubnet"), ["cloud.VirtualNetwork"], "a subnet inherits its list");
+    assert!(c.glyph("cloud.securityGroup").and_then(|(_, g)| g.container.as_ref()).is_some_and(|l| l.dash() == Dash::Dashed));
+    for p in ["cloud", "network", "dfd"] {
+        let pack = c.pack(p).unwrap();
+        assert!(pack.rules.iter().all(|r| r.check != Check::Unknown), "{p}");
+        assert!(crate::loader::provenance(pack).is_empty(), "{p}");
+    }
+}

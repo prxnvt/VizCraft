@@ -1,0 +1,1124 @@
+{
+  "schemaVersion": 1,
+  "id": "cloud",
+  "version": "1.0.0",
+  "name": "Cloud Topology",
+  "description": "Generic cloud topology: provider-neutral boundaries (cloud, account, region, zone, network, subnets, security groups, clusters) nested by drawing, the services that run in them and the requests, events and replication between them. Numbered steps show the order of a request.",
+  "audience": [
+    "general",
+    "software"
+  ],
+  "glyphs": [
+    {
+      "id": "cloud.cloud",
+      "label": "Cloud",
+      "category": "Boundaries",
+      "outline": "rectangle",
+      "w": 320,
+      "h": 220,
+      "fill": "#f6f9fd",
+      "line": "#4a6d94",
+      "keywords": [
+        "cloud",
+        "boundary",
+        "container"
+      ],
+      "elementType": "cloud.Cloud",
+      "container": {
+        "corner": 14,
+        "band": "#dce8f5"
+      }
+    },
+    {
+      "id": "cloud.account",
+      "label": "Account",
+      "category": "Boundaries",
+      "outline": "rectangle",
+      "w": 320,
+      "h": 220,
+      "fill": "#fbfbfd",
+      "line": "#5b5f8c",
+      "keywords": [
+        "account",
+        "boundary",
+        "container"
+      ],
+      "elementType": "cloud.Account",
+      "container": {
+        "dash": "dashed",
+        "corner": 6,
+        "heading": "line"
+      }
+    },
+    {
+      "id": "cloud.region",
+      "label": "Region",
+      "category": "Boundaries",
+      "outline": "rectangle",
+      "w": 320,
+      "h": 220,
+      "fill": "#fafcfe",
+      "line": "#3f6e9e",
+      "keywords": [
+        "region",
+        "boundary",
+        "container"
+      ],
+      "elementType": "cloud.Region",
+      "container": {
+        "dash": "dashed",
+        "corner": 4,
+        "heading": "line",
+        "band": "#e8eef6"
+      }
+    },
+    {
+      "id": "cloud.zone",
+      "label": "Availability Zone",
+      "category": "Boundaries",
+      "outline": "rectangle",
+      "w": 320,
+      "h": 220,
+      "fill": "#fdfdfd",
+      "line": "#6a7f96",
+      "keywords": [
+        "availability zone",
+        "boundary",
+        "container"
+      ],
+      "elementType": "cloud.Zone",
+      "container": {
+        "dash": "dotted",
+        "heading": "plain"
+      }
+    },
+    {
+      "id": "cloud.virtualNetwork",
+      "label": "Virtual Network",
+      "category": "Boundaries",
+      "outline": "rectangle",
+      "w": 320,
+      "h": 220,
+      "fill": "#f8fcf9",
+      "line": "#3d7a52",
+      "keywords": [
+        "virtual network",
+        "boundary",
+        "container"
+      ],
+      "elementType": "cloud.VirtualNetwork",
+      "container": {
+        "corner": 6,
+        "band": "#e2f1e6"
+      }
+    },
+    {
+      "id": "cloud.publicSubnet",
+      "label": "Public Subnet",
+      "category": "Boundaries",
+      "outline": "rectangle",
+      "w": 320,
+      "h": 220,
+      "fill": "#fafdf7",
+      "line": "#4f8a2e",
+      "keywords": [
+        "public subnet",
+        "boundary",
+        "container"
+      ],
+      "elementType": "cloud.PublicSubnet",
+      "container": {
+        "band": "#e4f4d9",
+        "heading": "band"
+      }
+    },
+    {
+      "id": "cloud.privateSubnet",
+      "label": "Private Subnet",
+      "category": "Boundaries",
+      "outline": "rectangle",
+      "w": 320,
+      "h": 220,
+      "fill": "#f7fbfd",
+      "line": "#2f7391",
+      "keywords": [
+        "private subnet",
+        "boundary",
+        "container"
+      ],
+      "elementType": "cloud.PrivateSubnet",
+      "container": {
+        "band": "#dceef6",
+        "heading": "band"
+      }
+    },
+    {
+      "id": "cloud.securityGroup",
+      "label": "Security Group",
+      "category": "Boundaries",
+      "outline": "rectangle",
+      "w": 320,
+      "h": 220,
+      "fill": "#fffafa",
+      "line": "#b04848",
+      "keywords": [
+        "security group",
+        "boundary",
+        "container"
+      ],
+      "elementType": "cloud.SecurityGroup",
+      "container": {
+        "dash": "dashed",
+        "heading": "plain",
+        "lineWidth": 1.5
+      }
+    },
+    {
+      "id": "cloud.cluster",
+      "label": "Cluster",
+      "category": "Boundaries",
+      "outline": "rectangle",
+      "w": 320,
+      "h": 220,
+      "fill": "#fbf9fd",
+      "line": "#6a4f94",
+      "keywords": [
+        "cluster",
+        "boundary",
+        "container"
+      ],
+      "elementType": "cloud.Cluster",
+      "container": {
+        "corner": 10,
+        "band": "#ece6f5"
+      }
+    },
+    {
+      "id": "cloud.namespace",
+      "label": "Namespace",
+      "category": "Boundaries",
+      "outline": "rectangle",
+      "w": 320,
+      "h": 220,
+      "fill": "#fdfcfe",
+      "line": "#7d63a8",
+      "keywords": [
+        "namespace",
+        "boundary",
+        "container"
+      ],
+      "elementType": "cloud.Namespace",
+      "container": {
+        "dash": "dashed",
+        "corner": 6,
+        "heading": "line"
+      }
+    },
+    {
+      "id": "cloud.group",
+      "label": "Group",
+      "category": "Boundaries",
+      "outline": "rectangle",
+      "w": 320,
+      "h": 220,
+      "fill": "#fcfcfc",
+      "line": "#7a8490",
+      "keywords": [
+        "group",
+        "boundary",
+        "container"
+      ],
+      "elementType": "cloud.Group",
+      "container": {
+        "dash": "dashed",
+        "corner": 8,
+        "heading": "plain"
+      }
+    },
+    {
+      "id": "cloud.compute",
+      "label": "Compute",
+      "category": "Services",
+      "outline": "path",
+      "w": 120,
+      "h": 70,
+      "fill": "#e7eef8",
+      "line": "#36597f",
+      "keywords": [
+        "server",
+        "instance",
+        "virtual machine",
+        "vm"
+      ],
+      "elementType": "cloud.Compute",
+      "path": "M 0.08 0 L 0.92 0 Q 1 0 1 0.08 L 1 0.92 Q 1 1 0.92 1 L 0.08 1 Q 0 1 0 0.92 L 0 0.08 Q 0 0 0.08 0 Z",
+      "detail": "M 0.06 0.1 L 0.2 0.1 L 0.2 0.32 L 0.06 0.32 Z M 0.09 0.1 L 0.09 0.05 M 0.13 0.1 L 0.13 0.05 M 0.17 0.1 L 0.17 0.05 M 0.09 0.32 L 0.09 0.37 M 0.13 0.32 L 0.13 0.37 M 0.17 0.32 L 0.17 0.37",
+      "source": "own design"
+    },
+    {
+      "id": "cloud.container",
+      "label": "Container",
+      "category": "Services",
+      "outline": "path",
+      "w": 120,
+      "h": 70,
+      "fill": "#e9f3f0",
+      "line": "#2f6f60",
+      "keywords": [
+        "pod",
+        "workload",
+        "image"
+      ],
+      "elementType": "cloud.Container",
+      "path": "M 0.08 0 L 0.92 0 Q 1 0 1 0.08 L 1 0.92 Q 1 1 0.92 1 L 0.08 1 Q 0 1 0 0.92 L 0 0.08 Q 0 0 0.08 0 Z",
+      "detail": "M 0.06 0.14 L 0.14 0.07 L 0.22 0.14 L 0.22 0.32 L 0.06 0.32 Z M 0.06 0.14 L 0.22 0.14 M 0.14 0.14 L 0.14 0.32",
+      "source": "own design"
+    },
+    {
+      "id": "cloud.function",
+      "label": "Function",
+      "category": "Services",
+      "outline": "path",
+      "w": 120,
+      "h": 70,
+      "fill": "#f5efe2",
+      "line": "#8a6420",
+      "keywords": [
+        "serverless",
+        "handler"
+      ],
+      "elementType": "cloud.Function",
+      "path": "M 0.08 0 L 0.92 0 Q 1 0 1 0.08 L 1 0.92 Q 1 1 0.92 1 L 0.08 1 Q 0 1 0 0.92 L 0 0.08 Q 0 0 0.08 0 Z",
+      "detail": "M 0.14 0.06 L 0.08 0.22 L 0.15 0.22 L 0.1 0.36 L 0.22 0.17 L 0.15 0.17 L 0.19 0.06",
+      "source": "own design"
+    },
+    {
+      "id": "cloud.database",
+      "label": "Database",
+      "category": "Services",
+      "outline": "path",
+      "w": 100,
+      "h": 90,
+      "fill": "#f3e9e4",
+      "line": "#84523c",
+      "keywords": [
+        "sql",
+        "store",
+        "table"
+      ],
+      "elementType": "cloud.Database",
+      "path": "M 0 0.14 C 0 -0.04 1 -0.04 1 0.14 L 1 0.86 C 1 1.04 0 1.04 0 0.86 Z",
+      "detail": "M 0 0.14 C 0 0.32 1 0.32 1 0.14",
+      "source": "own design"
+    },
+    {
+      "id": "cloud.queue",
+      "label": "Queue",
+      "category": "Services",
+      "outline": "path",
+      "w": 130,
+      "h": 60,
+      "fill": "#f1eaf6",
+      "line": "#6b4a88",
+      "keywords": [
+        "message",
+        "topic",
+        "stream",
+        "bus"
+      ],
+      "elementType": "cloud.Queue",
+      "path": "M 0.08 0 L 0.92 0 Q 1 0 1 0.08 L 1 0.92 Q 1 1 0.92 1 L 0.08 1 Q 0 1 0 0.92 L 0 0.08 Q 0 0 0.08 0 Z",
+      "detail": "M 0.62 0.2 L 0.62 0.8 M 0.72 0.2 L 0.72 0.8 M 0.82 0.2 L 0.82 0.8 M 0.92 0.2 L 0.92 0.8",
+      "source": "own design"
+    },
+    {
+      "id": "cloud.bucket",
+      "label": "Object Store",
+      "category": "Services",
+      "outline": "path",
+      "w": 100,
+      "h": 90,
+      "fill": "#eef3e4",
+      "line": "#5a7330",
+      "keywords": [
+        "blob",
+        "object",
+        "files",
+        "storage",
+        "bucket"
+      ],
+      "elementType": "cloud.Bucket",
+      "path": "M 0 0.12 L 1 0.12 L 0.86 1 L 0.14 1 Z",
+      "detail": "M 0 0.12 C 0 -0.02 1 -0.02 1 0.12 C 1 0.26 0 0.26 0 0.12",
+      "source": "own design"
+    },
+    {
+      "id": "cloud.loadBalancer",
+      "label": "Load Balancer",
+      "category": "Services",
+      "outline": "path",
+      "w": 90,
+      "h": 90,
+      "fill": "#e5f0f5",
+      "line": "#2c6a84",
+      "keywords": [
+        "balancer",
+        "traffic",
+        "lb",
+        "ingress"
+      ],
+      "elementType": "cloud.LoadBalancer",
+      "path": "M 0.5 0 C 0.78 0 1 0.22 1 0.5 C 1 0.78 0.78 1 0.5 1 C 0.22 1 0 0.78 0 0.5 C 0 0.22 0.22 0 0.5 0 Z",
+      "detail": "M 0.2 0.5 L 0.45 0.5 M 0.45 0.5 L 0.75 0.28 M 0.45 0.5 L 0.75 0.5 M 0.45 0.5 L 0.75 0.72",
+      "source": "own design"
+    },
+    {
+      "id": "cloud.gateway",
+      "label": "Gateway",
+      "category": "Services",
+      "outline": "path",
+      "w": 120,
+      "h": 70,
+      "fill": "#f6ece6",
+      "line": "#8c4d2c",
+      "keywords": [
+        "api",
+        "ingress",
+        "nat",
+        "edge",
+        "entry"
+      ],
+      "elementType": "cloud.Gateway",
+      "path": "M 0 0.15 L 0.12 0 L 0.88 0 L 1 0.15 L 1 1 L 0 1 Z",
+      "detail": "M 0.06 0.24 L 0.2 0.24 M 0.14 0.17 L 0.2 0.24 L 0.14 0.31",
+      "source": "own design"
+    },
+    {
+      "id": "cloud.user",
+      "label": "User",
+      "category": "Actors",
+      "outline": "path",
+      "w": 70,
+      "h": 90,
+      "fill": "#eef1f4",
+      "line": "#46535f",
+      "keywords": [
+        "person",
+        "client",
+        "actor",
+        "customer"
+      ],
+      "elementType": "cloud.User",
+      "path": "M 0.5 0.04 C 0.64 0.04 0.72 0.14 0.72 0.27 C 0.72 0.4 0.64 0.5 0.5 0.5 C 0.36 0.5 0.28 0.4 0.28 0.27 C 0.28 0.14 0.36 0.04 0.5 0.04 Z M 0.06 1 C 0.06 0.7 0.26 0.56 0.5 0.56 C 0.74 0.56 0.94 0.7 0.94 1 Z",
+      "source": "own design"
+    },
+    {
+      "id": "cloud.internet",
+      "label": "Internet",
+      "category": "Actors",
+      "outline": "path",
+      "w": 90,
+      "h": 90,
+      "fill": "#e8f0f7",
+      "line": "#3b6286",
+      "keywords": [
+        "web",
+        "public",
+        "world",
+        "globe"
+      ],
+      "elementType": "cloud.Internet",
+      "path": "M 0.5 0 C 0.78 0 1 0.22 1 0.5 C 1 0.78 0.78 1 0.5 1 C 0.22 1 0 0.78 0 0.5 C 0 0.22 0.22 0 0.5 0 Z",
+      "detail": "M 0 0.5 L 1 0.5 M 0.5 0 C 0.3 0.25 0.3 0.75 0.5 1 M 0.5 0 C 0.7 0.25 0.7 0.75 0.5 1 M 0.1 0.25 L 0.9 0.25 M 0.1 0.75 L 0.9 0.75",
+      "source": "own design"
+    },
+    {
+      "id": "cloud.externalService",
+      "label": "External Service",
+      "category": "Actors",
+      "outline": "path",
+      "w": 130,
+      "h": 70,
+      "fill": "#f4f4f4",
+      "line": "#5d6670",
+      "keywords": [
+        "third party",
+        "saas",
+        "partner",
+        "external"
+      ],
+      "elementType": "cloud.ExternalService",
+      "path": "M 0.08 0 L 0.92 0 Q 1 0 1 0.08 L 1 0.92 Q 1 1 0.92 1 L 0.08 1 Q 0 1 0 0.92 L 0 0.08 Q 0 0 0.08 0 Z",
+      "detail": "M 0.76 0.12 L 0.92 0.12 L 0.92 0.3 M 0.92 0.12 L 0.78 0.28",
+      "source": "own design"
+    },
+    {
+      "id": "cloud.junction",
+      "label": "Junction",
+      "category": "Lines",
+      "outline": "path",
+      "w": 18,
+      "h": 18,
+      "fill": "#3a4a5c",
+      "line": "#3a4a5c",
+      "keywords": [
+        "join",
+        "split",
+        "point"
+      ],
+      "elementType": "cloud.Junction",
+      "path": "M 0.5 0 C 0.78 0 1 0.22 1 0.5 C 1 0.78 0.78 1 0.5 1 C 0.22 1 0 0.78 0 0.5 C 0 0.22 0.22 0 0.5 0 Z",
+      "source": "own design"
+    }
+  ],
+  "connectorTypes": [
+    {
+      "id": "cloud.request",
+      "label": "Request",
+      "category": "Lines",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "triangle",
+      "dash": "solid",
+      "lineWidth": 1.5,
+      "line": "#3a4a5c",
+      "keywords": [
+        "call",
+        "http",
+        "traffic"
+      ],
+      "relationshipType": "cloud.Request"
+    },
+    {
+      "id": "cloud.event",
+      "label": "Event",
+      "category": "Lines",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "open",
+      "dash": "dashed",
+      "lineWidth": 1.5,
+      "line": "#3a4a5c",
+      "keywords": [
+        "async",
+        "message",
+        "notify"
+      ],
+      "relationshipType": "cloud.Event"
+    },
+    {
+      "id": "cloud.replication",
+      "label": "Replication",
+      "category": "Lines",
+      "route": "orthogonal",
+      "startArrow": "open",
+      "endArrow": "open",
+      "dash": "dotted",
+      "lineWidth": 1.5,
+      "line": "#3a4a5c",
+      "keywords": [
+        "copy",
+        "sync",
+        "backup"
+      ],
+      "relationshipType": "cloud.Replication"
+    },
+    {
+      "id": "cloud.peering",
+      "label": "Peering",
+      "category": "Lines",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "longDash",
+      "lineWidth": 1.5,
+      "line": "#3a4a5c",
+      "keywords": [
+        "link",
+        "vpn",
+        "connect"
+      ],
+      "relationshipType": "cloud.Peering"
+    }
+  ],
+  "elementTypes": [
+    {
+      "id": "cloud.Cloud",
+      "label": "Cloud",
+      "description": "The provider-neutral cloud everything else runs in.",
+      "glyph": "cloud.cloud",
+      "container": true,
+      "allowedParents": [
+        "top"
+      ]
+    },
+    {
+      "id": "cloud.Account",
+      "label": "Account",
+      "description": "A billing and access boundary: an account, subscription or project.",
+      "glyph": "cloud.account",
+      "container": true,
+      "allowedParents": [
+        "cloud.Cloud",
+        "top"
+      ]
+    },
+    {
+      "id": "cloud.Region",
+      "label": "Region",
+      "description": "A geographic region of the cloud.",
+      "glyph": "cloud.region",
+      "container": true,
+      "allowedParents": [
+        "cloud.Cloud",
+        "cloud.Account",
+        "top"
+      ]
+    },
+    {
+      "id": "cloud.Zone",
+      "label": "Availability Zone",
+      "description": "An isolated failure domain within a region.",
+      "glyph": "cloud.zone",
+      "container": true,
+      "allowedParents": [
+        "cloud.Region"
+      ]
+    },
+    {
+      "id": "cloud.VirtualNetwork",
+      "label": "Virtual Network",
+      "description": "A private address space of its own, divided into subnets.",
+      "glyph": "cloud.virtualNetwork",
+      "container": true,
+      "allowedParents": [
+        "cloud.Region",
+        "cloud.Account"
+      ]
+    },
+    {
+      "id": "cloud.Subnet",
+      "label": "Subnet",
+      "description": "A range of addresses within a virtual network.",
+      "container": true,
+      "allowedParents": [
+        "cloud.VirtualNetwork"
+      ],
+      "properties": [
+        {
+          "key": "cidr",
+          "label": "Address range",
+          "kind": "text",
+          "description": "The subnet's address range, such as 10.0.1.0/24."
+        }
+      ]
+    },
+    {
+      "id": "cloud.PublicSubnet",
+      "label": "Public Subnet",
+      "description": "A subnet with a route to the internet.",
+      "glyph": "cloud.publicSubnet",
+      "container": true,
+      "extends": "cloud.Subnet"
+    },
+    {
+      "id": "cloud.PrivateSubnet",
+      "label": "Private Subnet",
+      "description": "A subnet with no direct route from the internet.",
+      "glyph": "cloud.privateSubnet",
+      "container": true,
+      "extends": "cloud.Subnet"
+    },
+    {
+      "id": "cloud.SecurityGroup",
+      "label": "Security Group",
+      "description": "A set of firewall rules around the services inside it.",
+      "glyph": "cloud.securityGroup",
+      "container": true,
+      "allowedParents": [
+        "cloud.Subnet",
+        "cloud.VirtualNetwork"
+      ]
+    },
+    {
+      "id": "cloud.Cluster",
+      "label": "Cluster",
+      "description": "A container orchestration cluster.",
+      "glyph": "cloud.cluster",
+      "container": true,
+      "allowedParents": [
+        "cloud.Subnet",
+        "cloud.VirtualNetwork",
+        "cloud.Region",
+        "top"
+      ]
+    },
+    {
+      "id": "cloud.Namespace",
+      "label": "Namespace",
+      "description": "A named partition of a cluster.",
+      "glyph": "cloud.namespace",
+      "container": true,
+      "allowedParents": [
+        "cloud.Cluster"
+      ]
+    },
+    {
+      "id": "cloud.Group",
+      "label": "Group",
+      "description": "A loose grouping with no meaning of its own (a Mermaid group).",
+      "glyph": "cloud.group",
+      "container": true,
+      "allowedParents": [
+        "*",
+        "top"
+      ]
+    },
+    {
+      "id": "cloud.Compute",
+      "label": "Compute",
+      "description": "A virtual machine or other general compute.",
+      "glyph": "cloud.compute",
+      "allowedParents": [
+        "cloud.Subnet",
+        "cloud.SecurityGroup",
+        "cloud.Zone",
+        "cloud.VirtualNetwork",
+        "cloud.Group",
+        "top",
+        "cloud.Cluster"
+      ],
+      "properties": [
+        {
+          "key": "size",
+          "label": "Size",
+          "kind": "text",
+          "description": "The instance size or class."
+        }
+      ]
+    },
+    {
+      "id": "cloud.Container",
+      "label": "Container",
+      "description": "A containerised workload.",
+      "glyph": "cloud.container",
+      "allowedParents": [
+        "cloud.Cluster",
+        "cloud.Namespace",
+        "cloud.Subnet",
+        "cloud.SecurityGroup",
+        "cloud.Group",
+        "top"
+      ]
+    },
+    {
+      "id": "cloud.Function",
+      "label": "Function",
+      "description": "A managed function that runs on demand.",
+      "glyph": "cloud.function",
+      "allowedParents": [
+        "cloud.Region",
+        "cloud.Cloud",
+        "top"
+      ]
+    },
+    {
+      "id": "cloud.Database",
+      "label": "Database",
+      "description": "A managed or self-run database.",
+      "glyph": "cloud.database",
+      "allowedParents": [
+        "cloud.Subnet",
+        "cloud.SecurityGroup",
+        "cloud.Zone",
+        "cloud.Region",
+        "cloud.Group",
+        "top"
+      ],
+      "properties": [
+        {
+          "key": "engine",
+          "label": "Engine",
+          "kind": "text",
+          "description": "The database engine."
+        }
+      ]
+    },
+    {
+      "id": "cloud.Queue",
+      "label": "Queue",
+      "description": "A managed message queue or topic.",
+      "glyph": "cloud.queue",
+      "allowedParents": [
+        "cloud.Region",
+        "cloud.Cloud",
+        "top"
+      ]
+    },
+    {
+      "id": "cloud.Bucket",
+      "label": "Object Store",
+      "description": "Managed object storage.",
+      "glyph": "cloud.bucket",
+      "allowedParents": [
+        "cloud.Region",
+        "cloud.Cloud",
+        "top"
+      ]
+    },
+    {
+      "id": "cloud.LoadBalancer",
+      "label": "Load Balancer",
+      "description": "Spreads requests across the services behind it.",
+      "glyph": "cloud.loadBalancer",
+      "allowedParents": [
+        "cloud.Subnet",
+        "cloud.VirtualNetwork",
+        "cloud.Region",
+        "cloud.Group",
+        "top"
+      ]
+    },
+    {
+      "id": "cloud.Gateway",
+      "label": "Gateway",
+      "description": "Where traffic enters or leaves a network: an API, internet or NAT gateway.",
+      "glyph": "cloud.gateway",
+      "allowedParents": [
+        "cloud.VirtualNetwork",
+        "cloud.Subnet",
+        "cloud.Region",
+        "cloud.Group",
+        "top"
+      ]
+    },
+    {
+      "id": "cloud.User",
+      "label": "User",
+      "description": "A person using the system.",
+      "glyph": "cloud.user",
+      "allowedParents": [
+        "top",
+        "cloud.Group"
+      ]
+    },
+    {
+      "id": "cloud.Internet",
+      "label": "Internet",
+      "description": "The public internet.",
+      "glyph": "cloud.internet",
+      "allowedParents": [
+        "top",
+        "cloud.Group"
+      ]
+    },
+    {
+      "id": "cloud.ExternalService",
+      "label": "External Service",
+      "description": "A service run by someone else.",
+      "glyph": "cloud.externalService",
+      "allowedParents": [
+        "top",
+        "cloud.Group"
+      ]
+    },
+    {
+      "id": "cloud.Junction",
+      "label": "Junction",
+      "description": "A point where lines meet and split.",
+      "glyph": "cloud.junction",
+      "allowedParents": [
+        "*",
+        "top"
+      ]
+    }
+  ],
+  "relationshipTypes": [
+    {
+      "id": "cloud.Request",
+      "label": "Request",
+      "description": "A synchronous call from one service to another.",
+      "endArrow": "triangle",
+      "properties": [
+        {
+          "key": "protocol",
+          "label": "Protocol",
+          "kind": "text",
+          "description": "The protocol and port, such as HTTPS 443."
+        }
+      ]
+    },
+    {
+      "id": "cloud.Event",
+      "label": "Event",
+      "description": "An asynchronous message or notification.",
+      "endArrow": "open"
+    },
+    {
+      "id": "cloud.Replication",
+      "label": "Replication",
+      "description": "Data copied from one store to another.",
+      "endArrow": "open"
+    },
+    {
+      "id": "cloud.Peering",
+      "label": "Peering",
+      "description": "Two networks joined so their addresses reach each other.",
+      "endArrow": "none"
+    }
+  ],
+  "connections": [
+    {
+      "source": [
+        "cloud.User",
+        "cloud.Internet",
+        "cloud.ExternalService",
+        "cloud.Compute",
+        "cloud.Container",
+        "cloud.Function",
+        "cloud.LoadBalancer",
+        "cloud.Gateway",
+        "cloud.Junction"
+      ],
+      "relationship": "cloud.Request",
+      "target": [
+        "cloud.Compute",
+        "cloud.Container",
+        "cloud.Function",
+        "cloud.Database",
+        "cloud.Queue",
+        "cloud.Bucket",
+        "cloud.LoadBalancer",
+        "cloud.Gateway",
+        "cloud.ExternalService",
+        "cloud.Junction",
+        "cloud.Internet"
+      ]
+    },
+    {
+      "source": [
+        "cloud.Function",
+        "cloud.Queue",
+        "cloud.Bucket",
+        "cloud.Compute",
+        "cloud.Container",
+        "cloud.Database"
+      ],
+      "relationship": "cloud.Event",
+      "target": [
+        "cloud.Function",
+        "cloud.Queue",
+        "cloud.Compute",
+        "cloud.Container"
+      ]
+    },
+    {
+      "source": [
+        "cloud.Database",
+        "cloud.Bucket"
+      ],
+      "relationship": "cloud.Replication",
+      "target": [
+        "cloud.Database",
+        "cloud.Bucket"
+      ]
+    },
+    {
+      "source": [
+        "cloud.VirtualNetwork"
+      ],
+      "relationship": "cloud.Peering",
+      "target": [
+        "cloud.VirtualNetwork"
+      ]
+    }
+  ],
+  "palette": [
+    {
+      "id": "cloud.boundaries",
+      "label": "Boundaries",
+      "types": [
+        "cloud.Cloud",
+        "cloud.Account",
+        "cloud.Region",
+        "cloud.Zone",
+        "cloud.VirtualNetwork",
+        "cloud.PublicSubnet",
+        "cloud.PrivateSubnet",
+        "cloud.SecurityGroup",
+        "cloud.Cluster",
+        "cloud.Namespace",
+        "cloud.Group"
+      ]
+    },
+    {
+      "id": "cloud.services",
+      "label": "Services",
+      "types": [
+        "cloud.Compute",
+        "cloud.Container",
+        "cloud.Function",
+        "cloud.Database",
+        "cloud.Queue",
+        "cloud.Bucket",
+        "cloud.LoadBalancer",
+        "cloud.Gateway",
+        "cloud.Junction"
+      ]
+    },
+    {
+      "id": "cloud.actors",
+      "label": "Actors",
+      "types": [
+        "cloud.User",
+        "cloud.Internet",
+        "cloud.ExternalService"
+      ]
+    }
+  ],
+  "viewpoints": [
+    {
+      "id": "cloud.Topology",
+      "label": "Topology",
+      "description": "The whole topology: boundaries, services and every line.",
+      "types": [
+        "*"
+      ]
+    },
+    {
+      "id": "cloud.Cluster",
+      "label": "Cluster",
+      "description": "One cluster: its namespaces, workloads and what they call.",
+      "types": [
+        "cloud.Cluster",
+        "cloud.Namespace",
+        "cloud.Container",
+        "cloud.Compute",
+        "cloud.LoadBalancer",
+        "cloud.Gateway",
+        "cloud.Database",
+        "cloud.Queue",
+        "cloud.Bucket",
+        "cloud.User",
+        "cloud.Internet",
+        "cloud.ExternalService",
+        "cloud.Junction",
+        "cloud.Group"
+      ],
+      "relationships": [
+        "cloud.Request",
+        "cloud.Event"
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "cloud.illegalLine",
+      "description": "Lines follow the connection table.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "illegalRelationship"
+      }
+    },
+    {
+      "id": "cloud.nesting",
+      "description": "Each boundary and service sits where it belongs: a subnet in a network, a network in a region, a managed service in a region or the cloud.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "nestingAllowed",
+        "drawn": true
+      }
+    },
+    {
+      "id": "cloud.nodeLabelled",
+      "description": "Every service and boundary has a name.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "labelled",
+        "types": [
+          "cloud.Cloud",
+          "cloud.Account",
+          "cloud.Region",
+          "cloud.Zone",
+          "cloud.VirtualNetwork",
+          "cloud.PublicSubnet",
+          "cloud.PrivateSubnet",
+          "cloud.SecurityGroup",
+          "cloud.Cluster",
+          "cloud.Namespace",
+          "cloud.Group",
+          "cloud.Compute",
+          "cloud.Container",
+          "cloud.Function",
+          "cloud.Database",
+          "cloud.Queue",
+          "cloud.Bucket",
+          "cloud.LoadBalancer",
+          "cloud.Gateway",
+          "cloud.User",
+          "cloud.Internet",
+          "cloud.ExternalService"
+        ]
+      }
+    },
+    {
+      "id": "cloud.lineLabelled",
+      "description": "Every request and event says what it carries.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "labelled",
+        "types": [
+          "cloud.Request",
+          "cloud.Event"
+        ]
+      }
+    },
+    {
+      "id": "cloud.ingressReachesService",
+      "description": "Traffic entering through a gateway reaches a workload.",
+      "severity": "warning",
+      "mode": "batch",
+      "check": {
+        "kind": "requiredPath",
+        "from": [
+          "cloud.Gateway"
+        ],
+        "to": [
+          "cloud.Container",
+          "cloud.Compute",
+          "cloud.Function"
+        ],
+        "relationship": "cloud.Request"
+      }
+    },
+    {
+      "id": "cloud.viewpoint",
+      "description": "Pages show only the types their viewpoint allows.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "viewpointType"
+      }
+    }
+  ],
+  "rulesets": [
+    {
+      "id": "cloud.topology",
+      "label": "Cloud topology",
+      "description": "Nesting, names and reachability of a cloud topology.",
+      "rules": [
+        "cloud.illegalLine",
+        "cloud.nesting",
+        "cloud.nodeLabelled",
+        "cloud.lineLabelled",
+        "cloud.ingressReachesService",
+        "cloud.viewpoint"
+      ]
+    }
+  ],
+  "templates": []
+}

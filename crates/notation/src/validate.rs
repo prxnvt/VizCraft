@@ -606,9 +606,11 @@ mod tests {
 
     #[test]
     fn builtin_packs_are_consistent() {
+        // Through the loader, which reads path glyphs as freeform for the general checks.
         for (name, text) in BUILTIN {
-            let p: Pack = serde_json::from_str(text).unwrap();
-            assert_eq!(check(&p), Vec::<String>::new(), "{name}");
+            if let Err(e) = crate::loader::load_shipped(name, text) {
+                panic!("{name}: {e}");
+            }
         }
     }
 

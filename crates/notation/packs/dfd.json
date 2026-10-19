@@ -1,0 +1,437 @@
+{
+  "schemaVersion": 1,
+  "id": "dfd",
+  "version": "1.0.0",
+  "name": "Data Flow",
+  "description": "Data flow diagrams: external entities, numbered processes and data stores joined by labelled flows, inside trust boundaries. Drawn in the Yourdon and DeMarco notation by default, or Gane and Sarson as a variant.",
+  "audience": [
+    "general",
+    "software"
+  ],
+  "glyphs": [
+    {
+      "id": "dfd.entity",
+      "label": "External Entity",
+      "category": "Data Flow",
+      "outline": "rectangle",
+      "w": 120,
+      "h": 60,
+      "fill": "#eef1f4",
+      "line": "#46535f",
+      "keywords": [
+        "source",
+        "sink",
+        "terminator",
+        "actor"
+      ],
+      "elementType": "dfd.ExternalEntity"
+    },
+    {
+      "id": "dfd.process",
+      "label": "Process",
+      "category": "Data Flow",
+      "outline": "ellipse",
+      "w": 110,
+      "h": 110,
+      "fill": "#e4f2ec",
+      "line": "#2d6e58",
+      "keywords": [
+        "bubble",
+        "transform",
+        "function"
+      ],
+      "elementType": "dfd.Process"
+    },
+    {
+      "id": "dfd.store",
+      "label": "Data Store",
+      "category": "Data Flow",
+      "outline": "path",
+      "w": 140,
+      "h": 50,
+      "fill": "#ffffff",
+      "line": "#84523c",
+      "keywords": [
+        "file",
+        "database",
+        "store"
+      ],
+      "elementType": "dfd.DataStore",
+      "path": "M 0 0 L 1 0 M 0 1 L 1 1",
+      "source": "own design"
+    },
+    {
+      "id": "dfd.boundary",
+      "label": "Trust Boundary",
+      "category": "Data Flow",
+      "outline": "rectangle",
+      "w": 360,
+      "h": 260,
+      "fill": "#fffafa",
+      "line": "#c0392b",
+      "keywords": [
+        "trust",
+        "boundary",
+        "zone",
+        "threat"
+      ],
+      "elementType": "dfd.TrustBoundary",
+      "container": {
+        "dash": "dashed",
+        "heading": "plain",
+        "corner": 6,
+        "lineWidth": 1.5
+      }
+    },
+    {
+      "id": "dfd.gsProcess",
+      "label": "Process (Gane-Sarson)",
+      "category": "Gane-Sarson",
+      "outline": "path",
+      "w": 120,
+      "h": 90,
+      "fill": "#e4f2ec",
+      "line": "#2d6e58",
+      "keywords": [
+        "bubble",
+        "transform"
+      ],
+      "path": "M 0.08 0 L 0.92 0 Q 1 0 1 0.08 L 1 0.92 Q 1 1 0.92 1 L 0.08 1 Q 0 1 0 0.92 L 0 0.08 Q 0 0 0.08 0 Z",
+      "detail": "M 0 0.26 L 1 0.26",
+      "source": "own design"
+    },
+    {
+      "id": "dfd.gsStore",
+      "label": "Data Store (Gane-Sarson)",
+      "category": "Gane-Sarson",
+      "outline": "path",
+      "w": 150,
+      "h": 44,
+      "fill": "#ffffff",
+      "line": "#84523c",
+      "keywords": [
+        "file",
+        "store"
+      ],
+      "path": "M 1 0 L 0 0 L 0 1 L 1 1",
+      "detail": "M 0.18 0 L 0.18 1",
+      "source": "own design"
+    },
+    {
+      "id": "dfd.gsEntity",
+      "label": "External Entity (Gane-Sarson)",
+      "category": "Gane-Sarson",
+      "outline": "path",
+      "w": 120,
+      "h": 64,
+      "fill": "#eef1f4",
+      "line": "#46535f",
+      "keywords": [
+        "source",
+        "sink"
+      ],
+      "path": "M 0 0 L 0.94 0 L 0.94 0.9 L 0 0.9 Z",
+      "detail": "M 0.94 0.1 L 1 0.1 L 1 1 L 0.06 1 L 0.06 0.9",
+      "source": "own design"
+    }
+  ],
+  "connectorTypes": [
+    {
+      "id": "dfd.flow",
+      "label": "Flow",
+      "category": "Flow",
+      "route": "curved",
+      "startArrow": "none",
+      "endArrow": "triangle",
+      "dash": "solid",
+      "lineWidth": 1.5,
+      "line": "#3a4a5c",
+      "keywords": [
+        "data",
+        "arrow"
+      ],
+      "relationshipType": "dfd.Flow"
+    },
+    {
+      "id": "dfd.flowSquare",
+      "label": "Flow (square)",
+      "category": "Flow",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "triangle",
+      "dash": "solid",
+      "lineWidth": 1.5,
+      "line": "#3a4a5c",
+      "keywords": [
+        "data",
+        "arrow"
+      ],
+      "relationshipType": "dfd.Flow"
+    }
+  ],
+  "elementTypes": [
+    {
+      "id": "dfd.ExternalEntity",
+      "label": "External Entity",
+      "description": "Someone or something outside the system that sends or receives data.",
+      "glyph": "dfd.entity",
+      "allowedParents": [
+        "dfd.TrustBoundary",
+        "top"
+      ]
+    },
+    {
+      "id": "dfd.Process",
+      "label": "Process",
+      "description": "Transforms incoming data into outgoing data; numbered.",
+      "glyph": "dfd.process",
+      "allowedParents": [
+        "dfd.TrustBoundary",
+        "top"
+      ]
+    },
+    {
+      "id": "dfd.DataStore",
+      "label": "Data Store",
+      "description": "Data at rest that processes read and write.",
+      "glyph": "dfd.store",
+      "allowedParents": [
+        "dfd.TrustBoundary",
+        "top"
+      ]
+    },
+    {
+      "id": "dfd.TrustBoundary",
+      "label": "Trust Boundary",
+      "description": "Where the level of trust changes; flows that cross it deserve a look.",
+      "glyph": "dfd.boundary",
+      "container": true,
+      "allowedParents": [
+        "dfd.TrustBoundary",
+        "top"
+      ]
+    }
+  ],
+  "relationshipTypes": [
+    {
+      "id": "dfd.Flow",
+      "label": "Flow",
+      "description": "Data moving from one element to another, named for what it carries.",
+      "endArrow": "triangle"
+    }
+  ],
+  "connections": [
+    {
+      "source": [
+        "dfd.Process"
+      ],
+      "relationship": "dfd.Flow",
+      "target": [
+        "dfd.Process",
+        "dfd.ExternalEntity",
+        "dfd.DataStore"
+      ]
+    },
+    {
+      "source": [
+        "dfd.ExternalEntity",
+        "dfd.DataStore"
+      ],
+      "relationship": "dfd.Flow",
+      "target": [
+        "dfd.Process"
+      ]
+    }
+  ],
+  "palette": [
+    {
+      "id": "dfd.elements",
+      "label": "Data Flow",
+      "types": [
+        "dfd.ExternalEntity",
+        "dfd.Process",
+        "dfd.DataStore",
+        "dfd.TrustBoundary"
+      ]
+    }
+  ],
+  "viewpoints": [
+    {
+      "id": "dfd.Context",
+      "label": "Context",
+      "description": "The system as one process and the external entities around it.",
+      "types": [
+        "dfd.ExternalEntity",
+        "dfd.Process"
+      ],
+      "relationships": [
+        "dfd.Flow"
+      ]
+    },
+    {
+      "id": "dfd.Level",
+      "label": "Level",
+      "description": "One level of decomposition: processes, stores and flows.",
+      "types": [
+        "*"
+      ],
+      "relationships": [
+        "dfd.Flow"
+      ]
+    },
+    {
+      "id": "dfd.Threat",
+      "label": "Threat",
+      "description": "A level drawn with trust boundaries for threat modelling.",
+      "types": [
+        "*"
+      ],
+      "relationships": [
+        "dfd.Flow"
+      ]
+    }
+  ],
+  "identifiers": [
+    {
+      "id": "dfd.process",
+      "types": [
+        "dfd.Process"
+      ],
+      "format": "{n}",
+      "unique": true,
+      "autoNumber": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "dfd.illegalFlow",
+      "description": "Data flows through a process: never straight between entities and stores.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "illegalRelationship"
+      }
+    },
+    {
+      "id": "dfd.processHasInput",
+      "description": "A process with outputs and no inputs makes data from nothing (a miracle).",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "minIncoming",
+        "types": [
+          "dfd.Process"
+        ],
+        "relationship": "dfd.Flow",
+        "min": 1
+      }
+    },
+    {
+      "id": "dfd.processHasOutput",
+      "description": "A process with inputs and no outputs swallows data (a black hole).",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "minOutgoing",
+        "types": [
+          "dfd.Process"
+        ],
+        "relationship": "dfd.Flow",
+        "min": 1
+      }
+    },
+    {
+      "id": "dfd.storeUsed",
+      "description": "Data written to a store is read by some process.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "minOutgoing",
+        "types": [
+          "dfd.DataStore"
+        ],
+        "relationship": "dfd.Flow",
+        "min": 1
+      }
+    },
+    {
+      "id": "dfd.flowLabelled",
+      "description": "Every flow is named for the data it carries.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "labelled",
+        "types": [
+          "dfd.Flow"
+        ]
+      }
+    },
+    {
+      "id": "dfd.duplicateProcess",
+      "description": "Process numbers are unique.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "duplicateIdentifier",
+        "scope": "dfd.process"
+      }
+    },
+    {
+      "id": "dfd.nesting",
+      "description": "Elements sit at the top or inside trust boundaries.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "nestingAllowed",
+        "drawn": true
+      }
+    },
+    {
+      "id": "dfd.viewpoint",
+      "description": "Pages show only the types their viewpoint allows.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "viewpointType"
+      }
+    }
+  ],
+  "rulesets": [
+    {
+      "id": "dfd.dfd",
+      "label": "Data flow",
+      "description": "The balancing rules of data flow diagrams.",
+      "rules": [
+        "dfd.illegalFlow",
+        "dfd.processHasInput",
+        "dfd.processHasOutput",
+        "dfd.storeUsed",
+        "dfd.flowLabelled",
+        "dfd.duplicateProcess",
+        "dfd.nesting",
+        "dfd.viewpoint"
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "id": "dfd.yourdon",
+      "label": "Yourdon and DeMarco",
+      "description": "Circles for processes, parallel lines for stores."
+    },
+    {
+      "id": "dfd.ganeSarson",
+      "label": "Gane and Sarson",
+      "description": "Rounded processes with a number band, open stores with an id cell, shadowed entities.",
+      "glyphs": {
+        "dfd.Process": "dfd.gsProcess",
+        "dfd.DataStore": "dfd.gsStore",
+        "dfd.ExternalEntity": "dfd.gsEntity"
+      },
+      "connectors": {
+        "dfd.Flow": "dfd.flowSquare"
+      }
+    }
+  ],
+  "templates": []
+}
