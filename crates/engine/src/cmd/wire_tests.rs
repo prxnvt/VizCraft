@@ -31,7 +31,9 @@ fn wire_and_device() -> (Session, String, String) {
 #[test]
 fn splice_then_heal_gives_back_the_original_route() {
     let (mut s, w, dev) = wire_and_device();
-    let before = route_polyline(&s.doc.pages[0], s.doc.pages[0].connector(&w).unwrap());
+    // The wire as drawn, before the device was set down on it (it routes around the device until
+    // the splice glues it in).
+    let before = vec![Point::new(0.0, 100.0), Point::new(400.0, 100.0)];
     let r = one_step(&mut s, "wire.splice", json!({"shape": dev}));
     let halves: Vec<String> = r["connectors"].as_array().unwrap().iter().map(|x| x.as_str().unwrap().to_string()).collect();
     let page = &s.doc.pages[0];
@@ -47,6 +49,60 @@ fn splice_then_heal_gives_back_the_original_route() {
     assert_eq!(page.connectors.len(), 1);
     assert_eq!(route_polyline(page, page.connector(&w).unwrap()), before, "the route is the one before the splice");
     assert_eq!(s.doc.model.nets.len(), 1, "the half's net went with it");
+}
+
+/// Whether any run of `poly` passes through the inside of `r` (shrunk a little, so a run along
+/// an edge or ending on it does not count).
+fn crosses(poly: &[Point], r: vizcraft_diagram::Rect) -> bool {
+    let inner = r.inflate(-1.0);
+    poly.windows(2).any(|s| {
+        (0..=20).any(|i| {
+            let t = f64::from(i) / 20.0;
+            inner.contains(Point::new(s[0].x + (s[1].x - s[0].x) * t, s[0].y + (s[1].y - s[0].y) * t))
+        })
+    })
+}
+
+#[test]
+fn a_wire_drawn_without_bends_routes_around_shapes_and_drawn_bends_are_kept() {
+    // Found by the user: a wire ran straight through a valve on its way to a pin, where a
+    // connector routes around the shape.
+    let mut s = blank();
+    let add = |s: &mut Session, x: f64, y: f64, w: f64, h: f64| {
+        let r = run(s, "shape.add", json!({"stencil": "basic.rectangle", "x": x, "y": y, "w": w, "h": h}));
+        r["id"].as_str().unwrap().to_string()
+    };
+    let a = add(&mut s, 0.0, 0.0, 40.0, 40.0);
+    let b = add(&mut s, 400.0, 0.0, 40.0, 40.0);
+    let wall = add(&mut s, 180.0, -100.0, 40.0, 240.0);
+    for id in [&a, &b] {
+        s.doc.pages[0].shape_mut(id).unwrap().connection_points = vec![Point::new(1.0, 0.5), Point::new(0.0, 0.5)];
+    }
+    let w = run(&mut s, "wire.draw", json!({"from": {"shape": a, "point": 0}, "to": {"shape": b, "point": 1}}));
+    let page = &s.doc.pages[0];
+    let c = page.connector(w["id"].as_str().unwrap()).unwrap();
+    assert!(c.avoid, "a wire without bends avoids shapes");
+    let poly = route_polyline(page, c);
+    assert!(!crosses(&poly, page.shape(&wall).unwrap().bounds()), "the wire goes around the wall: {poly:?}");
+    // Splitting it at a junction keeps both halves routing around shapes.
+    let mid = poly.windows(2).max_by(|x, y| x[0].distance(x[1]).total_cmp(&y[0].distance(y[1]))).map(|s| s[0].midpoint(s[1])).unwrap();
+    run(&mut s, "wire.draw", json!({"from": {"connector": w["id"], "x": mid.x, "y": mid.y}, "to": {"x": mid.x, "y": mid.y - 300.0}}));
+    let net = w["net"].as_str().unwrap();
+    let halves: Vec<_> = s.doc.pages[0].connectors.iter().filter(|c| c.net.as_deref() == Some(net) && c.id != w["id"].as_str().unwrap()).collect();
+    assert!(s.doc.pages[0].connector(w["id"].as_str().unwrap()).unwrap().avoid && halves.iter().any(|c| c.avoid));
+    // Bends someone placed are kept as drawn, through the wall if that is what they drew.
+    let kept = run(
+        &mut s,
+        "wire.draw",
+        json!({"from": {"x": 0, "y": 300}, "to": {"x": 400, "y": 320}, "points": [{"x": 200, "y": 300}, {"x": 200, "y": 320}]}),
+    );
+    let c = s.doc.pages[0].connector(kept["id"].as_str().unwrap()).unwrap();
+    assert!(!c.avoid);
+    assert_eq!(c.waypoints, vec![Point::new(200.0, 300.0), Point::new(200.0, 320.0)]);
+    // A page set never to avoid shapes draws wires that keep their straight runs.
+    run(&mut s, "page.setRouting", json!({"avoid": "never"}));
+    let straight = run(&mut s, "wire.draw", json!({"from": {"x": 0, "y": 500}, "to": {"x": 400, "y": 500}}));
+    assert!(!s.doc.pages[0].connector(straight["id"].as_str().unwrap()).unwrap().avoid);
 }
 
 #[test]

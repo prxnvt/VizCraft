@@ -64,9 +64,9 @@ impl RoutingPolicy {
 }
 
 /// Whether `c` routes around shapes on `page`: the page policy says always, or the connector's
-/// own flag is set. A net segment (a connector with `net` set) follows its own flag only: wires
-/// and pipes keep the bends they were drawn with, as in every schematic editor, even on a page
-/// whose policy is to always avoid.
+/// own flag is set. A net segment (a connector with `net` set) follows its own flag only, so a
+/// wire drawn with bends keeps them even on a page whose policy is to always avoid; `wire.draw`
+/// sets the flag on a wire drawn without bends on such a page, so it routes like any connector.
 pub fn routes(page: &Page, c: &Connector) -> bool {
     if c.net.is_some() {
         return c.avoid;

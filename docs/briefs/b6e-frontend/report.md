@@ -49,6 +49,21 @@ net returns when the pointer leaves the wires (`draw/nets.rs::highlighted`,
 `interact/nets.rs::status`; regression test
 `hovering_another_wire_shows_its_net_while_one_is_held`, which fails on the old code).
 
+Second round, from the user's look at a wire to a valve port: wires ran straight through
+symbols, because wave 1 made net segments exempt from the page's avoid-shapes policy (they kept
+their drawn bends). Now `wire.draw` without `points`, on a page whose routing avoids shapes (the
+default), sets the wire's own `avoid` flag, so it leaves each pin outward and routes around
+shapes like any connector; a wire drawn with `points`, and every wire on a page set to
+`avoid: never`, keeps its bends as before, and wires in older files are unchanged. Splitting at a
+junction (`net::split_at`) and splicing a device (`wire.splice`) keep the flag on both halves and
+let the router route them afresh; splice matches the device's pins against the wire's route
+without the device, since an avoiding wire has already turned aside from it. Healing
+(`net::join`) keeps the flag only when both halves had it. Test
+`a_wire_drawn_without_bends_routes_around_shapes_and_drawn_bends_are_kept`; the splice and heal
+test now compares against the straight wire as drawn. This reverses the substrate brief's
+decision that wires never follow the page policy: for docs/parity.md and docs/architecture.md,
+a wire routes around shapes unless it was drawn with bends or its page never avoids.
+
 ## Engine changes in this branch (all small)
 
 | File | Change |
@@ -92,8 +107,6 @@ and `notation/packs/sheet.json` if wave 2 touches it.
 - Moving a shape does not snap to the page module grid yet; `sheet.set` does not set a module,
   so on a fresh sheet the Wire tool snaps only once `page.setModule` is used.
 - Nets get numbers only through `net.renumber` (Nets tab or command); a new net has none.
-- After R on a symbol, the glued wire's orthogonal route can run back along the symbol's lead
-  before turning (routing, not this branch).
 - Net numbers on vertical wires are drawn turned with the wire, as the SVG export does.
 - The Nets tab's Name column shows the net id when the net has no name.
 - The Valve button's icon is a placeholder (an omega shape), to be replaced in `b6e-ux`.
