@@ -12,8 +12,9 @@ standard-conforming diagram. The four research notes behind it, with a source li
 claim, are in [ee-me/](ee-me/): [electrical.md](ee-me/electrical.md),
 [process-fluid.md](ee-me/process-fluid.md), [mechanical.md](ee-me/mechanical.md) and
 [tool-ux.md](ee-me/tool-ux.md). Recommendations marked "(synthesis)" are this report's design
-proposals; every other claim is sourced in those notes. Nothing here is approved; the block
-proposal at the end needs a decision.*
+proposals; every other claim is sourced in those notes. The block proposal at the end and every
+recommendation in its decisions table were approved by the owner on 2026-10-19; the approval and
+how the block runs are recorded in [docs/cascade-plan.md](../cascade-plan.md).*
 
 ## Summary
 
@@ -376,7 +377,7 @@ part, cable and I/O lists under the re-import contract, so agents bring existing
 in rather than redrawing it. The Code pane of the swe report hosts the text form with a grammar
 per viewpoint.
 
-## Proposed Block 6E: electrical and mechanical engineering (synthesis)
+## Block 6E: electrical and mechanical engineering (synthesis, approved)
 
 Block 6 (approved) covers software templates and packs; this is the sibling block for the two
 disciplines here. It needs Block 5 merged (path glyphs, ports, variants, end labels, tables,

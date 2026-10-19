@@ -52,8 +52,9 @@ worktree. Report in at most 15 lines: commits, command ids added, doc rows to ch
 | 3 Workspace (ROADMAP 4B) | 1, 2A pages, 2B Shape Data pane, 2C (conformance profile and `Issue.fixes`, connector kinds, `describe`, disk packs) | 4 |
 | 4 Visio extras | 1, 2A, 2B, 2C board frame (`b4-fixes`); inside the block `b4-pictures` needs `b4-shapeops` merged | 3 |
 | 5 Generators and glyphs (ROADMAP 5A, 5B) | 1, 3 dock, 4 table reader (`b4-datagfx`) | late 3 and 4 |
-| 6E Electrical and mechanical engineering (proposed) | 5 (path glyphs, ports, variants, tables, patterns); wave 2 needs Block 6's templates, key and title block | Block 6 wave 1 |
-| 7 First deep packs (ROADMAP 6) | 5 (glyphs for drawing, patterns and codegen for generator pieces); 6E if approved (P&ID, loops and the electrical pack move there) | 8 once a track's first pack lands |
+| 6 Templates and the engineering workspace | 5 (path glyphs, variants, end labels, layout primitives, patterns, re-import) | 6E wave 1; 7 once the UML and C4 packs land |
+| 6E Electrical and mechanical engineering | 5 (path glyphs, ports, variants, tables, patterns); wave 2 needs `b6-templates` and `b6-topology` (templates, key and title block) merged | Block 6 wave 1 |
+| 7 First deep packs (ROADMAP 6) | 5 (glyphs for drawing, patterns and codegen for generator pieces); 6 (the enterprise track builds on the C4, ER, UML and DFD packs); 6E (the industrial track builds on the `process` and `electrical` packs) | 8 once a track's first pack lands |
 | 8 Second-wave packs and interop (ROADMAP 7 plus new standards) | 7 per track | 9 |
 | 9 General pack and broad interop (ROADMAP 8) | 2B containers, 5 patterns | 8 |
 
@@ -1332,9 +1333,27 @@ their R lanes and `toTable` returns the same rows; that a parent-id table builds
 reparented element syncs back; that an ambiguous model refuses; a kittest test for Sync;
 `hostile_params_never_panic` green with junk tables; `cargo xtask ci` green.
 
-## Block 6E: electrical and mechanical engineering (proposed, not approved)
+## Block 6: templates and the engineering workspace (approved, briefs after Block 5)
 
-Proposed on 2026-10-19 in
+Approved by the user on 2026-10-19 as proposed in
+[docs/research/swe-diagramming-ux.md](research/swe-diagramming-ux.md), which holds the UX
+review, the standards digest, the template catalogue, the branch table and the decisions the
+block needs. In one paragraph: a template system (pack viewpoint plus seeded skeleton, layout,
+key and code form) behind a New gallery with previews, an engineering workspace preset, a Code
+pane that keeps Mermaid, DBML or Structurizr DSL text and the canvas in sync, an Analyze group
+(dependencies, cycles, unreachable, single points of failure, metrics, model diff), and the first
+engineering packs: C4, UML (class, sequence, state, activity, use case, component, deployment,
+package), entity-relationship in four notations, generic cloud and network topology, and data
+flow with trust boundaries. Nine branches (`b6-templates`, `b6-analysis`, `b6-uml`,
+`b6-sequence`, `b6-er`, `b6-topology`, `b6-ux` in wave 1; `b6-c4`, `b6-code` in wave 2), ports
+8061 to 8069, after Block 5 is merged. With the approval, C4, ER and UML left Block 7's
+enterprise track and the cloud and network packs left Block 8 (the tables below are updated).
+The briefs are written against the merged Block 5 code, the way Block 5's were against Block 4,
+and only then; the research document's branch table is the scope until that point.
+
+## Block 6E: electrical and mechanical engineering (approved, briefs after Block 5)
+
+Approved by the user on 2026-10-19 as proposed in
 [docs/research/ee-me-diagramming-standards.md](research/ee-me-diagramming-standards.md), which
 holds the standards digest (IEEE 315 and 91, IEC 60617, 61082 and 81346, JIC and NEMA ICS 19,
 IEEE C37.2, ISA-5.1 and 5.4, ISO 10628 and 14617, PIP PIC001, DEXPI, ISO 1219, ASME Y14 and
@@ -1351,9 +1370,35 @@ groups for wires, sheets and reports, a Sheets navigator and Nets branch, and th
 electrical rule check, loop, fluid power, mobility and reliability analyses with the document
 set as live tables. Eight branches (`b6e-substrate`, `b6e-sheets`, `b6e-builders` in wave 1;
 `b6e-electrical`, `b6e-process`, `b6e-fluidpower`, `b6e-mechanical`, `b6e-ux` in wave 2), ports
-8071 to 8078, after Block 5 is merged and beside Block 6. If approved, the P&ID and PFD, lists
-and loop pieces leave Block 7's industrial track and the electrical pack leaves Block 8; the
-briefs are then written against the merged Block 5 code.
+8071 to 8078. With the approval, the P&ID and PFD, lists and loop pieces left Block 7's
+industrial track, the electrical pack left Block 8 and IDEF0 left Block 8's enterprise track (the
+tables below are updated). The briefs are written against the merged Block 5 code.
+
+Decisions, all as the research recommends: nets are model objects with an index rebuilt by the
+sync pass; parametric glyphs are code builders keyed by name from the pack; the symbol standard
+is chosen per project with a per-page override through the Block 5 variant and a rule that
+reports mixed sets on a sheet; title block fields use the ISO 7200 names and limits as canonical
+keys with the ASME extras optional; every glyph carries a mandatory `source` provenance string
+checked by `cargo xtask assets`; glyphs are drawn from written descriptions and public domain US
+government documents only, with Wikimedia Commons, QElectroTech and KiCad files used to check
+geometry, never as artwork; IEC 61131-3 ladder and function block programming stays in Block 7.
+Engineering keys are bare letters, as in KiCad and EPLAN: R rotates, X and Y mirror, W starts a
+wire and P a pipe; they fire only while the canvas has focus and no text is being edited, and
+each is a command in the palette. These are the first bare-letter shortcuts in the app, so
+`b6e-substrate` extends the key dispatcher and its shortcut test to support them.
+
+## How Blocks 6 and 6E run
+
+Decided on 2026-10-19. Both blocks integrate on the branch
+`claude/engineering-diagramming-standards-305d6b`, not on main: agent branches start from that
+branch, the session that owns it merges them back into it, runs `cargo xtask ci` and updates
+ROADMAP.md, docs/parity.md, docs/mcp.md and docs/formats.md there, and main is left alone until
+the user says to bring the work over. The integration branch first takes the merged Block 5 main.
+Models follow the branch tables (Opus or Sonnet per branch), at medium effort, at most five
+agents at once; Block 6 wave 1 (seven branches) and Block 6E wave 1 (three branches) run as one
+pool of ten, five at a time. After each wave is merged the session stops and hands the user a
+test checklist and a launch command, and starts the next wave only on the user's go-ahead.
+
 
 ## Block 7: first deep packs (ROADMAP Cascade 6, three tracks)
 
@@ -1363,8 +1408,8 @@ fit an existing pack:
 | Track | Branches in order | Added from TODO |
 |---|---|---|
 | Systems | statechart and SCXML; statechart code targets; register, memory and packet maps; timing; embedded patterns | none |
-| Enterprise | C4; ER with DDL; UML; BPMN; DFD and threat model; API and events; enterprise patterns | UML pack covers all 14 UML 2.5 diagrams (object, package, profile, composite structure, communication, interaction overview added); ER draws in IE, Chen, Barker and IDEF1X; DFD draws in Yourdon and DeMarco and Gane and Sarson, with Ward and Mellor control flows; Flowchart pack completed to the ISO 5807 symbol set |
-| Industrial | P&ID and PFD; industrial lists; loops and I/O; cause-and-effect and logic; SFC and control modules; industrial patterns | Ladder Diagram and Function Block Diagram packs (IEC 61131-3) beside SFC, emitting Structured Text |
+| Enterprise | DDL export and import over the Block 6 ER pack; BPMN; STRIDE threat lists and pytm over the Block 6 DFD pack; API and events; UML code skeletons and the remaining UML diagrams (communication, interaction overview, timing, composite structure, profile) over the Block 6 UML pack; enterprise patterns | DFD gains Ward and Mellor control flows; Flowchart pack completed to the ISO 5807 symbol set. C4, ER in four notations, UML (class, sequence, state, activity, use case, component, deployment, package) and DFD drawing moved to Block 6 on 2026-10-19 |
+| Industrial | cause-and-effect and logic; SFC and control modules; industrial patterns; all over the Block 6E `process` and `electrical` packs | Ladder Diagram and Function Block Diagram packs (IEC 61131-3) beside SFC, emitting Structured Text, on the Block 6E ladder rails and rungs. P&ID and PFD, the industrial lists and loops and I/O moved to Block 6E on 2026-10-19 |
 
 ## Block 8: second-wave packs and interop (ROADMAP Cascade 7 plus new standards)
 
@@ -1373,8 +1418,8 @@ ROADMAP 7 scope, plus the standards in TODO Part 2 that no cascade covered:
 | Track | New packs |
 |---|---|
 | Systems | SysML (block definition, internal block, parametric, requirements; shares the component and port model); AADL graphical notation; OPM with generated OPL sentences; FMC; SDL (on the statechart model); Petri nets with a token simulator |
-| Enterprise | DMN (decision requirements diagrams, decision tables, a FEEL subset that evaluates); CMMN; EPC with alternation and connector rules; IDEF0 (ICOM boxes, decomposition) and IDEF3, with SADT as an IDEF0 variant; value stream map with lead time totals; framework matrix view (Zachman-style interrogatives against perspectives, in our own wording) and UAF views over SysML |
-| Industrial and network | Generic cloud architecture pack (region, zone, network, subnet, security group, cluster containers, generic glyphs only); network topology with physical and logical views, VLANs and routing domains |
+| Enterprise | DMN (decision requirements diagrams, decision tables, a FEEL subset that evaluates); CMMN; EPC with alternation and connector rules; IDEF3, and SADT as a variant of the Block 6E `idef0` pack; value stream map with lead time totals; framework matrix view (Zachman-style interrogatives against perspectives, in our own wording) and UAF views over SysML |
+| Industrial and network | ISA-88/95 per ROADMAP 7; the electrical pack moved to Block 6E on 2026-10-19. The generic cloud architecture pack and the network topology pack moved to Block 6 on 2026-10-19; this track adds reverse engineering into them (Kubernetes and Compose manifests, Terraform) |
 
 ## Block 9: General pack and broad interop (ROADMAP Cascade 8)
 
@@ -1401,7 +1446,7 @@ Excluded, with the reason, unless you say otherwise:
 | Translate, Thesaurus | External service; no suitable open thesaurus chosen | Spelling only (`b4-review`) |
 | 3-D rotation, bevel, reflection effects | Decorative, against the professional direction | Shadow, soft edges, glow (`b2-styles`) |
 | Share by email, present online, Account and Office themes | Service and account features | App light and dark theme (done) |
-| Cloud provider icon sets | AGENTS.md forbids vendor icons | Generic cloud architecture pack (Block 8) |
+| Cloud provider icon sets | AGENTS.md forbids vendor icons | Generic cloud architecture pack (Block 6) |
 
 Decisions needed before their block starts:
 

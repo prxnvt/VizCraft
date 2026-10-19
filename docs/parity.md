@@ -168,10 +168,26 @@ When a feature lands, change its State in the same commit as the code. States:
 | Flowchart | 1 | done | Flowchart stencil set in the Shapes pane and Insert tab |
 | Cross-functional flowchart | 8 | planned | Template on swimlanes from Cascade 2 |
 | Org chart | 8 | planned | Stencils and a CSV-driven template |
-| UML | 6 | planned | Class, sequence, state, activity, use case |
+| UML | B6 | planned | Class, sequence, state, activity, use case, component, deployment, package (B6); communication, interaction overview, timing, composite structure, profile (7); see docs/research/swe-diagramming-ux.md |
 | BPMN | 6 | planned | Events, activities, gateways, pools and lanes |
-| ER | 6 | planned | Entities and crow's foot relationships |
-| Network | 8 | planned | Generic devices drawn originally; no vendor brand icons |
+| ER | B6 | planned | One pack with Information Engineering, Chen, Barker and IDEF1X variants; typed column rows; DBML read and write; DDL in Block 7 |
+| Network | B6 | planned | Physical and logical views over one model, VLAN ids, zones; generic devices drawn originally; no vendor brand icons |
+| Cloud topology | B6 | planned | Vendor-neutral boundary groups with nesting rules, node glyphs, request and event lines, numbered step badges, a key; Mermaid architecture-beta read and write |
+| Data flow | B6 | planned | Yourdon and DeMarco and Gane and Sarson variants, trust boundaries; STRIDE lists in Block 7 |
+| Templates | B6 | planned | `Pack.templates` (viewpoint, seed script, layout, key, code forms), `template.list`, `template.new`, the New gallery with previews and Recent |
+| Engineering workspace preset | B6 | planned | `ui.preset {engineering or office}`: rulers, grid, page frame, pane and Home tab defaults |
+| Code pane | B6 | planned | The page as Mermaid, DBML or Structurizr DSL text in sync with the canvas; `code.read`, `code.write`; PlantUML and D2 writers |
+| Analysis | B6 | planned | `analyze.dependencies`, `cycles`, `unreachable`, `spof`, `metrics`, `path` and `model.diff`, with canvas highlights and an Analysis dock tab |
+| Key and title block | B6 | planned | Generated key shapes (`key.insert`, `key.refresh`) and a title block shape with fields |
+| Sequence editing | B6 | planned | Lifeline columns, message rows that reorder, fragments spanning lifelines; Mermaid sequence read and write |
+| Fluid power | B6E | planned | The `fluidpower` pack: ISO 1219 hydraulic and pneumatic circuits, valves built from positions, ports and path tables, ISO 9461 and 5599 port sets, displacement-step chart, port and pressure path rules |
+| Mechanical schematics | B6E | planned | The `mechanical` pack: ISO 3952 kinematic and transmission diagrams, bond graphs, control block diagrams; `mech.mobility`, `mech.ratio` |
+| Sheets and title blocks | B6E | planned | The `sheet` pack: ISO 5457 and ASME Y14.1 frames with zones, ISO 7200 title block fields bound to document properties, revision table, parts list and balloons; ANSI A to E and ISO A0 to A2 presets; `sheet.*` |
+| Engineering annotation | B6E | planned | The `annotation` pack: feature control frames and datums (ASME Y14.5 or ISO 1101), welding symbols (AWS A2.4 or ISO 2553), surface texture |
+| Reliability | B6E | planned | The `reliability` pack: fault trees, reliability block diagrams, event trees, FMEA table; `rel.cutsets`, `rel.availability` |
+| IDEF0 | B6E | planned | The `idef0` pack: ICOM boxes and decomposition pages with the FIPS 183 rules; IDEF3 and SADT in Block 8 |
+| Nets and junctions | B6E | planned | Wires and pipes as nets with numbers, junctions where a wire ends on a wire, the Wire and Pipe tools on the symbol grid, net highlight; `net.*` |
+| Symbol orientation and parametric glyphs | B6E | planned | Quarter-turn rotation and mirroring with upright labels on R, X and Y; glyphs built from properties (contacts, coils, ISA bubbles, valves, cylinders, pumps, gates, feature control frames, welds) |
 | Timeline | 8 | planned | Timeline shapes and template |
 
 ## Review
@@ -240,11 +256,11 @@ When a feature lands, change its State in the same commit as the code. States:
 | Auto-numbering | 4A | done | Loop numbers, line numbers and designations handed out by the registry |
 | Uniqueness checks | 4A | partly done (4A) | Duplicate tags raise a live issue; the Inspector checks a tag as you type through `element.checkTag {id, tag}` (B3) |
 | Composed identifiers | 4A | done | Identifier formats declared by the pack (for example `{letters}-{n:3}`), composed and auto-numbered by the registry |
-| ISA-5.1 tags and composed line numbers | 6 | planned | Configurable formats in the P&ID pack, not hardcoded letter tables |
-| IEC 81346 reference designations | 7 | planned | Electrical pack |
+| ISA-5.1 tags and composed line numbers | B6E | planned | Configurable formats in the P&ID pack, not hardcoded letter tables |
+| IEC 81346 reference designations | B6E | planned | Electrical pack |
 | Off-page connector pairing | 4A | done | Paired objects, matched by identifier |
 | Unmatched off-page detection | 4A | done | An off-page connector with no continuation raises an issue |
-| Cross-reference display | 7 | planned | Live cross-references between paired items in the electrical pack |
+| Cross-reference display | B6E | planned | `CrossReference` relationships (contact to coil, off-sheet pairs) drawn as sheet and zone on both ends; `xref.list`, `xref.go` |
 | Flowchart rules | 4A | done | Unconnected connectors and dangling decisions, declared in the Flowchart pack; grouped in the `flowchart.iso5807` ruleset with standard references (2C) |
 | Conformance profile | 2C | done | `Document.conformance`: on or off, chosen rulesets (a pack id means every rule of the pack), severity overrides, suppressions by issue key; `validate.setProfile`, `validate.suppress`; a profile the user never set behaves as before (every rule of the packs in use) |
 | Rulesets and references | 2C | done | Packs declare named rulesets; every rule may cite its standard; `notation.rulesets`, `validate.explain {rule}` |
@@ -256,7 +272,7 @@ When a feature lands, change its State in the same commit as the code. States:
 | Issue navigation | 2C | done | `validate.next`, `validate.previous` select the issue's items on their page; ribbon buttons in wave 2 |
 | Statechart checks | 6 | planned | Unreachable states, dead ends, unknown events |
 | Memory map checks | 6 | planned | Overlap, alignment, overflow |
-| Cross-sheet continuity | 6 | planned | P&ID batch rule |
+| Cross-sheet continuity | B6E | planned | P&ID batch rule |
 | Port compatibility | 7 | planned | Component and port architecture pack |
 
 ## Patterns
@@ -317,12 +333,12 @@ When a feature lands, change its State in the same commit as the code. States:
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| P&ID and PFD | 6 | planned | DEXPI-named equipment, nozzles, piping segments, inline valves, instrumentation functions, signal lines |
-| Paired off-page connectors | 6 | planned | On the 4A identity registry |
-| Line, equipment, instrument and valve lists | 6 | planned | Table views; CSV and XLSX |
-| Instrument index and I/O list | 6 | planned | I/O points with signal type, range, rack, slot, channel |
+| P&ID and PFD | B6E | planned | The `process` pack with ISA and ISO 10628 variants; DEXPI-named equipment, nozzles, piping segments, inline valves, instrumentation functions, signal lines |
+| Paired off-page connectors | B6E | planned | On the 4A identity registry |
+| Line, equipment, instrument and valve lists | B6E | planned | Table views; CSV and XLSX |
+| Instrument index and I/O list | B6E | planned | I/O points with signal type, range, rack, slot, channel |
 | Alarm list | 6 | planned | ISA-18.2-shaped |
-| Loops and loop diagrams | 6 | planned | Loops as model objects; loop diagrams generated per loop |
+| Loops and loop diagrams | B6E | planned | Loops as model objects; loop diagrams generated per loop; `loop.trace` |
 | Cause-and-effect matrix | 6 | planned | Matrix view linked to tags; ST Boolean interlocks per row |
 | Interlock and permissive logic trees | 6 | planned | |
 | SFC | 6 | planned | Steps and transitions; ST `CASE` state machines |
@@ -333,7 +349,7 @@ When a feature lands, change its State in the same commit as the code. States:
 | DEXPI Proteus XML | 7 | planned | DEXPI 2.0 once final |
 | AutomationML CAEX | 7 | planned | |
 | ISA-88/95 hierarchy | 7 | planned | Physical and procedural models as an outline; equipment hierarchy CSV; B2MML and BatchML |
-| Electrical | 7 | planned | IEC 81346 designations, contacts and coils with cross-references, terminals, wires, potentials; terminal, wire and cable lists, BOM |
+| Electrical | B6E | planned | The `electrical` pack with schematic, ladder, one-line, three-line, I/O, panel, interconnection and logic viewpoints and IEC 60617, IEEE 315 and JIC variants; IEC 81346 designations, contacts and coils with cross-references, terminals, wires, potentials; terminal, wire and cable lists, BOM |
 | MTP | Future | planned | Waits for the standard to settle |
 
 ## Embedded and systems pack
@@ -363,7 +379,7 @@ When a feature lands, change its State in the same commit as the code. States:
 
 | Feature | Cascade | State | Notes |
 |---|---|---|---|
-| C4 | 6 | planned | Person, system, container, component, deployment; drill-down |
+| C4 | B6 | planned | Landscape, context, container, component, dynamic (numbered steps) and deployment viewpoints; implied relationships; drill-down levels; Structurizr DSL and Mermaid C4 read and write |
 | Structurizr DSL import and export | 6 | planned | |
 | Mermaid C4 import and Mermaid export | 6 | planned | |
 | Compose and Kubernetes skeletons | 6 | planned | From deployment views |
