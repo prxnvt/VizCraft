@@ -183,13 +183,13 @@ Patterns are generators with typed parameters that emit model elements, not bare
 
 | Piece | Contents | Lands in | State |
 |---|---|---|---|
-| Pattern framework | `vizcraft-patterns`: generator definition with typed parameters (counts, labels, mode enums, tag prefixes, a data table), emits elements and relationships, applies a layout primitive, commits as one compound undo step; the inserted group records pattern id and parameter values (provenance) | `crates/patterns` (new) | planned |
-| Pattern commands | `pattern.list` with a discoverable parameter schema, `pattern.insert(name, args)`, `pattern.reparameterize` (for example a saga from four steps to six) keeping manual label edits; reachable over MCP | `crates/engine/src/cmd/pattern.rs` (new), `crates/mcp` | planned |
+| Pattern framework | `vizcraft-patterns`: generator definition with typed parameters (counts, labels, mode enums, tag prefixes, a data table), emits elements and relationships, applies a layout primitive, commits as one compound undo step; the inserted group records pattern id and parameter values (provenance) | `crates/patterns` (new) | done (Block 5 `b5-patterns`) |
+| Pattern commands | `pattern.list` with a discoverable parameter schema, `pattern.insert(name, args)`, `pattern.reparameterize` (for example a saga from four steps to six) keeping manual label edits; reachable over MCP | `crates/engine/src/cmd/pattern.rs` (new), `crates/mcp` | done (Block 5 `b5-patterns`) |
 | Pins and model order | Pinned nodes and model-order preservation in layered layout, used by `layout.incremental`, re-import and reparameterize | `crates/layout` | done (Block 5 `b5-layout`) |
 | Band and chain primitives | Horizontal bands and swimlanes (partitioned layered), pipeline with a parallel band, two-row forward and compensation chain | `crates/layout` | done (Block 5 `b5-layout`) |
 | Grid and container primitives | Matrix, nested-container packer, hub and spoke, concentric rings, timeline, N-channel voter | `crates/layout` | done (Block 5 `b5-layout`) |
-| Patterns tab | Left dock tab filtered by audience and notation; each entry opens a parameter form | `crates/ui-egui/src/panes.rs` | planned |
-| Starter workflow patterns | Workflow Patterns fragments over the Flowchart pack (parallel split, exclusive choice, N-of-M join, multiple instances, cancel region), proving the framework before the audience packs | `crates/patterns` | planned |
+| Patterns tab | Left dock tab filtered by audience and notation; each entry opens a parameter form | `crates/ui-egui/src/panes.rs` | done (Block 5 `b5-patterns`) |
+| Starter workflow patterns | Workflow Patterns fragments over the Flowchart pack (parallel split, exclusive choice, N-of-M join, multiple instances, cancel region), proving the framework before the audience packs | `crates/patterns` | done (Block 5 `b5-patterns`) |
 
 Done when: a parallel split with N branches inserts as model elements laid out by the pipeline
 primitive in one undo step, `pattern.reparameterize` changes N while keeping edited labels, and an
