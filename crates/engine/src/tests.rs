@@ -124,6 +124,8 @@ fn hostile_params_never_panic() {
         json!({"script": "not json", "commands": []}),
         json!({"bytes": "!!not base64!!", "id": "s2", "crop": {"x": "a", "w": -1e308}, "points": [[1e308, "x"], {}], "mediaType": "image/gif", "maxDimension": -5, "quality": 1e300, "recolor": 7}),
         json!({"instance": "s2", "direction": "fromTable", "table": {"columns": [5, null], "rows": [[{}], "x", null]}, "path": "/nonexistent/\u{0}.csv", "source": "\u{0}", "merge": "yes", "type": 7}),
+        json!({"sheet": "iso.a9.sideways", "standard": 5, "size": "zz", "zones": {"cols": 1e9, "rows": "a"}, "number": 1e300, "key": "\u{0}", "value": [1], "part": "s2", "kind": "fancy", "description": "x".repeat(5000)}),
+        json!({"sheet": "asme.e.portrait", "zones": {"cols": 99, "rows": 24}, "number": 9999, "key": "title", "value": "x".repeat(70_000), "x": 1e308, "y": -1e308, "index": 1e20, "all": true, "scope": "\u{0}"}),
         nested_batches(40),
     ];
     for spec in reg.all() {
