@@ -20,6 +20,7 @@
 
 pub mod identity;
 pub mod issue;
+pub mod pattern;
 pub mod query;
 mod repair;
 mod serde_util;
@@ -29,6 +30,7 @@ mod types;
 
 pub use identity::{Duplicate, IdFormat, IdScope, Registry, Unmatched};
 pub use issue::{Issue, Severity};
+pub use pattern::PatternInstance;
 pub use types::{Element, Model, ModelError, PackRef, PropValue, Relationship, Removed, View};
 
 /// The model schema version this build writes, and the newest it reads.

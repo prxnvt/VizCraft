@@ -113,11 +113,12 @@ fn row(app: &CraftApp, rows: &[CommandRow<'_>], h: SearchHit) -> Hit {
             let view = h.page.zip(h.shape);
             Hit { kind: h.kind, enabled: view.is_some(), id: h.id, label: h.label, location: h.detail, shortcut: "Element".into(), view }
         }
+        HitKind::Pattern => Hit { kind: h.kind, id: h.id, label: h.label, location: h.detail, shortcut: "Pattern".into(), enabled: true, view: None },
     }
 }
 
-/// Act on a hit: run the command, insert the type at the centre of the view, or select and
-/// reveal the element's shape.
+/// Act on a hit: run the command, insert the type or the pattern at the centre of the view, or
+/// select and reveal the element's shape.
 pub fn act(app: &mut CraftApp, ctx: &egui::Context, h: &Hit) {
     match h.kind {
         HitKind::Command => menus::run_item(app, ctx, &h.id, json!({})),
@@ -125,6 +126,12 @@ pub fn act(app: &mut CraftApp, ctx: &egui::Context, h: &Hit) {
             if let Some(master) = vizcraft_notation::catalog().master_for_type(&h.id) {
                 let at = crate::canvas::insert_point(app);
                 crate::canvas::insert_master(app, master, at);
+            }
+        }
+        // Inserted with its defaults, centred on the view.
+        HitKind::Pattern => {
+            if let Err(e) = app.run("pattern.insert", json!({"pattern": h.id})) {
+                app.status(e);
             }
         }
         HitKind::Element => {

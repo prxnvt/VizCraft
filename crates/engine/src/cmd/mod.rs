@@ -33,6 +33,7 @@ pub mod master;
 pub mod model;
 pub mod notation;
 pub mod page;
+pub mod pattern;
 pub mod picture;
 pub mod print;
 pub mod process;
@@ -92,6 +93,7 @@ pub fn registry() -> Registry {
     v.extend(proof::specs());
     v.extend(report::specs());
     v.extend(table::specs());
+    v.extend(pattern::specs());
     v.extend(document::specs());
     v.extend(notation::specs());
     v.extend(insert::specs());

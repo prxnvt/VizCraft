@@ -1,6 +1,6 @@
 //! The suggestion engine behind insertion on the canvas: what may come next after a shape, which
-//! relationships may join two shapes, and a search over commands, element types and elements for
-//! the command palette.
+//! relationships may join two shapes, and a search over commands, element types, elements and
+//! patterns for the command palette.
 //!
 //! Everything here reads the document and the notation catalog and changes nothing; the
 //! `suggest.*` and `insert.*` commands in `cmd/suggest.rs` wrap it. Suggestions come from the
@@ -61,6 +61,8 @@ pub enum HitKind {
     Type,
     /// An element of the model: selecting and revealing it is the action.
     Element,
+    /// A pattern a loaded pack offers: inserting it with its defaults is the action.
+    Pattern,
 }
 
 impl HitKind {
@@ -70,6 +72,7 @@ impl HitKind {
             HitKind::Command => "command",
             HitKind::Type => "type",
             HitKind::Element => "element",
+            HitKind::Pattern => "pattern",
         }
     }
     /// The kind with this name.
@@ -78,11 +81,12 @@ impl HitKind {
             "command" => Some(HitKind::Command),
             "type" => Some(HitKind::Type),
             "element" => Some(HitKind::Element),
+            "pattern" => Some(HitKind::Pattern),
             _ => None,
         }
     }
     /// Every kind, in the order a search lists them on a tie.
-    pub const ALL: [HitKind; 3] = [HitKind::Command, HitKind::Type, HitKind::Element];
+    pub const ALL: [HitKind; 4] = [HitKind::Command, HitKind::Type, HitKind::Element, HitKind::Pattern];
 }
 
 /// One search hit.
@@ -90,12 +94,12 @@ impl HitKind {
 pub struct SearchHit {
     /// What the hit is.
     pub kind: HitKind,
-    /// Command id, element type id or element id.
+    /// Command id, element type id, element id or pattern id.
     pub id: String,
     /// Label to show.
     pub label: String,
     /// A second line: the command's location and shortcut, the type's pack, the element's tag
-    /// and type.
+    /// and type, the pattern's pack.
     pub detail: String,
     /// For an element: the index of the first page drawing it.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -295,10 +299,10 @@ pub fn types_in_use(doc: &Document) -> Vec<String> {
     out
 }
 
-/// Search `commands`, the element types in use ([`types_in_use`]) and the model's elements by
-/// name or tag for `query` (case-insensitive), keeping the hit kinds in `kinds` (every kind when
-/// empty). Best first: label prefix matches, then label substrings, then other fields; ties keep
-/// commands, types, elements in that order. At most `limit` hits (capped at [`MAX_HITS`]).
+/// Search `commands`, the element types in use ([`types_in_use`]), the model's elements by
+/// name or tag and the patterns the loaded packs offer for `query` (case-insensitive), keeping
+/// the hit kinds in `kinds` (every kind when empty). Best first: label prefix matches, then label
+/// substrings, then other fields; ties keep commands, types, elements, patterns in that order. At most `limit` hits (capped at [`MAX_HITS`]).
 pub fn search(doc: &Document, commands: &[CommandRow<'_>], query: &str, kinds: &[HitKind], limit: usize) -> Vec<SearchHit> {
     let q: String = query.trim().chars().take(MAX_QUERY_CHARS).collect::<String>().to_lowercase();
     let wants = |k: HitKind| kinds.is_empty() || kinds.contains(&k);
@@ -358,7 +362,23 @@ pub fn search(doc: &Document, commands: &[CommandRow<'_>], query: &str, kinds: &
             });
         }
     }
-    // Stable, so each rank keeps commands, types, elements in that order.
+    if wants(HitKind::Pattern) {
+        for p in vizcraft_patterns::available(cat) {
+            let pack = cat.pack(&p.pack).map(|k| k.name.as_str()).unwrap_or_default();
+            if let Some(r) = rank(&q, &p.name, &[&p.id, pack, &p.description]) {
+                hits.push(SearchHit {
+                    kind: HitKind::Pattern,
+                    id: p.id.clone(),
+                    label: p.name.clone(),
+                    detail: format!("{pack} pattern"),
+                    page: None,
+                    shape: None,
+                    rank: r,
+                });
+            }
+        }
+    }
+    // Stable, so each rank keeps commands, types, elements, patterns in that order.
     hits.sort_by_key(|h| h.rank);
     hits.truncate(limit);
     hits

@@ -1123,3 +1123,32 @@ fn picture_adjustments_round_trip_and_junk_is_clamped() {
     let a = back.page().unwrap().shapes[0].image.as_ref().unwrap().adjust;
     assert_eq!(a, Adjust { brightness: 1.0, contrast: 0.0, transparency: 0.0, recolor: Recolor::None });
 }
+
+#[test]
+fn pattern_instances_round_trip_and_hostile_ones_are_sanitised() {
+    let mut doc = modelled();
+    doc.model.patterns.push(vizcraft_diagram::vizcraft_model::PatternInstance {
+        id: "pat1".into(),
+        pattern: "workflow.parallelSplit".into(),
+        args: json!({"branches": 2}),
+        members: [("split".to_string(), "e1".to_string()), ("join".to_string(), "e2".to_string())].into_iter().collect(),
+        generated: [("split".to_string(), "Split".to_string())].into_iter().collect(),
+        page: "page1".into(),
+        group: "g1".into(),
+        frames: Default::default(),
+    });
+    let bytes = save(&doc).unwrap();
+    assert_eq!(load(&bytes).unwrap().model.patterns, doc.model.patterns);
+    let mut v = parse(&bytes);
+    v["model"]["patterns"] = json!([
+        {"id": "pat1", "pattern": "x".repeat(10_000), "args": "junk", "members": {"split": "e1", "ghost": "nope"}},
+        {"id": "pat1"},
+        {"id": ""},
+        42
+    ]);
+    let back = load(&serde_json::to_vec(&v).unwrap()).unwrap();
+    assert_eq!(back.model.patterns.len(), 1);
+    let p = &back.model.patterns[0];
+    assert!(p.pattern.len() <= vizcraft_diagram::vizcraft_model::MAX_KEY);
+    assert_eq!((p.args.clone(), p.members.len()), (json!({}), 1));
+}

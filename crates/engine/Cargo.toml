@@ -12,6 +12,7 @@ workspace = true
 vizcraft-diagram = { workspace = true }
 vizcraft-model = { workspace = true }
 vizcraft-notation = { workspace = true }
+vizcraft-patterns = { workspace = true }
 vizcraft-stencils = { workspace = true }
 vizcraft-formats = { workspace = true }
 thiserror = { workspace = true }

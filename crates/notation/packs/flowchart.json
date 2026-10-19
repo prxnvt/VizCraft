@@ -652,5 +652,12 @@
         "flowchart.unreachable"
       ]
     }
+  ],
+  "patterns": [
+    "workflow.parallelSplit",
+    "workflow.exclusiveChoice",
+    "workflow.nOfMJoin",
+    "workflow.multipleInstances",
+    "workflow.cancelRegion"
   ]
 }

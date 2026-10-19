@@ -1,0 +1,18 @@
+[package]
+name = "vizcraft-patterns"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "VizCraft patterns: generators with typed parameters that emit model elements, relationships and a layout primitive, and the starter workflow patterns"
+
+[lints]
+workspace = true
+
+[dependencies]
+vizcraft-model = { workspace = true }
+vizcraft-notation = { workspace = true }
+vizcraft-layout = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }

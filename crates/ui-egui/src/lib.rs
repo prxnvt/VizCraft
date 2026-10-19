@@ -31,6 +31,7 @@ pub mod page_tabs;
 pub mod palette;
 pub mod panes;
 pub mod paste_special;
+pub mod pattern_dialog;
 pub mod presentation;
 pub mod print_preview;
 pub mod ribbon;
@@ -115,6 +116,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.pane.comments", "Show Comments", "", r#"{"value"?: bool}"#),
     ("ui.pane.panZoom", "Pan and Zoom Pane", "", r#"{"value"?: bool}"#),
     ("ui.pane.documentStencil", "Document Stencil", "", r#"{"value"?: bool}"#),
+    ("ui.pane.patterns", "Patterns Pane", "", r#"{"value"?: bool}"#),
     (
         "ui.paneSide",
         "Move Pane to Side",
@@ -161,6 +163,12 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "Tables",
         "",
         r#"{"view"?: "list|matrix", "type"?: element or relationship type, "rows"?: element type, "cols"?: element type, "relationship"?: relationship type, "property"?: string, "filter"?: string} -> {"view", "type", "rows", "cols", "count"}; opens the dock on the Tables tab showing that list (type; empty is every element) or matrix"#,
+    ),
+    (
+        "ui.patterns",
+        "Patterns",
+        "",
+        r#"{"query"?: string, "pattern"?: pattern id} -> {"query", "audience", "instance", "args", "open"}; query sets the Patterns pane's search (opening it), pattern opens its form"#,
     ),
     (
         "ui.insertPicker",
@@ -399,6 +407,8 @@ pub struct CraftApp {
     pub shapes_query: String,
     /// The Model Tree pane's mode, open rows and rename state (`ui.tree`). Transient.
     pub tree: panes::TreeState,
+    /// The Patterns pane's search, audience filter and instance form (`ui.patterns`). Transient.
+    pub patterns: panes::PatternsState,
     /// The connector kind the connector tool draws (`ui.tool {tool: "connector", kind}`); empty
     /// is the default kind.
     pub connector_kind: String,
@@ -453,6 +463,7 @@ impl CraftApp {
             insertion: Default::default(),
             shapes_query: String::new(),
             tree: Default::default(),
+            patterns: Default::default(),
             connector_kind: String::new(),
             palette_filter: true,
             palette_focus: None,
