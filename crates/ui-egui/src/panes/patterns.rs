@@ -2,14 +2,17 @@
 //! page's pack first, then the others under their pack names, filtered by audience and a search
 //! field. A click opens the pattern form (`crate::pattern_dialog`), whose Insert runs
 //! `pattern.insert`. When the selection belongs to an instance the pane shows that instance's
-//! form with its current arguments and an Apply button running `pattern.reparameterize`.
+//! form with its current arguments and an Apply button running `pattern.reparameterize`; an
+//! instance of a table-driven pattern also gets a Sync button, which runs `pattern.sync
+//! {direction: toTable}` and puts the rows read back from the diagram into the form.
 //!
 //! `ui.patterns {query?, pattern?}` sets the filter or opens the form; `ui.inspect` reports
-//! `patterns: {query, audience, instance?}`.
+//! `patterns: {query, audience, instance?, args?, sync, open}`.
 
 use egui::Ui;
 use serde_json::{Value, json};
 use vizcraft_engine::cmd::pattern::patterns::{self as vizcraft_patterns, Pattern};
+use vizcraft_engine::cmd::pattern::sync::has_table;
 use vizcraft_engine::cmd::pattern::{instance_of_selection, instance_param};
 
 use super::{PaneSpec, Side};
@@ -119,12 +122,22 @@ fn show(app: &mut CraftApp, ui: &mut Ui) {
         if !form.error.is_empty() {
             ui.label(egui::RichText::new(&form.error).color(t.red));
         }
-        let apply = ui.button("Apply").on_hover_text("Regenerate the instance with these values").clicked();
+        let table = has_table(&app.session, &form.instance);
+        let (apply, sync) = ui
+            .horizontal(|ui| {
+                let apply = ui.button("Apply").on_hover_text("Regenerate the instance with these values").clicked();
+                let sync = table && ui.button("Sync").on_hover_text("Read the table back from the diagram into these rows").clicked();
+                (apply, sync)
+            })
+            .inner;
         if apply {
             match pattern_dialog::submit(app, &form) {
                 Ok(_) => form.error.clear(),
                 Err(e) => form.error = e,
             }
+        }
+        if sync {
+            sync_rows(app, &mut form);
         }
         // The instance may have changed group id or gone; keep the form only while it is selected.
         if instance_of_selection(&app.session).is_some_and(|i| i == form.instance) {
@@ -152,6 +165,20 @@ fn show(app: &mut CraftApp, ui: &mut Ui) {
     });
     if let Some(id) = open {
         let _ = app.run("ui.patterns", json!({"pattern": id}));
+    }
+}
+
+/// Run `pattern.sync {direction: toTable}` for the form's instance and put the rows it reads
+/// back into the form's table field; a refusal shows its reason under the form.
+fn sync_rows(app: &mut CraftApp, form: &mut State) {
+    let key = vizcraft_patterns::find(&form.pattern).and_then(|p| vizcraft_patterns::tables::table_param(p).map(str::to_string));
+    let Some(key) = key else { return };
+    match app.run("pattern.sync", json!({"instance": form.instance, "direction": "toTable"})) {
+        Ok(v) => {
+            form.values.insert(key, v["table"]["rows"].clone());
+            form.error.clear();
+        }
+        Err(e) => form.error = e,
     }
 }
 
@@ -184,6 +211,7 @@ pub fn inspect(app: &CraftApp) -> Value {
         "audience": app.patterns.audience,
         "instance": instance,
         "args": args,
+        "sync": instance.as_ref().is_some_and(|i| has_table(&app.session, i)),
         "open": app.ui.panes.is_open("patterns"),
     })
 }

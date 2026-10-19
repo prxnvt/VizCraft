@@ -1203,3 +1203,33 @@ fn pattern_instances_round_trip_and_hostile_ones_are_sanitised() {
     assert!(p.pattern.len() <= vizcraft_diagram::vizcraft_model::MAX_KEY);
     assert_eq!((p.args.clone(), p.members.len()), (json!({}), 1));
 }
+
+#[test]
+fn import_records_round_trip_and_hostile_ones_are_sanitised() {
+    use vizcraft_diagram::import_record::{ImportRecord, MAX_SOURCE};
+    let mut doc = modelled();
+    doc.imports.push(ImportRecord {
+        source: "/tmp/flow.mmd".into(),
+        format: "mermaid".into(),
+        time: 1_700_000_000,
+        page: doc.pages[0].id.clone(),
+        elements: [("A".to_string(), "e1".to_string()), ("B".to_string(), "e2".to_string())].into_iter().collect(),
+        relationships: Vec::new(),
+        removed: vec!["e2".into()],
+    });
+    let mut v = parse(&save(&doc).unwrap());
+    assert_eq!(v["document"]["imports"][0]["elements"]["A"], "e1");
+    let back = load(&serde_json::to_vec(&v).unwrap()).unwrap();
+    assert_eq!(back.imports, doc.imports);
+    v["document"]["imports"] = json!([
+        {"source": "s".repeat(MAX_SOURCE * 2), "elements": {"A": "nope", "B": "e1", "": "e2"}, "removed": ["e1", 5, "missing"], "time": "x"},
+        {"source": 7},
+        "junk"
+    ]);
+    let back = load(&serde_json::to_vec(&v).unwrap()).unwrap();
+    let r = &back.imports[0];
+    assert!(r.source.len() <= MAX_SOURCE);
+    assert_eq!(r.elements.len(), 1, "ids the model lacks are dropped");
+    assert_eq!(r.removed, vec!["e1".to_string()]);
+    assert_eq!(r.time, 0);
+}

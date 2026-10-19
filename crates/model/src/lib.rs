@@ -24,6 +24,7 @@ pub mod pattern;
 pub mod query;
 mod repair;
 mod serde_util;
+pub mod sync;
 #[cfg(test)]
 mod tests;
 mod types;

@@ -6,6 +6,8 @@
 //!   and relationships keyed by role, containment, regions, a layout primitive and the generated
 //!   names.
 //! - [`workflow`]: the starter workflow patterns over the Flowchart pack.
+//! - [`tables`]: the table-driven patterns (RACI swimlanes, a parent-id tree, a two-column
+//!   matrix), offered wherever their pack is loaded, which `pattern.sync` reads back into rows.
 //!
 //! The engine's `pattern.*` commands turn an emission into elements, shapes and connectors in one
 //! undo step and record the instance (`vizcraft_model::PatternInstance`) so it can be
@@ -15,6 +17,7 @@
 
 pub mod emit;
 pub mod schema;
+pub mod tables;
 pub mod workflow;
 
 use std::sync::OnceLock;
@@ -55,7 +58,7 @@ pub struct Builtin {
 /// Every built-in pattern, in listing order.
 pub fn builtins() -> &'static [Builtin] {
     static ALL: OnceLock<Vec<Builtin>> = OnceLock::new();
-    ALL.get_or_init(workflow::builtins)
+    ALL.get_or_init(|| workflow::builtins().into_iter().chain(tables::builtins()).collect())
 }
 
 /// The built-in pattern with this id.
@@ -68,9 +71,14 @@ pub fn find(id: &str) -> Option<&'static Pattern> {
     builtin(id).map(|b| &b.pattern)
 }
 
-/// The patterns `cat` offers: each built-in whose pack is loaded and lists it in its `patterns`.
+/// The patterns `cat` offers: each built-in whose pack is loaded and lists it in its `patterns`,
+/// and the table-driven patterns whose pack is loaded (their types are parameters).
 pub fn available(cat: &Catalog) -> Vec<&'static Pattern> {
-    builtins().iter().map(|b| &b.pattern).filter(|p| cat.pack(&p.pack).is_some_and(|pk| pk.patterns.contains(&p.id))).collect()
+    builtins()
+        .iter()
+        .map(|b| &b.pattern)
+        .filter(|p| cat.pack(&p.pack).is_some_and(|pk| pk.patterns.contains(&p.id) || tables::is_table_pattern(&p.id)))
+        .collect()
 }
 
 /// [`available`] filtered: `pack` keeps one pack's patterns, `audience` those serving it.
@@ -92,7 +100,7 @@ mod tests {
     fn every_starter_pattern_generates_valid_emissions_at_its_bounds() {
         let cat = vizcraft_notation::catalog();
         let listed = available(cat);
-        assert_eq!(listed.len(), 5, "the Flowchart pack lists the five starter patterns");
+        assert_eq!(listed.len(), 8, "the five starter patterns and the three table-driven ones");
         for p in listed {
             for args in [json!({}), p.defaults().to_value()] {
                 let a = p.check(&args).unwrap();
@@ -136,7 +144,8 @@ mod tests {
     #[test]
     fn filters_by_pack_and_audience() {
         let cat = vizcraft_notation::catalog();
-        assert_eq!(list(cat, Some("flowchart"), Some("general")).len(), 5);
+        assert_eq!(list(cat, Some("flowchart"), Some("general")).len(), 8);
+        assert_eq!(list(cat, Some("flowchart"), Some("enterprise")).len(), 5);
         assert!(list(cat, Some("basic"), None).is_empty());
         assert!(list(cat, None, Some("embedded")).is_empty());
     }

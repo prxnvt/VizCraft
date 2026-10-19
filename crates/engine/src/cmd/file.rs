@@ -7,6 +7,8 @@
 //! `file.import` and `page.set` share [`import_opts`], [`place`] and [`import_into_session`]:
 //! the imported pages are adopted into the document (ids kept when plain and free), optionally
 //! laid out and routed, and the result names the target page, the new ids and the warnings.
+//! With `merge`, `file.import` and `file.reimport` follow the re-import contract instead
+//! ([`merge`]): the imported items become model elements matched to the ones already there.
 
 use std::borrow::Cow;
 
@@ -19,8 +21,10 @@ use super::{opt_bool, opt_str, prune_selection, sel_result, select, short};
 use crate::doc::Document;
 use crate::{CmdResult, CommandSpec, EngineError, Session, p};
 
+mod merge;
+
 /// Params doc shared by `file.import` and the MCP tools that call it.
-const IMPORT_PARAMS: &str = r#"{"path"?: string, "text"?: string, "format"?: "drawio"|"mermaid"|"csv", "page"?: id|name|index, "replace"?: bool, "layout"?: "layered"|"tree"|"radial"|"force", "direction"?: "TB"|"BT"|"LR"|"RL", "routing"?: "orthogonal"} -> {page, ids, warnings} (format from the extension or the text; a page name that matches nothing makes a new page)"#;
+const IMPORT_PARAMS: &str = r#"{"path"?: string, "text"?: string, "format"?: "drawio"|"mermaid"|"csv", "page"?: id|name|index, "replace"?: bool, "layout"?: "layered"|"tree"|"radial"|"force", "direction"?: "TB"|"BT"|"LR"|"RL", "routing"?: "orthogonal", "merge"?: bool, "source"?: string, "type"?: element type} -> {page, ids, warnings} (format from the extension or the text; a page name that matches nothing makes a new page); with merge: the shapes become model elements matched to the model by the last import of the same source (default: the path), id, tag, then name within the type -> {page, added, updated, removed, kept, ids: {source id: element id}, issues, warnings}, removed elements flagged with an import.removed issue, one undo step"#;
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
@@ -39,6 +43,9 @@ pub fn specs() -> Vec<CommandSpec> {
             r#"{"path"?: string, "format"?: "svg"|"png"|"pdf"|"drawio", "page"?: id|name|index, "pages"?: "active"|"all"|[id|name|index], "scale"?: number, "print"?: bool} -> {exported, path, format, page, pages, paths} (svg: one page; png: the active page unless `page` or `pages` names others, several pages write name-1.png, name-2.png and so on, listed in `paths`; pdf: one vector page per document page, every foreground page by default, fonts embedded; png: `scale` pixels per unit, 0.25 to 4, default 1; drawio: every page; `print` leaves out non-printing shapes and layers, otherwise the export matches the screen; format from the extension when omitted)"#,
         ),
         CommandSpec::new("file.import", "Import...", "File", import).key("Mod+Shift+I").params(IMPORT_PARAMS),
+        CommandSpec::new("file.reimport", "Re-import", "File", merge::reimport)
+            .params(r#"{"source"?: string, "page"?: page, "layout"?, "direction"?, "routing"?, "type"?: element type} -> the merge result of file.import; reads the recorded source file again (default: the newest import with a file) and merges it"#)
+            .when(|s| if s.doc.imports.iter().any(|r| !r.source.is_empty()) { None } else { Some("nothing has been imported from a file with merge") }),
         CommandSpec::new("file.setAuthor", "User Name", "File > Options", |s, v| {
             s.author = p::req_str(v, "name")?.trim().to_string();
             Ok(json!({"author": s.author}))
@@ -185,6 +192,13 @@ fn import(s: &mut Session, v: &Value) -> CmdResult {
         }
     };
     let format = crate::io::import_format(name, format, &bytes)?;
+    let source = merge::source_param(v)?;
+    if opt_bool(v, "merge")?.unwrap_or(false) {
+        let fallback = merge::fallback_type(v)?;
+        let imported = crate::io::import_bytes(format, &bytes)?;
+        let source = source.or_else(|| name.map(str::to_string)).unwrap_or_default();
+        return merge::merge(s, imported, &opts, &source, format, &fallback, v.get("direction").is_some());
+    }
     let imported = crate::io::import_bytes(format, &bytes)?;
     import_into_session(s, imported, &opts, name)
 }
@@ -682,7 +696,12 @@ mod tests {
         ];
         for text in texts {
             for format in [None, Some("drawio"), Some("mermaid"), Some("csv")] {
-                for extra in [json!({}), json!({"replace": true, "layout": "force", "routing": "orthogonal"}), json!({"page": "x"})] {
+                for extra in [
+                    json!({}),
+                    json!({"replace": true, "layout": "force", "routing": "orthogonal"}),
+                    json!({"page": "x"}),
+                    json!({"merge": true, "layout": "tree", "routing": "orthogonal", "source": "s"}),
+                ] {
                     let mut s = Session::new(crate::sample::sample_document());
                     let mut v = extra.clone();
                     v["text"] = json!(text);
