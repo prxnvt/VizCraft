@@ -92,7 +92,8 @@ params. Agents use them through `command_run` and `command_batch`:
 
 | Prefix | What it does |
 |---|---|
-| `template.*` | List templates, start a document or page from one (`template.new {standards?: {symbols?, sheet?}}` sets the project standards in the same undo step), set the project's symbol and sheet standards, preview a template as SVG text (with the `variant` and `sheet` it resolved) |
+| `template.*` | List document types (empty documents set up per discipline: viewpoint, notation, sheet, rules), start an empty document or page of one (`viewpoint`, `standards`), set the project's symbol and sheet standards, preview one; example ids are still accepted |
+| `example.*` | List and open the filled-in examples (Help > Examples) |
 | `analyze.*`, `model.diff` | Dependencies, cycles, unreachable elements, single points of failure, metrics and paths over the model; `analyze.result` reads the stored result back (with the whole kind detail under `detail` when its keys collide with the result's); `model.diff` also returns `ghosts`, how the compared file drew each removed item (`{id, page, pageName, item, kind, name, rect?, points?}`) |
 | `net.*`, `wire.*`, `page.setModule` | Nets with numbers, wires that join at junctions, splice and heal, the symbol grid |
 | `shape.rotate {turns}`, `shape.mirror` | Quarter turns and mirroring with text kept upright; the result names the turned shapes in `primary` and `shapes` |

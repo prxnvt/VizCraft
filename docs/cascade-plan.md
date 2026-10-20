@@ -1527,7 +1527,8 @@ branch, then regenerated), `b6-polish` (key, DFD and Chen goldens and snapshots 
 merged tree and checked by eye). Wave 3 is done. Open from the reports: ASME zone data still
 unverified (no public MIL-STD-100G text found); no element retype command, so the fork and join
 rules have no fix; sequence `autonumber` is not drawn; label placement still uses the midpoint
-outside sequence pages; comparing with git HEAD is not offered; Tab plus naming is two undo steps. From this wave on the owner does the
+outside sequence pages; comparing with git HEAD is not offered; Tab plus naming is two undo steps. After the owner tried
+wave 3, `b6-doctypes` was built and merged (see "Block 6E wave 4"). From this wave on the owner does the
 purely visual and few-click checks by hand: agents skip in-app walkthroughs and end their report
 with an owner checklist. Briefs written on 2026-10-19 against the integration branch at f11c203 for the engine and
 the `b6e-frontend` worktree for `crates/ui-egui`, one per branch in
@@ -1553,6 +1554,25 @@ relationship ran along the entity box edges and routes overlapped (routing), seq
 through the fragment tab and guard (sequence-ui). The user's checkpoint after the
 wave is a walkthrough in the app: a template from the New page with a chosen standard, Tab and `/`
 insertion, member and column editing, a sequence reorder, Downstream and Compare.
+
+## Block 6E wave 4: engineering packs
+
+State: briefs written on 2026-10-19, after wave 3 and `b6-doctypes` were merged (`b6-doctypes`:
+templates became empty document types per discipline with the seeded samples moved to
+`Pack.examples` and Help > Examples, the app starts on the New page, the palette shows the chosen
+notation first with other notations' connectors folded away and the Basic primitives left out of
+the pane, all on the owner's word after trying wave 3). Briefs and the run procedure are in
+[docs/briefs/b6e-wave4/](briefs/b6e-wave4/) (start with its README); the owner's rules are copied
+into [docs/briefs/owner-source-of-truth.md](briefs/owner-source-of-truth.md). Not started.
+
+| Branch (port) | Model | Scope |
+|---|---|---|
+| `b6e-electrical` (8074) | Opus | `electrical` pack: schematic, ladder, one-line, three-line, I/O, panel, interconnection and logic; IEC 60617 default with IEEE 315 and JIC; IEC 81346, JIC and Y14.44 tags; contact and coil cross references and mirrors; ladder tool and rung wire numbers; terminal strips, cables, wire, cable, terminal and I/O lists; electrical rule check |
+| `b6e-process` (8075) | Opus | `process` pack: P&ID, PFD, loop, HVAC, plumbing, isometric; ISO 10628 default with ISA-5.1 and ISO 14617; DEXPI names; line numbers that follow valves; loops, loop trace and loop diagrams; off-page pairs; plant lists to CSV and XLSX; project tag formats |
+| `b6e-fluidpower` (8076) | Opus | `fluidpower` pack: ISO 1219 hydraulic and pneumatic circuits, 2012 and 1995 editions and ANSI Y32.10 (JIC alias), ISO 9461 and 5599 ports, working, pilot and drain lines, component codes, circuit checks, pressure trace, displacement-step charts, a power unit command |
+| `b6e-mechanical` (8077) | Opus | `mechanical`, `annotation`, `reliability` and `idef0` packs: kinematic and transmission diagrams, bond graphs, control blocks, GD&T, welding and texture symbols in ISO or ASME, fault trees, RBD, event trees, FMEA, IDEF0 decomposition; mobility, ratio, Mason, causality, cut sets, availability and outcome analyses |
+
+Merge order: electrical, process, fluid power, mechanical; at most three building at once.
 
 ## Block 7: first deep packs (ROADMAP Cascade 6, three tracks)
 
