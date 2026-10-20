@@ -1,0 +1,63 @@
+{
+ "document": {
+  "format": "vizcraft",
+  "version": 4,
+  "model": {
+   "schemaVersion": 1,
+   "packs": [
+    {
+     "id": "reliability",
+     "version": "1.0.0"
+    }
+   ],
+   "elements": [
+    {
+     "id": "ie",
+     "type": "reliability.Initiator",
+     "name": "IE",
+     "properties": {
+      "frequency": 0.1
+     }
+    }
+   ],
+   "relationships": []
+  },
+  "document": {
+   "title": "",
+   "pages": [
+    {
+     "id": "p1",
+     "name": "p1",
+     "shapes": [
+      {
+       "id": "s_p1_ie",
+       "kind": "rectangle",
+       "x": 0,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "ie"
+      }
+     ],
+     "connectors": [],
+     "view": {
+      "viewpoint": "reliability.EventTree"
+     }
+    }
+   ],
+   "idSeq": 1000
+  }
+ },
+ "profile": {
+  "enabled": true,
+  "userSet": true,
+  "rulesets": [
+   "reliability.eta"
+  ]
+ },
+ "expect": [
+  {
+   "rule": "reliability.endsInOutcome"
+  }
+ ]
+}

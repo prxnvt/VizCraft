@@ -545,7 +545,8 @@ mod tests {
         pack();
         let mut s = Session::new(Document::new());
         let all = run(&mut s, "glyph.builders", json!({}));
-        assert_eq!(all["builders"].as_array().unwrap().len(), 10);
+        // Later packs add builders; the first ten stay.
+        assert!(all["builders"].as_array().unwrap().len() >= 10);
         let one = run(&mut s, "glyph.builders", json!({"builder": "valve"}));
         let v = &one["builders"][0];
         assert_eq!(v["sources"][0]["standard"], "ISO 1219");

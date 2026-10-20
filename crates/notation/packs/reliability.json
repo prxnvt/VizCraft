@@ -1922,7 +1922,7 @@
           "params": {
             "type": "reliability.Voting",
             "name": "1/2",
-            "x": 620,
+            "x": 460,
             "y": 390,
             "properties": {
               "k": 1

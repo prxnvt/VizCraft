@@ -76,7 +76,12 @@ fn registry_ids_are_unique_and_prefixed() {
                 "topology",
                 "sequence",
                 "er",
-                "uml"
+                "uml",
+                // b6e-mechanical
+                "mech",
+                "rel",
+                "idef0",
+                "annotation"
             ]
             .contains(&prefix),
             "{}: unexpected prefix",
@@ -163,6 +168,9 @@ fn hostile_params_never_panic() {
         json!({"element": {}, "list": [], "text": "\u{0}\u{ffff}[", "index": "a", "from": 1.5, "to": 99999999999.0}),
         json!({"primitive": "er", "roles": {"satellites": 5}}),
         json!({"primitive": "er", "roles": {"satellites": [{"owner": "s2", "members": ["s2", "s2"]}, {"owner": 7}]}}),
+        // Mechanical, reliability, IDEF0 and annotation commands (b6e-mechanical).
+        json!({"top": 5, "maxOrder": 1e300, "limit": -1, "time": "NaN", "space": "warp", "from": [], "to": {}, "speed": 1e308}),
+        json!({"gdt": 7, "weld": "", "texture": [], "id": "x".repeat(1000), "page": "\u{0}", "standard": "asme", "input": 5, "output": [], "initiator": {}}),
         nested_batches(40),
     ];
     for spec in reg.all() {

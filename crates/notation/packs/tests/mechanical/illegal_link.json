@@ -1,0 +1,240 @@
+{
+ "document": {
+  "format": "vizcraft",
+  "version": 4,
+  "model": {
+   "schemaVersion": 1,
+   "packs": [
+    {
+     "id": "mechanical",
+     "version": "1.0.0"
+    }
+   ],
+   "elements": [
+    {
+     "id": "g",
+     "type": "mechanical.Ground",
+     "name": "g"
+    },
+    {
+     "id": "A",
+     "type": "mechanical.Joint",
+     "name": "A",
+     "properties": {
+      "kind": "revolute"
+     }
+    },
+    {
+     "id": "B",
+     "type": "mechanical.Joint",
+     "name": "B",
+     "properties": {
+      "kind": "revolute"
+     }
+    },
+    {
+     "id": "C",
+     "type": "mechanical.Joint",
+     "name": "C",
+     "properties": {
+      "kind": "revolute"
+     }
+    },
+    {
+     "id": "D",
+     "type": "mechanical.Joint",
+     "name": "D",
+     "properties": {
+      "kind": "revolute"
+     }
+    },
+    {
+     "id": "mo",
+     "type": "mechanical.Motor",
+     "name": "mo"
+    }
+   ],
+   "relationships": [
+    {
+     "id": "l0",
+     "type": "mechanical.Link",
+     "source": "g",
+     "target": "A"
+    },
+    {
+     "id": "l1",
+     "type": "mechanical.Link",
+     "source": "A",
+     "target": "B"
+    },
+    {
+     "id": "l2",
+     "type": "mechanical.Link",
+     "source": "B",
+     "target": "C"
+    },
+    {
+     "id": "l3",
+     "type": "mechanical.Link",
+     "source": "C",
+     "target": "D"
+    },
+    {
+     "id": "l4",
+     "type": "mechanical.Link",
+     "source": "D",
+     "target": "g"
+    },
+    {
+     "id": "bad",
+     "type": "mechanical.Link",
+     "source": "A",
+     "target": "mo"
+    }
+   ]
+  },
+  "document": {
+   "title": "",
+   "pages": [
+    {
+     "id": "p1",
+     "name": "p1",
+     "shapes": [
+      {
+       "id": "s_p1_g",
+       "kind": "rectangle",
+       "x": 0,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "g"
+      },
+      {
+       "id": "s_p1_A",
+       "kind": "rectangle",
+       "x": 200,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "A"
+      },
+      {
+       "id": "s_p1_B",
+       "kind": "rectangle",
+       "x": 400,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "B"
+      },
+      {
+       "id": "s_p1_C",
+       "kind": "rectangle",
+       "x": 600,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "C"
+      },
+      {
+       "id": "s_p1_D",
+       "kind": "rectangle",
+       "x": 800,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "D"
+      },
+      {
+       "id": "s_p1_mo",
+       "kind": "rectangle",
+       "x": 1000,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "mo"
+      }
+     ],
+     "connectors": [
+      {
+       "id": "c_p1_l0",
+       "start": {
+        "shape": "s_p1_g"
+       },
+       "end": {
+        "shape": "s_p1_A"
+       },
+       "relationship": "l0"
+      },
+      {
+       "id": "c_p1_l1",
+       "start": {
+        "shape": "s_p1_A"
+       },
+       "end": {
+        "shape": "s_p1_B"
+       },
+       "relationship": "l1"
+      },
+      {
+       "id": "c_p1_l2",
+       "start": {
+        "shape": "s_p1_B"
+       },
+       "end": {
+        "shape": "s_p1_C"
+       },
+       "relationship": "l2"
+      },
+      {
+       "id": "c_p1_l3",
+       "start": {
+        "shape": "s_p1_C"
+       },
+       "end": {
+        "shape": "s_p1_D"
+       },
+       "relationship": "l3"
+      },
+      {
+       "id": "c_p1_l4",
+       "start": {
+        "shape": "s_p1_D"
+       },
+       "end": {
+        "shape": "s_p1_g"
+       },
+       "relationship": "l4"
+      },
+      {
+       "id": "c_p1_bad",
+       "start": {
+        "shape": "s_p1_A"
+       },
+       "end": {
+        "shape": "s_p1_mo"
+       },
+       "relationship": "bad"
+      }
+     ],
+     "view": {
+      "viewpoint": "mechanical.Kinematic"
+     }
+    }
+   ],
+   "idSeq": 1000
+  }
+ },
+ "profile": {
+  "enabled": true,
+  "userSet": true,
+  "rulesets": [
+   "mechanical.kinematic"
+  ]
+ },
+ "expect": [
+  {
+   "rule": "mechanical.illegalLine"
+  }
+ ]
+}

@@ -1,0 +1,251 @@
+{
+ "document": {
+  "format": "vizcraft",
+  "version": 4,
+  "model": {
+   "schemaVersion": 1,
+   "packs": [
+    {
+     "id": "reliability",
+     "version": "1.0.0"
+    }
+   ],
+   "elements": [
+    {
+     "id": "top",
+     "type": "reliability.TopEvent",
+     "name": "top"
+    },
+    {
+     "id": "g1",
+     "type": "reliability.Or",
+     "name": "g1"
+    },
+    {
+     "id": "a",
+     "type": "reliability.BasicEvent",
+     "name": "A",
+     "properties": {
+      "probability": 0.01
+     }
+    },
+    {
+     "id": "g2",
+     "type": "reliability.And",
+     "name": "g2"
+    },
+    {
+     "id": "b",
+     "type": "reliability.BasicEvent",
+     "name": "B",
+     "properties": {
+      "probability": 0.1
+     }
+    },
+    {
+     "id": "c",
+     "type": "reliability.BasicEvent",
+     "name": "C",
+     "properties": {
+      "probability": 0.2
+     }
+    },
+    {
+     "id": "top2",
+     "type": "reliability.TopEvent",
+     "name": "top2"
+    }
+   ],
+   "relationships": [
+    {
+     "id": "i1",
+     "type": "reliability.Input",
+     "source": "g1",
+     "target": "top"
+    },
+    {
+     "id": "i2",
+     "type": "reliability.Input",
+     "source": "a",
+     "target": "g1"
+    },
+    {
+     "id": "i3",
+     "type": "reliability.Input",
+     "source": "g2",
+     "target": "g1"
+    },
+    {
+     "id": "i4",
+     "type": "reliability.Input",
+     "source": "b",
+     "target": "g2"
+    },
+    {
+     "id": "i5",
+     "type": "reliability.Input",
+     "source": "c",
+     "target": "g2"
+    },
+    {
+     "id": "i9",
+     "type": "reliability.Input",
+     "source": "c",
+     "target": "top2"
+    }
+   ]
+  },
+  "document": {
+   "title": "",
+   "pages": [
+    {
+     "id": "p1",
+     "name": "p1",
+     "shapes": [
+      {
+       "id": "s_p1_top",
+       "kind": "rectangle",
+       "x": 0,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "top"
+      },
+      {
+       "id": "s_p1_g1",
+       "kind": "rectangle",
+       "x": 200,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "g1"
+      },
+      {
+       "id": "s_p1_a",
+       "kind": "rectangle",
+       "x": 400,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "a"
+      },
+      {
+       "id": "s_p1_g2",
+       "kind": "rectangle",
+       "x": 600,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "g2"
+      },
+      {
+       "id": "s_p1_b",
+       "kind": "rectangle",
+       "x": 800,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "b"
+      },
+      {
+       "id": "s_p1_c",
+       "kind": "rectangle",
+       "x": 1000,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "c"
+      },
+      {
+       "id": "s_p1_top2",
+       "kind": "rectangle",
+       "x": 0,
+       "y": 150,
+       "w": 100,
+       "h": 60,
+       "element": "top2"
+      }
+     ],
+     "connectors": [
+      {
+       "id": "c_p1_i1",
+       "start": {
+        "shape": "s_p1_g1"
+       },
+       "end": {
+        "shape": "s_p1_top"
+       },
+       "relationship": "i1"
+      },
+      {
+       "id": "c_p1_i2",
+       "start": {
+        "shape": "s_p1_a"
+       },
+       "end": {
+        "shape": "s_p1_g1"
+       },
+       "relationship": "i2"
+      },
+      {
+       "id": "c_p1_i3",
+       "start": {
+        "shape": "s_p1_g2"
+       },
+       "end": {
+        "shape": "s_p1_g1"
+       },
+       "relationship": "i3"
+      },
+      {
+       "id": "c_p1_i4",
+       "start": {
+        "shape": "s_p1_b"
+       },
+       "end": {
+        "shape": "s_p1_g2"
+       },
+       "relationship": "i4"
+      },
+      {
+       "id": "c_p1_i5",
+       "start": {
+        "shape": "s_p1_c"
+       },
+       "end": {
+        "shape": "s_p1_g2"
+       },
+       "relationship": "i5"
+      },
+      {
+       "id": "c_p1_i9",
+       "start": {
+        "shape": "s_p1_c"
+       },
+       "end": {
+        "shape": "s_p1_top2"
+       },
+       "relationship": "i9"
+      }
+     ],
+     "view": {
+      "viewpoint": "reliability.FaultTree"
+     }
+    }
+   ],
+   "idSeq": 1000
+  }
+ },
+ "profile": {
+  "enabled": true,
+  "userSet": true,
+  "rulesets": [
+   "reliability.fta"
+  ]
+ },
+ "expect": [
+  {
+   "rule": "reliability.oneTopEvent"
+  }
+ ]
+}

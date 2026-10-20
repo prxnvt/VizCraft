@@ -761,6 +761,12 @@
             "relationship": "idef0.Arrow",
             "text": "Widget"
           }
+        },
+        {
+          "command": "page.setActive",
+          "params": {
+            "page": 0
+          }
         }
       ]
     }

@@ -773,7 +773,13 @@ impl Term {
     }
     /// The factors joined by a dot, `1` when there are none.
     pub fn body(&self) -> String {
-        if self.factors.is_empty() { "1".into() } else { self.factors.join("·") }
+        if self.factors.is_empty() {
+            return "1".into();
+        }
+        // A factor that is a sum (Kp + Ki/s) is bracketed so the product reads right.
+        let shown: Vec<String> =
+            self.factors.iter().map(|f| if f.chars().skip(1).any(|c| matches!(c, ' ' | '+' | '-')) { format!("({f})") } else { f.clone() }).collect();
+        shown.join("·")
     }
     /// The value when every factor reads as a number.
     pub fn value(&self) -> Option<f64> {

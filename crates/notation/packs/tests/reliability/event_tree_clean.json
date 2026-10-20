@@ -1,0 +1,154 @@
+{
+ "document": {
+  "format": "vizcraft",
+  "version": 4,
+  "model": {
+   "schemaVersion": 1,
+   "packs": [
+    {
+     "id": "reliability",
+     "version": "1.0.0"
+    }
+   ],
+   "elements": [
+    {
+     "id": "ie",
+     "type": "reliability.Initiator",
+     "name": "IE",
+     "properties": {
+      "frequency": 0.1
+     }
+    },
+    {
+     "id": "b1",
+     "type": "reliability.BranchPoint",
+     "name": "B1",
+     "properties": {
+      "failureProbability": 0.01
+     }
+    },
+    {
+     "id": "o1",
+     "type": "reliability.Outcome",
+     "name": "o1"
+    },
+    {
+     "id": "o2",
+     "type": "reliability.Outcome",
+     "name": "o2"
+    }
+   ],
+   "relationships": [
+    {
+     "id": "e0",
+     "type": "reliability.Success",
+     "source": "ie",
+     "target": "b1"
+    },
+    {
+     "id": "e1",
+     "type": "reliability.Success",
+     "source": "b1",
+     "target": "o1"
+    },
+    {
+     "id": "e2",
+     "type": "reliability.Failure",
+     "source": "b1",
+     "target": "o2"
+    }
+   ]
+  },
+  "document": {
+   "title": "",
+   "pages": [
+    {
+     "id": "p1",
+     "name": "p1",
+     "shapes": [
+      {
+       "id": "s_p1_ie",
+       "kind": "rectangle",
+       "x": 0,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "ie"
+      },
+      {
+       "id": "s_p1_b1",
+       "kind": "rectangle",
+       "x": 200,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "b1"
+      },
+      {
+       "id": "s_p1_o1",
+       "kind": "rectangle",
+       "x": 400,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "o1"
+      },
+      {
+       "id": "s_p1_o2",
+       "kind": "rectangle",
+       "x": 600,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "o2"
+      }
+     ],
+     "connectors": [
+      {
+       "id": "c_p1_e0",
+       "start": {
+        "shape": "s_p1_ie"
+       },
+       "end": {
+        "shape": "s_p1_b1"
+       },
+       "relationship": "e0"
+      },
+      {
+       "id": "c_p1_e1",
+       "start": {
+        "shape": "s_p1_b1"
+       },
+       "end": {
+        "shape": "s_p1_o1"
+       },
+       "relationship": "e1"
+      },
+      {
+       "id": "c_p1_e2",
+       "start": {
+        "shape": "s_p1_b1"
+       },
+       "end": {
+        "shape": "s_p1_o2"
+       },
+       "relationship": "e2"
+      }
+     ],
+     "view": {
+      "viewpoint": "reliability.EventTree"
+     }
+    }
+   ],
+   "idSeq": 1000
+  }
+ },
+ "profile": {
+  "enabled": true,
+  "userSet": true,
+  "rulesets": [
+   "reliability.eta"
+  ]
+ },
+ "expect": []
+}

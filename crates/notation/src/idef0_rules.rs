@@ -133,7 +133,7 @@ pub(crate) fn check(doc: &Document, cat: &Catalog, rule: &RuleDecl, test: Idef0T
         Idef0Test::ContextOneBox => {
             for pi in (0..doc.pages.len()).filter(|pi| viewpoint(*pi) == CONTEXT) {
                 let boxes = boxes_on(pi);
-                if boxes.len() != 1 {
+                if boxes.len() > 1 {
                     let what = format!("The context diagram has {} boxes; A-0 has exactly one, numbered 0.", boxes.len());
                     push(out, what, boxes.iter().map(|(e, _)| e.id.clone()).collect(), Some(pi));
                 } else if let Some((e, _)) = boxes.first()
@@ -240,9 +240,21 @@ pub(crate) fn check(doc: &Document, cat: &Catalog, rule: &RuleDecl, test: Idef0T
                     ) else {
                         continue;
                     };
-                    let Some(route) = vizcraft_diagram::route_path(page, c).bounds() else { continue };
+                    let pts = vizcraft_diagram::route_polyline(page, c);
                     let (ra, rb) = (sa.bounds(), sb.bounds());
-                    let (over, under) = (route.y0 < ra.y0.min(rb.y0) - 1.0, route.y1 > ra.y1.max(rb.y1) + 1.0);
+                    // Going over (or under) means a run above (below) both boxes that crosses at
+                    // least half the way between their centres, not just an end stub.
+                    let span = (((ra.x0 + ra.x1) - (rb.x0 + rb.x1)) / 2.0).abs() / 2.0;
+                    let runs = |above: bool| {
+                        pts.windows(2).any(|w| match w {
+                            [p, q] => {
+                                let level = if above { p.y < ra.y0.min(rb.y0) - 1.0 } else { p.y > ra.y1.max(rb.y1) + 1.0 };
+                                (p.y - q.y).abs() < 1e-6 && level && (p.x - q.x).abs() >= span
+                            }
+                            _ => false,
+                        })
+                    };
+                    let (over, under) = (runs(true), runs(false));
                     let what = match port_letter(r.target_port.as_deref()) {
                         Some('C') if !over => Some("goes back to a control without going up and over the boxes"),
                         Some('I' | 'M') if !under => Some("goes back to an input or mechanism without going down and under the boxes"),
