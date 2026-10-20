@@ -6,5 +6,6 @@
   <g class="ports" fill="#c2410c">
     <circle cx="9.843" cy="59.055" r="1.969"><title>A</title></circle>
     <circle cx="68.898" cy="59.055" r="1.969"><title>B</title></circle>
+    <circle cx="108.268" cy="29.528" r="1.969"><title>rod</title></circle>
   </g>
 </svg>

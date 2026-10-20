@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="86.024" height="69.685" viewBox="-4.921 -5.709 86.024 69.685">
+  <path d="M53.15 29.528 C53.15 42.574 42.574 53.15 29.528 53.15 C16.481 53.15 5.906 42.574 5.906 29.528 C5.906 16.481 16.481 5.906 29.528 5.906 C42.574 5.906 53.15 16.481 53.15 29.528 Z" fill="#ffffff" fill-rule="evenodd" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M19.685 39.37 L19.685 19.685 L29.528 31.496 L39.37 19.685 L39.37 39.37 M53.15 27.559 L59.055 27.559 M53.15 31.496 L59.055 31.496" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="62.008" y="6.693" font-family="Inter, sans-serif" font-size="7.874" text-anchor="start" fill="#1f2933">0M1</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="59.055" cy="29.528" r="1.969"><title>shaft</title></circle>
+  </g>
+</svg>

@@ -154,6 +154,8 @@ pub fn menu_tree(app: &CraftApp) -> Vec<Menu> {
                 Item::Sep,
                 Item::Cmd("Valve...", "ui.valve", json!({})),
                 Item::Cmd("Rebuild Symbols", "glyph.rebuild", json!({})),
+                Item::Cmd("Renumber Fluid Power Components", "fluid.renumber", json!({})),
+                Item::Cmd("Trace Pressure", "fluid.trace", json!({})),
             ],
         },
         Menu { title: "View", role: MenuRole::Normal, items: view },

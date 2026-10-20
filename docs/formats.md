@@ -25,6 +25,7 @@ import are built; the rest is planned ([ROADMAP.md](../ROADMAP.md)).
 | Wire list and nets table (`table.export {subject: nets or connections}`) to CSV, XLSX and Markdown | write (built; rows carry numbers and device:pin names) | B6E wave 4 | existing table writers |
 | DEXPI class mapping (`formats::dexpi_map`) | mapping only (built: `plant.dexpiMap`; 40 process types mapped, 29 listed as unmapped; no RDL URIs and no Proteus XML export yet) | B6E wave 4 | DEXPI P&ID Specification 1.4 class lists (CC BY 4.0) |
 | Process lists (`plant.list`, `table.export {view: "pack"}`) to CSV, XLSX and Markdown | write (built; line list golden) | B6E wave 4 | existing table writers |
+| Pack check kinds for engineering (`netCheck` tests `unconnectedPin`, `singlePin`, `unnumbered`, `duplicateNumber`, `reservedColour`, `pinFanIn`, `drivers`, `undriven`, `property`, `allowedPeers`, `openPort`; `fluidPressurePath`, `fluidRelief`, `fluidSupply`, `fluidRestPosition`, `fluidPortSet`, `fluidLineEnds`, `fluidCodes`, `fluidSteps {idle}`; the process, electrical and mechanical checks) and the variant field `aliases` | read (built; part of the pack JSON schema in `crates/notation/src/schema.rs`) | B6E wave 4 | Our own |
 | Structurizr DSL | read and write (planned) | B6 wave 4 | Structurizr DSL language reference |
 | D2 | write (planned) | B6 wave 4 | D2 language documentation |
 

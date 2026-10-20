@@ -35,9 +35,12 @@ mod coil;
 mod contact;
 mod cylinder;
 mod fcf;
+mod fluid_part;
 mod gate;
+mod pressure_valve;
 mod process_valve;
 mod pump;
+mod step_chart;
 mod texture;
 mod valve;
 mod weld;
@@ -124,6 +127,9 @@ static SPECS: &[BuilderSpec] = &[
     footprint::SPEC,
     ladder::SPEC,
     process_valve::SPEC,
+    pressure_valve::SPEC,
+    step_chart::SPEC,
+    fluid_part::SPEC,
 ];
 
 /// Every builder, in palette order.

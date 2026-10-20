@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="68.898" height="49.213" viewBox="-4.921 -4.921 68.898 49.213">
+  <path d="M29.528 0 L49.213 19.685 L29.528 39.37 L9.843 19.685 Z" fill="#ffffff" fill-rule="evenodd" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M0 19.685 L9.843 19.685 M49.213 19.685 L59.055 19.685 M29.528 2.953 L29.528 5.906 M29.528 7.874 L29.528 10.827 M29.528 12.795 L29.528 15.748 M29.528 17.717 L29.528 20.669 M29.528 22.638 L29.528 25.591 M29.528 27.559 L29.528 30.512 M29.528 32.48 L29.528 35.433" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <g class="ports" fill="#c2410c">
+    <circle cx="0" cy="19.685" r="1.969"><title>1</title></circle>
+    <circle cx="59.055" cy="19.685" r="1.969"><title>2</title></circle>
+  </g>
+</svg>

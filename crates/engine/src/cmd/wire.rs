@@ -141,6 +141,7 @@ fn draw(s: &mut Session, v: &Value) -> CmdResult {
     // A wire drawn without bends routes around shapes, as every connector does, unless the page
     // is set never to avoid them; bends someone placed are kept exactly as drawn.
     let avoid = points.is_empty() && s.doc.page().is_some_and(|p| p.routing.avoid == Avoid::Always);
+    // A connector type draws the wire with its look, and its net kind stands in for `kind`.
     let line_type = match super::opt_str(v, "type")? {
         None | Some("") => None,
         Some(t) => Some(vizcraft_stencils::connector_kind(t).ok_or_else(|| EngineError::Params(format!("unknown connector type `{}`", short(t))))?),

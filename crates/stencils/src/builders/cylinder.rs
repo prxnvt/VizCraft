@@ -3,7 +3,8 @@
 //! Provenance: own design, drawn from the written rules of ISO 1219-1. The barrel is a rectangle
 //! with the piston a double line across it and the rod a pair of lines leaving one end, or both
 //! for a through rod; a single acting cylinder has one port and may hold a return spring in the
-//! rod chamber; cushioning is a small box at the end it acts on.
+//! rod chamber; cushioning is a small box at the end it acts on. The `rod` port at the rod tip
+//! takes the mechanical link to a roller or limit switch.
 
 use super::{BuilderSpec, Def, Draw, ParamKind, ParamSpec, Params};
 
@@ -12,7 +13,7 @@ const SOURCE: &str = "own design, drawn from the written rules of ISO 1219-1";
 pub(super) const SPEC: BuilderSpec = BuilderSpec {
     name: "cylinder",
     label: "Cylinder",
-    description: "An ISO 1219 linear actuator: single or double acting, single or through rod, cushioning at either end, an optional return spring. Ports A (cap end) and B (rod end) on the underside.",
+    description: "An ISO 1219 linear actuator: single or double acting, single or through rod, cushioning at either end, an optional return spring. Ports A (cap end) and B (rod end) on the underside, rod at the rod tip.",
     params: &[
         ParamSpec {
             key: "acting",
@@ -48,6 +49,13 @@ pub(super) const SPEC: BuilderSpec = BuilderSpec {
             kind: ParamKind::Choice(&["hydraulic", "pneumatic"]),
             default: Def::Text("hydraulic"),
             description: "A pneumatic single acting cylinder vents its rod chamber.",
+        },
+        ParamSpec {
+            key: "tag",
+            label: "Code",
+            kind: ParamKind::Text { max: 32 },
+            default: Def::Text(""),
+            description: "The component code written above the barrel (the element's tag).",
         },
     ],
     sources: &[("ISO 1219", SOURCE)],
@@ -102,4 +110,6 @@ fn build(p: &Params, d: &mut Draw) {
         d.port("B", bx, 6.0, "down");
         d.label("pB", "B", bx + 0.3, 5.5, 0.7, "start");
     }
+    d.port("rod", w, 3.0, "right");
+    d.label("tag", p.text("tag"), x0, -0.2, 0.8, "start");
 }

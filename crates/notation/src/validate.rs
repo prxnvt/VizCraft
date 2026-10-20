@@ -677,6 +677,14 @@ impl<'a> Checker<'a> {
                         }
                     }
                 }
+                Check::FluidPressurePath
+                | Check::FluidRelief
+                | Check::FluidSupply
+                | Check::FluidRestPosition
+                | Check::FluidPortSet
+                | Check::FluidLineEnds
+                | Check::FluidCodes
+                | Check::FluidSteps { .. } => {}
                 Check::Unknown => self.problem(format!("{ctx}: unknown check kind (the pack needs a newer VizCraft)")),
             }
         }

@@ -552,8 +552,8 @@ pub struct CraftApp {
     /// The connector kind the connector tool draws (`ui.tool {tool: "connector", kind}`); empty
     /// is the default kind.
     pub connector_kind: String,
-    /// The connector type the Wire and Pipe tools draw (`ui.tool {tool: "wire", line}`); `None`
-    /// takes the active pack's first wire (or pipe) type.
+    /// The connector type the Wire and Pipe tools draw (`ui.tool {tool: "wire"|"pipe", line}`);
+    /// `None` draws the first connector type of the active pack whose net matches the tool.
     pub line_type: Option<String>,
     /// Whether the palette hides types outside the page's viewpoint (`ui.palette`).
     pub palette_filter: bool,
@@ -850,6 +850,7 @@ impl CraftApp {
                     self.canvas.painter_from = None;
                 }
                 self.connector_kind.clear();
+                self.line_type = None;
                 if let (Tool::Connector, Some(k)) = (self.tool, s("kind")) {
                     if !vizcraft_notation::catalog().packs().iter().any(|p| p.connector_type(k).is_some()) {
                         return Some(Err(format!("unknown connector kind `{}`", k.chars().take(64).collect::<String>())));
@@ -857,7 +858,7 @@ impl CraftApp {
                     self.connector_kind = k.to_string();
                 }
                 self.line_type = None;
-                if let (Tool::Wire { .. }, Some(l)) = (self.tool, s("line")) {
+                if let (Tool::Wire { .. }, Some(l)) = (self.tool, s("line").filter(|l| !l.is_empty())) {
                     if !vizcraft_notation::catalog().packs().iter().any(|p| p.connector_type(l).is_some_and(|t| t.net.is_some())) {
                         self.tool = Tool::Pointer;
                         return Some(Err(format!(

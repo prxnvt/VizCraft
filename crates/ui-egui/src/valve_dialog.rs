@@ -2,8 +2,10 @@
 //! preview. The form is read from `glyph.builders {builder: "valve"}` (positions, ports, the
 //! path table, the operators, the return, the rest position, port labels and medium) and the
 //! preview from `glyph.build`, which changes no document. OK updates the selected valve through
-//! `glyph.setParams`, or places a new one through `glyph.insert {builder: "valve", params}`.
-//! `ui.valve` opens it.
+//! `glyph.setParams`, or places a new one through `glyph.insert {builder: "valve", params}`. On a
+//! fluid power page a new valve is a component of the page's valve type (`fluid.insert`), its
+//! form seeded from that type's glyph (a 5/2 pilot valve on a pneumatic page). `ui.valve` opens
+//! it.
 
 use std::collections::BTreeMap;
 
@@ -90,10 +92,28 @@ pub fn open(app: &mut CraftApp) -> State {
         s.start = s.params.clone();
         s.target = id;
     }
+    if s.target.is_empty()
+        && let Some(t) = fluid_valve_type(app)
+        && let Some((_, g)) = vizcraft_notation::catalog().master_for_type(t).and_then(|g| vizcraft_notation::catalog().glyph(g))
+    {
+        for (k, v) in &g.params {
+            s.params.insert(k.clone(), serde_json::to_value(v).unwrap_or(Value::Null));
+        }
+    }
     let paths = s.params.get("paths").and_then(Value::as_str).unwrap_or_default().to_string();
     s.paths = paths.split(';').map(|p| p.trim().to_string()).collect();
     s.paths.resize(MAX_POSITIONS, String::new());
     s
+}
+
+/// The valve type a new valve becomes on the active page: the fluid power page's directional
+/// valve (pneumatic on a pneumatic page, else hydraulic), or `None` off a fluid power page.
+pub fn fluid_valve_type(app: &CraftApp) -> Option<&'static str> {
+    match crate::palette::active_viewpoint(app)? {
+        "fluidpower.Pneumatic" => Some("fluidpower.PneumaticValve"),
+        vp if vp.starts_with("fluidpower.") => Some("fluidpower.HydraulicValve"),
+        _ => None,
+    }
 }
 
 /// One command path of the preview: points in page units, and whether it closes.
@@ -298,7 +318,10 @@ pub fn finish(app: &mut CraftApp, s: &State, ok: bool, cancel: bool) -> bool {
     }
     let params = s.build_params();
     let r = if s.target.is_empty() {
-        app.run("glyph.insert", json!({"builder": BUILDER, "params": params}))
+        match fluid_valve_type(app) {
+            Some(t) => app.run("fluid.insert", json!({"type": t, "params": params})),
+            None => app.run("glyph.insert", json!({"builder": BUILDER, "params": params})),
+        }
     } else {
         let start_paths = s.start.get("paths").cloned().unwrap_or(Value::Null);
         let changed: Map<String, Value> = params

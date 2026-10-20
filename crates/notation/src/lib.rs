@@ -27,6 +27,7 @@
 //! - [`sequence_rules`]: the sequence page checks (message order, matched replies).
 //! - [`process_pass`] and [`process_rules`]: the process pack's lines, live tags and labels, and
 //!   its checks (instrument letters, loops, loop sheets, streams, off-page continuity, open ports).
+//! - [`fluid`]: the fluid power circuit model (ports, nets, internal paths, trace) and its checks.
 //!
 //! No egui and no engine; wasm safe.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
@@ -40,6 +41,7 @@ pub mod electrical_pass;
 pub mod electrical_rules;
 pub mod end_pass;
 pub mod er_rules;
+pub mod fluid;
 pub mod glob;
 pub mod glyph_path;
 pub mod infer;

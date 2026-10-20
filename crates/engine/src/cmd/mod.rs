@@ -23,6 +23,7 @@ pub mod element;
 pub mod er;
 pub mod file;
 pub mod find;
+pub mod fluid;
 pub mod generate;
 pub mod glyph;
 pub mod help;
@@ -151,6 +152,7 @@ pub fn registry() -> Registry {
     v.extend(identity::specs());
     v.extend(loops::specs());
     v.extend(plant::specs());
+    v.extend(fluid::specs());
     Registry::new(v)
 }
 

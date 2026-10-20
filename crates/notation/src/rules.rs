@@ -366,6 +366,9 @@ impl<'a> Ctx<'a> {
             }
             Check::MessageOrder | Check::RepliesMatched { .. } => crate::sequence_rules::check(self.doc, rule, out),
             Check::PrimaryKey { .. } | Check::ForeignKey { .. } => crate::er_rules::check(self.doc, self.cat, pack, rule, out),
+            Check::NetCheck { test, .. } if crate::fluid::rules::NET_TESTS.contains(&test.as_str()) => {
+                crate::fluid::rules::check(self.doc, self.cat, pack, rule, out)
+            }
             // The process pack reads unconnected pins through its own test (dynamic glue on pipes).
             Check::NetCheck { test, .. } if test == "unconnectedPin" && pack.id == "process" => {
                 crate::process_rules::check(self.doc, self.cat, pack, rule, out)
@@ -382,6 +385,14 @@ impl<'a> Ctx<'a> {
             | Check::LoopSheet { .. }
             | Check::StreamsNumbered { .. }
             | Check::OffPageContinuity { .. } => crate::process_rules::check(self.doc, self.cat, pack, rule, out),
+            Check::FluidPressurePath
+            | Check::FluidRelief
+            | Check::FluidSupply
+            | Check::FluidRestPosition
+            | Check::FluidPortSet
+            | Check::FluidLineEnds
+            | Check::FluidCodes
+            | Check::FluidSteps { .. } => crate::fluid::rules::check(self.doc, self.cat, pack, rule, out),
             Check::Unknown => {}
         }
     }

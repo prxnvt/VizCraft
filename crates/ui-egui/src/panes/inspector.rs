@@ -24,6 +24,7 @@ mod columns;
 mod electrical;
 mod members;
 pub(crate) mod process;
+mod step_chart;
 mod relationship;
 
 use super::{PaneSpec, Side};
@@ -309,6 +310,11 @@ fn properties_tab(app: &CraftApp, ui: &mut Ui, t: &Tokens, st: &InspectorState, 
         }
         if let Some(el) = d["element"]["id"].as_str().filter(|el| electrical::applies(app, el)) {
             section(ui, "electrical", "Electrical", false, |ui| electrical::section(app, ui, t, el, runs));
+        }
+        if step_chart::is_chart(type_id)
+            && let Some(el) = d["element"]["id"].as_str()
+        {
+            section(ui, "stepChart", "Steps", false, |ui| step_chart::section(app, ui, t, el, runs));
         }
         section(ui, "properties", "Properties", false, |ui| properties(app, ui, t, d, ids, rows, expert, runs));
         if d["element"].is_object() {
@@ -785,6 +791,7 @@ pub fn inspect_fields(app: &CraftApp) -> Value {
     json!({
         "symbol": symbol, "sheet": sheet, "zone": zone, "sequence": super::sequence_section::inspect(app),
         "relationship": relationship::inspect(app), "members": members::inspect(app), "columns": columns::inspect(app),
+        "stepChart": step_chart::inspect(app),
     })
 }
 

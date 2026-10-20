@@ -1,6 +1,7 @@
 //! The contextual notation tab, named after the pack of the active page's viewpoint (Flowchart,
 //! say) and shown while the page has a view. Its controls are built from the pack's data: one
-//! Insert menu per palette group, the viewpoint menu and the Check button.
+//! Insert menu per palette group, the viewpoint menu and the Check button. A pack with groups of
+//! its own ([`pack_groups`]) shows them after these while its viewpoint is active.
 
 use vizcraft_notation::Pack;
 
@@ -17,6 +18,7 @@ groups! {
 }
 
 mod electrical;
+mod fluidpower;
 mod process;
 
 /// The groups a pack adds after the generic notation groups while it is the active page's pack.
@@ -25,6 +27,7 @@ pub(super) fn pack_groups(pack_id: &str) -> Vec<crate::ribbon::Group> {
     match pack_id {
         "electrical" => electrical::groups(),
         "process" => process::groups(),
+        "fluidpower" => fluidpower::groups(),
         _ => Vec::new(),
     }
 }
@@ -35,6 +38,8 @@ fn pack_hides(pack_id: &str) -> &'static [&'static str] {
     match pack_id {
         "electrical" => electrical::HIDES,
         "process" => process::HIDES,
+        // Fluid power has no key and no numbered flow steps.
+        "fluidpower" => &["Key", "Steps"],
         _ => &[],
     }
 }

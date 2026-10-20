@@ -553,7 +553,8 @@ mod tests {
         let b = run(&mut s, "glyph.build", json!({"builder": "valve", "params": {"positions": 3, "ports": 4}, "module": 10}));
         assert_eq!((b["w"].as_f64(), b["h"].as_f64(), b["module"].as_f64()), (Some(160.0), Some(60.0), Some(10.0)));
         assert!(b["svg"].as_str().unwrap().starts_with("<svg"));
-        assert_eq!(b["ports"].as_array().unwrap().len(), 4);
+        // Four fluid ports, then the left solenoid's electrical port.
+        assert_eq!(b["ports"].as_array().unwrap().len(), 5);
         let warned = run(&mut s, "glyph.build", json!({"builder": "contact", "params": {"poles": 40}}));
         assert_eq!(warned["warnings"].as_array().unwrap().len(), 1);
         assert!(!s.can_undo(), "building changes no document");

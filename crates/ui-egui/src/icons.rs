@@ -266,6 +266,24 @@ pub const NAMES: &[&str] = &[
     "loopDiagram",
     "nozzle",
     "plantList",
+    // Fluid power (Circuit groups of the notation tab)
+    "workingLine",
+    "pilotLine",
+    "drainLine",
+    "mechanicalLine",
+    "signalLine",
+    "stepChart",
+    "tracePressure",
+    "powerUnit",
+    "pressureValve",
+    "fluidPump",
+    "fluidCylinder",
+    "portLabels",
+    "componentList",
+    "fluidValve",
+    "stepInsert",
+    "stepDelete",
+    "traceRest",
 ];
 
 /// Reference size of the design grid, in points. At this size the stroke is `BASE_STROKE`.
@@ -1765,6 +1783,103 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
             pen.lines(3.0, 17.0, &[7.5, 11.5]);
             pen.line_c(&[(5.0, 5.25), (15.0, 5.25)], a);
             pen.lines(5.0, 13.0, &[14.5]);
+        }
+        // Fluid power. Lines: a bend from a port, drawn as the line type draws.
+        "workingLine" => {
+            pen.line_c(&[(3.0, 16.0), (3.0, 6.0), (17.0, 6.0)], a);
+            pen.fcircle(3.0, 16.0, 1.5, c);
+        }
+        "pilotLine" | "drainLine" => {
+            let (dash, gap) = if name == "pilotLine" { (3.0, 1.8) } else { (1.4, 1.4) };
+            let mut x = 3.0;
+            while x < 17.0 {
+                pen.line_c(&[(x, 10.0), ((x + dash).min(17.0), 10.0)], a);
+                x += dash + gap;
+            }
+            pen.fcircle(3.0, 10.0, 1.5, c);
+            pen.line(&[(17.0, 6.0), (17.0, 14.0)]);
+        }
+        "mechanicalLine" => {
+            pen.line_c(&[(3.0, 9.0), (17.0, 9.0)], a);
+            pen.line_c(&[(3.0, 11.0), (17.0, 11.0)], a);
+            pen.circle(4.0, 10.0, 2.5, c);
+        }
+        "signalLine" => {
+            pen.line_c(&[(4.0, 14.0), (8.0, 14.0), (10.0, 6.0), (16.0, 6.0)], a);
+            pen.rect(2.0, 12.0, 6.0, 16.0, c);
+        }
+        "stepChart" => {
+            pen.rect(2.5, 4.0, 17.5, 16.0, c);
+            pen.line(&[(2.5, 10.0), (17.5, 10.0)]);
+            pen.line_c(&[(5.0, 8.5), (8.0, 5.5), (12.0, 5.5), (15.0, 8.5)], a);
+            pen.line_c(&[(5.0, 14.5), (9.0, 14.5), (12.0, 11.5), (15.0, 11.5)], a);
+        }
+        "traceRest" => {
+            // The trace stopping at a closed valve square.
+            pen.circle(5.5, 14.0, 3.5, c);
+            pen.fill(&[(5.5, 10.5), (4.0, 13.0), (7.0, 13.0)], c);
+            pen.line_c(&[(5.5, 10.5), (5.5, 4.0), (11.0, 4.0)], a);
+            pen.rect(11.0, 1.5, 17.5, 8.0, c);
+            pen.line(&[(13.0, 4.75), (15.5, 4.75)]);
+            pen.line(&[(14.25, 3.0), (14.25, 6.5)]);
+        }
+        "tracePressure" => {
+            pen.circle(5.5, 14.0, 3.5, c);
+            pen.fill(&[(5.5, 10.5), (4.0, 13.0), (7.0, 13.0)], c);
+            pen.line_c(&[(5.5, 10.5), (5.5, 4.0), (15.0, 4.0), (15.0, 12.0)], a);
+            pen.fill(&[(15.0, 15.0), (13.0, 12.0), (17.0, 12.0)], a);
+        }
+        "powerUnit" => {
+            pen.line(&[(2.5, 12.0), (2.5, 17.0), (17.5, 17.0), (17.5, 12.0)]);
+            pen.circle(10.0, 7.0, 3.5, c);
+            pen.fill(&[(10.0, 3.5), (8.6, 6.0), (11.4, 6.0)], a);
+            pen.line(&[(10.0, 10.5), (10.0, 15.0)]);
+        }
+        "pressureValve" => {
+            pen.rect(4.0, 4.0, 13.0, 16.0, c);
+            pen.line_c(&[(7.0, 14.0), (7.0, 6.5)], a);
+            pen.fill(&[(7.0, 5.5), (5.8, 8.0), (8.2, 8.0)], a);
+            pen.line(&[(13.0, 10.0), (14.0, 8.5), (15.0, 11.5), (16.0, 8.5), (17.0, 10.0)]);
+        }
+        "fluidPump" => {
+            pen.circle(10.0, 10.0, 6.5, c);
+            pen.fill(&[(10.0, 3.5), (7.8, 7.5), (12.2, 7.5)], a);
+        }
+        "fluidCylinder" => {
+            pen.rect(2.5, 6.0, 12.5, 14.0, c);
+            pen.line(&[(6.0, 6.0), (6.0, 14.0)]);
+            pen.line_c(&[(6.0, 10.0), (18.0, 10.0)], a);
+        }
+        "portLabels" => {
+            pen.rect(5.0, 5.0, 15.0, 15.0, c);
+            pen.line(&[(8.0, 5.0), (8.0, 2.0)]);
+            pen.line(&[(12.0, 15.0), (12.0, 18.0)]);
+            pen.fcircle(8.0, 2.5, 1.3, a);
+            pen.fcircle(12.0, 17.5, 1.3, a);
+        }
+        "fluidValve" => {
+            // Two switching squares with a flow arrow and a crossed pair, a spring at the right.
+            pen.rect(2.0, 6.0, 9.0, 14.0, c);
+            pen.rect(9.0, 6.0, 16.0, 14.0, c);
+            pen.line_c(&[(4.5, 13.0), (4.5, 7.5)], a);
+            pen.fill(&[(4.5, 7.0), (3.4, 9.0), (5.6, 9.0)], a);
+            pen.line_c(&[(10.5, 13.0), (14.5, 7.0)], a);
+            pen.line_c(&[(10.5, 7.0), (14.5, 13.0)], a);
+            pen.line(&[(16.0, 10.0), (16.7, 8.8), (17.4, 11.2), (18.1, 8.8), (18.8, 10.0)]);
+        }
+        "stepInsert" | "stepDelete" => {
+            // A step chart column with a plus or a minus.
+            pen.rect(2.5, 4.0, 12.5, 16.0, c);
+            pen.line_c(&[(4.0, 13.0), (7.5, 7.0), (11.0, 7.0)], c);
+            pen.line_c(&[(13.5, 10.0), (18.5, 10.0)], a);
+            if name == "stepInsert" {
+                pen.line_c(&[(16.0, 7.5), (16.0, 12.5)], a);
+            }
+        }
+        "componentList" => {
+            pen.rect(3.0, 3.5, 17.0, 16.5, c);
+            pen.lines(3.0, 17.0, &[7.0, 10.0, 13.0]);
+            pen.line_c(&[(7.0, 3.5), (7.0, 16.5)], a);
         }
         _ => {
             // Fallback: a rounded tile with the first letter.

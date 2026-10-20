@@ -284,6 +284,17 @@ fn variants(pack: &Pack) -> Vec<String> {
         if !seen.insert(v.id.as_str()) {
             out.push(format!("{ctx}: declared twice"));
         }
+        if v.aliases.len() > MAX_ALIASES {
+            out.push(format!("{ctx}: at most {MAX_ALIASES} aliases"));
+        }
+        for a in v.aliases.iter().take(MAX_ALIASES) {
+            if !a.starts_with(&prefix) || a.len() <= prefix.len() || a.len() > 128 {
+                out.push(format!("{ctx}: alias `{}` must be `{prefix}<name>`", short(a)));
+            }
+            if pack.variants.iter().any(|w| w.id == *a) || pack.variants.iter().filter(|w| w.aliases.contains(a)).count() > 1 {
+                out.push(format!("{ctx}: alias `{}` is already a variant id or another variant's alias", short(a)));
+            }
+        }
         for (t, g) in &v.glyphs {
             if pack.element_type(t).is_none() {
                 out.push(format!("{ctx}: `{}` is not an element type of this pack", short(t)));
@@ -324,6 +335,9 @@ fn variants(pack: &Pack) -> Vec<String> {
     }
     out
 }
+
+/// Most aliases one variant lists.
+pub const MAX_ALIASES: usize = 8;
 
 /// Most satellite types one variant lists.
 pub const MAX_SATELLITE_TYPES: usize = 8;

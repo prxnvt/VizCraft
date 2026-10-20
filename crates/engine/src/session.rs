@@ -693,7 +693,7 @@ impl Session {
 
 /// Commands that run other commands as one transaction and make the undo step themselves.
 fn is_transaction(id: &str) -> bool {
-    matches!(id, "edit.batch" | "script.run" | "template.new" | "template.addPage" | "example.open")
+    matches!(id, "edit.batch" | "script.run" | "template.new" | "template.addPage" | "example.open" | "fluid.powerUnit")
 }
 
 /// Whether a script records this command: not view-only, UI, app, help, file, script or macro commands (a macro run records the steps it
