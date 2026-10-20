@@ -197,6 +197,9 @@ fn hostile_params_never_panic() {
         json!({"from": {"x": 0, "y": 0}, "to": {"x": 100, "y": 0}, "type": "process.supplyAir", "kind": "plasma", "sheet": "iso.a9", "name": "x".repeat(3000)}),
         json!({"type": "fluidpower.HydraulicValve", "params": {"paths": "P-Q;;;X|", "positions": 1e308}, "chart": "s2", "row": 1e20, "step": -1, "state": "x", "set": 5, "codes": [], "ports": [null, 7]}),
         json!({"type": "fluidpower.StepChart", "chart": "s2", "rows": "1A1 0 1".repeat(10_000), "from": {"shape": "s2", "point": 1e20}, "at": 1e300, "steps": f64::NAN, "actuators": [5], "pump": "x"}),
+        // Group transforms (b6e-selection-transform).
+        json!({"ids": ["s2", "c8"], "move": {"dx": 1e308, "dy": "x"}, "scale": {"sx": 0, "sy": -1e308, "about": {"x": f64::NAN}}, "rotate": {"angle": 1e308, "about": []}}),
+        json!({"ids": ["s2", "c8"], "scale": {"sx": 1e308, "sy": 1e-300, "about": {"x": 1e308, "y": -1e308}}, "rotate": {"angle": -1e308, "about": {"x": 0, "y": 0}}, "move": {"dx": -1e308, "dy": 1e308}}),
     ];
     for spec in reg.all() {
         // File commands touch the disk; given a path they would write junk files. `page.set` with a

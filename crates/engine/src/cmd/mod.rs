@@ -66,6 +66,7 @@ pub mod table_nets;
 pub mod template;
 pub mod text;
 pub mod topology;
+pub mod transform;
 pub mod uml;
 pub mod validate;
 pub mod variant;
@@ -94,6 +95,7 @@ pub fn registry() -> Registry {
     v.extend(batch::specs());
     v.extend(view::specs());
     v.extend(shape::specs());
+    v.extend(transform::specs());
     v.extend(text::specs());
     v.extend(arrange::specs());
     v.extend(container::specs());
