@@ -45,7 +45,7 @@ pub fn specs() -> Vec<CommandSpec> {
             .when(super::model::has_elements),
         CommandSpec::new("table.export", "Export Table", "Model > Tables", export)
             .params(
-                r#"{"view": "list"|"matrix", ..the view's params, "format": "csv"|"xlsx"|"markdown", "path"?: string} -> {"format", "columns", "rows", "path"?, "bytes"?, "content"?}; writes the file at path, or returns csv and markdown as content when there is no path (xlsx needs a path)"#,
+                r#"{"view": "list"|"matrix"|"pack", ..the view's params (pack: "list": "process.<name>", "page"?), "format": "csv"|"xlsx"|"markdown", "path"?: string} -> {"format", "columns", "rows", "path"?, "bytes"?, "content"?}; writes the file at path, or returns csv and markdown as content when there is no path (xlsx needs a path)"#,
             )
             .when(super::model::has_items),
     ]
@@ -403,7 +403,11 @@ fn view_of(s: &Session, v: &Value) -> Result<View, EngineError> {
                 .collect();
             Ok(View { name: "Matrix".into(), columns, rows, truncated: m.truncated })
         }
-        other => Err(EngineError::Params(format!("`view` must be list or matrix, not `{}`", short(other)))),
+        "pack" => {
+            let (name, columns, rows) = super::plant::list_view(s, v)?;
+            Ok(View { name, columns, rows, truncated: false })
+        }
+        other => Err(EngineError::Params(format!("`view` must be list, matrix or pack, not `{}`", short(other)))),
     }
 }
 

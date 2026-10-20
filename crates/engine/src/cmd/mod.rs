@@ -25,6 +25,7 @@ pub mod find;
 pub mod generate;
 pub mod glyph;
 pub mod help;
+pub mod identity;
 pub mod ink;
 pub mod insert;
 pub mod inspector;
@@ -33,6 +34,7 @@ pub mod lane;
 pub mod layer;
 pub mod layout;
 pub mod link;
+pub mod loops;
 pub mod r#macro;
 pub mod master;
 pub mod model;
@@ -41,6 +43,7 @@ pub mod notation;
 pub mod page;
 pub mod pattern;
 pub mod picture;
+pub mod plant;
 pub mod print;
 pub mod process;
 pub mod proof;
@@ -140,6 +143,9 @@ pub fn registry() -> Registry {
     v.extend(sequence::specs());
     v.extend(er::specs());
     v.extend(uml::specs());
+    v.extend(identity::specs());
+    v.extend(loops::specs());
+    v.extend(plant::specs());
     Registry::new(v)
 }
 

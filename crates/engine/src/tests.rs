@@ -76,7 +76,12 @@ fn registry_ids_are_unique_and_prefixed() {
                 "topology",
                 "sequence",
                 "er",
-                "uml"
+                "uml",
+                "identity",
+                "loop",
+                "line",
+                "offpage",
+                "plant"
             ]
             .contains(&prefix),
             "{}: unexpected prefix",
@@ -164,6 +169,14 @@ fn hostile_params_never_panic() {
         json!({"primitive": "er", "roles": {"satellites": 5}}),
         json!({"primitive": "er", "roles": {"satellites": [{"owner": "s2", "members": ["s2", "s2"]}, {"owner": 7}]}}),
         nested_batches(40),
+        json!({"legs": [{"dir": "n", "length": 1e308}, {"dir": "zz"}, 5], "from": {"shape": "s2", "point": 1e20}, "kind": "process.processLine", "line": 7}),
+        json!({"legs": [{"dir": "up", "length": 50}], "from": {"x": 1e308, "y": "a"}, "side": "inside", "shape": "s2", "at": f64::NAN, "subTag": ""}),
+        json!({"shape": "s2", "side": "top", "at": 0.5, "subTag": "x".repeat(5000), "nominalDiameter": 9, "scheme": "both", "list": "line"}),
+        json!({"scope": "process.line", "format": "{n}{n}", "numberBy": "a b", "list": "nope", "format2": [], "page": 1e300}),
+        json!({"scope": "process.loop", "format": "{n:99}", "numberBy": "", "variable": "LL", "members": ["s2", {}], "loopType": 5}),
+        json!({"loop": "s2", "elements": ["s2", "nope"], "element": 7, "a": "s2", "b": "s2", "connector": "c8", "end": "middle", "toPage": "\u{0}"}),
+        json!({"variable": "F", "members": [], "unit": "nope", "connectors": ["c8"], "net": "n1", "list": "process.line", "view": "pack", "type": "process.processLine"}),
+        json!({"from": {"x": 0, "y": 0}, "to": {"x": 100, "y": 0}, "type": "process.supplyAir", "kind": "plasma", "sheet": "iso.a9", "name": "x".repeat(3000)}),
     ];
     for spec in reg.all() {
         // File commands touch the disk; given a path they would write junk files. `page.set` with a

@@ -76,7 +76,7 @@ pub fn is_line_type(type_id: &str) -> bool {
 }
 
 /// The net kinds of connector types, by id, for the types that declare one.
-fn kind_nets(cat: &Catalog) -> HashMap<&str, NetKind> {
+pub fn kind_nets(cat: &Catalog) -> HashMap<&str, NetKind> {
     cat.packs().iter().flat_map(|p| p.connector_types.iter()).filter_map(|t| Some((t.id.as_str(), NetKind::from_name(t.net.as_deref()?)?))).collect()
 }
 
@@ -148,7 +148,15 @@ fn assign_lines(doc: &mut Document, cat: &Catalog) {
             continue;
         }
         let air = AIR_KINDS.contains(&c.kind.as_str());
-        let seed = c.net.as_deref().and_then(|n| doc.model.net(n)).map(|n| n.properties.clone()).unwrap_or_default();
+        let mut seed = c.net.as_deref().and_then(|n| doc.model.net(n)).map(|n| n.properties.clone()).unwrap_or_default();
+        if air && !seed.contains_key("service") {
+            let system = match c.kind.as_str() {
+                "process.returnAir" => "RA",
+                "process.exhaustAir" => "EA",
+                _ => "SA",
+            };
+            seed.insert("service".to_string(), PropValue::Text(system.to_string()));
+        }
         let Some(line) = new_line(doc, cat, if air { DUCT } else { LINE }, &seed) else { continue };
         if let Some(c) = doc.pages.get_mut(pi).and_then(|p| p.connectors.get_mut(ci)) {
             c.ext.insert(EXT_LINE.to_string(), line);
@@ -186,7 +194,7 @@ fn inherited(
 /// Add a new line element of `type_id` with the schema defaults, the pipe properties the net
 /// carried (`size`, `service`, `class`) and the next tag; returns its id, or `None` when the model
 /// is full.
-fn new_line(doc: &mut Document, cat: &Catalog, type_id: &str, net_props: &std::collections::BTreeMap<String, PropValue>) -> Option<String> {
+pub fn new_line(doc: &mut Document, cat: &Catalog, type_id: &str, net_props: &std::collections::BTreeMap<String, PropValue>) -> Option<String> {
     let id = doc.next_id("e");
     let mut e = Element::new(id.clone(), type_id);
     if let Some((_, t)) = cat.element_type(type_id).or_else(|| cat.element_type(LINE)) {
@@ -196,7 +204,12 @@ fn new_line(doc: &mut Document, cat: &Catalog, type_id: &str, net_props: &std::c
             }
         }
     }
-    for (from, to) in [("size", "nominalDiameter"), ("service", "fluidCode"), ("class", "pipingClass")] {
+    let keys: &[(&str, &str)] = if type_id == DUCT {
+        &[("size", "size"), ("service", "service")]
+    } else {
+        &[("size", "nominalDiameter"), ("service", "fluidCode"), ("class", "pipingClass")]
+    };
+    for &(from, to) in keys {
         if let Some(v) = net_props.get(from) {
             e.properties.insert(to.to_string(), v.clone());
         }
@@ -237,14 +250,18 @@ fn live_format(scope: &vizcraft_model::IdScope) -> Option<IdFormat> {
     (!f.has_place() && (f.has_owner() || !f.property_keys().is_empty())).then_some(f)
 }
 
-/// The tag `e` should carry now, or `None` to leave it (no number to keep).
-fn wanted(doc: &Document, before: &Document, f: &IdFormat, e: &Element, auto: bool, reg: &Registry<'_>) -> Option<String> {
+/// The tag `e` should carry now, or `None` to leave it (no number to keep). Its number is read
+/// with the format the scope had before the command (`old`), from the element as it was, so a
+/// changed property or a changed project format still finds it.
+fn wanted(doc: &Document, before: &Document, f: &IdFormat, old: Option<&IdFormat>, e: &Element, auto: bool, reg: &Registry<'_>) -> Option<String> {
     let none = ComposeCtx::default();
     let n = if f.has_number() {
-        let old = before.model.element(&e.id).unwrap_or(e);
-        let read = f
-            .number_in_ctx(&e.tag, &before.model, old, &none)
-            .or_else(|| f.number_in(&e.tag, old))
+        let was = before.model.element(&e.id).unwrap_or(e);
+        let read = old
+            .filter(|o| o.has_number())
+            .and_then(|o| o.number_in_ctx(&e.tag, &before.model, was, &none).or_else(|| o.number_in(&e.tag, was)))
+            .or_else(|| f.number_in_ctx(&e.tag, &before.model, was, &none))
+            .or_else(|| f.number_in(&e.tag, was))
             .or_else(|| f.number_in_ctx(&e.tag, &doc.model, e, &none))
             .or_else(|| f.number_in(&e.tag, e));
         match read {
@@ -267,6 +284,8 @@ fn wanted(doc: &Document, before: &Document, f: &IdFormat, e: &Element, auto: bo
 /// Step 3: recompose live tags, keeping their numbers.
 fn recompose(doc: &mut Document, before: &Document, cat: &Catalog) {
     let scopes = cat.scopes();
+    let old_reg = Registry::new(&before.model, &scopes);
+    let old: HashMap<&str, IdFormat> = old_reg.effective().iter().filter_map(|s| Some((s.id.as_str(), IdFormat::parse(&s.format).ok()?))).collect();
     for _ in 0..MAX_ROUNDS {
         let changes: Vec<(usize, String)> = {
             let reg = Registry::new(&doc.model, &scopes);
@@ -282,7 +301,7 @@ fn recompose(doc: &mut Document, before: &Document, cat: &Catalog) {
                 .filter_map(|(i, e)| {
                     let scope = reg.scope_for(&e.type_id)?;
                     let (f, auto) = formats.get(scope.id.as_str())?;
-                    let want = wanted(doc, before, f, e, *auto, &reg)?;
+                    let want = wanted(doc, before, f, old.get(scope.id.as_str()), e, *auto, &reg)?;
                     let want: String = cut(&want, vizcraft_model::MAX_TAG);
                     (want != e.tag).then_some((i, want))
                 })
