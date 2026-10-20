@@ -440,10 +440,12 @@ Files are cut so that parallel work touches separate files:
 | `canvas/mod.rs` | Viewport, `CanvasState`, pan and zoom, insertion, per-frame `show` | |
 | `canvas/draw/` | `mod.rs` conversions and sheet; `shapes.rs` (background pages, then per shape glow, shadow, solid or gradient fill with soft edges, dashed and capped outline, as SVG export draws them; gradients turn with a rotated shape), `text.rs` (shape text in its text block with format, alignment, justify, bullets, indent, margins, direction and case; fields expanded by the caller; monospace families draw in JetBrains Mono, others in Inter), `connectors.rs`, `overlays.rs` (selection chrome) | |
 | `canvas/tess.rs` | Ear-clipping triangulation, gradient meshes (linear cut into exact bands, radial subdivided), dash patterns, ring offsets and fading strips for blur, glow and soft edges | |
-| `canvas/interact/` | `mod.rs` `Drag` and pointer dispatch; `select.rs` (clicks, marquee, lasso), `drag.rs`, `connect.rs`, `tools.rs` (also text boxes), `painter.rs` (format painter), `edit_text.rs` (the editor sits in the text block), `text_block.rs` (Text Block tool), `keys.rs` | |
+| `canvas/interact/` | `mod.rs` `Drag` and pointer dispatch; `select.rs` (clicks, marquee, lasso), `drag.rs`, `connect.rs`, `tools.rs` (also text boxes), `painter.rs` (format painter), `edit_text.rs` (the editor sits in the text block), `text_block.rs` (Text Block tool), `group.rs` (the frame and handles of a multi-selection), `keys.rs` | |
 
 A canvas drag previews in UI state and commits one command on release, so every drag is one undo
-step. The canvas tool (`CraftApp.tool`: pointer, lasso, connector, text, text block, format painter) is set by
+step. A multi-selection moves, resizes and turns as one object: its frame's handles and a move of
+more than one item preview with `vizcraft_diagram::arrange::rigid` and commit `shape.transform`,
+which runs the same code. The canvas tool (`CraftApp.tool`: pointer, lasso, connector, text, text block, format painter) is set by
 `ui.tool`; `area` names the pointer (its rectangle marquee), `lasso` drags a freehand selection,
 and `formatPainter {from?, keep?}` paints the next clicked item (every one until Escape with
 `keep`). Find and Replace (`find_dialog.rs`, from `ui.find`) and Paste Special

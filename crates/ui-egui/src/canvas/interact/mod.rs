@@ -17,6 +17,7 @@ pub mod connect;
 pub mod crop;
 pub mod drag;
 pub mod edit_text;
+pub mod group;
 pub mod ink;
 pub mod insertion;
 pub mod keys;
@@ -80,6 +81,11 @@ pub enum Drag {
     Resize { id: String, handle: usize, to: Point, keep_aspect: bool },
     /// Dragging the rotate handle of a shape.
     Rotate { id: String, to: Point, snap: bool },
+    /// Dragging resize handle `handle` of the frame `bounds` around a multi-selection `ids`
+    /// (see [`group`]).
+    ResizeGroup { ids: Vec<String>, bounds: dg::Rect, handle: usize, to: Point, keep_aspect: bool },
+    /// Dragging the rotate handle of the frame `bounds` around a multi-selection `ids`.
+    RotateGroup { ids: Vec<String>, bounds: dg::Rect, to: Point, snap: bool },
     /// Drawing a new connector from `from`.
     Connect { from: End, to: Point },
     /// Dragging one end of a connector to reglue it.
@@ -181,11 +187,11 @@ pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D
                 *to = w;
                 *shift = m.shift;
             }
-            Some(Drag::Resize { to, keep_aspect, .. }) => {
+            Some(Drag::Resize { to, keep_aspect, .. } | Drag::ResizeGroup { to, keep_aspect, .. }) => {
                 *to = w;
                 *keep_aspect = m.shift;
             }
-            Some(Drag::Rotate { to, snap, .. }) => {
+            Some(Drag::Rotate { to, snap, .. } | Drag::RotateGroup { to, snap, .. }) => {
                 *to = w;
                 *snap = m.shift;
             }
@@ -246,7 +252,9 @@ fn cursor(app: &CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D) {
             let (Some(hp), Some(page)) = (response.hover_pos(), app.session.doc.page()) else { return };
             let w = point(vp.screen_to_world(hp));
             let tol = f64::from(GRAB / vp.zoom);
-            if let Some(s) = single_shape(app, page) {
+            if let Some(icon) = group_cursor(app, page, vp, hp) {
+                icon
+            } else if let Some(s) = single_shape(app, page) {
                 if near(vp, rotate_handle_world(s, vp.zoom), hp) {
                     egui::CursorIcon::Alias
                 } else if let Some(i) = (0..HANDLES.len()).find(|i| handle_world(s, *i).is_some_and(|h| near(vp, h, hp))) {
@@ -276,4 +284,28 @@ fn cursor(app: &CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D) {
         }
     };
     ui.ctx().set_cursor_icon(icon);
+}
+
+/// The resize cursor for handle `i` (index into [`HANDLES`]).
+fn resize_cursor(i: usize) -> egui::CursorIcon {
+    if i % 4 == 1 {
+        egui::CursorIcon::ResizeVertical
+    } else if i % 4 == 3 {
+        egui::CursorIcon::ResizeHorizontal
+    } else if i.is_multiple_of(4) {
+        egui::CursorIcon::ResizeNwSe
+    } else {
+        egui::CursorIcon::ResizeNeSw
+    }
+}
+
+/// The cursor over a handle of the frame around a multi-selection, if the pointer is on one.
+fn group_cursor(app: &CraftApp, page: &dg::Page, vp: &Viewport2D, hp: egui::Pos2) -> Option<egui::CursorIcon> {
+    let g = group::selection(app, page)?;
+    let ok = group::allowed(&app.session.doc, page, &g.ids);
+    if ok.rotate && near(vp, group::rotate_handle_world(&g.bounds, vp.zoom), hp) {
+        return Some(egui::CursorIcon::Alias);
+    }
+    let i = (0..HANDLES.len()).find(|i| ok.resize[*i] && group::handle_world(&g.bounds, *i).is_some_and(|h| near(vp, h, hp)))?;
+    Some(resize_cursor(i))
 }
