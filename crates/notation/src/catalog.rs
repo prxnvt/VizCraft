@@ -29,6 +29,7 @@ pub const BUILTIN: &[(&str, &str)] = &[
     ("dfd.json", include_str!("../packs/dfd.json")),
     ("uml.json", include_str!("../packs/uml.json")),
     ("er.json", include_str!("../packs/er.json")),
+    ("fluidpower.json", include_str!("../packs/fluidpower.json")),
 ];
 
 /// The environment variable naming a folder of pack files (`*.json`, `*.toml`) loaded with the
@@ -313,7 +314,9 @@ mod tests {
         let c = Catalog::builtin();
         assert!(c.errors().is_empty(), "{:?}", c.errors());
         let ids: Vec<_> = c.packs().iter().map(|p| p.id.as_str()).collect();
-        assert_eq!(ids, ["basic", "flowchart", "drawing", "sheet", "cloud", "network", "dfd", "uml", "er"]);
+        // The wave 1 to 3 packs come first, in this order; the engineering packs follow them.
+        assert_eq!(ids.get(..9), Some(&["basic", "flowchart", "drawing", "sheet", "cloud", "network", "dfd", "uml", "er"][..]));
+        assert!(ids.contains(&"fluidpower"), "{ids:?}");
         let basic = c.pack("basic").unwrap();
         assert_eq!((basic.glyphs.len(), basic.element_types.len()), (10, 0));
         let f = c.pack("flowchart").unwrap();
@@ -323,7 +326,8 @@ mod tests {
         assert_eq!(c.type_for_master("flowchart.decision"), Some("flowchart.Decision"));
         assert_eq!(c.master_for_type("flowchart.Terminator"), Some("flowchart.terminator"));
         assert_eq!(c.type_for_master("basic.rectangle"), None);
-        assert_eq!(c.scopes().len(), 7);
+        let early = ["basic", "flowchart", "drawing", "sheet", "cloud", "network", "dfd", "uml", "er"];
+        assert_eq!(c.scopes().iter().filter(|sc| early.contains(&vizcraft_model::pack_of(&sc.id))).count(), 7);
         let d = c.pack("drawing").unwrap();
         assert_eq!((d.glyphs.len(), d.element_types.len(), d.rules.len()), (0, 0, 5));
         assert_eq!(c.ruleset("drawing.tidy").unwrap().rules.len(), 5);

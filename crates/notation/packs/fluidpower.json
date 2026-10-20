@@ -1,0 +1,3567 @@
+{
+  "schemaVersion": 1,
+  "id": "fluidpower",
+  "version": "1.0.0",
+  "name": "Fluid Power",
+  "description": "Hydraulic and pneumatic circuits drawn to ISO 1219: pumps, valves and cylinders built from parameters, ISO 9461 or ISO 5599 port labels, working, pilot and drain lines, ISO 1219-2 component codes, the displacement-step chart (VDI 3260) and the circuit checks. ISO 1219 (2012) by default, with the 1995 circuit rules and ANSI Y32.10 one choice away.",
+  "audience": [
+    "engineering",
+    "industrial"
+  ],
+  "glyphs": [
+    {
+      "id": "fluidpower.hydraulicPump",
+      "label": "Hydraulic Pump",
+      "category": "Sources",
+      "outline": "builder",
+      "w": 78.7402,
+      "h": 78.7402,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "pump",
+        "fixed displacement",
+        "hydraulic"
+      ],
+      "elementType": "fluidpower.HydraulicPump",
+      "builder": "pump",
+      "params": {
+        "medium": "hydraulic"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.hydraulicMotor",
+      "label": "Hydraulic Motor",
+      "category": "Actuators",
+      "outline": "builder",
+      "w": 78.7402,
+      "h": 78.7402,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "motor",
+        "rotary actuator"
+      ],
+      "elementType": "fluidpower.HydraulicMotor",
+      "builder": "pump",
+      "params": {
+        "role": "motor"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.hydraulicCylinder",
+      "label": "Hydraulic Cylinder",
+      "category": "Actuators",
+      "outline": "builder",
+      "w": 108.2677,
+      "h": 59.0551,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "cylinder",
+        "ram",
+        "linear actuator"
+      ],
+      "elementType": "fluidpower.HydraulicCylinder",
+      "builder": "cylinder",
+      "params": {},
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.hydraulicValve",
+      "label": "Directional Valve 4/3",
+      "category": "Valves",
+      "outline": "builder",
+      "w": 157.4803,
+      "h": 59.0551,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "directional valve",
+        "4/3",
+        "solenoid",
+        "spool"
+      ],
+      "elementType": "fluidpower.HydraulicValve",
+      "builder": "valve",
+      "params": {
+        "positions": 3,
+        "actuatorLeft": "solenoid",
+        "actuatorRight": "solenoid",
+        "return": "spring",
+        "rest": 1
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.reliefValve",
+      "label": "Relief Valve",
+      "category": "Valves",
+      "outline": "builder",
+      "w": 78.7402,
+      "h": 59.0551,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "pressure relief",
+        "safety"
+      ],
+      "elementType": "fluidpower.ReliefValve",
+      "builder": "pressureValve",
+      "params": {
+        "function": "relief"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.reducingValve",
+      "label": "Pressure Reducing Valve",
+      "category": "Valves",
+      "outline": "builder",
+      "w": 78.7402,
+      "h": 59.0551,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "pressure reducing",
+        "regulator"
+      ],
+      "elementType": "fluidpower.ReducingValve",
+      "builder": "pressureValve",
+      "params": {
+        "function": "reducing"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.sequenceValve",
+      "label": "Sequence Valve",
+      "category": "Valves",
+      "outline": "builder",
+      "w": 78.7402,
+      "h": 59.0551,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "sequence",
+        "pressure"
+      ],
+      "elementType": "fluidpower.SequenceValve",
+      "builder": "pressureValve",
+      "params": {
+        "function": "sequence"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.reservoir",
+      "label": "Reservoir",
+      "category": "Sources",
+      "outline": "builder",
+      "w": 78.7402,
+      "h": 39.3701,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "tank",
+        "reservoir",
+        "sump"
+      ],
+      "elementType": "fluidpower.Reservoir",
+      "builder": "fluidPart",
+      "params": {
+        "kind": "reservoir"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.accumulator",
+      "label": "Accumulator",
+      "category": "Sources",
+      "outline": "builder",
+      "w": 39.3701,
+      "h": 78.7402,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "accumulator",
+        "bladder",
+        "storage"
+      ],
+      "elementType": "fluidpower.Accumulator",
+      "builder": "fluidPart",
+      "params": {
+        "kind": "accumulator"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.compressor",
+      "label": "Compressor",
+      "category": "Sources",
+      "outline": "builder",
+      "w": 78.7402,
+      "h": 78.7402,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "compressor",
+        "air"
+      ],
+      "elementType": "fluidpower.Compressor",
+      "builder": "pump",
+      "params": {
+        "medium": "pneumatic"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.airMotor",
+      "label": "Air Motor",
+      "category": "Actuators",
+      "outline": "builder",
+      "w": 78.7402,
+      "h": 78.7402,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "air motor",
+        "pneumatic motor"
+      ],
+      "elementType": "fluidpower.AirMotor",
+      "builder": "pump",
+      "params": {
+        "role": "motor",
+        "medium": "pneumatic"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.pneumaticCylinder",
+      "label": "Pneumatic Cylinder",
+      "category": "Actuators",
+      "outline": "builder",
+      "w": 108.2677,
+      "h": 59.0551,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "cylinder",
+        "air cylinder"
+      ],
+      "elementType": "fluidpower.PneumaticCylinder",
+      "builder": "cylinder",
+      "params": {
+        "medium": "pneumatic"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.pneumaticValve",
+      "label": "Directional Valve 5/2",
+      "category": "Valves",
+      "outline": "builder",
+      "w": 118.1102,
+      "h": 59.0551,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "directional valve",
+        "5/2",
+        "pilot",
+        "air"
+      ],
+      "elementType": "fluidpower.PneumaticValve",
+      "builder": "valve",
+      "params": {
+        "ports": 5,
+        "portLabels": "iso5599",
+        "medium": "pneumatic",
+        "actuatorLeft": "pilot",
+        "actuatorRight": "pilot",
+        "return": "none"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.pressureRegulator",
+      "label": "Pressure Regulator",
+      "category": "Valves",
+      "outline": "builder",
+      "w": 78.7402,
+      "h": 59.0551,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "regulator",
+        "pressure reducing",
+        "air"
+      ],
+      "elementType": "fluidpower.PressureRegulator",
+      "builder": "pressureValve",
+      "params": {
+        "function": "reducing",
+        "medium": "pneumatic"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.pressureSource",
+      "label": "Pressure Source",
+      "category": "Sources",
+      "outline": "builder",
+      "w": 39.3701,
+      "h": 39.3701,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "air supply",
+        "pressure source"
+      ],
+      "elementType": "fluidpower.PressureSource",
+      "builder": "fluidPart",
+      "params": {
+        "kind": "source",
+        "medium": "pneumatic"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.serviceUnit",
+      "label": "Service Unit",
+      "category": "Accessories",
+      "outline": "builder",
+      "w": 59.0551,
+      "h": 39.3701,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "FRL",
+        "filter regulator lubricator",
+        "air preparation"
+      ],
+      "elementType": "fluidpower.ServiceUnit",
+      "builder": "fluidPart",
+      "params": {
+        "kind": "serviceUnit",
+        "medium": "pneumatic"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.silencer",
+      "label": "Silencer",
+      "category": "Accessories",
+      "outline": "builder",
+      "w": 39.3701,
+      "h": 39.3701,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "silencer",
+        "muffler"
+      ],
+      "elementType": "fluidpower.Silencer",
+      "builder": "fluidPart",
+      "params": {
+        "kind": "silencer",
+        "medium": "pneumatic"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.exhaust",
+      "label": "Exhaust",
+      "category": "Accessories",
+      "outline": "builder",
+      "w": 39.3701,
+      "h": 39.3701,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "exhaust",
+        "vent"
+      ],
+      "elementType": "fluidpower.Exhaust",
+      "builder": "fluidPart",
+      "params": {
+        "kind": "exhaust",
+        "medium": "pneumatic"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.limitValve",
+      "label": "Roller Limit Valve 3/2",
+      "category": "Valves",
+      "outline": "builder",
+      "w": 118.1102,
+      "h": 59.0551,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "limit valve",
+        "roller",
+        "3/2",
+        "sensor"
+      ],
+      "elementType": "fluidpower.LimitValve",
+      "builder": "valve",
+      "params": {
+        "ports": 3,
+        "portLabels": "iso5599",
+        "medium": "pneumatic",
+        "actuatorLeft": "roller",
+        "return": "spring",
+        "rest": 1
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.buttonValve",
+      "label": "Push Button Valve 3/2",
+      "category": "Valves",
+      "outline": "builder",
+      "w": 118.1102,
+      "h": 59.0551,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "push button",
+        "manual",
+        "3/2"
+      ],
+      "elementType": "fluidpower.ButtonValve",
+      "builder": "valve",
+      "params": {
+        "ports": 3,
+        "portLabels": "iso5599",
+        "medium": "pneumatic",
+        "actuatorLeft": "button",
+        "return": "spring",
+        "rest": 1
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.filter",
+      "label": "Filter",
+      "category": "Accessories",
+      "outline": "builder",
+      "w": 59.0551,
+      "h": 39.3701,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "filter",
+        "strainer"
+      ],
+      "elementType": "fluidpower.Filter",
+      "builder": "fluidPart",
+      "params": {
+        "kind": "filter"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.cooler",
+      "label": "Cooler",
+      "category": "Accessories",
+      "outline": "builder",
+      "w": 59.0551,
+      "h": 39.3701,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "cooler",
+        "heat exchanger"
+      ],
+      "elementType": "fluidpower.Cooler",
+      "builder": "fluidPart",
+      "params": {
+        "kind": "cooler"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.checkValve",
+      "label": "Check Valve",
+      "category": "Valves",
+      "outline": "builder",
+      "w": 59.0551,
+      "h": 39.3701,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "check valve",
+        "non-return"
+      ],
+      "elementType": "fluidpower.CheckValve",
+      "builder": "fluidPart",
+      "params": {
+        "kind": "checkValve"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.throttle",
+      "label": "Throttle Valve",
+      "category": "Valves",
+      "outline": "builder",
+      "w": 59.0551,
+      "h": 39.3701,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "throttle",
+        "needle valve",
+        "restrictor"
+      ],
+      "elementType": "fluidpower.Throttle",
+      "builder": "fluidPart",
+      "params": {
+        "kind": "throttle"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.flowControl",
+      "label": "One-Way Flow Control",
+      "category": "Valves",
+      "outline": "builder",
+      "w": 78.7402,
+      "h": 59.0551,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "flow control",
+        "speed control"
+      ],
+      "elementType": "fluidpower.FlowControl",
+      "builder": "fluidPart",
+      "params": {
+        "kind": "flowControl"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.shutOffValve",
+      "label": "Shut-Off Valve",
+      "category": "Valves",
+      "outline": "builder",
+      "w": 59.0551,
+      "h": 39.3701,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "shut-off",
+        "isolating",
+        "ball valve"
+      ],
+      "elementType": "fluidpower.ShutOffValve",
+      "builder": "fluidPart",
+      "params": {
+        "kind": "shutOff"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.pressureGauge",
+      "label": "Pressure Gauge",
+      "category": "Accessories",
+      "outline": "builder",
+      "w": 39.3701,
+      "h": 59.0551,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "gauge",
+        "manometer"
+      ],
+      "elementType": "fluidpower.PressureGauge",
+      "builder": "fluidPart",
+      "params": {
+        "kind": "gauge"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.pressureSwitch",
+      "label": "Pressure Switch",
+      "category": "Accessories",
+      "outline": "builder",
+      "w": 59.0551,
+      "h": 59.0551,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "pressure switch",
+        "sensor"
+      ],
+      "elementType": "fluidpower.PressureSwitch",
+      "builder": "fluidPart",
+      "params": {
+        "kind": "pressureSwitch"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.limitSwitch",
+      "label": "Limit Switch",
+      "category": "Accessories",
+      "outline": "builder",
+      "w": 59.0551,
+      "h": 39.3701,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "limit switch",
+        "sensor",
+        "electrical"
+      ],
+      "elementType": "fluidpower.LimitSwitch",
+      "builder": "fluidPart",
+      "params": {
+        "kind": "limitSwitch"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.electricMotor",
+      "label": "Electric Motor",
+      "category": "Sources",
+      "outline": "builder",
+      "w": 59.0551,
+      "h": 59.0551,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "electric motor",
+        "prime mover",
+        "drive"
+      ],
+      "elementType": "fluidpower.ElectricMotor",
+      "builder": "fluidPart",
+      "params": {
+        "kind": "motor"
+      },
+      "source": "own design, drawn from the written rules of ISO 1219-1"
+    },
+    {
+      "id": "fluidpower.stepChart",
+      "label": "Displacement-Step Chart",
+      "category": "Documentation",
+      "outline": "builder",
+      "w": 157.4803,
+      "h": 59.0551,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "displacement step",
+        "sequence",
+        "function chart",
+        "VDI 3260"
+      ],
+      "elementType": "fluidpower.StepChart",
+      "builder": "stepChart",
+      "params": {
+        "rows": "1A1 0 1 0"
+      },
+      "source": "own design, drawn from the written description of VDI 3260"
+    },
+    {
+      "id": "fluidpower.enclosure",
+      "label": "Enclosure",
+      "category": "Documentation",
+      "outline": "rectangle",
+      "w": 400,
+      "h": 300,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "assembly",
+        "power unit",
+        "boundary"
+      ],
+      "elementType": "fluidpower.Enclosure",
+      "container": {
+        "dash": "dashDot",
+        "heading": "plain",
+        "lineWidth": 1.0
+      }
+    },
+    {
+      "id": "fluidpower.componentList",
+      "label": "Component List",
+      "category": "Documentation",
+      "outline": "rectangle",
+      "w": 420,
+      "h": 90,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "parts list",
+        "bill of materials",
+        "component list"
+      ],
+      "elementType": "fluidpower.ComponentList",
+      "source": "own design"
+    }
+  ],
+  "connectorTypes": [
+    {
+      "id": "fluidpower.working",
+      "label": "Working Line",
+      "category": "Fluid Power",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "solid",
+      "lineWidth": 1.5,
+      "line": "#1f2933",
+      "jumps": false,
+      "keywords": [
+        "pressure line",
+        "return line",
+        "pipe",
+        "hose"
+      ],
+      "relationshipType": "fluidpower.WorkingLine",
+      "net": "fluid"
+    },
+    {
+      "id": "fluidpower.pilot",
+      "label": "Pilot Line",
+      "category": "Fluid Power",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "dashed",
+      "lineWidth": 1.0,
+      "line": "#1f2933",
+      "jumps": false,
+      "keywords": [
+        "pilot",
+        "control line"
+      ],
+      "relationshipType": "fluidpower.PilotLine",
+      "net": "fluid"
+    },
+    {
+      "id": "fluidpower.drain",
+      "label": "Drain Line",
+      "category": "Fluid Power",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "dashed",
+      "lineWidth": 1.0,
+      "line": "#1f2933",
+      "jumps": false,
+      "keywords": [
+        "drain",
+        "leakage"
+      ],
+      "relationshipType": "fluidpower.DrainLine",
+      "net": "fluid"
+    },
+    {
+      "id": "fluidpower.mechanical",
+      "label": "Mechanical Link",
+      "category": "Fluid Power",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "solid",
+      "lineWidth": 3.0,
+      "line": "#1f2933",
+      "jumps": false,
+      "keywords": [
+        "shaft",
+        "coupling",
+        "mechanical"
+      ],
+      "relationshipType": "fluidpower.MechanicalLink"
+    },
+    {
+      "id": "fluidpower.signal",
+      "label": "Signal Line",
+      "category": "Fluid Power",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "solid",
+      "lineWidth": 0.75,
+      "line": "#1f2933",
+      "jumps": false,
+      "keywords": [
+        "electrical",
+        "signal",
+        "control"
+      ],
+      "relationshipType": "fluidpower.SignalLine",
+      "net": "signal"
+    },
+    {
+      "id": "fluidpower.pilotLong",
+      "label": "Pilot Line (1995)",
+      "category": "Fluid Power",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "longDash",
+      "lineWidth": 1.0,
+      "line": "#1f2933",
+      "jumps": false,
+      "keywords": [
+        "pilot",
+        "1995"
+      ],
+      "relationshipType": "fluidpower.PilotLine",
+      "net": "fluid"
+    },
+    {
+      "id": "fluidpower.drainShort",
+      "label": "Drain Line (1995)",
+      "category": "Fluid Power",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "dotted",
+      "lineWidth": 1.0,
+      "line": "#1f2933",
+      "jumps": false,
+      "keywords": [
+        "drain",
+        "1995"
+      ],
+      "relationshipType": "fluidpower.DrainLine",
+      "net": "fluid"
+    }
+  ],
+  "elementTypes": [
+    {
+      "id": "fluidpower.Component",
+      "label": "Fluid Power Component",
+      "description": "Any hydraulic or pneumatic component: it carries the ISO 1219-2 code parts and the data the component list shows.",
+      "properties": [
+        {
+          "key": "circuit",
+          "label": "Circuit",
+          "kind": "integer",
+          "default": 1,
+          "group": "Identification",
+          "description": "The circuit number of ISO 1219-2 codes; 0 is the power unit."
+        },
+        {
+          "key": "installation",
+          "label": "Installation",
+          "kind": "text",
+          "group": "Identification",
+          "description": "The installation number written in front of the code, when a plant has several."
+        },
+        {
+          "key": "letter",
+          "label": "Code Letter",
+          "kind": "text",
+          "group": "Identification",
+          "description": "The ISO 1219-2 component letter (P pump or source, A actuator, M prime mover, V valve, S sensor, Z other)."
+        },
+        {
+          "key": "nominalPressure",
+          "label": "Nominal Pressure",
+          "kind": "number",
+          "unit": "bar",
+          "group": "Data",
+          "description": "The rated pressure."
+        },
+        {
+          "key": "partNumber",
+          "label": "Part Number",
+          "kind": "text",
+          "group": "Data",
+          "description": "The maker's part number."
+        },
+        {
+          "key": "description",
+          "label": "Description",
+          "kind": "text",
+          "group": "Data",
+          "description": "What the component is, for the component list."
+        },
+        {
+          "key": "plugged",
+          "label": "Plugged Ports",
+          "kind": "text",
+          "group": "Ports",
+          "description": "Ports closed with a plug, separated by spaces; an open port listed here is not reported."
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.Source",
+      "label": "Source",
+      "description": "Pumps, compressors and pressure sources.",
+      "extends": "fluidpower.Component",
+      "properties": [
+        {
+          "key": "letter",
+          "label": "Code Letter",
+          "kind": "text",
+          "default": "P",
+          "group": "Identification",
+          "description": "The ISO 1219-2 component letter."
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.Actuator",
+      "label": "Actuator",
+      "description": "Cylinders and motors.",
+      "extends": "fluidpower.Component",
+      "properties": [
+        {
+          "key": "letter",
+          "label": "Code Letter",
+          "kind": "text",
+          "default": "A",
+          "group": "Identification",
+          "description": "The ISO 1219-2 component letter."
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.PrimeMover",
+      "label": "Prime Mover",
+      "description": "Electric motors and engines driving a pump.",
+      "extends": "fluidpower.Component",
+      "properties": [
+        {
+          "key": "letter",
+          "label": "Code Letter",
+          "kind": "text",
+          "default": "M",
+          "group": "Identification",
+          "description": "The ISO 1219-2 component letter."
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.DirectionalValve",
+      "label": "Directional Valve",
+      "description": "Valves that switch the flow between ports.",
+      "extends": "fluidpower.Component",
+      "properties": [
+        {
+          "key": "letter",
+          "label": "Code Letter",
+          "kind": "text",
+          "default": "V",
+          "group": "Identification",
+          "description": "The ISO 1219-2 component letter."
+        },
+        {
+          "key": "positions",
+          "label": "Positions",
+          "kind": "integer",
+          "group": "Symbol",
+          "description": "Switching positions (2 or 3)."
+        },
+        {
+          "key": "ports",
+          "label": "Ports",
+          "kind": "integer",
+          "group": "Symbol",
+          "description": "Ports (2 to 5)."
+        },
+        {
+          "key": "paths",
+          "label": "Paths",
+          "kind": "text",
+          "group": "Symbol",
+          "description": "Flow per position, `;` between positions: `P-A B-T; X; P-B A-T`."
+        },
+        {
+          "key": "actuatorLeft",
+          "label": "Left Operator",
+          "kind": "enum",
+          "values": [
+            "none",
+            "lever",
+            "button",
+            "pedal",
+            "roller",
+            "plunger",
+            "solenoid",
+            "pilot"
+          ],
+          "group": "Symbol",
+          "description": "Operator at the left side."
+        },
+        {
+          "key": "actuatorRight",
+          "label": "Right Operator",
+          "kind": "enum",
+          "values": [
+            "none",
+            "lever",
+            "button",
+            "pedal",
+            "roller",
+            "plunger",
+            "solenoid",
+            "pilot"
+          ],
+          "group": "Symbol",
+          "description": "Operator at the right side."
+        },
+        {
+          "key": "return",
+          "label": "Return",
+          "kind": "enum",
+          "values": [
+            "spring",
+            "detent",
+            "none"
+          ],
+          "group": "Symbol",
+          "description": "What brings it back to rest."
+        },
+        {
+          "key": "rest",
+          "label": "Rest Position",
+          "kind": "integer",
+          "group": "Symbol",
+          "description": "Index of the rest position from the left (0, 1 or 2)."
+        },
+        {
+          "key": "portLabels",
+          "label": "Port Labels",
+          "kind": "enum",
+          "values": [
+            "iso9461",
+            "iso5599"
+          ],
+          "group": "Symbol",
+          "description": "ISO 9461 letters or ISO 5599 numbers."
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.PressureValve",
+      "label": "Pressure Valve",
+      "description": "Relief, reducing and sequence valves.",
+      "extends": "fluidpower.Component",
+      "properties": [
+        {
+          "key": "letter",
+          "label": "Code Letter",
+          "kind": "text",
+          "default": "V",
+          "group": "Identification",
+          "description": "The ISO 1219-2 component letter."
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.FlowValve",
+      "label": "Flow Valve",
+      "description": "Check, throttle, flow control and shut-off valves.",
+      "extends": "fluidpower.Component",
+      "properties": [
+        {
+          "key": "letter",
+          "label": "Code Letter",
+          "kind": "text",
+          "default": "V",
+          "group": "Identification",
+          "description": "The ISO 1219-2 component letter."
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.Sensor",
+      "label": "Sensor",
+      "description": "Limit valves and switches, gauges, signal valves.",
+      "extends": "fluidpower.Component",
+      "properties": [
+        {
+          "key": "letter",
+          "label": "Code Letter",
+          "kind": "text",
+          "default": "S",
+          "group": "Identification",
+          "description": "The ISO 1219-2 component letter."
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.Conditioning",
+      "label": "Conditioning",
+      "description": "Filters, coolers, service units, silencers and exhausts.",
+      "extends": "fluidpower.Component",
+      "properties": [
+        {
+          "key": "letter",
+          "label": "Code Letter",
+          "kind": "text",
+          "default": "Z",
+          "group": "Identification",
+          "description": "The ISO 1219-2 component letter."
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.Tank",
+      "label": "Tank",
+      "description": "Reservoirs.",
+      "extends": "fluidpower.Component",
+      "properties": [
+        {
+          "key": "letter",
+          "label": "Code Letter",
+          "kind": "text",
+          "default": "Z",
+          "group": "Identification",
+          "description": "The ISO 1219-2 component letter."
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.Storage",
+      "label": "Storage",
+      "description": "Accumulators.",
+      "extends": "fluidpower.Component",
+      "properties": [
+        {
+          "key": "letter",
+          "label": "Code Letter",
+          "kind": "text",
+          "default": "Z",
+          "group": "Identification",
+          "description": "The ISO 1219-2 component letter."
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.HydraulicPump",
+      "label": "Hydraulic Pump",
+      "description": "A hydraulic pump, fixed displacement unless set variable; its shaft port takes the prime mover.",
+      "glyph": "fluidpower.hydraulicPump",
+      "extends": "fluidpower.Source",
+      "properties": [
+        {
+          "key": "variable",
+          "label": "Variable Displacement",
+          "kind": "bool",
+          "group": "Symbol",
+          "description": "A pump whose displacement can be set."
+        },
+        {
+          "key": "drain",
+          "label": "Case Drain",
+          "kind": "bool",
+          "group": "Symbol",
+          "description": "A drain port L."
+        },
+        {
+          "key": "flow",
+          "label": "Flow Directions",
+          "kind": "enum",
+          "values": [
+            "uni",
+            "bi"
+          ],
+          "group": "Symbol",
+          "description": "One flow direction or both."
+        }
+      ],
+      "ports": [
+        {
+          "id": "P",
+          "label": "P",
+          "x": 0.5,
+          "y": 0.0
+        },
+        {
+          "id": "S",
+          "label": "S",
+          "x": 0.5,
+          "y": 1.0
+        },
+        {
+          "id": "shaft",
+          "label": "shaft",
+          "x": 0.0,
+          "y": 0.5
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.HydraulicMotor",
+      "label": "Hydraulic Motor",
+      "description": "A hydraulic motor turning a shaft.",
+      "glyph": "fluidpower.hydraulicMotor",
+      "extends": "fluidpower.Actuator",
+      "ports": [
+        {
+          "id": "A",
+          "label": "A",
+          "x": 0.5,
+          "y": 0.0
+        },
+        {
+          "id": "B",
+          "label": "B",
+          "x": 0.5,
+          "y": 1.0
+        },
+        {
+          "id": "shaft",
+          "label": "shaft",
+          "x": 0.0,
+          "y": 0.5
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.HydraulicCylinder",
+      "label": "Hydraulic Cylinder",
+      "description": "A hydraulic cylinder: A extends, B retracts.",
+      "glyph": "fluidpower.hydraulicCylinder",
+      "extends": "fluidpower.Actuator",
+      "properties": [
+        {
+          "key": "acting",
+          "label": "Acting",
+          "kind": "enum",
+          "values": [
+            "double",
+            "single"
+          ],
+          "group": "Symbol",
+          "description": "Pressure on both sides of the piston, or one."
+        },
+        {
+          "key": "rod",
+          "label": "Rod",
+          "kind": "enum",
+          "values": [
+            "single",
+            "through"
+          ],
+          "group": "Symbol",
+          "description": "A rod at one end or through both."
+        },
+        {
+          "key": "cushion",
+          "label": "Cushion",
+          "kind": "enum",
+          "values": [
+            "none",
+            "a",
+            "b",
+            "both"
+          ],
+          "group": "Symbol",
+          "description": "End cushioning."
+        },
+        {
+          "key": "springReturn",
+          "label": "Spring Return",
+          "kind": "bool",
+          "group": "Symbol",
+          "description": "A spring returns the piston."
+        }
+      ],
+      "ports": [
+        {
+          "id": "A",
+          "label": "A",
+          "x": 0.090909,
+          "y": 1.0
+        },
+        {
+          "id": "B",
+          "label": "B",
+          "x": 0.636364,
+          "y": 1.0
+        },
+        {
+          "id": "rod",
+          "label": "rod",
+          "x": 1.0,
+          "y": 0.5
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.HydraulicValve",
+      "label": "Hydraulic Directional Valve",
+      "description": "A hydraulic directional valve, drawn 4/3 spring centred with solenoids by default.",
+      "glyph": "fluidpower.hydraulicValve",
+      "extends": "fluidpower.DirectionalValve",
+      "ports": [
+        {
+          "id": "P",
+          "label": "P",
+          "x": 0.4375,
+          "y": 1.0
+        },
+        {
+          "id": "A",
+          "label": "A",
+          "x": 0.4375,
+          "y": 0.0
+        },
+        {
+          "id": "B",
+          "label": "B",
+          "x": 0.5625,
+          "y": 0.0
+        },
+        {
+          "id": "T",
+          "label": "T",
+          "x": 0.5625,
+          "y": 1.0
+        },
+        {
+          "id": "el",
+          "label": "el",
+          "x": 0.0,
+          "y": 0.5
+        },
+        {
+          "id": "er",
+          "label": "er",
+          "x": 1.0,
+          "y": 0.5
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.ReliefValve",
+      "label": "Relief Valve",
+      "description": "Limits the pressure on P by passing flow to T.",
+      "glyph": "fluidpower.reliefValve",
+      "extends": "fluidpower.PressureValve",
+      "properties": [
+        {
+          "key": "pilot",
+          "label": "Pilot",
+          "kind": "enum",
+          "values": [
+            "internal",
+            "external"
+          ],
+          "group": "Symbol",
+          "description": "Where the pilot pressure comes from."
+        },
+        {
+          "key": "drain",
+          "label": "Drain",
+          "kind": "enum",
+          "values": [
+            "internal",
+            "external"
+          ],
+          "group": "Symbol",
+          "description": "Where the spring chamber drains."
+        },
+        {
+          "key": "adjustable",
+          "label": "Adjustable",
+          "kind": "bool",
+          "group": "Symbol",
+          "description": "An arrow across the spring."
+        }
+      ],
+      "ports": [
+        {
+          "id": "P",
+          "label": "P",
+          "x": 0.5,
+          "y": 1.0
+        },
+        {
+          "id": "T",
+          "label": "T",
+          "x": 0.5,
+          "y": 0.0
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.ReducingValve",
+      "label": "Pressure Reducing Valve",
+      "description": "Holds the pressure on A below a set value.",
+      "glyph": "fluidpower.reducingValve",
+      "extends": "fluidpower.PressureValve",
+      "properties": [
+        {
+          "key": "pilot",
+          "label": "Pilot",
+          "kind": "enum",
+          "values": [
+            "internal",
+            "external"
+          ],
+          "group": "Symbol",
+          "description": "Where the pilot pressure comes from."
+        },
+        {
+          "key": "drain",
+          "label": "Drain",
+          "kind": "enum",
+          "values": [
+            "internal",
+            "external"
+          ],
+          "group": "Symbol",
+          "description": "Where the spring chamber drains."
+        },
+        {
+          "key": "adjustable",
+          "label": "Adjustable",
+          "kind": "bool",
+          "group": "Symbol",
+          "description": "An arrow across the spring."
+        }
+      ],
+      "ports": [
+        {
+          "id": "P",
+          "label": "P",
+          "x": 0.5,
+          "y": 1.0
+        },
+        {
+          "id": "A",
+          "label": "A",
+          "x": 0.5,
+          "y": 0.0
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.SequenceValve",
+      "label": "Sequence Valve",
+      "description": "Opens P to A when P reaches a set pressure.",
+      "glyph": "fluidpower.sequenceValve",
+      "extends": "fluidpower.PressureValve",
+      "properties": [
+        {
+          "key": "pilot",
+          "label": "Pilot",
+          "kind": "enum",
+          "values": [
+            "internal",
+            "external"
+          ],
+          "group": "Symbol",
+          "description": "Where the pilot pressure comes from."
+        },
+        {
+          "key": "drain",
+          "label": "Drain",
+          "kind": "enum",
+          "values": [
+            "internal",
+            "external"
+          ],
+          "group": "Symbol",
+          "description": "Where the spring chamber drains."
+        },
+        {
+          "key": "adjustable",
+          "label": "Adjustable",
+          "kind": "bool",
+          "group": "Symbol",
+          "description": "An arrow across the spring."
+        }
+      ],
+      "ports": [
+        {
+          "id": "P",
+          "label": "P",
+          "x": 0.5,
+          "y": 1.0
+        },
+        {
+          "id": "A",
+          "label": "A",
+          "x": 0.5,
+          "y": 0.0
+        },
+        {
+          "id": "L",
+          "label": "L",
+          "x": 1.0,
+          "y": 0.666667
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.Reservoir",
+      "label": "Reservoir",
+      "description": "The hydraulic tank: its ports T1 to T3 are one volume.",
+      "glyph": "fluidpower.reservoir",
+      "extends": "fluidpower.Tank",
+      "ports": [
+        {
+          "id": "T1",
+          "label": "T1",
+          "x": 0.25,
+          "y": 0.0
+        },
+        {
+          "id": "T2",
+          "label": "T2",
+          "x": 0.5,
+          "y": 0.0
+        },
+        {
+          "id": "T3",
+          "label": "T3",
+          "x": 0.75,
+          "y": 0.0
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.Accumulator",
+      "label": "Accumulator",
+      "description": "Stores fluid under pressure and gives it back.",
+      "glyph": "fluidpower.accumulator",
+      "extends": "fluidpower.Storage",
+      "ports": [
+        {
+          "id": "1",
+          "label": "1",
+          "x": 0.5,
+          "y": 1.0
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.Compressor",
+      "label": "Compressor",
+      "description": "A compressor delivering air; its intake S may stay open.",
+      "glyph": "fluidpower.compressor",
+      "extends": "fluidpower.Source",
+      "properties": [
+        {
+          "key": "variable",
+          "label": "Variable Displacement",
+          "kind": "bool",
+          "group": "Symbol",
+          "description": "A pump whose displacement can be set."
+        },
+        {
+          "key": "drain",
+          "label": "Case Drain",
+          "kind": "bool",
+          "group": "Symbol",
+          "description": "A drain port L."
+        },
+        {
+          "key": "flow",
+          "label": "Flow Directions",
+          "kind": "enum",
+          "values": [
+            "uni",
+            "bi"
+          ],
+          "group": "Symbol",
+          "description": "One flow direction or both."
+        }
+      ],
+      "ports": [
+        {
+          "id": "P",
+          "label": "P",
+          "x": 0.5,
+          "y": 0.0
+        },
+        {
+          "id": "S",
+          "label": "S",
+          "x": 0.5,
+          "y": 1.0
+        },
+        {
+          "id": "shaft",
+          "label": "shaft",
+          "x": 0.0,
+          "y": 0.5
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.AirMotor",
+      "label": "Air Motor",
+      "description": "A pneumatic motor turning a shaft.",
+      "glyph": "fluidpower.airMotor",
+      "extends": "fluidpower.Actuator",
+      "ports": [
+        {
+          "id": "A",
+          "label": "A",
+          "x": 0.5,
+          "y": 0.0
+        },
+        {
+          "id": "B",
+          "label": "B",
+          "x": 0.5,
+          "y": 1.0
+        },
+        {
+          "id": "shaft",
+          "label": "shaft",
+          "x": 0.0,
+          "y": 0.5
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.PneumaticCylinder",
+      "label": "Pneumatic Cylinder",
+      "description": "A pneumatic cylinder: 2 or A extends, B retracts.",
+      "glyph": "fluidpower.pneumaticCylinder",
+      "extends": "fluidpower.Actuator",
+      "properties": [
+        {
+          "key": "acting",
+          "label": "Acting",
+          "kind": "enum",
+          "values": [
+            "double",
+            "single"
+          ],
+          "group": "Symbol",
+          "description": "Pressure on both sides of the piston, or one."
+        },
+        {
+          "key": "rod",
+          "label": "Rod",
+          "kind": "enum",
+          "values": [
+            "single",
+            "through"
+          ],
+          "group": "Symbol",
+          "description": "A rod at one end or through both."
+        },
+        {
+          "key": "cushion",
+          "label": "Cushion",
+          "kind": "enum",
+          "values": [
+            "none",
+            "a",
+            "b",
+            "both"
+          ],
+          "group": "Symbol",
+          "description": "End cushioning."
+        },
+        {
+          "key": "springReturn",
+          "label": "Spring Return",
+          "kind": "bool",
+          "group": "Symbol",
+          "description": "A spring returns the piston."
+        }
+      ],
+      "ports": [
+        {
+          "id": "A",
+          "label": "A",
+          "x": 0.090909,
+          "y": 1.0
+        },
+        {
+          "id": "B",
+          "label": "B",
+          "x": 0.636364,
+          "y": 1.0
+        },
+        {
+          "id": "rod",
+          "label": "rod",
+          "x": 1.0,
+          "y": 0.5
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.PneumaticValve",
+      "label": "Pneumatic Directional Valve",
+      "description": "A pneumatic directional valve, drawn 5/2 double pilot with ISO 5599 numbers by default; its exhausts 3 and 5 may stay open.",
+      "glyph": "fluidpower.pneumaticValve",
+      "extends": "fluidpower.DirectionalValve",
+      "ports": [
+        {
+          "id": "1",
+          "label": "1",
+          "x": 0.666667,
+          "y": 1.0
+        },
+        {
+          "id": "2",
+          "label": "2",
+          "x": 0.583333,
+          "y": 0.0
+        },
+        {
+          "id": "4",
+          "label": "4",
+          "x": 0.75,
+          "y": 0.0
+        },
+        {
+          "id": "3",
+          "label": "3",
+          "x": 0.583333,
+          "y": 1.0
+        },
+        {
+          "id": "5",
+          "label": "5",
+          "x": 0.75,
+          "y": 1.0
+        },
+        {
+          "id": "12",
+          "label": "12",
+          "x": 0.0,
+          "y": 0.5
+        },
+        {
+          "id": "14",
+          "label": "14",
+          "x": 1.0,
+          "y": 0.5
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.PressureRegulator",
+      "label": "Pressure Regulator",
+      "description": "Holds the air pressure on A.",
+      "glyph": "fluidpower.pressureRegulator",
+      "extends": "fluidpower.PressureValve",
+      "properties": [
+        {
+          "key": "pilot",
+          "label": "Pilot",
+          "kind": "enum",
+          "values": [
+            "internal",
+            "external"
+          ],
+          "group": "Symbol",
+          "description": "Where the pilot pressure comes from."
+        },
+        {
+          "key": "drain",
+          "label": "Drain",
+          "kind": "enum",
+          "values": [
+            "internal",
+            "external"
+          ],
+          "group": "Symbol",
+          "description": "Where the spring chamber drains."
+        },
+        {
+          "key": "adjustable",
+          "label": "Adjustable",
+          "kind": "bool",
+          "group": "Symbol",
+          "description": "An arrow across the spring."
+        }
+      ],
+      "ports": [
+        {
+          "id": "P",
+          "label": "P",
+          "x": 0.5,
+          "y": 1.0
+        },
+        {
+          "id": "A",
+          "label": "A",
+          "x": 0.5,
+          "y": 0.0
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.PressureSource",
+      "label": "Pressure Source",
+      "description": "A compressed air supply.",
+      "glyph": "fluidpower.pressureSource",
+      "extends": "fluidpower.Source",
+      "ports": [
+        {
+          "id": "1",
+          "label": "1",
+          "x": 0.5,
+          "y": 0.0
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.ServiceUnit",
+      "label": "Service Unit",
+      "description": "Filter, regulator and lubricator for the air supply.",
+      "glyph": "fluidpower.serviceUnit",
+      "extends": "fluidpower.Conditioning",
+      "ports": [
+        {
+          "id": "1",
+          "label": "1",
+          "x": 0.0,
+          "y": 0.5
+        },
+        {
+          "id": "2",
+          "label": "2",
+          "x": 1.0,
+          "y": 0.5
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.Silencer",
+      "label": "Silencer",
+      "description": "Quiets an exhaust.",
+      "glyph": "fluidpower.silencer",
+      "extends": "fluidpower.Conditioning",
+      "ports": [
+        {
+          "id": "1",
+          "label": "1",
+          "x": 0.5,
+          "y": 0.0
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.Exhaust",
+      "label": "Exhaust",
+      "description": "An exhaust to the air.",
+      "glyph": "fluidpower.exhaust",
+      "extends": "fluidpower.Conditioning",
+      "ports": [
+        {
+          "id": "1",
+          "label": "1",
+          "x": 0.5,
+          "y": 0.0
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.LimitValve",
+      "label": "Roller Limit Valve",
+      "description": "A 3/2 valve worked by a roller where an actuator reaches a position; a signal valve.",
+      "glyph": "fluidpower.limitValve",
+      "extends": "fluidpower.Sensor",
+      "ports": [
+        {
+          "id": "1",
+          "label": "1",
+          "x": 0.583333,
+          "y": 1.0
+        },
+        {
+          "id": "2",
+          "label": "2",
+          "x": 0.666667,
+          "y": 0.0
+        },
+        {
+          "id": "3",
+          "label": "3",
+          "x": 0.75,
+          "y": 1.0
+        },
+        {
+          "id": "ml",
+          "label": "ml",
+          "x": 0.0,
+          "y": 0.5
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.ButtonValve",
+      "label": "Push Button Valve",
+      "description": "A 3/2 valve worked by hand: a start or stop signal.",
+      "glyph": "fluidpower.buttonValve",
+      "extends": "fluidpower.Sensor",
+      "ports": [
+        {
+          "id": "1",
+          "label": "1",
+          "x": 0.583333,
+          "y": 1.0
+        },
+        {
+          "id": "2",
+          "label": "2",
+          "x": 0.666667,
+          "y": 0.0
+        },
+        {
+          "id": "3",
+          "label": "3",
+          "x": 0.75,
+          "y": 1.0
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.Filter",
+      "label": "Filter",
+      "description": "Cleans the fluid.",
+      "glyph": "fluidpower.filter",
+      "extends": "fluidpower.Conditioning",
+      "ports": [
+        {
+          "id": "1",
+          "label": "1",
+          "x": 0.0,
+          "y": 0.5
+        },
+        {
+          "id": "2",
+          "label": "2",
+          "x": 1.0,
+          "y": 0.5
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.Cooler",
+      "label": "Cooler",
+      "description": "Takes heat out of the fluid.",
+      "glyph": "fluidpower.cooler",
+      "extends": "fluidpower.Conditioning",
+      "ports": [
+        {
+          "id": "1",
+          "label": "1",
+          "x": 0.0,
+          "y": 0.5
+        },
+        {
+          "id": "2",
+          "label": "2",
+          "x": 1.0,
+          "y": 0.5
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.CheckValve",
+      "label": "Check Valve",
+      "description": "Passes flow from 1 to 2 only.",
+      "glyph": "fluidpower.checkValve",
+      "extends": "fluidpower.FlowValve",
+      "ports": [
+        {
+          "id": "1",
+          "label": "1",
+          "x": 0.0,
+          "y": 0.5
+        },
+        {
+          "id": "2",
+          "label": "2",
+          "x": 1.0,
+          "y": 0.5
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.Throttle",
+      "label": "Throttle Valve",
+      "description": "An adjustable restriction.",
+      "glyph": "fluidpower.throttle",
+      "extends": "fluidpower.FlowValve",
+      "ports": [
+        {
+          "id": "1",
+          "label": "1",
+          "x": 0.0,
+          "y": 0.5
+        },
+        {
+          "id": "2",
+          "label": "2",
+          "x": 1.0,
+          "y": 0.5
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.FlowControl",
+      "label": "One-Way Flow Control",
+      "description": "A throttle with a check valve bypass.",
+      "glyph": "fluidpower.flowControl",
+      "extends": "fluidpower.FlowValve",
+      "ports": [
+        {
+          "id": "1",
+          "label": "1",
+          "x": 0.0,
+          "y": 0.333333
+        },
+        {
+          "id": "2",
+          "label": "2",
+          "x": 1.0,
+          "y": 0.333333
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.ShutOffValve",
+      "label": "Shut-Off Valve",
+      "description": "Opens or closes a line by hand.",
+      "glyph": "fluidpower.shutOffValve",
+      "extends": "fluidpower.FlowValve",
+      "ports": [
+        {
+          "id": "1",
+          "label": "1",
+          "x": 0.0,
+          "y": 0.5
+        },
+        {
+          "id": "2",
+          "label": "2",
+          "x": 1.0,
+          "y": 0.5
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.PressureGauge",
+      "label": "Pressure Gauge",
+      "description": "Shows the pressure at its port.",
+      "glyph": "fluidpower.pressureGauge",
+      "extends": "fluidpower.Sensor",
+      "ports": [
+        {
+          "id": "1",
+          "label": "1",
+          "x": 0.5,
+          "y": 1.0
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.PressureSwitch",
+      "label": "Pressure Switch",
+      "description": "Switches an electrical contact at a set pressure.",
+      "glyph": "fluidpower.pressureSwitch",
+      "extends": "fluidpower.Sensor",
+      "ports": [
+        {
+          "id": "1",
+          "label": "1",
+          "x": 0.5,
+          "y": 1.0
+        },
+        {
+          "id": "el",
+          "label": "el",
+          "x": 1.0,
+          "y": 0.333333
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.LimitSwitch",
+      "label": "Limit Switch",
+      "description": "An electrical limit switch worked by a roller.",
+      "glyph": "fluidpower.limitSwitch",
+      "extends": "fluidpower.Sensor",
+      "ports": [
+        {
+          "id": "ml",
+          "label": "ml",
+          "x": 0.0,
+          "y": 0.5
+        },
+        {
+          "id": "el",
+          "label": "el",
+          "x": 1.0,
+          "y": 0.5
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.ElectricMotor",
+      "label": "Electric Motor",
+      "description": "Drives a pump through its shaft.",
+      "glyph": "fluidpower.electricMotor",
+      "extends": "fluidpower.PrimeMover",
+      "ports": [
+        {
+          "id": "shaft",
+          "label": "shaft",
+          "x": 1.0,
+          "y": 0.5
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.Enclosure",
+      "label": "Enclosure",
+      "description": "A dash-dot boundary around an assembly: a power unit, a valve manifold.",
+      "glyph": "fluidpower.enclosure",
+      "container": true
+    },
+    {
+      "id": "fluidpower.ComponentList",
+      "label": "Component List",
+      "description": "A table of the fluid power components: code, name, description, nominal pressure and part number.",
+      "glyph": "fluidpower.componentList",
+      "properties": [
+        {
+          "key": "types",
+          "label": "Listed types",
+          "kind": "text",
+          "default": "fluidpower.Component",
+          "description": "Element types the list shows, separated by commas."
+        }
+      ],
+      "compartments": [
+        {
+          "id": "rows",
+          "kind": "list",
+          "query": {
+            "types": [
+              "fluidpower.Component"
+            ],
+            "columns": [
+              "tag",
+              "name",
+              "description",
+              "nominalPressure",
+              "partNumber"
+            ],
+            "headers": [
+              "CODE",
+              "NAME",
+              "DESCRIPTION",
+              "PRESSURE (bar)",
+              "PART NUMBER"
+            ],
+            "widths": [
+              50,
+              90,
+              140,
+              60,
+              80
+            ],
+            "sortBy": "tag"
+          }
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.StepChart",
+      "label": "Displacement-Step Chart",
+      "description": "The VDI 3260 displacement-step chart beside a circuit: one row per actuator, its state at each step.",
+      "glyph": "fluidpower.stepChart",
+      "properties": [
+        {
+          "key": "rows",
+          "label": "Rows",
+          "kind": "text",
+          "default": "1A1 0 1 0",
+          "description": "One row per actuator, rows separated by `;`: its code, then 0 (retracted) or 1 (extended) at each step boundary."
+        }
+      ]
+    }
+  ],
+  "relationshipTypes": [
+    {
+      "id": "fluidpower.WorkingLine",
+      "label": "Working Line",
+      "description": "A pressure, return or supply line.",
+      "endArrow": "none"
+    },
+    {
+      "id": "fluidpower.PilotLine",
+      "label": "Pilot Line",
+      "description": "A control line to a pilot port.",
+      "endArrow": "none"
+    },
+    {
+      "id": "fluidpower.DrainLine",
+      "label": "Drain Line",
+      "description": "A leakage line to the tank.",
+      "endArrow": "none"
+    },
+    {
+      "id": "fluidpower.MechanicalLink",
+      "label": "Mechanical Link",
+      "description": "A shaft or a linkage: a motor driving a pump, a rod working a roller.",
+      "endArrow": "none"
+    },
+    {
+      "id": "fluidpower.SignalLine",
+      "label": "Signal Line",
+      "description": "An electrical signal between a sensor and a valve operator.",
+      "endArrow": "none"
+    }
+  ],
+  "connections": [
+    {
+      "source": [
+        "fluidpower.Component"
+      ],
+      "relationship": "fluidpower.WorkingLine",
+      "target": [
+        "fluidpower.Component"
+      ]
+    },
+    {
+      "source": [
+        "fluidpower.Component"
+      ],
+      "relationship": "fluidpower.PilotLine",
+      "target": [
+        "fluidpower.DirectionalValve",
+        "fluidpower.PressureValve",
+        "fluidpower.Sensor"
+      ]
+    },
+    {
+      "source": [
+        "fluidpower.DirectionalValve",
+        "fluidpower.PressureValve",
+        "fluidpower.Sensor"
+      ],
+      "relationship": "fluidpower.PilotLine",
+      "target": [
+        "fluidpower.Component"
+      ]
+    },
+    {
+      "source": [
+        "fluidpower.Component"
+      ],
+      "relationship": "fluidpower.DrainLine",
+      "target": [
+        "fluidpower.Tank"
+      ]
+    },
+    {
+      "source": [
+        "fluidpower.Tank"
+      ],
+      "relationship": "fluidpower.DrainLine",
+      "target": [
+        "fluidpower.Component"
+      ]
+    },
+    {
+      "source": [
+        "fluidpower.Actuator",
+        "fluidpower.PrimeMover"
+      ],
+      "relationship": "fluidpower.MechanicalLink",
+      "target": [
+        "fluidpower.Sensor",
+        "fluidpower.DirectionalValve",
+        "fluidpower.Source"
+      ]
+    },
+    {
+      "source": [
+        "fluidpower.Sensor",
+        "fluidpower.DirectionalValve",
+        "fluidpower.Source"
+      ],
+      "relationship": "fluidpower.MechanicalLink",
+      "target": [
+        "fluidpower.Actuator",
+        "fluidpower.PrimeMover"
+      ]
+    },
+    {
+      "source": [
+        "fluidpower.Sensor"
+      ],
+      "relationship": "fluidpower.SignalLine",
+      "target": [
+        "fluidpower.DirectionalValve"
+      ]
+    },
+    {
+      "source": [
+        "fluidpower.DirectionalValve"
+      ],
+      "relationship": "fluidpower.SignalLine",
+      "target": [
+        "fluidpower.Sensor"
+      ]
+    }
+  ],
+  "palette": [
+    {
+      "id": "fluidpower.sources",
+      "label": "Sources and Prime Movers",
+      "types": [
+        "fluidpower.HydraulicPump",
+        "fluidpower.Compressor",
+        "fluidpower.PressureSource",
+        "fluidpower.Accumulator",
+        "fluidpower.Reservoir",
+        "fluidpower.ElectricMotor"
+      ]
+    },
+    {
+      "id": "fluidpower.valves",
+      "label": "Valves",
+      "types": [
+        "fluidpower.HydraulicValve",
+        "fluidpower.PneumaticValve",
+        "fluidpower.LimitValve",
+        "fluidpower.ButtonValve",
+        "fluidpower.ReliefValve",
+        "fluidpower.ReducingValve",
+        "fluidpower.SequenceValve",
+        "fluidpower.PressureRegulator",
+        "fluidpower.CheckValve",
+        "fluidpower.Throttle",
+        "fluidpower.FlowControl",
+        "fluidpower.ShutOffValve"
+      ]
+    },
+    {
+      "id": "fluidpower.actuators",
+      "label": "Actuators",
+      "types": [
+        "fluidpower.HydraulicCylinder",
+        "fluidpower.PneumaticCylinder",
+        "fluidpower.HydraulicMotor",
+        "fluidpower.AirMotor"
+      ]
+    },
+    {
+      "id": "fluidpower.accessories",
+      "label": "Accessories",
+      "types": [
+        "fluidpower.Filter",
+        "fluidpower.Cooler",
+        "fluidpower.ServiceUnit",
+        "fluidpower.Silencer",
+        "fluidpower.Exhaust",
+        "fluidpower.PressureGauge",
+        "fluidpower.PressureSwitch",
+        "fluidpower.LimitSwitch"
+      ]
+    },
+    {
+      "id": "fluidpower.documentation",
+      "label": "Documentation",
+      "types": [
+        "fluidpower.Enclosure",
+        "fluidpower.StepChart",
+        "fluidpower.ComponentList"
+      ]
+    }
+  ],
+  "viewpoints": [
+    {
+      "id": "fluidpower.Hydraulic",
+      "label": "Hydraulic",
+      "description": "A hydraulic circuit: pumps, valves, actuators and the reservoir, drawn to ISO 1219.",
+      "types": [
+        "fluidpower.HydraulicPump",
+        "fluidpower.HydraulicMotor",
+        "fluidpower.HydraulicCylinder",
+        "fluidpower.HydraulicValve",
+        "fluidpower.ReliefValve",
+        "fluidpower.ReducingValve",
+        "fluidpower.SequenceValve",
+        "fluidpower.Reservoir",
+        "fluidpower.Accumulator",
+        "fluidpower.Filter",
+        "fluidpower.Cooler",
+        "fluidpower.CheckValve",
+        "fluidpower.Throttle",
+        "fluidpower.FlowControl",
+        "fluidpower.ShutOffValve",
+        "fluidpower.PressureGauge",
+        "fluidpower.PressureSwitch",
+        "fluidpower.LimitSwitch",
+        "fluidpower.ElectricMotor",
+        "fluidpower.Enclosure",
+        "fluidpower.StepChart",
+        "fluidpower.ComponentList"
+      ],
+      "relationships": [
+        "fluidpower.WorkingLine",
+        "fluidpower.PilotLine",
+        "fluidpower.DrainLine",
+        "fluidpower.MechanicalLink",
+        "fluidpower.SignalLine"
+      ]
+    },
+    {
+      "id": "fluidpower.Pneumatic",
+      "label": "Pneumatic",
+      "description": "A pneumatic circuit with the displacement-step chart beside it.",
+      "types": [
+        "fluidpower.Compressor",
+        "fluidpower.AirMotor",
+        "fluidpower.PneumaticCylinder",
+        "fluidpower.PneumaticValve",
+        "fluidpower.PressureRegulator",
+        "fluidpower.PressureSource",
+        "fluidpower.ServiceUnit",
+        "fluidpower.Silencer",
+        "fluidpower.Exhaust",
+        "fluidpower.LimitValve",
+        "fluidpower.ButtonValve",
+        "fluidpower.Filter",
+        "fluidpower.Cooler",
+        "fluidpower.CheckValve",
+        "fluidpower.Throttle",
+        "fluidpower.FlowControl",
+        "fluidpower.ShutOffValve",
+        "fluidpower.PressureGauge",
+        "fluidpower.PressureSwitch",
+        "fluidpower.LimitSwitch",
+        "fluidpower.ElectricMotor",
+        "fluidpower.Enclosure",
+        "fluidpower.StepChart",
+        "fluidpower.ComponentList"
+      ],
+      "relationships": [
+        "fluidpower.WorkingLine",
+        "fluidpower.PilotLine",
+        "fluidpower.DrainLine",
+        "fluidpower.MechanicalLink",
+        "fluidpower.SignalLine"
+      ]
+    },
+    {
+      "id": "fluidpower.Sequence",
+      "label": "Displacement-Step Diagram",
+      "description": "The displacement-step chart and the component list on their own.",
+      "types": [
+        "fluidpower.StepChart",
+        "fluidpower.ComponentList"
+      ],
+      "relationships": []
+    }
+  ],
+  "identifiers": [
+    {
+      "id": "fluidpower.component",
+      "types": [
+        "fluidpower.HydraulicPump",
+        "fluidpower.HydraulicMotor",
+        "fluidpower.HydraulicCylinder",
+        "fluidpower.HydraulicValve",
+        "fluidpower.ReliefValve",
+        "fluidpower.ReducingValve",
+        "fluidpower.SequenceValve",
+        "fluidpower.Reservoir",
+        "fluidpower.Accumulator",
+        "fluidpower.Compressor",
+        "fluidpower.AirMotor",
+        "fluidpower.PneumaticCylinder",
+        "fluidpower.PneumaticValve",
+        "fluidpower.PressureRegulator",
+        "fluidpower.PressureSource",
+        "fluidpower.ServiceUnit",
+        "fluidpower.Silencer",
+        "fluidpower.Exhaust",
+        "fluidpower.LimitValve",
+        "fluidpower.ButtonValve",
+        "fluidpower.Filter",
+        "fluidpower.Cooler",
+        "fluidpower.CheckValve",
+        "fluidpower.Throttle",
+        "fluidpower.FlowControl",
+        "fluidpower.ShutOffValve",
+        "fluidpower.PressureGauge",
+        "fluidpower.PressureSwitch",
+        "fluidpower.LimitSwitch",
+        "fluidpower.ElectricMotor"
+      ],
+      "format": "{n}",
+      "unique": true,
+      "autoNumber": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "fluidpower.illegalLine",
+      "description": "A line joins components it cannot join (a pilot line to a cylinder, a drain line to a pump).",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "illegalRelationship"
+      },
+      "reference": "ISO 1219-2:2012, circuit diagrams"
+    },
+    {
+      "id": "fluidpower.viewpoint",
+      "description": "A component that does not belong on this kind of circuit.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "viewpointType"
+      }
+    },
+    {
+      "id": "fluidpower.duplicateCode",
+      "description": "Every component code is used once.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "duplicateIdentifier",
+        "scope": "fluidpower.component"
+      },
+      "reference": "ISO 1219-2:2012, component identification"
+    },
+    {
+      "id": "fluidpower.openPort",
+      "description": "Every port is connected or plugged.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "netCheck",
+        "test": "openPort",
+        "types": [
+          "fluidpower.Component"
+        ]
+      },
+      "reference": "ISO 1219-2:2012, port marking"
+    },
+    {
+      "id": "fluidpower.pressurePath",
+      "description": "Every actuator is driven from a pump, compressor or pressure source.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "fluidPressurePath"
+      },
+      "reference": "ISO 1219-2:2012, circuit diagrams"
+    },
+    {
+      "id": "fluidpower.reliefAfterPump",
+      "description": "A fixed displacement pump needs a relief valve on its pressure line.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "fluidRelief"
+      },
+      "reference": "ISO 4413, pressure limitation"
+    },
+    {
+      "id": "fluidpower.supply",
+      "description": "A hydraulic pump draws from a reservoir.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "fluidSupply"
+      },
+      "reference": "ISO 4413, reservoirs"
+    },
+    {
+      "id": "fluidpower.restPosition",
+      "description": "Valves are drawn at rest (unactuated).",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "fluidRestPosition"
+      },
+      "reference": "ISO 1219-2:2012, representation of components"
+    },
+    {
+      "id": "fluidpower.portSet",
+      "description": "Port labels follow the medium's port set.",
+      "severity": "info",
+      "mode": "live",
+      "check": {
+        "kind": "fluidPortSet"
+      },
+      "reference": "ISO 9461 and ISO 5599-3, port identification"
+    },
+    {
+      "id": "fluidpower.lineEnds",
+      "description": "Pilot and drain lines end on pilot and drain ports.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "fluidLineEnds"
+      },
+      "reference": "ISO 1219-1:2012, lines"
+    },
+    {
+      "id": "fluidpower.codeFormat",
+      "description": "Component codes read as installation, circuit, letter and number.",
+      "severity": "info",
+      "mode": "live",
+      "check": {
+        "kind": "fluidCodes"
+      },
+      "reference": "ISO 1219-2:2012, component identification"
+    },
+    {
+      "id": "fluidpower.stepReachable",
+      "description": "Each step of the displacement-step chart can be driven by a valve position.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "fluidSteps"
+      },
+      "reference": "VDI 3260, displacement-step diagram"
+    },
+    {
+      "id": "fluidpower.idleStep",
+      "description": "Each step of the displacement-step chart moves an actuator.",
+      "severity": "info",
+      "mode": "live",
+      "check": {
+        "kind": "fluidSteps",
+        "idle": true
+      },
+      "reference": "VDI 3260, displacement-step diagram"
+    }
+  ],
+  "rulesets": [
+    {
+      "id": "fluidpower.circuit",
+      "label": "ISO 1219 circuit",
+      "description": "The circuit rules of ISO 1219-2: lines, ports, codes, valves at rest.",
+      "rules": [
+        "fluidpower.illegalLine",
+        "fluidpower.viewpoint",
+        "fluidpower.duplicateCode",
+        "fluidpower.openPort",
+        "fluidpower.pressurePath",
+        "fluidpower.restPosition",
+        "fluidpower.portSet",
+        "fluidpower.lineEnds",
+        "fluidpower.codeFormat"
+      ]
+    },
+    {
+      "id": "fluidpower.hydraulic",
+      "label": "Hydraulic supply",
+      "description": "A relief valve after every fixed pump and a reservoir under every pump.",
+      "rules": [
+        "fluidpower.reliefAfterPump",
+        "fluidpower.supply"
+      ]
+    },
+    {
+      "id": "fluidpower.pneumatic",
+      "label": "Pneumatic ports",
+      "description": "Pneumatic valves numbered by ISO 5599 (also in the circuit rules, so a pneumatic page held only to this set still checks it).",
+      "rules": [
+        "fluidpower.portSet"
+      ]
+    },
+    {
+      "id": "fluidpower.sequence",
+      "label": "Displacement-step chart",
+      "description": "Every step drivable and moving an actuator.",
+      "rules": [
+        "fluidpower.stepReachable",
+        "fluidpower.idleStep"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "id": "fluidpower.hydraulicCircuit",
+      "label": "Hydraulic Circuit",
+      "description": "An ISO 1219 hydraulic circuit on an ISO A3 sheet with a title block: pumps, valves, actuators and the reservoir, with the circuit rules.",
+      "discipline": "engineering",
+      "audience": [
+        "engineering",
+        "industrial"
+      ],
+      "keywords": [
+        "hydraulic",
+        "fluid power",
+        "ISO 1219",
+        "circuit"
+      ],
+      "viewpoint": "fluidpower.Hydraulic",
+      "variant": "fluidpower.iso",
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true,
+      "module": "iso2_5mm",
+      "rulesets": [
+        "fluidpower.circuit",
+        "fluidpower.hydraulic",
+        "sheet.drawingSheet"
+      ],
+      "liveChecks": true,
+      "layout": {
+        "algorithm": "layered",
+        "direction": "BT"
+      }
+    },
+    {
+      "id": "fluidpower.pneumaticCircuit",
+      "label": "Pneumatic Circuit",
+      "description": "An ISO 1219 pneumatic circuit with ISO 5599 port numbers and room for the displacement-step chart beside it.",
+      "discipline": "engineering",
+      "audience": [
+        "engineering",
+        "industrial"
+      ],
+      "keywords": [
+        "pneumatic",
+        "fluid power",
+        "ISO 1219",
+        "air",
+        "sequence"
+      ],
+      "viewpoint": "fluidpower.Pneumatic",
+      "variant": "fluidpower.iso",
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true,
+      "module": "iso2_5mm",
+      "rulesets": [
+        "fluidpower.circuit",
+        "fluidpower.pneumatic",
+        "fluidpower.sequence",
+        "sheet.drawingSheet"
+      ],
+      "liveChecks": true,
+      "layout": {
+        "algorithm": "layered",
+        "direction": "BT"
+      }
+    },
+    {
+      "id": "fluidpower.stepDiagram",
+      "label": "Displacement-Step Diagram",
+      "description": "A VDI 3260 displacement-step chart on its own sheet, with the component list.",
+      "discipline": "engineering",
+      "audience": [
+        "engineering",
+        "industrial"
+      ],
+      "keywords": [
+        "displacement step",
+        "sequence",
+        "function chart",
+        "VDI 3260"
+      ],
+      "viewpoint": "fluidpower.Sequence",
+      "variant": "fluidpower.iso",
+      "sheet": "iso.a4.landscape",
+      "titleBlock": true,
+      "module": "iso2_5mm",
+      "rulesets": [
+        "fluidpower.sequence"
+      ],
+      "liveChecks": true,
+      "layout": {
+        "algorithm": "layered",
+        "direction": "LR"
+      }
+    }
+  ],
+  "examples": [
+    {
+      "id": "fluidpower.hydraulicExample",
+      "label": "Hydraulic Circuit with a Cylinder",
+      "description": "A reservoir, a fixed pump driven by an electric motor, a relief valve with a gauge, a return filter, a 4/3 solenoid valve and a double-acting cylinder, coded 0Z1, 0P1, 0M1, 0V1, 1V1 and 1A1.",
+      "discipline": "engineering",
+      "audience": [
+        "engineering",
+        "industrial"
+      ],
+      "keywords": [
+        "hydraulic",
+        "example",
+        "cylinder"
+      ],
+      "viewpoint": "fluidpower.Hydraulic",
+      "variant": "fluidpower.iso",
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true,
+      "module": "iso2_5mm",
+      "rulesets": [
+        "fluidpower.circuit",
+        "fluidpower.hydraulic",
+        "sheet.drawingSheet"
+      ],
+      "liveChecks": true,
+      "seed": [
+        {
+          "command": "element.create",
+          "as": "cyl",
+          "params": {
+            "type": "fluidpower.HydraulicCylinder",
+            "x": 492.126,
+            "y": 118.1102,
+            "properties": {
+              "circuit": 1
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "valve",
+          "params": {
+            "type": "fluidpower.HydraulicValve",
+            "x": 433.0709,
+            "y": 295.2756,
+            "properties": {
+              "circuit": 1
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "pump",
+          "params": {
+            "type": "fluidpower.HydraulicPump",
+            "x": 295.2756,
+            "y": 492.126,
+            "properties": {
+              "circuit": 0
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "motor",
+          "params": {
+            "type": "fluidpower.ElectricMotor",
+            "x": 196.8504,
+            "y": 501.9685,
+            "properties": {
+              "circuit": 0
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "relief",
+          "params": {
+            "type": "fluidpower.ReliefValve",
+            "x": 393.7008,
+            "y": 452.7559,
+            "properties": {
+              "circuit": 0
+            }
+          }
+        },
+        {
+          "command": "shape.mirror",
+          "params": {
+            "ids": [
+              "${relief.shape}"
+            ],
+            "axis": "y"
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "gauge",
+          "params": {
+            "type": "fluidpower.PressureGauge",
+            "x": 374.0157,
+            "y": 334.6457,
+            "properties": {
+              "circuit": 0
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "tank",
+          "params": {
+            "type": "fluidpower.Reservoir",
+            "x": 314.9606,
+            "y": 629.9213,
+            "properties": {
+              "circuit": 0
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "filter",
+          "params": {
+            "type": "fluidpower.Filter",
+            "x": 551.1811,
+            "y": 570.8661,
+            "properties": {
+              "circuit": 0
+            }
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${valve.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${cyl.shape}",
+              "point": 0
+            },
+            "points": [
+              {
+                "x": 501.9685,
+                "y": 236.2205
+              }
+            ],
+            "type": "fluidpower.working"
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${valve.shape}",
+              "point": 2
+            },
+            "to": {
+              "shape": "${cyl.shape}",
+              "point": 1
+            },
+            "points": [
+              {
+                "x": 521.6535,
+                "y": 246.063
+              },
+              {
+                "x": 561.0236,
+                "y": 246.063
+              }
+            ],
+            "type": "fluidpower.working"
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${pump.shape}",
+              "point": 0
+            },
+            "to": {
+              "shape": "${valve.shape}",
+              "point": 0
+            },
+            "points": [
+              {
+                "x": 334.6457,
+                "y": 413.3858
+              },
+              {
+                "x": 501.9685,
+                "y": 413.3858
+              }
+            ],
+            "type": "fluidpower.working"
+          },
+          "as": "pl"
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${relief.shape}",
+              "point": 0
+            },
+            "to": {
+              "connector": "${pl.id}",
+              "x": 433.0709,
+              "y": 413.3858
+            },
+            "points": [
+              {
+                "x": 433.0709,
+                "y": 433.0709
+              }
+            ],
+            "type": "fluidpower.working"
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${gauge.shape}",
+              "point": 0
+            },
+            "to": {
+              "connector": "${pl.id}",
+              "x": 393.7008,
+              "y": 413.3858
+            },
+            "points": [
+              {
+                "x": 393.7008,
+                "y": 403.5433
+              }
+            ],
+            "type": "fluidpower.working"
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${pump.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${tank.shape}",
+              "point": 0
+            },
+            "points": [
+              {
+                "x": 334.6457,
+                "y": 600.3937
+              }
+            ],
+            "type": "fluidpower.working"
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${relief.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${tank.shape}",
+              "point": 1
+            },
+            "points": [
+              {
+                "x": 433.0709,
+                "y": 600.3937
+              },
+              {
+                "x": 354.3307,
+                "y": 600.3937
+              }
+            ],
+            "type": "fluidpower.working"
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${valve.shape}",
+              "point": 3
+            },
+            "to": {
+              "shape": "${filter.shape}",
+              "point": 0
+            },
+            "points": [
+              {
+                "x": 521.6535,
+                "y": 590.5512
+              }
+            ],
+            "type": "fluidpower.working"
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${filter.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${tank.shape}",
+              "point": 2
+            },
+            "points": [
+              {
+                "x": 629.9213,
+                "y": 590.5512
+              },
+              {
+                "x": 629.9213,
+                "y": 610.2362
+              },
+              {
+                "x": 374.0157,
+                "y": 610.2362
+              }
+            ],
+            "type": "fluidpower.working"
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${motor.shape}",
+              "point": 0
+            },
+            "to": {
+              "shape": "${pump.shape}",
+              "point": 2
+            },
+            "kind": "fluidpower.mechanical"
+          }
+        },
+        {
+          "command": "fluid.renumber",
+          "params": {
+            "codes": "letters"
+          }
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.pneumaticExample",
+      "label": "Pneumatic Circuit with a Sequence",
+      "description": "A pressure source and service unit, a 5/2 double pilot valve driving a cylinder, two roller limit valves and a start button, with the displacement-step chart beside the circuit.",
+      "discipline": "engineering",
+      "audience": [
+        "engineering",
+        "industrial"
+      ],
+      "keywords": [
+        "pneumatic",
+        "example",
+        "sequence",
+        "step chart"
+      ],
+      "viewpoint": "fluidpower.Pneumatic",
+      "variant": "fluidpower.iso",
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true,
+      "module": "iso2_5mm",
+      "rulesets": [
+        "fluidpower.circuit",
+        "fluidpower.pneumatic",
+        "fluidpower.sequence",
+        "sheet.drawingSheet"
+      ],
+      "liveChecks": true,
+      "seed": [
+        {
+          "command": "element.create",
+          "as": "cyl",
+          "params": {
+            "type": "fluidpower.PneumaticCylinder",
+            "x": 590.5512,
+            "y": 137.7953,
+            "properties": {
+              "circuit": 1
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "valve",
+          "params": {
+            "type": "fluidpower.PneumaticValve",
+            "x": 541.3386,
+            "y": 314.9606,
+            "properties": {
+              "circuit": 1
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "source",
+          "params": {
+            "type": "fluidpower.PressureSource",
+            "x": 295.2756,
+            "y": 649.6063,
+            "properties": {
+              "circuit": 0
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "frl",
+          "params": {
+            "type": "fluidpower.ServiceUnit",
+            "x": 334.6457,
+            "y": 570.8661,
+            "properties": {
+              "circuit": 0
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "s1",
+          "params": {
+            "type": "fluidpower.LimitValve",
+            "x": 196.8504,
+            "y": 393.7008,
+            "properties": {
+              "circuit": 1
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "start",
+          "params": {
+            "type": "fluidpower.ButtonValve",
+            "x": 196.8504,
+            "y": 255.9055,
+            "properties": {
+              "circuit": 1
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "s2",
+          "params": {
+            "type": "fluidpower.LimitValve",
+            "x": 748.0315,
+            "y": 393.7008,
+            "properties": {
+              "circuit": 1
+            }
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${valve.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${cyl.shape}",
+              "point": 0
+            },
+            "points": [
+              {
+                "x": 610.2362,
+                "y": 255.9055
+              },
+              {
+                "x": 600.3937,
+                "y": 255.9055
+              }
+            ],
+            "type": "fluidpower.working"
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${valve.shape}",
+              "point": 2
+            },
+            "to": {
+              "shape": "${cyl.shape}",
+              "point": 1
+            },
+            "points": [
+              {
+                "x": 629.9213,
+                "y": 275.5906
+              },
+              {
+                "x": 659.4488,
+                "y": 275.5906
+              }
+            ],
+            "type": "fluidpower.working"
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${source.shape}",
+              "point": 0
+            },
+            "to": {
+              "shape": "${frl.shape}",
+              "point": 0
+            },
+            "points": [
+              {
+                "x": 314.9606,
+                "y": 590.5512
+              }
+            ],
+            "type": "fluidpower.working"
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${frl.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${valve.shape}",
+              "point": 0
+            },
+            "points": [
+              {
+                "x": 620.0787,
+                "y": 590.5512
+              }
+            ],
+            "type": "fluidpower.working"
+          },
+          "as": "sup"
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${s2.shape}",
+              "point": 0
+            },
+            "to": {
+              "connector": "${sup.id}",
+              "x": 620.0787,
+              "y": 492.126
+            },
+            "points": [
+              {
+                "x": 816.9291,
+                "y": 492.126
+              }
+            ],
+            "type": "fluidpower.working"
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${s1.shape}",
+              "point": 0
+            },
+            "to": {
+              "connector": "${sup.id}",
+              "x": 452.7559,
+              "y": 590.5512
+            },
+            "points": [
+              {
+                "x": 265.748,
+                "y": 511.811
+              },
+              {
+                "x": 452.7559,
+                "y": 511.811
+              }
+            ],
+            "type": "fluidpower.working"
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${s1.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${start.shape}",
+              "point": 0
+            },
+            "points": [
+              {
+                "x": 275.5906,
+                "y": 354.3307
+              },
+              {
+                "x": 265.748,
+                "y": 354.3307
+              }
+            ],
+            "type": "fluidpower.working"
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${start.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${valve.shape}",
+              "point": 5
+            },
+            "points": [
+              {
+                "x": 275.5906,
+                "y": 216.5354
+              },
+              {
+                "x": 511.811,
+                "y": 216.5354
+              },
+              {
+                "x": 511.811,
+                "y": 344.4882
+              }
+            ],
+            "type": "fluidpower.pilot"
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${s2.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${valve.shape}",
+              "point": 6
+            },
+            "points": [
+              {
+                "x": 826.7717,
+                "y": 344.4882
+              }
+            ],
+            "type": "fluidpower.pilot"
+          }
+        },
+        {
+          "command": "fluid.renumber",
+          "params": {
+            "codes": "letters"
+          }
+        },
+        {
+          "command": "fluid.stepChart",
+          "params": {
+            "x": 984.252,
+            "y": 137.7953,
+            "steps": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "fluidpower.powerUnitExample",
+      "label": "Hydraulic Power Unit",
+      "description": "A hydraulic power unit in its enclosure: reservoir, fixed pump and motor, relief valve, gauge, cooler and return filter, made by fluid.powerUnit.",
+      "discipline": "engineering",
+      "audience": [
+        "engineering",
+        "industrial"
+      ],
+      "keywords": [
+        "power unit",
+        "hydraulic",
+        "example"
+      ],
+      "viewpoint": "fluidpower.Hydraulic",
+      "variant": "fluidpower.iso",
+      "sheet": "iso.a4.landscape",
+      "titleBlock": true,
+      "module": "iso2_5mm",
+      "rulesets": [
+        "fluidpower.circuit",
+        "fluidpower.hydraulic",
+        "sheet.drawingSheet"
+      ],
+      "liveChecks": true,
+      "seed": [
+        {
+          "command": "fluid.powerUnit",
+          "params": {
+            "x": 295.2756,
+            "y": 196.8504,
+            "cooler": true,
+            "gauge": true
+          }
+        },
+        {
+          "command": "fluid.renumber",
+          "params": {
+            "codes": "letters"
+          }
+        }
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "id": "fluidpower.iso",
+      "label": "ISO 1219 (2012)",
+      "description": "ISO 1219-1 and 1219-2:2012: pilot and drain lines dashed alike; numeric codes by default.",
+      "options": {
+        "codes": "numeric",
+        "letterFormat": "{installation}{circuit}{letter}{n}",
+        "numericFormat": "{installation}{circuit}.{n}"
+      }
+    },
+    {
+      "id": "fluidpower.iso1995",
+      "label": "ISO 1219 (1995 circuit rules)",
+      "description": "ISO 1219-2:1995: long dashes for pilot lines, short ones for drains; letter codes such as 1V1.",
+      "connectors": {
+        "fluidpower.PilotLine": "fluidpower.pilotLong",
+        "fluidpower.DrainLine": "fluidpower.drainShort"
+      },
+      "options": {
+        "codes": "letters",
+        "letterFormat": "{installation}{circuit}{letter}{n}",
+        "numericFormat": "{installation}{circuit}.{n}"
+      }
+    },
+    {
+      "id": "fluidpower.ansi",
+      "label": "ANSI Y32.10 (US, legacy)",
+      "description": "ANSI Y32.10 follows the same rules (a symbol shows function, not construction), so the symbols are the same; letter codes. A project that picks JIC symbols draws this (no public JIC fluid power set exists).",
+      "aliases": [
+        "fluidpower.jic"
+      ],
+      "options": {
+        "codes": "letters",
+        "letterFormat": "{installation}{circuit}{letter}{n}",
+        "numericFormat": "{installation}{circuit}.{n}"
+      }
+    }
+  ],
+  "module": "iso2_5mm"
+}

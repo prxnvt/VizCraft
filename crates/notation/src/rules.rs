@@ -366,6 +366,18 @@ impl<'a> Ctx<'a> {
             }
             Check::MessageOrder | Check::RepliesMatched { .. } => crate::sequence_rules::check(self.doc, rule, out),
             Check::PrimaryKey { .. } | Check::ForeignKey { .. } => crate::er_rules::check(self.doc, self.cat, pack, rule, out),
+            Check::NetCheck { test, .. } if crate::fluid::rules::NET_TESTS.contains(&test.as_str()) => {
+                crate::fluid::rules::check(self.doc, self.cat, pack, rule, out)
+            }
+            Check::NetCheck { .. } => {}
+            Check::FluidPressurePath
+            | Check::FluidRelief
+            | Check::FluidSupply
+            | Check::FluidRestPosition
+            | Check::FluidPortSet
+            | Check::FluidLineEnds
+            | Check::FluidCodes
+            | Check::FluidSteps { .. } => crate::fluid::rules::check(self.doc, self.cat, pack, rule, out),
             Check::Unknown => {}
         }
     }

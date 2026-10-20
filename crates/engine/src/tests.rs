@@ -76,7 +76,8 @@ fn registry_ids_are_unique_and_prefixed() {
                 "topology",
                 "sequence",
                 "er",
-                "uml"
+                "uml",
+                "fluid"
             ]
             .contains(&prefix),
             "{}: unexpected prefix",
@@ -164,6 +165,8 @@ fn hostile_params_never_panic() {
         json!({"primitive": "er", "roles": {"satellites": 5}}),
         json!({"primitive": "er", "roles": {"satellites": [{"owner": "s2", "members": ["s2", "s2"]}, {"owner": 7}]}}),
         nested_batches(40),
+        json!({"type": "fluidpower.HydraulicValve", "params": {"paths": "P-Q;;;X|", "positions": 1e308}, "chart": "s2", "row": 1e20, "step": -1, "state": "x", "set": 5, "codes": [], "ports": [null, 7]}),
+        json!({"type": "fluidpower.StepChart", "chart": "s2", "rows": "1A1 0 1".repeat(10_000), "from": {"shape": "s2", "point": 1e20}, "at": 1e300, "steps": f64::NAN, "actuators": [5], "pump": "x"}),
     ];
     for spec in reg.all() {
         // File commands touch the disk; given a path they would write junk files. `page.set` with a

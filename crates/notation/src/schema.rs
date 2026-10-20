@@ -159,12 +159,18 @@ pub struct Variant {
     /// empty list removes them (see [`crate::Catalog::compartments_in`]).
     #[serde(skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub compartments: std::collections::BTreeMap<String, Vec<CompartmentDecl>>,
+    /// Other ids this variant answers to, `<pack>.<name>` each (`fluidpower.jic` for
+    /// `fluidpower.ansi`: a project that picks JIC symbols draws fluid power in the ANSI Y32.10
+    /// style). [`Pack::variant`] finds the variant by any of them, so a symbol family resolves
+    /// through `crate::template::variant_for`; the Variant menu lists the variant once.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub aliases: Vec<String>,
 }
 
 impl Pack {
-    /// The variant with this id.
+    /// The variant with this id, or the one that lists it among its [`Variant::aliases`].
     pub fn variant(&self, id: &str) -> Option<&Variant> {
-        self.variants.iter().find(|v| v.id == id)
+        self.variants.iter().find(|v| v.id == id).or_else(|| self.variants.iter().find(|v| v.aliases.iter().any(|a| a == id)))
     }
     /// The element type with this qualified id.
     pub fn element_type(&self, id: &str) -> Option<&ElementType> {
@@ -1179,6 +1185,60 @@ pub enum Check {
         /// Column types checked.
         #[serde(default)]
         types: Vec<String>,
+    },
+    /// A test over the nets of the drawing (`vizcraft_diagram::net::NetIndex`): `test` names it
+    /// and the other fields are its parameters. Fluid power adds `openPort` (a fluid port of a
+    /// component of `types` on no line and not listed in its `plugged` property; exhaust ports of
+    /// pneumatic valves may stay open), run by [`crate::fluid::rules`].
+    NetCheck {
+        /// The test.
+        #[serde(default)]
+        test: String,
+        /// Element types checked (empty: every type of the pack).
+        #[serde(default)]
+        types: Vec<String>,
+        /// Net kinds looked at (empty: every kind).
+        #[serde(default)]
+        kinds: Vec<String>,
+        /// Connector type looked at (empty: every type).
+        #[serde(default)]
+        connector_type: String,
+        /// Property read by the test.
+        #[serde(default)]
+        property: String,
+        /// Element types allowed on the other end.
+        #[serde(default)]
+        peers: Vec<String>,
+        /// Most allowed (0: no limit).
+        #[serde(default)]
+        max: u32,
+    },
+    /// Fluid power: an actuator that no pressure source (pump, compressor, pressure source or
+    /// accumulator) reaches through the lines and any valve position (see [`crate::fluid`]).
+    FluidPressurePath,
+    /// Fluid power: a fixed displacement pump whose pressure port reaches no relief valve through
+    /// lines and pass-through parts (never through a directional valve).
+    FluidRelief,
+    /// Fluid power: a hydraulic pump whose suction port reaches no reservoir.
+    FluidSupply,
+    /// Fluid power: a directional valve not drawn at rest (a spring returned two-position valve
+    /// rests in the square on the spring side, a three-position valve in the middle).
+    FluidRestPosition,
+    /// Fluid power: a valve whose port labels are not its medium's set (ISO 9461 letters for
+    /// hydraulic, ISO 5599 numbers for pneumatic).
+    FluidPortSet,
+    /// Fluid power: a pilot line with no end on a pilot port, or a drain line with no end on a
+    /// drain port or a reservoir.
+    FluidLineEnds,
+    /// Fluid power: a component code that does not read as the page edition's code form
+    /// (`{installation}{circuit}{letter}{n}` or the numeric form) for its circuit and class.
+    FluidCodes,
+    /// Fluid power: a displacement-step chart row naming no actuator, or a step no valve position
+    /// can drive; with `idle`, a step in which no actuator moves.
+    FluidSteps {
+        /// Report idle steps instead.
+        #[serde(default)]
+        idle: bool,
     },
     /// A check this build does not know (from a newer pack); skipped, and reported by the loader.
     #[default]

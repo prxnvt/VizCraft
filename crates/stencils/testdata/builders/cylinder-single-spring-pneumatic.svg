@@ -4,5 +4,6 @@
   <text x="12.795" y="56.545" font-family="Inter, sans-serif" font-size="6.89" text-anchor="start" fill="#1f2933">A</text>
   <g class="ports" fill="#c2410c">
     <circle cx="9.843" cy="59.055" r="1.969"><title>A</title></circle>
+    <circle cx="108.268" cy="29.528" r="1.969"><title>rod</title></circle>
   </g>
 </svg>

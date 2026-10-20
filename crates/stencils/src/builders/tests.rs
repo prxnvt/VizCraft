@@ -65,6 +65,20 @@ const CASES: &[Case] = &[
     ("texture-iso-required", "texture", &[("removal", "required"), ("value", "Ra 1.6"), ("process", "ground")]),
     ("texture-asme-prohibited", "texture", &[("standard", "asmeY14_36"), ("removal", "prohibited"), ("value", "63")]),
     ("texture-iso-lay", "texture", &[("lay", "perpendicular"), ("value", "Rz 6.3")]),
+    ("valve-4-3-pilot-both", "valve", &[("positions", "3"), ("actuatorLeft", "pilot"), ("actuatorRight", "pilot"), ("tag", "1V1")]),
+    ("valve-3-2-roller-pneumatic", "valve", &[("ports", "3"), ("actuatorLeft", "roller"), ("medium", "pneumatic"), ("portLabels", "iso5599")]),
+    ("pressure-valve-relief", "pressureValve", &[("tag", "0V1")]),
+    ("pressure-valve-reducing-external-drain", "pressureValve", &[("function", "reducing"), ("drain", "external"), ("adjustable", "false")]),
+    ("pressure-valve-sequence-external-pilot", "pressureValve", &[("function", "sequence"), ("pilot", "external")]),
+    ("step-chart-two-cylinders", "stepChart", &[("rows", "1A1 0 1 1 0 0; 2A1 0 0 1 1 0")]),
+    ("step-chart-one-cylinder", "stepChart", &[]),
+    ("step-chart-three-rows", "stepChart", &[("rows", "1A1 0 1 0 0; 2A1 0 0 1 0; 3A1 1 1 1 0")]),
+    ("fluid-part-reservoir", "fluidPart", &[("kind", "reservoir"), ("tag", "0Z1")]),
+    ("fluid-part-filter", "fluidPart", &[]),
+    ("fluid-part-check-valve", "fluidPart", &[("kind", "checkValve")]),
+    ("fluid-part-flow-control", "fluidPart", &[("kind", "flowControl")]),
+    ("fluid-part-source-pneumatic", "fluidPart", &[("kind", "source"), ("medium", "pneumatic")]),
+    ("fluid-part-motor", "fluidPart", &[("kind", "motor"), ("tag", "0M1")]),
 ];
 
 #[test]
@@ -93,7 +107,7 @@ fn golden_svgs() {
 /// Every value of every choice parameter that picks a standard, one build per value.
 fn standard_builds(spec: &BuilderSpec) -> Vec<(String, Built)> {
     let mut out = vec![("defaults".to_string(), build(spec.name, &BTreeMap::new(), None).unwrap())];
-    for p in spec.params.iter().filter(|p| matches!(p.key, "standard" | "shapes" | "medium" | "form" | "kind" | "system" | "role")) {
+    for p in spec.params.iter().filter(|p| matches!(p.key, "standard" | "shapes" | "medium" | "form" | "kind" | "system" | "role" | "function")) {
         if let ParamKind::Choice(names) = p.kind {
             for n in names {
                 let raw = params(&[(p.key, n)]);
@@ -108,7 +122,8 @@ fn standard_builds(spec: &BuilderSpec) -> Vec<(String, Built)> {
 fn ports_sit_on_whole_modules_inside_the_frame() {
     for spec in specs() {
         for (what, b) in standard_builds(spec) {
-            assert!(!b.ports.is_empty(), "{} {what}: no ports", spec.name);
+            // A displacement-step chart is a table beside the circuit: nothing joins it.
+            assert!(!b.ports.is_empty() || spec.name == "stepChart", "{} {what}: no ports", spec.name);
             assert!(b.w.fract() == 0.0 && b.h.fract() == 0.0, "{} {what}: frame {} by {}", spec.name, b.w, b.h);
             for p in &b.ports {
                 assert!(p.x.fract() == 0.0 && p.y.fract() == 0.0, "{} {what}: port {} at {}, {}", spec.name, p.id, p.x, p.y);
@@ -147,7 +162,24 @@ fn contact_ports_follow_poles_and_form() {
     assert_eq!(ids(&[("poles", "3")]), ["13", "14", "23", "24", "33", "34"]);
     assert_eq!(ids(&[("form", "nc"), ("standard", "jic")]), ["11", "12"]);
     let b = build("valve", &params(&[("ports", "5"), ("portLabels", "iso5599")]), None).unwrap();
-    assert_eq!(b.ports.iter().map(|p| p.id.as_str()).collect::<Vec<_>>(), ["1", "2", "4", "3", "5"]);
+    assert_eq!(b.ports.iter().map(|p| p.id.as_str()).collect::<Vec<_>>(), ["1", "2", "4", "3", "5", "el"]);
+    // Fluid ports first, then pilots, then electrical and mechanical ports.
+    let valve = |pairs: &[(&str, &str)]| build("valve", &params(pairs), None).unwrap().ports.into_iter().map(|p| p.id).collect::<Vec<_>>();
+    let pilots = [("ports", "5"), ("portLabels", "iso5599"), ("actuatorLeft", "pilot"), ("actuatorRight", "pilot"), ("return", "none")];
+    assert_eq!(valve(&pilots), ["1", "2", "4", "3", "5", "12", "14"]);
+    assert_eq!(valve(&[("actuatorLeft", "pilot"), ("actuatorRight", "solenoid")]), ["P", "A", "B", "T", "X", "er"]);
+    assert_eq!(valve(&[("ports", "3"), ("actuatorLeft", "roller"), ("actuatorRight", "plunger")]), ["P", "A", "T", "ml", "mr"]);
+    assert_eq!(valve(&[("actuatorLeft", "lever")]), ["P", "A", "B", "T"]);
+    let ids = |b: &str, pairs: &[(&str, &str)]| build(b, &params(pairs), None).unwrap().ports.into_iter().map(|p| p.id).collect::<Vec<_>>();
+    assert_eq!(ids("pump", &[]), ["P", "S", "shaft"]);
+    assert_eq!(ids("pump", &[("drain", "true"), ("role", "motor")]), ["A", "B", "L", "shaft"]);
+    assert_eq!(ids("cylinder", &[]), ["A", "B", "rod"]);
+    assert_eq!(ids("cylinder", &[("acting", "single")]), ["A", "rod"]);
+    assert_eq!(ids("pressureValve", &[]), ["P", "T"]);
+    assert_eq!(ids("pressureValve", &[("function", "reducing"), ("drain", "external")]), ["P", "A", "L"]);
+    assert_eq!(ids("pressureValve", &[("function", "sequence"), ("pilot", "external")]), ["P", "A", "L", "X"]);
+    assert_eq!(ids("fluidPart", &[("kind", "reservoir")]), ["T1", "T2", "T3"]);
+    assert!(ids("stepChart", &[]).is_empty());
     // Bad values are clamped or defaulted with a warning, never an error.
     let b = build("contact", &params(&[("poles", "99"), ("form", "sideways"), ("ghost", "1")]), None).unwrap();
     assert_eq!((b.ports.len(), b.warnings.len()), (12, 3), "{:?}", b.warnings);
@@ -235,6 +267,9 @@ fn every_builder_states_its_provenance_in_its_module_docs() {
         ("fcf", include_str!("fcf.rs")),
         ("weld", include_str!("weld.rs")),
         ("texture", include_str!("texture.rs")),
+        ("pressureValve", include_str!("pressure_valve.rs")),
+        ("stepChart", include_str!("step_chart.rs")),
+        ("fluidPart", include_str!("fluid_part.rs")),
     ];
     assert_eq!(files.len(), specs().len());
     for spec in specs() {

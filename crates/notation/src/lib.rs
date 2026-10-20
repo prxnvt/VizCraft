@@ -25,6 +25,7 @@
 //!   and the nesting, label and port checks.
 //! - [`sheet_pass`]: the drawing-sheet part of that pass (tables, balloons, cross references).
 //! - [`sequence_rules`]: the sequence page checks (message order, matched replies).
+//! - [`fluid`]: the fluid power circuit model (ports, nets, internal paths, trace) and its checks.
 //!
 //! No egui and no engine; wasm safe.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
@@ -36,6 +37,7 @@ pub mod catalog;
 pub mod drawing;
 pub mod end_pass;
 pub mod er_rules;
+pub mod fluid;
 pub mod glob;
 pub mod glyph_path;
 pub mod infer;

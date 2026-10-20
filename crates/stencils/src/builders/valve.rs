@@ -11,27 +11,39 @@
 //!
 //! The `paths` text names the flow in each position, positions separated by `;`, left to right:
 //! `P-A` is a flow from P to A, `P|` blocks P, `X` blocks every port. Empty text draws the usual
-//! paths for the port count and positions.
+//! paths for the port count and positions. The grammar, port sets and defaults live in
+//! `vizcraft_notation::fluid::paths`, which the circuit checks read too.
+//!
+//! Ports come fluid ports first, then a pilot port at each pilot-operated side (X and Y, or
+//! `12` and `14` by ISO 5599: the output the supply joins in that side's square), then `el` and
+//! `er` on solenoids and `ml` and `mr` on rollers and plungers, so adding an operator never shifts
+//! a glued fluid port.
+
+use vizcraft_notation::fluid::paths::{self as fp, Token};
 
 use super::{BuilderSpec, Def, Draw, ParamKind, ParamSpec, Params};
 
 const SOURCE: &str = "own design, drawn from the written rules of ISO 1219-1 and ISO 1219-2";
 
-const ACTUATORS: &[&str] = &["none", "lever", "button", "pedal", "roller", "plunger", "solenoid", "pilot"];
-
 pub(super) const SPEC: BuilderSpec = BuilderSpec {
     name: "valve",
     label: "Directional Valve",
-    description: "An ISO 1219 directional control valve: two or three positions, two to five ports, flow paths per position from a short text (`P-A B-T; X; P-B A-T`), an operator at each side, a spring or detent return. Ports leave the rest position only and are named by ISO 9461 letters or ISO 5599 numbers.",
+    description: "An ISO 1219 directional control valve: two or three positions, two to five ports, flow paths per position from a short text (`P-A B-T; X; P-B A-T`), an operator at each side, a spring or detent return. Ports leave the rest position only and are named by ISO 9461 letters or ISO 5599 numbers; pilot sides add X and Y (or 12 and 14), solenoids el and er, rollers and plungers ml and mr.",
     params: &[
         ParamSpec {
             key: "positions",
             label: "Positions",
             kind: ParamKind::Int { min: 2, max: 3 },
-            default: Def::Int(2),
+            default: Def::Int(fp::DEFAULT_POSITIONS),
             description: "Switching positions.",
         },
-        ParamSpec { key: "ports", label: "Ports", kind: ParamKind::Int { min: 2, max: 5 }, default: Def::Int(4), description: "Ports (2/2 to 5/3)." },
+        ParamSpec {
+            key: "ports",
+            label: "Ports",
+            kind: ParamKind::Int { min: 2, max: 5 },
+            default: Def::Int(fp::DEFAULT_PORTS),
+            description: "Ports (2/2 to 5/3).",
+        },
         ParamSpec {
             key: "paths",
             label: "Paths",
@@ -42,103 +54,62 @@ pub(super) const SPEC: BuilderSpec = BuilderSpec {
         ParamSpec {
             key: "actuatorLeft",
             label: "Left Operator",
-            kind: ParamKind::Choice(ACTUATORS),
-            default: Def::Text("solenoid"),
+            kind: ParamKind::Choice(fp::ACTUATORS),
+            default: Def::Text(fp::DEFAULT_LEFT),
             description: "Operator at the left side.",
         },
         ParamSpec {
             key: "actuatorRight",
             label: "Right Operator",
-            kind: ParamKind::Choice(ACTUATORS),
-            default: Def::Text("none"),
+            kind: ParamKind::Choice(fp::ACTUATORS),
+            default: Def::Text(fp::DEFAULT_RIGHT),
             description: "Operator at the right side.",
         },
         ParamSpec {
             key: "return",
             label: "Return",
             kind: ParamKind::Choice(&["spring", "detent", "none"]),
-            default: Def::Text("spring"),
+            default: Def::Text(fp::DEFAULT_RETURN),
             description: "What brings it back to rest.",
         },
         ParamSpec {
             key: "rest",
             label: "Rest Position",
             kind: ParamKind::Int { min: 0, max: 2 },
-            default: Def::Int(1),
+            default: Def::Int(fp::DEFAULT_REST),
             description: "Index of the rest position, from the left; its square carries the ports.",
         },
         ParamSpec {
             key: "portLabels",
             label: "Port Labels",
             kind: ParamKind::Choice(&["iso9461", "iso5599"]),
-            default: Def::Text("iso9461"),
+            default: Def::Text(fp::DEFAULT_LABELS),
             description: "Letters (P, A, B, T) or numbers (1, 2, 4, 3).",
         },
         ParamSpec {
             key: "medium",
             label: "Medium",
             kind: ParamKind::Choice(&["hydraulic", "pneumatic"]),
-            default: Def::Text("hydraulic"),
+            default: Def::Text(fp::DEFAULT_MEDIUM),
             description: "Hydraulic draws solid pilot triangles, pneumatic hollow ones; pneumatic exhausts are R and S.",
+        },
+        ParamSpec {
+            key: "tag",
+            label: "Code",
+            kind: ParamKind::Text { max: 32 },
+            default: Def::Text(""),
+            description: "The component code written above the valve (the element's tag).",
         },
     ],
     sources: &[("ISO 1219", SOURCE)],
     build,
 };
 
-/// A port of the valve: its letter, its number, which side of the square and how far across.
-#[derive(Clone, Copy)]
-struct ValvePort {
-    letter: &'static str,
-    number: &'static str,
-    top: bool,
-    off: f64,
-    exhaust: bool,
-}
-
-fn port_set(n: i64, pneumatic: bool) -> Vec<ValvePort> {
-    let vp = |letter, number, top, off, exhaust| ValvePort { letter, number, top, off, exhaust };
-    let t = if pneumatic { "R" } else { "T" };
-    match n {
-        2 => vec![vp("P", "1", false, 2.0, false), vp("A", "2", true, 2.0, false)],
-        3 => vec![vp("P", "1", false, 1.0, false), vp("A", "2", true, 2.0, false), vp(t, "3", false, 3.0, true)],
-        5 => vec![
-            vp("P", "1", false, 2.0, false),
-            vp("A", "2", true, 1.0, false),
-            vp("B", "4", true, 3.0, false),
-            vp("R", "3", false, 1.0, true),
-            vp("S", "5", false, 3.0, true),
-        ],
-        _ => vec![vp("P", "1", false, 1.0, false), vp("A", "2", true, 1.0, false), vp("B", "4", true, 3.0, false), vp(t, "3", false, 3.0, true)],
-    }
-}
-
-fn default_paths(ports: i64, positions: i64) -> &'static str {
-    match (ports, positions) {
-        (2, 3) => "P-A; P| A|; A-P",
-        (2, _) => "P-A; P| A|",
-        (3, 3) => "P-A T|; X; A-T P|",
-        (3, _) => "P-A T|; A-T P|",
-        (5, 3) => "P-A B-S; X; P-B A-R",
-        (5, _) => "P-A B-S; P-B A-R",
-        (_, 3) => "P-A B-T; X; P-B A-T",
-        _ => "P-A B-T; P-B A-T",
-    }
-}
-
-/// The port a token names: by letter or number, with T and R the same exhaust below five ports.
-fn find<'a>(set: &'a [ValvePort], name: &str) -> Option<&'a ValvePort> {
-    let name = name.trim().to_ascii_uppercase();
-    set.iter()
-        .find(|p| p.letter == name || p.number == name)
-        .or_else(|| if set.len() < 5 && matches!(name.as_str(), "T" | "R") { set.iter().find(|p| p.exhaust) } else { None })
-}
-
 fn build(p: &Params, d: &mut Draw) {
     d.standard("iso1219");
     let positions = p.int("positions").clamp(2, 3);
     let pneumatic = p.text("medium") == "pneumatic";
-    let set = port_set(p.int("ports"), pneumatic);
+    let set = fp::port_set(p.int("ports"), pneumatic);
     let mut rest = p.int("rest");
     if rest >= positions {
         d.warn(format!("`rest`: a valve with {positions} positions rests at 0 to {}; the last is used", positions - 1));
@@ -150,32 +121,36 @@ fn build(p: &Params, d: &mut Draw) {
         let x0 = 2.0 + 4.0 * i as f64;
         d.rect(x0, 1.0, x0 + 4.0, 5.0);
     }
-    let text = p.text("paths");
-    let text = if text.trim().is_empty() { default_paths(p.int("ports"), positions) } else { text };
-    let groups: Vec<&str> = text.split(';').collect();
+    let text = fp::effective(p.text("paths"), p.int("ports"), positions);
+    let groups = fp::groups(text);
     if groups.len() != positions as usize {
         d.warn(format!("`paths`: {} groups for {positions} positions", groups.len()));
     }
     for (i, group) in groups.iter().take(positions as usize).enumerate() {
         let x0 = 2.0 + 4.0 * i as f64;
-        let at = |vp: &ValvePort| (x0 + vp.off, if vp.top { 1.0 } else { 5.0 });
-        for token in group.split_whitespace().take(16) {
-            if token.eq_ignore_ascii_case("x") {
-                for vp in &set {
-                    blocked(d, at(vp), vp.top);
+        let at = |vp: &fp::ValvePort| (x0 + vp.off, if vp.top { 1.0 } else { 5.0 });
+        for token in fp::tokens(group) {
+            match token {
+                Token::All => {
+                    for vp in &set {
+                        blocked(d, at(vp), vp.top);
+                    }
                 }
-            } else if let Some(name) = token.strip_suffix('|') {
-                match find(&set, name) {
+                Token::Block(name) => match fp::find(&set, name) {
                     Some(vp) => blocked(d, at(vp), vp.top),
                     None => d.warn(format!("`paths`: no port `{}` on this valve", name.chars().take(8).collect::<String>())),
-                }
-            } else if let Some((a, b)) = token.split_once('-') {
-                match (find(&set, a), find(&set, b)) {
+                },
+                Token::Flow(a, b) => match (fp::find(&set, a), fp::find(&set, b)) {
                     (Some(u), Some(v)) => flow(d, at(u), u.top, at(v), v.top),
-                    _ => d.warn(format!("`paths`: `{}` does not join two ports of this valve", token.chars().take(16).collect::<String>())),
+                    _ => d.warn(format!(
+                        "`paths`: `{}-{}` does not join two ports of this valve",
+                        a.chars().take(8).collect::<String>(),
+                        b.chars().take(8).collect::<String>()
+                    )),
+                },
+                Token::Bad(t) => {
+                    d.warn(format!("`paths`: `{}` is not a flow (`P-A`), a block (`P|`) or `X`", t.chars().take(16).collect::<String>()))
                 }
-            } else {
-                d.warn(format!("`paths`: `{}` is not a flow (`P-A`), a block (`P|`) or `X`", token.chars().take(16).collect::<String>()));
             }
         }
     }
@@ -184,7 +159,7 @@ fn build(p: &Params, d: &mut Draw) {
     let numbers = p.text("portLabels") == "iso5599";
     for vp in &set {
         let x = rx + vp.off;
-        let id = if numbers { vp.number } else { vp.letter };
+        let id = vp.id(numbers);
         let (edge, end, dir) = if vp.top { (1.0, 0.0, "up") } else { (5.0, 6.0, "down") };
         d.line(&[(x, edge), (x, end)]);
         d.port(id, x, end, dir);
@@ -194,14 +169,28 @@ fn build(p: &Params, d: &mut Draw) {
     let right = p.text("actuatorRight");
     actuator(d, left, false, w, pneumatic);
     actuator(d, right, true, w, pneumatic);
+    // Operator ports: pilots after the fluid ports, then electrical and mechanical ones.
+    let flows = fp::flows(&set, text, positions as usize);
+    let square = |i: usize| flows.get(i).map(Vec::as_slice).unwrap_or_default();
+    let sides = [(left, false, square(0)), (right, true, square(positions as usize - 1))];
+    for (kind, on_right, sq) in sides {
+        if fp::operator_port(kind) == Some("pilot") {
+            let id = fp::pilot_id(&set, sq, numbers, !on_right);
+            operator_port(d, &id, on_right, w, reach(kind), true);
+        }
+    }
+    for (kind, on_right, _) in sides {
+        match fp::operator_port(kind) {
+            Some("el") => operator_port(d, if on_right { "er" } else { "el" }, on_right, w, reach(kind), false),
+            Some("ml") => operator_port(d, if on_right { "mr" } else { "ml" }, on_right, w, reach(kind), false),
+            _ => {}
+        }
+    }
     let ret = p.text("return");
     if ret != "none" {
         // The return acts at the side of a free operator place, the right when both are free.
-        let (on_right, y) = match (left, right) {
-            (_, "none") => (true, 3.0),
-            ("none", _) => (false, 3.0),
-            _ => (true, 4.4),
-        };
+        let on_right = fp::return_on_right(left, right);
+        let y = if left != "none" && right != "none" { 4.4 } else { 3.0 };
         let edge = if on_right { w - 2.0 } else { 2.0 };
         let out = if on_right { 1.0 } else { -1.0 };
         if ret == "spring" {
@@ -219,6 +208,29 @@ fn build(p: &Params, d: &mut Draw) {
                 d.line(&[(x - 0.18, y + 0.45), (x, y + 0.1), (x + 0.18, y + 0.45)]);
             }
         }
+    }
+    d.label("tag", p.text("tag"), 0.0, -0.6, 0.8, "start");
+}
+
+/// How far from the frame's side an operator's outer end is, in modules.
+fn reach(kind: &str) -> f64 {
+    match kind {
+        "solenoid" => 0.6,
+        "roller" => 0.4,
+        "plunger" => 1.0,
+        _ => 0.3,
+    }
+}
+
+/// A port at the outer end of an operator: a short stub from the operator, `inner` modules in
+/// from the frame's side, out to that side at mid height. Pilot ports are labelled.
+fn operator_port(d: &mut Draw, id: &str, right: bool, w: f64, inner: f64, labelled: bool) {
+    let (x, inner, dir) = if right { (w, w - inner, "right") } else { (0.0, inner, "left") };
+    d.line(&[(inner, 3.0), (x, 3.0)]);
+    d.port(id, x, 3.0, dir);
+    if labelled {
+        let (lx, anchor) = if right { (w - 0.1, "end") } else { (0.1, "start") };
+        d.label(&format!("p{id}"), id, lx, 1.6, 0.7, anchor);
     }
 }
 

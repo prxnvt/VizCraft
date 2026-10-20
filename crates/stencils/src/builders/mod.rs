@@ -35,8 +35,11 @@ mod coil;
 mod contact;
 mod cylinder;
 mod fcf;
+mod fluid_part;
 mod gate;
+mod pressure_valve;
 mod pump;
+mod step_chart;
 mod texture;
 mod valve;
 mod weld;
@@ -97,8 +100,21 @@ impl BuilderSpec {
     }
 }
 
-static SPECS: [BuilderSpec; 10] =
-    [contact::SPEC, coil::SPEC, bubble::SPEC, valve::SPEC, cylinder::SPEC, pump::SPEC, gate::SPEC, fcf::SPEC, weld::SPEC, texture::SPEC];
+static SPECS: [BuilderSpec; 13] = [
+    contact::SPEC,
+    coil::SPEC,
+    bubble::SPEC,
+    valve::SPEC,
+    cylinder::SPEC,
+    pump::SPEC,
+    gate::SPEC,
+    fcf::SPEC,
+    weld::SPEC,
+    texture::SPEC,
+    pressure_valve::SPEC,
+    step_chart::SPEC,
+    fluid_part::SPEC,
+];
 
 /// Every builder, in palette order.
 pub fn specs() -> &'static [BuilderSpec] {
