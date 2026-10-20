@@ -1,6 +1,6 @@
 # `b6-analyze-ui` (Analyze ribbon and dock), Block 6 wave 3
 
-Opus, medium effort. Port 8062. Worktree `.claude/worktrees/b6-analyze-ui`, branch `b6-analyze-ui` from the integration branch `claude/engineering-diagramming-standards-305d6b` after `b6e-frontend` merges. `CARGO_TARGET_DIR=target-b6-analyze-ui CARGO_INCREMENTAL=0`. Commit prefix `B6:`.
+Claude Opus, medium effort. Port 8062. Worktree `.claude/worktrees/b6-analyze-ui`, branch `b6-analyze-ui` from the integration branch `claude/engineering-diagramming-standards-305d6b` after `b6e-frontend` merges. `CARGO_TARGET_DIR=target-b6-analyze-ui CARGO_INCREMENTAL=0`. Commit prefix `B6:`.
 
 ## Resolutions (these override the draft below where they differ)
 
@@ -292,3 +292,9 @@ It does not edit ROADMAP.md, docs/parity.md, docs/mcp.md, docs/formats.md, docs/
 - /Users/pranav/Workspace/crafts/VizCraft/.claude/worktrees/b6e-frontend/crates/ui-egui/src/dock/mod.rs
 - /Users/pranav/Workspace/crafts/VizCraft/.claude/worktrees/b6e-frontend/crates/ui-egui/src/canvas/mod.rs
 - /Users/pranav/Workspace/crafts/VizCraft/.claude/worktrees/b6e-frontend/crates/ui-egui/src/ribbon/model/model.rs
+
+## Trademarks
+
+Claude is a trademark of Anthropic, PBC (Opus is one of its Claude models). The names are used
+only to identify products and formats; VizCraft is not affiliated with or endorsed by their
+owners.

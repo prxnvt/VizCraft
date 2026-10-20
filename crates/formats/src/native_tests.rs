@@ -735,7 +735,8 @@ fn connector_kinds_and_line_ends_round_trip_through_drawio() {
     let back = &imported.pages[0].connectors;
     let want = &doc.pages[0].connectors;
     assert_eq!(back.len(), want.len());
-    // draw.io has no dot end: it is written as the filled oval and reads back as the circle.
+    // JGraph's draw.io has no dot end: it is written as the filled oval and reads back as the
+    // circle.
     let drawn = |a: vizcraft_diagram::Arrow| if a == vizcraft_diagram::Arrow::Dot { vizcraft_diagram::Arrow::Circle } else { a };
     for (b, w) in back.iter().zip(want) {
         assert_eq!((b.kind.as_str(), b.start_arrow, b.end_arrow), (w.kind.as_str(), drawn(w.start_arrow), drawn(w.end_arrow)), "{}", w.id);
@@ -829,7 +830,7 @@ fn compartments_and_port_glue_round_trip() {
     use vizcraft_diagram::compartment::{Compartment, CompartmentKind, Height};
     let mut doc = Document::new();
     let page = doc.page_mut().unwrap();
-    // A UML-style class: name, attributes, operations.
+    // An OMG UML-style class: name, attributes, operations.
     let mut class = Shape::new("k", ShapeKind::Rectangle, 10.0, 20.0, 160.0, 100.0);
     class.text = "Order".into();
     let mut attrs = Compartment::new("attrs", CompartmentKind::List);

@@ -7,7 +7,7 @@ publish = false
 description = "Finder Open Documents (odoc Apple Event) support for the VizCraft macOS app"
 
 # The workspace lints, except that `unsafe_code` is `deny` rather than `forbid`: Objective-C
-# messaging needs `unsafe`, allowed only in this crate's macOS-only `imp` module.
+# messaging needs `unsafe`, allowed only in this crate's Apple macOS-only `imp` module.
 [lints.rust]
 unsafe_code = "deny"
 unsafe_op_in_unsafe_fn = "deny"

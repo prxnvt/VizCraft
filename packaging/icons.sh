@@ -14,7 +14,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIR="$ROOT/assets/app-icon"
 NAME="vizcraft"
 SVG="$DIR/$NAME.svg"
-ID="ai.storyteller.$NAME"
+ID="io.github.prxnvt.$NAME"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 

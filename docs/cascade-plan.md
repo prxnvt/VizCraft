@@ -1,6 +1,6 @@
 # Cascade plan for docs/TODO.md
 
-This plan sequences everything in [TODO.md](TODO.md) (the Visio ribbon reference and the
+This plan sequences everything in [TODO.md](TODO.md) (the Microsoft Visio ribbon reference and the
 diagramming standards list) into blocks of parallel branches. ROADMAP.md stays the source of truth
 for what has landed; this file decides order, ownership and briefs. It starts from main at 9170b25.
 
@@ -1608,3 +1608,12 @@ Decisions needed before their block starts:
 |---|---|---|
 | AADL textual export | The AADL standard is a paid SAE document; draw the notation only, or buy and use the standard? | 8 |
 | PNML (Petri net) and DMN, CMMN XML | Add each public schema to the Formats list in AGENTS.md when the pack starts | 8 |
+
+## Trademarks
+
+Microsoft, Visio, Excel, Office, SharePoint, Windows, ActiveX and Visual Basic are trademarks of
+the Microsoft group of companies; draw.io is a trademark of JGraph Ltd; Autodesk and DXF of
+Autodesk, Inc.; EPLAN of EPLAN GmbH & Co. KG; UML, BPMN and SysML of Object Management Group,
+Inc.; Zachman Framework of Zachman International, Inc.; Terraform of HashiCorp, Inc.; Claude and
+its Opus and Sonnet models of Anthropic, PBC. The names are used only to identify products and
+formats; VizCraft is not affiliated with or endorsed by their owners.

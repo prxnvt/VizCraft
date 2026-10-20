@@ -266,7 +266,8 @@ fn hostile_wire_params_never_panic() {
 
 /// Shapes with the default orientation draw exactly as before orientation existed: the sample
 /// document, with a turned shape and a turned shape with compartments, exports byte for byte the
-/// SVG and draw.io files the build before Block 6E wrote (`testdata/sample-oriented-default.*`).
+/// SVG and draw.io (JGraph) files the build before Block 6E wrote
+/// (`testdata/sample-oriented-default.*`).
 #[test]
 fn the_default_orientation_leaves_the_sample_bit_identical() {
     let mut s = Session::new(crate::sample::sample_document());

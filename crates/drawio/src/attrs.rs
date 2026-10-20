@@ -3,7 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 
-/// Ordered key/value pairs. Lookups are linear because draw.io elements carry a handful of
+/// Ordered key/value pairs. Lookups are linear because JGraph's draw.io elements carry a handful of
 /// attributes; keys are unique once read through [`Attributes::push`], which replaces an earlier
 /// value with the same key.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]

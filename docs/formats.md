@@ -7,7 +7,7 @@ import are built; the rest is planned ([ROADMAP.md](../ROADMAP.md)).
 | Format | Direction | Cascade | Public source |
 |---|---|---|---|
 | `.vizcraft` (native JSON) | read, write (built; version 3 adds the model section in 4A, version 4 the Block 1 document fields; Block 4 adds the optional freeform `path`, `name`, `language` and `dataGraphic` on shapes and `masters`, `protection`, `language`, `ignoredWords`, `dataGraphics` and `dataLinks` on the document, and `image.adjust {brightness, contrast, transparency, recolor}`; Block 5 adds `startLabel` and `endLabel` on connectors, `variant` on a page view and freeform subpaths that mix closed and open, all lenient on read; also reads `.craft.json`) | 1, 4A, B1 | Our own; documented below |
-| `.drawio` (mxGraph XML) | read, write (built: every page; import into a page) | 3 | draw.io documentation; the Apache-2.0 mxGraph and draw.io format documentation |
+| `.drawio` (mxGraph XML) | read, write (built: every page; import into a page) | 3 | JGraph's draw.io documentation; the Apache-2.0 mxGraph and draw.io format documentation |
 | Mermaid | import (built: flowchart, sequence, class, state, ER; node ids become element ids and a tag comes from a `%% tag: <id> <tag>` comment or a label ending in ` #<tag>`, so re-import keeps ids and geometry) | 3, B5 | Mermaid syntax documentation |
 | CSV | import (built; an `id` column gives the shape id and `tag`, `type` and the other columns are kept, so `file.import {merge: true}` and `file.reimport` match rows to existing elements) | 3, B5 | draw.io documentation on CSV import |
 | XLSX and Markdown tables | write (built: `table.export` and `report.run` with `format: xlsx` or `markdown`; the workbook is a stored-entry ZIP with the five smallest SpreadsheetML parts and inline strings, written by our own code with no new dependency, so the web build writes it too; `table::read` reads it back) | B5 | ECMA-376 Office Open XML, SpreadsheetML |
@@ -307,9 +307,15 @@ fonts are embedded from `assets/fonts`.
 
 ## .vsdx
 
-Import of Visio drawing files from the public specification. A `.vsdx` is an Open Packaging
+Import of Microsoft Visio drawings from the public specification. A `.vsdx` is an Open Packaging
 Conventions zip package: a content-types part, relationship parts, and XML parts for the
 document, pages, masters and themes. We read pages, shapes with their geometry sections, text,
 connections and basic formatting, and map master shapes onto our own stencil shapes where they
 match. The zip reader caps entry count and decompressed size, and rejects paths that escape the
 package. Cascade 4. Writing `.vsdx` is not planned.
+
+## Trademarks
+
+Microsoft, Visio and Office are trademarks of the Microsoft group of companies; draw.io is a
+trademark of JGraph Ltd; dbdiagram.io of Holistics Software. The names are used only to identify
+products and formats; VizCraft is not affiliated with or endorsed by their owners.

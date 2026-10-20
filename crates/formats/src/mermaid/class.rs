@@ -1,4 +1,4 @@
-//! Mermaid class diagrams as UML: read into `uml.*` shapes with typed data, and written back.
+//! Mermaid class diagrams as OMG UML: read into `uml.*` shapes with typed data, and written back.
 //!
 //! Reading lays the diagram out like any Mermaid graph, then draws each class with the UML
 //! master of its kind (`<<interface>>` and `<<enumeration>>` pick the type, `<<abstract>>` sets

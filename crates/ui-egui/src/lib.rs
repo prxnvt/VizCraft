@@ -1,4 +1,4 @@
-//! VizCraft's egui front end (L6): an Office-style window (title bar with quick access
+//! VizCraft's egui front end (L6): a Microsoft Office-style window (title bar with quick access
 //! toolbar, optional in-window menu bar, ribbon, side panes, canvas, status bar, dialogs) over
 //! `vizcraft-engine`.
 //!
@@ -496,7 +496,7 @@ pub struct CraftApp {
     pub dialog: Option<dialogs::Dialog>,
     /// Status bar message and when it was set (it fades after a few seconds).
     pub status_msg: Option<(String, f64)>,
-    /// macOS: the window has no title bar; leave room for the traffic lights.
+    /// Apple macOS: the window has no title bar; leave room for the traffic lights.
     pub integrated_titlebar: bool,
     /// The host shows several document windows in one process: `new_window` and Cmd+Q become
     /// requests to the host instead of acting on this window alone.
@@ -1018,9 +1018,9 @@ impl CraftApp {
         }
     }
 
-    /// Ask for a draw.io, Mermaid or CSV file and import it onto the page (`file.import` without
-    /// a path). On the web the picked file arrives through the inbox, which imports anything
-    /// that is not a document.
+    /// Ask for a draw.io (JGraph), Mermaid or CSV file and import it onto the page (`file.import`
+    /// without a path). On the web the picked file arrives through the inbox, which imports
+    /// anything that is not a document.
     pub fn import_dialog(&mut self) {
         if let Some(f) = &self.services.open_async {
             f("import");

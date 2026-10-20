@@ -1,4 +1,4 @@
-//! VizCraft pages to draw.io cells.
+//! VizCraft pages to JGraph's draw.io cells.
 
 use vizcraft_diagram::{Arrow, Color, Connector, End, Page, Route, Shape, ShapeKind, Style};
 use vizcraft_drawio::{

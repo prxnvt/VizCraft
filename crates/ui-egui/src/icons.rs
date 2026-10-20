@@ -1601,8 +1601,8 @@ pub fn master_rings(r: Rect, m: &vizcraft_stencils::Master) -> Vec<(Vec<Pos2>, b
         .collect()
 }
 
-/// Whether master `id` is the UML fork bar (`Some(false)`) or join bar (`Some(true)`). UML draws
-/// both as the same bar on the canvas, so their small icons show the flows instead.
+/// Whether master `id` is the OMG UML fork bar (`Some(false)`) or join bar (`Some(true)`). UML
+/// draws both as the same bar on the canvas, so their small icons show the flows instead.
 pub fn fork_join_master(id: &str) -> Option<bool> {
     match id {
         "uml.forkNode" => Some(false),

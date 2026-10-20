@@ -118,7 +118,7 @@ fn two_decision_rows_each_name_their_pack_on_a_page_without_a_view() {
     let mut h = harness(vizcraft_engine::Document::new());
     run(&mut h, "ui.palette", json!({"query": "decision"}));
     h.run_steps(3);
-    // The Flowchart and UML Decision rows share a label; each names its pack.
+    // The Flowchart and OMG UML Decision rows share a label; each names its pack.
     assert_eq!(h.query_all_by_label("Decision").count(), 2);
     let pal = vizcraft_ui_egui::palette::for_app(h.state());
     let ids: Vec<&str> = pal.search("decision").iter().map(|i| i.id).collect();

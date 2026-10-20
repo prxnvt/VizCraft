@@ -12,7 +12,7 @@ state of each planned feature is listed in [docs/parity.md](docs/parity.md).
 ## Requirements
 
 - Rust 1.90 or later (edition 2024).
-- macOS, Linux or Windows. The browser build is described in [docs/web.md](docs/web.md).
+- Apple macOS, Linux or Microsoft Windows. The browser build is in [docs/web.md](docs/web.md).
 
 ## Building and running
 
@@ -46,8 +46,8 @@ The MCP server is started with `vizcraft-cli mcp`; its tools are documented in
 
 ## File formats
 
-VizCraft saves its own `.vizcraft` format, reads and writes draw.io files, imports Mermaid and
-CSV, and exports SVG, PNG and PDF. Each format and the public specification it follows are listed
+VizCraft saves its own `.vizcraft` format, reads and writes JGraph's draw.io files, imports Mermaid
+and CSV, and exports SVG, PNG and PDF. Each format and the public specification it follows are listed
 in [docs/formats.md](docs/formats.md).
 
 ## Repository layout
@@ -82,6 +82,89 @@ cargo xtask ci
 This runs formatting, Clippy, the test suite, the asset attribution check, the dependency
 layering check and the WebAssembly build. Testing practice is described in
 [docs/testing.md](docs/testing.md).
+
+## Trademarks
+
+The documentation and comments name other companies' products and formats. Those names are
+trademarks or registered trademarks of their owners:
+
+| Owner | Marks |
+|---|---|
+| Adobe Inc. | Adobe |
+| Altium Limited | Altium |
+| Amazon.com, Inc. or its affiliates | Amazon Web Services, AWS, FreeRTOS |
+| Analog Devices, Inc. | LTspice |
+| Ansys, Inc. | Ansys, medini |
+| Anthropic, PBC | Claude (Opus and Sonnet are Claude models) |
+| Apple Inc. | Apple, macOS, Finder, AppKit, Retina |
+| Autodesk, Inc. | Autodesk, AutoCAD, AutoCAD Electrical, AutoCAD P&ID, AutoCAD Plant 3D, DXF |
+| AUTOSAR development partnership | AUTOSAR |
+| AVEVA Group Limited | AVEVA |
+| Avid Technology, Inc. | Avid |
+| Camunda Services GmbH | Camunda |
+| Canonical Ltd. | Ubuntu |
+| Cisco Systems, Inc. | Cisco |
+| CS Odessa | ConceptDraw |
+| Dassault Systemes | SOLIDWORKS, Cameo, No Magic |
+| Docker, Inc. | Docker |
+| Dynalist Inc. | Obsidian |
+| EasyPower LLC | EasyPower |
+| Emerson Electric Co. | Emerson |
+| EPLAN GmbH & Co. KG | EPLAN |
+| Famic Technologies Inc. | Automation Studio |
+| Festo SE & Co. KG | FluidSIM, FluidDraw |
+| Figma, Inc. | Figma |
+| G2.com, Inc. | G2 |
+| Gartner, Inc. | Gartner, Capterra |
+| GitHub, Inc. | GitHub |
+| GitLab Inc. | GitLab |
+| Google LLC | Google Cloud, Chrome |
+| HashiCorp, Inc. | Terraform |
+| Hexagon AB | Smart P&ID, Intergraph |
+| Holistics Software | dbdiagram.io |
+| HydraForce, Inc. | HydraForce |
+| IGE+XAO | SEE Electrical |
+| International Business Machines Corporation | IBM |
+| Intertek Group plc | Intertek |
+| itemis AG | itemis, itemis CREATE |
+| JGraph Ltd | draw.io |
+| Linus Torvalds | Linux |
+| Lucid Software Inc. | Lucid, Lucidchart |
+| The MathWorks, Inc. | MathWorks, MATLAB, Simulink, Stateflow |
+| Microsoft Corporation (the Microsoft group of companies) | Microsoft, Visio, Excel, Word, Office, OneDrive, SharePoint, Access, SQL Server, Bing, Translator, Visual Basic, ActiveX, Windows, Azure |
+| Nevron Software | MyDraw |
+| Notion Labs, Inc. | Notion |
+| Object Management Group, Inc. | OMG, UML, BPMN, SysML |
+| OPC Foundation | OPC UA |
+| The Open Group | ArchiMate, TOGAF |
+| Operation Technology, Inc. | ETAP |
+| Oracle Corporation | Oracle |
+| PTC Inc. | PTC |
+| Quantum Leaps, LLC | QM |
+| RibbonSoft GmbH | QCAD |
+| Rockwell Automation, Inc. | Rockwell |
+| SAP SE | SAP |
+| Schneider Electric SE | Schneider Electric |
+| Scribd, Inc. | Scribd |
+| Siemens AG | Siemens, TIA Portal |
+| SKM Systems Analysis, Inc. | SKM |
+| SmartDraw, LLC | SmartDraw |
+| SMC Corporation | SMC, PneuDraw |
+| Sparx Systems Pty Ltd | Sparx Systems, Enterprise Architect |
+| STMicroelectronics | STM32CubeMX, TouchGFX |
+| Team Topologies Ltd | Team Topologies |
+| Visual Paradigm International Ltd. | Visual Paradigm |
+| Wikimedia Foundation, Inc. | Wikipedia, Wikimedia |
+| Wondershare | EdrawMax |
+| WSCAD GmbH | WSCAD |
+| Zachman International, Inc. | Zachman Framework |
+| Zuken | E3.series |
+
+The research notes also name other products, companies and websites (among them ARIS, Accuris,
+Alfabet, Bizzdesign, Brainboard, ClickUp, Eraser, EventCatalog, Flowable, GetApp, GlobalSpec,
+IcePanel, Ilograph, M4 P&ID, Smap3D, SolidPlant, tldraw and the Toyota Production System); those
+names are trademarks of their respective owners. All of these names are used only to identify
+products and formats; VizCraft is not affiliated with or endorsed by their owners.
 
 ## Licence
 

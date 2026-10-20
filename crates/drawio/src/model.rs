@@ -224,8 +224,8 @@ impl GraphModel {
         self.cells.iter().find(|c| c.id == id)
     }
 
-    /// A model with the two structural cells draw.io expects: the root `0` and the default layer
-    /// `1`.
+    /// A model with the two structural cells JGraph's draw.io expects: the root `0` and the
+    /// default layer `1`.
     pub fn with_default_layer() -> Self {
         let root = Cell { id: "0".into(), ..Cell::default() };
         let layer = Cell { id: "1".into(), parent: Some("0".into()), ..Cell::default() };

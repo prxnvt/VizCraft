@@ -190,7 +190,7 @@ fn class_diagram_has_member_rows_and_uml_markers() {
     let p = page(src);
     assert_eq!(p.shapes.len(), 3);
     assert_eq!(p.connectors.len(), 2);
-    // Classes are drawn as UML classes: the name, then member compartments (b6-uml).
+    // Classes are drawn as OMG UML classes: the name, then member compartments (b6-uml).
     let animal = shape(&p, "Animal");
     assert_eq!((animal.text.as_str(), animal.stencil.as_str(), animal.style.italic), ("Animal", "uml.class", true));
     let rows: Vec<&str> = animal.compartments.iter().flat_map(|c| c.rows.iter().map(String::as_str)).collect();

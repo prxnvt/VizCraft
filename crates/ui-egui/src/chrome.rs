@@ -25,7 +25,7 @@ fn qat_button(ui: &mut Ui, app: &mut CraftApp, icon: &str, tip: &str, id: &str) 
 /// The title bar: a top panel the window can be dragged by.
 pub fn title_bar(app: &mut CraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
-    // On macOS the traffic lights sit in our bar; leave them room.
+    // On Apple macOS the traffic lights sit in our bar; leave them room.
     let left = if app.integrated_titlebar { 78 } else { 8 };
     egui::Panel::top("title_bar")
         .exact_size(TITLE_BAR_H)

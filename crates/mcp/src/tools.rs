@@ -11,7 +11,8 @@ use crate::backend::Backend;
 use crate::{MAX_BATCH, base64, issues};
 
 /// Largest screenshot the server will read back and inline, in bytes. A full window on a large
-/// Retina display is a few megabytes; anything far beyond that is not a screenshot we asked for.
+/// Apple Retina display is a few megabytes; anything far beyond that is not a screenshot we asked
+/// for.
 const MAX_PNG_BYTES: u64 = 48 * 1024 * 1024;
 
 /// The eight bytes every PNG file starts with.

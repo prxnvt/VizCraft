@@ -37,3 +37,9 @@ rules for agents (which apply to people as well) are in [AGENTS.md](AGENTS.md).
 
 By contributing you agree that your work is licensed under MIT OR Apache-2.0, like the rest of
 the repository ([LICENSE-MIT](LICENSE-MIT), [LICENSE-APACHE](LICENSE-APACHE)).
+
+## Trademarks
+
+Microsoft and Visio are trademarks of the Microsoft group of companies; Adobe of Adobe Inc.; Avid
+of Avid Technology, Inc.; Autodesk of Autodesk, Inc. The names are used only to identify products;
+VizCraft is not affiliated with or endorsed by their owners.

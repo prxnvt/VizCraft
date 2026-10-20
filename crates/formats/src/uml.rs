@@ -1,4 +1,4 @@
-//! A page read as UML: the elements it draws with their members and owners, and the
+//! A page read as OMG UML: the elements it draws with their members and owners, and the
 //! relationships between them. The PlantUML and Mermaid class and state writers start here.
 //!
 //! A shape bound to a model element is read from the model. An unbound shape that carries

@@ -22,7 +22,7 @@ pub enum Container {
     BareModel,
 }
 
-/// A whole draw.io file.
+/// A whole draw.io file (JGraph's format).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DrawioFile {
     /// How the file was stored. A bare model with more than one page is written as `<mxfile>`.

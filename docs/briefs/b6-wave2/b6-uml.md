@@ -217,3 +217,9 @@ The seeds follow the catalogue rows.
 - **Approximate rules.** "Required interfaces satisfied" and "artifact deployed" are approximations at info severity. Dead-end composite states may need an exception.
 - **Changing an existing variant.** Changing `Unreachable` touches a variant other branches match on; the field is defaulted, so old packs load.
 - **Snapshots may change** once the UML Shapes set exists.
+
+## Trademarks
+
+Claude is a trademark of Anthropic, PBC (Opus is one of its Claude models); UML and OMG of Object
+Management Group, Inc. The names are used only to identify products and formats; VizCraft is not
+affiliated with or endorsed by their owners.

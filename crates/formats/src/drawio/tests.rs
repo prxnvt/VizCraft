@@ -36,7 +36,7 @@ fn docs_example_loads_and_round_trips() {
 }
 
 /// The multi-page fixture's document: every kind, point and dynamic glue, a free end, bends,
-/// jumps, the three routes, styled text and kept draw.io data.
+/// jumps, the three routes, styled text and kept draw.io (JGraph) data.
 fn multipage_document() -> Document {
     let mut doc = Document::new();
     let kinds = [

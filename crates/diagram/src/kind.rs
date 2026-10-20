@@ -45,7 +45,7 @@ pub enum ShapeKind {
     Trapezoid,
     /// Pentagon pointing down (flowchart off-page reference).
     OffPageReference,
-    /// A UML sequence lifeline: the outline is the head box, the detail the dashed stem (see
+    /// An OMG UML sequence lifeline: the outline is the head box, the detail the dashed stem (see
     /// [`crate::sequence`]).
     Lifeline,
     /// A UML sequence lifeline drawn as an actor: a stick figure over its name, then the stem.

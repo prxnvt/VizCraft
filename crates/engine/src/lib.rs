@@ -57,8 +57,8 @@ pub struct CommandSpec {
     pub label: &'static str,
     /// Where it lives in the UI (`Home > Clipboard`), for tooltips and parity checks.
     pub location: &'static str,
-    /// Default shortcut in a portable form: `Mod+S`, `Mod+Shift+Z`, `F1`. `Mod` is Cmd on macOS
-    /// and Ctrl elsewhere; ` / ` separates alternatives.
+    /// Default shortcut in a portable form: `Mod+S`, `Mod+Shift+Z`, `F1`. `Mod` is Cmd on Apple
+    /// macOS and Ctrl elsewhere; ` / ` separates alternatives.
     pub shortcut: &'static str,
     /// One-line params doc for agents: `{"path"?: string}`.
     pub params: &'static str,

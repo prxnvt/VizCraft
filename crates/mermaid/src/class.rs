@@ -154,7 +154,7 @@ impl RelationEnd {
     }
 }
 
-/// The UML meaning of a relationship, derived from its ends and line.
+/// The OMG UML meaning of a relationship, derived from its ends and line.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RelationKind {
     /// Solid line with a triangle.

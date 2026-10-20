@@ -16,7 +16,7 @@ use super::model::{NewElement, cat, check_len, create_element, cut, model_err, p
 use super::{drop_undrawn_relationships, ids_param, new_id, opt_bool, opt_str, short};
 use crate::{CmdResult, CommandSpec, EngineError, Session};
 
-/// The viewpoint a new interaction's page shows, when the UML pack is loaded.
+/// The viewpoint a new interaction's page shows, when the pack for OMG UML is loaded.
 pub const VIEWPOINT: &str = "uml.Sequence";
 
 /// Return the sequence commands.

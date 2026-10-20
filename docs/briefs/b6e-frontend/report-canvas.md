@@ -65,3 +65,8 @@ and the palette placing a coil. Engine tests cover `glyph.insert` and the rotate
 - The key commands are not in a menu (menus belonged to the panes half).
 - No command sets line markers yet, so the snapshot sets one directly on the document.
 - The net highlight covers the active page only.
+
+## Trademarks
+
+Apple and macOS are trademarks of Apple Inc. The names are used only to identify products and
+formats; VizCraft is not affiliated with or endorsed by their owners.

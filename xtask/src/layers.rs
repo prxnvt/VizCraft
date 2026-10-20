@@ -71,7 +71,7 @@ pub struct Crate {
 
 /// Name suffixes of the model-layer crates: the semantic model and notation packs, the diagram
 /// model and catalog, the file formats, and the leaf libraries they build on (Mermaid parser,
-/// draw.io codec, auto-layout, connector router).
+/// draw.io (JGraph) codec, auto-layout, connector router).
 const MODEL_SUFFIXES: &[&str] =
     &["-model", "-notation", "-diagram", "-stencils", "-formats", "-mermaid", "-drawio", "-layout", "-routing", "-codegen", "-patterns", "-analysis"];
 

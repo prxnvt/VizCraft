@@ -141,7 +141,7 @@ impl CanvasState {
 pub fn handle_pan_and_zoom(ui: &Ui, response: &Response, pan: &mut [f32; 2], zoom: &mut f32) -> bool {
     let mut changed = false;
 
-    // Middle-click drag, or left-click drag with Space or Cmd (Ctrl off macOS) held. Space is
+    // Middle-click drag, or left-click drag with Space or Cmd (Ctrl off Apple macOS) held. Space is
     // free for this because no command is bound to it (see `keys::is_shortcut_key`).
     let (command_down, space_down) = ui.input(|i| (i.modifiers.command, i.key_down(egui::Key::Space)));
     let pan_modifier = command_down || space_down;

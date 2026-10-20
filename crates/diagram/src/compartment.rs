@@ -1,4 +1,4 @@
-//! Compartments: sections stacked inside a shape below its main text, the groundwork for UML
+//! Compartments: sections stacked inside a shape below its main text, the groundwork for OMG UML
 //! class boxes (name, attributes, operations), equipment tags with fields and planning cards.
 //!
 //! A shape keeps its own text as the main text block; each [`Compartment`] in

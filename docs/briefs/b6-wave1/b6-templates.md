@@ -144,3 +144,9 @@ For compatibility, `Template` deserializes through an untagged repr. A bare stri
 - **Code forms.** `codeForms` are unchecked strings until b6-code adds the `CodeForm` registry.
 - **`path` param.** `template.new {path}` writes to disk. The hostile test only skips `file.*` commands, so the command must refuse a missing or unknown `template` before it reads `path`, as the junk rows check.
 - **Shared JSON.** The pack JSONs are shared with b6-uml and b6-er only for their own new packs, so there is no hunk overlap expected.
+
+## Trademarks
+
+Claude is a trademark of Anthropic, PBC (Opus is one of its Claude models). The names are used
+only to identify products and formats; VizCraft is not affiliated with or endorsed by their
+owners.

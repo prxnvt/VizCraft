@@ -1,6 +1,6 @@
-//! The checks first needed by the UML pack, kept general so other packs use them too: ends that
-//! must show a property (navigability, crow's foot cardinality), multiplicity syntax, at most n
-//! elements per owner, and unique member names. [`check`] is the rules engine's one dispatch arm
+//! The checks first needed by the pack for OMG UML, kept general so other packs use them too: ends
+//! that must show a property (navigability, crow's foot cardinality), multiplicity syntax, at most
+//! n elements per owner, and unique member names. [`check`] is the rules engine's one dispatch arm
 //! for them.
 
 use std::collections::HashMap;

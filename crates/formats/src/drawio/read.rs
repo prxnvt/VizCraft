@@ -1,4 +1,4 @@
-//! draw.io cells to VizCraft shapes and connectors.
+//! JGraph's draw.io cells to VizCraft shapes and connectors.
 
 use std::collections::{BTreeMap, HashMap};
 

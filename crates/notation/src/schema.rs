@@ -77,9 +77,9 @@ pub struct Pack {
     /// `{{doc:key}}` fields. `required` marks a mandatory field and `maxChars` its length limit.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub document_properties: Vec<PropertySchema>,
-    /// Sections of a large pack (UML's class, component, state machine and so on): each adds its
-    /// lists to the pack's own when the pack loads (see [`crate::sections::flatten`]), so a loaded
-    /// pack always has flat lists and no sections.
+    /// Sections of a large pack (OMG UML's class, component, state machine and so on): each adds
+    /// its lists to the pack's own when the pack loads (see [`crate::sections::flatten`]), so a
+    /// loaded pack always has flat lists and no sections.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub sections: Vec<PackSection>,
 }

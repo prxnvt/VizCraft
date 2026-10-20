@@ -1,4 +1,4 @@
-//! UML member commands (`uml.*`): add, set, remove and move the rows of an element's member
+//! OMG UML member commands (`uml.*`): add, set, remove and move the rows of an element's member
 //! lists (a class's attributes and operations, an enumeration's literals).
 //!
 //! A member list is a text property of the element (`attributes`, `operations`, `literals`: one

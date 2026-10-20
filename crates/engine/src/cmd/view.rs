@@ -102,8 +102,8 @@ fn zoom_fit(s: &mut Session, v: &Value) -> CmdResult {
 }
 
 /// Fit the width of the page frame (`page`, the default) or of the drawing into the canvas, like
-/// Visio's Page Width: the whole width shows with [`FIT_MARGIN`] to spare. A target taller than the
-/// canvas at that zoom is shown from its top edge; a shorter one is centred.
+/// Microsoft Visio's Page Width: the whole width shows with [`FIT_MARGIN`] to spare. A target
+/// taller than the canvas at that zoom is shown from its top edge; a shorter one is centred.
 fn zoom_width(s: &mut Session, v: &Value) -> CmdResult {
     let Some([w, h]) = s.view.canvas else { return Err(EngineError::Disabled("No canvas is shown".into())) };
     let Some(page) = s.doc.page() else { return Err(EngineError::Failed("the document has no page".into())) };

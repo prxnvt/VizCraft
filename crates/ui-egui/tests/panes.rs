@@ -392,7 +392,8 @@ fn typing_in_the_shapes_search_shows_only_matching_tiles() {
     h.get_by_label("Results");
     let all: Vec<_> = vizcraft_stencils::sets().iter().flat_map(|s| s.masters.iter()).collect();
     for m in &all {
-        // Flowchart's and UML's Decision are two rows with the same label, each naming its pack.
+        // Flowchart's and OMG UML's Decision are two rows with the same label, each naming its
+        // pack.
         let want = if m.label == "Decision" { 2 } else { 0 };
         assert_eq!(tiles(&h, m.label), want, "{} with query decis", m.id);
     }

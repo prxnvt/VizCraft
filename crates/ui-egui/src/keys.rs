@@ -1,7 +1,7 @@
 //! Keyboard shortcuts, from the registry's `shortcut` strings and [`crate::UI_COMMANDS`].
 //!
-//! A shortcut is written portably: `Mod+S`, `Mod+Shift+Z`, `Alt+F4`, `F1`. `Mod` is Cmd on macOS
-//! and Ctrl elsewhere (egui's `command` modifier). Alternatives are separated by ` / `.
+//! A shortcut is written portably: `Mod+S`, `Mod+Shift+Z`, `Alt+F4`, `F1`. `Mod` is Cmd on Apple
+//! macOS and Ctrl elsewhere (egui's `command` modifier). Alternatives are separated by ` / `.
 //!
 //! Precedence, from the top:
 //! 1. An open dialog owns the keyboard: Enter and Escape are its, and no shortcut fires until it

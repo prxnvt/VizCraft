@@ -2,7 +2,7 @@
 //! canvas, SVG and PDF export all draw from.
 //!
 //! The first five ends (triangle, open, diamond, circle) are the general-purpose heads. The rest
-//! are the notation ends later packs need: hollow triangle and diamond (UML inheritance and
+//! are the notation ends later packs need: hollow triangle and diamond (OMG UML inheritance and
 //! aggregation), bar and the crow's foot family (Information Engineering cardinality) and open
 //! circle. Every size grows with the line width, so a heavy line gets a heavy head.
 
@@ -38,7 +38,7 @@ pub enum Arrow {
     CrowsFootCircle,
     /// A bar with a hollow circle behind it (zero or one).
     BarCircle,
-    /// A short slanted stroke across the line near the end (BPMN's default-flow marker, drawn
+    /// A short slanted stroke across the line near the end (OMG BPMN's default-flow marker, drawn
     /// at the source end). The line runs through it.
     Slash,
     /// Two bars across the line (one and only one, Information Engineering).

@@ -1,5 +1,5 @@
-//! View > Appearance: dark mode, the workspace preset (Engineering or Office) and on macOS the
-//! in-window menus.
+//! View > Appearance: dark mode, the workspace preset (Engineering or Office) and on Apple macOS
+//! the in-window menus.
 
 use serde_json::json;
 

@@ -451,7 +451,7 @@ pub fn regions_bounds(regions: &[Region]) -> Option<Rect> {
     Rect::bounding(regions.iter().flatten().flatten().map(|p| Point::new(p[0], p[1])))
 }
 
-/// The draw.io wrapper attribute that carries a freeform outline as JSON.
+/// The draw.io (JGraph) wrapper attribute that carries a freeform outline as JSON.
 pub const PATH_ATTR: &str = "vizcraftPath";
 
 /// A freeform shape's outline as JSON for [`PATH_ATTR`]; `None` for any other shape.

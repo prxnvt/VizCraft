@@ -245,3 +245,9 @@ The loader checks every new name, adding to the existing `variants()` check.
 - **Lossy formats.** DBML has no optionality on the child end and no identifying flag; both are derived from the FK columns. Mermaid has no FK targets and limits the type characters. Each loss comes back as a warning; the goldens prove only what each format can say.
 - **Hand-set ends are overwritten.** The end pass replaces hand-set arrows on ER connectors, because the ends are the cardinality.
 - **Where Chen and IDEF1X labels sit.** The look-across convention for Chen labels and the IDEF1X `P`/`Z`/`1` letters follow the standards digest. Please confirm them before the goldens are fixed.
+
+## Trademarks
+
+Claude is a trademark of Anthropic, PBC (Opus is one of its Claude models); draw.io of JGraph Ltd;
+UML of Object Management Group, Inc.; dbdiagram.io of Holistics Software. The names are used only
+to identify products and formats; VizCraft is not affiliated with or endorsed by their owners.

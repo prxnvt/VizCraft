@@ -55,8 +55,8 @@ const MAX_SEARCH_LIMIT: usize = 200;
 /// Longest query looked at; real queries are a few words, and the rest is ignored.
 const MAX_QUERY_CHARS: usize = 1000;
 
-/// Stencil masters matching every word of `query`, with the draw.io style that opens as each.
-/// It reads the library only, so the document never changes.
+/// Stencil masters matching every word of `query`, with the draw.io (JGraph) style that opens as
+/// each. It reads the library only, so the document never changes.
 fn search(_s: &mut Session, v: &Value) -> CmdResult {
     let query: String = p::req_str(v, "query")?.chars().take(MAX_QUERY_CHARS).collect();
     let limit = match num(v, "limit")? {

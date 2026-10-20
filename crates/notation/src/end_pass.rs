@@ -9,7 +9,7 @@
 //! default. A field changes only when it differs, so running the pass twice changes nothing,
 //! and `variant.set` (which applies the new kind) and the pass agree.
 //!
-//! End labels: a relationship type that declares `endLabels` (UML multiplicities) has its end
+//! End labels: a relationship type that declares `endLabels` (OMG UML multiplicities) has its end
 //! labels written by the end labels step of the sync pass, which also writes edits back to the
 //! properties; this pass leaves those labels alone so the two never write the same field. Both
 //! exist because they answer different questions: `endLabels` shows property text as it is,

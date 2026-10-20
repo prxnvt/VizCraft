@@ -187,3 +187,9 @@ Done when:
 - `schema.rs`, `bind.rs` and `identity.rs` hunks conflict with b6e-builders, b6e-substrate and b6-templates. Merge in the order substrate, sheets, builders.
 - Struct literals of `Page` or `CompartmentDecl` outside `::new` will break when the fields are added; grep for them in the first commit.
 - Mixed sheet and non-sheet pages: `{{sheet}}` falls back to the page number.
+
+## Trademarks
+
+Claude is a trademark of Anthropic, PBC (Opus is one of its Claude models); EPLAN of EPLAN GmbH &
+Co. KG. The names are used only to identify products and formats; VizCraft is not affiliated with
+or endorsed by their owners.

@@ -12,7 +12,7 @@ default member: `cargo build` and `cargo test` leave it alone, and `cargo xtask 
 | Native file dialogs (`Services::pick_open`, `pick_save`) | `Services::open_async`: rfd clicks a hidden `<input type="file">`; the chosen file's bytes land in `Services::inbox` and the app loads them on the next frame. Dropped files take the same route. |
 | Save writes to a path | `Services::download`: `file.save` and `file.saveAs` become a Blob download of the `.vizcraft` file (the browser picks the folder) |
 | Several windows in one process | One document per page; New Window replaces the document (`CraftApp::new_window` already falls back when `multi_window` is false) |
-| Native macOS menu bar | The in-window menu bar (`menus::in_window_menus` is true off macOS, and wasm counts as off macOS) |
+| Native Apple macOS menu bar | The in-window menu bar (`menus::in_window_menus` is true off macOS, and wasm counts as off macOS) |
 | `ui.json` in the user's config folder | `UiState` as JSON under the `localStorage` key `vizcraft.ui`, written by eframe's autosave and read at start; window geometry is left to the browser |
 | Control channel, CLI | None (there is no TCP in a page) |
 
@@ -56,3 +56,8 @@ cargo xtask wasm
 
 Nothing in `engine` or `ui-egui` may depend on threads, files, sockets or the clock without a
 `cfg(not(target_arch = "wasm32"))` branch; `cargo xtask wasm` is the check that keeps it so.
+
+## Trademarks
+
+Apple and macOS are trademarks of Apple Inc. The names are used only to identify the platform;
+VizCraft is not affiliated with or endorsed by Apple Inc.

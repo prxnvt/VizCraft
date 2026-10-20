@@ -4,7 +4,7 @@
 //! Off by default and nearly free when off (one atomic load per span). [`start`] turns it on and
 //! writes into a directory:
 //!
-//! - `<name>.trace.json`: Chrome trace events (a JSON array, readable in Perfetto or
+//! - `<name>.trace.json`: Google Chrome trace events (a JSON array, readable in Perfetto or
 //!   `chrome://tracing`). Every frame is one `frame` event; frames slower than the detail
 //!   threshold also carry their nested spans (commands, model sync, routing, UI sections), so the
 //!   slow ones show as a flame graph. Stalls, memory counters, notes and marks are events too.
@@ -16,7 +16,7 @@
 //!   the slowest frames with their span trees, the longest stalls with the frame before them and
 //!   the input that arrived after, repaint causes, control-channel notes, memory over time and
 //!   marks. Small enough to read in one go.
-//! - `<name>-stall-<n>.txt` (macOS): the process's native stacks, captured with the system
+//! - `<name>-stall-<n>.txt` (Apple macOS): the process's native stacks, captured with the system
 //!   `sample` tool while the main thread was stalled, so time spent outside the app's own code
 //!   (event loop, compositor, platform calls) has a stack to look at.
 //!
@@ -25,10 +25,10 @@
 //! arrives carrying more than [`Options::pileup_events`] pointer moves is recorded as a stall too:
 //! the pointer kept moving while no frame ran. Each stall records what woke the frame after it:
 //! `immediate` (the UI had asked for a frame at once: a real stall), `external` (a [`note`] was
-//! written since the last frame ended: a control-channel request, a native menu event or a
-//! Finder open request woke the app, so the gap was somebody else's pause) or `timer` (a delayed
-//! repaint request, whose delay egui does not disclose, so the gap may have been a legitimate
-//! wait); only `immediate` counts as confirmed.
+//! written since the last frame ended: a control-channel request, a native menu event or an
+//! Apple Finder open request woke the app, so the gap was somebody else's pause) or `timer`
+//! (a delayed repaint request, whose delay egui does not disclose, so the gap may have been a
+//! legitimate wait); only `immediate` counts as confirmed.
 //!
 //! Spans nest per thread. A span opened on the thread that called [`frame_begin`] belongs to the
 //! current frame; spans on other threads, or outside a frame, are written as they close.

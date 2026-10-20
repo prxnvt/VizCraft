@@ -462,7 +462,7 @@ fn parse_window_pos(s: &str) -> Option<[f32; 2]> {
 fn window_builder() -> egui::ViewportBuilder {
     let builder = egui::ViewportBuilder::default()
         .with_title("VizCraft")
-        .with_app_id("com.storytold.vizcraft")
+        .with_app_id("io.github.prxnvt.vizcraft")
         .with_inner_size([1440.0, 920.0])
         .with_min_inner_size([vizcraft_ui_egui::window_geometry::MIN_SIZE.x, vizcraft_ui_egui::window_geometry::MIN_SIZE.y])
         .with_drag_and_drop(true)

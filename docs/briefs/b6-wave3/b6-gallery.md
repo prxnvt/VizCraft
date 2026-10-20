@@ -1,6 +1,6 @@
 # `b6-gallery` (template gallery and workspace preset), Block 6 wave 3
 
-Opus, medium effort. Port 8061. Worktree `.claude/worktrees/b6-gallery`, branch `b6-gallery` from the integration branch `claude/engineering-diagramming-standards-305d6b` after `b6e-frontend` merges. `CARGO_TARGET_DIR=target-b6-gallery CARGO_INCREMENTAL=0`. Commit prefix `B6:`.
+Claude Opus, medium effort. Port 8061. Worktree `.claude/worktrees/b6-gallery`, branch `b6-gallery` from the integration branch `claude/engineering-diagramming-standards-305d6b` after `b6e-frontend` merges. `CARGO_TARGET_DIR=target-b6-gallery CARGO_INCREMENTAL=0`. Commit prefix `B6:`.
 
 ## Resolutions (these override the draft below where they differ)
 
@@ -269,3 +269,9 @@ Do not edit ROADMAP.md, docs/parity.md, docs/mcp.md, docs/formats.md, docs/casca
 - /Users/pranav/Workspace/crafts/VizCraft/.claude/worktrees/b6e-frontend/crates/ui-egui/src/lib.rs
 - /Users/pranav/Workspace/crafts/VizCraft/.claude/worktrees/b6e-frontend/crates/ui-egui/src/ribbon/home/mod.rs
 - /Users/pranav/Workspace/crafts/VizCraft/.claude/worktrees/b6e-frontend/crates/ui-egui/src/canvas/draw/pictures.rs (texture cache pattern to follow)
+
+## Trademarks
+
+Claude is a trademark of Anthropic, PBC (Opus is one of its Claude models). The names are used
+only to identify products and formats; VizCraft is not affiliated with or endorsed by their
+owners.

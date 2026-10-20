@@ -296,6 +296,12 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
                 let shown = repo.trim_start_matches("https://").trim_start_matches("http://");
                 ui.hyperlink_to(format!("Source code: {shown}"), repo);
             }
+            // The author also comes from the package metadata, for the same reason.
+            let authors = env!("CARGO_PKG_AUTHORS");
+            if !authors.is_empty() {
+                ui.add_space(4.0);
+                ui.label(egui::RichText::new(format!("Copyright (c) 2026 {}", authors.replace(':', ", "))).color(t.text_dim));
+            }
             ui.add_space(4.0);
             ui.label(
                 egui::RichText::new("Licensed under MIT OR Apache-2.0. Fonts: Inter and JetBrains Mono (SIL Open Font License).")

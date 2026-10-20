@@ -1,5 +1,5 @@
-//! The UML pack through the real binary: its test cases validate, and a class diagram made from
-//! the template exports as PlantUML.
+//! The pack for OMG UML through the real binary: its test cases validate, and a class diagram made
+//! from the template exports as PlantUML.
 
 use std::process::{Command, Output};
 

@@ -1,5 +1,5 @@
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
-//! Reads and writes draw.io files and draw.io-style CSV into a faithful intermediate
+//! Reads and writes JGraph's draw.io files and draw.io-style CSV into a faithful intermediate
 //! representation.
 //!
 //! The IR stays close to the file: an [`DrawioFile`] holds pages, each page holds its

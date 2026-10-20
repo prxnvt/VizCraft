@@ -99,7 +99,7 @@ Every param reader tolerates junk: a wrong type is treated as missing (and repor
 param is required), numbers are clamped, nothing panics. The UI tests feed every method hostile
 params to keep it that way.
 
-`cmd` means the platform's primary modifier: Command on macOS, Control elsewhere, the same
+`cmd` means the platform's primary modifier: Command on Apple macOS, Control elsewhere, the same
 meaning as `Mod` in shortcut strings. Coordinates are in window points (logical pixels, as egui
 sees them), with the origin at the top left of the window content; on macOS with the integrated
 title bar the content starts at the very top.
@@ -295,3 +295,9 @@ VizCraft's own methods follow these rules:
   the document should also exist as commands, so the CLI and the menus get them for free; the
   method is then only a convenience.
 - Document every method here, in the table, with its params and its result.
+
+## Trademarks
+
+Apple, macOS and Retina are trademarks of Apple Inc.; Linux is the registered trademark of Linus
+Torvalds. The names are used only to identify platforms; VizCraft is not affiliated with or
+endorsed by their owners.

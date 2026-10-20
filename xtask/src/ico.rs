@@ -1,4 +1,4 @@
-//! `cargo xtask ico <out.ico> <in.png>…`: pack PNG images into a Windows `.ico`.
+//! `cargo xtask ico <out.ico> <in.png>…`: pack PNG images into a Microsoft Windows `.ico`.
 //!
 //! Vista and later read PNG-compressed icon entries, so each PNG is stored as is. The size comes
 //! from the PNG's IHDR chunk; 256 px is written as 0, per the ICO format.

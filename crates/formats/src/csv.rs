@@ -1,5 +1,5 @@
-//! draw.io-style CSV import: rows become shapes, references between rows become connectors, and
-//! the auto-layout places them as the CSV's `layout` directive asks.
+//! CSV import in JGraph's draw.io style: rows become shapes, references between rows become
+//! connectors, and the auto-layout places them as the CSV's `layout` directive asks.
 //!
 //! Row and edge styles go through the same mapping as `.drawio` files ([`crate::drawio`]), so a
 //! `rhombus` row is a diamond here too. Containers (`parent` rows) are not modelled yet: their

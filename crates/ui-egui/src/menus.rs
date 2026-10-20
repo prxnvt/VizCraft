@@ -1,5 +1,5 @@
-//! The menu tree, shared by the in-window menu bar (egui) and the desktop app's native macOS
-//! menu bar (muda, built by the host from [`menu_tree`]). Items are command ids, so both bars
+//! The menu tree, shared by the in-window menu bar (egui) and the desktop app's native Apple
+//! macOS menu bar (muda, built by the host from [`menu_tree`]). Items are command ids, so both bars
 //! show the same labels, shortcuts and enablement, and the control channel can press any of them.
 //!
 //! What the native builder needs:

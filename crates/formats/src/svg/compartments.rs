@@ -146,7 +146,7 @@ mod tests {
 
     use crate::svg::export_page;
 
-    /// A UML-style class: name, attributes, operations.
+    /// An OMG UML-style class: name, attributes, operations.
     pub(crate) fn class_doc() -> Document {
         let mut doc = Document::new();
         let mut s = Shape::new("k", ShapeKind::Rectangle, 10.0, 20.0, 160.0, 100.0);

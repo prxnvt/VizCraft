@@ -7,9 +7,9 @@
 //! green on machines without one. `UPDATE_SNAPSHOTS=1 cargo test -p vizcraft-ui-egui --test snapshots`
 //! rewrites the PNGs that changed (`docs/testing.md`, Snapshot tests).
 //!
-//! Shortcut text differs by platform (Cmd glyphs on macOS, `Ctrl+` elsewhere), so the references
-//! live in `tests/snapshots/<os>/`. An OS without a reference folder is skipped until someone
-//! records one with `UPDATE_SNAPSHOTS=1` on that OS.
+//! Shortcut text differs by platform (Cmd glyphs on Apple macOS, `Ctrl+` elsewhere), so the
+//! references live in `tests/snapshots/<os>/`. An OS without a reference folder is skipped until
+//! someone records one with `UPDATE_SNAPSHOTS=1` on that OS.
 //!
 //! Every snapshot starts the window the same way on every platform: the in-window menu bar is
 //! drawn, the title bar has no traffic-light gap, the sample document is open.

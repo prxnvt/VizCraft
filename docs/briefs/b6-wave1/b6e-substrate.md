@@ -189,3 +189,9 @@ For this branch:
 - /Users/pranav/Workspace/crafts/VizCraft/.claude/worktrees/engineering-diagramming-standards-305d6b/crates/model/src/types.rs
 - /Users/pranav/Workspace/crafts/VizCraft/.claude/worktrees/engineering-diagramming-standards-305d6b/crates/diagram/src/route.rs
 - /Users/pranav/Workspace/crafts/VizCraft/.claude/worktrees/engineering-diagramming-standards-305d6b/crates/engine/src/cmd/shape.rs
+
+## Trademarks
+
+Claude is a trademark of Anthropic, PBC (Opus is one of its Claude models); draw.io of JGraph Ltd.
+The names are used only to identify products and formats; VizCraft is not affiliated with or
+endorsed by their owners.

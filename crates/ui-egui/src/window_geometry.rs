@@ -17,8 +17,8 @@ const MAX_COORD: f32 = 32768.0;
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct WindowGeometry {
-    /// Top-left corner: of the frame, or of the content on macOS (where winit places a new
-    /// window by it). `None` where the platform doesn't report it (Wayland).
+    /// Top-left corner: of the frame, or of the content on Apple macOS (where winit places a
+    /// new window by it). `None` where the platform doesn't report it (Wayland).
     pub position: Option<[f32; 2]>,
     /// Content size of the un-maximized window.
     pub width: f32,

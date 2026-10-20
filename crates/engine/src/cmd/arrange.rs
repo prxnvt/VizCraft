@@ -103,7 +103,7 @@ fn auto_space(s: &mut Session, v: &Value) -> CmdResult {
     let gap = num(v, "gap")?.map_or(ar::DEFAULT_GAP, |g| g.clamp(0.0, MAX_EXTENT));
     let explicit = super::ids_param(v)?.is_some();
     let selected = s.sel.items.iter().any(|id| s.doc.page().is_some_and(|p| p.shape(id).is_some()));
-    // Like Visio, auto space with nothing selected spaces the whole page.
+    // Like Microsoft Visio, auto space with nothing selected spaces the whole page.
     let ids = if explicit || selected {
         shapes(s, v)?
     } else {

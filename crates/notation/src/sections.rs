@@ -1,5 +1,5 @@
-//! Pack sections: a large pack (UML) groups its lists by diagram kind, and another branch can add
-//! a whole section without touching the others. [`flatten`] runs first when a pack loads and
+//! Pack sections: a large pack (OMG UML) groups its lists by diagram kind, and another branch can
+//! add a whole section without touching the others. [`flatten`] runs first when a pack loads and
 //! appends each section's lists to the pack's own, so the rest of the crate only sees flat lists.
 
 use crate::schema::Pack;

@@ -1,6 +1,6 @@
-//! UML sequence diagrams as a substrate: a Sequence page is an ordinary page with an ordered list
-//! of events ([`Page::sequence`]), and after every command [`settle_doc`] redraws the page from
-//! that list.
+//! OMG UML sequence diagrams as a substrate: a Sequence page is an ordinary page with an ordered
+//! list of events ([`Page::sequence`]), and after every command [`settle_doc`] redraws the page
+//! from that list.
 //!
 //! - Lifelines are shapes of kind [`ShapeKind::Lifeline`] or [`ShapeKind::ActorLifeline`] with a
 //!   [`Part::Lifeline`]: the outline is the head, the kind's detail is the dashed stem.

@@ -121,3 +121,9 @@ dragging and after release.
 
 Commits; the clearance option and its command param (for docs/mcp.md); the quality checker; every
 re-blessed golden and retaken snapshot family; follow-ups (cases the checker still allows and why).
+
+## Trademarks
+
+Claude is a trademark of Anthropic, PBC (Opus is one of its Claude models). The names are used
+only to identify products and formats; VizCraft is not affiliated with or endorsed by their
+owners.

@@ -29,7 +29,7 @@ pub(crate) use read::{edge_look, vertex_look};
 /// Most warnings one import keeps, so hostile input cannot produce one per cell.
 const MAX_WARNINGS: usize = 200;
 
-/// Warnings with duplicates dropped and a cap, shared by the draw.io and CSV importers.
+/// Warnings with duplicates dropped and a cap, shared by the draw.io (JGraph) and CSV importers.
 #[derive(Default)]
 pub(crate) struct Warnings {
     list: Vec<String>,

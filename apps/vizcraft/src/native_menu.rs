@@ -1,5 +1,5 @@
-//! macOS: the native menu bar, built from the shared menu tree (`menus::menu_tree`) so it shows
-//! the same labels, shortcuts and enablement as the in-window bar. The app menu (About,
+//! Apple macOS: the native menu bar, built from the shared menu tree (`menus::menu_tree`) so it
+//! shows the same labels, shortcuts and enablement as the in-window bar. The app menu (About,
 //! Preferences, Services, Hide, Hide Others, Show All, Quit) and the Window menu are added here.
 //!
 //! Chosen items come back to the host as command ids with their params; the host runs them in
@@ -40,11 +40,11 @@ enum Handle {
     Check(CheckMenuItem),
 }
 
-/// Keys the native menu takes from egui. AppKit matches a key press against the menu bar's key
-/// equivalents before the window (and so winit, egui and its text fields) sees it, so every
+/// Keys the native menu takes from egui. Apple's AppKit matches a key press against the menu bar's
+/// key equivalents before the window (and so winit, egui and its text fields) sees it, so every
 /// accelerator we give muda is a key egui never gets. Cmd+N and Cmd+W are given away on purpose:
-/// they open and close windows, which is the host's job. Cmd+C, Cmd+V, Cmd+Z, Cmd+A and the
-/// rest stay with egui, so a focused text field keeps its own copy, paste, undo and select all.
+/// they open and close windows, which is the host's job. Cmd+C, Cmd+V, Cmd+Z, Cmd+A and the rest
+/// stay with egui, so a focused text field keeps its own copy, paste, undo and select all.
 /// Cmd+Q is on the app menu's own Quit item, so quitting goes through our unsaved-changes prompt.
 const MUDA_OWNED: &[&str] = &["CMD+N", "CMD+W"];
 

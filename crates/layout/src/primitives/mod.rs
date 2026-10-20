@@ -19,7 +19,7 @@
 //! | [`Primitive::HubSpoke`] | `radial` | one hub, spokes on a circle whose radius clears the hub and the spokes |
 //! | [`Primitive::Rings`] | `radial` | concentric rings of nodes around a centre |
 //! | [`Primitive::Voter`] | `radial` | N channel chains side by side feeding one voter node after them |
-//! | [`Primitive::Sequence`] | `crate::sequence` | UML sequence lifelines: heads in a row left to right, the edges in index order as calls down the page |
+//! | [`Primitive::Sequence`] | `crate::sequence` | OMG UML sequence lifelines: heads in a row left to right, the edges in index order as calls down the page |
 //! | [`Primitive::Er`] | `er` | entities layered parents first with orthogonal edges and end-marker gaps, satellites on a ring around their owner |
 
 mod band;

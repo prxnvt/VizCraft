@@ -221,3 +221,9 @@ It draws them with `title_block::shapes(&block, origin, sheet::WORLD_PER_MM, id)
   - "A public subnet needs an internet gateway" has no fitting check (it needs a "contains a type" check) and is deferred.
   - The level-0 rule ("one process per context page") has no fitting check either and is deferred.
   - Confirm that `TableQuery` compartments fill outside sheet pages.
+
+## Trademarks
+
+Claude is a trademark of Anthropic, PBC (Opus is one of its Claude models). The names are used
+only to identify products and formats; VizCraft is not affiliated with or endorsed by their
+owners.

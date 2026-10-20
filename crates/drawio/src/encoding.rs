@@ -1,6 +1,6 @@
-//! The compressed page encoding: the model XML is URI-component encoded, deflated without a
-//! zlib header, then base64 encoded. Also the percent coding on its own, which draw.io uses for
-//! that first step.
+//! The compressed page encoding: the model XML is URI-component encoded, deflated without a zlib
+//! header, then base64 encoded. Also the percent coding on its own, which JGraph's draw.io uses
+//! for that first step.
 
 use std::io::{Read, Write};
 

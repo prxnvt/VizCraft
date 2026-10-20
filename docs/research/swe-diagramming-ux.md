@@ -447,3 +447,14 @@ Mermaid; `cargo xtask ci` is green.
 | Code pane grammar when a page has several | The pack's first code form; Mermaid where the pack has one, since it renders in the most places |
 | Key as generated shapes or as an overlay | Generated shapes, so they export and print; `key.refresh` keeps them current and the drawing rules ignore them |
 | Sequence pages: own board or a page like any other | A page like any other with a sequence editing mode, so breadcrumbs, comments, pictures and export work unchanged |
+
+## Trademarks
+
+Microsoft, Visio and Azure are trademarks of the Microsoft group of companies; draw.io of JGraph
+Ltd; AWS of Amazon.com, Inc. or its affiliates; UML, BPMN, SysML and OMG of Object Management
+Group, Inc.; IBM of International Business Machines Corporation; Visual Paradigm of Visual
+Paradigm International Ltd.; GitHub of GitHub, Inc.; GitLab of GitLab Inc.; Notion of Notion Labs,
+Inc.; Obsidian of Dynalist Inc.; Terraform of HashiCorp, Inc.; Claude of Anthropic, PBC (Opus and
+Sonnet are Claude models). Eraser, IcePanel, Ilograph, ClickUp, tldraw and the other product and
+company names here are trademarks of their respective owners. The names are used only to identify
+products and formats; VizCraft is not affiliated with or endorsed by their owners.

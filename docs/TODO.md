@@ -1,11 +1,14 @@
 # Part 1: Microsoft Visio 2019 (Windows Desktop) Ribbon Reference
+
+Trademarks: Microsoft, Visio, Windows, Office, OneDrive, SharePoint, Excel, Word, Access, SQL Server, Bing, Translator, Visual Basic, ActiveX and Azure are trademarks of the Microsoft group of companies. AutoCAD is a trademark of Autodesk, Inc.; UML, BPMN, SysML and OMG of Object Management Group, Inc.; ArchiMate and TOGAF of The Open Group; AWS of Amazon.com, Inc. or its affiliates; Google Cloud of Google LLC; Cisco of Cisco Systems, Inc.; SAP of SAP SE; Oracle of Oracle Corporation; Zachman Framework of Zachman International, Inc.; ARIS, Camunda, Flowable and Toyota Production System of their respective owners. The names are used only to identify products and formats; VizCraft is not affiliated with or endorsed by their owners.
+
 ---
 
 ## 1. File Tab (Backstage View)
 Unlike standard tabs that display toolbars, clicking **File** opens the Backstage view for file management and global application settings:
 * **Info:** View document properties, protect the diagram, inspect the file for hidden metadata, or manage versions.
 * **New:** Create a new drawing from blank pages or built-in/online templates.
-* **Open:** Open existing Visio files from local storage, OneDrive, SharePoint, or recent file lists.
+* **Open:** Open existing Visio files from local storage, Microsoft OneDrive, SharePoint, or recent file lists.
 * **Save / Save As:** Save the active drawing locally or to the cloud in various formats (`.vsdx`, `.vsdm`, `.pdf`, `.svg`, etc.).
 * **Print:** Preview the diagram, select printers, and configure print scaling or page setup.
 * **Share:** Send the drawing via email, present online, or save to cloud storage for collaboration.
@@ -74,9 +77,9 @@ Contains buttons for adding new pages, external graphics, structural containers,
 
 ### Illustrations Group
 * **Pictures:** Insert an image file stored on your local computer or network.
-* **Online Pictures:** Search and insert royalty-free images via Bing.
+* **Online Pictures:** Search and insert royalty-free images via Microsoft Bing.
 * **Chart:** Embed a Microsoft Excel chart object directly onto the canvas.
-* **CAD Drawing:** Insert an AutoCAD file (`.dwg` or `.dxf`) onto the page for floor plans or engineering layouts.
+* **CAD Drawing:** Insert an Autodesk AutoCAD file (`.dwg` or `.dxf`) onto the page for floor plans or engineering layouts.
 
 ### Diagram Parts Group
 * **Container:** Insert a visual boundary box that logically groups and holds shapes together without locking them into a rigid group.
@@ -91,7 +94,7 @@ Contains buttons for adding new pages, external graphics, structural containers,
 * **Header & Footer:** Configure text, page numbers, and dates that appear at the margins of printed pages.
 * **Field:** Insert dynamic, auto-updating text variables into a shape (e.g., creation date, page name, shape data properties, or geometry measurements).
 * **Symbol:** Insert special characters or Unicode symbols into text.
-* **Object:** Embed or link an external OLE object (such as a Word document, PDF, or Excel worksheet).
+* **Object:** Embed or link an external OLE object (such as a Microsoft Word document, PDF, or Excel worksheet).
 * **ScreenTip:** Add custom hover text that appears when a user rests their mouse pointer over a shape.
 
 ## 4. Design Tab
@@ -120,7 +123,7 @@ Manages shape metadata (Shape Data), external database connections, and data-dri
 
 ### External Data Group [Pro]
 * **Quick Import:** Automatically link and import an Excel workbook into the drawing in one click.
-* **Custom Import:** Launch the *Data Selector Wizard* to connect shapes to Excel, Access, SharePoint lists, SQL Server, or OLEDB/ODBC sources.
+* **Custom Import:** Launch the *Data Selector Wizard* to connect shapes to Excel, Microsoft Access, SharePoint lists, Microsoft SQL Server, or OLEDB/ODBC sources.
 * **Refresh All:** Pull the latest data updates from linked external data sources into the diagram.
 
 ### Display Data Group
@@ -268,7 +271,7 @@ Standards that bridge operational business analysis and executable workflow auto
   * **IDEF0:** Functional modeling using **ICOM** boxes (Inputs, Controls, Outputs, Mechanisms) to decompose complex manufacturing or operational systems.
   * **IDEF1X:** Semantic data and relational database modeling.
   * **IDEF3:** Process description capture showing precedence and causality relationships.
-* **EPC (Event-driven Process Chain):** Developed within the **ARIS** (Architecture of Integrated Information Systems) framework and heavily utilized in **SAP** ERP environments. It alternates between passive **Events** (triggers/states) and active **Functions** (tasks) linked by logical `AND`, `OR`, and `XOR` connectors.
+* **EPC (Event-driven Process Chain):** Developed within the **ARIS** (Architecture of Integrated Information Systems) framework and heavily utilized in **SAP** (SAP SE) ERP environments. It alternates between passive **Events** (triggers/states) and active **Functions** (tasks) linked by logical `AND`, `OR`, and `XOR` connectors.
 * **VSM (Value Stream Mapping — ISO 22468):** Originating from the Toyota Production System and Lean manufacturing, VSM uses standardized symbols to track material and information flows across a supply chain or software delivery pipeline (DevOps), isolating cycle times, wait times, and operational bottlenecks.
 * **ISO 5807 (Standard Information Processing Flowcharts):** The classic international standard that formalized flowchart symbols—ovals for terminators, rectangles for processes, diamonds for decisions, parallelograms for I/O, and cylinders for magnetic disk/database storage.
 
@@ -278,7 +281,7 @@ Standards dedicated to database schemas, information lineage, and state transiti
 * **ERD (Entity-Relationship Diagrams):** Formulated by Peter Chen and refined into industry notations for relational database design:
   * **Crow's Foot (Information Engineering / IE Notation):** The most widely used industry standard for visualizing tables, primary/foreign keys, and cardinality (`0..1`, `1..1`, `0..*`, `1..*`) via pronged line endings.
   * **Chen Notation:** Uses rectangles for entities, diamonds for relationships, and ovals for attributes; primarily used in conceptual database design.
-  * **Barker's Notation:** Popularized by Oracle CASE tools, using soft-cornered boxes, split solid/dashed relationship lines, and hash/circle symbols for mandatory vs. optional attributes.
+  * **Barker's Notation:** Popularized by Oracle Corporation's CASE tools, using soft-cornered boxes, split solid/dashed relationship lines, and hash/circle symbols for mandatory vs. optional attributes.
 * **DFD (Data Flow Diagrams — Yourdon/DeMarco & Gane/Sarson):** Models how data moves through an information system without showing control flow or timing. Built from four elements: **External Entities**, **Processes**, **Data Stores**, and **Data Flows**.
 * **Petri Nets (ISO/IEC 15909):** A mathematical and graphical modeling standard for distributed, concurrent, and asynchronous systems. It uses bipartite directed graphs consisting of **Places** (circles representing states/conditions), **Transitions** (bars representing events), and **Tokens** that fire across arcs.
 * **SDL (Specification and Description Language — ITU-T Z.100):** Standardized by the International Telecommunication Union for unambiguous specification of reactive, distributed, and real-time telecommunication protocols and state machines.
@@ -286,8 +289,8 @@ Standards dedicated to database schemas, information lineage, and state transiti
 ## 5. Cloud, Network & Industrial Engineering Standards
 Domain-specific visual standards for physical networks, cloud topologies, and industrial control systems.
 
-* **Cloud Provider Architecture Icons (AWS, Azure, Google Cloud, CNCF):** De facto industry standards governing cloud infrastructure diagrams. They use vendor-standardized icon sets inside hierarchical bounding boxes representing **VPCs**, **Regions**, **Availability Zones**, **Subnets**, **Security Groups**, and **Kubernetes Clusters**.
-* **Network Topology Diagrams (Cisco / TIA-606):** Standardized physical (Layer 1/2) and logical (Layer 3) network diagramming conventions using recognized iconography for routers, L2/L3 switches, firewalls, VLAN trunks, DMZs, and BGP/OSPF routing domains.
+* **Cloud Provider Architecture Icons (Amazon Web Services, Microsoft Azure, Google Cloud, CNCF):** De facto industry standards governing cloud infrastructure diagrams. They use vendor-standardized icon sets inside hierarchical bounding boxes representing **VPCs**, **Regions**, **Availability Zones**, **Subnets**, **Security Groups**, and **Kubernetes Clusters**.
+* **Network Topology Diagrams (Cisco Systems / TIA-606):** Standardized physical (Layer 1/2) and logical (Layer 3) network diagramming conventions using recognized iconography for routers, L2/L3 switches, firewalls, VLAN trunks, DMZs, and BGP/OSPF routing domains.
 * **P&ID (Piping and Instrumentation Diagrams — ISA-5.1 / ISO 14617):** The universal industrial engineering standard for process industries (chemical, oil & gas, power generation), depicting physical piping, valves, vessels, sensors, and automated control loops (PLC/SCADA interfaces).
 * **IEC 61131-3 (PLC Programming & Control Diagrams):** The international standard for industrial automation and programmable logic controllers, defining three graphical modeling languages: **LD (Ladder Diagram)**, **FBD (Function Block Diagram)**, and **SFC (Sequential Function Chart)** (derived from French **GRAFCET** / IEC 60848).
 * **SADT (Structured Analysis and Design Technique) & Ward-Mellor Notation:** Real-time extensions to structured analysis that add control flows, state-transition triggers, and continuous data flows for hardware/software co-design.

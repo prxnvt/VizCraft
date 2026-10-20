@@ -1,6 +1,6 @@
-//! The Cascade 3 diagram tools: open draw.io XML, Mermaid or CSV, list, read and replace pages,
-//! search the stencil library, and a reference for agents that write diagrams; plus `describe`,
-//! the cheap structure read (`doc.describe`).
+//! The Cascade 3 diagram tools: open draw.io (JGraph) XML, Mermaid or CSV, list, read and replace
+//! pages, search the stencil library, and a reference for agents that write diagrams; plus
+//! `describe`, the cheap structure read (`doc.describe`).
 //!
 //! Each tool except `get_reference` is one engine command sent through `engine.execute`, so undo,
 //! the control channel and the CLI see exactly what an agent did. The tools only check and

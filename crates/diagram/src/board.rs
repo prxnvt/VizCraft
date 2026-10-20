@@ -1,9 +1,9 @@
 //! The board a page is drawn on: an infinite canvas (the default) or a fixed sheet of paper.
 //!
 //! Everything that needs "the page rectangle" (the canvas, zoom to fit, rulers, exports, print,
-//! the draw.io writer) asks [`Page::frame`] instead of reading `width` and `height`, so the two
-//! kinds of board behave the same way everywhere. `width` and `height` stay on the page as the
-//! sheet size a fixed board uses and a switch back to Fixed restores.
+//! the writer for JGraph's draw.io) asks [`Page::frame`] instead of reading `width` and `height`,
+//! so the two kinds of board behave the same way everywhere. `width` and `height` stay on the page
+//! as the sheet size a fixed board uses and a switch back to Fixed restores.
 
 use crate::connector_geometry;
 use crate::geom::Rect;

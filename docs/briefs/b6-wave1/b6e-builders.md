@@ -153,3 +153,10 @@ From `b6e-substrate` this branch reads `View.module` and `Shape.orientation`. Un
 - **Hostile input:** a builder whose output exceeds the caps is truncated with a warning, never refused, so a hostile document still opens.
 - **Unverified rules:** the forbidden-word list and the "drawn from" prefix are new rules; confirm the wording with the user.
 - **ISO 1219 module:** its module value is unverified (`process-fluid.md` line 62), so 2.5 mm is assumed.
+
+## Trademarks
+
+Claude is a trademark of Anthropic, PBC (Opus is one of its Claude models); Microsoft and Visio of
+the Microsoft group of companies; Autodesk and AutoCAD of Autodesk, Inc.; Adobe of Adobe Inc.;
+Avid of Avid Technology, Inc. The names are used only to identify products and formats; VizCraft
+is not affiliated with or endorsed by their owners.

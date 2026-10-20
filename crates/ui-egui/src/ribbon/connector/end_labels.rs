@@ -6,7 +6,7 @@ use crate::CraftApp;
 use crate::ribbon::Control::*;
 use crate::ribbon::{Group, selected_connector};
 
-/// The labels the lists offer: none, then Chen cardinalities, then UML multiplicities.
+/// The labels the lists offer: none, then Chen cardinalities, then OMG UML multiplicities.
 const COMMON: [&str; 8] = ["", "1", "N", "M", "0..1", "1..*", "0..*", "*"];
 
 fn items(_: &CraftApp) -> Vec<String> {

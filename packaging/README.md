@@ -2,7 +2,7 @@
 
 This folder holds what turns the built binaries into something people install: the icon
 script, the macOS bundle and its package script, and the Linux desktop entry. Windows has no
-script yet; see [Windows](#windows). The macOS parts are adapted from WordCraft's.
+script yet; see [Windows](#windows).
 
 | File | Job |
 |---|---|
@@ -11,7 +11,7 @@ script yet; see [Windows](#windows). The macOS parts are adapted from WordCraft'
 | `macos/Info.plist.in` | The bundle's `Info.plist` with `@VERSION@`, `@SHORT_VERSION@` and `@BUILD_SHA@` placeholders for `package.sh` to fill. Declares the `.vizcraft` document type (`LSHandlerRank` Owner, with its exported UTI). |
 | `macos/package.sh` | Builds the release binaries, assembles `VizCraft.app`, signs it (ad hoc by default), optionally notarises, and writes a DMG plus a zip of the CLI. `--arch universal|aarch64|x86_64`, `--skip-build`, `--no-dmg`. |
 | `macos/entitlements.plist` | Hardened-runtime entitlements; empty on purpose (pure Rust, no JIT, not sandboxed). |
-| `linux/ai.storyteller.vizcraft.desktop` | Freedesktop launcher entry; see [Linux](#linux). |
+| `linux/io.github.prxnvt.vizcraft.desktop` | Freedesktop launcher entry; see [Linux](#linux). |
 
 The `ico` xtask (`cargo xtask ico <out.ico> <in.png>...`, `xtask/src/ico.rs`) packs square PNGs of
 at most 256 px into a Windows `.ico` with PNG-compressed entries; `icons.sh` calls it.
@@ -36,7 +36,7 @@ VizCraft.app/
 
 The executable and the icon carry the display name because `CFBundleExecutable` and
 `CFBundleIconFile` in `Info.plist.in` say `VizCraft`; the build artefacts keep their lowercase
-crate names until they are copied in. The bundle id is `ai.storyteller.vizcraft`; the
+crate names until they are copied in. The bundle id is `io.github.prxnvt.vizcraft`; the
 preferences folder `~/Library/Application Support/VizCraft/` is derived from the display name
 by the app, not from the bundle.
 
@@ -121,9 +121,9 @@ place and follow the freedesktop layout, so a package only has to copy them:
 | Source | Installed as |
 |---|---|
 | `target/release/vizcraft`, `target/release/vizcraft-cli` | `/usr/bin/vizcraft`, `/usr/bin/vizcraft-cli` |
-| `packaging/linux/ai.storyteller.vizcraft.desktop` | `/usr/share/applications/ai.storyteller.vizcraft.desktop` |
-| `assets/app-icon/hicolor/<size>/apps/ai.storyteller.vizcraft.png` (16 to 512) | `/usr/share/icons/hicolor/<size>/apps/` |
-| `assets/app-icon/hicolor/scalable/apps/ai.storyteller.vizcraft.svg` | `/usr/share/icons/hicolor/scalable/apps/` |
+| `packaging/linux/io.github.prxnvt.vizcraft.desktop` | `/usr/share/applications/io.github.prxnvt.vizcraft.desktop` |
+| `assets/app-icon/hicolor/<size>/apps/io.github.prxnvt.vizcraft.png` (16 to 512) | `/usr/share/icons/hicolor/<size>/apps/` |
+| `assets/app-icon/hicolor/scalable/apps/io.github.prxnvt.vizcraft.svg` | `/usr/share/icons/hicolor/scalable/apps/` |
 
 The desktop entry's `Icon=` and `StartupWMClass=` are the bundle id, which is also the hicolor
 file name; the app must set its window class to the same id for the taskbar to pick the icon up.
@@ -131,8 +131,8 @@ file name; the app must set its window class to the same id for the taskbar to p
 document and get diagram values with the formats (plus a `<id>.mime.xml` under
 `/usr/share/mime/packages/` for `.vizcraft`, and an AppStream `<id>.metainfo.xml` for software
 centres). After installing, run `update-desktop-database` and
-`gtk-update-icon-cache /usr/share/icons/hicolor`. WordCraft's `packaging/linux/` (nfpm.yaml,
-postinst.sh, flatpak manifests) is the reference when the script is written.
+`gtk-update-icon-cache /usr/share/icons/hicolor`. The script, when written, adds an nfpm.yaml,
+a postinst.sh and Flatpak manifests here.
 
 ## Windows
 
@@ -146,5 +146,5 @@ There is no Windows package script yet. What exists:
   Windows runner produces the two executables; a zip of them with the licences is the minimum
   release artefact.
 
-An installer (WiX `.wxs` + `signtool`, as in WordCraft's `packaging/windows/`) registers the
+An installer (WiX `.wxs` + `signtool`, under `packaging/windows/`) registers the
 document extensions and the Start menu entry; it is not written yet.

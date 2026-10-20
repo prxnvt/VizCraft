@@ -150,3 +150,9 @@ Done when there are:
 - **Duplicated Tarjan.** It now exists in both notation and analysis. Unifying them later needs notation to depend on analysis, which is allowed because analysis does not depend on notation.
 - **`analyze.result` and `analyze.select` are additions** beyond the requested list. Agents and MCP need them because `ui.inspect` is UI-only.
 - **Session state is lost on Undo.** `Session.analysis` is outside the document, so Undo neither restores nor clears it. The `rev` stamp is the mitigation.
+
+## Trademarks
+
+Claude is a trademark of Anthropic, PBC (Opus is one of its Claude models). The names are used
+only to identify products and formats; VizCraft is not affiliated with or endorsed by their
+owners.

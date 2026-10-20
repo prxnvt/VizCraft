@@ -52,9 +52,9 @@ pub fn import(text: &str) -> Result<Imported, FormatError> {
     Ok(Imported { pages: vec![page], warnings: warnings.finish() })
 }
 
-/// Write page `page` of `doc` as Mermaid text, picked by the page's viewpoint (or, with none,
-/// the kinds of element it draws): UML class and state machine pages, and ER pages. Returns the text and the
-/// warnings about what the text cannot hold.
+/// Write page `page` of `doc` as Mermaid text, picked by the page's viewpoint (or, with none, the
+/// kinds of element it draws): OMG UML class and state machine pages, and ER pages. Returns the
+/// text and the warnings about what the text cannot hold.
 pub fn export(doc: &vizcraft_diagram::Document, page: usize) -> Result<(String, Vec<String>), FormatError> {
     if let Some(p) = doc.pages.get(page).filter(|p| p.sequence.is_some()) {
         return Ok(sequence_write::write(p));

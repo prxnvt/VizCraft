@@ -132,7 +132,7 @@ pub fn find_next(app: &mut CraftApp, s: &mut State) {
 }
 
 /// Replace: the current hit's matches, then on to the next hit. With no current hit it finds
-/// first, as Visio does.
+/// first, as Microsoft Visio does.
 pub fn replace(app: &mut CraftApp, s: &mut State) {
     let current = if s.searched.as_ref() == Some(&s.params()) { s.current.and_then(|i| s.hits.get(i).cloned().map(|h| (i, h))) } else { None };
     let Some((i, h)) = current else {

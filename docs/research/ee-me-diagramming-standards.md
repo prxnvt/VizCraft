@@ -436,3 +436,13 @@ is green.
 | Glyph provenance | Mandatory per glyph in the pack (a `source` string naming the standard clause or "own design"), checked by `cargo xtask assets` like image files, so the clean-room rule is auditable |
 | Licence posture for reference material | Draw from written descriptions and public domain US government documents (MIL-STD-806B, MIL-STD-100G, NASA GSFC X-673-64-1F, FIPS 183); use Wikimedia Commons, QElectroTech and KiCad files only to check geometry, never as artwork, since CC BY-SA would make a pack share-alike |
 | Ladder and function block programming (IEC 61131-3) in this block or Block 7 | Block 7, on this block's rails and rung substrate; this block draws device ladders, Block 7 draws programs and generates Structured Text |
+
+## Trademarks
+
+Microsoft and Visio are trademarks of the Microsoft group of companies; Autodesk, AutoCAD, AutoCAD
+Electrical and Plant 3D of Autodesk, Inc.; SOLIDWORKS of Dassault Systemes; EPLAN of EPLAN GmbH &
+Co. KG; E3.series of Zuken; AVEVA of AVEVA Group Limited; Smart P&ID of Hexagon AB; Automation
+Studio of Famic Technologies Inc.; FluidSIM of Festo SE & Co. KG; ConceptDraw of CS Odessa; SysML
+and OMG of Object Management Group, Inc.; Wikimedia of the Wikimedia Foundation, Inc.; Claude of
+Anthropic, PBC (Opus and Sonnet are Claude models). The names are used only to identify products
+and formats; VizCraft is not affiliated with or endorsed by their owners.

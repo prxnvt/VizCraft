@@ -3,9 +3,9 @@
 //!
 //! | Platform | What happens |
 //! |---|---|
-//! | macOS | `lp` sends the PDF to the default printer (CUPS). With no default printer, or when `lp` fails, the PDF opens in the default viewer (`open`, usually Preview), where it can be printed with the system dialog. |
+//! | Apple macOS | `lp` sends the PDF to the default printer (CUPS). With no default printer, or when `lp` fails, the PDF opens in the default viewer (`open`, usually Preview), where it can be printed with the system dialog. |
 //! | Linux and the BSDs | `lp` to the default printer; failing that, `xdg-open` opens the PDF in the default viewer. |
-//! | Windows | `explorer` opens the PDF in the default viewer, which prints it with its own dialog. |
+//! | Microsoft Windows | `explorer` opens the PDF in the default viewer, which prints it with its own dialog. |
 
 use std::path::Path;
 use std::process::Command;

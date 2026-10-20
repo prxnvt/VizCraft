@@ -34,8 +34,8 @@ fn main() {
     res.set_icon("../../assets/app-icon/vizcraft.ico")
         .set("ProductName", "VizCraft")
         .set("FileDescription", "VizCraft desktop app")
-        .set("CompanyName", "VizCraft contributors")
-        .set("LegalCopyright", "Copyright (c) 2026 VizCraft contributors. MIT OR Apache-2.0.")
+        .set("CompanyName", "prxnvt")
+        .set("LegalCopyright", "Copyright (c) 2026 prxnvt. MIT OR Apache-2.0.")
         .set("OriginalFilename", "vizcraft.exe")
         .set("InternalName", "vizcraft");
     if let Err(e) = res.compile() {

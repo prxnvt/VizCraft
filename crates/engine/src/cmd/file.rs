@@ -332,7 +332,7 @@ pub(crate) fn place(doc: &mut Document, imported: Imported, opts: &ImportOpts) -
     let Some(target) = doc.pages.get_mut(index) else { return Err(EngineError::Failed("the document has no page".into())) };
     let incremental = !opts.replace && opts.layout.is_some() && !target.shapes.is_empty();
     if opts.replace {
-        // A draw.io page brings its own size; other sources leave the page as it was.
+        // A page from JGraph's draw.io brings its own size; other sources leave the page as it was.
         if (first.width, first.height) != (Page::DEFAULT_WIDTH, Page::DEFAULT_HEIGHT) {
             target.width = first.width;
             target.height = first.height;

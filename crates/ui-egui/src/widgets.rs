@@ -138,7 +138,8 @@ pub fn shortcut_of(app: &CraftApp, id: &str) -> &'static str {
     sc.split(" / ").next().unwrap_or("")
 }
 
-/// Shortcut text for a command as the platform shows it (`Cmd S` glyphs on macOS, `Ctrl+S` elsewhere).
+/// Shortcut text for a command as the platform shows it (`Cmd S` glyphs on Apple macOS, `Ctrl+S`
+/// elsewhere).
 pub fn shortcut_text(app: &CraftApp, id: &str) -> String {
     let sc = shortcut_of(app, id);
     if sc.is_empty() {

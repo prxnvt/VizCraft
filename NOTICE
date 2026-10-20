@@ -1,7 +1,15 @@
 VizCraft
-Copyright (c) 2026 VizCraft contributors.
+Copyright (c) 2026 prxnvt.
 Licensed under the MIT License or the Apache License, Version 2.0, at your option
 (LICENSE-MIT, LICENSE-APACHE).
+
+Upstream work
+
+Portions of VizCraft are derived from WordCraft (https://github.com/storytold/wordcraft),
+Copyright (c) 2026 ArtCraft Team and the WordCraft contributors, licensed under the MIT License
+or the Apache License, Version 2.0. VizCraft is an independent project by prxnvt and is not made,
+endorsed or supported by the ArtCraft Team. The ArtCraft name, wordmark and logos are trademarks
+of the ArtCraft Team; none of them are included.
 
 Third-party material
 
@@ -11,7 +19,7 @@ list (author, source, licence) is in ATTRIBUTION.md.
 - Inter (assets/fonts/Inter-*.ttf): SIL Open Font License 1.1. See assets/fonts/OFL-Inter.txt.
 - JetBrains Mono (assets/fonts/JetBrainsMono-*.ttf): SIL Open Font License 1.1.
   See assets/fonts/OFL-JetBrainsMono.txt.
-- The app icon (assets/app-icon/) is original work by VizCraft contributors, MIT OR Apache-2.0.
+- The app icon (assets/app-icon/) is original work by prxnvt, MIT OR Apache-2.0.
 - All UI icons are drawn in code (crates/ui-egui/src/icons.rs) and are original work,
   MIT OR Apache-2.0.
 
@@ -19,3 +27,13 @@ Rust dependencies (egui, eframe, wgpu, serde, rfd, muda, objc2 and others) are p
 licensed (MIT, Apache-2.0, BSD, ISC, Zlib) and fetched through crates.io.
 
 No Microsoft, Adobe, Avid or Autodesk icons, images, templates or artwork are included.
+
+Trademarks
+
+The documentation, comments and interface name other companies' products, platforms and formats,
+for example Microsoft, Visio, Excel, Office and Windows (the Microsoft group of companies); Apple,
+macOS and Finder (Apple Inc.); draw.io (JGraph Ltd); AutoCAD (Autodesk, Inc.); UML, BPMN and SysML
+(Object Management Group, Inc.); Linux (Linus Torvalds); JetBrains (JetBrains s.r.o.). These and
+the others listed in the Trademarks section of README.md are trademarks or registered trademarks of
+their respective owners. They are used only to identify products and formats; VizCraft is not
+affiliated with or endorsed by their owners.

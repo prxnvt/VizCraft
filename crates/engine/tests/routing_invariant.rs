@@ -1,7 +1,8 @@
 //! The routing invariant, end to end: no connector's drawn line enters a shape it must avoid,
 //! except a connector the router reports it could not route (its fallback). Checked over seeded
-//! random obstacle fields, the sample document, the Mermaid, CSV and draw.io imports, and every
-//! `layout.full` algorithm, with the page policy at its default (every connector avoids shapes).
+//! random obstacle fields, the sample document, the Mermaid, CSV and draw.io (JGraph) imports, and
+//! every `layout.full` algorithm, with the page policy at its default (every connector avoids
+//! shapes).
 
 use serde_json::json;
 use vizcraft_diagram::autoroute::{crossings, head_trim, reroute, unroutable};

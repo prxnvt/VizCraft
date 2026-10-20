@@ -1,7 +1,7 @@
 //! Canvas edits of bands that a sync would overwrite. A compartment whose rows come from an
-//! element's property (`rowsFrom`: UML attributes, operations, literals) or from the elements the
-//! element owns (an ER table's columns) is redrawn from the model on every change, so editing the
-//! drawn text with `compartment.set` is lost. These edits write the model instead:
+//! element's property (`rowsFrom`: OMG UML attributes, operations, literals) or from the elements
+//! the element owns (an ER table's columns) is redrawn from the model on every change, so editing
+//! the drawn text with `compartment.set` is lost. These edits write the model instead:
 //!
 //! - a `rowsFrom` band edits the property's raw text (`element.setProperty`), so what a variant
 //!   hides (visibility marks) is not lost;

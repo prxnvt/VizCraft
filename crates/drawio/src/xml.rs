@@ -1,8 +1,9 @@
 //! A small, bounded XML element tree over quick-xml, plus the escaping the writers need.
 //!
-//! The codec works on a tree rather than on events because draw.io's structure is shallow and
-//! the model reader needs to look ahead (a `UserObject` holds its `mxCell`). Every element keeps
-//! its byte span in the source so unchanged pages and inline models can be copied verbatim.
+//! The codec works on a tree rather than on events because the structure of JGraph's draw.io files
+//! is shallow and the model reader needs to look ahead (a `UserObject` holds its `mxCell`). Every
+//! element keeps its byte span in the source so unchanged pages and inline models can be copied
+//! verbatim.
 
 use quick_xml::Reader;
 use quick_xml::events::{BytesStart, Event};

@@ -1,10 +1,10 @@
-//! Finder "Open Documents" support for the macOS app.
+//! Apple Finder "Open Documents" support for the macOS app.
 //!
 //! Finder (double click, Open With, a file dropped on the Dock icon) asks an app to open files by
 //! sending it an `odoc` Apple Event, not by passing paths on the command line. winit's application
-//! delegate doesn't answer that event, so AppKit's default handler tells the user the app cannot
-//! open files of that type. This crate installs an `odoc` handler that queues the paths; the app
-//! drains the queue every frame ([`take_pending`]) and opens them.
+//! delegate doesn't answer that event, so Apple AppKit's default handler tells the user the app
+//! cannot open files of that type. This crate installs an `odoc` handler that queues the paths;
+//! the app drains the queue every frame ([`take_pending`]) and opens them.
 //!
 //! AppKit installs its default Apple Event handlers inside `-[NSApplication finishLaunching]`, and
 //! the `odoc` event for the files that launched the app arrives right after

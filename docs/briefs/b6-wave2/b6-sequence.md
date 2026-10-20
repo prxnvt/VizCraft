@@ -232,3 +232,9 @@ The logic lives in `sequence::check_order` and `sequence::check_replies`; new `c
 - **Lossy Mermaid round trips.** `ref`, `neg`/`strict`/`seq`, `lost`/`found` and note placement. Text is identical only for the canonical form.
 - **Rules on free drawing.** Rules run only when the `uml` pack is in use. A plain Mermaid import without merge is free drawing, so it is unchecked until it is bound.
 - **Clause references.** Rule `reference` strings must cite UML 2.5.1 sections the agent has checked, not invented clause numbers.
+
+## Trademarks
+
+Claude is a trademark of Anthropic, PBC (Opus is one of its Claude models); UML of Object
+Management Group, Inc.; GitHub of GitHub, Inc. The names are used only to identify products and
+formats; VizCraft is not affiliated with or endorsed by their owners.

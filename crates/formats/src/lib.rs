@@ -8,7 +8,7 @@
 //! - [`pdf`]: export of pages as vector PDF (krilla and krilla-svg, Inter subsets embedded) and
 //!   the print layout (paper, fit, tiles).
 //! - [`drawio`]: `.drawio` files read and written through `vizcraft-drawio`.
-//! - [`csv`]: draw.io-style CSV import, placed with the auto-layout.
+//! - [`csv`]: CSV import in JGraph's draw.io style, placed with the auto-layout.
 //! - [`mermaid`]: Mermaid import through `vizcraft-mermaid`, placed with the auto-layout.
 //! - [`table`]: CSV and XLSX tables for data links, with inferred column types.
 //!

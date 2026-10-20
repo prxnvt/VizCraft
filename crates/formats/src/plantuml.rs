@@ -1,4 +1,4 @@
-//! PlantUML text from a UML page (writing only), from the public PlantUML language reference.
+//! PlantUML text from an OMG UML page (writing only), from the public PlantUML language reference.
 //!
 //! The page's viewpoint picks the diagram: class, component, package, deployment and use case
 //! pages are written as declarations (with nested blocks for owners) and links; activity pages as

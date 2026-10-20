@@ -177,3 +177,10 @@ Several agents work in this repository at once, in separate worktrees.
 
 [ROADMAP.md](ROADMAP.md) tracks the cascades and what has landed. Update it when a cascade task
 lands.
+
+## Trademarks
+
+Microsoft, Visio and Office are trademarks of the Microsoft group of companies; draw.io is a
+trademark of JGraph Ltd; Adobe of Adobe Inc.; Avid of Avid Technology, Inc.; Autodesk of
+Autodesk, Inc.; UML and BPMN of Object Management Group, Inc. The names are used only to identify
+products and formats; VizCraft is not affiliated with or endorsed by their owners.

@@ -2,7 +2,7 @@
 
 VizCraft's [Model Context Protocol](https://modelcontextprotocol.io) server lets agents create,
 edit and look at diagrams. It lands in two steps: a minimal server with the generic command tools
-in Cascade 1 (**built**), and the diagram tools that match draw.io's MCP server feature for
+in Cascade 1 (**built**), and the diagram tools that match JGraph's draw.io MCP server feature for
 feature in Cascade 3 (**built**, with the Headless backend, offscreen page screenshots and the
 page, shape and stencil resources; [ROADMAP.md](../ROADMAP.md)). Cascade 4A adds the
 notation schema resources and the issues reported with each command call (**built**). Each
@@ -278,3 +278,8 @@ printf '%s\n' \
   crate root carries the same `deny` list as every production crate ([AGENTS.md](../AGENTS.md)).
 - A malformed line gets a parse error and the server keeps reading; it never exits because of
   what a client sent.
+
+## Trademarks
+
+draw.io is a trademark of JGraph Ltd. The name is used only to identify the product and its
+format; VizCraft is not affiliated with or endorsed by JGraph Ltd.

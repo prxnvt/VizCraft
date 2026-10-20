@@ -1,4 +1,4 @@
-//! draw.io style strings: `ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;`.
+//! JGraph's draw.io style strings: `ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;`.
 //!
 //! A style is a semicolon-separated list. An item with `=` is a key/value pair; an item without
 //! one is a bare name, which names a registered style (`ellipse`, `text`, `swimlane`) applied

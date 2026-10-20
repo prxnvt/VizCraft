@@ -131,7 +131,7 @@ pub enum Shape {
     Note,
     /// An ER entity box with attribute rows.
     Entity,
-    /// A UML class box with member rows.
+    /// An OMG UML class box with member rows.
     Class,
     /// A sequence participant box.
     Participant,

@@ -1,8 +1,8 @@
-//! The Inspector's Members section: the attribute, operation and literal rows of a UML element,
-//! one list per member compartment. Each row has a visibility choice, a text field holding the row
-//! without its visibility, and up, down and remove buttons; an Add field closes the list. Every
-//! change is one `uml.*Member` command, so one undo step. A multiplicity that does not read is
-//! shown in red under its row; it is still stored.
+//! The Inspector's Members section: the attribute, operation and literal rows of an OMG UML
+//! element, one list per member compartment. Each row has a visibility choice, a text field
+//! holding the row without its visibility, and up, down and remove buttons; an Add field closes
+//! the list. Every change is one `uml.*Member` command, so one undo step. A multiplicity that does
+//! not read is shown in red under its row; it is still stored.
 
 use egui::{RichText, Ui};
 use serde_json::{Value, json};

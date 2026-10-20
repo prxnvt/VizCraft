@@ -1,4 +1,4 @@
-//! Custom masters: the document's own stencil (Visio's Document Stencil).
+//! Custom masters: the document's own stencil (Microsoft Visio's Document Stencil).
 //!
 //! A [`CustomMaster`] is a snapshot of some shapes, the connectors among them with their glue, and
 //! the model items they draw, moved so its bounds start at `(0, 0)`. The engine's `master.*`

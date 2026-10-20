@@ -16,7 +16,7 @@
   <key>CFBundleExecutable</key>
   <string>VizCraft</string>
   <key>CFBundleIdentifier</key>
-  <string>ai.storyteller.vizcraft</string>
+  <string>io.github.prxnvt.vizcraft</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundlePackageType</key>
@@ -46,7 +46,7 @@
   <key>NSRequiresAquaSystemAppearance</key>
   <false/>
   <key>NSHumanReadableCopyright</key>
-  <string>Copyright (c) 2026 VizCraft contributors. MIT OR Apache-2.0.</string>
+  <string>Copyright (c) 2026 prxnvt. MIT OR Apache-2.0.</string>
 
   <!-- Documents the app opens from Finder (double click, Open With, Dock drops): the native
        `.vizcraft` file, declared under UTExportedTypeDeclarations. `.drawio` joins as an
@@ -66,7 +66,7 @@
       </array>
       <key>LSItemContentTypes</key>
       <array>
-        <string>ai.storyteller.vizcraft.document</string>
+        <string>io.github.prxnvt.vizcraft.document</string>
       </array>
     </dict>
   </array>
@@ -74,7 +74,7 @@
   <array>
     <dict>
       <key>UTTypeIdentifier</key>
-      <string>ai.storyteller.vizcraft.document</string>
+      <string>io.github.prxnvt.vizcraft.document</string>
       <key>UTTypeDescription</key>
       <string>VizCraft Document</string>
       <key>UTTypeConformsTo</key>

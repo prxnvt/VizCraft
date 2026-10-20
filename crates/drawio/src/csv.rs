@@ -1,4 +1,4 @@
-//! draw.io-style CSV import.
+//! CSV import in the style of JGraph's draw.io.
 //!
 //! The text starts with a header of `#` lines. `## text` is a comment; `# key: value` is a
 //! directive (label template, style, which column identifies a row, which columns link rows,

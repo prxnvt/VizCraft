@@ -1,5 +1,5 @@
-//! UML sequence diagram layout: lifeline columns left to right, one row per event down the page,
-//! activation bars derived from calls and replies, and combined fragments that span the
+//! OMG UML sequence diagram layout: lifeline columns left to right, one row per event down the
+//! page, activation bars derived from calls and replies, and combined fragments that span the
 //! lifelines they cover.
 //!
 //! The input is plain geometry and an ordered event list (lifelines by index); the output is

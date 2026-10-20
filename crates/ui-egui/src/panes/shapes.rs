@@ -352,8 +352,8 @@ fn shapes(app: &mut CraftApp, ui: &mut Ui) {
             ui.label(egui::RichText::new("Results").font(semibold(12.0)).color(t.text));
             ui.add_space(2.0);
             ui.spacing_mut().item_spacing = vec2(0.0, 1.0);
-            // Two hits with the same label (Flowchart's and UML's Decision) are told apart by the
-            // pack named, dimmed, at the right of the row.
+            // Two hits with the same label (Flowchart's and OMG UML's Decision) are told apart by
+            // the pack named, dimmed, at the right of the row.
             let shared: Vec<bool> = hits.iter().map(|a| hits.iter().filter(|b| b.label == a.label).count() > 1).collect();
             for (item, shared) in hits.into_iter().zip(shared) {
                 item_row_in(app, ui, item, shared);

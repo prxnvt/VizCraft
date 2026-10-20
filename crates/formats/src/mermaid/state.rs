@@ -1,4 +1,4 @@
-//! Mermaid state diagrams as UML state machines: read into `uml.*` shapes with typed data, and
+//! Mermaid state diagrams as OMG UML state machines: read into `uml.*` shapes with typed data, and
 //! written back.
 //!
 //! Reading lays the diagram out like any Mermaid graph, then draws each state with the UML master

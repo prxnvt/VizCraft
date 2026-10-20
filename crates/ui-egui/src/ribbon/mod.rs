@@ -1,9 +1,9 @@
-//! The ribbon: a data-driven, Office-style tab strip and ribbon body.
+//! The ribbon: a data-driven, Microsoft Office-style tab strip and ribbon body.
 //!
 //! The app declares its ribbon as data ([`Tab`], [`Group`], [`Control`]) and [`show`] renders it;
-//! no egui code is needed for the common controls. Every control runs a command by id; its
-//! label, shortcut, location and enablement come from the registry (or `UI_COMMANDS`), so the
-//! ribbon never has behaviour of its own. [`tabs`] returns the tabs in Visio's order: Home,
+//! no egui code is needed for the common controls. Every control runs a command by id; its label,
+//! shortcut, location and enablement come from the registry (or `UI_COMMANDS`), so the ribbon
+//! never has behaviour of its own. [`tabs`] returns the tabs in Microsoft Visio's order: Home,
 //! Insert, Design, Data, Process, Review, View, Developer, Help, then the contextual Connector,
 //! Container and Callout tabs.
 //!

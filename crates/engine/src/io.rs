@@ -3,7 +3,7 @@
 //!
 //! Native files are `.vizcraft`. Names ending in `.json` (the Cascade 0 `.craft.json` files, or
 //! a bare document) are read and written as native files too, so old paths keep working. Names
-//! ending in `.drawio` or `.drawio.xml` are read and written as draw.io files, every page.
+//! ending in `.drawio` or `.drawio.xml` are read and written as JGraph's draw.io files, every page.
 //!
 //! Imports (`file.import`, `page.set`) go through [`import_bytes`]: draw.io XML, Mermaid text or
 //! draw.io-style CSV, picked by [`import_format`].

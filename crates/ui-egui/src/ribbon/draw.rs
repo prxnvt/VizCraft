@@ -102,7 +102,8 @@ pub fn show_tabs(app: &mut CraftApp, ui: &mut Ui, tabs: &[Tab]) {
                 });
         },
     );
-    // Office closes the popup once a command has run, on a click elsewhere, and on Escape.
+    // Microsoft Office closes the popup once a command has run, on a click elsewhere, and on
+    // Escape.
     let ran = signature(app) != before;
     let menu_open = egui::Popup::is_any_open(&ctx);
     let clicked_outside = ctx

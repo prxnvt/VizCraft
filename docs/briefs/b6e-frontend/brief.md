@@ -123,3 +123,9 @@ command, say which window to run it in (Terminal, from which folder), and say wh
 see. To let them try the app, build it with `cargo build --release -p vizcraft` and give the full
 path to `target-b6e-frontend/release/vizcraft`. Commit after every arc of work that builds, with
 prefix `B6E:`. No merge into the integration branch, no push, no force-push.
+
+## Trademarks
+
+Claude is a trademark of Anthropic, PBC; UML of Object Management Group, Inc. The names are used
+only to identify products and formats; VizCraft is not affiliated with or endorsed by their
+owners.

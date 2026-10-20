@@ -1,7 +1,7 @@
 # VizCraft architecture (the contract)
 
 VizCraft is a clean-room, open-source desktop diagramming app written in Rust and egui, aiming
-for the feature range of Visio, with an MCP server shaped like draw.io's so agents can create and
+for Microsoft Visio's features, with an MCP server shaped like draw.io's so agents can create and
 edit diagrams. Today the window chrome, menus, ribbon, panes, multiple windows, preferences,
 control channel and command registry are finished, and the diagram model (`vizcraft-diagram`,
 `vizcraft-stencils`) is the engine's document; the rest of the diagram editor is being built
@@ -27,7 +27,7 @@ the code that depends on it, and say so in the commit message.
 | model | `crates/routing` (`vizcraft-routing`) | Connector routing over obstacle rectangles: orthogonal routes around shapes, nudging of shared segments, line-jump positions. No workspace dependencies |
 | L4 | `crates/engine` (`vizcraft-engine`) | `Session`, undo, command registry, I/O, the opt-in performance trace (`trace`: spans, frames, counters, written by the app with `--trace`, see [testing.md](testing.md#performance-trace)); `engine::doc` re-exports the diagram `Document` |
 | L6 | `crates/ui-egui` (`vizcraft-ui-egui`) | egui front end: theme, chrome, menus, ribbon, panes, dialogs, keys, control |
-| platform | `crates/macos-open` | Finder Open Documents (odoc) Apple Event, safe API |
+| platform | `crates/macos-open` | Apple Finder Open Documents (odoc) Apple Event, safe API |
 | mcp | `crates/mcp` (`vizcraft-mcp`) | Stdio JSON-RPC MCP server, launched by `vizcraft-cli mcp`; same rank as `ui-egui`, so neither depends on the other, and no UI toolkit. Depends on `engine` for the `Headless` backend, which hosts a `Session` in process (see [docs/mcp.md](mcp.md)) |
 | apps | `apps/vizcraft`, `apps/vizcraft-cli`, `apps/vizcraft-web` | desktop app, headless CLI, wasm shell (see [docs/web.md](web.md)) |
 | tooling | `xtask` | `cargo xtask ci`, `layers`, `assets`, `wasm`, `ico`, `version` |
@@ -793,3 +793,10 @@ backend; and the page, shape and stencil resources, read through `page.get`, `sh
 `notation.describe`), and `command_run` and `command_batch` results carry `issues` (the live
 issues the call raised, from `validate.list` before and after) and `openIssues`. Tool list, resources and
 launch: [docs/mcp.md](mcp.md). File formats and their public sources: [docs/formats.md](formats.md).
+
+## Trademarks
+
+Microsoft and Visio are trademarks of the Microsoft group of companies; draw.io is a trademark of
+JGraph Ltd; Apple, macOS and Finder of Apple Inc.; Adobe of Adobe Inc.; Avid of Avid Technology,
+Inc.; Autodesk of Autodesk, Inc.; BPMN of Object Management Group, Inc. The names are used only to
+identify products and formats; VizCraft is not affiliated with or endorsed by their owners.

@@ -1,8 +1,8 @@
 # Feature parity catalog
 
 This catalog lists the features VizCraft aims for, grouped by area, with the cascade in
-[ROADMAP.md](../ROADMAP.md) that schedules each and its state. It covers Visio-class editing
-and the engineering-workbench features (semantic model, notation packs, validation and
+[ROADMAP.md](../ROADMAP.md) that schedules each and its state. It covers Microsoft Visio-class
+editing and the engineering-workbench features (semantic model, notation packs, validation and
 identity, workspace, patterns, code-scaffold generation and the three audience packs) from
 [docs/research/professional-features.md](research/professional-features.md). It names features
 only: this is a clean-room project, so descriptions are our own words and never another product's
@@ -453,3 +453,12 @@ When a feature lands, change its State in the same commit as the code. States:
 | Headless backend | 3 | done | Hosts a `Session` in process, no window; `vizcraft-cli mcp --headless`, and the fallback when no app listens |
 
 Tool shapes, resources and launch details are in [docs/mcp.md](mcp.md).
+
+## Trademarks
+
+Microsoft and Visio are trademarks of the Microsoft group of companies; draw.io is a trademark of
+JGraph Ltd; Apple and macOS of Apple Inc.; UML and BPMN of Object Management Group, Inc.;
+ArchiMate of The Open Group; OPC UA of the OPC Foundation; AUTOSAR of the AUTOSAR development
+partnership; FreeRTOS of Amazon Web Services, Inc.; Terraform of HashiCorp, Inc.; Team Topologies
+of Team Topologies Ltd. The names are used only to identify products and formats; VizCraft is not
+affiliated with or endorsed by their owners.

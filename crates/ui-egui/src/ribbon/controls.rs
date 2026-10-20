@@ -53,7 +53,8 @@ pub(super) fn colors(ui: &mut Ui, app: &mut CraftApp, spec: ColorsSpec<'_>) {
     resp.widget_info(|| WidgetInfo::labeled(WidgetType::Button, on, spec.name));
     hover_bg(ui, r, &resp, on, &t);
     let (ic, tc) = if on { (t.icon, t.text) } else { (t.text_disabled, t.text_disabled) };
-    // With nothing selected the bar shows the accent, as Office shows its last-used colour.
+    // With nothing selected the bar shows the accent, as Microsoft Office shows its last-used
+    // colour.
     let bar = if on { spec.current.unwrap_or(t.accent) } else { t.text_disabled };
     let icon_r = Rect::from_center_size(pos2(r.min.x + SMALL_ICON_W / 2.0, r.center().y), vec2(SMALL_ICON, SMALL_ICON));
     icons::paint(ui.painter(), icon_r, spec.icon, ic, bar);

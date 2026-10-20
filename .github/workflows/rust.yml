@@ -1,7 +1,7 @@
 # The repository's quality gate, run the same way as on a developer machine: `cargo xtask ci`
 # (rustfmt, clippy -D warnings, tests, assets, layers, wasm; see AGENTS.md, Quality gates).
-# One Ubuntu job is enough: nothing in the step set needs macOS or Windows, and the macOS-only
-# crates (`macos-open`, `muda`) compile to empty modules elsewhere.
+# One Canonical Ubuntu job is enough: nothing in the step set needs Apple macOS or Microsoft
+# Windows, and the macOS-only crates (`macos-open`, `muda`) compile to empty modules elsewhere.
 name: CI
 
 on:

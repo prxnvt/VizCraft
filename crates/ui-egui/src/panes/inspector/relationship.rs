@@ -43,7 +43,7 @@ pub(super) fn include_in_key(ui: &mut Ui, t: &Tokens, key: &Value, reference: &s
     ui.label(RichText::new("The key is rebuilt now; it never refreshes on its own.").small().color(t.text_dim));
 }
 
-/// Whether rule `id` is an `endMarkerMatchesProperty` check (a UML association's drawn ends
+/// Whether rule `id` is an `endMarkerMatchesProperty` check (an OMG UML association's drawn ends
 /// against its navigability).
 fn is_end_marker_rule(id: &str) -> bool {
     vizcraft_notation::catalog()

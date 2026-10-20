@@ -810,7 +810,7 @@ pub struct Connector {
     /// Label text, drawn at the middle of the route.
     #[serde(deserialize_with = "lenient")]
     pub text: String,
-    /// Text beside the start end (a cardinality such as `1` or `N`, a UML multiplicity), drawn
+    /// Text beside the start end (a cardinality such as `1` or `N`, an OMG UML multiplicity), drawn
     /// a little outside the line; empty for none. Capped like `text`.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "String::is_empty")]
     pub start_label: String,
@@ -1501,7 +1501,8 @@ impl Document {
         self.pages.iter_mut().find_map(|p| p.remove_connector(id))
     }
     /// The index of the page `r` names: an exact page id first, then an exact page name, then a
-    /// zero-based index. The same order the draw.io page tools use, so agents can pass any of them.
+    /// zero-based index. The same order the page tools of JGraph's draw.io use, so agents can pass
+    /// any of them.
     pub fn find_page(&self, r: &str) -> Option<usize> {
         self.pages
             .iter()

@@ -1,6 +1,6 @@
-//! The UML pack end to end: member rows, keyword lines and end labels kept in step by the sync
-//! pass, the merging Mermaid import of class and state diagrams, and every UML template written
-//! as PlantUML against its golden file in `crates/formats/testdata/uml/` (refresh with
+//! The pack for OMG UML end to end: member rows, keyword lines and end labels kept in step by the
+//! sync pass, the merging Mermaid import of class and state diagrams, and every UML template
+//! written as PlantUML against its golden file in `crates/formats/testdata/uml/` (refresh with
 //! `VIZCRAFT_UPDATE_GOLDEN=1` and review the diff).
 
 use serde_json::{Value, json};

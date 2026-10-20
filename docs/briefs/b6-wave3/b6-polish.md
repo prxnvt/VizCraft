@@ -1,6 +1,6 @@
 # `b6-polish` (rendering follow-ups), Block 6 wave 3
 
-Sonnet, medium effort. Port 8068. Worktree `.claude/worktrees/b6-polish`, branch `b6-polish` from the integration branch `claude/engineering-diagramming-standards-305d6b` after `b6e-frontend` merges. `CARGO_TARGET_DIR=target-b6-polish CARGO_INCREMENTAL=0`. Commit prefix `B6:`.
+Claude Sonnet, medium effort. Port 8068. Worktree `.claude/worktrees/b6-polish`, branch `b6-polish` from the integration branch `claude/engineering-diagramming-standards-305d6b` after `b6e-frontend` merges. `CARGO_TARGET_DIR=target-b6-polish CARGO_INCREMENTAL=0`. Commit prefix `B6:`.
 
 ## Resolutions (these override the draft below where they differ)
 
@@ -253,3 +253,9 @@ Do not edit ROADMAP.md, docs/parity.md, docs/mcp.md, docs/formats.md or docs/cas
 - /Users/pranav/Workspace/crafts/VizCraft/.claude/worktrees/engineering-diagramming-standards-305d6b/crates/diagram/src/step_badge.rs
 - /Users/pranav/Workspace/crafts/VizCraft/.claude/worktrees/engineering-diagramming-standards-305d6b/crates/diagram/src/model.rs
 - /Users/pranav/Workspace/crafts/VizCraft/.claude/worktrees/engineering-diagramming-standards-305d6b/crates/layout/src/primitives/container.rs
+
+## Trademarks
+
+Claude is a trademark of Anthropic, PBC (Sonnet is one of its Claude models); UML of Object
+Management Group, Inc. The names are used only to identify products and formats; VizCraft is not
+affiliated with or endorsed by their owners.

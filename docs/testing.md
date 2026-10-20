@@ -157,8 +157,8 @@ summary.
 | File | Contents |
 |---|---|
 | `vizcraft-<time>-<pid>.summary.json` | Rewritten every 5 seconds and at exit. `session` (build commit, debug or release, GPU adapter and backend, present mode, display scale and predicted frame interval, control port, flags). Frame time; the gap between frames, overall and split into `frameGapPendingMs` (the previous frame asked for an immediate repaint, so one display refresh is normal and more is a stall) and `frameGapIdleMs` (it did not: idle, or a timer). Frames with no input. Every span's count, total, mean, p95 and worst, including `eframe.turnaround` (pending gap minus frame time: eframe, winit, compositor and OS between two frames the app wanted back to back). The 25 slowest frames with their span trees. `stalls` counts and `longestStalls` (below). Repaint causes by source line. `notes` (wakes from outside the UI thread: control-channel requests by method, menu events, open requests). Memory once a second (process RSS, document and undo snapshot estimates, egui textures and text caches). Marks |
-| `vizcraft-<time>-<pid>.trace.json` | Chrome trace events, opened in [Perfetto](https://ui.perfetto.dev) or `chrome://tracing`. Every frame is an event with its input by kind (`inputKinds`), how many events the control channel injected (`synthetic`), whether the UI asked to be drawn again (`repaintPending`) and the viewport commands it sent (`ticks`); frames slower than `VIZCRAFT_TRACE_DETAIL_MS` (default 8) carry their nested spans; stalls are events; memory is a counter track. The array is closed at exit; a killed app leaves it open, which both viewers accept |
-| `vizcraft-<time>-<pid>-stall-<n>.txt` | macOS only: the process's native stacks, captured with the system `sample` tool for one second while the main thread was stalled (at most 10 per run; `VIZCRAFT_TRACE_NO_SAMPLE=1` turns it off). Look for the main thread: that is where the time outside the app's own code goes |
+| `vizcraft-<time>-<pid>.trace.json` | Google Chrome trace events, opened in [Perfetto](https://ui.perfetto.dev) or `chrome://tracing`. Every frame is an event with its input by kind (`inputKinds`), how many events the control channel injected (`synthetic`), whether the UI asked to be drawn again (`repaintPending`) and the viewport commands it sent (`ticks`); frames slower than `VIZCRAFT_TRACE_DETAIL_MS` (default 8) carry their nested spans; stalls are events; memory is a counter track. The array is closed at exit; a killed app leaves it open, which both viewers accept |
+| `vizcraft-<time>-<pid>-stall-<n>.txt` | Apple macOS only: the process's native stacks, captured with the system `sample` tool for one second while the main thread was stalled (at most 10 per run; `VIZCRAFT_TRACE_NO_SAMPLE=1` turns it off). Look for the main thread: that is where the time outside the app's own code goes |
 
 A stall is a gap in which the UI asked to be drawn again and no frame began within
 `VIZCRAFT_TRACE_STALL_MS` (default 100; `0` turns the watchdog off). A watchdog thread notices it
@@ -236,3 +236,10 @@ UPDATE_SNAPSHOTS=1 cargo test -p vizcraft-ui-egui --test snapshots
 `UPDATE_SNAPSHOTS=1` rewrites only the snapshots that failed; `UPDATE_SNAPSHOTS=force` rewrites
 all of them. Keep the set small (under 3 MB in total) and at 1 pixel per point; `ui_shot` is the
 tool for high-resolution pictures to look at.
+
+## Trademarks
+
+GitHub is a trademark of GitHub, Inc.; Ubuntu of Canonical Ltd.; Chrome of Google LLC; Apple,
+macOS and Finder of Apple Inc.; Windows of the Microsoft group of companies; Linux is the
+registered trademark of Linus Torvalds. The names are used only to identify products; VizCraft is
+not affiliated with or endorsed by their owners.

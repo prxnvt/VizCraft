@@ -169,7 +169,7 @@ fn limits_are_enforced() {
     let tall = format!("{header}\n{}", "x\n".repeat(limits::MAX_CSV_CELLS / limits::MAX_CSV_COLUMNS + 10));
     assert!(matches!(parse_csv(&tall), Err(DrawioError::Limit(_))));
 
-    // Not a draw.io document, not UTF-8, empty.
+    // Not a draw.io (JGraph) document, not UTF-8, empty.
     assert!(matches!(read_file(b"<html/>"), Err(DrawioError::NotDrawio(_))));
     assert!(matches!(read_file(&[0xff, 0xfe, 0x00]), Err(DrawioError::Encoding(_))));
     assert!(read_file(b"   ").is_err());
