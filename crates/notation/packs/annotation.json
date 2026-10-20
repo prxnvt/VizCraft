@@ -30,7 +30,8 @@
       "params": {
         "standard": "iso1101"
       },
-      "source": "own design, drawn from the written rules of ISO 1101 and ASME Y14.5"
+      "source": "own design, drawn from the written rules of ISO 1101 and ASME Y14.5",
+      "textPlace": "below"
     },
     {
       "id": "annotation.fcfAsme",
@@ -50,7 +51,8 @@
       "params": {
         "standard": "asmeY14_5"
       },
-      "source": "own design, drawn from the written rules of ISO 1101 and ASME Y14.5"
+      "source": "own design, drawn from the written rules of ISO 1101 and ASME Y14.5",
+      "textPlace": "below"
     },
     {
       "id": "annotation.datum",
@@ -109,7 +111,8 @@
       "params": {
         "standard": "iso2553"
       },
-      "source": "own design, drawn from the written rules of ISO 2553 and AWS A2.4"
+      "source": "own design, drawn from the written rules of ISO 2553 and AWS A2.4",
+      "textPlace": "below"
     },
     {
       "id": "annotation.weldAws",
@@ -129,7 +132,8 @@
       "params": {
         "standard": "aws"
       },
-      "source": "own design, drawn from the written rules of ISO 2553 and AWS A2.4"
+      "source": "own design, drawn from the written rules of ISO 2553 and AWS A2.4",
+      "textPlace": "below"
     },
     {
       "id": "annotation.texture",
@@ -151,7 +155,8 @@
       "params": {
         "standard": "iso21920"
       },
-      "source": "own design, drawn from the written rules of ISO 21920-1 and ASME Y14.36"
+      "source": "own design, drawn from the written rules of ISO 21920-1 and ASME Y14.36",
+      "textPlace": "below"
     },
     {
       "id": "annotation.textureAsme",
@@ -171,7 +176,8 @@
       "params": {
         "standard": "asmeY14_36"
       },
-      "source": "own design, drawn from the written rules of ISO 21920-1 and ASME Y14.36"
+      "source": "own design, drawn from the written rules of ISO 21920-1 and ASME Y14.36",
+      "textPlace": "below"
     }
   ],
   "connectorTypes": [

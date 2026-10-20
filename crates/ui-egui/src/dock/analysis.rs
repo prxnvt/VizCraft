@@ -31,6 +31,13 @@ pub const RESULT_COMMANDS: &[&str] = &[
     "analyze.path",
     "analyze.clear",
     "model.diff",
+    // The mechanical and reliability analyses (b6e-mechanical).
+    "mech.mobility",
+    "mech.ratio",
+    "mech.mason",
+    "rel.cutsets",
+    "rel.availability",
+    "rel.outcomes",
 ];
 
 /// Longest relationship type id the Follow menu keeps.
@@ -130,7 +137,12 @@ impl Default for AnalysisState {
 
 /// The result kind a command produces: `analyze.cycles` gives `cycles`, `model.diff` gives `diff`.
 fn kind_of(cmd: &str) -> &str {
-    if cmd == "model.diff" { "diff" } else { cmd.strip_prefix("analyze.").unwrap_or(cmd) }
+    if cmd == "model.diff" {
+        "diff"
+    } else {
+        // `mech.mobility` and `rel.cutsets` give the analysis of their own local name.
+        cmd.strip_prefix("analyze.").or_else(|| cmd.strip_prefix("mech.")).or_else(|| cmd.strip_prefix("rel.")).unwrap_or(cmd)
+    }
 }
 
 /// `params` with the tab's options in place: `depth` for Dependencies, `types` and
