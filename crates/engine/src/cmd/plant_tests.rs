@@ -399,7 +399,9 @@ fn an_isometric_run_draws_legs_with_elbows_on_one_line() {
 fn line_assign_and_the_dexpi_map() {
     let (mut s, _, _, pipe) = vessel_and_pipe();
     let old = line_of(&s, &pipe).unwrap();
-    let r = one_step(&mut s, "line.assign", json!({"connectors": [pipe]}));
+    let same = run(&mut s, "line.assign", json!({"connectors": [pipe]}));
+    assert_eq!(same["line"].as_str(), Some(old.as_str()), "with no line, the one the pipe has");
+    let r = one_step(&mut s, "line.assign", json!({"connectors": [pipe], "line": "new"}));
     let new = r["line"].as_str().unwrap().to_string();
     assert_ne!(new, old);
     assert!(s.doc.model.element(&old).is_none(), "the old line lost its last segment");
@@ -409,4 +411,383 @@ fn line_assign_and_the_dexpi_map() {
     let all = run(&mut s, "plant.dexpiMap", json!({}));
     assert!(all["unmapped"].as_array().unwrap().iter().any(|t| t == "process.Weld"));
     refused(&mut s, "plant.dexpiMap", json!({"type": "flowchart.Process"}));
+}
+
+#[test]
+fn every_process_example_opens_clean_and_routes_cleanly() {
+    let cat = vizcraft_notation::catalog();
+    let pack = cat.pack("process").unwrap();
+    assert_eq!(pack.examples.len(), 6);
+    let dump = std::env::var("VIZCRAFT_PROCESS_DUMP").ok();
+    let mut report = Vec::new();
+    for ex in &pack.examples {
+        let mut s = Session::new(Document::new());
+        run(&mut s, "example.open", json!({"example": ex.id}));
+        let issues = run(&mut s, "validate.run", json!({}));
+        for i in issues["issues"].as_array().unwrap() {
+            report.push(format!("{}: {} {}", ex.id, i["rule"], i["message"]));
+        }
+        for (pi, page) in s.doc.pages.iter().enumerate() {
+            for f in vizcraft_diagram::route_quality::check(page) {
+                report.push(format!("{} ({}): {f}", ex.id, page.name));
+            }
+            if let Some(dir) = &dump
+                && !page.is_background
+            {
+                let svg = vizcraft_formats::svg::export_page(&s.doc, pi).unwrap();
+                std::fs::write(format!("{dir}/{}-{pi}.svg", ex.id), svg).unwrap();
+            }
+        }
+    }
+    assert!(report.is_empty(), "{} findings:\n{}", report.len(), report.join("\n"));
+}
+
+#[test]
+fn a_pasted_pipe_gets_its_own_line_with_the_data_kept() {
+    let (mut s, _, _, pipe) = vessel_and_pipe();
+    let line = line_of(&s, &pipe).unwrap();
+    run(&mut s, "element.setProperty", json!({"id": line, "key": "fluidCode", "value": "CW"}));
+    run(&mut s, "edit.select", json!({"ids": [pipe]}));
+    run(&mut s, "edit.copy", json!({}));
+    let r = run(&mut s, "edit.paste", json!({}));
+    let pasted: Vec<String> = r["items"].as_array().unwrap().iter().map(|x| x.as_str().unwrap().to_string()).collect();
+    let copy = pasted.iter().find_map(|c| line_of(&s, c)).expect("the pasted pipe names a line");
+    assert_ne!(copy, line);
+    assert_eq!(s.doc.model.element(&copy).unwrap().prop("fluidCode").and_then(|v| v.as_str()), Some("CW"));
+    assert_ne!(tag(&s, &copy), tag(&s, &line));
+}
+
+/// A blank document of `template` held to exactly `rulesets`.
+fn held(template: &str, rulesets: &[&str]) -> Session {
+    let mut s = Session::new(Document::new());
+    run(&mut s, "template.new", json!({"template": template, "sheet": ""}));
+    run(&mut s, "validate.setProfile", json!({"enabled": true, "rulesets": rulesets}));
+    s
+}
+
+fn add(s: &mut Session, v: Value) -> (String, String) {
+    let r = run(s, "element.create", v);
+    (r["id"].as_str().unwrap_or_default().to_string(), r["shape"].as_str().unwrap_or_default().to_string())
+}
+
+/// The process pack's rule cases: each document reports exactly the rules listed (each once per
+/// entry). `VIZCRAFT_BLESS=1` writes them to `crates/notation/packs/tests/process/`, where the
+/// notation tests and `vizcraft-cli validate` run them.
+#[test]
+fn process_rule_cases() {
+    type Build = fn() -> Session;
+    let cases: Vec<(&str, Build, Vec<&str>)> = vec![
+        (
+            "clean_pid",
+            || {
+                let mut s = Session::new(Document::new());
+                run(&mut s, "example.open", json!({"example": "process.pidExample"}));
+                run(&mut s, "validate.setProfile", json!({"enabled": true, "rulesets": ["process.pid", "sheet.drawingSheet"]}));
+                s
+            },
+            vec![],
+        ),
+        (
+            "tag_letters",
+            || {
+                let mut s = held("process.pid", &["process.pid"]);
+                let (i, _) =
+                    add(&mut s, json!({"type": "process.ProcessInstrumentationFunction", "properties": {"letters": "LQB"}, "x": 100, "y": 100}));
+                run(&mut s, "loop.create", json!({"variable": "L", "members": [i], "loopType": "indication"}));
+                s
+            },
+            vec!["process.tagLetters"],
+        ),
+        (
+            "duplicate_tag",
+            || {
+                let mut s = held("process.pid", &["process.pid"]);
+                let (a, _) =
+                    add(&mut s, json!({"type": "process.ProcessInstrumentationFunction", "properties": {"letters": "LI"}, "x": 100, "y": 100}));
+                let (b, _) =
+                    add(&mut s, json!({"type": "process.ProcessInstrumentationFunction", "properties": {"letters": "LI"}, "x": 300, "y": 100}));
+                run(&mut s, "loop.create", json!({"variable": "L", "members": [a, b], "loopType": "indication"}));
+                s
+            },
+            vec!["process.duplicateTag"],
+        ),
+        (
+            "duplicate_equipment",
+            || {
+                let mut s = held("process.pfd", &["process.pfd"]);
+                let (a, _) = add(&mut s, json!({"type": "process.Pump", "x": 100, "y": 100}));
+                let (b, _) = add(&mut s, json!({"type": "process.Pump", "x": 300, "y": 100}));
+                let t = tag(&s, &a);
+                run(&mut s, "element.retag", json!({"id": b, "tag": t}));
+                s
+            },
+            vec!["process.duplicateEquipment"],
+        ),
+        (
+            "duplicate_line",
+            || {
+                let mut s = held("process.isometric", &["process.isometric"]);
+                for y in [100, 300] {
+                    let r = run(&mut s, "plant.isoRun", json!({"from": {"x": 100, "y": y}, "legs": [{"dir": "e", "length": 100}]}));
+                    let l = r["line"].as_str().unwrap().to_string();
+                    for (k, v) in [("nominalDiameter", "2in"), ("fluidCode", "P"), ("pipingClass", "A1")] {
+                        run(&mut s, "element.setProperty", json!({"id": l, "key": k, "value": v}));
+                    }
+                    run(&mut s, "element.retag", json!({"id": l, "tag": "2in-P-001-A1"}));
+                }
+                s
+            },
+            vec!["process.duplicateLine"],
+        ),
+        (
+            "duplicate_loop",
+            || {
+                let mut s = held("process.pid", &["process.pid"]);
+                run(&mut s, "loop.create", json!({"variable": "F", "loopType": "indication"}));
+                run(&mut s, "loop.create", json!({"variable": "L", "loopType": "indication"}));
+                run(&mut s, "plant.numbering", json!({"scheme": "serial"}));
+                s
+            },
+            vec!["process.duplicateLoop"],
+        ),
+        (
+            "unpaired_off_page",
+            || {
+                let mut s = held("process.pid", &["process.iso10628"]);
+                let (o, _) = add(&mut s, json!({"type": "process.PipeOffPageConnector", "x": 100, "y": 100}));
+                run(&mut s, "element.retag", json!({"id": o, "tag": "7"}));
+                s
+            },
+            vec!["process.unpairedOffPage"],
+        ),
+        (
+            "unpaired_signal_off_page",
+            || {
+                let mut s = held("process.pid", &["process.iso10628"]);
+                let (o, _) = add(&mut s, json!({"type": "process.SignalOffPageConnector", "x": 100, "y": 100}));
+                run(&mut s, "element.retag", json!({"id": o, "tag": "3"}));
+                s
+            },
+            vec!["process.unpairedSignalOffPage"],
+        ),
+        (
+            "off_page_on_one_sheet",
+            || {
+                let mut s = held("process.pid", &["process.iso10628"]);
+                let (a, _) = add(&mut s, json!({"type": "process.SignalOffPageConnector", "x": 100, "y": 100}));
+                let (b, _) = add(&mut s, json!({"type": "process.SignalOffPageConnector", "x": 300, "y": 100}));
+                run(&mut s, "offpage.pair", json!({"a": a, "b": b}));
+                s
+            },
+            vec!["process.offPageContinuity"],
+        ),
+        (
+            "open_valve_ports",
+            || {
+                let mut s = held("process.pid", &["process.iso10628"]);
+                add(&mut s, json!({"type": "process.GateValve", "x": 200, "y": 200}));
+                s
+            },
+            vec!["process.portsConnected"],
+        ),
+        (
+            "loop_without_final_element",
+            || {
+                let mut s = held("process.pid", &["process.iso10628"]);
+                let (a, sa) =
+                    add(&mut s, json!({"type": "process.ProcessInstrumentationFunction", "properties": {"letters": "LT"}, "x": 100, "y": 100}));
+                let (b, sb) =
+                    add(&mut s, json!({"type": "process.ProcessInstrumentationFunction", "properties": {"letters": "LIC"}, "x": 300, "y": 100}));
+                run(&mut s, "loop.create", json!({"members": [a, b]}));
+                run(&mut s, "connector.add", json!({"from": {"shape": sa}, "to": {"shape": sb}, "kind": "process.electricSignal"}));
+                s
+            },
+            vec!["process.loopComplete"],
+        ),
+        (
+            "instrument_outside_any_loop",
+            || {
+                let mut s = held("process.pid", &["process.iso10628"]);
+                add(&mut s, json!({"type": "process.ProcessInstrumentationFunction", "properties": {"letters": "PI"}, "x": 100, "y": 100}));
+                s
+            },
+            vec!["process.loopInLoop"],
+        ),
+        (
+            "two_loops_on_one_loop_sheet",
+            || {
+                let mut s = held("process.loopDiagram", &["process.loop"]);
+                for (l, x) in [("F", 100), ("T", 300)] {
+                    let (a, _) = add(
+                        &mut s,
+                        json!({"type": "process.ProcessInstrumentationFunction", "properties": {"letters": format!("{l}I")}, "x": x, "y": 100}),
+                    );
+                    run(&mut s, "loop.create", json!({"members": [a], "loopType": "indication"}));
+                }
+                s
+            },
+            vec!["process.oneLoopPerSheet"],
+        ),
+        (
+            "line_without_data",
+            || {
+                let mut s = held("process.isometric", &["process.isometric"]);
+                run(&mut s, "plant.isoRun", json!({"from": {"x": 100, "y": 100}, "legs": [{"dir": "e", "length": 100}]}));
+                s
+            },
+            vec!["process.lineData"],
+        ),
+        (
+            "relief_valve_without_set_pressure",
+            || {
+                let mut s = held("process.pid", &["process.iso10628"]);
+                let (v, sv) = add(&mut s, json!({"type": "process.SafetyValveOrFitting", "properties": {"letters": "PSV"}, "x": 200, "y": 200}));
+                run(&mut s, "loop.create", json!({"variable": "P", "members": [v], "loopType": "safety"}));
+                // Pipes on both ports, so only the relief data is missing.
+                run(
+                    &mut s,
+                    "wire.draw",
+                    json!({"from": {"shape": sv, "point": 0}, "to": {"x": 220, "y": 400}, "points": [{"x": 220, "y": 400}], "type": "process.processLine"}),
+                );
+                run(
+                    &mut s,
+                    "wire.draw",
+                    json!({"from": {"shape": sv, "point": 1}, "to": {"x": 400, "y": 230}, "points": [{"x": 400, "y": 230}], "type": "process.processLine"}),
+                );
+                let lines: Vec<String> =
+                    s.doc.model.elements.iter().filter(|e| e.type_id == "process.PipingNetworkSystem").map(|e| e.id.clone()).collect();
+                for l in lines {
+                    for (k, v) in [("nominalDiameter", "1in"), ("fluidCode", "P"), ("pipingClass", "A1")] {
+                        run(&mut s, "element.setProperty", json!({"id": l, "key": k, "value": v}));
+                    }
+                }
+                s
+            },
+            vec!["process.reliefData"],
+        ),
+        (
+            "design_below_operating",
+            || {
+                let mut s = held("process.pfd", &["process.pfd"]);
+                add(&mut s, json!({"type": "process.Vessel", "properties": {"designPressure": 5, "operatingPressure": 10}, "x": 100, "y": 100}));
+                s
+            },
+            vec!["process.designAboveOperating"],
+        ),
+        (
+            "pipe_between_equipment",
+            || {
+                let mut s = held("process.pfd", &["process.pfd"]);
+                let (_, a) = add(&mut s, json!({"type": "process.Vessel", "x": 100, "y": 100}));
+                let (_, b) = add(&mut s, json!({"type": "process.Tank", "x": 400, "y": 100}));
+                run(&mut s, "connector.add", json!({"from": {"shape": a}, "to": {"shape": b}, "kind": "process.secondaryLine"}));
+                s
+            },
+            vec!["process.illegalConnection", "process.viewpoint"],
+        ),
+        (
+            "stream_without_number",
+            || {
+                let mut s = held("process.pfd", &["process.pfd"]);
+                let (_, a) = add(&mut s, json!({"type": "process.Vessel", "x": 100, "y": 100}));
+                let (_, b) = add(&mut s, json!({"type": "process.Tank", "x": 400, "y": 100}));
+                run(&mut s, "connector.add", json!({"from": {"shape": a}, "to": {"shape": b}, "kind": "process.stream"}));
+                s
+            },
+            vec!["process.streamsNumbered"],
+        ),
+        (
+            "duct_without_size",
+            || {
+                let mut s = held("process.hvac", &["process.hvac"]);
+                let (_, a) = add(&mut s, json!({"type": "process.AirHandlingUnit", "x": 100, "y": 100}));
+                let (_, d) = add(&mut s, json!({"type": "process.Diffuser", "x": 500, "y": 300}));
+                run(
+                    &mut s,
+                    "wire.draw",
+                    json!({"from": {"shape": a, "point": 1}, "to": {"shape": d, "point": 0}, "points": [{"x": 520, "y": 140}], "type": "process.supplyAir"}),
+                );
+                run(
+                    &mut s,
+                    "wire.draw",
+                    json!({"from": {"x": 60, "y": 140}, "to": {"shape": a, "point": 0}, "points": [{"x": 60, "y": 140}], "type": "process.returnAir"}),
+                );
+                let runs: Vec<String> = s.doc.model.elements.iter().filter(|e| e.type_id == "process.DuctRun").map(|e| e.id.clone()).collect();
+                run(&mut s, "element.setProperty", json!({"id": runs[1], "key": "size", "value": "400x300"}));
+                run(&mut s, "element.setProperty", json!({"id": runs[1], "key": "airflow", "value": 900}));
+                run(&mut s, "element.setProperty", json!({"id": runs[0], "key": "airflow", "value": 900}));
+                s
+            },
+            vec!["process.ductData"],
+        ),
+        (
+            "fixture_without_units",
+            || {
+                let mut s = held("process.plumbing", &["process.plumbing"]);
+                add(&mut s, json!({"type": "process.Fixture", "x": 100, "y": 100}));
+                s
+            },
+            vec!["process.fixtureData"],
+        ),
+        (
+            "weld_on_a_pid",
+            || {
+                let mut s = held("process.pid", &["process.iso10628"]);
+                add(&mut s, json!({"type": "process.Weld", "x": 100, "y": 100}));
+                s
+            },
+            vec!["process.viewpoint"],
+        ),
+    ];
+    let cat = vizcraft_notation::catalog();
+    let dir = format!("{}/../notation/packs/tests/process", env!("CARGO_MANIFEST_DIR"));
+    let bless = std::env::var("VIZCRAFT_BLESS").is_ok();
+    let mut report = Vec::new();
+    let mut fired: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    for (name, build, expect) in cases {
+        let s = build();
+        let mut got: Vec<String> = vizcraft_notation::cases::all_issues(&s.doc, cat).into_iter().map(|i| i.rule).collect();
+        got.sort();
+        let mut want: Vec<String> = expect.iter().map(|r| r.to_string()).collect();
+        want.sort();
+        if got != want {
+            report.push(format!("{name}: expected {want:?}, got {got:?}"));
+            continue;
+        }
+        fired.extend(want.iter().cloned());
+        let doc: Value = serde_json::from_slice(&crate::io::save_bytes("case.vizcraft", &s.doc).unwrap()).unwrap();
+        let case = json!({"document": doc, "expect": expect.iter().map(|r| json!({"rule": r})).collect::<Vec<_>>()});
+        let text = serde_json::to_string_pretty(&case).unwrap() + "\n";
+        let path = format!("{dir}/{name}.json");
+        if bless {
+            std::fs::create_dir_all(&dir).unwrap();
+            std::fs::write(&path, &text).unwrap();
+        }
+        let o = vizcraft_notation::cases::run_text(name, &std::fs::read_to_string(&path).unwrap_or_default(), cat);
+        if !o.passed() {
+            report.push(format!("{name}: the case file does not pass: {:?}", o.problems));
+        }
+    }
+    assert!(report.is_empty(), "{}", report.join("\n"));
+    // Every rule of the pack fires in some case.
+    for r in &cat.pack("process").unwrap().rules {
+        assert!(fired.contains(&r.id), "no case makes {} fire", r.id);
+    }
+}
+
+#[test]
+fn the_pid_example_in_each_variant_matches_its_golden() {
+    let dir = format!("{}/testdata/process", env!("CARGO_MANIFEST_DIR"));
+    for (variant, file) in [("process.iso", "pid-iso10628"), ("process.isa", "pid-isa"), ("process.iso14617", "pid-iso14617")] {
+        let mut s = Session::new(Document::new());
+        run(&mut s, "example.open", json!({"example": "process.pidExample"}));
+        run(&mut s, "variant.set", json!({"variant": variant}));
+        let svg = String::from_utf8(vizcraft_formats::svg::export_page(&s.doc, 0).unwrap()).unwrap();
+        let path = format!("{dir}/{file}.golden.svg");
+        if std::env::var("VIZCRAFT_BLESS").is_ok() {
+            std::fs::create_dir_all(&dir).unwrap();
+            std::fs::write(&path, &svg).unwrap();
+        }
+        assert_eq!(svg, std::fs::read_to_string(&path).unwrap_or_default(), "{variant}: SVG differs from {path}");
+    }
 }

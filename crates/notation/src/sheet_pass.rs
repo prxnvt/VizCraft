@@ -610,7 +610,9 @@ pub fn recomposed(model: &vizcraft_model::Model, format: &IdFormat, e: &Element,
     if !format.has_context() {
         return None;
     }
-    let n = if format.has_number() { format.number_in(&e.tag, e)? } else { 0 };
+    // Read with the owner's tag and the place first, so an owner part before the number (unit
+    // `1` in `P-101`) is not taken for digits of it; loosely when the place has changed.
+    let n = if format.has_number() { format.number_in_ctx(&e.tag, model, e, ctx).or_else(|| format.number_in(&e.tag, e))? } else { 0 };
     Some(format.compose_in(model, e, n, ctx))
 }
 

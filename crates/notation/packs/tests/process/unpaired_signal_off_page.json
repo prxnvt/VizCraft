@@ -1,0 +1,139 @@
+{
+  "document": {
+    "document": {
+      "conformance": {
+        "enabled": true,
+        "rulesets": [
+          "process.iso10628"
+        ],
+        "userSet": true
+      },
+      "core": {
+        "author": "",
+        "created": "",
+        "lastModifiedBy": "",
+        "modified": "",
+        "revision": 0
+      },
+      "idSeq": 3,
+      "pages": [
+        {
+          "board": "infinite",
+          "connectors": [],
+          "height": 850.0,
+          "id": "p1",
+          "name": "Page-1",
+          "shapes": [
+            {
+              "angleDeg": 0.0,
+              "connectionPoints": [
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "e2",
+              "h": 19.69,
+              "id": "s3",
+              "kind": "freeform",
+              "path": {
+                "closed": true,
+                "els": [
+                  {
+                    "moveTo": {
+                      "x": 0.0,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 29.527499999999996,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 39.37,
+                      "y": 9.845
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 29.527499999999996,
+                      "y": 19.69
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 0.0,
+                      "y": 19.69
+                    }
+                  },
+                  "close"
+                ],
+                "frame": [
+                  39.37,
+                  19.69
+                ]
+              },
+              "stencil": "process.signalOffPage",
+              "style": {
+                "bold": false,
+                "fill": "#ffffff",
+                "fontColor": "#1e2630",
+                "fontSize": 12.0,
+                "italic": false,
+                "line": "#1f2933",
+                "lineWidth": 1.5
+              },
+              "text": "",
+              "w": 39.37,
+              "x": 98.4251968503937,
+              "y": 98.42271653543307
+            }
+          ],
+          "view": {
+            "module": "iso2_5mm",
+            "variant": "process.iso",
+            "viewpoint": "process.PID"
+          },
+          "width": 1100.0
+        }
+      ],
+      "standards": {
+        "symbols": "iso"
+      },
+      "title": ""
+    },
+    "format": "vizcraft",
+    "model": {
+      "elements": [
+        {
+          "id": "e2",
+          "properties": {
+            "xrefLabel": "on"
+          },
+          "tag": "3",
+          "type": "process.SignalOffPageConnector"
+        }
+      ],
+      "packs": [
+        {
+          "id": "process",
+          "version": "1.0.0"
+        }
+      ],
+      "schemaVersion": 1
+    },
+    "version": 4
+  },
+  "expect": [
+    {
+      "rule": "process.unpairedSignalOffPage"
+    }
+  ]
+}

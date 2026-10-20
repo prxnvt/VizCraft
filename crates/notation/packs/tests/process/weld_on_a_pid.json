@@ -1,0 +1,186 @@
+{
+  "document": {
+    "document": {
+      "conformance": {
+        "enabled": true,
+        "rulesets": [
+          "process.iso10628"
+        ],
+        "userSet": true
+      },
+      "core": {
+        "author": "",
+        "created": "",
+        "lastModifiedBy": "",
+        "modified": "",
+        "revision": 0
+      },
+      "idSeq": 3,
+      "pages": [
+        {
+          "board": "infinite",
+          "connectors": [],
+          "height": 850.0,
+          "id": "p1",
+          "name": "Page-1",
+          "shapes": [
+            {
+              "angleDeg": 0.0,
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "e2",
+              "h": 9.84,
+              "id": "s3",
+              "kind": "freeform",
+              "path": {
+                "closed": true,
+                "els": [
+                  {
+                    "moveTo": {
+                      "x": 4.92,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 7.6752,
+                        "y": 0.0
+                      },
+                      {
+                        "x": 9.84,
+                        "y": 2.1648
+                      },
+                      {
+                        "x": 9.84,
+                        "y": 4.92
+                      }
+                    ]
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 9.84,
+                        "y": 7.6752
+                      },
+                      {
+                        "x": 7.6752,
+                        "y": 9.84
+                      },
+                      {
+                        "x": 4.92,
+                        "y": 9.84
+                      }
+                    ]
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 2.1648,
+                        "y": 9.84
+                      },
+                      {
+                        "x": 0.0,
+                        "y": 7.6752
+                      },
+                      {
+                        "x": 0.0,
+                        "y": 4.92
+                      }
+                    ]
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 0.0,
+                        "y": 2.1648
+                      },
+                      {
+                        "x": 2.1648,
+                        "y": 0.0
+                      },
+                      {
+                        "x": 4.92,
+                        "y": 0.0
+                      }
+                    ]
+                  },
+                  "close"
+                ],
+                "frame": [
+                  9.84,
+                  9.84
+                ]
+              },
+              "stencil": "process.weld",
+              "style": {
+                "bold": false,
+                "fill": "#1f2933",
+                "fontColor": "#1e2630",
+                "fontSize": 12.0,
+                "italic": false,
+                "line": "#1f2933",
+                "lineWidth": 1.5
+              },
+              "text": "",
+              "w": 9.84,
+              "x": 103.34771653543307,
+              "y": 98.4251968503937
+            }
+          ],
+          "view": {
+            "module": "iso2_5mm",
+            "variant": "process.iso",
+            "viewpoint": "process.PID"
+          },
+          "width": 1100.0
+        }
+      ],
+      "standards": {
+        "symbols": "iso"
+      },
+      "title": ""
+    },
+    "format": "vizcraft",
+    "model": {
+      "elements": [
+        {
+          "id": "e2",
+          "properties": {
+            "kind": "shop"
+          },
+          "type": "process.Weld"
+        }
+      ],
+      "packs": [
+        {
+          "id": "process",
+          "version": "1.0.0"
+        }
+      ],
+      "schemaVersion": 1
+    },
+    "version": 4
+  },
+  "expect": [
+    {
+      "rule": "process.viewpoint"
+    }
+  ]
+}

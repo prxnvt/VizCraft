@@ -20,7 +20,7 @@ use vizcraft_model::{Element, Issue, PropValue};
 
 use crate::Catalog;
 use crate::infer::Facts;
-use crate::rules::{cut, message};
+use crate::rules::cut;
 use crate::schema::{Check, Pack, RuleDecl};
 
 /// Longest name or tag quoted in a message, in bytes.
@@ -166,7 +166,7 @@ impl<'a> Ctx<'a> {
         let mut seen = HashSet::new();
         let items: Vec<String> = items.into_iter().map(|(_, id)| id.to_string()).filter(|id| seen.insert(id.clone())).collect();
         let mut i =
-            Issue::new(self.rule.id.clone(), self.rule.severity, message(&self.rule.description, what)).with_subjects(subjects).with_items(items);
+            Issue::new(self.rule.id.clone(), self.rule.severity, cut(what, crate::rules::MAX_MESSAGE)).with_subjects(subjects).with_items(items);
         i.page = page;
         i
     }
@@ -182,7 +182,11 @@ impl<'a> Ctx<'a> {
 
     // ------------------------------------------------------------ unconnected pins
 
+    /// Open pins: a port is open when no view of the element has anything on it, so a valve
+    /// shown again on a loop diagram without its pipes is not reported there.
     fn unconnected(&self, types: &[String], out: &mut Vec<Issue>) {
+        // Per element: (page, shape, port names, open port indexes) for each view.
+        let mut views: BTreeMap<&str, Vec<(usize, &str, Vec<String>, BTreeMap<usize, String>)>> = BTreeMap::new();
         for (pi, page) in self.doc.pages.iter().enumerate() {
             let candidates: Vec<&vizcraft_diagram::Shape> = page
                 .shapes
@@ -221,19 +225,30 @@ impl<'a> Ctx<'a> {
             let all_points: Vec<(&str, Point)> =
                 page.shapes.iter().flat_map(|s| s.connection_points_world().into_iter().map(move |p| (s.id.as_str(), p))).collect();
             for s in candidates {
-                let Some(e) = s.element.as_deref().and_then(|e| self.facts.element(e)) else { continue };
+                let Some(e) = s.element.as_deref() else { continue };
                 let ports: Vec<String> = s.glyph.as_ref().map(|g| g.ports.clone()).unwrap_or_default();
+                let mut open = BTreeMap::new();
                 for (i, p) in s.connection_points_world().into_iter().enumerate() {
-                    if glued.contains(&(s.id.as_str(), i)) {
-                        continue;
+                    let touched = all_points.iter().any(|(other, q)| *other != s.id && q.distance(p) <= TOUCH);
+                    if !glued.contains(&(s.id.as_str(), i)) && !touched {
+                        open.insert(i, ports.get(i).cloned().unwrap_or_else(|| (i + 1).to_string()));
                     }
-                    if all_points.iter().any(|(other, q)| *other != s.id && q.distance(p) <= TOUCH) {
-                        continue;
-                    }
-                    let name = ports.get(i).cloned().unwrap_or_else(|| (i + 1).to_string());
-                    let what = format!("{} has port {name} with nothing connected.", self.label(e));
-                    out.push(self.issue(&what, vec![e.id.clone()], vec![(pi, s.id.as_str())]));
                 }
+                views.entry(e).or_default().push((pi, s.id.as_str(), ports, open));
+            }
+        }
+        for (e, list) in views {
+            let Some(el) = self.facts.element(e) else { continue };
+            let Some((pi, sid, _, first_open)) = list.first() else { continue };
+            // One finding per element, naming every open port.
+            let open: Vec<&str> =
+                first_open.iter().filter(|(i, _)| list.iter().all(|(_, _, _, o)| o.contains_key(*i))).map(|(_, n)| n.as_str()).collect();
+            if !open.is_empty() {
+                let what = match open.as_slice() {
+                    [one] => format!("{} has port {one} with nothing connected.", self.label(el)),
+                    many => format!("{} has ports {} with nothing connected.", self.label(el), many.join(", ")),
+                };
+                out.push(self.issue(&what, vec![el.id.clone()], vec![(*pi, sid)]));
             }
         }
     }

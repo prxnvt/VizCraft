@@ -214,7 +214,28 @@ impl Fragment {
             kept.push(c);
         }
         let mut new_connectors = Vec::new();
+        // A pasted pipe is a new line: the pipes of one copied line share one copy of it (its
+        // data kept, the next number), so the copy never carries the original's number.
+        let mut lines: std::collections::HashMap<String, Option<String>> = std::collections::HashMap::new();
         for mut c in kept {
+            if let Some(old) = c.ext.remove(vizcraft_notation::process_pass::EXT_LINE) {
+                let copy = match lines.get(&old) {
+                    Some(n) => n.clone(),
+                    None => {
+                        let made = doc.model.element(&old).cloned().and_then(|src| {
+                            let id = doc.next_id("e");
+                            let mut e = vizcraft_model::Element { id: id.clone(), tag: String::new(), owner: None, ..src };
+                            e.tag = auto_tag(doc, &e).ok().flatten().unwrap_or_default();
+                            doc.model.add_element(e).ok().map(|_| id)
+                        });
+                        lines.insert(old, made.clone());
+                        made
+                    }
+                };
+                if let Some(n) = copy {
+                    c.ext.insert(vizcraft_notation::process_pass::EXT_LINE.to_string(), n);
+                }
+            }
             c.id = doc.next_id("c");
             c.relationship = c.relationship.take().and_then(|r| copies.relationship(doc, &clip_relationships, &r));
             if let Some(r) = c.relationship.as_deref().and_then(|r| doc.model.relationship(r)) {

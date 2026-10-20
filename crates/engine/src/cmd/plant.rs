@@ -43,7 +43,7 @@ const NOZZLE_STEPS: [f64; 5] = [0.5, 0.25, 0.75, 0.125, 0.875];
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("line.assign", "Assign Line", "Notation > Lines", line_assign).params(
-            r#"{"connectors"?: [connector id] (default: the selected pipes), "net"?: net id (its pipe segments), "line"?: line element id} -> {"line", "tag", "connectors"}; the pipe segments carry that line (its number), or a new line when none is named; one undo step"#,
+            r#"{"connectors"?: [connector id] (default: the selected pipes), "net"?: net id (its pipe segments), "line"?: line element id or "new"} -> {"line", "tag", "connectors"}; the pipe segments carry that line (its number); with no line, the line they already share (to read its id), else a new one; "new" always starts a new line; one undo step when anything changes"#,
         ),
         CommandSpec::new("offpage.pair", "Pair Off-page", "Notation > Lines", pair).params(
             r#"{"a": off-page connector (element or shape id), "b": another of the same type} -> {"tag", "relationship", "net"?, "line"?}; both take one tag (a's when it is free, else the next number), a Continues relationship joins them so each shows where the other is, and their pipe nets merge into one named net; b's pipes take a's line"#,
@@ -115,8 +115,16 @@ fn line_assign(s: &mut Session, v: &Value) -> CmdResult {
     if pipes.is_empty() {
         return Err(EngineError::Params("no pipe to assign: select pipes or name them".into()));
     }
-    let line = match opt_str(v, "line")? {
-        Some(l) => {
+    // Without a line, the one the segments already share, else a new one.
+    let shared = {
+        let lines: HashSet<Option<&String>> = pipes.iter().map(|id| page.connector(id).and_then(|c| c.ext.get(EXT_LINE))).collect();
+        match lines.into_iter().collect::<Vec<_>>().as_slice() {
+            [Some(l)] if s.doc.model.element(l).is_some_and(|e| is_line_type(&e.type_id)) => Some((*l).clone()),
+            _ => None,
+        }
+    };
+    let line = match (opt_str(v, "line")?, shared) {
+        (Some(l), _) if l != "new" => {
             let l = check_len("line", l)?;
             s.doc
                 .model
@@ -125,7 +133,8 @@ fn line_assign(s: &mut Session, v: &Value) -> CmdResult {
                 .ok_or_else(|| EngineError::Params(format!("`{}` is not a line", short(l))))?;
             l.to_string()
         }
-        None => {
+        (None, Some(l)) => l,
+        _ => {
             let air = pipes.iter().any(|id| {
                 s.doc
                     .pages
@@ -246,6 +255,9 @@ fn pair_elements(s: &mut Session, a: &str, b: &str, ty: &str) -> Result<Value, E
             && !taken
         {
             n.name = name;
+            // The partner references already say where the line goes on; the name is for the
+            // net pass only, so it is not written on the line.
+            n.label = vizcraft_model::NetLabel::Off;
         }
         if let Some(o) = out.as_object_mut() {
             o.insert("net".into(), json!(into));
@@ -1130,7 +1142,10 @@ pub(crate) fn loop_diagram(s: &mut Session, v: &Value) -> CmdResult {
         call(s, "sheet.set", json!({"sheet": sh}))?;
     }
     // Five lanes left to right, as ISA-5.4 sections a loop diagram.
-    let (x0, y0) = (60.0, 80.0);
+    // Inside the sheet frame, as long as the most devices one lane holds.
+    let (x0, y0) = (130.0, 120.0);
+    let rows = facts_members.len().max(1) as f64;
+    let lane_len = 200.0 + ROW * rows;
     let set = s.doc.next_id("lanes");
     let mut set_shape = vizcraft_diagram::container::new_lane_set(set.clone(), x0, y0, true, &format!("Loop {tag}"));
     set_shape.sanitize();
@@ -1144,6 +1159,7 @@ pub(crate) fn loop_diagram(s: &mut Session, v: &Value) -> CmdResult {
         let lid = s.doc.next_id("lane");
         let mut lane = vizcraft_diagram::container::new_lane(lid.clone(), t, true);
         lane.w = LANE;
+        lane.h = lane_len;
         let page = s.doc.pages.get_mut(pi).ok_or_else(|| EngineError::Failed("the new page is missing".into()))?;
         vizcraft_diagram::container::add_lane(page, &set, lane, None).map_err(|e| EngineError::Failed(e.to_string()))?;
         lanes.push(lid);
@@ -1208,6 +1224,9 @@ pub(crate) fn loop_diagram(s: &mut Session, v: &Value) -> CmdResult {
     let (mc_strip, mc_strip_shape) =
         make(s, "process.TerminalStrip", Some(mc.clone()), BTreeMap::new(), lane_x(2) + 60.0, top - 10.0, Some(100.0), Some(box_h - 40.0))?;
     shapes.extend([jb_shape.clone(), jb_strip_shape.clone(), mc_shape.clone(), mc_strip_shape.clone()]);
+    for (e, name) in [(&jb, "Junction box"), (&jb_strip, "Terminals"), (&mc, "Marshalling cabinet"), (&mc_strip, "Terminals")] {
+        super::model::rename_element(&mut s.doc, e, name)?;
+    }
     let set_parent = |s: &mut Session, child: &str, parent: &str| {
         if let Some(sh) = s.doc.pages.get_mut(pi).and_then(|p| p.shape_mut(child)) {
             sh.parent = Some(parent.to_string());
@@ -1222,7 +1241,7 @@ pub(crate) fn loop_diagram(s: &mut Session, v: &Value) -> CmdResult {
     for (cable_lane, owner) in [(1usize, lp.clone()), (2usize, lp.clone())] {
         let mut props = BTreeMap::new();
         props.insert("pairs".to_string(), PropValue::Number(pairs));
-        let (cid, cs) = make(s, "process.Cable", Some(owner), props, lane_x(cable_lane) - 20.0, top - 60.0, None, None)?;
+        let (cid, cs) = make(s, "process.Cable", Some(owner), props, lane_x(cable_lane) - 20.0, top + ROW * pairs - 50.0, None, None)?;
         cables.push(cid);
         shapes.push(cs);
     }
@@ -1249,9 +1268,23 @@ pub(crate) fn loop_diagram(s: &mut Session, v: &Value) -> CmdResult {
             Some(d) => json!({"x": d.x + d.w / 2.0, "y": d.y}),
             None => continue,
         };
-        call(s, "wire.draw", json!({"from": from, "to": {"shape": tj, "point": 0}, "type": "process.loopWire"}))?;
-        call(s, "wire.draw", json!({"from": {"shape": tj, "point": 1}, "to": {"shape": tm, "point": 0}, "type": "process.loopWire"}))?;
-        call(s, "wire.draw", json!({"from": {"shape": tm, "point": 1}, "to": {"shape": io, "point": 0}, "type": "process.loopWire"}))?;
+        // Each wire takes one bend halfway across, so it runs straight between the lanes.
+        let pin_at = |s: &Session, end: &Value| -> Option<Point> {
+            match end.get("shape").and_then(Value::as_str) {
+                Some(sh) => s.doc.pages.get(pi)?.shape(sh)?.connection_point_world(end.get("point").and_then(Value::as_u64).unwrap_or(0) as usize),
+                None => Some(Point::new(end.get("x")?.as_f64()?, end.get("y")?.as_f64()?)),
+            }
+        };
+        let legs = [
+            (from, json!({"shape": tj, "point": 0})),
+            (json!({"shape": tj, "point": 1}), json!({"shape": tm, "point": 0})),
+            (json!({"shape": tm, "point": 1}), json!({"shape": io, "point": 0})),
+        ];
+        for (a, b) in legs {
+            let (Some(pa), Some(pb)) = (pin_at(s, &a), pin_at(s, &b)) else { continue };
+            let mx = (pa.x + pb.x) / 2.0;
+            call(s, "wire.draw", json!({"from": a, "to": b, "type": "process.loopWire", "points": [{"x": mx, "y": pa.y}, {"x": mx, "y": pb.y}]}))?;
+        }
     }
     s.sel.clear();
     Ok(json!({"page": s.doc.pages.get(pi).map(|p| p.id.clone()), "shapes": shapes, "cables": cables, "terminals": terminals, "channels": channels}))

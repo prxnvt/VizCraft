@@ -511,6 +511,10 @@ pub struct ElementType {
     /// 64 bytes; an element's own `stereotype` property wins over it. Empty for none.
     #[serde(skip_serializing_if = "String::is_empty")]
     pub keyword: String,
+    /// Draw no port marks on its views (engineering symbols whose pins are understood from the
+    /// symbol, as on a P&ID); subtypes inherit it.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub hide_ports: bool,
 }
 
 /// A compartment an element type declares for its views (`vizcraft_diagram::compartment`).
@@ -577,6 +581,18 @@ pub struct RowFilter {
 }
 
 impl ElementType {
+    /// Whether views of `type_id` draw no port marks: it or a supertype says `hidePorts`.
+    pub fn ports_hidden(cat: &crate::Catalog, type_id: &str) -> bool {
+        let mut at = cat.element_type(type_id).map(|(_, t)| t);
+        for _ in 0..32 {
+            let Some(t) = at else { return false };
+            if t.hide_ports {
+                return true;
+            }
+            at = t.extends.as_deref().and_then(|x| cat.element_type(x)).map(|(_, t)| t);
+        }
+        false
+    }
     /// The property schema for `key`.
     pub fn property(&self, key: &str) -> Option<&PropertySchema> {
         self.properties.iter().find(|p| p.key == key)

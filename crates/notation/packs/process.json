@@ -2228,6 +2228,7 @@
       "label": "Plant Unit",
       "description": "A unit or area of the plant; its number leads the tags of the equipment and loops in it.",
       "glyph": "process.unit",
+      "hidePorts": true,
       "properties": [
         {
           "key": "area",
@@ -2247,6 +2248,7 @@
       "label": "Equipment",
       "description": "A piece of process equipment; its nozzles are the points pipes connect to.",
       "glyph": "process.equipment",
+      "hidePorts": true,
       "properties": [
         {
           "key": "classCode",
@@ -2349,6 +2351,7 @@
       "label": "Vessel",
       "description": "A pressure vessel or drum.",
       "glyph": "process.vessel",
+      "hidePorts": true,
       "properties": [
         {
           "key": "classCode",
@@ -2367,6 +2370,7 @@
       "label": "Tank",
       "description": "A storage tank.",
       "glyph": "process.tank",
+      "hidePorts": true,
       "properties": [
         {
           "key": "classCode",
@@ -2385,6 +2389,7 @@
       "label": "Column",
       "description": "A column or tower with trays or packing.",
       "glyph": "process.column",
+      "hidePorts": true,
       "properties": [
         {
           "key": "classCode",
@@ -2409,6 +2414,7 @@
       "label": "Heat Exchanger",
       "description": "A heat exchanger.",
       "glyph": "process.heatExchanger",
+      "hidePorts": true,
       "properties": [
         {
           "key": "classCode",
@@ -2442,6 +2448,7 @@
       "label": "Pump",
       "description": "A pump.",
       "glyph": "process.pump",
+      "hidePorts": true,
       "properties": [
         {
           "key": "classCode",
@@ -2474,6 +2481,7 @@
       "label": "Compressor",
       "description": "A gas compressor.",
       "glyph": "process.compressor",
+      "hidePorts": true,
       "properties": [
         {
           "key": "classCode",
@@ -2492,6 +2500,7 @@
       "label": "Blower",
       "description": "A blower.",
       "glyph": "process.blower",
+      "hidePorts": true,
       "properties": [
         {
           "key": "classCode",
@@ -2510,6 +2519,7 @@
       "label": "Fan",
       "description": "A fan.",
       "glyph": "process.fan",
+      "hidePorts": true,
       "properties": [
         {
           "key": "classCode",
@@ -2528,6 +2538,7 @@
       "label": "Filter",
       "description": "A filter.",
       "glyph": "process.filter",
+      "hidePorts": true,
       "properties": [
         {
           "key": "classCode",
@@ -2546,6 +2557,7 @@
       "label": "Separator",
       "description": "A separator.",
       "glyph": "process.separator",
+      "hidePorts": true,
       "properties": [
         {
           "key": "classCode",
@@ -2564,6 +2576,7 @@
       "label": "Agitator",
       "description": "An agitator.",
       "glyph": "process.agitator",
+      "hidePorts": true,
       "properties": [
         {
           "key": "classCode",
@@ -2582,6 +2595,7 @@
       "label": "Furnace",
       "description": "A fired heater.",
       "glyph": "process.furnace",
+      "hidePorts": true,
       "properties": [
         {
           "key": "classCode",
@@ -2600,6 +2614,7 @@
       "label": "Dryer",
       "description": "A dryer.",
       "glyph": "process.dryer",
+      "hidePorts": true,
       "properties": [
         {
           "key": "classCode",
@@ -2618,6 +2633,7 @@
       "label": "Cooling Tower",
       "description": "A cooling tower.",
       "glyph": "process.coolingTower",
+      "hidePorts": true,
       "properties": [
         {
           "key": "classCode",
@@ -2636,6 +2652,7 @@
       "label": "Centrifuge",
       "description": "A centrifuge.",
       "glyph": "process.centrifuge",
+      "hidePorts": true,
       "properties": [
         {
           "key": "classCode",
@@ -2654,6 +2671,7 @@
       "label": "Nozzle",
       "description": "A connection on a piece of equipment that pipes join; its tag is the equipment's tag and its own sub-tag (V-101-N1).",
       "glyph": "process.nozzle",
+      "hidePorts": true,
       "properties": [
         {
           "key": "subTag",
@@ -2700,6 +2718,7 @@
       "label": "Line",
       "description": "A pipe line: the segments that carry one line number, through valves and fittings up to a branch.",
       "glyph": "",
+      "hidePorts": true,
       "properties": [
         {
           "key": "nominalDiameter",
@@ -2810,6 +2829,7 @@
       "label": "Duct Run",
       "description": "An air duct run: the segments of one supply, return or exhaust duct.",
       "glyph": "",
+      "hidePorts": true,
       "properties": [
         {
           "key": "service",
@@ -2865,6 +2885,7 @@
       "label": "Piping Component",
       "description": "A valve or fitting in a line; the line keeps its number through it.",
       "glyph": "process.pipingComponent",
+      "hidePorts": true,
       "properties": [
         {
           "key": "nominalDiameter",
@@ -2914,6 +2935,7 @@
       "label": "Gate Valve",
       "description": "A gate valve.",
       "glyph": "process.gateValve",
+      "hidePorts": true,
       "properties": [
         {
           "key": "letters",
@@ -2974,6 +2996,7 @@
       "label": "Globe Valve",
       "description": "A globe valve.",
       "glyph": "process.globeValve",
+      "hidePorts": true,
       "properties": [
         {
           "key": "letters",
@@ -3034,6 +3057,7 @@
       "label": "Ball Valve",
       "description": "A ball valve.",
       "glyph": "process.ballValve",
+      "hidePorts": true,
       "properties": [
         {
           "key": "letters",
@@ -3094,6 +3118,7 @@
       "label": "Butterfly Valve",
       "description": "A butterfly valve.",
       "glyph": "process.butterflyValve",
+      "hidePorts": true,
       "properties": [
         {
           "key": "letters",
@@ -3154,6 +3179,7 @@
       "label": "Plug Valve",
       "description": "A plug valve.",
       "glyph": "process.plugValve",
+      "hidePorts": true,
       "properties": [
         {
           "key": "letters",
@@ -3214,6 +3240,7 @@
       "label": "Needle Valve",
       "description": "A needle valve.",
       "glyph": "process.needleValve",
+      "hidePorts": true,
       "properties": [
         {
           "key": "letters",
@@ -3274,6 +3301,7 @@
       "label": "Check Valve",
       "description": "A check valve.",
       "glyph": "process.checkValve",
+      "hidePorts": true,
       "properties": [
         {
           "key": "letters",
@@ -3334,6 +3362,7 @@
       "label": "Diaphragm Valve",
       "description": "A diaphragm valve.",
       "glyph": "process.diaphragmValve",
+      "hidePorts": true,
       "properties": [
         {
           "key": "letters",
@@ -3394,6 +3423,7 @@
       "label": "Angle Valve",
       "description": "A angle valve.",
       "glyph": "process.angleValve",
+      "hidePorts": true,
       "properties": [
         {
           "key": "letters",
@@ -3454,6 +3484,7 @@
       "label": "Three-way Valve",
       "description": "A three-way valve.",
       "glyph": "process.threeWayValve",
+      "hidePorts": true,
       "properties": [
         {
           "key": "letters",
@@ -3514,6 +3545,7 @@
       "label": "Safety Valve",
       "description": "A safety valve.",
       "glyph": "process.safetyValve",
+      "hidePorts": true,
       "properties": [
         {
           "key": "letters",
@@ -3596,6 +3628,7 @@
       "label": "Reducer",
       "description": "A reducer.",
       "glyph": "process.reducer",
+      "hidePorts": true,
       "ports": [
         {
           "id": "1",
@@ -3619,6 +3652,7 @@
       "label": "Strainer",
       "description": "A strainer.",
       "glyph": "process.strainer",
+      "hidePorts": true,
       "ports": [
         {
           "id": "1",
@@ -3642,6 +3676,7 @@
       "label": "Flange Pair",
       "description": "A flange pair.",
       "glyph": "process.flange",
+      "hidePorts": true,
       "ports": [
         {
           "id": "1",
@@ -3665,6 +3700,7 @@
       "label": "Line Blind",
       "description": "A line blind.",
       "glyph": "process.lineBlind",
+      "hidePorts": true,
       "ports": [
         {
           "id": "1",
@@ -3688,6 +3724,7 @@
       "label": "Cap",
       "description": "A cap.",
       "glyph": "process.cap",
+      "hidePorts": true,
       "ports": [
         {
           "id": "1",
@@ -3704,6 +3741,7 @@
       "label": "Off-page Connector",
       "description": "Where a line continues on another sheet; two connectors with the same tag are partners, and each shows where the other is.",
       "glyph": "process.pipeOffPage",
+      "hidePorts": true,
       "properties": [
         {
           "key": "drawing",
@@ -3746,6 +3784,7 @@
       "label": "Instrument",
       "description": "An instrument function: a bubble whose tag is its letters and its loop's number (LIC-101).",
       "glyph": "process.instrument",
+      "hidePorts": true,
       "properties": [
         {
           "key": "letters",
@@ -3854,6 +3893,7 @@
       "label": "Inline Primary Element",
       "description": "A primary element set in the line (an orifice plate, a flow tube); the line runs on through it.",
       "glyph": "process.primaryElement",
+      "hidePorts": true,
       "properties": [
         {
           "key": "letters",
@@ -3918,6 +3958,7 @@
       "label": "Signal Off-page Connector",
       "description": "Where a signal continues on another sheet; partners share a tag.",
       "glyph": "process.signalOffPage",
+      "hidePorts": true,
       "properties": [
         {
           "key": "drawing",
@@ -3959,6 +4000,7 @@
       "label": "Loop",
       "description": "An instrument loop: the instruments and valves that measure and control one variable; its number completes their tags.",
       "glyph": "process.loop",
+      "hidePorts": true,
       "properties": [
         {
           "key": "variable",
@@ -4005,6 +4047,7 @@
       "label": "Junction Box",
       "description": "A field junction box holding terminal strips.",
       "glyph": "process.junctionBox",
+      "hidePorts": true,
       "properties": [
         {
           "key": "area",
@@ -4023,6 +4066,7 @@
       "label": "Terminal Strip",
       "description": "A strip of terminals in a junction box or cabinet.",
       "glyph": "process.terminalStrip",
+      "hidePorts": true,
       "container": true,
       "allowedParents": [
         "process.JunctionBox",
@@ -4035,6 +4079,7 @@
       "label": "Terminal",
       "description": "A terminal: the wire landed on one side passes through to the other.",
       "glyph": "process.terminal",
+      "hidePorts": true,
       "properties": [
         {
           "key": "number",
@@ -4069,6 +4114,7 @@
       "label": "Cable",
       "description": "A cable carrying the loop's pairs; its tag is the loop number and its own number (101-C1).",
       "glyph": "process.cable",
+      "hidePorts": true,
       "properties": [
         {
           "key": "pairs",
@@ -4098,6 +4144,7 @@
       "label": "Marshalling Cabinet",
       "description": "A cabinet where field cables are cross-wired to the control system.",
       "glyph": "process.marshallingCabinet",
+      "hidePorts": true,
       "container": true,
       "allowedParents": [
         "process.Unit",
@@ -4109,6 +4156,7 @@
       "label": "I/O Channel",
       "description": "A channel of a control system I/O card; its tag is rack, slot and channel (1.4.2).",
       "glyph": "process.ioChannel",
+      "hidePorts": true,
       "properties": [
         {
           "key": "rack",
@@ -4161,6 +4209,7 @@
       "label": "Barrier",
       "description": "An intrinsic safety barrier or isolator in the signal path.",
       "glyph": "process.barrier",
+      "hidePorts": true,
       "ports": [
         {
           "id": "1",
@@ -4183,6 +4232,7 @@
       "label": "Power Supply",
       "description": "A loop power supply.",
       "glyph": "process.powerSupply",
+      "hidePorts": true,
       "properties": [
         {
           "key": "voltage",
@@ -4205,6 +4255,7 @@
       "label": "Air Handling Unit",
       "description": "An air handling unit.",
       "glyph": "process.airHandlingUnit",
+      "hidePorts": true,
       "properties": [
         {
           "key": "classCode",
@@ -4246,6 +4297,7 @@
       "label": "Coil",
       "description": "A heating or cooling coil: air passes across it, water through it.",
       "glyph": "process.coil",
+      "hidePorts": true,
       "properties": [
         {
           "key": "classCode",
@@ -4307,6 +4359,7 @@
       "label": "Humidifier",
       "description": "A humidifier.",
       "glyph": "process.humidifier",
+      "hidePorts": true,
       "properties": [
         {
           "key": "classCode",
@@ -4341,6 +4394,7 @@
       "label": "Damper",
       "description": "A damper in a duct.",
       "glyph": "process.damper",
+      "hidePorts": true,
       "properties": [
         {
           "key": "kind",
@@ -4432,6 +4486,7 @@
       "label": "Diffuser",
       "description": "A supply diffuser or return grille.",
       "glyph": "process.diffuser",
+      "hidePorts": true,
       "properties": [
         {
           "key": "kind",
@@ -4466,6 +4521,7 @@
       "label": "Terminal Unit",
       "description": "A VAV or CAV terminal unit.",
       "glyph": "process.terminalUnit",
+      "hidePorts": true,
       "properties": [
         {
           "key": "classCode",
@@ -4525,6 +4581,7 @@
       "label": "Silencer",
       "description": "A duct silencer.",
       "glyph": "process.silencer",
+      "hidePorts": true,
       "ports": [
         {
           "id": "1",
@@ -4548,6 +4605,7 @@
       "label": "Chiller",
       "description": "A water chiller.",
       "glyph": "process.chiller",
+      "hidePorts": true,
       "properties": [
         {
           "key": "classCode",
@@ -4589,6 +4647,7 @@
       "label": "Boiler",
       "description": "A boiler.",
       "glyph": "process.boiler",
+      "hidePorts": true,
       "properties": [
         {
           "key": "classCode",
@@ -4630,6 +4689,7 @@
       "label": "Fixture",
       "description": "A plumbing fixture with its fixture units.",
       "glyph": "process.fixture",
+      "hidePorts": true,
       "properties": [
         {
           "key": "kind",
@@ -4688,6 +4748,7 @@
       "label": "Water Heater",
       "description": "A water heater.",
       "glyph": "process.waterHeater",
+      "hidePorts": true,
       "properties": [
         {
           "key": "classCode",
@@ -4722,6 +4783,7 @@
       "label": "Backflow Preventer",
       "description": "A backflow preventer.",
       "glyph": "process.backflowPreventer",
+      "hidePorts": true,
       "ports": [
         {
           "id": "1",
@@ -4745,6 +4807,7 @@
       "label": "Water Meter",
       "description": "A water meter.",
       "glyph": "process.waterMeter",
+      "hidePorts": true,
       "ports": [
         {
           "id": "1",
@@ -4768,6 +4831,7 @@
       "label": "Elbow",
       "description": "An elbow where an isometric run turns.",
       "glyph": "process.elbow",
+      "hidePorts": true,
       "ports": [
         {
           "id": "c",
@@ -4784,6 +4848,7 @@
       "label": "Tee",
       "description": "A tee where a branch leaves an isometric run.",
       "glyph": "process.tee",
+      "hidePorts": true,
       "ports": [
         {
           "id": "c",
@@ -4800,6 +4865,7 @@
       "label": "Weld",
       "description": "A weld on an isometric: shop welds solid, field welds hollow.",
       "glyph": "process.weld",
+      "hidePorts": true,
       "properties": [
         {
           "key": "kind",
@@ -4823,6 +4889,7 @@
       "label": "Pipe Support",
       "description": "A pipe support.",
       "glyph": "process.pipeSupport",
+      "hidePorts": true,
       "properties": [
         {
           "key": "kind",
@@ -4842,13 +4909,15 @@
       "id": "process.NorthArrow",
       "label": "North Arrow",
       "description": "The plant north of an isometric.",
-      "glyph": "process.northArrow"
+      "glyph": "process.northArrow",
+      "hidePorts": true
     },
     {
       "id": "process.BillOfMaterials",
       "label": "Bill of Materials",
       "description": "The list of valves and fittings on the drawing, kept from the model.",
       "glyph": "process.billOfMaterials",
+      "hidePorts": true,
       "properties": [
         {
           "key": "types",
@@ -6203,6 +6272,2377 @@
         "sheet.drawingSheet"
       ],
       "liveChecks": true
+    }
+  ],
+  "examples": [
+    {
+      "rulesets": [
+        "process.iso10628",
+        "sheet.drawingSheet"
+      ],
+      "id": "process.pidExample",
+      "label": "P&ID: feed drum level control",
+      "description": "A feed drum with three nozzles, an inlet line through a level control valve, level loop 101 (LT, LIC, LV), relief valve PSV-101, feed pump P-101A and a pair of off-page connectors to a second sheet.",
+      "discipline": "engineering",
+      "audience": [
+        "engineering",
+        "industrial"
+      ],
+      "keywords": [
+        "p&id",
+        "level loop",
+        "relief valve",
+        "off page"
+      ],
+      "viewpoint": "process.PID",
+      "variant": "process.iso",
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true,
+      "module": "iso2_5mm",
+      "seed": [
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "title",
+            "value": "Feed drum P&ID"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "legalOwner",
+            "value": "Example Process Co."
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "identificationNumber",
+            "value": "EX-0001"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "dateOfIssue",
+            "value": "2026-10-20"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "approvalPerson",
+            "value": "A. Approver"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "creator",
+            "value": "VizCraft"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "documentType",
+            "value": "flow diagram"
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.Unit",
+            "name": "Unit 1"
+          },
+          "as": "unit"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.Vessel",
+            "x": 420,
+            "y": 300,
+            "owner": "${unit.id}",
+            "name": "Feed drum"
+          },
+          "as": "v"
+        },
+        {
+          "command": "plant.addNozzle",
+          "params": {
+            "shape": "${v.shape}",
+            "side": "left"
+          },
+          "as": "n1"
+        },
+        {
+          "command": "plant.addNozzle",
+          "params": {
+            "shape": "${v.shape}",
+            "side": "right"
+          },
+          "as": "n2"
+        },
+        {
+          "command": "plant.addNozzle",
+          "params": {
+            "shape": "${v.shape}",
+            "side": "top"
+          },
+          "as": "n3"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.GlobeValve",
+            "x": 180,
+            "y": 360,
+            "properties": {
+              "letters": "LV",
+              "actuator": "diaphragm",
+              "fail": "FC"
+            }
+          },
+          "as": "lv"
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "x": 120,
+              "y": 389
+            },
+            "to": {
+              "shape": "${lv.shape}",
+              "point": 0
+            },
+            "type": "process.processLine"
+          },
+          "as": "w1"
+        },
+        {
+          "command": "line.assign",
+          "params": {
+            "connectors": [
+              "${w1.id}"
+            ]
+          },
+          "as": "l1"
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${l1.line}",
+            "key": "nominalDiameter",
+            "value": "3in"
+          }
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${l1.line}",
+            "key": "fluidCode",
+            "value": "P"
+          }
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${l1.line}",
+            "key": "pipingClass",
+            "value": "A1"
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${lv.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${n1.shape}",
+              "point": 0
+            },
+            "type": "process.processLine"
+          },
+          "as": "w2"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.ProcessInstrumentationFunction",
+            "x": 320,
+            "y": 140,
+            "properties": {
+              "letters": "LT"
+            }
+          },
+          "as": "lt"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.ProcessInstrumentationFunction",
+            "x": 180,
+            "y": 140,
+            "properties": {
+              "letters": "LIC",
+              "system": "sharedDisplay",
+              "location": "panelFront"
+            }
+          },
+          "as": "lic"
+        },
+        {
+          "command": "loop.create",
+          "params": {
+            "members": [
+              "${lt.id}",
+              "${lic.id}",
+              "${lv.id}"
+            ],
+            "unit": "${unit.id}",
+            "service": "Feed drum level"
+          },
+          "as": "lvl"
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${lt.shape}",
+              "point": 3
+            },
+            "to": {
+              "shape": "${lic.shape}",
+              "point": 1
+            },
+            "kind": "process.electricSignal"
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${lic.shape}",
+              "point": 2
+            },
+            "to": {
+              "shape": "${lv.shape}"
+            },
+            "kind": "process.electricSignal"
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${lt.shape}",
+              "point": 2
+            },
+            "to": {
+              "shape": "${v.shape}"
+            },
+            "kind": "process.measures"
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.SafetyValveOrFitting",
+            "x": 440,
+            "y": 120,
+            "properties": {
+              "letters": "PSV",
+              "setPressure": 10,
+              "inletSize": "1in",
+              "outletSize": "2in"
+            }
+          },
+          "as": "psv"
+        },
+        {
+          "command": "loop.create",
+          "params": {
+            "members": [
+              "${psv.id}"
+            ],
+            "variable": "P",
+            "loopType": "safety",
+            "unit": "${unit.id}"
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${n3.shape}",
+              "point": 0
+            },
+            "to": {
+              "shape": "${psv.shape}",
+              "point": 0
+            },
+            "type": "process.processLine"
+          },
+          "as": "w3"
+        },
+        {
+          "command": "line.assign",
+          "params": {
+            "connectors": [
+              "${w3.id}"
+            ]
+          },
+          "as": "l3"
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${l3.line}",
+            "key": "nominalDiameter",
+            "value": "1in"
+          }
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${l3.line}",
+            "key": "fluidCode",
+            "value": "P"
+          }
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${l3.line}",
+            "key": "pipingClass",
+            "value": "A1"
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${psv.shape}",
+              "point": 1
+            },
+            "to": {
+              "x": 660,
+              "y": 150
+            },
+            "type": "process.processLine",
+            "points": [
+              {
+                "x": 660,
+                "y": 150
+              }
+            ]
+          },
+          "as": "w4"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.Pump",
+            "x": 700,
+            "y": 520,
+            "owner": "${unit.id}",
+            "name": "Feed pump",
+            "properties": {
+              "suffix": "A"
+            }
+          },
+          "as": "p"
+        },
+        {
+          "command": "plant.addNozzle",
+          "params": {
+            "shape": "${p.shape}",
+            "side": "left"
+          },
+          "as": "p1"
+        },
+        {
+          "command": "plant.addNozzle",
+          "params": {
+            "shape": "${p.shape}",
+            "side": "right"
+          },
+          "as": "p2"
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${n2.shape}",
+              "point": 0
+            },
+            "to": {
+              "shape": "${p1.shape}",
+              "point": 0
+            },
+            "type": "process.processLine"
+          },
+          "as": "w5"
+        },
+        {
+          "command": "line.assign",
+          "params": {
+            "connectors": [
+              "${w5.id}"
+            ]
+          },
+          "as": "l5"
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${l5.line}",
+            "key": "nominalDiameter",
+            "value": "3in"
+          }
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${l5.line}",
+            "key": "fluidCode",
+            "value": "P"
+          }
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${l5.line}",
+            "key": "pipingClass",
+            "value": "A1"
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.PipeOffPageConnector",
+            "x": 920,
+            "y": 540
+          },
+          "as": "op"
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${p2.shape}",
+              "point": 0
+            },
+            "to": {
+              "shape": "${op.shape}",
+              "point": 0
+            },
+            "type": "process.processLine"
+          },
+          "as": "w6"
+        },
+        {
+          "command": "line.assign",
+          "params": {
+            "connectors": [
+              "${w6.id}"
+            ]
+          },
+          "as": "l6"
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${l6.line}",
+            "key": "nominalDiameter",
+            "value": "2in"
+          }
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${l6.line}",
+            "key": "fluidCode",
+            "value": "P"
+          }
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${l6.line}",
+            "key": "pipingClass",
+            "value": "A1"
+          }
+        },
+        {
+          "command": "page.add",
+          "params": {
+            "name": "Sheet 2"
+          }
+        },
+        {
+          "command": "model.setViewpoint",
+          "params": {
+            "viewpoint": "process.PID"
+          }
+        },
+        {
+          "command": "sheet.set",
+          "params": {}
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.PipeOffPageConnector",
+            "x": 160,
+            "y": 400
+          },
+          "as": "op2"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.Tank",
+            "x": 360,
+            "y": 340,
+            "owner": "${unit.id}",
+            "name": "Product tank"
+          },
+          "as": "tk"
+        },
+        {
+          "command": "plant.addNozzle",
+          "params": {
+            "shape": "${tk.shape}",
+            "side": "left"
+          },
+          "as": "t1"
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${op2.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${t1.shape}",
+              "point": 0
+            },
+            "type": "process.processLine"
+          },
+          "as": "w7"
+        },
+        {
+          "command": "offpage.pair",
+          "params": {
+            "a": "${op.id}",
+            "b": "${op2.id}"
+          }
+        },
+        {
+          "command": "page.setActive",
+          "params": {
+            "page": "0"
+          }
+        }
+      ]
+    },
+    {
+      "rulesets": [
+        "process.iso10628",
+        "sheet.drawingSheet"
+      ],
+      "id": "process.loopExample",
+      "label": "Loop diagram: level loop 101",
+      "description": "The feed drum P&ID with the ISA-5.4 loop diagram of its level loop drawn by loop.diagram: field devices, junction box, marshalling, the control system channels.",
+      "discipline": "engineering",
+      "audience": [
+        "engineering",
+        "industrial"
+      ],
+      "keywords": [
+        "loop diagram",
+        "isa 5.4",
+        "junction box"
+      ],
+      "viewpoint": "process.PID",
+      "variant": "process.iso",
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true,
+      "module": "iso2_5mm",
+      "seed": [
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "title",
+            "value": "Feed drum P&ID"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "legalOwner",
+            "value": "Example Process Co."
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "identificationNumber",
+            "value": "EX-0001"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "dateOfIssue",
+            "value": "2026-10-20"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "approvalPerson",
+            "value": "A. Approver"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "creator",
+            "value": "VizCraft"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "documentType",
+            "value": "flow diagram"
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.Unit",
+            "name": "Unit 1"
+          },
+          "as": "unit"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.Vessel",
+            "x": 420,
+            "y": 300,
+            "owner": "${unit.id}",
+            "name": "Feed drum"
+          },
+          "as": "v"
+        },
+        {
+          "command": "plant.addNozzle",
+          "params": {
+            "shape": "${v.shape}",
+            "side": "left"
+          },
+          "as": "n1"
+        },
+        {
+          "command": "plant.addNozzle",
+          "params": {
+            "shape": "${v.shape}",
+            "side": "right"
+          },
+          "as": "n2"
+        },
+        {
+          "command": "plant.addNozzle",
+          "params": {
+            "shape": "${v.shape}",
+            "side": "top"
+          },
+          "as": "n3"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.GlobeValve",
+            "x": 180,
+            "y": 360,
+            "properties": {
+              "letters": "LV",
+              "actuator": "diaphragm",
+              "fail": "FC"
+            }
+          },
+          "as": "lv"
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "x": 120,
+              "y": 389
+            },
+            "to": {
+              "shape": "${lv.shape}",
+              "point": 0
+            },
+            "type": "process.processLine"
+          },
+          "as": "w1"
+        },
+        {
+          "command": "line.assign",
+          "params": {
+            "connectors": [
+              "${w1.id}"
+            ]
+          },
+          "as": "l1"
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${l1.line}",
+            "key": "nominalDiameter",
+            "value": "3in"
+          }
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${l1.line}",
+            "key": "fluidCode",
+            "value": "P"
+          }
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${l1.line}",
+            "key": "pipingClass",
+            "value": "A1"
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${lv.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${n1.shape}",
+              "point": 0
+            },
+            "type": "process.processLine"
+          },
+          "as": "w2"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.ProcessInstrumentationFunction",
+            "x": 320,
+            "y": 140,
+            "properties": {
+              "letters": "LT"
+            }
+          },
+          "as": "lt"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.ProcessInstrumentationFunction",
+            "x": 180,
+            "y": 140,
+            "properties": {
+              "letters": "LIC",
+              "system": "sharedDisplay",
+              "location": "panelFront"
+            }
+          },
+          "as": "lic"
+        },
+        {
+          "command": "loop.create",
+          "params": {
+            "members": [
+              "${lt.id}",
+              "${lic.id}",
+              "${lv.id}"
+            ],
+            "unit": "${unit.id}",
+            "service": "Feed drum level"
+          },
+          "as": "lvl"
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${lt.shape}",
+              "point": 3
+            },
+            "to": {
+              "shape": "${lic.shape}",
+              "point": 1
+            },
+            "kind": "process.electricSignal"
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${lic.shape}",
+              "point": 2
+            },
+            "to": {
+              "shape": "${lv.shape}"
+            },
+            "kind": "process.electricSignal"
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${lt.shape}",
+              "point": 2
+            },
+            "to": {
+              "shape": "${v.shape}"
+            },
+            "kind": "process.measures"
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.SafetyValveOrFitting",
+            "x": 440,
+            "y": 120,
+            "properties": {
+              "letters": "PSV",
+              "setPressure": 10,
+              "inletSize": "1in",
+              "outletSize": "2in"
+            }
+          },
+          "as": "psv"
+        },
+        {
+          "command": "loop.create",
+          "params": {
+            "members": [
+              "${psv.id}"
+            ],
+            "variable": "P",
+            "loopType": "safety",
+            "unit": "${unit.id}"
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${n3.shape}",
+              "point": 0
+            },
+            "to": {
+              "shape": "${psv.shape}",
+              "point": 0
+            },
+            "type": "process.processLine"
+          },
+          "as": "w3"
+        },
+        {
+          "command": "line.assign",
+          "params": {
+            "connectors": [
+              "${w3.id}"
+            ]
+          },
+          "as": "l3"
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${l3.line}",
+            "key": "nominalDiameter",
+            "value": "1in"
+          }
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${l3.line}",
+            "key": "fluidCode",
+            "value": "P"
+          }
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${l3.line}",
+            "key": "pipingClass",
+            "value": "A1"
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${psv.shape}",
+              "point": 1
+            },
+            "to": {
+              "x": 660,
+              "y": 150
+            },
+            "type": "process.processLine",
+            "points": [
+              {
+                "x": 660,
+                "y": 150
+              }
+            ]
+          },
+          "as": "w4"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.Pump",
+            "x": 700,
+            "y": 520,
+            "owner": "${unit.id}",
+            "name": "Feed pump",
+            "properties": {
+              "suffix": "A"
+            }
+          },
+          "as": "p"
+        },
+        {
+          "command": "plant.addNozzle",
+          "params": {
+            "shape": "${p.shape}",
+            "side": "left"
+          },
+          "as": "p1"
+        },
+        {
+          "command": "plant.addNozzle",
+          "params": {
+            "shape": "${p.shape}",
+            "side": "right"
+          },
+          "as": "p2"
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${n2.shape}",
+              "point": 0
+            },
+            "to": {
+              "shape": "${p1.shape}",
+              "point": 0
+            },
+            "type": "process.processLine"
+          },
+          "as": "w5"
+        },
+        {
+          "command": "line.assign",
+          "params": {
+            "connectors": [
+              "${w5.id}"
+            ]
+          },
+          "as": "l5"
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${l5.line}",
+            "key": "nominalDiameter",
+            "value": "3in"
+          }
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${l5.line}",
+            "key": "fluidCode",
+            "value": "P"
+          }
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${l5.line}",
+            "key": "pipingClass",
+            "value": "A1"
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.PipeOffPageConnector",
+            "x": 920,
+            "y": 540
+          },
+          "as": "op"
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${p2.shape}",
+              "point": 0
+            },
+            "to": {
+              "shape": "${op.shape}",
+              "point": 0
+            },
+            "type": "process.processLine"
+          },
+          "as": "w6"
+        },
+        {
+          "command": "line.assign",
+          "params": {
+            "connectors": [
+              "${w6.id}"
+            ]
+          },
+          "as": "l6"
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${l6.line}",
+            "key": "nominalDiameter",
+            "value": "2in"
+          }
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${l6.line}",
+            "key": "fluidCode",
+            "value": "P"
+          }
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${l6.line}",
+            "key": "pipingClass",
+            "value": "A1"
+          }
+        },
+        {
+          "command": "page.add",
+          "params": {
+            "name": "Sheet 2"
+          }
+        },
+        {
+          "command": "model.setViewpoint",
+          "params": {
+            "viewpoint": "process.PID"
+          }
+        },
+        {
+          "command": "sheet.set",
+          "params": {}
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.PipeOffPageConnector",
+            "x": 160,
+            "y": 400
+          },
+          "as": "op2"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.Tank",
+            "x": 360,
+            "y": 340,
+            "owner": "${unit.id}",
+            "name": "Product tank"
+          },
+          "as": "tk"
+        },
+        {
+          "command": "plant.addNozzle",
+          "params": {
+            "shape": "${tk.shape}",
+            "side": "left"
+          },
+          "as": "t1"
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${op2.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${t1.shape}",
+              "point": 0
+            },
+            "type": "process.processLine"
+          },
+          "as": "w7"
+        },
+        {
+          "command": "offpage.pair",
+          "params": {
+            "a": "${op.id}",
+            "b": "${op2.id}"
+          }
+        },
+        {
+          "command": "page.setActive",
+          "params": {
+            "page": "0"
+          }
+        },
+        {
+          "command": "loop.diagram",
+          "params": {
+            "loop": "${lvl.id}",
+            "sheet": "iso.a3.landscape"
+          }
+        },
+        {
+          "command": "page.setActive",
+          "params": {
+            "page": "0"
+          }
+        }
+      ]
+    },
+    {
+      "rulesets": [
+        "process.pfd",
+        "sheet.drawingSheet"
+      ],
+      "id": "process.pfdExample",
+      "label": "PFD: crude stabiliser",
+      "description": "Feed tank, preheater, stabiliser column, bottoms pump and product tank with numbered streams and their conditions.",
+      "discipline": "engineering",
+      "audience": [
+        "engineering",
+        "industrial"
+      ],
+      "keywords": [
+        "pfd",
+        "streams",
+        "column",
+        "stabiliser"
+      ],
+      "viewpoint": "process.PFD",
+      "variant": "process.iso",
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true,
+      "module": "iso2_5mm",
+      "seed": [
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "title",
+            "value": "Crude stabiliser PFD"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "legalOwner",
+            "value": "Example Process Co."
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "identificationNumber",
+            "value": "EX-0001"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "dateOfIssue",
+            "value": "2026-10-20"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "approvalPerson",
+            "value": "A. Approver"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "creator",
+            "value": "VizCraft"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "documentType",
+            "value": "flow diagram"
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.Unit",
+            "name": "Unit 2"
+          },
+          "as": "unit"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.Tank",
+            "x": 160,
+            "y": 340,
+            "owner": "${unit.id}",
+            "name": "Feed tank"
+          },
+          "as": "feed"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.HeatExchanger",
+            "x": 400,
+            "y": 380,
+            "owner": "${unit.id}",
+            "name": "Feed preheater"
+          },
+          "as": "e"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.ProcessColumn",
+            "x": 680,
+            "y": 260,
+            "owner": "${unit.id}",
+            "name": "Stabiliser"
+          },
+          "as": "c"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.Pump",
+            "x": 900,
+            "y": 520,
+            "owner": "${unit.id}",
+            "name": "Bottoms pump"
+          },
+          "as": "p"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.Tank",
+            "x": 1140,
+            "y": 500,
+            "owner": "${unit.id}",
+            "name": "Product tank"
+          },
+          "as": "prod"
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${feed.shape}"
+            },
+            "to": {
+              "shape": "${e.shape}"
+            },
+            "kind": "process.stream",
+            "text": "1"
+          },
+          "as": "s1"
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${e.shape}"
+            },
+            "to": {
+              "shape": "${c.shape}"
+            },
+            "kind": "process.stream",
+            "text": "2"
+          },
+          "as": "s2"
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${c.shape}"
+            },
+            "to": {
+              "shape": "${p.shape}"
+            },
+            "kind": "process.stream",
+            "text": "3"
+          },
+          "as": "s3"
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${p.shape}"
+            },
+            "to": {
+              "shape": "${prod.shape}"
+            },
+            "kind": "process.stream",
+            "text": "4"
+          },
+          "as": "s4"
+        },
+        {
+          "command": "relationship.setProperty",
+          "params": {
+            "id": "${s1.id}",
+            "key": "flow",
+            "value": 12000
+          }
+        },
+        {
+          "command": "relationship.setProperty",
+          "params": {
+            "id": "${s1.id}",
+            "key": "temperature",
+            "value": 25
+          }
+        },
+        {
+          "command": "relationship.setProperty",
+          "params": {
+            "id": "${s2.id}",
+            "key": "temperature",
+            "value": 120
+          }
+        },
+        {
+          "command": "relationship.setProperty",
+          "params": {
+            "id": "${s2.id}",
+            "key": "phase",
+            "value": "mixed"
+          }
+        }
+      ]
+    },
+    {
+      "rulesets": [
+        "process.hvac",
+        "sheet.drawingSheet"
+      ],
+      "id": "process.hvacExample",
+      "label": "HVAC: air handling with VAV zones",
+      "description": "An air handling unit with a chilled water coil, two VAV boxes and their diffusers, and the chiller.",
+      "discipline": "engineering",
+      "audience": [
+        "engineering",
+        "industrial"
+      ],
+      "keywords": [
+        "hvac",
+        "ahu",
+        "vav",
+        "chilled water"
+      ],
+      "viewpoint": "process.HVAC",
+      "variant": "",
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true,
+      "module": "iso2_5mm",
+      "seed": [
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "title",
+            "value": "AHU-1 air and chilled water"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "legalOwner",
+            "value": "Example Process Co."
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "identificationNumber",
+            "value": "EX-0001"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "dateOfIssue",
+            "value": "2026-10-20"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "approvalPerson",
+            "value": "A. Approver"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "creator",
+            "value": "VizCraft"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "documentType",
+            "value": "flow diagram"
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.AirHandlingUnit",
+            "x": 140,
+            "y": 360,
+            "name": "AHU-1"
+          },
+          "as": "ahu"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.Coil",
+            "x": 380,
+            "y": 370,
+            "name": "Cooling coil"
+          },
+          "as": "cc"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.TerminalUnit",
+            "x": 640,
+            "y": 240,
+            "name": "Zone 1"
+          },
+          "as": "vav1"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.TerminalUnit",
+            "x": 640,
+            "y": 520,
+            "name": "Zone 2"
+          },
+          "as": "vav2"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.Diffuser",
+            "x": 880,
+            "y": 340
+          },
+          "as": "d1"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.Diffuser",
+            "x": 880,
+            "y": 620
+          },
+          "as": "d2"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.Chiller",
+            "x": 160,
+            "y": 640,
+            "name": "Chiller"
+          },
+          "as": "ch"
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${ahu.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${cc.shape}",
+              "point": 0
+            },
+            "type": "process.supplyAir"
+          },
+          "as": "a1"
+        },
+        {
+          "command": "line.assign",
+          "params": {
+            "connectors": [
+              "${a1.id}"
+            ]
+          },
+          "as": "a1l"
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${a1l.line}",
+            "key": "size",
+            "value": "800x500"
+          }
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${a1l.line}",
+            "key": "airflow",
+            "value": 6000
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${cc.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${vav1.shape}",
+              "point": 0
+            },
+            "type": "process.supplyAir",
+            "points": [
+              {
+                "x": 560,
+                "y": 400
+              },
+              {
+                "x": 560,
+                "y": 260
+              }
+            ]
+          },
+          "as": "a2"
+        },
+        {
+          "command": "line.assign",
+          "params": {
+            "connectors": [
+              "${a2.id}"
+            ]
+          },
+          "as": "a2l"
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${a2l.line}",
+            "key": "size",
+            "value": "600x400"
+          }
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${a2l.line}",
+            "key": "airflow",
+            "value": 3000
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${cc.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${vav2.shape}",
+              "point": 0
+            },
+            "type": "process.supplyAir",
+            "points": [
+              {
+                "x": 560,
+                "y": 400
+              },
+              {
+                "x": 560,
+                "y": 540
+              }
+            ]
+          },
+          "as": "a3"
+        },
+        {
+          "command": "line.assign",
+          "params": {
+            "connectors": [
+              "${a3.id}"
+            ]
+          },
+          "as": "a3l"
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${a3l.line}",
+            "key": "size",
+            "value": "600x400"
+          }
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${a3l.line}",
+            "key": "airflow",
+            "value": 3000
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${vav1.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${d1.shape}",
+              "point": 0
+            },
+            "type": "process.supplyAir",
+            "points": [
+              {
+                "x": 900,
+                "y": 260
+              }
+            ]
+          },
+          "as": "a4"
+        },
+        {
+          "command": "line.assign",
+          "params": {
+            "connectors": [
+              "${a4.id}"
+            ]
+          },
+          "as": "a4l"
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${a4l.line}",
+            "key": "size",
+            "value": "300"
+          }
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${a4l.line}",
+            "key": "airflow",
+            "value": 1500
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${vav2.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${d2.shape}",
+              "point": 0
+            },
+            "type": "process.supplyAir",
+            "points": [
+              {
+                "x": 900,
+                "y": 540
+              }
+            ]
+          },
+          "as": "a5"
+        },
+        {
+          "command": "line.assign",
+          "params": {
+            "connectors": [
+              "${a5.id}"
+            ]
+          },
+          "as": "a5l"
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${a5l.line}",
+            "key": "size",
+            "value": "300"
+          }
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${a5l.line}",
+            "key": "airflow",
+            "value": 1500
+          }
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${ch.shape}",
+              "point": 0
+            },
+            "to": {
+              "shape": "${cc.shape}",
+              "point": 2
+            },
+            "type": "process.chilledWaterSupply",
+            "points": [
+              {
+                "x": 400,
+                "y": 655
+              },
+              {
+                "x": 400,
+                "y": 600
+              }
+            ]
+          },
+          "as": "cw1"
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${cc.shape}",
+              "point": 3
+            },
+            "to": {
+              "shape": "${ch.shape}",
+              "point": 1
+            },
+            "type": "process.chilledWaterReturn",
+            "points": [
+              {
+                "x": 420,
+                "y": 600
+              },
+              {
+                "x": 420,
+                "y": 685
+              }
+            ]
+          },
+          "as": "cw2"
+        }
+      ]
+    },
+    {
+      "rulesets": [
+        "process.plumbing",
+        "sheet.drawingSheet"
+      ],
+      "id": "process.plumbingExample",
+      "label": "Plumbing: domestic water riser",
+      "description": "A water meter and backflow preventer feed a cold water riser and a water heater; three floors of fixtures on cold and hot water.",
+      "discipline": "engineering",
+      "audience": [
+        "engineering",
+        "industrial"
+      ],
+      "keywords": [
+        "plumbing",
+        "riser",
+        "fixtures"
+      ],
+      "viewpoint": "process.Plumbing",
+      "variant": "",
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true,
+      "module": "iso2_5mm",
+      "seed": [
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "title",
+            "value": "Domestic water riser"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "legalOwner",
+            "value": "Example Process Co."
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "identificationNumber",
+            "value": "EX-0001"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "dateOfIssue",
+            "value": "2026-10-20"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "approvalPerson",
+            "value": "A. Approver"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "creator",
+            "value": "VizCraft"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "documentType",
+            "value": "flow diagram"
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.WaterMeter",
+            "x": 180,
+            "y": 900,
+            "name": "Meter"
+          },
+          "as": "wm"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.BackflowPreventer",
+            "x": 300,
+            "y": 900,
+            "name": "Backflow preventer"
+          },
+          "as": "bfp"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.WaterHeater",
+            "x": 420,
+            "y": 840,
+            "name": "Water heater"
+          },
+          "as": "wh"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.Fixture",
+            "x": 680,
+            "y": 640,
+            "name": "Ground floor",
+            "properties": {
+              "kind": "lavatory",
+              "fixtureUnits": 1,
+              "system": "CW+HW"
+            }
+          },
+          "as": "f1"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.Fixture",
+            "x": 680,
+            "y": 440,
+            "name": "First floor",
+            "properties": {
+              "kind": "sink",
+              "fixtureUnits": 2,
+              "system": "CW+HW"
+            }
+          },
+          "as": "f2"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.Fixture",
+            "x": 680,
+            "y": 240,
+            "name": "Second floor",
+            "properties": {
+              "kind": "shower",
+              "fixtureUnits": 2,
+              "system": "CW+HW"
+            }
+          },
+          "as": "f3"
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "x": 120,
+              "y": 919
+            },
+            "to": {
+              "shape": "${wm.shape}",
+              "point": 0
+            },
+            "type": "process.coldWater"
+          },
+          "as": "m0"
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${wm.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${bfp.shape}",
+              "point": 0
+            },
+            "type": "process.coldWater"
+          },
+          "as": "m1"
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${bfp.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${f3.shape}",
+              "point": 0
+            },
+            "type": "process.coldWater",
+            "points": [
+              {
+                "x": 600,
+                "y": 920
+              },
+              {
+                "x": 600,
+                "y": 280
+              }
+            ]
+          },
+          "as": "cw"
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "connector": "${cw.id}",
+              "x": 600,
+              "y": 480
+            },
+            "to": {
+              "shape": "${f2.shape}",
+              "point": 0
+            },
+            "type": "process.coldWater",
+            "points": [
+              {
+                "x": 600,
+                "y": 480
+              }
+            ]
+          },
+          "as": "cw2"
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "connector": "${cw.id}",
+              "x": 600,
+              "y": 680
+            },
+            "to": {
+              "shape": "${f1.shape}",
+              "point": 0
+            },
+            "type": "process.coldWater",
+            "points": [
+              {
+                "x": 600,
+                "y": 680
+              }
+            ]
+          },
+          "as": "cw3"
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "connector": "${cw.id}",
+              "x": 600,
+              "y": 860
+            },
+            "to": {
+              "shape": "${wh.shape}",
+              "point": 0
+            },
+            "type": "process.coldWater",
+            "points": [
+              {
+                "x": 600,
+                "y": 860
+              },
+              {
+                "x": 500,
+                "y": 860
+              }
+            ]
+          },
+          "as": "cwh"
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "shape": "${wh.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${f3.shape}",
+              "point": 1
+            },
+            "type": "process.hotWater",
+            "points": [
+              {
+                "x": 800,
+                "y": 860
+              },
+              {
+                "x": 800,
+                "y": 280
+              }
+            ]
+          },
+          "as": "hw"
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "connector": "${hw.id}",
+              "x": 800,
+              "y": 480
+            },
+            "to": {
+              "shape": "${f2.shape}",
+              "point": 1
+            },
+            "type": "process.hotWater",
+            "points": [
+              {
+                "x": 800,
+                "y": 480
+              }
+            ]
+          },
+          "as": "hw2"
+        },
+        {
+          "command": "wire.draw",
+          "params": {
+            "from": {
+              "connector": "${hw.id}",
+              "x": 800,
+              "y": 680
+            },
+            "to": {
+              "shape": "${f1.shape}",
+              "point": 1
+            },
+            "type": "process.hotWater",
+            "points": [
+              {
+                "x": 800,
+                "y": 680
+              }
+            ]
+          },
+          "as": "hw3"
+        }
+      ]
+    },
+    {
+      "rulesets": [
+        "process.isometric",
+        "sheet.drawingSheet"
+      ],
+      "id": "process.isometricExample",
+      "label": "Piping isometric: one line",
+      "description": "One line on isometric axes with elbows, a gate valve, shop and field welds, a north arrow and a bill of materials.",
+      "discipline": "engineering",
+      "audience": [
+        "engineering",
+        "industrial"
+      ],
+      "keywords": [
+        "isometric",
+        "spool",
+        "welds",
+        "bom"
+      ],
+      "viewpoint": "process.Isometric",
+      "variant": "",
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true,
+      "module": "none",
+      "seed": [
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "title",
+            "value": "Line 2in-P-001-A1 isometric"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "legalOwner",
+            "value": "Example Process Co."
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "identificationNumber",
+            "value": "EX-0001"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "dateOfIssue",
+            "value": "2026-10-20"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "approvalPerson",
+            "value": "A. Approver"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "creator",
+            "value": "VizCraft"
+          }
+        },
+        {
+          "command": "doc.setProperty",
+          "params": {
+            "key": "documentType",
+            "value": "flow diagram"
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.GateValve",
+            "x": 500,
+            "y": 420,
+            "name": "Isolation valve"
+          },
+          "as": "gv"
+        },
+        {
+          "command": "shape.rotate",
+          "params": {
+            "ids": [
+              "${gv.shape}"
+            ],
+            "turns": 1
+          }
+        },
+        {
+          "command": "plant.isoRun",
+          "params": {
+            "from": {
+              "shape": "${gv.shape}",
+              "point": 0
+            },
+            "legs": [
+              {
+                "dir": "up",
+                "length": 80
+              },
+              {
+                "dir": "n",
+                "length": 240
+              },
+              {
+                "dir": "up",
+                "length": 60
+              }
+            ]
+          },
+          "as": "r1"
+        },
+        {
+          "command": "plant.isoRun",
+          "params": {
+            "from": {
+              "shape": "${gv.shape}",
+              "point": 1
+            },
+            "legs": [
+              {
+                "dir": "down",
+                "length": 80
+              },
+              {
+                "dir": "w",
+                "length": 200
+              }
+            ],
+            "line": "${r1.line}"
+          },
+          "as": "r2"
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${r1.line}",
+            "key": "nominalDiameter",
+            "value": "2in"
+          }
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${r1.line}",
+            "key": "fluidCode",
+            "value": "P"
+          }
+        },
+        {
+          "command": "element.setProperty",
+          "params": {
+            "id": "${r1.line}",
+            "key": "pipingClass",
+            "value": "A1"
+          }
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.Weld",
+            "x": "${r1.end.x}",
+            "y": "${r1.end.y}",
+            "properties": {
+              "kind": "shop"
+            }
+          },
+          "as": "w1"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.Weld",
+            "x": "${r2.end.x}",
+            "y": "${r2.end.y}",
+            "properties": {
+              "kind": "field"
+            }
+          },
+          "as": "w2"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.NorthArrow",
+            "x": 1300,
+            "y": 120
+          },
+          "as": "na"
+        },
+        {
+          "command": "element.create",
+          "params": {
+            "type": "process.BillOfMaterials",
+            "x": 1200,
+            "y": 860
+          },
+          "as": "bom"
+        }
+      ]
     }
   ]
 }
