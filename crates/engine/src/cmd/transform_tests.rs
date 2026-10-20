@@ -185,3 +185,71 @@ fn bad_params_are_refused_and_nothing_panics() {
     assert!(c.waypoints.iter().all(|p| p.is_finite()));
     assert!(matches!(c.start, End::Glued { .. }));
 }
+
+/// A small deterministic generator for the stress test.
+struct Lcg(u64);
+
+impl Lcg {
+    fn next(&mut self) -> u64 {
+        self.0 = self.0.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1_442_695_040_888_963_407);
+        self.0 >> 33
+    }
+    fn range(&mut self, lo: f64, hi: f64) -> f64 {
+        lo + (hi - lo) * ((self.next() % 10_000) as f64 / 10_000.0)
+    }
+}
+
+/// Three hundred random transforms of random sets of items on the electrical example (a module
+/// page with symbols, wires and junctions): nothing panics, a refused one leaves the document as
+/// it was, every number stays finite, glued ends still name shapes, and each change is one undo
+/// step.
+#[test]
+fn random_transforms_never_break_the_document() {
+    let mut s = blank();
+    run(&mut s, "example.open", json!({"example": "electrical.controlCircuitSample"}));
+    let mut rng = Lcg(7);
+    let mut changed = 0;
+    for i in 0..300 {
+        let page = s.doc.page().unwrap();
+        let items: Vec<String> = page.shapes.iter().map(|x| x.id.clone()).chain(page.connectors.iter().map(|c| c.id.clone())).collect();
+        let n = 1 + (rng.next() % 6) as usize;
+        let ids: Vec<String> = (0..n).map(|_| items[(rng.next() as usize) % items.len()].clone()).collect();
+        let about = json!({"x": rng.range(-200.0, 900.0), "y": rng.range(-200.0, 700.0)});
+        let mut p = json!({"ids": ids});
+        if rng.next().is_multiple_of(2) {
+            p["move"] = json!({"dx": rng.range(-300.0, 300.0), "dy": rng.range(-300.0, 300.0)});
+        }
+        if rng.next().is_multiple_of(3) {
+            p["scale"] = json!({"sx": rng.range(0.1, 3.0), "sy": rng.range(0.1, 3.0), "about": about});
+        }
+        if rng.next().is_multiple_of(3) || p.get("move").is_none() && p.get("scale").is_none() {
+            p["rotate"] = json!({"angle": rng.range(-400.0, 400.0), "about": about});
+        }
+        let before = s.doc.clone();
+        match s.run("shape.transform", &p) {
+            Err(_) => assert_eq!(s.doc, before, "{i}: a refused transform changed the document"),
+            Ok(_) if s.doc != before => {
+                changed += 1;
+                let after = s.doc.clone();
+                run(&mut s, "edit.undo", json!({}));
+                assert_eq!(s.doc, before, "{i}: {p} is one undo step");
+                run(&mut s, "edit.redo", json!({}));
+                assert_eq!(s.doc, after, "{i}: redo gives it back");
+            }
+            Ok(_) => {}
+        }
+        let page = s.doc.page().unwrap();
+        for sh in &page.shapes {
+            assert!([sh.x, sh.y, sh.w, sh.h, sh.angle_deg].iter().all(|v| v.is_finite()), "{i}: {} went non-finite", sh.id);
+        }
+        for c in &page.connectors {
+            assert!(c.waypoints.iter().all(|w| w.is_finite()), "{i}: {} has a non-finite bend", c.id);
+            for e in [&c.start, &c.end] {
+                if let Some(id) = e.shape() {
+                    assert!(page.shape(id).is_some(), "{i}: {} is glued to a missing {id}", c.id);
+                }
+            }
+        }
+    }
+    assert!(changed > 100, "only {changed} of 300 transforms changed anything");
+}
