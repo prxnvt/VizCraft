@@ -1,0 +1,149 @@
+{
+  "document": {
+    "document": {
+      "conformance": {
+        "enabled": true,
+        "rulesets": [
+          "process.plumbing"
+        ],
+        "userSet": true
+      },
+      "core": {
+        "author": "",
+        "created": "",
+        "lastModifiedBy": "",
+        "modified": "",
+        "revision": 0
+      },
+      "idSeq": 3,
+      "pages": [
+        {
+          "board": "infinite",
+          "connectors": [],
+          "height": 850.0,
+          "id": "p1",
+          "name": "Page-1",
+          "shapes": [
+            {
+              "angleDeg": 0.0,
+              "connectionPoints": [
+                {
+                  "x": 0.0,
+                  "y": 1.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 1.0
+                }
+              ],
+              "element": "e2",
+              "h": 39.37,
+              "id": "s3",
+              "kind": "freeform",
+              "path": {
+                "closed": true,
+                "els": [
+                  {
+                    "moveTo": {
+                      "x": 0.0,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 59.06,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 59.06,
+                        "y": 23.621999999999996
+                      },
+                      {
+                        "x": 47.248000000000005,
+                        "y": 35.433
+                      },
+                      {
+                        "x": 29.53,
+                        "y": 35.433
+                      }
+                    ]
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 11.812000000000001,
+                        "y": 35.433
+                      },
+                      {
+                        "x": 0.0,
+                        "y": 23.621999999999996
+                      },
+                      {
+                        "x": 0.0,
+                        "y": 0.0
+                      }
+                    ]
+                  },
+                  "close"
+                ],
+                "frame": [
+                  59.06,
+                  39.37
+                ]
+              },
+              "stencil": "process.fixture",
+              "style": {
+                "bold": false,
+                "fill": "#ffffff",
+                "fontColor": "#1e2630",
+                "fontSize": 12.0,
+                "italic": false,
+                "line": "#1f2933",
+                "lineWidth": 1.5
+              },
+              "text": "",
+              "w": 59.06,
+              "x": 98.4251968503937,
+              "y": 98.42527559055117
+            }
+          ],
+          "view": {
+            "module": "iso2_5mm",
+            "viewpoint": "process.Plumbing"
+          },
+          "width": 1100.0
+        }
+      ],
+      "title": ""
+    },
+    "format": "vizcraft",
+    "model": {
+      "elements": [
+        {
+          "id": "e2",
+          "properties": {
+            "kind": "lavatory",
+            "system": "CW+HW"
+          },
+          "type": "process.Fixture"
+        }
+      ],
+      "packs": [
+        {
+          "id": "process",
+          "version": "1.0.0"
+        }
+      ],
+      "schemaVersion": 1
+    },
+    "version": 4
+  },
+  "expect": [
+    {
+      "rule": "process.fixtureData"
+    }
+  ]
+}

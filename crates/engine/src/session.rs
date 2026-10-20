@@ -460,9 +460,18 @@ impl Session {
                     let _t = crate::trace::span("glyph.rebuild");
                     vizcraft_stencils::builders::sync::rebuild(&mut self.doc, &before_doc, vizcraft_notation::catalog());
                 }
+                // Tags the sync pass recomposes (a process instrument follows its loop) are drawn by
+                // symbols that show them, so those redraw once more when a tag changed.
+                let tags: Vec<(String, String)> = self.doc.model.elements.iter().map(|e| (e.id.clone(), e.tag.clone())).collect();
                 {
                     let _t = crate::trace::span("bind.sync");
                     vizcraft_notation::bind::sync(&mut self.doc, &before_doc, vizcraft_notation::catalog());
+                }
+                let retagged = self.doc.model.elements.len() != tags.len()
+                    || self.doc.model.elements.iter().zip(&tags).any(|(e, (id, tag))| e.id != *id || e.tag != *tag);
+                if retagged {
+                    let _t = crate::trace::span("glyph.rebuildTags");
+                    vizcraft_stencils::builders::sync::rebuild(&mut self.doc, &before_doc, vizcraft_notation::catalog());
                 }
                 // The net pass may heal away a junction or a wire that is still selected.
                 crate::cmd::net::prune_removed(self, &before_doc);
@@ -684,7 +693,7 @@ impl Session {
 
 /// Commands that run other commands as one transaction and make the undo step themselves.
 fn is_transaction(id: &str) -> bool {
-    matches!(id, "edit.batch" | "script.run" | "template.new" | "template.addPage" | "example.open")
+    matches!(id, "edit.batch" | "script.run" | "template.new" | "template.addPage" | "example.open" | "fluid.powerUnit")
 }
 
 /// Whether a script records this command: not view-only, UI, app, help, file, script or macro commands (a macro run records the steps it

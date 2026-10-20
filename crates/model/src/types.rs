@@ -238,6 +238,10 @@ pub struct Model {
     /// `Connector.net` (see [`crate::net`]).
     #[serde(deserialize_with = "lenient_vec", skip_serializing_if = "Vec::is_empty")]
     pub nets: Vec<crate::Net>,
+    /// The project's changes to identifier scopes, by scope id: its own tag formats and
+    /// `numberBy` (parallel or serial loop numbering). See [`crate::identity::IdOverride`].
+    #[serde(deserialize_with = "lenient_map", skip_serializing_if = "BTreeMap::is_empty")]
+    pub id_formats: BTreeMap<String, crate::identity::IdOverride>,
 }
 
 impl Default for Model {
@@ -256,6 +260,7 @@ impl Model {
             relationships: Vec::new(),
             patterns: Vec::new(),
             nets: Vec::new(),
+            id_formats: BTreeMap::new(),
         }
     }
 
@@ -263,7 +268,12 @@ impl Model {
     /// free-drawing document). A document whose only model items are nets (plain wiring) or
     /// pattern instances is not empty, so saving keeps its model section.
     pub fn is_empty(&self) -> bool {
-        self.packs.is_empty() && self.elements.is_empty() && self.relationships.is_empty() && self.patterns.is_empty() && self.nets.is_empty()
+        self.packs.is_empty()
+            && self.elements.is_empty()
+            && self.relationships.is_empty()
+            && self.patterns.is_empty()
+            && self.nets.is_empty()
+            && self.id_formats.is_empty()
     }
 
     /// Most notation packs a model lists; a file with more keeps the first ones.
@@ -278,6 +288,7 @@ impl Model {
         crate::repair::sanitize(self);
         crate::pattern::sanitize(self);
         crate::net::sanitize(self);
+        crate::identity::sanitize_overrides(&mut self.id_formats);
     }
 
     /// The element with this id.

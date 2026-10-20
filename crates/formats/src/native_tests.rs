@@ -710,7 +710,7 @@ fn a_connector_without_a_kind_writes_no_kind_and_junk_kinds_and_ends_load_tolera
     let file = json!({
         "format": "vizcraft", "version": 4,
         "document": {"pages": [{"id": "p1", "connectors": [
-            {"id": "c1", "kind": 7, "startArrow": "harpoon", "endArrow": "hollowDiamond"},
+            {"id": "c1", "kind": 7, "startArrow": "spiral", "endArrow": "hollowDiamond"},
             {"id": "c2", "kind": "x".repeat(10_000), "endArrow": ["triangle"]},
             {"id": "c3", "kind": "basic.bus"}
         ]}]}
@@ -737,7 +737,13 @@ fn connector_kinds_and_line_ends_round_trip_through_drawio() {
     assert_eq!(back.len(), want.len());
     // JGraph's draw.io has no dot end: it is written as the filled oval and reads back as the
     // circle.
-    let drawn = |a: vizcraft_diagram::Arrow| if a == vizcraft_diagram::Arrow::Dot { vizcraft_diagram::Arrow::Circle } else { a };
+    // Nor has it a half arrow or parentheses: those are written as the open arrow and no end.
+    let drawn = |a: vizcraft_diagram::Arrow| match a {
+        vizcraft_diagram::Arrow::Dot => vizcraft_diagram::Arrow::Circle,
+        vizcraft_diagram::Arrow::Harpoon | vizcraft_diagram::Arrow::HarpoonBar => vizcraft_diagram::Arrow::Open,
+        vizcraft_diagram::Arrow::Parens => vizcraft_diagram::Arrow::None,
+        a => a,
+    };
     for (b, w) in back.iter().zip(want) {
         assert_eq!((b.kind.as_str(), b.start_arrow, b.end_arrow), (w.kind.as_str(), drawn(w.start_arrow), drawn(w.end_arrow)), "{}", w.id);
     }

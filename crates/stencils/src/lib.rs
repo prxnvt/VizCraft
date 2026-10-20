@@ -321,7 +321,7 @@ mod tests {
 
     #[test]
     fn search_matches_keywords() {
-        let ids: Vec<_> = search("start").iter().map(|m| m.id).collect();
+        let ids: Vec<_> = search("start").iter().map(|m| m.id).filter(|i| i.starts_with("basic.") || i.starts_with("flowchart.")).collect();
         assert_eq!(ids, vec!["flowchart.terminator"]);
         assert!(search("DATABASE").iter().any(|m| m.id == "flowchart.database"));
         assert_eq!(search("").iter().filter(|m| m.id.starts_with("basic.") || m.id.starts_with("flowchart.")).count(), 22);

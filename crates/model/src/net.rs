@@ -57,10 +57,10 @@ impl NetKind {
     pub fn from_name(s: &str) -> Option<Self> {
         NetKind::ALL.into_iter().find(|k| k.name() == s)
     }
-    /// Whether a junction of this kind is drawn as a filled dot (wires and signals) rather than a
-    /// plain tee (pipes and fluid lines).
+    /// Whether a junction of this kind is drawn as a filled dot (wires, signals and fluid power
+    /// lines, which ISO 1219 joins with a dot) rather than a plain tee (pipes).
     pub fn dotted(self) -> bool {
-        matches!(self, NetKind::Wire | NetKind::Potential | NetKind::Signal)
+        matches!(self, NetKind::Wire | NetKind::Potential | NetKind::Signal | NetKind::Fluid)
     }
 }
 

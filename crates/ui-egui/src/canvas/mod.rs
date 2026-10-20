@@ -224,14 +224,20 @@ pub fn summary(app: &CraftApp) -> Value {
             Drag::Marquee { .. } => "marquee",
             Drag::Lasso { .. } => "lasso",
             Drag::Move { .. } => "move",
-            Drag::Resize { .. } => "resize",
-            Drag::Rotate { .. } => "rotate",
+            Drag::Resize { .. } | Drag::ResizeGroup { .. } => "resize",
+            Drag::Rotate { .. } | Drag::RotateGroup { .. } => "rotate",
             Drag::Connect { .. } => "connect",
             Drag::Reglue { .. } => "reglue",
             Drag::TextBox { .. } => "textBox",
             Drag::TextBlock { .. } => "textBlock",
             Drag::Wire { .. } => "wire",
+            Drag::Ladder { .. } => "ladder",
             Drag::Sequence(d) => d.name(),
+        }),
+        "dragIds": app.canvas.drag.as_ref().and_then(|d| match d {
+            Drag::Move { ids, .. } | Drag::ResizeGroup { ids, .. } | Drag::RotateGroup { ids, .. } => Some(ids.clone()),
+            Drag::Resize { id, .. } | Drag::Rotate { id, .. } => Some(vec![id.clone()]),
+            _ => None,
         }),
         "sequence": interact::sequence::summary(app),
         "canvas": app.canvas.rect.map(|r| [r.min.x, r.min.y, r.width(), r.height()]),
@@ -247,6 +253,7 @@ pub fn status_items(app: &CraftApp) -> Vec<String> {
     out.extend(interact::nets::status(app));
     out.extend(draw::highlights::status(app));
     out.extend(interact::steps::status(app));
+    out.extend(interact::group::status(app));
     if let (Some(page), Some(p)) = (app.session.doc.page(), app.canvas.pointer_world)
         && let Some(z) = dg::sheet::zone_of(page, p)
     {

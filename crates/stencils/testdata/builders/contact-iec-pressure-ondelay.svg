@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="61.614" height="49.213" viewBox="-4.921 -4.921 61.614 49.213">
+  <path d="M39.37 0 L39.37 14.764 M39.37 39.37 L39.37 24.606 M39.37 24.606 L30.512 12.795 M23.13 18.701 L34.941 18.701 M23.13 22.638 C20.956 22.638 19.193 20.875 19.193 18.701 C19.193 16.526 20.956 14.764 23.13 14.764 M9.35 18.701 L12.303 18.701 M14.272 18.701 L17.224 18.701 M19.193 18.701 L22.146 18.701 M9.35 14.764 L1.476 14.764 L1.476 22.638 L9.35 22.638 L9.35 14.764" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="42.323" y="7.677" font-family="Inter, sans-serif" font-size="7.874" text-anchor="start" fill="#1f2933">13</text>
+  <text x="42.323" y="37.205" font-family="Inter, sans-serif" font-size="7.874" text-anchor="start" fill="#1f2933">14</text>
+  <text x="5.413" y="20.595" font-family="Inter, sans-serif" font-size="5.413" text-anchor="middle" fill="#1f2933">p</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="39.37" cy="0" r="1.969"><title>13</title></circle>
+    <circle cx="39.37" cy="39.37" r="1.969"><title>14</title></circle>
+  </g>
+</svg>

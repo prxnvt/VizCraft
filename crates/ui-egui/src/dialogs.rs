@@ -70,6 +70,8 @@ pub enum Dialog {
     Revise(crate::revise_dialog::State),
     /// The Valve builder (`crate::valve_dialog`), opened by `ui.valve`.
     Valve(Box<crate::valve_dialog::State>),
+    /// Tag Formats (`crate::tag_formats_dialog`), opened by `identity.setFormat` without a scope.
+    TagFormats(crate::tag_formats_dialog::State),
 }
 
 impl Dialog {
@@ -98,6 +100,7 @@ impl Dialog {
             Dialog::Pattern(_) => "pattern",
             Dialog::Revise(_) => "revise",
             Dialog::Valve(_) => "valve",
+            Dialog::TagFormats(_) => "tagFormats",
         }
     }
 
@@ -126,6 +129,7 @@ impl Dialog {
             "revise" => Dialog::Revise(crate::revise_dialog::open(app)),
             // Filled from `glyph.builders` on the first frame, which needs the session mutably.
             "valve" => Dialog::Valve(Box::default()),
+            "tagFormats" => Dialog::TagFormats(crate::tag_formats_dialog::open(app)),
             _ => return None,
         })
     }
@@ -154,6 +158,7 @@ impl Dialog {
             Dialog::Pattern(s) => crate::pattern_dialog::title(s),
             Dialog::Revise(_) => "Revise".into(),
             Dialog::Valve(_) => "Valve".into(),
+            Dialog::TagFormats(_) => "Tag Formats".into(),
         }
     }
 
@@ -171,6 +176,7 @@ impl Dialog {
             Dialog::Pattern(_) => 440.0,
             Dialog::Revise(_) => 380.0,
             Dialog::Valve(_) => 520.0,
+            Dialog::TagFormats(_) => 540.0,
             _ => 360.0,
         }
     }
@@ -389,6 +395,11 @@ fn body(app: &mut CraftApp, ui: &mut Ui, d: &mut Dialog, keys: Keys) -> bool {
             let ok_label = if s.target.is_empty() { "Place" } else { "Update" };
             let (ok, cancel) = buttons(ui, ok_label, Some("Cancel"), keys);
             crate::valve_dialog::finish(app, s, ok, cancel)
+        }
+        Dialog::TagFormats(s) => {
+            crate::tag_formats_dialog::body(ui, s);
+            let (ok, cancel) = buttons(ui, "OK", Some("Cancel"), keys);
+            crate::tag_formats_dialog::finish(app, s, ok, cancel)
         }
         Dialog::ShapeName(s) => {
             crate::shape_name_dialog::body(ui, s);

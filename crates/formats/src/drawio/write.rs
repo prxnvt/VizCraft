@@ -161,6 +161,9 @@ fn arrow(a: Arrow) -> (&'static str, bool) {
         Arrow::DoubleBar => ("ERmandOne", false),
         // draw.io has no small dot end; its filled oval is the nearest.
         Arrow::Dot => ("oval", false),
+        // No half arrow or parentheses end in draw.io; the open arrow and no end are nearest.
+        Arrow::Harpoon | Arrow::HarpoonBar => ("open", false),
+        Arrow::Parens => ("none", false),
     }
 }
 

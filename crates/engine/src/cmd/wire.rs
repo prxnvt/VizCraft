@@ -21,7 +21,7 @@ use crate::{CmdResult, CommandSpec, EngineError, Session, p};
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("wire.draw", "Draw Wire", "Insert > Wire", draw).params(
-            r#"{"from": end, "to": end, "points"?: [{"x", "y"}], "kind"?: "wire"|"potential"|"pipe"|"fluid"|"signal", "net"?: id} -> {"id", "net", "junctions": [id]}; an end is {"shape", "point"} (a pin), {"connector", "x", "y"} (splits that wire at a new junction), {"junction"} or {"x", "y"}; free points and bends snap to the page's module; without points the wire routes around shapes like any connector unless the page's routing never avoids them, and with points it keeps those bends; the wire joins the net at either end, else a new net of kind (default wire; pipe and fluid junctions draw no dot)"#,
+            r#"{"from": end, "to": end, "points"?: [{"x", "y"}], "kind"?: "wire"|"potential"|"pipe"|"fluid"|"signal", "net"?: id, "type"?: connector type id} -> {"id", "net", "junctions": [id]}; type draws the wire as that connector type (its line, width and markers, connector.kinds lists them) and, when kind is absent, the type's net kind is the new net's kind; an end is {"shape", "point"} (a pin), {"connector", "x", "y"} (splits that wire at a new junction), {"junction"} or {"x", "y"}; free points and bends snap to the page's module; without points the wire routes around shapes like any connector unless the page's routing never avoids them, and with points it keeps those bends; the wire joins the net at either end, else a new net of kind (default wire; pipe and fluid junctions draw no dot)"#,
         ),
         CommandSpec::new("wire.splice", "Splice Into Wire", "Insert > Wire", splice).params(
             r#"{"shape": id, "connector"?: id} -> {"connectors": [id, id], "shape"}; the device's two outermost pins are projected onto the wire (default: the nearest segment), the stretch between them is cut away and the halves are glued to the pins, both keeping the net; refused when the pins fall on different runs of the wire"#,
@@ -141,8 +141,13 @@ fn draw(s: &mut Session, v: &Value) -> CmdResult {
     // A wire drawn without bends routes around shapes, as every connector does, unless the page
     // is set never to avoid them; bends someone placed are kept exactly as drawn.
     let avoid = points.is_empty() && s.doc.page().is_some_and(|p| p.routing.avoid == Avoid::Always);
+    // A connector type draws the wire with its look, and its net kind stands in for `kind`.
+    let line_type = match super::opt_str(v, "type")? {
+        None | Some("") => None,
+        Some(t) => Some(vizcraft_stencils::connector_kind(t).ok_or_else(|| EngineError::Params(format!("unknown connector type `{}`", short(t))))?),
+    };
     let kind = match super::opt_str(v, "kind")? {
-        None => None,
+        None => line_type.and_then(|t| t.net),
         Some(k) => Some(NetKind::from_name(k).ok_or_else(|| EngineError::Params(format!("unknown net kind `{}`", short(k))))?),
     };
     let ix = NetIndex::build(&s.doc);
@@ -190,7 +195,7 @@ fn draw(s: &mut Session, v: &Value) -> CmdResult {
         return Err(EngineError::Failed("the wire has no ends".into()));
     };
     let id = s.doc.next_id("c");
-    let wire = Connector {
+    let mut wire = Connector {
         route: Route::Orthogonal,
         start_arrow: Arrow::None,
         end_arrow: Arrow::None,
@@ -199,6 +204,11 @@ fn draw(s: &mut Session, v: &Value) -> CmdResult {
         net: Some(net.clone()),
         ..Connector::new(id.clone(), start, end)
     };
+    if let Some(t) = line_type {
+        // The type gives the look; a wire is always drawn orthogonally on the grid.
+        t.apply(&mut wire);
+        wire.route = Route::Orthogonal;
+    }
     page_mut(s)?.connectors.push(wire);
     select(s, vec![id.clone()]);
     with_sel(s, json!({"id": id, "net": net, "junctions": junctions}))

@@ -629,6 +629,73 @@ impl<'a> Checker<'a> {
                     }
                 }
                 Check::ForeignKey { types } => self.type_list(&ctx, types),
+                Check::NetCheck { test, types, connector_type, property, peers, kinds, .. } => {
+                    if !crate::schema::NET_TESTS.contains(&test.as_str()) {
+                        self.problem(format!("{ctx}: `{}` is not a net test (one of {})", short(test), crate::schema::NET_TESTS.join(", ")));
+                    }
+                    self.type_list(&ctx, types);
+                    self.type_list(&ctx, peers);
+                    // `allowedPeers` reads `property` as a list of port ids, not a property key.
+                    if !property.is_empty() && test != "allowedPeers" {
+                        self.key(&ctx, property);
+                    }
+                    for k in self.list(&ctx, kinds) {
+                        if vizcraft_model::NetKind::from_name(k).is_none() {
+                            self.problem(format!("{ctx}: `{}` is not a net kind", short(k)));
+                        }
+                    }
+                    if !connector_type.is_empty() && !pack.connector_types.iter().any(|c| c.id == *connector_type) {
+                        self.problem(format!("{ctx}: `{}` is not a connector type of this pack", short(connector_type)));
+                    }
+                }
+                Check::ContactComplement { types, relationship } => {
+                    self.type_list(&ctx, types);
+                    self.reference(&ctx, Kind::Relationship, relationship);
+                }
+                Check::RungOutputs { types, .. } | Check::MixedSymbols { types } => self.type_list(&ctx, types),
+                Check::CableCores { types, cores } => {
+                    self.type_list(&ctx, types);
+                    self.type_list(&ctx, cores);
+                }
+                Check::DeviceNumber { types, property } => {
+                    self.type_list(&ctx, types);
+                    self.key(&ctx, property);
+                }
+                Check::PlacedOn { types, viewpoint, .. } => {
+                    self.type_list(&ctx, types);
+                    if self.pack.viewpoint(viewpoint).is_none() {
+                        self.problem(format!("{ctx}: `{}` is not a viewpoint of this pack", short(viewpoint)));
+                    }
+                }
+                Check::InstrumentTag { types, .. } | Check::LoopComplete { types } | Check::OffPageContinuity { types } => {
+                    self.type_list(&ctx, types)
+                }
+                Check::LoopSheet { viewpoints } | Check::StreamsNumbered { viewpoints, .. } => {
+                    for v in self.list(&ctx, viewpoints) {
+                        if self.pack.viewpoint(v).is_none() {
+                            self.problem(format!("{ctx}: `{}` is not a viewpoint of this pack", short(v)));
+                        }
+                    }
+                }
+                Check::FluidPressurePath
+                | Check::FluidRelief
+                | Check::FluidSupply
+                | Check::FluidRestPosition
+                | Check::FluidPortSet
+                | Check::FluidLineEnds
+                | Check::FluidCodes
+                | Check::FluidSteps { .. } => {}
+                Check::Mechanism { test } if !test.known() => {
+                    self.problem(format!("{ctx}: unknown mechanism test (the pack needs a newer VizCraft)"))
+                }
+                Check::Annotation { test } if !test.known() => {
+                    self.problem(format!("{ctx}: unknown annotation test (the pack needs a newer VizCraft)"))
+                }
+                Check::Reliability { test } if !test.known() => {
+                    self.problem(format!("{ctx}: unknown reliability test (the pack needs a newer VizCraft)"))
+                }
+                Check::Idef0 { test } if !test.known() => self.problem(format!("{ctx}: unknown IDEF0 test (the pack needs a newer VizCraft)")),
+                Check::Mechanism { .. } | Check::Annotation { .. } | Check::Reliability { .. } | Check::Idef0 { .. } => {}
                 Check::Unknown => self.problem(format!("{ctx}: unknown check kind (the pack needs a newer VizCraft)")),
             }
         }
@@ -828,7 +895,7 @@ mod tests {
         p.glyphs[1].outline = "blob".into();
         p.glyphs[2].w = f64::NAN;
         p.glyphs[3].h = -1.0;
-        p.relationship_types[0].end_arrow = "harpoon".into();
+        p.relationship_types[0].end_arrow = "spiral".into();
         p.identifiers[0].format = "S{n".into();
         p.conditional_styles[0].line_width = Some(0.0);
         p.conditional_styles[0].property = "missing".into();
@@ -853,7 +920,7 @@ mod tests {
         assert_eq!(good.id, "flowchart.flow");
         let mut dup = good.clone();
         dup.route = "zigzag".into();
-        dup.start_arrow = "harpoon".into();
+        dup.start_arrow = "spiral".into();
         dup.end_arrow = "".into();
         dup.dash = "wavy".into();
         dup.line = "green".into();
@@ -866,7 +933,7 @@ mod tests {
         for needle in [
             "connector type id `flowchart.flow` is declared twice",
             "unknown route `zigzag`",
-            "unknown start arrow `harpoon`",
+            "unknown start arrow `spiral`",
             "unknown end arrow ``",
             "unknown dash `wavy`",
             "`green` is not a colour",

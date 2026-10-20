@@ -73,6 +73,14 @@ pub struct TablesState {
     pub property: String,
     /// List: only rows with a cell containing this text.
     pub filter: String,
+    /// List: a net table instead of the model, `nets` or `connections` (the wire list); empty
+    /// for elements and relationships.
+    pub subject: String,
+    /// List of nets or connections: only nets of this kind (`wire`, `potential`); empty for all.
+    pub kind: String,
+    /// A pack's own list instead (`process.line`, read with `plant.list`); empty for the model
+    /// lists and matrices.
+    pub pack: String,
     edit: Option<Edit>,
     cache: Option<Cache>,
 }
@@ -80,6 +88,9 @@ pub struct TablesState {
 impl TablesState {
     /// The parameters of the view, for `table.list`, `table.matrix` and `table.export`.
     fn params(&self) -> Value {
+        if !self.pack.is_empty() {
+            return json!({"view": "pack", "list": self.pack});
+        }
         if self.matrix {
             let mut p = json!({"view": "matrix", "rows": self.rows, "cols": self.cols});
             if !self.relationship.is_empty() {
@@ -91,7 +102,12 @@ impl TablesState {
             p
         } else {
             let mut p = json!({"view": "list"});
-            if !self.type_id.is_empty() {
+            if !self.subject.is_empty() {
+                p["subject"] = json!(self.subject);
+                if !self.kind.is_empty() {
+                    p["kind"] = json!(self.kind);
+                }
+            } else if !self.type_id.is_empty() {
                 p["type"] = json!(self.type_id);
             }
             if !self.filter.trim().is_empty() {
@@ -182,11 +198,33 @@ fn refresh(app: &mut CraftApp) {
             st.relationship = links.first().map(|t| t.0.clone()).unwrap_or_default();
         }
     }
-    let (command, params) = (if st.matrix { "table.matrix" } else { "table.list" }, st.params());
+    let (command, params) = read_of(st);
     let key = st.key();
     let view = app.session.run(command, &params).map(Rc::new).map_err(|e| e.to_string());
     app.ui.dock.state.tables.cache = Some(Cache { rev, key, types, links, raci, view });
 }
+
+/// The command and params that read the view: a pack list through its pack's list command, else
+/// `table.list` or `table.matrix`.
+fn read_of(st: &TablesState) -> (&'static str, Value) {
+    if let Some(name) = st.pack.strip_prefix("process.") {
+        return ("plant.list", json!({"list": name}));
+    }
+    (if st.matrix { "table.matrix" } else { "table.list" }, st.params())
+}
+
+/// The pack lists the View menu offers: (list, label).
+pub const PACK_LISTS: &[(&str, &str)] = &[
+    ("process.line", "Line List"),
+    ("process.equipment", "Equipment List"),
+    ("process.instrument", "Instrument Index"),
+    ("process.valve", "Valve List"),
+    ("process.io", "I/O List"),
+    ("process.stream", "Stream Table"),
+    ("process.nozzle", "Nozzle List"),
+    ("process.fixtureUnits", "Fixture Units"),
+    ("process.bom", "Bill of Materials"),
+];
 
 /// The ids of the model items the selection draws: the selected items themselves, the elements
 /// of selected shapes and the relationships of selected connectors.
@@ -205,8 +243,34 @@ fn selected_ids(app: &CraftApp) -> HashSet<String> {
     out
 }
 
+/// Go to the page of a wire (a connections row) or the first page of a net (a nets row) and
+/// select its segments. False when `id` is neither.
+fn select_wiring(app: &mut CraftApp, id: &str) -> bool {
+    let doc = &app.session.doc;
+    let segments: Vec<String> = if doc.model.net(id).is_some() {
+        vizcraft_diagram::net::NetIndex::build(doc).nets.get(id).map(|e| e.segments.clone()).unwrap_or_default()
+    } else if doc.pages.iter().any(|p| p.connector(id).is_some()) {
+        vec![id.to_string()]
+    } else {
+        return false;
+    };
+    let Some(page) = segments.first().and_then(|c| doc.pages.iter().find(|p| p.connector(c).is_some())).map(|p| p.id.clone()) else {
+        app.status("The net has no wires drawn");
+        return true;
+    };
+    let here: Vec<String> = segments.into_iter().filter(|c| doc.pages.iter().any(|p| p.id == page && p.connector(c).is_some())).collect();
+    if app.session.doc.page().map(|p| p.id.as_str()) != Some(page.as_str()) {
+        let _ = app.run("page.setActive", json!({"page": page}));
+    }
+    let _ = app.run("edit.select", json!({"ids": here}));
+    true
+}
+
 /// Go to a page that draws the item and select what draws it.
 fn select_item(app: &mut CraftApp, id: &str) {
+    if select_wiring(app, id) {
+        return;
+    }
     let views = vizcraft_diagram::views::views_of(&app.session.doc, id);
     let active = app.session.doc.active_index();
     let Some(v) = views.iter().find(|v| v.page == active).or(views.first()) else {
@@ -243,7 +307,7 @@ pub(super) fn show(app: &mut CraftApp, ui: &mut Ui) {
             ui.add_space(8.0);
             ui.label(egui::RichText::new(e).color(t.text_dim));
         }
-        Ok(v) if app.ui.dock.state.tables.matrix => matrix_body(app, ui, v, &mut act),
+        Ok(v) if app.ui.dock.state.tables.matrix && app.ui.dock.state.tables.pack.is_empty() => matrix_body(app, ui, v, &mut act),
         Ok(v) => list_body(app, ui, v, &mut act),
     }
     apply(app, act);
@@ -253,6 +317,8 @@ pub(super) fn show(app: &mut CraftApp, ui: &mut Ui) {
 fn apply(app: &mut CraftApp, act: Option<Act>) {
     match act {
         None => {}
+        // A total row stands for no item.
+        Some(Act::Select(id)) if id.is_empty() => {}
         Some(Act::Select(id)) => select_item(app, &id),
         Some(Act::Set(e)) => {
             if let Err(msg) = app.run("table.set", json!({"id": e.id, "key": e.key, "value": e.text})) {
@@ -304,11 +370,19 @@ fn export(app: &mut CraftApp, format: &'static str) {
 fn toolbar(app: &mut CraftApp, ui: &mut Ui, act: &mut Option<Act>) {
     let t = Tokens::get(ui.ctx());
     let Some(cache) = app.ui.dock.state.tables.cache.clone() else { return };
+    let has_nets = !app.session.doc.model.nets.is_empty();
+    let uses_process = app.session.doc.model.elements.iter().any(|e| e.type_id.starts_with("process."));
     ui.horizontal(|ui| {
         ui.add_space(6.0);
         let st = &mut app.ui.dock.state.tables;
-        let title = if st.matrix {
+        let title = if let Some((_, label)) = PACK_LISTS.iter().find(|(l, _)| *l == st.pack) {
+            (*label).to_string()
+        } else if st.matrix {
             format!("Matrix: {} by {}", type_label(&st.rows, false), type_label(&st.cols, false))
+        } else if st.subject == "connections" {
+            "Wire list".to_string()
+        } else if st.subject == "nets" {
+            "Nets".to_string()
         } else if st.type_id.is_empty() {
             "All elements".to_string()
         } else {
@@ -318,13 +392,38 @@ fn toolbar(app: &mut CraftApp, ui: &mut Ui, act: &mut Option<Act>) {
             if ui.button("All elements").clicked() {
                 st.matrix = false;
                 st.type_id.clear();
+                st.subject.clear();
+                st.pack.clear();
                 ui.close();
+            }
+            if uses_process {
+                ui.menu_button("Process lists", |ui| {
+                    for (list, label) in PACK_LISTS {
+                        if ui.button(*label).clicked() {
+                            st.pack = (*list).to_string();
+                            ui.close();
+                        }
+                    }
+                });
             }
             for (id, label) in &cache.types {
                 if ui.button(label).clicked() {
                     st.matrix = false;
+                    st.pack.clear();
                     st.type_id = id.clone();
+                    st.subject.clear();
                     ui.close();
+                }
+            }
+            if has_nets {
+                ui.separator();
+                for (label, subject, kind) in [("Wire list", "connections", "wire"), ("All connections", "connections", ""), ("Nets", "nets", "")] {
+                    if ui.button(label).clicked() {
+                        st.matrix = false;
+                        st.subject = subject.to_string();
+                        st.kind = kind.to_string();
+                        ui.close();
+                    }
                 }
             }
             if !cache.links.is_empty() {
@@ -332,6 +431,7 @@ fn toolbar(app: &mut CraftApp, ui: &mut Ui, act: &mut Option<Act>) {
                 for (id, label) in &cache.links {
                     if ui.button(format!("{label} relationships")).clicked() {
                         st.matrix = false;
+                        st.pack.clear();
                         st.type_id = id.clone();
                         ui.close();
                     }
@@ -341,6 +441,7 @@ fn toolbar(app: &mut CraftApp, ui: &mut Ui, act: &mut Option<Act>) {
             ui.menu_button("Relationship Matrix", |ui| {
                 if ui.button("Show Matrix").clicked() {
                     st.matrix = true;
+                    st.pack.clear();
                     ui.close();
                 }
                 ui.separator();
@@ -383,11 +484,14 @@ fn toolbar(app: &mut CraftApp, ui: &mut Ui, act: &mut Option<Act>) {
             }
         });
         let st = &mut app.ui.dock.state.tables;
-        if !st.matrix {
+        if !st.matrix && st.pack.is_empty() {
             ui.add(egui::TextEdit::singleline(&mut st.filter).hint_text("Filter").desired_width(120.0));
         }
         let count = count_of(&cache);
-        ui.label(egui::RichText::new(if st.matrix { format!("{count} link(s)") } else { format!("{count} row(s)") }).color(t.text_dim));
+        ui.label(
+            egui::RichText::new(if st.matrix && st.pack.is_empty() { format!("{count} link(s)") } else { format!("{count} row(s)") })
+                .color(t.text_dim),
+        );
     });
 }
 
@@ -427,6 +531,9 @@ fn list_body(app: &mut CraftApp, ui: &mut Ui, v: &Rc<Value>, act: &mut Option<Ac
     let columns = v.get("columns").and_then(Value::as_array).unwrap_or(&empty);
     let rows = v.get("rows").and_then(Value::as_array).unwrap_or(&empty);
     let ids = v.get("ids").and_then(Value::as_array).unwrap_or(&empty);
+    // A pack list names the key each column reads and which ones a cell edit may change.
+    let keys = v.get("keys").and_then(Value::as_array).unwrap_or(columns);
+    let editable_cols = v.get("editable").and_then(Value::as_array);
     if rows.is_empty() {
         ui.add_space(8.0);
         ui.label(egui::RichText::new("No rows").color(t.text_dim));
@@ -447,9 +554,13 @@ fn list_body(app: &mut CraftApp, ui: &mut Ui, v: &Rc<Value>, act: &mut Option<Ac
                 let on = selected.contains(id);
                 ui.horizontal(|ui| {
                     for (j, cell) in row.iter().enumerate() {
-                        let key = columns.get(j).map_or("", text_of);
+                        let key = keys.get(j).map_or("", text_of);
+                        let can = match editable_cols {
+                            Some(e) => e.get(j).and_then(Value::as_bool).unwrap_or(false) && !id.is_empty(),
+                            None => editable(key),
+                        };
                         let width = w.get(j).copied().unwrap_or(MIN_COL_W);
-                        cell_ui(ui, &t, &mut edit, act, id, key, text_of(cell), width, on);
+                        cell_ui(ui, &t, &mut edit, act, id, key, text_of(cell), width, on, can);
                     }
                 });
             }
@@ -461,7 +572,18 @@ fn list_body(app: &mut CraftApp, ui: &mut Ui, v: &Rc<Value>, act: &mut Option<Ac
 /// One list cell: text that selects its row on a click and edits on a double click, or the text
 /// field while it is being edited.
 #[allow(clippy::too_many_arguments)]
-fn cell_ui(ui: &mut Ui, t: &Tokens, edit: &mut Option<Edit>, act: &mut Option<Act>, id: &str, key: &str, text: &str, width: f32, on: bool) {
+fn cell_ui(
+    ui: &mut Ui,
+    t: &Tokens,
+    edit: &mut Option<Edit>,
+    act: &mut Option<Act>,
+    id: &str,
+    key: &str,
+    text: &str,
+    width: f32,
+    on: bool,
+    can_edit: bool,
+) {
     let editing = edit.as_ref().is_some_and(|e| e.id == id && e.key == key);
     if editing {
         let Some(e) = edit.as_mut() else { return };
@@ -486,7 +608,7 @@ fn cell_ui(ui: &mut Ui, t: &Tokens, edit: &mut Option<Edit>, act: &mut Option<Ac
         rich = rich.strong().color(t.accent);
     }
     let resp = ui.add_sized([width, ROW_H], egui::Label::new(rich).truncate().sense(Sense::click()));
-    if resp.double_clicked() && editable(key) {
+    if resp.double_clicked() && can_edit {
         *edit = Some(Edit { id: id.to_string(), key: key.to_string(), text: text.to_string(), fresh: true });
     } else if resp.clicked() {
         *act = Some(Act::Select(id.to_string()));
@@ -556,7 +678,14 @@ fn matrix_body(app: &mut CraftApp, ui: &mut Ui, v: &Rc<Value>, act: &mut Option<
 pub fn inspect(app: &CraftApp) -> Value {
     let st = &app.ui.dock.state.tables;
     let count = st.cache.as_ref().map_or(0, count_of);
-    json!({"view": if st.matrix { "matrix" } else { "list" }, "type": st.type_id, "rows": st.rows, "cols": st.cols, "count": count})
+    let view = if !st.pack.is_empty() {
+        "pack"
+    } else if st.matrix {
+        "matrix"
+    } else {
+        "list"
+    };
+    json!({"view": view, "pack": st.pack, "type": st.type_id, "subject": st.subject, "kind": st.kind, "rows": st.rows, "cols": st.cols, "count": count})
 }
 
 /// `ui.tables {view?, type?, rows?, cols?, relationship?, property?, filter?}`: set the view,
@@ -577,6 +706,17 @@ pub fn command(app: &mut CraftApp, p: &Value) -> Result<Value, String> {
     }
     if let Some(v) = get("type")? {
         next.type_id = v;
+        next.subject.clear();
+    }
+    if let Some(v) = get("subject")? {
+        if !matches!(v.as_str(), "" | "nets" | "connections") {
+            return Err(format!("`subject` must be nets or connections, not {v:?}"));
+        }
+        next.subject = v;
+        next.matrix = false;
+    }
+    if let Some(v) = get("kind")? {
+        next.kind = v;
     }
     if let Some(v) = get("rows")? {
         next.rows = v;
@@ -594,8 +734,18 @@ pub fn command(app: &mut CraftApp, p: &Value) -> Result<Value, String> {
     if let Some(v) = get("filter")? {
         next.filter = v;
     }
+    // A model view named clears the pack list; a pack list named shows it.
+    if p.get("view").is_some() || p.get("type").is_some() || p.get("rows").is_some() {
+        next.pack.clear();
+    }
+    if let Some(v) = get("pack")? {
+        if !v.is_empty() && !PACK_LISTS.iter().any(|(l, _)| *l == v) {
+            return Err(format!("`pack` must be one of {}", PACK_LISTS.iter().map(|(l, _)| *l).collect::<Vec<_>>().join(", ")));
+        }
+        next.pack = v;
+    }
     next.edit = None;
-    let (command, params) = (if next.matrix { "table.matrix" } else { "table.list" }, next.params());
+    let (command, params) = read_of(&next);
     // The commands are off for an empty model, so there is nothing to check a view against.
     if !(app.session.doc.model.elements.is_empty() && app.session.doc.model.relationships.is_empty()) {
         app.session.run(command, &params).map_err(|e| e.to_string())?;

@@ -1,0 +1,395 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="1700" height="1100" viewBox="0 0 1700 1100">
+  <title>Page-1</title>
+  <rect x="0" y="0" width="1700" height="1100" fill="#ffffff"/>
+  <g class="background" data-page="p2">
+  <g id="p2-frame">
+    <path d="M38 25 L1662 25 L1662 1075 L38 1075 Z" fill="none" stroke="#1e2630" stroke-width="2.756"/>
+  </g>
+  <g id="p2-tick-t0">
+    <path d="M443.311 5.315 L444.689 5.315 L444.689 25 L443.311 25 Z" fill="#1e2630" stroke="none"/>
+  </g>
+  <g id="p2-tick-b0">
+    <path d="M443.311 1075 L444.689 1075 L444.689 1094.685 L443.311 1094.685 Z" fill="#1e2630" stroke="none"/>
+  </g>
+  <g id="p2-tick-t1">
+    <path d="M849.311 5.315 L850.689 5.315 L850.689 25 L849.311 25 Z" fill="#1e2630" stroke="none"/>
+  </g>
+  <g id="p2-tick-b1">
+    <path d="M849.311 1075 L850.689 1075 L850.689 1094.685 L849.311 1094.685 Z" fill="#1e2630" stroke="none"/>
+  </g>
+  <g id="p2-tick-t2">
+    <path d="M1255.311 5.315 L1256.689 5.315 L1256.689 25 L1255.311 25 Z" fill="#1e2630" stroke="none"/>
+  </g>
+  <g id="p2-tick-b2">
+    <path d="M1255.311 1075 L1256.689 1075 L1256.689 1094.685 L1255.311 1094.685 Z" fill="#1e2630" stroke="none"/>
+  </g>
+  <g id="p2-tick-l0">
+    <path d="M18.315 549.311 L38 549.311 L38 550.689 L18.315 550.689 Z" fill="#1e2630" stroke="none"/>
+  </g>
+  <g id="p2-tick-r0">
+    <path d="M1662 549.311 L1681.685 549.311 L1681.685 550.689 L1662 550.689 Z" fill="#1e2630" stroke="none"/>
+  </g>
+  <g id="p2-col-t0">
+    <path d="M38 0 L444 0 L444 25 L38 25 Z" fill="none" stroke="none"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="19.685" fill="#1e2630" xml:space="preserve"><tspan x="241" y="19.39">4</tspan></text>
+  </g>
+  <g id="p2-col-b0">
+    <path d="M38 1075 L444 1075 L444 1100 L38 1100 Z" fill="none" stroke="none"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="19.685" fill="#1e2630" xml:space="preserve"><tspan x="241" y="1094.39">4</tspan></text>
+  </g>
+  <g id="p2-col-t1">
+    <path d="M444 0 L850 0 L850 25 L444 25 Z" fill="none" stroke="none"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="19.685" fill="#1e2630" xml:space="preserve"><tspan x="647" y="19.39">3</tspan></text>
+  </g>
+  <g id="p2-col-b1">
+    <path d="M444 1075 L850 1075 L850 1100 L444 1100 Z" fill="none" stroke="none"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="19.685" fill="#1e2630" xml:space="preserve"><tspan x="647" y="1094.39">3</tspan></text>
+  </g>
+  <g id="p2-col-t2">
+    <path d="M850 0 L1256 0 L1256 25 L850 25 Z" fill="none" stroke="none"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="19.685" fill="#1e2630" xml:space="preserve"><tspan x="1053" y="19.39">2</tspan></text>
+  </g>
+  <g id="p2-col-b2">
+    <path d="M850 1075 L1256 1075 L1256 1100 L850 1100 Z" fill="none" stroke="none"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="19.685" fill="#1e2630" xml:space="preserve"><tspan x="1053" y="1094.39">2</tspan></text>
+  </g>
+  <g id="p2-col-t3">
+    <path d="M1256 0 L1662 0 L1662 25 L1256 25 Z" fill="none" stroke="none"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="19.685" fill="#1e2630" xml:space="preserve"><tspan x="1459" y="19.39">1</tspan></text>
+  </g>
+  <g id="p2-col-b3">
+    <path d="M1256 1075 L1662 1075 L1662 1100 L1256 1100 Z" fill="none" stroke="none"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="19.685" fill="#1e2630" xml:space="preserve"><tspan x="1459" y="1094.39">1</tspan></text>
+  </g>
+  <g id="p2-row-l0">
+    <path d="M0 25 L38 25 L38 550 L0 550 Z" fill="none" stroke="none"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="19.685" fill="#1e2630" xml:space="preserve"><tspan x="19" y="294.39">B</tspan></text>
+  </g>
+  <g id="p2-row-r0">
+    <path d="M1662 25 L1700 25 L1700 550 L1662 550 Z" fill="none" stroke="none"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="19.685" fill="#1e2630" xml:space="preserve"><tspan x="1681" y="294.39">B</tspan></text>
+  </g>
+  <g id="p2-row-l1">
+    <path d="M0 550 L38 550 L38 1075 L0 1075 Z" fill="none" stroke="none"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="19.685" fill="#1e2630" xml:space="preserve"><tspan x="19" y="819.39">A</tspan></text>
+  </g>
+  <g id="p2-row-r1">
+    <path d="M1662 550 L1700 550 L1700 1075 L1662 1075 Z" fill="none" stroke="none"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="19.685" fill="#1e2630" xml:space="preserve"><tspan x="1681" y="819.39">A</tspan></text>
+  </g>
+  <g id="p2-tb-border">
+    <path d="M961.213 878.15 L1662 878.15 L1662 1075 L961.213 1075 Z" fill="#ffffff" stroke="#1e2630" stroke-width="2.756"/>
+  </g>
+  <g id="p2-tb-cell0">
+    <path d="M961.213 878.15 L1354.913 878.15 L1354.913 917.52 L961.213 917.52 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="p2-tb-label0">
+    <path d="M965.15 879.724 L1350.976 879.724 L1350.976 891.535 L965.15 891.535 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="969.087" y="889.342">Company</tspan></text>
+  </g>
+  <g id="p2-tb-text0">
+    <path d="M965.15 891.535 L1350.976 891.535 L1350.976 915.945 L965.15 915.945 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="p2-tb-cell1">
+    <path d="M1354.913 878.15 L1512.394 878.15 L1512.394 917.52 L1354.913 917.52 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="p2-tb-label1">
+    <path d="M1358.85 879.724 L1508.457 879.724 L1508.457 891.535 L1358.85 891.535 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1362.787" y="889.342">Drawn</tspan></text>
+  </g>
+  <g id="p2-tb-text1">
+    <path d="M1358.85 891.535 L1508.457 891.535 L1508.457 915.945 L1358.85 915.945 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="p2-tb-cell2">
+    <path d="M1512.394 878.15 L1662 878.15 L1662 917.52 L1512.394 917.52 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="p2-tb-label2">
+    <path d="M1516.331 879.724 L1658.063 879.724 L1658.063 891.535 L1516.331 891.535 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1520.268" y="889.342">Date</tspan></text>
+  </g>
+  <g id="p2-tb-text2">
+    <path d="M1516.331 891.535 L1658.063 891.535 L1658.063 915.945 L1516.331 915.945 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="p2-tb-cell3">
+    <path d="M961.213 917.52 L1354.913 917.52 L1354.913 996.26 L961.213 996.26 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="p2-tb-label3">
+    <path d="M965.15 919.094 L1350.976 919.094 L1350.976 930.906 L965.15 930.906 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="969.087" y="928.712">Title</tspan></text>
+  </g>
+  <g id="p2-tb-text3">
+    <path d="M965.15 930.906 L1350.976 930.906 L1350.976 994.685 L965.15 994.685 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="p2-tb-cell4">
+    <path d="M1354.913 917.52 L1512.394 917.52 L1512.394 956.89 L1354.913 956.89 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="p2-tb-label4">
+    <path d="M1358.85 919.094 L1508.457 919.094 L1508.457 930.906 L1358.85 930.906 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1362.787" y="928.712">Checked</tspan></text>
+  </g>
+  <g id="p2-tb-text4">
+    <path d="M1358.85 930.906 L1508.457 930.906 L1508.457 955.315 L1358.85 955.315 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="p2-tb-cell5">
+    <path d="M1512.394 917.52 L1662 917.52 L1662 956.89 L1512.394 956.89 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="p2-tb-label5">
+    <path d="M1516.331 919.094 L1658.063 919.094 L1658.063 930.906 L1516.331 930.906 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1520.268" y="928.712">Date</tspan></text>
+  </g>
+  <g id="p2-tb-text5">
+    <path d="M1516.331 930.906 L1658.063 930.906 L1658.063 955.315 L1516.331 955.315 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="p2-tb-cell6">
+    <path d="M1354.913 956.89 L1512.394 956.89 L1512.394 996.26 L1354.913 996.26 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="p2-tb-label6">
+    <path d="M1358.85 958.465 L1508.457 958.465 L1508.457 970.276 L1358.85 970.276 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1362.787" y="968.082">Approved</tspan></text>
+  </g>
+  <g id="p2-tb-text6">
+    <path d="M1358.85 970.276 L1508.457 970.276 L1508.457 994.685 L1358.85 994.685 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="p2-tb-cell7">
+    <path d="M1512.394 956.89 L1662 956.89 L1662 996.26 L1512.394 996.26 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="p2-tb-label7">
+    <path d="M1516.331 958.465 L1658.063 958.465 L1658.063 970.276 L1516.331 970.276 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1520.268" y="968.082">Date</tspan></text>
+  </g>
+  <g id="p2-tb-text7">
+    <path d="M1516.331 970.276 L1658.063 970.276 L1658.063 994.685 L1516.331 994.685 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="p2-tb-cell8">
+    <path d="M961.213 996.26 L1024.205 996.26 L1024.205 1043.504 L961.213 1043.504 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="p2-tb-label8">
+    <path d="M965.15 997.835 L1020.268 997.835 L1020.268 1009.646 L965.15 1009.646 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="969.087" y="1007.452">Size</tspan></text>
+  </g>
+  <g id="p2-tb-text8">
+    <path d="M965.15 1009.646 L1020.268 1009.646 L1020.268 1041.929 L965.15 1041.929 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="19.685" font-weight="bold" fill="#1e2630" xml:space="preserve"><tspan x="969.087" y="1032.677">B</tspan></text>
+  </g>
+  <g id="p2-tb-cell9">
+    <path d="M1024.205 996.26 L1142.315 996.26 L1142.315 1043.504 L1024.205 1043.504 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="p2-tb-label9">
+    <path d="M1028.142 997.835 L1138.378 997.835 L1138.378 1009.646 L1028.142 1009.646 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1032.079" y="1007.452">CAGE code</tspan></text>
+  </g>
+  <g id="p2-tb-text9">
+    <path d="M1028.142 1009.646 L1138.378 1009.646 L1138.378 1041.929 L1028.142 1041.929 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="p2-tb-cell10">
+    <path d="M1142.315 996.26 L1551.764 996.26 L1551.764 1043.504 L1142.315 1043.504 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="p2-tb-label10">
+    <path d="M1146.252 997.835 L1547.827 997.835 L1547.827 1009.646 L1146.252 1009.646 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1150.189" y="1007.452">Dwg. no.</tspan></text>
+  </g>
+  <g id="p2-tb-text10">
+    <path d="M1146.252 1009.646 L1547.827 1009.646 L1547.827 1041.929 L1146.252 1041.929 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="p2-tb-cell11">
+    <path d="M1551.764 996.26 L1662 996.26 L1662 1043.504 L1551.764 1043.504 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="p2-tb-label11">
+    <path d="M1555.701 997.835 L1658.063 997.835 L1658.063 1009.646 L1555.701 1009.646 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1559.638" y="1007.452">Rev.</tspan></text>
+  </g>
+  <g id="p2-tb-text11">
+    <path d="M1555.701 1009.646 L1658.063 1009.646 L1658.063 1041.929 L1555.701 1041.929 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="p2-tb-cell12">
+    <path d="M961.213 1043.504 L1079.323 1043.504 L1079.323 1075 L961.213 1075 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="p2-tb-label12">
+    <path d="M965.15 1045.079 L1075.386 1045.079 L1075.386 1056.89 L965.15 1056.89 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="969.087" y="1054.696">Scale</tspan></text>
+  </g>
+  <g id="p2-tb-text12">
+    <path d="M965.15 1056.89 L1075.386 1056.89 L1075.386 1073.425 L965.15 1073.425 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="p2-tb-cell13">
+    <path d="M1079.323 1043.504 L1197.433 1043.504 L1197.433 1075 L1079.323 1075 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="p2-tb-label13">
+    <path d="M1083.26 1045.079 L1193.496 1045.079 L1193.496 1056.89 L1083.26 1056.89 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1087.197" y="1054.696">Weight</tspan></text>
+  </g>
+  <g id="p2-tb-text13">
+    <path d="M1083.26 1056.89 L1193.496 1056.89 L1193.496 1073.425 L1083.26 1073.425 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="p2-tb-cell14">
+    <path d="M1197.433 1043.504 L1354.913 1043.504 L1354.913 1075 L1197.433 1075 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="p2-tb-label14">
+    <path d="M1201.37 1045.079 L1350.976 1045.079 L1350.976 1056.89 L1201.37 1056.89 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1205.307" y="1054.696">Material</tspan></text>
+  </g>
+  <g id="p2-tb-text14">
+    <path d="M1201.37 1056.89 L1350.976 1056.89 L1350.976 1073.425 L1201.37 1073.425 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="p2-tb-cell15">
+    <path d="M1354.913 1043.504 L1512.394 1043.504 L1512.394 1075 L1354.913 1075 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="p2-tb-label15">
+    <path d="M1358.85 1045.079 L1508.457 1045.079 L1508.457 1056.89 L1358.85 1056.89 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1362.787" y="1054.696">Finish</tspan></text>
+  </g>
+  <g id="p2-tb-text15">
+    <path d="M1358.85 1056.89 L1508.457 1056.89 L1508.457 1073.425 L1358.85 1073.425 Z" fill="none" stroke="none"/>
+  </g>
+  <g id="p2-tb-cell16">
+    <path d="M1512.394 1043.504 L1662 1043.504 L1662 1075 L1512.394 1075 Z" fill="none" stroke="#1e2630" stroke-width="1.378"/>
+  </g>
+  <g id="p2-tb-label16">
+    <path d="M1516.331 1045.079 L1658.063 1045.079 L1658.063 1056.89 L1516.331 1056.89 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10.124" fill="#1e2630" xml:space="preserve"><tspan x="1520.268" y="1054.696">Sheet</tspan></text>
+  </g>
+  <g id="p2-tb-text16">
+    <path d="M1516.331 1056.89 L1658.063 1056.89 L1658.063 1073.425 L1516.331 1073.425 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="14.061" fill="#1e2630" xml:space="preserve"><tspan x="1520.268" y="1070.079">1 of 1</tspan></text>
+  </g>
+  </g>
+  <g id="s4">
+    <path d="M130 80 L135 80 M725 80 L730 80 M130 120 L135 120 M725 120 L730 120 M130 160 L135 160 M725 160 L730 160 M130 200 L135 200 M725 200 L730 200 M130 240 L135 240 M725 240 L730 240 M130 280 L135 280 M725 280 L730 280 M130 320 L135 320 M725 320 L730 320 M130 360 L135 360 M725 360 L730 360 M130 400 L135 400 M725 400 L730 400 M130 440 L135 440 M725 440 L730 440" fill="none" stroke="#1f2933" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="9" fill="#1e2630" xml:space="preserve"><tspan x="112" y="83.15">1</tspan></text>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="9" fill="#1e2630" xml:space="preserve"><tspan x="112" y="123.15">2</tspan></text>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="9" fill="#1e2630" xml:space="preserve"><tspan x="112" y="163.15">3</tspan></text>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="9" fill="#1e2630" xml:space="preserve"><tspan x="112" y="203.15">4</tspan></text>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="9" fill="#1e2630" xml:space="preserve"><tspan x="112" y="243.15">5</tspan></text>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="9" fill="#1e2630" xml:space="preserve"><tspan x="112" y="283.15">6</tspan></text>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="9" fill="#1e2630" xml:space="preserve"><tspan x="112" y="323.15">7</tspan></text>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="9" fill="#1e2630" xml:space="preserve"><tspan x="112" y="363.15">8</tspan></text>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="9" fill="#1e2630" xml:space="preserve"><tspan x="112" y="403.15">9</tspan></text>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="9" fill="#1e2630" xml:space="preserve"><tspan x="112" y="443.15">10</tspan></text>
+  </g>
+  <g id="s10">
+    <path d="M180 80 L196 80 M204 80 L220 80 M196 73 L196 87 M204 73 L204 87 M192 89 L208 71 M200 59 L200 62 M200 64 L200 67 M200 69 L200 72 M195 62 L195 59 L205 59 L205 62" fill="none" stroke="#1f2933" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="6" fill="#1e2630" xml:space="preserve"><tspan x="186" y="77.6">11</tspan></text>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="6" fill="#1e2630" xml:space="preserve"><tspan x="214" y="77.6">12</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10" fill="#1e2630" xml:space="preserve"><tspan x="224" y="83.5">PB1</tspan></text>
+  </g>
+  <g id="s12">
+    <path d="M300 80 L316 80 M324 80 L340 80 M316 73 L316 87 M324 73 L324 87 M320 59 L320 62 M320 64 L320 67 M320 69 L320 72 M315 62 L315 59 L325 59 L325 62" fill="none" stroke="#1f2933" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="6" fill="#1e2630" xml:space="preserve"><tspan x="306" y="77.6">13</tspan></text>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="6" fill="#1e2630" xml:space="preserve"><tspan x="334" y="77.6">14</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10" fill="#1e2630" xml:space="preserve"><tspan x="344" y="83.5">PB2</tspan></text>
+  </g>
+  <g id="s14">
+    <path d="M648 80 C648 84.418 644.418 88 640 88 C635.582 88 632 84.418 632 80 C632 75.582 635.582 72 640 72 C644.418 72 648 75.582 648 80 Z" fill="#ffffff" stroke="#1f2933" stroke-width="1.5"/>
+    <path d="M620 80 L632 80 M648 80 L660 80" fill="none" stroke="#1f2933" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="6" fill="#1e2630" xml:space="preserve"><tspan x="640" y="82.1">M1</tspan></text>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="5" fill="#1e2630" xml:space="preserve"><tspan x="625" y="76.25">A1</tspan></text>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="5" fill="#1e2630" xml:space="preserve"><tspan x="655" y="76.25">A2</tspan></text>
+  </g>
+  <g id="s16">
+    <path d="M300 120 L316 120 M324 120 L340 120 M316 113 L316 127 M324 113 L324 127" fill="none" stroke="#1f2933" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="6" fill="#1e2630" xml:space="preserve"><tspan x="306" y="117.6">13</tspan></text>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="6" fill="#1e2630" xml:space="preserve"><tspan x="334" y="117.6">14</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10" fill="#1e2630" xml:space="preserve"><tspan x="344" y="123.5">M1</tspan></text>
+  </g>
+  <g id="s18">
+    <path d="M740 70.4 L820 70.4 L820 84.8 L740 84.8 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="8" fill="#1e2630" xml:space="preserve"><tspan x="744" y="82">2, 3</tspan></text>
+  </g>
+  <g id="s19">
+    <path d="M300 132 L360 132 L360 148 L300 148 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10" fill="#1e2630" xml:space="preserve"><tspan x="304" y="145.5">B3</tspan></text>
+  </g>
+  <g id="s21">
+    <path d="M300 160 L316 160 M324 160 L340 160 M316 153 L316 167 M324 153 L324 167" fill="none" stroke="#1f2933" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="6" fill="#1e2630" xml:space="preserve"><tspan x="306" y="157.6">13</tspan></text>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="6" fill="#1e2630" xml:space="preserve"><tspan x="334" y="157.6">14</tspan></text>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10" fill="#1e2630" xml:space="preserve"><tspan x="344" y="163.5">M1</tspan></text>
+  </g>
+  <g id="s23">
+    <path d="M300 172 L360 172 L360 188 L300 188 Z" fill="none" stroke="none"/>
+    <text text-anchor="start" font-family="Inter, sans-serif" font-size="10" fill="#1e2630" xml:space="preserve"><tspan x="304" y="185.5">B3</tspan></text>
+  </g>
+  <g id="s25">
+    <path d="M648 160 C648 164.418 644.418 168 640 168 C635.582 168 632 164.418 632 160 C632 155.582 635.582 152 640 152 C644.418 152 648 155.582 648 160 Z" fill="#ffffff" stroke="#1f2933" stroke-width="1.5"/>
+    <path d="M620 160 L632 160 M648 160 L660 160 M646.505 166.505 L649.505 169.505 M646.505 153.495 L649.505 150.495 M633.495 166.505 L630.495 169.505 M633.495 153.495 L630.495 150.495" fill="none" stroke="#1f2933" stroke-width="1.5"/>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="5.5" fill="#1e2630" xml:space="preserve"><tspan x="640" y="161.925">RD</tspan></text>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="10" fill="#1e2630" xml:space="preserve"><tspan x="640" y="146.5">PL1</tspan></text>
+  </g>
+  <g id="j27">
+    <path d="M137.5 160 C137.5 164.142 134.142 167.5 130 167.5 C125.858 167.5 122.5 164.142 122.5 160 C122.5 155.858 125.858 152.5 130 152.5 C134.142 152.5 137.5 155.858 137.5 160 Z" fill="#1f2933" stroke="none"/>
+  </g>
+  <g id="j30">
+    <path d="M737.5 160 C737.5 164.142 734.142 167.5 730 167.5 C725.858 167.5 722.5 164.142 722.5 160 C722.5 155.858 725.858 152.5 730 152.5 C734.142 152.5 737.5 155.858 737.5 160 Z" fill="#1f2933" stroke="none"/>
+  </g>
+  <g id="j33">
+    <path d="M137.5 80 C137.5 84.142 134.142 87.5 130 87.5 C125.858 87.5 122.5 84.142 122.5 80 C122.5 75.858 125.858 72.5 130 72.5 C134.142 72.5 137.5 75.858 137.5 80 Z" fill="#1f2933" stroke="none"/>
+  </g>
+  <g id="j36">
+    <path d="M737.5 80 C737.5 84.142 734.142 87.5 730 87.5 C725.858 87.5 722.5 84.142 722.5 80 C722.5 75.858 725.858 72.5 730 72.5 C734.142 72.5 737.5 75.858 737.5 80 Z" fill="#1f2933" stroke="none"/>
+  </g>
+  <g id="j43">
+    <path d="M264.5 80 C264.5 82.485 262.485 84.5 260 84.5 C257.515 84.5 255.5 82.485 255.5 80 C255.5 77.515 257.515 75.5 260 75.5 C262.485 75.5 264.5 77.515 264.5 80 Z" fill="#3a4a5c" stroke="none"/>
+  </g>
+  <g id="j46">
+    <path d="M404.5 80 C404.5 82.485 402.485 84.5 400 84.5 C397.515 84.5 395.5 82.485 395.5 80 C395.5 77.515 397.515 75.5 400 75.5 C402.485 75.5 404.5 77.515 404.5 80 Z" fill="#3a4a5c" stroke="none"/>
+  </g>
+  <g id="c6">
+    <path d="M130 60 L130 80" fill="none" stroke="#1f2933" stroke-width="2.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c8">
+    <path d="M730 60 L730 80" fill="none" stroke="#1f2933" stroke-width="2.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c26">
+    <path d="M130 160 L130 460" fill="none" stroke="#1f2933" stroke-width="2.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c28">
+    <path d="M130 160 L300 160" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c29">
+    <path d="M730 160 L730 460" fill="none" stroke="#1f2933" stroke-width="2.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c31">
+    <path d="M660 160 L730 160" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c32">
+    <path d="M130 80 L130 160" fill="none" stroke="#1f2933" stroke-width="2.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c34">
+    <path d="M130 80 L180 80" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c35">
+    <path d="M730 80 L730 160" fill="none" stroke="#1f2933" stroke-width="2.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c37">
+    <path d="M660 80 L730 80" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c39">
+    <path d="M220 80 L260 80" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c41">
+    <path d="M340 80 L400 80" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c42">
+    <path d="M260 80 L300 80" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c44">
+    <path d="M260 80 L260 120 L300 120" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c45">
+    <path d="M400 80 L620 80" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c47">
+    <path d="M340 120 L400 120 L400 80" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <g id="c49">
+    <path d="M340 160 L620 160" fill="none" stroke="#3a4a5c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <g class="nets">
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" transform="rotate(-90 250.85 100)" xml:space="preserve"><tspan x="250.85" y="104.2">101</tspan></text>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="510" y="75.05">101A</tspan></text>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" xml:space="preserve"><tspan x="480" y="155.05">103</tspan></text>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" transform="rotate(-90 120.35 310)" xml:space="preserve"><tspan x="120.35" y="314.2">L1</tspan></text>
+    <text text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#1e2630" transform="rotate(-90 720.35 310)" xml:space="preserve"><tspan x="720.35" y="314.2">L2</tspan></text>
+  </g>
+</svg>

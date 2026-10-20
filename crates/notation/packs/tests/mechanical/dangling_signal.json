@@ -1,0 +1,218 @@
+{
+ "document": {
+  "format": "vizcraft",
+  "version": 4,
+  "model": {
+   "schemaVersion": 1,
+   "packs": [
+    {
+     "id": "mechanical",
+     "version": "1.0.0"
+    }
+   ],
+   "elements": [
+    {
+     "id": "r",
+     "type": "mechanical.Input",
+     "name": "r"
+    },
+    {
+     "id": "e",
+     "type": "mechanical.SummingJunction",
+     "name": "e"
+    },
+    {
+     "id": "g",
+     "type": "mechanical.TransferBlock",
+     "name": "G",
+     "properties": {
+      "gain": "G",
+      "dynamic": true
+     }
+    },
+    {
+     "id": "bp",
+     "type": "mechanical.BranchPoint",
+     "name": "bp"
+    },
+    {
+     "id": "y",
+     "type": "mechanical.Output",
+     "name": "y"
+    }
+   ],
+   "relationships": [
+    {
+     "id": "s1",
+     "type": "mechanical.Signal",
+     "source": "r",
+     "target": "e",
+     "properties": {
+      "sign": "+"
+     }
+    },
+    {
+     "id": "s2",
+     "type": "mechanical.Signal",
+     "source": "e",
+     "target": "g"
+    },
+    {
+     "id": "s3",
+     "type": "mechanical.Signal",
+     "source": "g",
+     "target": "bp"
+    },
+    {
+     "id": "s4",
+     "type": "mechanical.Signal",
+     "source": "bp",
+     "target": "y"
+    },
+    {
+     "id": "s5",
+     "type": "mechanical.Signal",
+     "source": "bp",
+     "target": "e",
+     "properties": {
+      "sign": "-"
+     }
+    }
+   ]
+  },
+  "document": {
+   "title": "",
+   "pages": [
+    {
+     "id": "p1",
+     "name": "p1",
+     "shapes": [
+      {
+       "id": "s_p1_r",
+       "kind": "rectangle",
+       "x": 0,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "r"
+      },
+      {
+       "id": "s_p1_e",
+       "kind": "rectangle",
+       "x": 200,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "e"
+      },
+      {
+       "id": "s_p1_g",
+       "kind": "rectangle",
+       "x": 400,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "g"
+      },
+      {
+       "id": "s_p1_bp",
+       "kind": "rectangle",
+       "x": 600,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "bp"
+      },
+      {
+       "id": "s_p1_y",
+       "kind": "rectangle",
+       "x": 800,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "y"
+      }
+     ],
+     "connectors": [
+      {
+       "id": "c_p1_s1",
+       "start": {
+        "shape": "s_p1_r"
+       },
+       "end": {
+        "shape": "s_p1_e"
+       },
+       "relationship": "s1"
+      },
+      {
+       "id": "c_p1_s2",
+       "start": {
+        "shape": "s_p1_e"
+       },
+       "end": {
+        "shape": "s_p1_g"
+       },
+       "relationship": "s2"
+      },
+      {
+       "id": "c_p1_s3",
+       "start": {
+        "shape": "s_p1_g"
+       },
+       "end": {
+        "shape": "s_p1_bp"
+       },
+       "relationship": "s3"
+      },
+      {
+       "id": "c_p1_s4",
+       "start": {
+        "shape": "s_p1_bp"
+       },
+       "end": {
+        "shape": "s_p1_y"
+       },
+       "relationship": "s4"
+      },
+      {
+       "id": "c_p1_s5",
+       "start": {
+        "shape": "s_p1_bp"
+       },
+       "end": {
+        "shape": "s_p1_e"
+       },
+       "relationship": "s5"
+      },
+      {
+       "id": "loose",
+       "start": {
+        "shape": "s_p1_g"
+       },
+       "end": {
+        "x": 900,
+        "y": 500
+       }
+      }
+     ],
+     "view": {
+      "viewpoint": "mechanical.ControlBlock"
+     }
+    }
+   ],
+   "idSeq": 1000
+  }
+ },
+ "profile": {
+  "enabled": true,
+  "userSet": true,
+  "rulesets": [
+   "mechanical.controlBlock"
+  ]
+ },
+ "expect": [
+  {
+   "rule": "mechanical.danglingSignal"
+  }
+ ]
+}

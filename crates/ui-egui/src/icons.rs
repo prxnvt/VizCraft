@@ -235,6 +235,73 @@ pub const NAMES: &[&str] = &[
     "steps",
     // Help > Examples
     "examples",
+    // Electrical
+    "symbolStandard",
+    "tagFormat",
+    "ladderTool",
+    "numberWires",
+    "lineWire",
+    "lineBus",
+    "lineSignal",
+    "linkCoil",
+    "terminalStrip",
+    "cable",
+    "ioAssign",
+    "footprints",
+    "wireList",
+    "cableList",
+    "terminalPlan",
+    "ioList",
+    "netlist",
+    // Process Plant > Lines, Tags, Loops, Equipment, Lists
+    "processPipe",
+    "lineKind",
+    "assignLine",
+    "offPage",
+    "pairOffPage",
+    "numbering",
+    "tagFormats",
+    "processLoop",
+    "loopTrace",
+    "loopDiagram",
+    "nozzle",
+    "plantList",
+    // Fluid power (Circuit groups of the notation tab)
+    "workingLine",
+    "pilotLine",
+    "drainLine",
+    "mechanicalLine",
+    "signalLine",
+    "stepChart",
+    "tracePressure",
+    "powerUnit",
+    "pressureValve",
+    "fluidPump",
+    "fluidCylinder",
+    "portLabels",
+    "componentList",
+    "fluidValve",
+    "stepInsert",
+    "stepDelete",
+    "traceRest",
+    // Mechanical, Reliability, IDEF0 and Sheet > Annotate (b6e-mechanical)
+    "mobility",
+    "gearRatio",
+    "mason",
+    "causality",
+    "cutSets",
+    "availability",
+    "outcomes",
+    "fmeaRow",
+    "rpn",
+    "decompose",
+    "renumberBoxes",
+    "icomCodes",
+    "fcf",
+    "datum",
+    "weld",
+    "texture",
+    "annotationStandard",
 ];
 
 /// Reference size of the design grid, in points. At this size the stroke is `BASE_STROKE`.
@@ -1545,6 +1612,435 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
             pen.page(3.0, 5.0, 13.0, 17.5);
             pen.frect(5.5, 9.0, 8.5, 11.5, a);
             pen.line_c(&[(8.5, 10.25), (10.5, 10.25), (10.5, 14.0)], a);
+        }
+        // Electrical
+        "symbolStandard" => {
+            // A contact as IEC draws it beside one as JIC draws it.
+            pen.line(&[(5.0, 3.0), (5.0, 8.0)]);
+            pen.line(&[(5.0, 17.0), (5.0, 12.0), (2.5, 8.5)]);
+            pen.line_c(&[(11.0, 10.0), (13.5, 10.0)], a);
+            pen.line_c(&[(13.5, 6.5), (13.5, 13.5)], a);
+            pen.line_c(&[(15.5, 6.5), (15.5, 13.5)], a);
+            pen.line_c(&[(15.5, 10.0), (18.0, 10.0)], a);
+        }
+        "tagFormat" => {
+            // A tag label with its letters and number.
+            pen.closed(&[(2.5, 6.0), (14.0, 6.0), (17.5, 10.0), (14.0, 14.0), (2.5, 14.0)], c);
+            pen.circle(14.0, 10.0, 1.0, a);
+            pen.lines(5.0, 11.0, &[9.0, 11.0]);
+        }
+        "ladderTool" => {
+            pen.line(&[(4.0, 2.5), (4.0, 17.5)]);
+            pen.line(&[(16.0, 2.5), (16.0, 17.5)]);
+            for y in [6.0, 10.0, 14.0] {
+                pen.line_c(&[(4.0, y), (16.0, y)], a);
+            }
+        }
+        "numberWires" => {
+            // A wire with the number 12 above it.
+            pen.line(&[(2.5, 14.0), (17.5, 14.0)]);
+            pen.line_c(&[(6.5, 4.0), (6.5, 10.0)], a);
+            pen.line_c(&[(9.5, 4.0), (13.0, 4.0), (13.0, 7.0), (9.5, 7.0), (9.5, 10.0), (13.0, 10.0)], a);
+        }
+        "lineWire" => {
+            pen.line(&[(2.5, 14.0), (8.0, 14.0), (8.0, 6.0), (17.5, 6.0)]);
+            pen.circle(8.0, 14.0, 1.4, a);
+        }
+        "lineBus" => {
+            pen.frect(2.5, 8.5, 17.5, 11.5, c);
+            pen.line_c(&[(7.0, 11.5), (7.0, 17.0)], a);
+            pen.line_c(&[(13.0, 11.5), (13.0, 17.0)], a);
+        }
+        "lineSignal" => {
+            for k in 0..4 {
+                let x = 2.5 + k as f32 * 4.0;
+                pen.line(&[(x, 10.0), (x + 2.5, 10.0)]);
+            }
+            pen.line_c(&[(14.0, 6.5), (17.5, 10.0), (14.0, 13.5)], a);
+        }
+        "linkCoil" => {
+            // A contact and the coil it belongs to, joined by a dashed link.
+            pen.line(&[(4.0, 3.0), (4.0, 8.0)]);
+            pen.line(&[(4.0, 17.0), (4.0, 12.0), (1.5, 8.5)]);
+            for x in [6.0, 8.5] {
+                pen.line_c(&[(x, 10.0), (x + 1.5, 10.0)], a);
+            }
+            pen.rect(11.0, 7.0, 18.0, 13.0, c);
+        }
+        "terminalStrip" => {
+            pen.rect(6.0, 2.5, 14.0, 17.5, c);
+            for y in [5.5, 10.0, 14.5] {
+                pen.circle(10.0, y, 1.3, a);
+                pen.line(&[(2.0, y), (8.7, y)]);
+                pen.line(&[(11.3, y), (18.0, y)]);
+            }
+        }
+        "cable" => {
+            // Three cores bundled in a sheath.
+            pen.rect(5.0, 6.0, 15.0, 14.0, c);
+            for y in [8.5, 10.0, 11.5] {
+                pen.line_c(&[(2.0, y), (18.0, y)], a);
+            }
+        }
+        "ioAssign" => {
+            pen.rect(9.0, 3.0, 17.0, 17.0, c);
+            for y in [6.0, 10.0, 14.0] {
+                pen.line(&[(5.5, y), (9.0, y)]);
+            }
+            pen.line_c(&[(2.0, 10.0), (5.5, 10.0)], a);
+            pen.fill(&[(4.0, 8.0), (6.5, 10.0), (4.0, 12.0)], a);
+        }
+        "footprints" => {
+            // Device outlines standing on a rail.
+            pen.line(&[(2.0, 16.0), (18.0, 16.0)]);
+            pen.rect(3.5, 5.0, 8.5, 16.0, c);
+            pen.rect(10.0, 7.0, 16.5, 16.0, a);
+        }
+        "wireList" | "cableList" | "terminalPlan" | "ioList" => {
+            pen.page(3.0, 2.5, 15.5, 17.5);
+            pen.lines(5.5, 13.0, &[7.0, 10.0, 13.0]);
+            match name {
+                "wireList" => pen.line_c(&[(11.0, 15.5), (18.5, 15.5)], a),
+                "cableList" => pen.rect(12.0, 13.0, 18.5, 18.0, a),
+                "terminalPlan" => pen.circle(15.5, 15.5, 2.0, a),
+                _ => pen.fill(&[(12.5, 13.0), (18.5, 15.5), (12.5, 18.0)], a),
+            }
+        }
+        "netlist" => {
+            pen.circle(4.5, 5.0, 1.6, c);
+            pen.circle(15.5, 5.0, 1.6, c);
+            pen.circle(10.0, 15.0, 1.6, c);
+            pen.line_c(&[(6.0, 5.0), (14.0, 5.0)], a);
+            pen.line_c(&[(10.0, 5.0), (10.0, 13.4)], a);
+        }
+        // Process Plant
+        "processPipe" => {
+            // A heavy pipe run with a valve body on it.
+            pen.line(&[(1.5, 14.0), (6.0, 14.0), (6.0, 6.0), (18.5, 6.0)]);
+            pen.line(&[(1.5, 15.0), (7.0, 15.0), (7.0, 7.0), (18.5, 7.0)]);
+            pen.fill(&[(10.0, 3.5), (10.0, 9.5), (13.0, 6.5)], a);
+            pen.fill(&[(16.0, 3.5), (16.0, 9.5), (13.0, 6.5)], a);
+        }
+        "lineKind" => {
+            // Three line looks: solid, dashed, and slashed (pneumatic).
+            pen.line(&[(2.0, 5.0), (18.0, 5.0)]);
+            for k in 0..4 {
+                let x = 2.0 + k as f32 * 4.2;
+                pen.line(&[(x, 10.0), (x + 2.5, 10.0)]);
+            }
+            pen.line(&[(2.0, 15.0), (18.0, 15.0)]);
+            pen.line_c(&[(8.0, 17.5), (10.0, 12.5)], a);
+            pen.line_c(&[(10.5, 17.5), (12.5, 12.5)], a);
+        }
+        "assignLine" => {
+            // A pipe run tagged with a line number flag.
+            pen.line(&[(2.0, 14.0), (18.0, 14.0)]);
+            pen.line_c(&[(6.0, 14.0), (6.0, 4.0)], a);
+            pen.fill(&[(6.0, 4.0), (14.0, 4.0), (14.0, 9.0), (6.0, 9.0)], a);
+        }
+        "offPage" => {
+            // A continuation arrow at the end of a pipe.
+            pen.line(&[(1.5, 10.0), (7.0, 10.0)]);
+            pen.closed(&[(7.0, 6.0), (14.0, 6.0), (18.0, 10.0), (14.0, 14.0), (7.0, 14.0)], a);
+        }
+        "pairOffPage" => {
+            // Two continuation arrows joined by a dashed link.
+            pen.closed(&[(2.0, 3.0), (7.0, 3.0), (9.5, 5.5), (7.0, 8.0), (2.0, 8.0)], c);
+            pen.closed(&[(10.5, 12.0), (15.5, 12.0), (18.0, 14.5), (15.5, 17.0), (10.5, 17.0)], c);
+            pen.dashes(9.0, 8.5, 12.0, a);
+            pen.line_c(&[(9.0, 12.0), (10.5, 14.5)], a);
+        }
+        "numbering" => {
+            // Two bubbles numbered in parallel: 1 and 1.
+            pen.circle(6.0, 10.0, 4.0, c);
+            pen.circle(14.0, 10.0, 4.0, c);
+            pen.line_c(&[(6.0, 8.0), (6.0, 12.0)], a);
+            pen.line_c(&[(14.0, 8.0), (14.0, 12.0)], a);
+        }
+        "tagFormats" => {
+            // A tag label with its composed parts.
+            pen.closed(&[(2.0, 6.0), (14.0, 6.0), (18.0, 10.0), (14.0, 14.0), (2.0, 14.0)], c);
+            pen.frect(4.0, 9.0, 7.0, 11.0, a);
+            pen.frect(8.5, 9.0, 13.0, 11.0, a);
+        }
+        "processLoop" => {
+            // A transmitter and a controller bubble on a signal line to a valve.
+            pen.circle(5.0, 5.0, 3.0, c);
+            pen.circle(15.0, 5.0, 3.0, c);
+            pen.line_c(&[(8.0, 5.0), (12.0, 5.0)], a);
+            pen.line_c(&[(15.0, 8.0), (15.0, 12.5)], a);
+            pen.fill(&[(11.5, 12.5), (11.5, 17.5), (15.0, 15.0)], c);
+            pen.fill(&[(18.5, 12.5), (18.5, 17.5), (15.0, 15.0)], c);
+        }
+        "loopTrace" => {
+            // A loop's chain with the path through it lit.
+            pen.circle(4.0, 10.0, 2.5, c);
+            pen.circle(10.0, 10.0, 2.5, c);
+            pen.circle(16.0, 10.0, 2.5, c);
+            pen.line_c(&[(6.5, 10.0), (7.5, 10.0)], a);
+            pen.line_c(&[(12.5, 10.0), (13.5, 10.0)], a);
+            pen.line_c(&[(2.0, 15.5), (18.0, 15.5)], a);
+        }
+        "loopDiagram" => {
+            // A sheet in lanes with a wire across them.
+            pen.rect(2.0, 3.0, 18.0, 17.0, c);
+            pen.line(&[(7.5, 3.0), (7.5, 17.0)]);
+            pen.line(&[(12.5, 3.0), (12.5, 17.0)]);
+            pen.line_c(&[(4.0, 10.0), (16.0, 10.0)], a);
+            pen.fcircle(4.0, 10.0, 1.3, a);
+        }
+        "nozzle" => {
+            // A vessel with a nozzle stub on its side.
+            pen.closed(&[(4.0, 4.0), (11.0, 4.0), (11.0, 16.0), (4.0, 16.0)], c);
+            pen.frect(11.0, 9.0, 16.0, 11.0, a);
+            pen.line_c(&[(16.0, 7.5), (16.0, 12.5)], a);
+        }
+        "plantList" => {
+            // A list with a pipe drawn in its first row.
+            pen.rect(3.0, 3.0, 17.0, 17.0, c);
+            pen.lines(3.0, 17.0, &[7.5, 11.5]);
+            pen.line_c(&[(5.0, 5.25), (15.0, 5.25)], a);
+            pen.lines(5.0, 13.0, &[14.5]);
+        }
+        // Fluid power. Lines: a bend from a port, drawn as the line type draws.
+        "workingLine" => {
+            pen.line_c(&[(3.0, 16.0), (3.0, 6.0), (17.0, 6.0)], a);
+            pen.fcircle(3.0, 16.0, 1.5, c);
+        }
+        "pilotLine" | "drainLine" => {
+            let (dash, gap) = if name == "pilotLine" { (3.0, 1.8) } else { (1.4, 1.4) };
+            let mut x = 3.0;
+            while x < 17.0 {
+                pen.line_c(&[(x, 10.0), ((x + dash).min(17.0), 10.0)], a);
+                x += dash + gap;
+            }
+            pen.fcircle(3.0, 10.0, 1.5, c);
+            pen.line(&[(17.0, 6.0), (17.0, 14.0)]);
+        }
+        "mechanicalLine" => {
+            pen.line_c(&[(3.0, 9.0), (17.0, 9.0)], a);
+            pen.line_c(&[(3.0, 11.0), (17.0, 11.0)], a);
+            pen.circle(4.0, 10.0, 2.5, c);
+        }
+        "signalLine" => {
+            pen.line_c(&[(4.0, 14.0), (8.0, 14.0), (10.0, 6.0), (16.0, 6.0)], a);
+            pen.rect(2.0, 12.0, 6.0, 16.0, c);
+        }
+        "stepChart" => {
+            pen.rect(2.5, 4.0, 17.5, 16.0, c);
+            pen.line(&[(2.5, 10.0), (17.5, 10.0)]);
+            pen.line_c(&[(5.0, 8.5), (8.0, 5.5), (12.0, 5.5), (15.0, 8.5)], a);
+            pen.line_c(&[(5.0, 14.5), (9.0, 14.5), (12.0, 11.5), (15.0, 11.5)], a);
+        }
+        "traceRest" => {
+            // The trace stopping at a closed valve square.
+            pen.circle(5.5, 14.0, 3.5, c);
+            pen.fill(&[(5.5, 10.5), (4.0, 13.0), (7.0, 13.0)], c);
+            pen.line_c(&[(5.5, 10.5), (5.5, 4.0), (11.0, 4.0)], a);
+            pen.rect(11.0, 1.5, 17.5, 8.0, c);
+            pen.line(&[(13.0, 4.75), (15.5, 4.75)]);
+            pen.line(&[(14.25, 3.0), (14.25, 6.5)]);
+        }
+        "tracePressure" => {
+            pen.circle(5.5, 14.0, 3.5, c);
+            pen.fill(&[(5.5, 10.5), (4.0, 13.0), (7.0, 13.0)], c);
+            pen.line_c(&[(5.5, 10.5), (5.5, 4.0), (15.0, 4.0), (15.0, 12.0)], a);
+            pen.fill(&[(15.0, 15.0), (13.0, 12.0), (17.0, 12.0)], a);
+        }
+        "powerUnit" => {
+            pen.line(&[(2.5, 12.0), (2.5, 17.0), (17.5, 17.0), (17.5, 12.0)]);
+            pen.circle(10.0, 7.0, 3.5, c);
+            pen.fill(&[(10.0, 3.5), (8.6, 6.0), (11.4, 6.0)], a);
+            pen.line(&[(10.0, 10.5), (10.0, 15.0)]);
+        }
+        "pressureValve" => {
+            pen.rect(4.0, 4.0, 13.0, 16.0, c);
+            pen.line_c(&[(7.0, 14.0), (7.0, 6.5)], a);
+            pen.fill(&[(7.0, 5.5), (5.8, 8.0), (8.2, 8.0)], a);
+            pen.line(&[(13.0, 10.0), (14.0, 8.5), (15.0, 11.5), (16.0, 8.5), (17.0, 10.0)]);
+        }
+        "fluidPump" => {
+            pen.circle(10.0, 10.0, 6.5, c);
+            pen.fill(&[(10.0, 3.5), (7.8, 7.5), (12.2, 7.5)], a);
+        }
+        "fluidCylinder" => {
+            pen.rect(2.5, 6.0, 12.5, 14.0, c);
+            pen.line(&[(6.0, 6.0), (6.0, 14.0)]);
+            pen.line_c(&[(6.0, 10.0), (18.0, 10.0)], a);
+        }
+        "portLabels" => {
+            pen.rect(5.0, 5.0, 15.0, 15.0, c);
+            pen.line(&[(8.0, 5.0), (8.0, 2.0)]);
+            pen.line(&[(12.0, 15.0), (12.0, 18.0)]);
+            pen.fcircle(8.0, 2.5, 1.3, a);
+            pen.fcircle(12.0, 17.5, 1.3, a);
+        }
+        "fluidValve" => {
+            // Two switching squares with a flow arrow and a crossed pair, a spring at the right.
+            pen.rect(2.0, 6.0, 9.0, 14.0, c);
+            pen.rect(9.0, 6.0, 16.0, 14.0, c);
+            pen.line_c(&[(4.5, 13.0), (4.5, 7.5)], a);
+            pen.fill(&[(4.5, 7.0), (3.4, 9.0), (5.6, 9.0)], a);
+            pen.line_c(&[(10.5, 13.0), (14.5, 7.0)], a);
+            pen.line_c(&[(10.5, 7.0), (14.5, 13.0)], a);
+            pen.line(&[(16.0, 10.0), (16.7, 8.8), (17.4, 11.2), (18.1, 8.8), (18.8, 10.0)]);
+        }
+        "stepInsert" | "stepDelete" => {
+            // A step chart column with a plus or a minus.
+            pen.rect(2.5, 4.0, 12.5, 16.0, c);
+            pen.line_c(&[(4.0, 13.0), (7.5, 7.0), (11.0, 7.0)], c);
+            pen.line_c(&[(13.5, 10.0), (18.5, 10.0)], a);
+            if name == "stepInsert" {
+                pen.line_c(&[(16.0, 7.5), (16.0, 12.5)], a);
+            }
+        }
+        "componentList" => {
+            pen.rect(3.0, 3.5, 17.0, 16.5, c);
+            pen.lines(3.0, 17.0, &[7.0, 10.0, 13.0]);
+            pen.line_c(&[(7.0, 3.5), (7.0, 16.5)], a);
+        }
+        // Mechanical, Reliability, IDEF0 and Sheet > Annotate (b6e-mechanical)
+        "mobility" => {
+            // A four-bar linkage on two hatched pivots, the crank in the accent.
+            pen.line(&[(2.0, 16.0), (18.0, 16.0)]);
+            for x in [3.0, 6.0, 13.0, 16.0] {
+                pen.line(&[(x, 16.0), (x - 1.5, 18.5)]);
+            }
+            pen.line_c(&[(5.0, 15.0), (6.0, 6.0)], a);
+            pen.line(&[(6.0, 6.0), (14.0, 4.0), (15.0, 15.0)]);
+            for (x, y) in [(5.0, 15.0), (6.0, 6.0), (14.0, 4.0), (15.0, 15.0)] {
+                pen.fcircle(x, y, 1.4, c);
+            }
+        }
+        "gearRatio" => {
+            // A small and a large gear side by side, their pitch lines dashed.
+            pen.rect(3.0, 6.0, 7.0, 14.0, c);
+            pen.rect(8.0, 2.5, 12.0, 17.5, c);
+            pen.line_c(&[(13.5, 10.0), (18.0, 10.0)], a);
+            pen.line_c(&[(15.5, 7.5), (18.0, 10.0), (15.5, 12.5)], a);
+        }
+        "mason" => {
+            // A block with its feedback loop below.
+            pen.rect(7.0, 4.0, 14.0, 10.0, c);
+            pen.line(&[(1.5, 7.0), (7.0, 7.0)]);
+            pen.line(&[(14.0, 7.0), (18.5, 7.0)]);
+            pen.line_c(&[(16.5, 7.0), (16.5, 15.5), (4.0, 15.5), (4.0, 7.0)], a);
+            pen.fcircle(16.5, 7.0, 1.2, a);
+        }
+        "causality" => {
+            // A bond with its half arrow and a causal stroke at the far end.
+            pen.line(&[(2.0, 12.0), (17.0, 12.0)]);
+            pen.line(&[(13.0, 8.5), (17.0, 12.0)]);
+            pen.line_c(&[(17.0, 7.0), (17.0, 17.0)], a);
+            pen.line_c(&[(2.5, 9.0), (2.5, 15.0)], c);
+        }
+        "cutSets" => {
+            // An AND gate over two basic events, the events in the accent.
+            pen.closed(&[(6.0, 12.0), (6.0, 7.5), (8.0, 4.5), (12.0, 4.5), (14.0, 7.5), (14.0, 12.0)], c);
+            pen.line(&[(10.0, 1.5), (10.0, 4.5)]);
+            pen.line(&[(8.0, 12.0), (5.0, 15.0)]);
+            pen.line(&[(12.0, 12.0), (15.0, 15.0)]);
+            pen.circle(5.0, 16.5, 2.0, a);
+            pen.circle(15.0, 16.5, 2.0, a);
+        }
+        "availability" => {
+            // Two blocks in parallel between a start and an end node.
+            pen.fcircle(2.5, 10.0, 1.4, c);
+            pen.fcircle(17.5, 10.0, 1.4, c);
+            pen.rect(7.0, 3.0, 13.0, 7.5, c);
+            pen.rect(7.0, 12.5, 13.0, 17.0, a);
+            pen.line(&[(2.5, 10.0), (4.5, 10.0), (4.5, 5.25), (7.0, 5.25)]);
+            pen.line(&[(4.5, 10.0), (4.5, 14.75), (7.0, 14.75)]);
+            pen.line(&[(13.0, 5.25), (15.5, 5.25), (15.5, 14.75), (13.0, 14.75)]);
+            pen.line(&[(15.5, 10.0), (17.5, 10.0)]);
+        }
+        "outcomes" => {
+            // An event tree: one line splitting twice, ending in outcome boxes.
+            pen.line(&[(2.0, 10.0), (7.0, 10.0), (7.0, 5.0), (12.0, 5.0)]);
+            pen.line(&[(7.0, 10.0), (7.0, 15.0), (12.0, 15.0)]);
+            pen.frect(13.0, 3.5, 18.0, 6.5, a);
+            pen.frect(13.0, 13.5, 18.0, 16.5, a);
+        }
+        "fmeaRow" => {
+            // A worksheet with a new row in the accent.
+            pen.rect(2.5, 3.0, 17.5, 17.0, c);
+            pen.line(&[(2.5, 7.0), (17.5, 7.0)]);
+            pen.line(&[(7.5, 3.0), (7.5, 11.0)]);
+            pen.line(&[(2.5, 11.0), (17.5, 11.0)]);
+            pen.frect(3.5, 12.0, 16.5, 16.0, a.linear_multiply(0.25));
+            pen.line_c(&[(10.0, 12.5), (10.0, 15.5)], a);
+            pen.line_c(&[(8.5, 14.0), (11.5, 14.0)], a);
+        }
+        "rpn" => {
+            // Three rating cells multiplied into a result bar.
+            for x in [2.5, 8.0, 13.5] {
+                pen.rect(x, 3.0, x + 4.0, 7.0, c);
+            }
+            pen.line(&[(6.8, 4.2), (7.7, 5.8)]);
+            pen.line(&[(7.7, 4.2), (6.8, 5.8)]);
+            pen.line(&[(12.3, 4.2), (13.2, 5.8)]);
+            pen.line(&[(13.2, 4.2), (12.3, 5.8)]);
+            pen.frect(2.5, 12.0, 17.5, 16.0, a);
+        }
+        "decompose" => {
+            // A box opening into three smaller boxes in a staircase.
+            pen.rect(2.0, 2.5, 8.0, 7.0, c);
+            pen.line_c(&[(5.0, 7.0), (5.0, 10.0)], a);
+            pen.rect(4.0, 10.0, 8.5, 13.0, a);
+            pen.rect(9.0, 12.5, 13.5, 15.5, a);
+            pen.rect(14.0, 15.0, 18.5, 18.0, a);
+        }
+        "renumberBoxes" => {
+            // A staircase of boxes with a numeral 1 on the first.
+            pen.rect(2.0, 2.5, 8.0, 7.5, c);
+            pen.rect(8.0, 8.0, 14.0, 13.0, c);
+            pen.rect(14.0, 13.5, 18.5, 18.0, c);
+            pen.line_c(&[(4.2, 4.0), (5.2, 3.3), (5.2, 6.5)], a);
+        }
+        "icomCodes" => {
+            // A box with an arrow on each side: input, control, output, mechanism.
+            pen.rect(6.0, 6.0, 14.0, 14.0, c);
+            pen.line_c(&[(1.5, 10.0), (6.0, 10.0)], a);
+            pen.line_c(&[(10.0, 1.5), (10.0, 6.0)], a);
+            pen.line_c(&[(14.0, 10.0), (18.5, 10.0)], a);
+            pen.line_c(&[(10.0, 14.0), (10.0, 18.5)], a);
+        }
+        "fcf" => {
+            // A feature control frame: position symbol, tolerance and a datum cell.
+            pen.rect(1.5, 6.0, 18.5, 14.0, c);
+            pen.line(&[(7.0, 6.0), (7.0, 14.0)]);
+            pen.line(&[(14.0, 6.0), (14.0, 14.0)]);
+            pen.circle(4.25, 10.0, 1.8, a);
+            pen.line_c(&[(2.0, 10.0), (6.5, 10.0)], a);
+            pen.line_c(&[(4.25, 7.0), (4.25, 13.0)], a);
+            pen.line(&[(8.5, 10.0), (12.5, 10.0)]);
+        }
+        "datum" => {
+            // A datum letter frame joined to its triangle.
+            pen.rect(6.0, 2.0, 14.0, 9.0, c);
+            pen.line(&[(10.0, 9.0), (10.0, 13.0)]);
+            pen.fill(&[(6.5, 17.5), (13.5, 17.5), (10.0, 13.0)], a);
+        }
+        "weld" => {
+            // A welding symbol: arrow, reference line and a fillet triangle.
+            pen.line(&[(2.0, 17.0), (7.0, 11.0), (18.0, 11.0)]);
+            pen.line(&[(2.0, 17.0), (2.5, 14.0)]);
+            pen.line(&[(2.0, 17.0), (5.0, 16.0)]);
+            pen.fill(&[(10.0, 11.0), (10.0, 6.0), (15.0, 11.0)], a);
+        }
+        "texture" => {
+            // The surface texture tick with its machining bar and requirement line.
+            pen.line(&[(3.0, 10.0), (7.0, 17.0), (14.0, 4.0), (18.5, 4.0)]);
+            pen.line_c(&[(3.0, 10.0), (10.5, 10.0)], a);
+        }
+        "annotationStandard" => {
+            // Two frames with arrows between them: switching conventions.
+            pen.rect(2.0, 3.0, 9.0, 8.0, c);
+            pen.rect(11.0, 12.0, 18.0, 17.0, c);
+            pen.line_c(&[(10.0, 5.5), (15.0, 5.5), (15.0, 10.5)], a);
+            pen.line_c(&[(13.5, 9.0), (15.0, 10.5), (16.5, 9.0)], a);
+            pen.line_c(&[(10.0, 14.5), (5.0, 14.5), (5.0, 9.5)], a);
+            pen.line_c(&[(3.5, 11.0), (5.0, 9.5), (6.5, 11.0)], a);
         }
         _ => {
             // Fallback: a rounded tile with the first letter.

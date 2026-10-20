@@ -1,0 +1,374 @@
+{
+  "document": {
+    "document": {
+      "conformance": {
+        "enabled": true,
+        "rulesets": [
+          "process.hvac"
+        ],
+        "userSet": true
+      },
+      "core": {
+        "author": "",
+        "created": "",
+        "lastModifiedBy": "",
+        "modified": "",
+        "revision": 0
+      },
+      "idSeq": 12,
+      "pages": [
+        {
+          "board": "infinite",
+          "connectors": [
+            {
+              "end": {
+                "point": 0,
+                "shape": "s5"
+              },
+              "endArrow": "none",
+              "ext": {
+                "process.line": "e9"
+              },
+              "id": "c7",
+              "jumps": true,
+              "kind": "process.supplyAir",
+              "net": "n6",
+              "relationship": "r8",
+              "route": "orthogonal",
+              "start": {
+                "point": 1,
+                "shape": "s3"
+              },
+              "startArrow": "none",
+              "style": {
+                "bold": false,
+                "fill": "#00000000",
+                "fontColor": "#1e2630",
+                "fontSize": 12.0,
+                "italic": false,
+                "line": "#2d5f8a",
+                "lineWidth": 1.97
+              },
+              "text": "SA-001",
+              "waypoints": [
+                {
+                  "x": 521.6535433070866,
+                  "y": 137.79527559055117
+                }
+              ]
+            },
+            {
+              "end": {
+                "point": 0,
+                "shape": "s3"
+              },
+              "endArrow": "none",
+              "ext": {
+                "process.line": "e12"
+              },
+              "id": "c11",
+              "jumps": true,
+              "kind": "process.returnAir",
+              "net": "n10",
+              "route": "orthogonal",
+              "start": {
+                "x": 59.05511811023622,
+                "y": 137.79527559055117
+              },
+              "startArrow": "none",
+              "style": {
+                "bold": false,
+                "dash": "dashed",
+                "fill": "#00000000",
+                "fontColor": "#1e2630",
+                "fontSize": 12.0,
+                "italic": false,
+                "line": "#2d5f8a",
+                "lineWidth": 1.97
+              },
+              "text": "RA-002",
+              "waypoints": [
+                {
+                  "x": 59.05511811023622,
+                  "y": 137.79527559055117
+                }
+              ]
+            }
+          ],
+          "height": 850.0,
+          "id": "p1",
+          "name": "Page-1",
+          "shapes": [
+            {
+              "angleDeg": 0.0,
+              "connectionPoints": [
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "e2",
+              "h": 78.74,
+              "id": "s3",
+              "kind": "freeform",
+              "path": {
+                "closed": true,
+                "els": [
+                  {
+                    "moveTo": {
+                      "x": 0.0,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 157.48,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 157.48,
+                      "y": 78.74
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 0.0,
+                      "y": 78.74
+                    }
+                  },
+                  "close",
+                  {
+                    "moveTo": {
+                      "x": 39.37,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 39.37,
+                      "y": 78.74
+                    }
+                  },
+                  {
+                    "moveTo": {
+                      "x": 78.74,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 78.74,
+                      "y": 78.74
+                    }
+                  },
+                  {
+                    "moveTo": {
+                      "x": 118.10999999999999,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 118.10999999999999,
+                      "y": 78.74
+                    }
+                  }
+                ],
+                "frame": [
+                  157.48,
+                  78.74
+                ]
+              },
+              "stencil": "process.airHandlingUnit",
+              "style": {
+                "bold": false,
+                "fill": "#ffffff",
+                "fontColor": "#1e2630",
+                "fontSize": 12.0,
+                "italic": false,
+                "line": "#1f2933",
+                "lineWidth": 1.5
+              },
+              "text": "",
+              "w": 157.48,
+              "x": 98.4251968503937,
+              "y": 98.42527559055117
+            },
+            {
+              "angleDeg": 0.0,
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                }
+              ],
+              "element": "e4",
+              "h": 39.37,
+              "id": "s5",
+              "kind": "freeform",
+              "path": {
+                "closed": true,
+                "els": [
+                  {
+                    "moveTo": {
+                      "x": 0.0,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 39.37,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 39.37,
+                      "y": 39.37
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 0.0,
+                      "y": 39.37
+                    }
+                  },
+                  "close",
+                  {
+                    "moveTo": {
+                      "x": 0.0,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 39.37,
+                      "y": 39.37
+                    }
+                  },
+                  {
+                    "moveTo": {
+                      "x": 39.37,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 0.0,
+                      "y": 39.37
+                    }
+                  }
+                ],
+                "frame": [
+                  39.37,
+                  39.37
+                ]
+              },
+              "stencil": "process.diffuser",
+              "style": {
+                "bold": false,
+                "fill": "#ffffff",
+                "fontColor": "#1e2630",
+                "fontSize": 12.0,
+                "italic": false,
+                "line": "#1f2933",
+                "lineWidth": 1.5
+              },
+              "text": "",
+              "w": 39.37,
+              "x": 501.96854330708663,
+              "y": 295.2755905511811
+            }
+          ],
+          "view": {
+            "module": "iso2_5mm",
+            "viewpoint": "process.HVAC"
+          },
+          "width": 1100.0
+        }
+      ],
+      "title": ""
+    },
+    "format": "vizcraft",
+    "model": {
+      "elements": [
+        {
+          "id": "e2",
+          "properties": {
+            "classCode": "AHU"
+          },
+          "tag": "AHU-01",
+          "type": "process.AirHandlingUnit"
+        },
+        {
+          "id": "e4",
+          "properties": {
+            "kind": "supply"
+          },
+          "type": "process.Diffuser"
+        },
+        {
+          "id": "e9",
+          "properties": {
+            "airflow": 900.0,
+            "label": "once",
+            "service": "SA"
+          },
+          "tag": "SA-001",
+          "type": "process.DuctRun"
+        },
+        {
+          "id": "e12",
+          "properties": {
+            "airflow": 900.0,
+            "label": "once",
+            "service": "RA",
+            "size": "400x300"
+          },
+          "tag": "RA-002",
+          "type": "process.DuctRun"
+        }
+      ],
+      "nets": [
+        {
+          "id": "n6",
+          "kind": "fluid"
+        },
+        {
+          "id": "n10",
+          "kind": "fluid"
+        }
+      ],
+      "packs": [
+        {
+          "id": "process",
+          "version": "1.0.0"
+        }
+      ],
+      "relationships": [
+        {
+          "id": "r8",
+          "name": "SA-001",
+          "source": "e2",
+          "sourcePort": "2",
+          "target": "e4",
+          "targetPort": "1",
+          "type": "process.AirConnection"
+        }
+      ],
+      "schemaVersion": 1
+    },
+    "version": 4
+  },
+  "expect": [
+    {
+      "rule": "process.ductData"
+    }
+  ]
+}

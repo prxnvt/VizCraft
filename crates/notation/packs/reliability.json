@@ -1,0 +1,2411 @@
+{
+  "schemaVersion": 1,
+  "id": "reliability",
+  "version": "1.0.0",
+  "name": "Reliability",
+  "description": "Reliability and safety analysis: fault trees with minimal cut sets, reliability block diagrams with availability, event trees with outcome frequencies and FMEA worksheets with risk priority numbers.",
+  "audience": [
+    "engineering",
+    "industrial"
+  ],
+  "glyphs": [
+    {
+      "id": "reliability.top",
+      "label": "Top Event",
+      "category": "Fault Tree",
+      "outline": "rectangle",
+      "w": 160,
+      "h": 56,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "top event",
+        "fault tree",
+        "fta"
+      ],
+      "elementType": "reliability.TopEvent"
+    },
+    {
+      "id": "reliability.intermediate",
+      "label": "Intermediate Event",
+      "category": "Fault Tree",
+      "outline": "rectangle",
+      "w": 150,
+      "h": 50,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "intermediate event",
+        "fault tree"
+      ],
+      "elementType": "reliability.IntermediateEvent"
+    },
+    {
+      "id": "reliability.basic",
+      "label": "Basic Event",
+      "category": "Fault Tree",
+      "outline": "ellipse",
+      "w": 44,
+      "h": 44,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "basic event",
+        "failure",
+        "primary event"
+      ],
+      "elementType": "reliability.BasicEvent",
+      "textPlace": "below"
+    },
+    {
+      "id": "reliability.house",
+      "label": "House Event",
+      "category": "Fault Tree",
+      "outline": "path",
+      "w": 44,
+      "h": 44,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "house event",
+        "switch"
+      ],
+      "elementType": "reliability.HouseEvent",
+      "path": "M 0.5 0 L 1 0.35 L 1 1 L 0 1 L 0 0.35 Z",
+      "source": "drawn from the written description of fault tree events and gates in NUREG-0492, the Fault Tree Handbook (US NRC, public domain)",
+      "textPlace": "below"
+    },
+    {
+      "id": "reliability.undeveloped",
+      "label": "Undeveloped Event",
+      "category": "Fault Tree",
+      "outline": "diamond",
+      "w": 54,
+      "h": 44,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "undeveloped event"
+      ],
+      "elementType": "reliability.UndevelopedEvent",
+      "textPlace": "below"
+    },
+    {
+      "id": "reliability.conditioning",
+      "label": "Conditioning Event",
+      "category": "Fault Tree",
+      "outline": "ellipse",
+      "w": 100,
+      "h": 40,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "conditioning event",
+        "condition"
+      ],
+      "elementType": "reliability.ConditioningEvent"
+    },
+    {
+      "id": "reliability.and",
+      "label": "Fault Tree AND Gate",
+      "category": "Fault Tree",
+      "outline": "path",
+      "w": 46,
+      "h": 52,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "and gate",
+        "fault tree"
+      ],
+      "elementType": "reliability.And",
+      "path": "M 0 1 L 0 0.5 C 0 0.12 0.25 0 0.5 0 C 0.75 0 1 0.12 1 0.5 L 1 1 Z",
+      "source": "drawn from the written description of fault tree events and gates in NUREG-0492, the Fault Tree Handbook (US NRC, public domain)"
+    },
+    {
+      "id": "reliability.or",
+      "label": "Fault Tree OR Gate",
+      "category": "Fault Tree",
+      "outline": "path",
+      "w": 46,
+      "h": 52,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "or gate",
+        "fault tree"
+      ],
+      "elementType": "reliability.Or",
+      "path": "M 0 1 C 0.25 0.82 0.75 0.82 1 1 C 1 0.5 0.75 0.15 0.5 0 C 0.25 0.15 0 0.5 0 1 Z",
+      "source": "drawn from the written description of fault tree events and gates in NUREG-0492, the Fault Tree Handbook (US NRC, public domain)"
+    },
+    {
+      "id": "reliability.xor",
+      "label": "Fault Tree XOR Gate",
+      "category": "Fault Tree",
+      "outline": "path",
+      "w": 46,
+      "h": 56,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "exclusive or",
+        "xor gate"
+      ],
+      "elementType": "reliability.Xor",
+      "path": "M 0 0.88 C 0.25 0.7 0.75 0.7 1 0.88 C 1 0.45 0.75 0.13 0.5 0 C 0.25 0.13 0 0.45 0 0.88 Z",
+      "detail": "M 0 1 C 0.25 0.82 0.75 0.82 1 1",
+      "source": "drawn from the written description of fault tree events and gates in NUREG-0492, the Fault Tree Handbook (US NRC, public domain)"
+    },
+    {
+      "id": "reliability.pand",
+      "label": "Priority AND Gate",
+      "category": "Fault Tree",
+      "outline": "path",
+      "w": 46,
+      "h": 52,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "priority and",
+        "sequence"
+      ],
+      "elementType": "reliability.PriorityAnd",
+      "path": "M 0 1 L 0 0.5 C 0 0.12 0.25 0 0.5 0 C 0.75 0 1 0.12 1 0.5 L 1 1 Z",
+      "detail": "M 0.15 0.78 L 0.85 0.78",
+      "source": "drawn from the written description of fault tree events and gates in NUREG-0492, the Fault Tree Handbook (US NRC, public domain)"
+    },
+    {
+      "id": "reliability.inhibit",
+      "label": "Inhibit Gate",
+      "category": "Fault Tree",
+      "outline": "path",
+      "w": 46,
+      "h": 54,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "inhibit gate",
+        "condition"
+      ],
+      "elementType": "reliability.Inhibit",
+      "path": "M 0.5 0 L 1 0.25 L 1 0.75 L 0.5 1 L 0 0.75 L 0 0.25 Z",
+      "source": "drawn from the written description of fault tree events and gates in NUREG-0492, the Fault Tree Handbook (US NRC, public domain)"
+    },
+    {
+      "id": "reliability.voting",
+      "label": "Voting Gate",
+      "category": "Fault Tree",
+      "outline": "path",
+      "w": 50,
+      "h": 56,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "voting gate",
+        "k out of n",
+        "majority"
+      ],
+      "elementType": "reliability.VotingGate",
+      "path": "M 0 1 C 0.25 0.82 0.75 0.82 1 1 C 1 0.5 0.75 0.15 0.5 0 C 0.25 0.15 0 0.5 0 1 Z",
+      "source": "drawn from the written description of fault tree events and gates in NUREG-0492, the Fault Tree Handbook (US NRC, public domain)"
+    },
+    {
+      "id": "reliability.transferIn",
+      "label": "Transfer In",
+      "category": "Fault Tree",
+      "outline": "path",
+      "w": 40,
+      "h": 36,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "transfer",
+        "continued"
+      ],
+      "elementType": "reliability.TransferIn",
+      "path": "M 0.5 0 L 1 1 L 0 1 Z",
+      "source": "drawn from the written description of fault tree events and gates in NUREG-0492, the Fault Tree Handbook (US NRC, public domain)",
+      "textPlace": "below"
+    },
+    {
+      "id": "reliability.transferOut",
+      "label": "Transfer Out",
+      "category": "Fault Tree",
+      "outline": "path",
+      "w": 40,
+      "h": 36,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "transfer",
+        "continued"
+      ],
+      "elementType": "reliability.TransferOut",
+      "path": "M 0.5 0 L 1 1 L 0 1 Z",
+      "detail": "M 0.75 0.5 L 1 0.5",
+      "source": "drawn from the written description of fault tree events and gates in NUREG-0492, the Fault Tree Handbook (US NRC, public domain)",
+      "textPlace": "below"
+    },
+    {
+      "id": "reliability.andRect",
+      "label": "AND Gate (rectangular)",
+      "category": "Fault Tree",
+      "outline": "path",
+      "w": 46,
+      "h": 52,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "and",
+        "iec 60617-12"
+      ],
+      "elementType": "reliability.And",
+      "path": "M 0 0 L 1 0 L 1 1 L 0 1 Z",
+      "detail": "M 0.62 0.72 L 0.38 0.42 C 0.3 0.32 0.36 0.22 0.45 0.22 C 0.54 0.22 0.58 0.32 0.5 0.4 L 0.35 0.55 C 0.28 0.63 0.32 0.75 0.43 0.75 C 0.5 0.75 0.56 0.7 0.6 0.62",
+      "source": "drawn from the written description of the rectangular binary logic symbols in IEC 60617-12, with our own stroke lettering"
+    },
+    {
+      "id": "reliability.orRect",
+      "label": "OR Gate (rectangular)",
+      "category": "Fault Tree",
+      "outline": "path",
+      "w": 46,
+      "h": 52,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "or",
+        "iec 60617-12"
+      ],
+      "elementType": "reliability.Or",
+      "path": "M 0 0 L 1 0 L 1 1 L 0 1 Z",
+      "detail": "M 0.3 0.3 L 0.48 0.4 L 0.3 0.5 M 0.3 0.58 L 0.48 0.58 M 0.6 0.32 L 0.66 0.25 L 0.66 0.75",
+      "source": "drawn from the written description of the rectangular binary logic symbols in IEC 60617-12, with our own stroke lettering"
+    },
+    {
+      "id": "reliability.xorRect",
+      "label": "XOR Gate (rectangular)",
+      "category": "Fault Tree",
+      "outline": "path",
+      "w": 46,
+      "h": 52,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "xor",
+        "iec 60617-12"
+      ],
+      "elementType": "reliability.Xor",
+      "path": "M 0 0 L 1 0 L 1 1 L 0 1 Z",
+      "detail": "M 0.28 0.42 L 0.48 0.42 M 0.28 0.56 L 0.48 0.56 M 0.6 0.32 L 0.66 0.25 L 0.66 0.75",
+      "source": "drawn from the written description of the rectangular binary logic symbols in IEC 60617-12, with our own stroke lettering"
+    },
+    {
+      "id": "reliability.pandRect",
+      "label": "Priority AND Gate (rectangular)",
+      "category": "Fault Tree",
+      "outline": "path",
+      "w": 46,
+      "h": 52,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "priority and",
+        "iec 60617-12"
+      ],
+      "elementType": "reliability.PriorityAnd",
+      "path": "M 0 0 L 1 0 L 1 1 L 0 1 Z",
+      "detail": "M 0.62 0.72 L 0.38 0.42 C 0.3 0.32 0.36 0.22 0.45 0.22 C 0.54 0.22 0.58 0.32 0.5 0.4 L 0.35 0.55 C 0.28 0.63 0.32 0.75 0.43 0.75 C 0.5 0.75 0.56 0.7 0.6 0.62 M 0.15 0.88 L 0.85 0.88",
+      "source": "drawn from the written description of the rectangular binary logic symbols in IEC 60617-12, with our own stroke lettering"
+    },
+    {
+      "id": "reliability.votingRect",
+      "label": "Voting Gate (rectangular)",
+      "category": "Fault Tree",
+      "outline": "path",
+      "w": 50,
+      "h": 56,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "k out of n",
+        "iec 60617-12"
+      ],
+      "elementType": "reliability.VotingGate",
+      "path": "M 0 0 L 1 0 L 1 1 L 0 1 Z",
+      "detail": "M 0.3 0.3 L 0.48 0.4 L 0.3 0.5 M 0.3 0.58 L 0.48 0.58 M 0.58 0.25 L 0.58 0.75 M 0.72 0.35 L 0.58 0.55 L 0.74 0.75",
+      "source": "drawn from the written description of the rectangular binary logic symbols in IEC 60617-12, with our own stroke lettering"
+    },
+    {
+      "id": "reliability.start",
+      "label": "RBD Start",
+      "category": "Reliability Block Diagram",
+      "outline": "ellipse",
+      "w": 20,
+      "h": 20,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "start",
+        "rbd",
+        "source node"
+      ],
+      "elementType": "reliability.Start",
+      "textPlace": "below"
+    },
+    {
+      "id": "reliability.end",
+      "label": "RBD End",
+      "category": "Reliability Block Diagram",
+      "outline": "ellipse",
+      "w": 20,
+      "h": 20,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "end",
+        "rbd",
+        "sink node"
+      ],
+      "elementType": "reliability.End",
+      "textPlace": "below"
+    },
+    {
+      "id": "reliability.block",
+      "label": "Reliability Block",
+      "category": "Reliability Block Diagram",
+      "outline": "rectangle",
+      "w": 120,
+      "h": 50,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "block",
+        "rbd",
+        "component"
+      ],
+      "elementType": "reliability.Block"
+    },
+    {
+      "id": "reliability.kofn",
+      "label": "k-out-of-n Node",
+      "category": "Reliability Block Diagram",
+      "outline": "ellipse",
+      "w": 40,
+      "h": 40,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "k out of n",
+        "voting",
+        "redundancy"
+      ],
+      "elementType": "reliability.Voting"
+    },
+    {
+      "id": "reliability.standby",
+      "label": "Standby Node",
+      "category": "Reliability Block Diagram",
+      "outline": "path",
+      "w": 50,
+      "h": 40,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "standby",
+        "switch",
+        "redundancy"
+      ],
+      "elementType": "reliability.Standby",
+      "path": "M 0 0 L 1 0 L 1 1 L 0 1 Z",
+      "detail": "M 0.15 0.5 L 0.45 0.5 L 0.75 0.28 M 0.75 0.5 L 0.88 0.5",
+      "source": "own design"
+    },
+    {
+      "id": "reliability.initiator",
+      "label": "Initiating Event",
+      "category": "Event Tree",
+      "outline": "rectangle",
+      "w": 130,
+      "h": 50,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "initiating event",
+        "event tree",
+        "eta"
+      ],
+      "elementType": "reliability.Initiator"
+    },
+    {
+      "id": "reliability.function",
+      "label": "Safety Function",
+      "category": "Event Tree",
+      "outline": "rectangle",
+      "w": 130,
+      "h": 40,
+      "fill": "#eef1f4",
+      "line": "#1f2933",
+      "keywords": [
+        "safety function",
+        "barrier",
+        "header"
+      ],
+      "elementType": "reliability.SafetyFunction"
+    },
+    {
+      "id": "reliability.branch",
+      "label": "Event Branch Point",
+      "category": "Event Tree",
+      "outline": "ellipse",
+      "w": 12,
+      "h": 12,
+      "fill": "#1f2933",
+      "line": "#1f2933",
+      "keywords": [
+        "branch point",
+        "event tree"
+      ],
+      "elementType": "reliability.BranchPoint"
+    },
+    {
+      "id": "reliability.outcome",
+      "label": "Outcome",
+      "category": "Event Tree",
+      "outline": "roundedRectangle",
+      "w": 120,
+      "h": 40,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "outcome",
+        "consequence",
+        "end state"
+      ],
+      "elementType": "reliability.Outcome"
+    },
+    {
+      "id": "reliability.worksheet",
+      "label": "FMEA Worksheet",
+      "category": "FMEA",
+      "outline": "rectangle",
+      "w": 978,
+      "h": 160,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "fmea",
+        "fmeca",
+        "worksheet",
+        "rpn"
+      ],
+      "elementType": "reliability.FmeaWorksheet"
+    },
+    {
+      "id": "reliability.failureMode",
+      "label": "Failure Mode",
+      "category": "FMEA",
+      "outline": "rectangle",
+      "w": 160,
+      "h": 40,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "failure mode",
+        "fmea row"
+      ],
+      "elementType": "reliability.FailureMode"
+    }
+  ],
+  "connectorTypes": [
+    {
+      "id": "reliability.input",
+      "label": "Fault Tree Input",
+      "category": "Fault Tree",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "solid",
+      "lineWidth": 1.25,
+      "line": "#1f2933",
+      "keywords": [
+        "input",
+        "fault tree line"
+      ],
+      "relationshipType": "reliability.Input"
+    },
+    {
+      "id": "reliability.path",
+      "label": "RBD Path",
+      "category": "Reliability Block Diagram",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "solid",
+      "lineWidth": 1.25,
+      "line": "#1f2933",
+      "keywords": [
+        "path",
+        "rbd line"
+      ],
+      "relationshipType": "reliability.Path"
+    },
+    {
+      "id": "reliability.success",
+      "label": "Success Branch",
+      "category": "Event Tree",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "solid",
+      "lineWidth": 1.25,
+      "line": "#1f2933",
+      "keywords": [
+        "success",
+        "yes"
+      ],
+      "relationshipType": "reliability.Success"
+    },
+    {
+      "id": "reliability.failure",
+      "label": "Failure Branch",
+      "category": "Event Tree",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "dashed",
+      "lineWidth": 1.25,
+      "line": "#9b2c2c",
+      "keywords": [
+        "failure",
+        "no"
+      ],
+      "relationshipType": "reliability.Failure"
+    }
+  ],
+  "elementTypes": [
+    {
+      "id": "reliability.TopEvent",
+      "label": "Top Event",
+      "description": "The undesired event the fault tree analyses.",
+      "glyph": "reliability.top"
+    },
+    {
+      "id": "reliability.IntermediateEvent",
+      "label": "Intermediate Event",
+      "description": "An event defined by the gate below it.",
+      "glyph": "reliability.intermediate"
+    },
+    {
+      "id": "reliability.BasicEvent",
+      "label": "Basic Event",
+      "description": "A basic failure with its probability.",
+      "glyph": "reliability.basic",
+      "properties": [
+        {
+          "key": "probability",
+          "label": "Probability",
+          "kind": "number",
+          "description": "Probability of the event (0 to 1)."
+        }
+      ]
+    },
+    {
+      "id": "reliability.HouseEvent",
+      "label": "House Event",
+      "description": "An event that is on or off.",
+      "glyph": "reliability.house",
+      "properties": [
+        {
+          "key": "state",
+          "label": "On",
+          "kind": "bool",
+          "description": "Whether the event happens.",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "reliability.UndevelopedEvent",
+      "label": "Undeveloped Event",
+      "description": "An event not developed further.",
+      "glyph": "reliability.undeveloped",
+      "properties": [
+        {
+          "key": "probability",
+          "label": "Probability",
+          "kind": "number",
+          "description": "Probability of the event (0 to 1)."
+        }
+      ]
+    },
+    {
+      "id": "reliability.ConditioningEvent",
+      "label": "Conditioning Event",
+      "description": "The condition of an inhibit gate.",
+      "glyph": "reliability.conditioning",
+      "properties": [
+        {
+          "key": "probability",
+          "label": "Probability",
+          "kind": "number",
+          "description": "Probability of the event (0 to 1)."
+        }
+      ]
+    },
+    {
+      "id": "reliability.And",
+      "label": "Fault Tree AND Gate",
+      "description": "The output happens when every input happens.",
+      "glyph": "reliability.and"
+    },
+    {
+      "id": "reliability.Or",
+      "label": "Fault Tree OR Gate",
+      "description": "The output happens when any input happens.",
+      "glyph": "reliability.or"
+    },
+    {
+      "id": "reliability.Xor",
+      "label": "Fault Tree XOR Gate",
+      "description": "The output happens when exactly one input happens.",
+      "glyph": "reliability.xor"
+    },
+    {
+      "id": "reliability.PriorityAnd",
+      "label": "Priority AND Gate",
+      "description": "The output happens when the inputs happen in order.",
+      "glyph": "reliability.pand"
+    },
+    {
+      "id": "reliability.Inhibit",
+      "label": "Inhibit Gate",
+      "description": "The output happens when the input happens while the condition holds.",
+      "glyph": "reliability.inhibit"
+    },
+    {
+      "id": "reliability.VotingGate",
+      "label": "Voting Gate",
+      "description": "The output happens when at least k inputs happen.",
+      "glyph": "reliability.voting",
+      "properties": [
+        {
+          "key": "k",
+          "label": "k",
+          "kind": "integer",
+          "description": "How many inputs must happen.",
+          "default": 2
+        }
+      ]
+    },
+    {
+      "id": "reliability.TransferIn",
+      "label": "Transfer In",
+      "description": "The tree continues at the transfer out with the same tag.",
+      "glyph": "reliability.transferIn"
+    },
+    {
+      "id": "reliability.TransferOut",
+      "label": "Transfer Out",
+      "description": "The event above is used again where a transfer in has the same tag.",
+      "glyph": "reliability.transferOut"
+    },
+    {
+      "id": "reliability.Start",
+      "label": "RBD Start",
+      "description": "Where the block diagram starts.",
+      "glyph": "reliability.start"
+    },
+    {
+      "id": "reliability.End",
+      "label": "RBD End",
+      "description": "Where the block diagram ends.",
+      "glyph": "reliability.end"
+    },
+    {
+      "id": "reliability.Block",
+      "label": "Reliability Block",
+      "description": "A component with its availability.",
+      "glyph": "reliability.block",
+      "properties": [
+        {
+          "key": "availability",
+          "label": "Availability",
+          "kind": "number",
+          "description": "Steady-state availability (0 to 1)."
+        },
+        {
+          "key": "mtbf",
+          "label": "MTBF",
+          "kind": "number",
+          "description": "Mean time between failures.",
+          "unit": "h"
+        },
+        {
+          "key": "mttr",
+          "label": "MTTR",
+          "kind": "number",
+          "description": "Mean time to repair.",
+          "unit": "h"
+        },
+        {
+          "key": "failureRate",
+          "label": "Failure rate",
+          "kind": "number",
+          "description": "Failures per hour.",
+          "unit": "1/h"
+        },
+        {
+          "key": "repairRate",
+          "label": "Repair rate",
+          "kind": "number",
+          "description": "Repairs per hour.",
+          "unit": "1/h"
+        }
+      ]
+    },
+    {
+      "id": "reliability.Voting",
+      "label": "k-out-of-n Node",
+      "description": "Works when at least k of its inputs work.",
+      "glyph": "reliability.kofn",
+      "properties": [
+        {
+          "key": "k",
+          "label": "k",
+          "kind": "integer",
+          "description": "How many inputs must work.",
+          "default": 2
+        }
+      ]
+    },
+    {
+      "id": "reliability.Standby",
+      "label": "Standby Node",
+      "description": "Its inputs back each other up, switched perfectly.",
+      "glyph": "reliability.standby"
+    },
+    {
+      "id": "reliability.Initiator",
+      "label": "Initiating Event",
+      "description": "The event the tree starts from, with its frequency.",
+      "glyph": "reliability.initiator",
+      "properties": [
+        {
+          "key": "frequency",
+          "label": "Frequency",
+          "kind": "number",
+          "description": "How often it happens.",
+          "unit": "1/yr"
+        }
+      ]
+    },
+    {
+      "id": "reliability.SafetyFunction",
+      "label": "Safety Function",
+      "description": "A safety function the tree asks about, with its failure probability.",
+      "glyph": "reliability.function",
+      "properties": [
+        {
+          "key": "failureProbability",
+          "label": "Failure probability",
+          "kind": "number",
+          "description": "Probability the function fails on demand."
+        }
+      ]
+    },
+    {
+      "id": "reliability.BranchPoint",
+      "label": "Event Branch Point",
+      "description": "Where a safety function succeeds or fails.",
+      "glyph": "reliability.branch",
+      "properties": [
+        {
+          "key": "function",
+          "label": "Safety function",
+          "kind": "text",
+          "description": "The name of the safety function asked about."
+        },
+        {
+          "key": "failureProbability",
+          "label": "Failure probability",
+          "kind": "number",
+          "description": "Its own failure probability, instead of the function's."
+        }
+      ]
+    },
+    {
+      "id": "reliability.Outcome",
+      "label": "Outcome",
+      "description": "Where a path of the tree ends.",
+      "glyph": "reliability.outcome",
+      "properties": [
+        {
+          "key": "consequence",
+          "label": "Consequence",
+          "kind": "text",
+          "description": "What happens."
+        }
+      ]
+    },
+    {
+      "id": "reliability.FmeaWorksheet",
+      "label": "FMEA Worksheet",
+      "description": "A worksheet listing the failure modes it owns, one row each.",
+      "glyph": "reliability.worksheet",
+      "container": true,
+      "compartments": [
+        {
+          "id": "rows",
+          "kind": "list",
+          "query": {
+            "types": [
+              "reliability.FailureMode"
+            ],
+            "columns": [
+              "item",
+              "function",
+              "mode",
+              "cause",
+              "localEffect",
+              "nextEffect",
+              "endEffect",
+              "severity",
+              "occurrence",
+              "detection",
+              "rpn",
+              "actions"
+            ],
+            "headers": [
+              "ITEM",
+              "FUNCTION",
+              "MODE",
+              "CAUSE",
+              "LOCAL",
+              "NEXT",
+              "END EFFECT",
+              "S",
+              "O",
+              "D",
+              "RPN",
+              "ACTIONS"
+            ],
+            "widths": [
+              90,
+              100,
+              110,
+              110,
+              100,
+              90,
+              120,
+              26,
+              26,
+              26,
+              40,
+              140
+            ],
+            "owned": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "reliability.FailureMode",
+      "label": "Failure Mode",
+      "description": "One row of an FMEA: a failure mode with its effects and ratings.",
+      "glyph": "reliability.failureMode",
+      "properties": [
+        {
+          "key": "item",
+          "label": "Item",
+          "kind": "text",
+          "description": "The item or function block."
+        },
+        {
+          "key": "function",
+          "label": "Function",
+          "kind": "text",
+          "description": "What it does."
+        },
+        {
+          "key": "mode",
+          "label": "Failure mode",
+          "kind": "text",
+          "description": "How it fails."
+        },
+        {
+          "key": "cause",
+          "label": "Cause",
+          "kind": "text",
+          "description": "Why it fails."
+        },
+        {
+          "key": "localEffect",
+          "label": "Local effect",
+          "kind": "text",
+          "description": "Effect on the item."
+        },
+        {
+          "key": "nextEffect",
+          "label": "Next higher effect",
+          "kind": "text",
+          "description": "Effect on the next level."
+        },
+        {
+          "key": "endEffect",
+          "label": "End effect",
+          "kind": "text",
+          "description": "Effect on the system.",
+          "required": true
+        },
+        {
+          "key": "severity",
+          "label": "Severity",
+          "kind": "integer",
+          "description": "Severity rating, 1 to 10."
+        },
+        {
+          "key": "occurrence",
+          "label": "Occurrence",
+          "kind": "integer",
+          "description": "Occurrence rating, 1 to 10."
+        },
+        {
+          "key": "detection",
+          "label": "Detection",
+          "kind": "integer",
+          "description": "Detection rating, 1 to 10."
+        },
+        {
+          "key": "rpn",
+          "label": "RPN",
+          "kind": "integer",
+          "description": "Risk priority number, severity times occurrence times detection."
+        },
+        {
+          "key": "actions",
+          "label": "Actions",
+          "kind": "text",
+          "description": "Recommended actions."
+        }
+      ]
+    }
+  ],
+  "relationshipTypes": [
+    {
+      "id": "reliability.Input",
+      "label": "Fault Tree Input",
+      "description": "An event or gate below feeding a gate or event above.",
+      "endArrow": "none"
+    },
+    {
+      "id": "reliability.Path",
+      "label": "RBD Path",
+      "description": "Success flows from one node to the next.",
+      "endArrow": "none"
+    },
+    {
+      "id": "reliability.Success",
+      "label": "Success Branch",
+      "description": "The branch where the function works.",
+      "endArrow": "none"
+    },
+    {
+      "id": "reliability.Failure",
+      "label": "Failure Branch",
+      "description": "The branch where the function fails.",
+      "endArrow": "none"
+    }
+  ],
+  "connections": [
+    {
+      "source": [
+        "reliability.IntermediateEvent",
+        "reliability.BasicEvent",
+        "reliability.HouseEvent",
+        "reliability.UndevelopedEvent",
+        "reliability.ConditioningEvent",
+        "reliability.And",
+        "reliability.Or",
+        "reliability.Xor",
+        "reliability.PriorityAnd",
+        "reliability.Inhibit",
+        "reliability.VotingGate",
+        "reliability.TransferIn",
+        "reliability.TransferOut"
+      ],
+      "relationship": "reliability.Input",
+      "target": [
+        "reliability.TopEvent",
+        "reliability.IntermediateEvent",
+        "reliability.TransferOut",
+        "reliability.And",
+        "reliability.Or",
+        "reliability.Xor",
+        "reliability.PriorityAnd",
+        "reliability.Inhibit",
+        "reliability.VotingGate"
+      ]
+    },
+    {
+      "source": [
+        "reliability.Start",
+        "reliability.Block",
+        "reliability.Voting",
+        "reliability.Standby"
+      ],
+      "relationship": "reliability.Path",
+      "target": [
+        "reliability.Block",
+        "reliability.Voting",
+        "reliability.Standby",
+        "reliability.End"
+      ]
+    },
+    {
+      "source": [
+        "reliability.Initiator",
+        "reliability.BranchPoint"
+      ],
+      "relationship": "reliability.Success",
+      "target": [
+        "reliability.BranchPoint",
+        "reliability.Outcome"
+      ]
+    },
+    {
+      "source": [
+        "reliability.BranchPoint"
+      ],
+      "relationship": "reliability.Failure",
+      "target": [
+        "reliability.BranchPoint",
+        "reliability.Outcome"
+      ]
+    }
+  ],
+  "palette": [
+    {
+      "id": "reliability.events",
+      "label": "Fault Tree Events",
+      "types": [
+        "reliability.TopEvent",
+        "reliability.IntermediateEvent",
+        "reliability.BasicEvent",
+        "reliability.HouseEvent",
+        "reliability.UndevelopedEvent",
+        "reliability.ConditioningEvent",
+        "reliability.TransferIn",
+        "reliability.TransferOut"
+      ]
+    },
+    {
+      "id": "reliability.gates",
+      "label": "Fault Tree Gates",
+      "types": [
+        "reliability.And",
+        "reliability.Or",
+        "reliability.Xor",
+        "reliability.PriorityAnd",
+        "reliability.Inhibit",
+        "reliability.VotingGate"
+      ]
+    },
+    {
+      "id": "reliability.blocks",
+      "label": "Block Diagram",
+      "types": [
+        "reliability.Start",
+        "reliability.End",
+        "reliability.Block",
+        "reliability.Voting",
+        "reliability.Standby"
+      ]
+    },
+    {
+      "id": "reliability.eventTree",
+      "label": "Event Tree",
+      "types": [
+        "reliability.Initiator",
+        "reliability.SafetyFunction",
+        "reliability.BranchPoint",
+        "reliability.Outcome"
+      ]
+    },
+    {
+      "id": "reliability.fmeaSheet",
+      "label": "FMEA",
+      "types": [
+        "reliability.FmeaWorksheet"
+      ]
+    }
+  ],
+  "viewpoints": [
+    {
+      "id": "reliability.FaultTree",
+      "label": "Fault Tree",
+      "description": "Events and gates down from a top event.",
+      "types": [
+        "reliability.TopEvent",
+        "reliability.IntermediateEvent",
+        "reliability.BasicEvent",
+        "reliability.HouseEvent",
+        "reliability.UndevelopedEvent",
+        "reliability.ConditioningEvent",
+        "reliability.And",
+        "reliability.Or",
+        "reliability.Xor",
+        "reliability.PriorityAnd",
+        "reliability.Inhibit",
+        "reliability.VotingGate",
+        "reliability.TransferIn",
+        "reliability.TransferOut"
+      ],
+      "relationships": [
+        "reliability.Input"
+      ]
+    },
+    {
+      "id": "reliability.RBD",
+      "label": "Reliability Block Diagram",
+      "description": "Blocks in series, parallel and k-out-of-n from start to end.",
+      "types": [
+        "reliability.Start",
+        "reliability.End",
+        "reliability.Block",
+        "reliability.Voting",
+        "reliability.Standby"
+      ],
+      "relationships": [
+        "reliability.Path"
+      ]
+    },
+    {
+      "id": "reliability.EventTree",
+      "label": "Event Tree",
+      "description": "An initiating event branching on each safety function to its outcomes.",
+      "types": [
+        "reliability.Initiator",
+        "reliability.SafetyFunction",
+        "reliability.BranchPoint",
+        "reliability.Outcome"
+      ],
+      "relationships": [
+        "reliability.Success",
+        "reliability.Failure"
+      ]
+    },
+    {
+      "id": "reliability.FMEA",
+      "label": "FMEA",
+      "description": "A failure modes and effects worksheet.",
+      "types": [
+        "reliability.FmeaWorksheet",
+        "reliability.FailureMode"
+      ]
+    }
+  ],
+  "identifiers": [
+    {
+      "id": "reliability.transfer",
+      "types": [
+        "reliability.TransferIn",
+        "reliability.TransferOut"
+      ],
+      "format": "T{n}",
+      "unique": false,
+      "paired": true,
+      "autoNumber": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "reliability.illegalLine",
+      "description": "Lines follow the connection table (basic events are leaves).",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "illegalRelationship"
+      },
+      "reference": "IEC 61025:2006, symbols and gate definitions"
+    },
+    {
+      "id": "reliability.oneTopEvent",
+      "description": "A fault tree has one top event.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "reliability",
+        "test": "oneTopEvent"
+      },
+      "reference": "IEC 61025:2006, symbols and gate definitions"
+    },
+    {
+      "id": "reliability.gateInputs",
+      "description": "A gate has at least two inputs.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "minIncoming",
+        "types": [
+          "reliability.And",
+          "reliability.Or",
+          "reliability.Xor",
+          "reliability.PriorityAnd"
+        ],
+        "relationship": "reliability.Input",
+        "min": 2
+      },
+      "reference": "IEC 61025:2006, symbols and gate definitions"
+    },
+    {
+      "id": "reliability.inhibitInputs",
+      "description": "An inhibit gate has one input and one condition.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "reliability",
+        "test": "inhibitInputs"
+      },
+      "reference": "IEC 61025:2006, symbols and gate definitions"
+    },
+    {
+      "id": "reliability.votingK",
+      "description": "k is between 1 and the number of inputs.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "reliability",
+        "test": "votingK"
+      },
+      "reference": "IEC 61025:2006, symbols and gate definitions"
+    },
+    {
+      "id": "reliability.acyclic",
+      "description": "A fault tree has no cycles.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "forbiddenCycle",
+        "relationship": "reliability.Input"
+      },
+      "reference": "IEC 61025:2006, symbols and gate definitions"
+    },
+    {
+      "id": "reliability.transfersPaired",
+      "description": "Each transfer in has its transfer out.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "unmatchedPair",
+        "scope": "reliability.transfer"
+      },
+      "reference": "IEC 61025:2006, symbols and gate definitions"
+    },
+    {
+      "id": "reliability.probabilityRange",
+      "description": "Probabilities are between 0 and 1.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "reliability",
+        "test": "probabilityRange"
+      },
+      "reference": "IEC 61025:2006, symbols and gate definitions"
+    },
+    {
+      "id": "reliability.startToEnd",
+      "description": "A path runs from start to end.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "requiredPath",
+        "from": [
+          "reliability.Start"
+        ],
+        "to": [
+          "reliability.End"
+        ],
+        "relationship": "reliability.Path"
+      },
+      "reference": "IEC 61078:2016, block diagram structures"
+    },
+    {
+      "id": "reliability.onAPath",
+      "description": "Every block is on a path from the start.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "unreachable",
+        "from": [
+          "reliability.Start"
+        ],
+        "relationship": "reliability.Path",
+        "types": [
+          "reliability.Block",
+          "reliability.Voting",
+          "reliability.Standby",
+          "reliability.End"
+        ]
+      },
+      "reference": "IEC 61078:2016, block diagram structures"
+    },
+    {
+      "id": "reliability.blockData",
+      "description": "Every block gives its availability data.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "reliability",
+        "test": "blockData"
+      },
+      "reference": "IEC 61078:2016, block diagram structures"
+    },
+    {
+      "id": "reliability.twoBranches",
+      "description": "A branch point has a success and a failure branch.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "reliability",
+        "test": "twoBranches"
+      },
+      "reference": "IEC 62502:2010, event tree construction"
+    },
+    {
+      "id": "reliability.endsInOutcome",
+      "description": "Every path ends in an outcome.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "reliability",
+        "test": "endsInOutcome"
+      },
+      "reference": "IEC 62502:2010, event tree construction"
+    },
+    {
+      "id": "reliability.scaleRange",
+      "description": "Ratings are whole numbers from 1 to 10.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "reliability",
+        "test": "scaleRange"
+      },
+      "reference": "IEC 60812:2018, FMEA worksheet"
+    },
+    {
+      "id": "reliability.rpnCurrent",
+      "description": "The RPN is severity times occurrence times detection.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "reliability",
+        "test": "rpnCurrent"
+      },
+      "reference": "IEC 60812:2018, FMEA worksheet"
+    },
+    {
+      "id": "reliability.endEffect",
+      "description": "Every failure mode names its end effect.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "requiredProperty",
+        "types": [
+          "reliability.FailureMode"
+        ]
+      },
+      "reference": "IEC 60812:2018, FMEA worksheet"
+    }
+  ],
+  "rulesets": [
+    {
+      "id": "reliability.fta",
+      "label": "Fault tree (IEC 61025)",
+      "description": "One top event, gate inputs, transfers paired, acyclic.",
+      "rules": [
+        "reliability.illegalLine",
+        "reliability.oneTopEvent",
+        "reliability.gateInputs",
+        "reliability.inhibitInputs",
+        "reliability.votingK",
+        "reliability.acyclic",
+        "reliability.transfersPaired",
+        "reliability.probabilityRange"
+      ]
+    },
+    {
+      "id": "reliability.rbd",
+      "label": "Reliability block diagram (IEC 61078)",
+      "description": "Start to end, every block on a path, voting k and block data.",
+      "rules": [
+        "reliability.illegalLine",
+        "reliability.startToEnd",
+        "reliability.onAPath",
+        "reliability.votingK",
+        "reliability.blockData",
+        "reliability.probabilityRange"
+      ]
+    },
+    {
+      "id": "reliability.eta",
+      "label": "Event tree (IEC 62502)",
+      "description": "Two branches per point, paths end in outcomes, probabilities in range.",
+      "rules": [
+        "reliability.illegalLine",
+        "reliability.twoBranches",
+        "reliability.endsInOutcome",
+        "reliability.probabilityRange"
+      ]
+    },
+    {
+      "id": "reliability.fmea",
+      "label": "FMEA (IEC 60812)",
+      "description": "Ratings from 1 to 10, current RPNs and end effects.",
+      "rules": [
+        "reliability.scaleRange",
+        "reliability.rpnCurrent",
+        "reliability.endEffect"
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "id": "reliability.iec61025",
+      "label": "IEC 61025",
+      "description": "The event and gate shapes of IEC 61025 as NUREG-0492 describes them."
+    },
+    {
+      "id": "reliability.rectangular",
+      "label": "Rectangular (IEC 60617-12)",
+      "description": "Gates as IEC 60617-12 boxes: &, at least 1, =1 and at least k.",
+      "glyphs": {
+        "reliability.And": "reliability.andRect",
+        "reliability.Or": "reliability.orRect",
+        "reliability.Xor": "reliability.xorRect",
+        "reliability.PriorityAnd": "reliability.pandRect",
+        "reliability.VotingGate": "reliability.votingRect"
+      }
+    }
+  ],
+  "templates": [
+    {
+      "id": "reliability.faultTree",
+      "label": "Fault Tree",
+      "description": "A fault tree of events and gates to IEC 61025, with minimal cut sets and the top probability.",
+      "keywords": [
+        "fault tree",
+        "fta",
+        "cut sets",
+        "iec 61025"
+      ],
+      "viewpoint": "reliability.FaultTree",
+      "variant": "reliability.iec61025",
+      "rulesets": [
+        "reliability.fta"
+      ],
+      "layout": {
+        "algorithm": "tree",
+        "direction": "TB"
+      },
+      "discipline": "engineering",
+      "audience": [
+        "engineering"
+      ],
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true
+    },
+    {
+      "id": "reliability.rbd",
+      "label": "Reliability Block Diagram",
+      "description": "Blocks in series, parallel and k-out-of-n groups to IEC 61078, with the system availability.",
+      "keywords": [
+        "rbd",
+        "availability",
+        "redundancy",
+        "iec 61078"
+      ],
+      "viewpoint": "reliability.RBD",
+      "rulesets": [
+        "reliability.rbd"
+      ],
+      "layout": {
+        "algorithm": "layered",
+        "direction": "LR"
+      },
+      "discipline": "engineering",
+      "audience": [
+        "engineering"
+      ],
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true
+    },
+    {
+      "id": "reliability.eventTree",
+      "label": "Event Tree",
+      "description": "An initiating event branching on safety functions to IEC 62502, with the frequency of each outcome.",
+      "keywords": [
+        "event tree",
+        "eta",
+        "iec 62502"
+      ],
+      "viewpoint": "reliability.EventTree",
+      "rulesets": [
+        "reliability.eta"
+      ],
+      "layout": {
+        "algorithm": "tree",
+        "direction": "LR"
+      },
+      "discipline": "engineering",
+      "audience": [
+        "engineering"
+      ],
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true
+    },
+    {
+      "id": "reliability.fmea",
+      "label": "FMEA Worksheet",
+      "description": "A failure modes and effects worksheet to IEC 60812, with risk priority numbers kept current.",
+      "keywords": [
+        "fmea",
+        "fmeca",
+        "rpn",
+        "iec 60812"
+      ],
+      "viewpoint": "reliability.FMEA",
+      "rulesets": [
+        "reliability.fmea"
+      ],
+      "layout": {
+        "algorithm": "layered",
+        "direction": "TB"
+      },
+      "discipline": "engineering",
+      "audience": [
+        "engineering"
+      ],
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true
+    }
+  ],
+  "examples": [
+    {
+      "id": "reliability.pumpFaultTree",
+      "label": "Pump Fault Tree",
+      "description": "Loss of cooling water from both pumps failing, a shut valve or lost power, the power branch carried by a transfer pair.",
+      "keywords": [
+        "fault tree",
+        "pump",
+        "transfer"
+      ],
+      "viewpoint": "reliability.FaultTree",
+      "variant": "reliability.iec61025",
+      "rulesets": [
+        "reliability.fta"
+      ],
+      "seed": [
+        {
+          "command": "element.create",
+          "as": "top",
+          "params": {
+            "type": "reliability.TopEvent",
+            "name": "No cooling water",
+            "x": 520,
+            "y": 110
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "g1",
+          "params": {
+            "type": "reliability.Or",
+            "name": "",
+            "x": 577,
+            "y": 220
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "pumps",
+          "params": {
+            "type": "reliability.IntermediateEvent",
+            "name": "Both pumps fail",
+            "x": 260,
+            "y": 330
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "valve",
+          "params": {
+            "type": "reliability.BasicEvent",
+            "name": "Valve shut",
+            "x": 578,
+            "y": 340,
+            "properties": {
+              "probability": 0.001
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "tin",
+          "params": {
+            "type": "reliability.TransferIn",
+            "name": "T1",
+            "x": 860,
+            "y": 340,
+            "tag": "T1"
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "g2",
+          "params": {
+            "type": "reliability.And",
+            "name": "",
+            "x": 312,
+            "y": 440
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "pa",
+          "params": {
+            "type": "reliability.BasicEvent",
+            "name": "Pump A fails",
+            "x": 200,
+            "y": 560,
+            "properties": {
+              "probability": 0.02
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "pb",
+          "params": {
+            "type": "reliability.BasicEvent",
+            "name": "Pump B fails",
+            "x": 420,
+            "y": 560,
+            "properties": {
+              "probability": 0.02
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "power",
+          "params": {
+            "type": "reliability.IntermediateEvent",
+            "name": "Power lost",
+            "x": 1060,
+            "y": 330
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "tout",
+          "params": {
+            "type": "reliability.TransferOut",
+            "name": "T1",
+            "x": 1115,
+            "y": 230,
+            "tag": "T1"
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "g3",
+          "params": {
+            "type": "reliability.Or",
+            "name": "",
+            "x": 1112,
+            "y": 440
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "grid",
+          "params": {
+            "type": "reliability.BasicEvent",
+            "name": "Grid down",
+            "x": 1010,
+            "y": 560,
+            "properties": {
+              "probability": 0.0005
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "brk",
+          "params": {
+            "type": "reliability.BasicEvent",
+            "name": "Breaker trips",
+            "x": 1210,
+            "y": 560,
+            "properties": {
+              "probability": 0.002
+            }
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${g1.id}",
+            "to": "${top.id}",
+            "type": "reliability.Input"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${pumps.id}",
+            "to": "${g1.id}",
+            "type": "reliability.Input"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${valve.id}",
+            "to": "${g1.id}",
+            "type": "reliability.Input"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${tin.id}",
+            "to": "${g1.id}",
+            "type": "reliability.Input"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${g2.id}",
+            "to": "${pumps.id}",
+            "type": "reliability.Input"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${pa.id}",
+            "to": "${g2.id}",
+            "type": "reliability.Input"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${pb.id}",
+            "to": "${g2.id}",
+            "type": "reliability.Input"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${power.id}",
+            "to": "${tout.id}",
+            "type": "reliability.Input"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${g3.id}",
+            "to": "${power.id}",
+            "type": "reliability.Input"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${grid.id}",
+            "to": "${g3.id}",
+            "type": "reliability.Input"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${brk.id}",
+            "to": "${g3.id}",
+            "type": "reliability.Input"
+          }
+        }
+      ],
+      "discipline": "engineering",
+      "audience": [
+        "engineering"
+      ],
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true
+    },
+    {
+      "id": "reliability.coolingRbd",
+      "label": "Cooling RBD",
+      "description": "An intake filter in series, a pair of pumps in parallel and a 2-out-of-3 group of fans.",
+      "keywords": [
+        "rbd",
+        "availability",
+        "redundancy"
+      ],
+      "viewpoint": "reliability.RBD",
+      "rulesets": [
+        "reliability.rbd"
+      ],
+      "seed": [
+        {
+          "command": "element.create",
+          "as": "s",
+          "params": {
+            "type": "reliability.Start",
+            "name": "Start",
+            "x": 140,
+            "y": 400
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "f",
+          "params": {
+            "type": "reliability.Block",
+            "name": "Intake filter",
+            "x": 220,
+            "y": 385,
+            "properties": {
+              "availability": 0.999
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "a",
+          "params": {
+            "type": "reliability.Block",
+            "name": "Pump A",
+            "x": 420,
+            "y": 300,
+            "properties": {
+              "mtbf": 2000,
+              "mttr": 20
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "b",
+          "params": {
+            "type": "reliability.Block",
+            "name": "Pump B",
+            "x": 420,
+            "y": 470,
+            "properties": {
+              "mtbf": 2000,
+              "mttr": 20
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "v1",
+          "params": {
+            "type": "reliability.Voting",
+            "name": "1/2",
+            "x": 460,
+            "y": 390,
+            "properties": {
+              "k": 1
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "f1",
+          "params": {
+            "type": "reliability.Block",
+            "name": "Fan 1",
+            "x": 740,
+            "y": 250,
+            "properties": {
+              "availability": 0.98
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "f2",
+          "params": {
+            "type": "reliability.Block",
+            "name": "Fan 2",
+            "x": 740,
+            "y": 385,
+            "properties": {
+              "availability": 0.98
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "f3",
+          "params": {
+            "type": "reliability.Block",
+            "name": "Fan 3",
+            "x": 740,
+            "y": 520,
+            "properties": {
+              "availability": 0.98
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "v2",
+          "params": {
+            "type": "reliability.Voting",
+            "name": "2/3",
+            "x": 940,
+            "y": 390,
+            "properties": {
+              "k": 2
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "e",
+          "params": {
+            "type": "reliability.End",
+            "name": "End",
+            "x": 1060,
+            "y": 400
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${s.id}",
+            "to": "${f.id}",
+            "type": "reliability.Path"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${f.id}",
+            "to": "${a.id}",
+            "type": "reliability.Path"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${f.id}",
+            "to": "${b.id}",
+            "type": "reliability.Path"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${a.id}",
+            "to": "${v1.id}",
+            "type": "reliability.Path"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${b.id}",
+            "to": "${v1.id}",
+            "type": "reliability.Path"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${v1.id}",
+            "to": "${f1.id}",
+            "type": "reliability.Path"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${v1.id}",
+            "to": "${f2.id}",
+            "type": "reliability.Path"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${v1.id}",
+            "to": "${f3.id}",
+            "type": "reliability.Path"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${f1.id}",
+            "to": "${v2.id}",
+            "type": "reliability.Path"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${f2.id}",
+            "to": "${v2.id}",
+            "type": "reliability.Path"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${f3.id}",
+            "to": "${v2.id}",
+            "type": "reliability.Path"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${v2.id}",
+            "to": "${e.id}",
+            "type": "reliability.Path"
+          }
+        }
+      ],
+      "discipline": "engineering",
+      "audience": [
+        "engineering"
+      ],
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true
+    },
+    {
+      "id": "reliability.coolingEventTree",
+      "label": "Cooling Event Tree",
+      "description": "A loss of feed water branching on reactor trip and cooling spray to four outcomes.",
+      "keywords": [
+        "event tree",
+        "outcome",
+        "frequency"
+      ],
+      "viewpoint": "reliability.EventTree",
+      "rulesets": [
+        "reliability.eta"
+      ],
+      "seed": [
+        {
+          "command": "element.create",
+          "as": "trip",
+          "params": {
+            "type": "reliability.SafetyFunction",
+            "name": "Reactor trip",
+            "x": 400,
+            "y": 110,
+            "properties": {
+              "failureProbability": 0.001
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "spray",
+          "params": {
+            "type": "reliability.SafetyFunction",
+            "name": "Cooling spray",
+            "x": 700,
+            "y": 110,
+            "properties": {
+              "failureProbability": 0.05
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "ie",
+          "params": {
+            "type": "reliability.Initiator",
+            "name": "Loss of feed",
+            "x": 140,
+            "y": 400,
+            "properties": {
+              "frequency": 0.1
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "b1",
+          "params": {
+            "type": "reliability.BranchPoint",
+            "name": "",
+            "x": 459,
+            "y": 419,
+            "properties": {
+              "function": "Reactor trip"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "b2",
+          "params": {
+            "type": "reliability.BranchPoint",
+            "name": "",
+            "x": 759,
+            "y": 299,
+            "properties": {
+              "function": "Cooling spray"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "b3",
+          "params": {
+            "type": "reliability.BranchPoint",
+            "name": "",
+            "x": 759,
+            "y": 559,
+            "properties": {
+              "function": "Cooling spray"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "o1",
+          "params": {
+            "type": "reliability.Outcome",
+            "name": "Safe shutdown",
+            "x": 960,
+            "y": 220,
+            "properties": {
+              "consequence": "none"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "o2",
+          "params": {
+            "type": "reliability.Outcome",
+            "name": "Minor damage",
+            "x": 960,
+            "y": 340,
+            "properties": {
+              "consequence": "repair"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "o3",
+          "params": {
+            "type": "reliability.Outcome",
+            "name": "Hot shutdown",
+            "x": 960,
+            "y": 480,
+            "properties": {
+              "consequence": "outage"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "o4",
+          "params": {
+            "type": "reliability.Outcome",
+            "name": "Core damage",
+            "x": 960,
+            "y": 600,
+            "properties": {
+              "consequence": "severe"
+            }
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${ie.id}",
+            "to": "${b1.id}",
+            "type": "reliability.Success"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${b1.id}",
+            "to": "${b2.id}",
+            "type": "reliability.Success"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${b1.id}",
+            "to": "${b3.id}",
+            "type": "reliability.Failure"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${b2.id}",
+            "to": "${o1.id}",
+            "type": "reliability.Success"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${b2.id}",
+            "to": "${o2.id}",
+            "type": "reliability.Failure"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${b3.id}",
+            "to": "${o3.id}",
+            "type": "reliability.Success"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${b3.id}",
+            "to": "${o4.id}",
+            "type": "reliability.Failure"
+          }
+        }
+      ],
+      "discipline": "engineering",
+      "audience": [
+        "engineering"
+      ],
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true
+    },
+    {
+      "id": "reliability.pumpFmea",
+      "label": "Pump FMEA",
+      "description": "Three failure modes of a cooling pump with their effects, ratings and risk priority numbers.",
+      "keywords": [
+        "fmea",
+        "rpn",
+        "pump"
+      ],
+      "viewpoint": "reliability.FMEA",
+      "rulesets": [
+        "reliability.fmea"
+      ],
+      "seed": [
+        {
+          "command": "element.create",
+          "as": "ws",
+          "params": {
+            "type": "reliability.FmeaWorksheet",
+            "name": "Cooling pump FMEA",
+            "x": 150,
+            "y": 140,
+            "w": 978,
+            "h": 200
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "m1",
+          "params": {
+            "type": "reliability.FailureMode",
+            "name": "Seal leak",
+            "properties": {
+              "item": "Pump",
+              "function": "Move water",
+              "mode": "Seal leaks",
+              "cause": "Seal wear",
+              "localEffect": "Water on floor",
+              "nextEffect": "Flow drops",
+              "endEffect": "Reduced cooling",
+              "severity": 5,
+              "occurrence": 4,
+              "detection": 3,
+              "actions": "Inspect seals monthly"
+            },
+            "owner": "${ws.id}"
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "m2",
+          "params": {
+            "type": "reliability.FailureMode",
+            "name": "Motor stops",
+            "properties": {
+              "item": "Motor",
+              "function": "Drive pump",
+              "mode": "Will not run",
+              "cause": "Winding fault",
+              "localEffect": "Pump stops",
+              "nextEffect": "No flow",
+              "endEffect": "Loss of cooling",
+              "severity": 9,
+              "occurrence": 2,
+              "detection": 4,
+              "actions": "Fit a standby pump"
+            },
+            "owner": "${ws.id}"
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "m3",
+          "params": {
+            "type": "reliability.FailureMode",
+            "name": "Impeller wear",
+            "properties": {
+              "item": "Impeller",
+              "function": "Raise pressure",
+              "mode": "Wears",
+              "cause": "Grit in water",
+              "localEffect": "Lower head",
+              "nextEffect": "Flow drops",
+              "endEffect": "Reduced cooling",
+              "severity": 4,
+              "occurrence": 5,
+              "detection": 6,
+              "actions": "Add an intake strainer"
+            },
+            "owner": "${ws.id}"
+          }
+        },
+        {
+          "command": "rel.rpn",
+          "params": {}
+        }
+      ],
+      "discipline": "engineering",
+      "audience": [
+        "engineering"
+      ],
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true
+    }
+  ]
+}

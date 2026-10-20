@@ -1,0 +1,214 @@
+{
+ "document": {
+  "format": "vizcraft",
+  "version": 4,
+  "model": {
+   "schemaVersion": 1,
+   "packs": [
+    {
+     "id": "mechanical",
+     "version": "1.0.0"
+    }
+   ],
+   "elements": [
+    {
+     "id": "mo",
+     "type": "mechanical.Motor",
+     "name": "mo"
+    },
+    {
+     "id": "b1",
+     "type": "mechanical.Bearing",
+     "name": "b1"
+    },
+    {
+     "id": "z1",
+     "type": "mechanical.Gear",
+     "name": "z1",
+     "properties": {
+      "teeth": 20
+     }
+    },
+    {
+     "id": "z2",
+     "type": "mechanical.Gear",
+     "name": "z2",
+     "properties": {
+      "teeth": 40
+     }
+    },
+    {
+     "id": "b2",
+     "type": "mechanical.Bearing",
+     "name": "b2"
+    },
+    {
+     "id": "ld",
+     "type": "mechanical.Load",
+     "name": "ld"
+    }
+   ],
+   "relationships": [
+    {
+     "id": "s1",
+     "type": "mechanical.Shaft",
+     "source": "mo",
+     "target": "b1"
+    },
+    {
+     "id": "s2",
+     "type": "mechanical.Shaft",
+     "source": "b1",
+     "target": "z1"
+    },
+    {
+     "id": "m1",
+     "type": "mechanical.Mesh",
+     "source": "z1",
+     "target": "z2"
+    },
+    {
+     "id": "s3",
+     "type": "mechanical.Shaft",
+     "source": "z2",
+     "target": "b2"
+    },
+    {
+     "id": "s4",
+     "type": "mechanical.Shaft",
+     "source": "b2",
+     "target": "ld"
+    }
+   ]
+  },
+  "document": {
+   "title": "",
+   "pages": [
+    {
+     "id": "p1",
+     "name": "p1",
+     "shapes": [
+      {
+       "id": "s_p1_mo",
+       "kind": "rectangle",
+       "x": 0,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "mo"
+      },
+      {
+       "id": "s_p1_b1",
+       "kind": "rectangle",
+       "x": 200,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "b1"
+      },
+      {
+       "id": "s_p1_z1",
+       "kind": "rectangle",
+       "x": 400,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "z1"
+      },
+      {
+       "id": "s_p1_z2",
+       "kind": "rectangle",
+       "x": 600,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "z2"
+      },
+      {
+       "id": "s_p1_b2",
+       "kind": "rectangle",
+       "x": 800,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "b2"
+      },
+      {
+       "id": "s_p1_ld",
+       "kind": "rectangle",
+       "x": 1000,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "ld"
+      }
+     ],
+     "connectors": [
+      {
+       "id": "c_p1_s1",
+       "start": {
+        "shape": "s_p1_mo"
+       },
+       "end": {
+        "shape": "s_p1_b1"
+       },
+       "relationship": "s1"
+      },
+      {
+       "id": "c_p1_s2",
+       "start": {
+        "shape": "s_p1_b1"
+       },
+       "end": {
+        "shape": "s_p1_z1"
+       },
+       "relationship": "s2"
+      },
+      {
+       "id": "c_p1_m1",
+       "start": {
+        "shape": "s_p1_z1"
+       },
+       "end": {
+        "shape": "s_p1_z2"
+       },
+       "relationship": "m1"
+      },
+      {
+       "id": "c_p1_s3",
+       "start": {
+        "shape": "s_p1_z2"
+       },
+       "end": {
+        "shape": "s_p1_b2"
+       },
+       "relationship": "s3"
+      },
+      {
+       "id": "c_p1_s4",
+       "start": {
+        "shape": "s_p1_b2"
+       },
+       "end": {
+        "shape": "s_p1_ld"
+       },
+       "relationship": "s4"
+      }
+     ],
+     "view": {
+      "viewpoint": "mechanical.Transmission"
+     }
+    }
+   ],
+   "idSeq": 1000
+  }
+ },
+ "profile": {
+  "enabled": true,
+  "userSet": true,
+  "rulesets": [
+   "mechanical.transmission"
+  ]
+ },
+ "expect": []
+}

@@ -1,0 +1,410 @@
+{
+ "document": {
+  "format": "vizcraft",
+  "version": 4,
+  "model": {
+   "schemaVersion": 1,
+   "packs": [
+    {
+     "id": "idef0",
+     "version": "1.0.0"
+    }
+   ],
+   "elements": [
+    {
+     "id": "b0",
+     "type": "idef0.Activity",
+     "name": "Make widget",
+     "properties": {
+      "number": "0",
+      "inputs": 1,
+      "controls": 1,
+      "outputs": 1,
+      "mechanisms": 1
+     }
+    },
+    {
+     "id": "bi",
+     "type": "idef0.Boundary",
+     "name": "in"
+    },
+    {
+     "id": "bc",
+     "type": "idef0.Boundary",
+     "name": "ctl"
+    },
+    {
+     "id": "bo",
+     "type": "idef0.Boundary",
+     "name": "out"
+    },
+    {
+     "id": "bm",
+     "type": "idef0.Boundary",
+     "name": "mech"
+    },
+    {
+     "id": "k1",
+     "type": "idef0.Activity",
+     "name": "Do k1",
+     "properties": {
+      "number": "1",
+      "inputs": 1,
+      "controls": 1,
+      "outputs": 1,
+      "mechanisms": 1
+     }
+    },
+    {
+     "id": "k2",
+     "type": "idef0.Activity",
+     "name": "Do k2",
+     "properties": {
+      "number": "2",
+      "inputs": 1,
+      "controls": 1,
+      "outputs": 1,
+      "mechanisms": 1
+     }
+    },
+    {
+     "id": "I1",
+     "type": "idef0.Boundary",
+     "name": "I1",
+     "tag": "I1"
+    },
+    {
+     "id": "C1",
+     "type": "idef0.Boundary",
+     "name": "C1",
+     "tag": "C1"
+    },
+    {
+     "id": "O1",
+     "type": "idef0.Boundary",
+     "name": "O1",
+     "tag": "O1"
+    },
+    {
+     "id": "M1",
+     "type": "idef0.Boundary",
+     "name": "M1",
+     "tag": "M1"
+    }
+   ],
+   "relationships": [
+    {
+     "id": "a1",
+     "type": "idef0.Arrow",
+     "source": "bi",
+     "target": "b0",
+     "targetPort": "I1",
+     "name": "arrow a1"
+    },
+    {
+     "id": "a2",
+     "type": "idef0.Arrow",
+     "source": "bc",
+     "target": "b0",
+     "targetPort": "C1",
+     "name": "arrow a2"
+    },
+    {
+     "id": "a3",
+     "type": "idef0.Arrow",
+     "source": "b0",
+     "target": "bo",
+     "sourcePort": "O1",
+     "name": "arrow a3"
+    },
+    {
+     "id": "a4",
+     "type": "idef0.Arrow",
+     "source": "bm",
+     "target": "b0",
+     "targetPort": "M1",
+     "name": "arrow a4"
+    },
+    {
+     "id": "x1",
+     "type": "idef0.Arrow",
+     "source": "C1",
+     "target": "k1",
+     "targetPort": "C1",
+     "name": "arrow x1"
+    },
+    {
+     "id": "x2",
+     "type": "idef0.Arrow",
+     "source": "k1",
+     "target": "k2",
+     "sourcePort": "O1",
+     "targetPort": "C1",
+     "name": "arrow x2"
+    },
+    {
+     "id": "x5",
+     "type": "idef0.Arrow",
+     "source": "I1",
+     "target": "k1",
+     "targetPort": "I1",
+     "name": "arrow x5"
+    },
+    {
+     "id": "x6",
+     "type": "idef0.Arrow",
+     "source": "M1",
+     "target": "k2",
+     "targetPort": "M1",
+     "name": "arrow x6"
+    },
+    {
+     "id": "x7",
+     "type": "idef0.Arrow",
+     "source": "k2",
+     "target": "O1",
+     "sourcePort": "O1",
+     "name": "arrow x7"
+    }
+   ]
+  },
+  "document": {
+   "title": "",
+   "pages": [
+    {
+     "id": "p1",
+     "name": "p1",
+     "shapes": [
+      {
+       "id": "s_p1_b0",
+       "kind": "rectangle",
+       "x": 0,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "b0"
+      },
+      {
+       "id": "s_p1_bi",
+       "kind": "rectangle",
+       "x": 200,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "bi"
+      },
+      {
+       "id": "s_p1_bc",
+       "kind": "rectangle",
+       "x": 400,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "bc"
+      },
+      {
+       "id": "s_p1_bo",
+       "kind": "rectangle",
+       "x": 600,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "bo"
+      },
+      {
+       "id": "s_p1_bm",
+       "kind": "rectangle",
+       "x": 800,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "bm"
+      }
+     ],
+     "connectors": [
+      {
+       "id": "c_p1_a1",
+       "start": {
+        "shape": "s_p1_bi"
+       },
+       "end": {
+        "shape": "s_p1_b0"
+       },
+       "relationship": "a1"
+      },
+      {
+       "id": "c_p1_a2",
+       "start": {
+        "shape": "s_p1_bc"
+       },
+       "end": {
+        "shape": "s_p1_b0"
+       },
+       "relationship": "a2"
+      },
+      {
+       "id": "c_p1_a3",
+       "start": {
+        "shape": "s_p1_b0"
+       },
+       "end": {
+        "shape": "s_p1_bo"
+       },
+       "relationship": "a3"
+      },
+      {
+       "id": "c_p1_a4",
+       "start": {
+        "shape": "s_p1_bm"
+       },
+       "end": {
+        "shape": "s_p1_b0"
+       },
+       "relationship": "a4"
+      }
+     ],
+     "view": {
+      "viewpoint": "idef0.Context",
+      "variant": "idef0.fips183"
+     },
+     "ext": {
+      "idef0.node": "A-0"
+     }
+    },
+    {
+     "id": "p2",
+     "name": "p2",
+     "shapes": [
+      {
+       "id": "s_p2_k1",
+       "kind": "rectangle",
+       "x": 0,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "k1"
+      },
+      {
+       "id": "s_p2_k2",
+       "kind": "rectangle",
+       "x": 200,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "k2"
+      },
+      {
+       "id": "s_p2_I1",
+       "kind": "rectangle",
+       "x": 400,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "I1"
+      },
+      {
+       "id": "s_p2_C1",
+       "kind": "rectangle",
+       "x": 600,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "C1"
+      },
+      {
+       "id": "s_p2_O1",
+       "kind": "rectangle",
+       "x": 800,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "O1"
+      },
+      {
+       "id": "s_p2_M1",
+       "kind": "rectangle",
+       "x": 1000,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "M1"
+      }
+     ],
+     "connectors": [
+      {
+       "id": "c_p2_x1",
+       "start": {
+        "shape": "s_p2_C1"
+       },
+       "end": {
+        "shape": "s_p2_k1"
+       },
+       "relationship": "x1"
+      },
+      {
+       "id": "c_p2_x2",
+       "start": {
+        "shape": "s_p2_k1"
+       },
+       "end": {
+        "shape": "s_p2_k2"
+       },
+       "relationship": "x2"
+      },
+      {
+       "id": "c_p2_x5",
+       "start": {
+        "shape": "s_p2_I1"
+       },
+       "end": {
+        "shape": "s_p2_k1"
+       },
+       "relationship": "x5"
+      },
+      {
+       "id": "c_p2_x6",
+       "start": {
+        "shape": "s_p2_M1"
+       },
+       "end": {
+        "shape": "s_p2_k2"
+       },
+       "relationship": "x6"
+      },
+      {
+       "id": "c_p2_x7",
+       "start": {
+        "shape": "s_p2_k2"
+       },
+       "end": {
+        "shape": "s_p2_O1"
+       },
+       "relationship": "x7"
+      }
+     ],
+     "view": {
+      "viewpoint": "idef0.Decomposition",
+      "variant": "idef0.fips183"
+     },
+     "ext": {
+      "idef0.node": "A0",
+      "idef0.parent": "b0"
+     }
+    }
+   ],
+   "idSeq": 1000
+  }
+ },
+ "profile": {
+  "enabled": true,
+  "userSet": true,
+  "rulesets": [
+   "idef0.fips183"
+  ]
+ },
+ "expect": [
+  {
+   "rule": "idef0.boxCount"
+  }
+ ]
+}

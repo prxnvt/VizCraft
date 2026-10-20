@@ -18,21 +18,26 @@ pub mod design;
 pub mod document;
 pub mod edit;
 pub mod effects;
+pub mod electrical;
 pub mod element;
 pub mod er;
 pub mod file;
 pub mod find;
+pub mod fluid;
 pub mod generate;
 pub mod glyph;
 pub mod help;
+pub mod identity;
 pub mod ink;
 pub mod insert;
 pub mod inspector;
 pub mod key;
+pub mod ladder;
 pub mod lane;
 pub mod layer;
 pub mod layout;
 pub mod link;
+pub mod loops;
 pub mod r#macro;
 pub mod master;
 pub mod model;
@@ -41,6 +46,7 @@ pub mod notation;
 pub mod page;
 pub mod pattern;
 pub mod picture;
+pub mod plant;
 pub mod print;
 pub mod process;
 pub mod proof;
@@ -56,15 +62,22 @@ pub mod sheet;
 pub mod step;
 pub mod suggest;
 pub mod table;
+pub mod table_nets;
 pub mod template;
 pub mod text;
 pub mod topology;
+pub mod transform;
 pub mod uml;
 pub mod validate;
 pub mod variant;
 pub mod view;
 pub mod wire;
 pub mod xref;
+// Mechanical, reliability, IDEF0 and annotation packs (b6e-mechanical).
+pub mod annotation;
+pub mod idef0;
+pub mod mech;
+pub mod rel;
 
 use std::collections::HashSet;
 
@@ -82,6 +95,7 @@ pub fn registry() -> Registry {
     v.extend(batch::specs());
     v.extend(view::specs());
     v.extend(shape::specs());
+    v.extend(transform::specs());
     v.extend(text::specs());
     v.extend(arrange::specs());
     v.extend(container::specs());
@@ -140,6 +154,16 @@ pub fn registry() -> Registry {
     v.extend(sequence::specs());
     v.extend(er::specs());
     v.extend(uml::specs());
+    v.extend(electrical::specs());
+    v.extend(ladder::specs());
+    v.extend(identity::specs());
+    v.extend(loops::specs());
+    v.extend(plant::specs());
+    v.extend(fluid::specs());
+    v.extend(mech::specs());
+    v.extend(rel::specs());
+    v.extend(idef0::specs());
+    v.extend(annotation::specs());
     Registry::new(v)
 }
 

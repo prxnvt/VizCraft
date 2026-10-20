@@ -1,0 +1,309 @@
+{
+  "document": {
+    "document": {
+      "conformance": {
+        "enabled": true,
+        "rulesets": [
+          "process.iso10628"
+        ],
+        "userSet": true
+      },
+      "core": {
+        "author": "",
+        "created": "",
+        "lastModifiedBy": "",
+        "modified": "",
+        "revision": 0
+      },
+      "idSeq": 9,
+      "pages": [
+        {
+          "board": "infinite",
+          "connectors": [
+            {
+              "end": {
+                "x": 216.53543307086613,
+                "y": 403.54330708661416
+              },
+              "endArrow": "none",
+              "ext": {
+                "process.line": "e7"
+              },
+              "id": "c6",
+              "jumps": true,
+              "kind": "process.processLine",
+              "net": "n5",
+              "route": "orthogonal",
+              "start": {
+                "point": 0,
+                "shape": "s3"
+              },
+              "startArrow": "none",
+              "style": {
+                "bold": false,
+                "fill": "#00000000",
+                "fontColor": "#1e2630",
+                "fontSize": 12.0,
+                "italic": false,
+                "line": "#1f2933",
+                "lineWidth": 3.94
+              },
+              "text": "",
+              "waypoints": [
+                {
+                  "x": 216.53543307086613,
+                  "y": 403.54330708661416
+                }
+              ]
+            },
+            {
+              "end": {
+                "x": 403.54330708661416,
+                "y": 226.3779527559055
+              },
+              "endArrow": "none",
+              "ext": {
+                "process.line": "e7"
+              },
+              "id": "c9",
+              "jumps": true,
+              "kind": "process.processLine",
+              "net": "n8",
+              "route": "orthogonal",
+              "start": {
+                "point": 1,
+                "shape": "s3"
+              },
+              "startArrow": "none",
+              "style": {
+                "bold": false,
+                "fill": "#00000000",
+                "fontColor": "#1e2630",
+                "fontSize": 12.0,
+                "italic": false,
+                "line": "#1f2933",
+                "lineWidth": 3.94
+              },
+              "text": "1in-P-001-A1",
+              "waypoints": [
+                {
+                  "x": 403.54330708661416,
+                  "y": 226.3779527559055
+                }
+              ]
+            }
+          ],
+          "height": 850.0,
+          "id": "p1",
+          "name": "Page-1",
+          "shapes": [
+            {
+              "angleDeg": 0.0,
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.6
+                }
+              ],
+              "element": "e2",
+              "glyph": {
+                "builder": "processValve",
+                "ports": [
+                  "1",
+                  "2"
+                ]
+              },
+              "h": 49.21259842519685,
+              "id": "s3",
+              "kind": "freeform",
+              "path": {
+                "closed": true,
+                "els": [
+                  {
+                    "moveTo": {
+                      "x": 39.37007874015748,
+                      "y": 19.68503937007874
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 39.37007874015748,
+                      "y": 39.37007874015748
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 19.68503937007874,
+                      "y": 29.52755905511811
+                    }
+                  },
+                  "close",
+                  {
+                    "moveTo": {
+                      "x": 9.84251968503937,
+                      "y": 49.21259842519685
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 29.52755905511811,
+                      "y": 49.21259842519685
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 19.68503937007874,
+                      "y": 29.52755905511811
+                    }
+                  },
+                  "close",
+                  {
+                    "moveTo": {
+                      "x": 19.68503937007874,
+                      "y": 29.52755905511811
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 14.763779527559056,
+                      "y": 25.590551181102363
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 24.606299212598426,
+                      "y": 21.653543307086615
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 14.763779527559056,
+                      "y": 17.716535433070867
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 24.606299212598426,
+                      "y": 13.779527559055119
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 14.763779527559056,
+                      "y": 9.84251968503937
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 24.606299212598426,
+                      "y": 5.905511811023619
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 19.68503937007874,
+                      "y": 3.937007874015748
+                    }
+                  }
+                ],
+                "frame": [
+                  39.37007874015748,
+                  49.21259842519685
+                ]
+              },
+              "stencil": "process.safetyValve",
+              "style": {
+                "bold": false,
+                "fill": "#ffffff",
+                "fontColor": "#1e2630",
+                "fontSize": 12.0,
+                "italic": false,
+                "line": "#1f2933",
+                "lineWidth": 1.5
+              },
+              "text": "",
+              "w": 39.37007874015748,
+              "x": 196.85039370078738,
+              "y": 196.8503937007874
+            }
+          ],
+          "view": {
+            "module": "iso2_5mm",
+            "variant": "process.iso",
+            "viewpoint": "process.PID"
+          },
+          "width": 1100.0
+        }
+      ],
+      "standards": {
+        "symbols": "iso"
+      },
+      "title": ""
+    },
+    "format": "vizcraft",
+    "model": {
+      "elements": [
+        {
+          "id": "e2",
+          "owner": "e4",
+          "properties": {
+            "actuator": "none",
+            "fail": "none",
+            "letters": "PSV",
+            "normallyClosed": false
+          },
+          "tag": "PSV-01",
+          "type": "process.SafetyValveOrFitting"
+        },
+        {
+          "id": "e4",
+          "properties": {
+            "loopType": "safety",
+            "variable": "P"
+          },
+          "tag": "01",
+          "type": "process.InstrumentationLoopFunction"
+        },
+        {
+          "id": "e7",
+          "properties": {
+            "fluidCode": "P",
+            "label": "once",
+            "nominalDiameter": "1in",
+            "pipingClass": "A1",
+            "tracing": "none"
+          },
+          "tag": "1in-P-001-A1",
+          "type": "process.PipingNetworkSystem"
+        }
+      ],
+      "nets": [
+        {
+          "id": "n5",
+          "kind": "pipe"
+        },
+        {
+          "id": "n8",
+          "kind": "pipe"
+        }
+      ],
+      "packs": [
+        {
+          "id": "process",
+          "version": "1.0.0"
+        }
+      ],
+      "schemaVersion": 1
+    },
+    "version": 4
+  },
+  "expect": [
+    {
+      "rule": "process.reliefData"
+    }
+  ]
+}

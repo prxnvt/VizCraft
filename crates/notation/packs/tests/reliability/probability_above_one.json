@@ -1,0 +1,158 @@
+{
+ "document": {
+  "format": "vizcraft",
+  "version": 4,
+  "model": {
+   "schemaVersion": 1,
+   "packs": [
+    {
+     "id": "reliability",
+     "version": "1.0.0"
+    }
+   ],
+   "elements": [
+    {
+     "id": "top",
+     "type": "reliability.TopEvent",
+     "name": "top"
+    },
+    {
+     "id": "g",
+     "type": "reliability.Or",
+     "name": "g"
+    },
+    {
+     "id": "a",
+     "type": "reliability.BasicEvent",
+     "name": "A",
+     "properties": {
+      "probability": 1.5
+     }
+    },
+    {
+     "id": "b",
+     "type": "reliability.BasicEvent",
+     "name": "B",
+     "properties": {
+      "probability": 0.1
+     }
+    }
+   ],
+   "relationships": [
+    {
+     "id": "i1",
+     "type": "reliability.Input",
+     "source": "g",
+     "target": "top"
+    },
+    {
+     "id": "i2",
+     "type": "reliability.Input",
+     "source": "a",
+     "target": "g"
+    },
+    {
+     "id": "i3",
+     "type": "reliability.Input",
+     "source": "b",
+     "target": "g"
+    }
+   ]
+  },
+  "document": {
+   "title": "",
+   "pages": [
+    {
+     "id": "p1",
+     "name": "p1",
+     "shapes": [
+      {
+       "id": "s_p1_top",
+       "kind": "rectangle",
+       "x": 0,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "top"
+      },
+      {
+       "id": "s_p1_g",
+       "kind": "rectangle",
+       "x": 200,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "g"
+      },
+      {
+       "id": "s_p1_a",
+       "kind": "rectangle",
+       "x": 400,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "a"
+      },
+      {
+       "id": "s_p1_b",
+       "kind": "rectangle",
+       "x": 600,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "b"
+      }
+     ],
+     "connectors": [
+      {
+       "id": "c_p1_i1",
+       "start": {
+        "shape": "s_p1_g"
+       },
+       "end": {
+        "shape": "s_p1_top"
+       },
+       "relationship": "i1"
+      },
+      {
+       "id": "c_p1_i2",
+       "start": {
+        "shape": "s_p1_a"
+       },
+       "end": {
+        "shape": "s_p1_g"
+       },
+       "relationship": "i2"
+      },
+      {
+       "id": "c_p1_i3",
+       "start": {
+        "shape": "s_p1_b"
+       },
+       "end": {
+        "shape": "s_p1_g"
+       },
+       "relationship": "i3"
+      }
+     ],
+     "view": {
+      "viewpoint": "reliability.FaultTree"
+     }
+    }
+   ],
+   "idSeq": 1000
+  }
+ },
+ "profile": {
+  "enabled": true,
+  "userSet": true,
+  "rulesets": [
+   "reliability.fta"
+  ]
+ },
+ "expect": [
+  {
+   "rule": "reliability.probabilityRange"
+  }
+ ]
+}

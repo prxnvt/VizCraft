@@ -1,0 +1,70 @@
+{
+ "document": {
+  "format": "vizcraft",
+  "version": 4,
+  "model": {
+   "schemaVersion": 1,
+   "packs": [
+    {
+     "id": "electrical",
+     "version": "1.0.0"
+    }
+   ],
+   "elements": [
+    {
+     "id": "w",
+     "type": "electrical.Cable",
+     "name": "",
+     "tag": "W1",
+     "properties": {
+      "cores": 3
+     }
+    },
+    {
+     "id": "c1",
+     "type": "electrical.Core",
+     "name": "",
+     "tag": "W1.1",
+     "properties": {
+      "number": "1"
+     },
+     "owner": "w"
+    }
+   ],
+   "relationships": []
+  },
+  "document": {
+   "title": "",
+   "pages": [
+    {
+     "id": "p1",
+     "name": "P",
+     "width": 800,
+     "height": 600,
+     "shapes": [],
+     "connectors": []
+    }
+   ]
+  }
+ },
+ "profile": {
+  "enabled": true,
+  "rulesets": [
+   "electrical.erc"
+  ],
+  "overrides": [
+   {
+    "rule": "electrical.xrefResolved",
+    "disabled": true
+   }
+  ]
+ },
+ "expect": [
+  {
+   "rule": "electrical.cableCores"
+  },
+  {
+   "rule": "electrical.cableEnds"
+  }
+ ]
+}

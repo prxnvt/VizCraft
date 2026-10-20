@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="246.063" height="108.268" viewBox="-4.921 -4.921 246.063 108.268">
+  <path d="M0 19.685 L236.22 19.685 L236.22 98.425 L0 98.425 Z" fill="#ffffff" fill-rule="evenodd" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M59.055 19.685 L59.055 98.425 M98.425 19.685 L98.425 98.425 M137.795 19.685 L137.795 98.425 M177.165 19.685 L177.165 98.425 M216.535 19.685 L216.535 98.425 M59.055 49.213 L98.425 29.528 L137.795 29.528 L177.165 49.213 L216.535 49.213 M0 59.055 L236.22 59.055 M59.055 88.583 L98.425 88.583 L137.795 68.898 L177.165 68.898 L216.535 88.583" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="59.055" y="12.598" font-family="Inter, sans-serif" font-size="7.874" text-anchor="middle" fill="#1f2933">1</text>
+  <text x="98.425" y="12.598" font-family="Inter, sans-serif" font-size="7.874" text-anchor="middle" fill="#1f2933">2</text>
+  <text x="137.795" y="12.598" font-family="Inter, sans-serif" font-size="7.874" text-anchor="middle" fill="#1f2933">3</text>
+  <text x="177.165" y="12.598" font-family="Inter, sans-serif" font-size="7.874" text-anchor="middle" fill="#1f2933">4</text>
+  <text x="216.535" y="12.598" font-family="Inter, sans-serif" font-size="7.874" text-anchor="middle" fill="#1f2933">5</text>
+  <text x="4.921" y="42.126" font-family="Inter, sans-serif" font-size="7.874" text-anchor="start" fill="#1f2933">1A1</text>
+  <text x="4.921" y="81.496" font-family="Inter, sans-serif" font-size="7.874" text-anchor="start" fill="#1f2933">2A1</text>
+</svg>

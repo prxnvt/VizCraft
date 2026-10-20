@@ -192,8 +192,14 @@ fn kind_preview(painter: &egui::Painter, k: &vizcraft_notation::ConnectorType, r
         Dash::Solid => {
             painter.line_segment([a, b], stroke);
         }
-        _ => {
-            painter.extend(egui::Shape::dashed_line(&[a, b], stroke, 3.0, 2.0));
+        d => {
+            // The kind's own dash and gap, so long dashes, short dashes and dots tell apart.
+            let pat = d.pattern();
+            let (dash, gap) = match d {
+                Dash::Dashed => (3.0, 2.0),
+                _ => ((pat.first().copied().unwrap_or(4.0) as f32 * 0.75).max(1.0), (pat.get(1).copied().unwrap_or(3.0) as f32 * 0.75).max(1.0)),
+            };
+            painter.extend(egui::Shape::dashed_line(&[a, b], stroke, dash, gap));
         }
     }
     if has(&k.end_arrow) {

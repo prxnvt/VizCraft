@@ -21,7 +21,10 @@ use vizcraft_engine::cmd::data::{RowView, rows_of};
 use vizcraft_engine::cmd::inspector::{check, describe};
 
 mod columns;
+mod electrical;
 mod members;
+pub(crate) mod process;
+mod step_chart;
 mod relationship;
 
 use super::{PaneSpec, Side};
@@ -256,6 +259,11 @@ fn properties_tab(app: &CraftApp, ui: &mut Ui, t: &Tokens, st: &InspectorState, 
         [one] => describe(&app.session, one).ok(),
         _ => None,
     };
+    // A pipe's line is what a process engineer edits on it, so it leads.
+    let proc = process::shown(app);
+    if let Some(w) = proc.as_ref().filter(|w| matches!(w, process::What::Line { .. })) {
+        section(ui, "process", process::title(w, app), false, |ui| process::section(app, ui, t, w, runs));
+    }
     // A sequence message is edited in the Sequence group, so it gets no Relationship section.
     if let Some((id, _)) = &extra.connector
         && !super::sequence_section::is_message(app)
@@ -282,6 +290,9 @@ fn properties_tab(app: &CraftApp, ui: &mut Ui, t: &Tokens, st: &InspectorState, 
             section(ui, "symbol", "Symbol", false, |ui| symbol_section(ui, t, d, sym, runs));
         }
     }
+    if let Some(w) = proc.as_ref().filter(|w| !matches!(w, process::What::Line { .. })) {
+        section(ui, "process", process::title(w, app), false, |ui| process::section(app, ui, t, w, runs));
+    }
     if super::sequence_section::shown(app) {
         section(ui, "sequence", "Sequence", false, |ui| super::sequence_section::show(app, ui, t, runs));
     }
@@ -296,6 +307,14 @@ fn properties_tab(app: &CraftApp, ui: &mut Ui, t: &Tokens, st: &InspectorState, 
             && let Some(el) = d["element"]["id"].as_str()
         {
             section(ui, "columns", "Columns", false, |ui| columns::section(app, ui, t, el, type_id, runs));
+        }
+        if let Some(el) = d["element"]["id"].as_str().filter(|el| electrical::applies(app, el)) {
+            section(ui, "electrical", "Electrical", false, |ui| electrical::section(app, ui, t, el, runs));
+        }
+        if step_chart::is_chart(type_id)
+            && let Some(el) = d["element"]["id"].as_str()
+        {
+            section(ui, "stepChart", "Steps", false, |ui| step_chart::section(app, ui, t, el, runs));
         }
         section(ui, "properties", "Properties", false, |ui| properties(app, ui, t, d, ids, rows, expert, runs));
         if d["element"].is_object() {
@@ -772,6 +791,7 @@ pub fn inspect_fields(app: &CraftApp) -> Value {
     json!({
         "symbol": symbol, "sheet": sheet, "zone": zone, "sequence": super::sequence_section::inspect(app),
         "relationship": relationship::inspect(app), "members": members::inspect(app), "columns": columns::inspect(app),
+        "stepChart": step_chart::inspect(app),
     })
 }
 

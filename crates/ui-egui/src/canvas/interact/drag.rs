@@ -128,13 +128,22 @@ pub(super) fn offset_end(e: &mut End, d: Point) {
 pub fn preview_page(page: &Page, drag: &Drag, zoom: f32) -> Option<Page> {
     let mut p = page.clone();
     let moving: Vec<String> = match drag {
-        Drag::Marquee { .. } | Drag::Lasso { .. } | Drag::TextBox { .. } => return None,
+        Drag::Marquee { .. } | Drag::Lasso { .. } | Drag::TextBox { .. } | Drag::Ladder { .. } => return None,
         Drag::Sequence(d) => return super::sequence::preview(page, d),
         Drag::TextBlock { id, grab, to, shift } => {
             super::text_block::preview(&mut p, id, grab, *to, *shift);
             Vec::new()
         }
         Drag::Move { ids, .. } if !move_allowed(page, ids) => Vec::new(),
+        // More than one item moves as one object, bends and all, as `shape.transform` will.
+        Drag::Move { ids, .. } if ids.len() > 1 => match super::group::rigid_of(page, drag) {
+            Some(t) => super::group::preview(&mut p, ids, &t),
+            None => Vec::new(),
+        },
+        Drag::ResizeGroup { ids, .. } | Drag::RotateGroup { ids, .. } => match super::group::rigid_of(page, drag) {
+            Some(t) => super::group::preview(&mut p, ids, &t),
+            None => Vec::new(),
+        },
         Drag::Move { ids, from, to } => {
             let d = move_delta(*from, *to);
             dg::arrange::translate(&mut p, ids, d.x, d.y);
@@ -194,7 +203,10 @@ pub fn drag_target(page: &Page, drag: &Drag, zoom: f32) -> Option<End> {
 pub(super) fn finish(app: &mut CraftApp, drag: Drag, zoom: f32) {
     let Some(page) = app.session.doc.page() else { return };
     // Protection refuses every shape edit a drag commits (selection drags still run).
-    let edits = matches!(drag, Drag::Move { .. } | Drag::Resize { .. } | Drag::Rotate { .. } | Drag::Sequence(_));
+    let edits = matches!(
+        drag,
+        Drag::Move { .. } | Drag::Resize { .. } | Drag::Rotate { .. } | Drag::ResizeGroup { .. } | Drag::RotateGroup { .. } | Drag::Sequence(_)
+    );
     if edits && protected(&app.session.doc, page) {
         app.status("The shapes are protected (Developer > Protect Document)");
         return;
@@ -253,6 +265,7 @@ pub(super) fn finish(app: &mut CraftApp, drag: Drag, zoom: f32) {
                 }
             }
         }
+        Drag::ResizeGroup { .. } | Drag::RotateGroup { .. } => super::group::finish(app, &drag),
         Drag::Connect { from, to } => {
             let end = target_end(page, to, zoom);
             if connect_ok(&from, &end) {
@@ -265,6 +278,7 @@ pub(super) fn finish(app: &mut CraftApp, drag: Drag, zoom: f32) {
             }
         }
         Drag::Wire { from, to, pipe } => super::wire::finish(app, from, to, pipe, zoom),
+        Drag::Ladder { from, to } => super::ladder::finish(app, from, to),
         Drag::Sequence(d) => super::sequence::finish(app, d, zoom),
         Drag::TextBox { from, to } => super::tools::add_text_box(app, from, Some(dg::Rect::from_points(from, to))),
         Drag::TextBlock { id, grab, to, shift } => super::text_block::finish(app, &id, &grab, to, shift),

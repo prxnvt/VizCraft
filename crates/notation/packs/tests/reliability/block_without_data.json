@@ -1,0 +1,155 @@
+{
+ "document": {
+  "format": "vizcraft",
+  "version": 4,
+  "model": {
+   "schemaVersion": 1,
+   "packs": [
+    {
+     "id": "reliability",
+     "version": "1.0.0"
+    }
+   ],
+   "elements": [
+    {
+     "id": "S",
+     "type": "reliability.Start",
+     "name": "S"
+    },
+    {
+     "id": "T",
+     "type": "reliability.End",
+     "name": "T"
+    },
+    {
+     "id": "x",
+     "type": "reliability.Block",
+     "name": "x",
+     "properties": {
+      "availability": 0.9
+     }
+    },
+    {
+     "id": "y",
+     "type": "reliability.Block",
+     "name": "y"
+    }
+   ],
+   "relationships": [
+    {
+     "id": "p0",
+     "type": "reliability.Path",
+     "source": "S",
+     "target": "x"
+    },
+    {
+     "id": "p1",
+     "type": "reliability.Path",
+     "source": "x",
+     "target": "y"
+    },
+    {
+     "id": "p2",
+     "type": "reliability.Path",
+     "source": "y",
+     "target": "T"
+    }
+   ]
+  },
+  "document": {
+   "title": "",
+   "pages": [
+    {
+     "id": "p1",
+     "name": "p1",
+     "shapes": [
+      {
+       "id": "s_p1_S",
+       "kind": "rectangle",
+       "x": 0,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "S"
+      },
+      {
+       "id": "s_p1_T",
+       "kind": "rectangle",
+       "x": 200,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "T"
+      },
+      {
+       "id": "s_p1_x",
+       "kind": "rectangle",
+       "x": 400,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "x"
+      },
+      {
+       "id": "s_p1_y",
+       "kind": "rectangle",
+       "x": 600,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "y"
+      }
+     ],
+     "connectors": [
+      {
+       "id": "c_p1_p0",
+       "start": {
+        "shape": "s_p1_S"
+       },
+       "end": {
+        "shape": "s_p1_x"
+       },
+       "relationship": "p0"
+      },
+      {
+       "id": "c_p1_p1",
+       "start": {
+        "shape": "s_p1_x"
+       },
+       "end": {
+        "shape": "s_p1_y"
+       },
+       "relationship": "p1"
+      },
+      {
+       "id": "c_p1_p2",
+       "start": {
+        "shape": "s_p1_y"
+       },
+       "end": {
+        "shape": "s_p1_T"
+       },
+       "relationship": "p2"
+      }
+     ],
+     "view": {
+      "viewpoint": "reliability.RBD"
+     }
+    }
+   ],
+   "idSeq": 1000
+  }
+ },
+ "profile": {
+  "enabled": true,
+  "userSet": true,
+  "rulesets": [
+   "reliability.rbd"
+  ]
+ },
+ "expect": [
+  {
+   "rule": "reliability.blockData"
+  }
+ ]
+}

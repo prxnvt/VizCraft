@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="68.898" height="62.008" viewBox="-4.921 -17.717 68.898 62.008">
+  <path d="M9.843 0 L49.213 0 L49.213 39.37 L9.843 39.37 Z" fill="#ffffff" fill-rule="evenodd" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M0 9.843 L9.843 9.843 M0 29.528 L9.843 29.528 M49.213 19.685 L59.055 19.685 M35.433 3.937 L35.433 11.811 L42.323 7.874 L35.433 3.937" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="14.764" y="12.943" font-family="Inter, sans-serif" font-size="8.858" text-anchor="middle" fill="#1f2933">-</text>
+  <text x="14.764" y="32.628" font-family="Inter, sans-serif" font-size="8.858" text-anchor="middle" fill="#1f2933">+</text>
+  <text x="29.528" y="-3.445" font-family="Inter, sans-serif" font-size="9.843" text-anchor="middle" fill="#1f2933">U1</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="0" cy="9.843" r="1.969"><title>-</title></circle>
+    <circle cx="0" cy="29.528" r="1.969"><title>+</title></circle>
+    <circle cx="59.055" cy="19.685" r="1.969"><title>OUT</title></circle>
+  </g>
+</svg>

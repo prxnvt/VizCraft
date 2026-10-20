@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="88.583" height="68.898" viewBox="-4.921 -4.921 88.583 68.898">
+  <path d="M19.685 9.843 L59.055 9.843 L59.055 49.213 L19.685 49.213 Z M39.37 15.748 L41.831 21.654 L36.909 21.654 Z M19.685 29.528 L13.78 32.48 L13.78 26.575 Z" fill="#ffffff" fill-rule="evenodd" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M39.37 49.213 L39.37 15.748 M39.985 17.224 L38.755 17.224 M40.6 18.701 L38.14 18.701 M41.216 20.177 L37.525 20.177 M41.831 21.654 L36.909 21.654 M39.37 15.748 L39.37 21.654 M39.37 49.213 L39.37 59.055 M39.37 9.843 L39.37 0 M59.055 29.528 L61.516 25.591 L63.976 33.465 L66.437 25.591 L68.898 33.465 L71.358 25.591 L73.819 33.465 L74.803 29.528 M59.055 39.37 L62.008 39.37 M63.976 39.37 L66.929 39.37 M68.898 39.37 L71.85 39.37 M73.819 39.37 L76.772 39.37 M39.37 4.921 L36.417 4.921 M34.449 4.921 L31.496 4.921 M29.528 4.921 L26.575 4.921 M24.606 4.921 L21.654 4.921 M19.685 4.921 L16.732 4.921 M14.764 4.921 L11.811 4.921 M9.843 4.921 L9.843 7.874 M9.843 9.843 L9.843 12.795 M9.843 14.764 L9.843 17.717 M9.843 19.685 L9.843 22.638 M9.843 24.606 L9.843 27.559 M18.209 30.266 L18.209 28.789 M16.732 31.004 L16.732 28.051 M15.256 31.742 L15.256 27.313 M13.78 32.48 L13.78 26.575 M19.685 29.528 L13.78 29.528" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="42.323" y="56.545" font-family="Inter, sans-serif" font-size="6.89" text-anchor="start" fill="#1f2933">P</text>
+  <text x="42.323" y="7.333" font-family="Inter, sans-serif" font-size="6.89" text-anchor="start" fill="#1f2933">A</text>
+  <text x="77.756" y="47.687" font-family="Inter, sans-serif" font-size="6.89" text-anchor="end" fill="#1f2933">L</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="39.37" cy="59.055" r="1.969"><title>P</title></circle>
+    <circle cx="39.37" cy="0" r="1.969"><title>A</title></circle>
+    <circle cx="78.74" cy="39.37" r="1.969"><title>L</title></circle>
+  </g>
+</svg>

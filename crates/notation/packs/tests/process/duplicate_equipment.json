@@ -1,0 +1,400 @@
+{
+  "document": {
+    "document": {
+      "conformance": {
+        "enabled": true,
+        "rulesets": [
+          "process.pfd"
+        ],
+        "userSet": true
+      },
+      "core": {
+        "author": "",
+        "created": "",
+        "lastModifiedBy": "",
+        "modified": "",
+        "revision": 0
+      },
+      "idSeq": 5,
+      "pages": [
+        {
+          "board": "infinite",
+          "connectors": [],
+          "height": 850.0,
+          "id": "p1",
+          "name": "Page-1",
+          "shapes": [
+            {
+              "angleDeg": 0.0,
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "e2",
+              "h": 59.06,
+              "id": "s3",
+              "kind": "freeform",
+              "path": {
+                "closed": true,
+                "els": [
+                  {
+                    "moveTo": {
+                      "x": 29.53,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 46.0668,
+                        "y": 0.0
+                      },
+                      {
+                        "x": 59.06,
+                        "y": 12.9932
+                      },
+                      {
+                        "x": 59.06,
+                        "y": 29.53
+                      }
+                    ]
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 59.06,
+                        "y": 46.0668
+                      },
+                      {
+                        "x": 46.0668,
+                        "y": 59.06
+                      },
+                      {
+                        "x": 29.53,
+                        "y": 59.06
+                      }
+                    ]
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 12.9932,
+                        "y": 59.06
+                      },
+                      {
+                        "x": 0.0,
+                        "y": 46.0668
+                      },
+                      {
+                        "x": 0.0,
+                        "y": 29.53
+                      }
+                    ]
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 0.0,
+                        "y": 12.9932
+                      },
+                      {
+                        "x": 12.9932,
+                        "y": 0.0
+                      },
+                      {
+                        "x": 29.53,
+                        "y": 0.0
+                      }
+                    ]
+                  },
+                  "close",
+                  {
+                    "moveTo": {
+                      "x": 29.53,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 56.107,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 56.107,
+                      "y": 7.0872
+                    }
+                  },
+                  {
+                    "moveTo": {
+                      "x": 11.812000000000001,
+                      "y": 53.154
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 4.7248,
+                      "y": 59.06
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 54.33520000000001,
+                      "y": 59.06
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 47.248000000000005,
+                      "y": 53.154
+                    }
+                  }
+                ],
+                "frame": [
+                  59.06,
+                  59.06
+                ]
+              },
+              "stencil": "process.pump",
+              "style": {
+                "bold": false,
+                "fill": "#ffffff",
+                "fontColor": "#1e2630",
+                "fontSize": 12.0,
+                "italic": false,
+                "line": "#1f2933",
+                "lineWidth": 1.5
+              },
+              "text": "",
+              "w": 59.06,
+              "x": 98.42275590551182,
+              "y": 98.4251968503937
+            },
+            {
+              "angleDeg": 0.0,
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "e4",
+              "h": 59.06,
+              "id": "s5",
+              "kind": "freeform",
+              "path": {
+                "closed": true,
+                "els": [
+                  {
+                    "moveTo": {
+                      "x": 29.53,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 46.0668,
+                        "y": 0.0
+                      },
+                      {
+                        "x": 59.06,
+                        "y": 12.9932
+                      },
+                      {
+                        "x": 59.06,
+                        "y": 29.53
+                      }
+                    ]
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 59.06,
+                        "y": 46.0668
+                      },
+                      {
+                        "x": 46.0668,
+                        "y": 59.06
+                      },
+                      {
+                        "x": 29.53,
+                        "y": 59.06
+                      }
+                    ]
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 12.9932,
+                        "y": 59.06
+                      },
+                      {
+                        "x": 0.0,
+                        "y": 46.0668
+                      },
+                      {
+                        "x": 0.0,
+                        "y": 29.53
+                      }
+                    ]
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 0.0,
+                        "y": 12.9932
+                      },
+                      {
+                        "x": 12.9932,
+                        "y": 0.0
+                      },
+                      {
+                        "x": 29.53,
+                        "y": 0.0
+                      }
+                    ]
+                  },
+                  "close",
+                  {
+                    "moveTo": {
+                      "x": 29.53,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 56.107,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 56.107,
+                      "y": 7.0872
+                    }
+                  },
+                  {
+                    "moveTo": {
+                      "x": 11.812000000000001,
+                      "y": 53.154
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 4.7248,
+                      "y": 59.06
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 54.33520000000001,
+                      "y": 59.06
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 47.248000000000005,
+                      "y": 53.154
+                    }
+                  }
+                ],
+                "frame": [
+                  59.06,
+                  59.06
+                ]
+              },
+              "stencil": "process.pump",
+              "style": {
+                "bold": false,
+                "fill": "#ffffff",
+                "fontColor": "#1e2630",
+                "fontSize": 12.0,
+                "italic": false,
+                "line": "#1f2933",
+                "lineWidth": 1.5
+              },
+              "text": "",
+              "w": 59.06,
+              "x": 295.2731496062992,
+              "y": 98.4251968503937
+            }
+          ],
+          "view": {
+            "module": "iso2_5mm",
+            "variant": "process.iso",
+            "viewpoint": "process.PFD"
+          },
+          "width": 1100.0
+        }
+      ],
+      "standards": {
+        "symbols": "iso"
+      },
+      "title": ""
+    },
+    "format": "vizcraft",
+    "model": {
+      "elements": [
+        {
+          "id": "e2",
+          "properties": {
+            "classCode": "P",
+            "kind": "centrifugal"
+          },
+          "tag": "P-01",
+          "type": "process.Pump"
+        },
+        {
+          "id": "e4",
+          "properties": {
+            "classCode": "P",
+            "kind": "centrifugal"
+          },
+          "tag": "P-01",
+          "type": "process.Pump"
+        }
+      ],
+      "packs": [
+        {
+          "id": "process",
+          "version": "1.0.0"
+        }
+      ],
+      "schemaVersion": 1
+    },
+    "version": 4
+  },
+  "expect": [
+    {
+      "rule": "process.duplicateEquipment"
+    }
+  ]
+}

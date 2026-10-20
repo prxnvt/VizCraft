@@ -159,12 +159,18 @@ pub struct Variant {
     /// empty list removes them (see [`crate::Catalog::compartments_in`]).
     #[serde(skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub compartments: std::collections::BTreeMap<String, Vec<CompartmentDecl>>,
+    /// Other ids this variant answers to, `<pack>.<name>` each (`fluidpower.jic` for
+    /// `fluidpower.ansi`: a project that picks JIC symbols draws fluid power in the ANSI Y32.10
+    /// style). [`Pack::variant`] finds the variant by any of them, so a symbol family resolves
+    /// through `crate::template::variant_for`; the Variant menu lists the variant once.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub aliases: Vec<String>,
 }
 
 impl Pack {
-    /// The variant with this id.
+    /// The variant with this id, or the one that lists it among its [`Variant::aliases`].
     pub fn variant(&self, id: &str) -> Option<&Variant> {
-        self.variants.iter().find(|v| v.id == id)
+        self.variants.iter().find(|v| v.id == id).or_else(|| self.variants.iter().find(|v| v.aliases.iter().any(|a| a == id)))
     }
     /// The element type with this qualified id.
     pub fn element_type(&self, id: &str) -> Option<&ElementType> {
@@ -469,6 +475,10 @@ pub struct Port {
     pub x: f64,
     /// Position down the frame, `0..1`.
     pub y: f64,
+    /// Ports of one shape with the same non-empty group pass one net through (the two sides of a
+    /// terminal, the pins of a plug and socket pair); empty for a port of its own.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub net_group: String,
 }
 
 /// An element type.
@@ -507,6 +517,10 @@ pub struct ElementType {
     /// 64 bytes; an element's own `stereotype` property wins over it. Empty for none.
     #[serde(skip_serializing_if = "String::is_empty")]
     pub keyword: String,
+    /// Views do not mark the ports with squares and ids: the symbol draws its own terminal
+    /// numbers (an electrical contact shows 13 and 14). The ports still bind and glue.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub hide_ports: bool,
 }
 
 /// A compartment an element type declares for its views (`vizcraft_diagram::compartment`).
@@ -573,6 +587,18 @@ pub struct RowFilter {
 }
 
 impl ElementType {
+    /// Whether views of `type_id` draw no port marks: it or a supertype says `hidePorts`.
+    pub fn ports_hidden(cat: &crate::Catalog, type_id: &str) -> bool {
+        let mut at = cat.element_type(type_id).map(|(_, t)| t);
+        for _ in 0..32 {
+            let Some(t) = at else { return false };
+            if t.hide_ports {
+                return true;
+            }
+            at = t.extends.as_deref().and_then(|x| cat.element_type(x)).map(|(_, t)| t);
+        }
+        false
+    }
     /// The property schema for `key`.
     pub fn property(&self, key: &str) -> Option<&PropertySchema> {
         self.properties.iter().find(|p| p.key == key)
@@ -609,6 +635,30 @@ pub struct RelationshipType {
     /// Properties shown beside the ends of its connectors (multiplicities, roles).
     #[serde(skip_serializing_if = "EndLabels::is_empty")]
     pub end_labels: EndLabels,
+    /// For a cross reference: which ends carry a location label naming the other end. A
+    /// contact shows where its coil is, while the coil lists its contacts in a mirror instead.
+    #[serde(skip_serializing_if = "XrefEnds::is_both")]
+    pub xref_ends: XrefEnds,
+}
+
+/// Which ends of a cross-reference relationship show where the other end is.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum XrefEnds {
+    /// Both ends.
+    #[default]
+    Both,
+    /// Only the source end (it names the target's location).
+    Source,
+    /// Only the target end.
+    Target,
+}
+
+impl XrefEnds {
+    /// Whether both ends are labelled (the default).
+    pub fn is_both(&self) -> bool {
+        *self == XrefEnds::Both
+    }
 }
 
 /// The properties a connector shows beside its ends: the values of the listed keys, joined by a
@@ -657,6 +707,7 @@ impl Default for RelationshipType {
             kind: RelationshipKind::Plain,
             keyword: String::new(),
             end_labels: EndLabels::default(),
+            xref_ends: XrefEnds::Both,
         }
     }
 }
@@ -1180,11 +1231,231 @@ pub enum Check {
         #[serde(default)]
         types: Vec<String>,
     },
+    /// Nets: a generic test over the nets and the pins they join (see
+    /// `crate::electrical_rules` and [`NET_TESTS`]). `types` limits the element types whose pins
+    /// count, `kinds` the net kinds (`wire`, `potential`, `pipe`), `connectorType` the segments'
+    /// connector type, `property` the property read, `peers` the types allowed on one net, `max`
+    /// a count.
+    NetCheck {
+        /// One of [`NET_TESTS`].
+        #[serde(default)]
+        test: String,
+        /// Element types whose pins are checked (empty: every type of the pack).
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        types: Vec<String>,
+        /// Net kinds checked (empty: every kind).
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        kinds: Vec<String>,
+        /// Only nets with a segment of this connector type (empty: any).
+        #[serde(default, skip_serializing_if = "String::is_empty")]
+        connector_type: String,
+        /// A property key the test reads.
+        #[serde(default, skip_serializing_if = "String::is_empty")]
+        property: String,
+        /// Element types allowed on one net with a checked pin (`allowedPeers`).
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        peers: Vec<String>,
+        /// A count the test compares against (most pins, most drivers).
+        #[serde(default)]
+        max: u32,
+    },
+    /// Electrical: a coil whose linked contacts exceed its complement (`complementNo` make and
+    /// `complementNc` break contacts), counted by the contacts' `form`.
+    ContactComplement {
+        /// Coil types checked.
+        #[serde(default)]
+        types: Vec<String>,
+        /// The relationship linking a contact to its coil.
+        #[serde(default)]
+        relationship: String,
+    },
+    /// Electrical: a ladder rung with more than `max` outputs, or an output that is not the last
+    /// device on its rung (with `atRight`). Outputs are elements of `types`; rungs are read from
+    /// the elements' `rung` property.
+    RungOutputs {
+        /// Output (coil, light) types.
+        #[serde(default)]
+        types: Vec<String>,
+        /// Most outputs per rung (0: no limit).
+        #[serde(default)]
+        max: u32,
+        /// Report an output with another device to its right on the rung.
+        #[serde(default)]
+        at_right: bool,
+    },
+    /// Builder symbols on one page drawn to more than one standard or shape set (IEEE 91 and
+    /// IEC 60617-12 forbid mixing distinctive and rectangular gates on one diagram).
+    MixedSymbols {
+        /// Element types whose views are checked (empty: every type of the pack).
+        #[serde(default)]
+        types: Vec<String>,
+    },
+    /// A protective relay's `property` that is not a device function number with optional
+    /// suffixes (`50/51`, `51G`, `87T`, `50BF`), per the IEEE C37.2 table.
+    DeviceNumber {
+        /// Types checked.
+        #[serde(default)]
+        types: Vec<String>,
+        /// Property key holding the number.
+        #[serde(default)]
+        property: String,
+    },
+    /// A cable whose owned cores number other than its `cores` property, or whose cores repeat a
+    /// number.
+    CableCores {
+        /// Cable types checked.
+        #[serde(default)]
+        types: Vec<String>,
+        /// Core types counted.
+        #[serde(default)]
+        cores: Vec<String>,
+    },
+    /// An element of these types drawn on fewer than `min` or more than `max` pages whose
+    /// viewpoint is `viewpoint` (a panel layout places every device once).
+    PlacedOn {
+        /// Types checked.
+        #[serde(default)]
+        types: Vec<String>,
+        /// The viewpoint counted.
+        #[serde(default)]
+        viewpoint: String,
+        /// Fewest placements.
+        #[serde(default)]
+        min: u32,
+        /// Most placements (0: no limit).
+        #[serde(default)]
+        max: u32,
+    },
+    /// Process: an instrument of these types whose functional letters (`letters`) do not read as
+    /// ANSI/ISA-5.1 identification letters (a first letter, an optional modifier, then readout,
+    /// output and modifier letters), or whose first letter differs from its loop's `variable`.
+    /// `allowed` lists the user's-choice first letters the project has defined.
+    InstrumentTag {
+        /// Types checked.
+        #[serde(default)]
+        types: Vec<String>,
+        /// User's-choice first letters the project defines (`C`, `D`, `G`, `M`, `N`, `O`).
+        #[serde(default)]
+        allowed: Vec<String>,
+    },
+    /// Process: a control loop of these types (`loopType` `control`) with no measuring element
+    /// among its members, or no final element reachable from it along signal lines.
+    LoopComplete {
+        /// Loop types checked.
+        #[serde(default)]
+        types: Vec<String>,
+    },
+    /// Process: on loop diagram pages (`viewpoints`), more than one loop drawn on a sheet, a
+    /// member of the drawn loop missing from it, a terminal with a single wire, or an I/O
+    /// channel used twice.
+    LoopSheet {
+        /// Viewpoints whose pages are checked.
+        #[serde(default)]
+        viewpoints: Vec<String>,
+    },
+    /// Process: on pages whose viewpoint is listed, a stream (a relationship of `relationship`)
+    /// with no number (its name).
+    StreamsNumbered {
+        /// Viewpoints whose pages are checked.
+        #[serde(default)]
+        viewpoints: Vec<String>,
+        /// The stream relationship type.
+        #[serde(default)]
+        relationship: String,
+    },
+    /// Process: an off-page connector of these types whose partner (same tag) is drawn on the
+    /// same sheet, or whose partner's line differs from its own.
+    OffPageContinuity {
+        /// Types checked.
+        #[serde(default)]
+        types: Vec<String>,
+    },
+    /// Fluid power: an actuator that no pressure source (pump, compressor, pressure source or
+    /// accumulator) reaches through the lines and any valve position (see [`crate::fluid`]).
+    FluidPressurePath,
+    /// Fluid power: a fixed displacement pump whose pressure port reaches no relief valve through
+    /// lines and pass-through parts (never through a directional valve).
+    FluidRelief,
+    /// Fluid power: a hydraulic pump whose suction port reaches no reservoir.
+    FluidSupply,
+    /// Fluid power: a directional valve not drawn at rest (a spring returned two-position valve
+    /// rests in the square on the spring side, a three-position valve in the middle).
+    FluidRestPosition,
+    /// Fluid power: a valve whose port labels are not its medium's set (ISO 9461 letters for
+    /// hydraulic, ISO 5599 numbers for pneumatic).
+    FluidPortSet,
+    /// Fluid power: a pilot line with no end on a pilot port, or a drain line with no end on a
+    /// drain port or a reservoir.
+    FluidLineEnds,
+    /// Fluid power: a component code that does not read as the page edition's code form
+    /// (`{installation}{circuit}{letter}{n}` or the numeric form) for its circuit and class.
+    FluidCodes,
+    /// Fluid power: a displacement-step chart row naming no actuator, or a step no valve position
+    /// can drive; with `idle`, a step in which no actuator moves.
+    FluidSteps {
+        /// Report idle steps instead.
+        #[serde(default)]
+        idle: bool,
+    },
+    /// Mechanical pack: kinematic, transmission, bond graph and control block checks (see
+    /// [`crate::mech_rules::MechTest`]).
+    Mechanism {
+        /// Which check.
+        #[serde(default)]
+        test: crate::mech_rules::MechTest,
+    },
+    /// Annotation pack: geometric tolerancing, welding and surface texture checks (see
+    /// [`crate::annotation_rules::AnnotationTest`]).
+    Annotation {
+        /// Which check.
+        #[serde(default)]
+        test: crate::annotation_rules::AnnotationTest,
+    },
+    /// Reliability pack: fault tree, block diagram, event tree and FMEA checks (see
+    /// [`crate::rel_rules::RelTest`]).
+    Reliability {
+        /// Which check.
+        #[serde(default)]
+        test: crate::rel_rules::RelTest,
+    },
+    /// IDEF0 pack: FIPS 183 diagram, box and arrow checks (see [`crate::idef0_rules::Idef0Test`]).
+    Idef0 {
+        /// Which check.
+        #[serde(default)]
+        test: crate::idef0_rules::Idef0Test,
+    },
     /// A check this build does not know (from a newer pack); skipped, and reported by the loader.
     #[default]
     #[serde(other)]
     Unknown,
 }
+
+/// The tests [`Check::NetCheck`] runs, by name. Packs add tests here rather than new check kinds
+/// when a test is about nets in general.
+pub const NET_TESTS: &[&str] = &[
+    // A pin of a checked type on no net.
+    "unconnectedPin",
+    // A net that joins only one pin.
+    "singlePin",
+    // A net with no number or name.
+    "unnumbered",
+    // Two nets with the same number.
+    "duplicateNumber",
+    // Green-yellow (`property`, default `colour`) on a net that is not protective earth.
+    "reservedColour",
+    // A pin of a checked type with more than `max` segments on it.
+    "pinFanIn",
+    // A net with more than `max` (default 1) output pins of a checked type.
+    "drivers",
+    // A net with input pins of a checked type and no output pin.
+    "undriven",
+    // A net (of `connectorType`) without `property` set.
+    "property",
+    // A net joining a pin of a checked type to a pin of a type not in `peers`.
+    "allowedPeers",
+    // A fluid port of a component on no line and not plugged (fluid power, `crate::fluid::rules`).
+    "openPort",
+];
 
 /// One row of [`Check::EndMarkerMatchesProperty`]: for this property value, the arrows the
 /// connector's ends should have (`None`: either end is fine).

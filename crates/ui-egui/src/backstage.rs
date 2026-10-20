@@ -112,8 +112,7 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
             ui.painter().text(pos2(r.min.x + 10.0, r.min.y + 12.0), Align2::LEFT_CENTER, &name, medium(12.5), t.text);
             ui.painter().text(pos2(r.min.x + 10.0, r.min.y + 28.0), Align2::LEFT_CENTER, &path, regular(11.0), t.text_dim);
             if resp.clicked() {
-                let _ = app.run("file.open", json!({"path": path}));
-                let _ = app.run("ui.backstage", json!({"value": false}));
+                let _ = app.open_document("file.open", json!({"path": path}));
             }
         }
         ui.add_space(24.0);

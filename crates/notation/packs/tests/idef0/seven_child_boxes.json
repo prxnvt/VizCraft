@@ -1,0 +1,715 @@
+{
+ "document": {
+  "format": "vizcraft",
+  "version": 4,
+  "model": {
+   "schemaVersion": 1,
+   "packs": [
+    {
+     "id": "idef0",
+     "version": "1.0.0"
+    }
+   ],
+   "elements": [
+    {
+     "id": "b0",
+     "type": "idef0.Activity",
+     "name": "Make widget",
+     "properties": {
+      "number": "0",
+      "inputs": 1,
+      "controls": 1,
+      "outputs": 1,
+      "mechanisms": 1
+     }
+    },
+    {
+     "id": "bi",
+     "type": "idef0.Boundary",
+     "name": "in"
+    },
+    {
+     "id": "bc",
+     "type": "idef0.Boundary",
+     "name": "ctl"
+    },
+    {
+     "id": "bo",
+     "type": "idef0.Boundary",
+     "name": "out"
+    },
+    {
+     "id": "bm",
+     "type": "idef0.Boundary",
+     "name": "mech"
+    },
+    {
+     "id": "k1",
+     "type": "idef0.Activity",
+     "name": "Do k1",
+     "properties": {
+      "number": "1",
+      "inputs": 1,
+      "controls": 1,
+      "outputs": 1,
+      "mechanisms": 1
+     }
+    },
+    {
+     "id": "k2",
+     "type": "idef0.Activity",
+     "name": "Do k2",
+     "properties": {
+      "number": "2",
+      "inputs": 1,
+      "controls": 1,
+      "outputs": 1,
+      "mechanisms": 1
+     }
+    },
+    {
+     "id": "k3",
+     "type": "idef0.Activity",
+     "name": "Do k3",
+     "properties": {
+      "number": "3",
+      "inputs": 1,
+      "controls": 1,
+      "outputs": 1,
+      "mechanisms": 1
+     }
+    },
+    {
+     "id": "k4",
+     "type": "idef0.Activity",
+     "name": "Do k4",
+     "properties": {
+      "number": "4",
+      "inputs": 1,
+      "controls": 1,
+      "outputs": 1,
+      "mechanisms": 1
+     }
+    },
+    {
+     "id": "k5",
+     "type": "idef0.Activity",
+     "name": "Do k5",
+     "properties": {
+      "number": "5",
+      "inputs": 1,
+      "controls": 1,
+      "outputs": 1,
+      "mechanisms": 1
+     }
+    },
+    {
+     "id": "k6",
+     "type": "idef0.Activity",
+     "name": "Do k6",
+     "properties": {
+      "number": "6",
+      "inputs": 1,
+      "controls": 1,
+      "outputs": 1,
+      "mechanisms": 1
+     }
+    },
+    {
+     "id": "k7",
+     "type": "idef0.Activity",
+     "name": "Do k7",
+     "properties": {
+      "number": "7",
+      "inputs": 1,
+      "controls": 1,
+      "outputs": 1,
+      "mechanisms": 1
+     }
+    },
+    {
+     "id": "I1",
+     "type": "idef0.Boundary",
+     "name": "I1",
+     "tag": "I1"
+    },
+    {
+     "id": "C1",
+     "type": "idef0.Boundary",
+     "name": "C1",
+     "tag": "C1"
+    },
+    {
+     "id": "O1",
+     "type": "idef0.Boundary",
+     "name": "O1",
+     "tag": "O1"
+    },
+    {
+     "id": "M1",
+     "type": "idef0.Boundary",
+     "name": "M1",
+     "tag": "M1"
+    }
+   ],
+   "relationships": [
+    {
+     "id": "a1",
+     "type": "idef0.Arrow",
+     "source": "bi",
+     "target": "b0",
+     "targetPort": "I1",
+     "name": "arrow a1"
+    },
+    {
+     "id": "a2",
+     "type": "idef0.Arrow",
+     "source": "bc",
+     "target": "b0",
+     "targetPort": "C1",
+     "name": "arrow a2"
+    },
+    {
+     "id": "a3",
+     "type": "idef0.Arrow",
+     "source": "b0",
+     "target": "bo",
+     "sourcePort": "O1",
+     "name": "arrow a3"
+    },
+    {
+     "id": "a4",
+     "type": "idef0.Arrow",
+     "source": "bm",
+     "target": "b0",
+     "targetPort": "M1",
+     "name": "arrow a4"
+    },
+    {
+     "id": "y1",
+     "type": "idef0.Arrow",
+     "source": "C1",
+     "target": "k1",
+     "targetPort": "C1",
+     "name": "arrow y1"
+    },
+    {
+     "id": "y2",
+     "type": "idef0.Arrow",
+     "source": "C1",
+     "target": "k2",
+     "targetPort": "C1",
+     "name": "arrow y2"
+    },
+    {
+     "id": "y3",
+     "type": "idef0.Arrow",
+     "source": "C1",
+     "target": "k3",
+     "targetPort": "C1",
+     "name": "arrow y3"
+    },
+    {
+     "id": "y4",
+     "type": "idef0.Arrow",
+     "source": "C1",
+     "target": "k4",
+     "targetPort": "C1",
+     "name": "arrow y4"
+    },
+    {
+     "id": "y5",
+     "type": "idef0.Arrow",
+     "source": "C1",
+     "target": "k5",
+     "targetPort": "C1",
+     "name": "arrow y5"
+    },
+    {
+     "id": "y6",
+     "type": "idef0.Arrow",
+     "source": "C1",
+     "target": "k6",
+     "targetPort": "C1",
+     "name": "arrow y6"
+    },
+    {
+     "id": "y7",
+     "type": "idef0.Arrow",
+     "source": "C1",
+     "target": "k7",
+     "targetPort": "C1",
+     "name": "arrow y7"
+    },
+    {
+     "id": "z1",
+     "type": "idef0.Arrow",
+     "source": "k1",
+     "target": "O1",
+     "sourcePort": "O1",
+     "name": "arrow z1"
+    },
+    {
+     "id": "z2",
+     "type": "idef0.Arrow",
+     "source": "k2",
+     "target": "O1",
+     "sourcePort": "O1",
+     "name": "arrow z2"
+    },
+    {
+     "id": "z3",
+     "type": "idef0.Arrow",
+     "source": "k3",
+     "target": "O1",
+     "sourcePort": "O1",
+     "name": "arrow z3"
+    },
+    {
+     "id": "z4",
+     "type": "idef0.Arrow",
+     "source": "k4",
+     "target": "O1",
+     "sourcePort": "O1",
+     "name": "arrow z4"
+    },
+    {
+     "id": "z5",
+     "type": "idef0.Arrow",
+     "source": "k5",
+     "target": "O1",
+     "sourcePort": "O1",
+     "name": "arrow z5"
+    },
+    {
+     "id": "z6",
+     "type": "idef0.Arrow",
+     "source": "k6",
+     "target": "O1",
+     "sourcePort": "O1",
+     "name": "arrow z6"
+    },
+    {
+     "id": "z7",
+     "type": "idef0.Arrow",
+     "source": "k7",
+     "target": "O1",
+     "sourcePort": "O1",
+     "name": "arrow z7"
+    },
+    {
+     "id": "x5",
+     "type": "idef0.Arrow",
+     "source": "I1",
+     "target": "k1",
+     "targetPort": "I1",
+     "name": "arrow x5"
+    },
+    {
+     "id": "x6",
+     "type": "idef0.Arrow",
+     "source": "M1",
+     "target": "k2",
+     "targetPort": "M1",
+     "name": "arrow x6"
+    }
+   ]
+  },
+  "document": {
+   "title": "",
+   "pages": [
+    {
+     "id": "p1",
+     "name": "p1",
+     "shapes": [
+      {
+       "id": "s_p1_b0",
+       "kind": "rectangle",
+       "x": 0,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "b0"
+      },
+      {
+       "id": "s_p1_bi",
+       "kind": "rectangle",
+       "x": 200,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "bi"
+      },
+      {
+       "id": "s_p1_bc",
+       "kind": "rectangle",
+       "x": 400,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "bc"
+      },
+      {
+       "id": "s_p1_bo",
+       "kind": "rectangle",
+       "x": 600,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "bo"
+      },
+      {
+       "id": "s_p1_bm",
+       "kind": "rectangle",
+       "x": 800,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "bm"
+      }
+     ],
+     "connectors": [
+      {
+       "id": "c_p1_a1",
+       "start": {
+        "shape": "s_p1_bi"
+       },
+       "end": {
+        "shape": "s_p1_b0"
+       },
+       "relationship": "a1"
+      },
+      {
+       "id": "c_p1_a2",
+       "start": {
+        "shape": "s_p1_bc"
+       },
+       "end": {
+        "shape": "s_p1_b0"
+       },
+       "relationship": "a2"
+      },
+      {
+       "id": "c_p1_a3",
+       "start": {
+        "shape": "s_p1_b0"
+       },
+       "end": {
+        "shape": "s_p1_bo"
+       },
+       "relationship": "a3"
+      },
+      {
+       "id": "c_p1_a4",
+       "start": {
+        "shape": "s_p1_bm"
+       },
+       "end": {
+        "shape": "s_p1_b0"
+       },
+       "relationship": "a4"
+      }
+     ],
+     "view": {
+      "viewpoint": "idef0.Context",
+      "variant": "idef0.fips183"
+     },
+     "ext": {
+      "idef0.node": "A-0"
+     }
+    },
+    {
+     "id": "p2",
+     "name": "p2",
+     "shapes": [
+      {
+       "id": "s_p2_k1",
+       "kind": "rectangle",
+       "x": 0,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "k1"
+      },
+      {
+       "id": "s_p2_k2",
+       "kind": "rectangle",
+       "x": 200,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "k2"
+      },
+      {
+       "id": "s_p2_k3",
+       "kind": "rectangle",
+       "x": 400,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "k3"
+      },
+      {
+       "id": "s_p2_k4",
+       "kind": "rectangle",
+       "x": 600,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "k4"
+      },
+      {
+       "id": "s_p2_k5",
+       "kind": "rectangle",
+       "x": 800,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "k5"
+      },
+      {
+       "id": "s_p2_k6",
+       "kind": "rectangle",
+       "x": 1000,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "k6"
+      },
+      {
+       "id": "s_p2_k7",
+       "kind": "rectangle",
+       "x": 0,
+       "y": 150,
+       "w": 100,
+       "h": 60,
+       "element": "k7"
+      },
+      {
+       "id": "s_p2_I1",
+       "kind": "rectangle",
+       "x": 200,
+       "y": 150,
+       "w": 100,
+       "h": 60,
+       "element": "I1"
+      },
+      {
+       "id": "s_p2_C1",
+       "kind": "rectangle",
+       "x": 400,
+       "y": 150,
+       "w": 100,
+       "h": 60,
+       "element": "C1"
+      },
+      {
+       "id": "s_p2_O1",
+       "kind": "rectangle",
+       "x": 600,
+       "y": 150,
+       "w": 100,
+       "h": 60,
+       "element": "O1"
+      },
+      {
+       "id": "s_p2_M1",
+       "kind": "rectangle",
+       "x": 800,
+       "y": 150,
+       "w": 100,
+       "h": 60,
+       "element": "M1"
+      }
+     ],
+     "connectors": [
+      {
+       "id": "c_p2_y1",
+       "start": {
+        "shape": "s_p2_C1"
+       },
+       "end": {
+        "shape": "s_p2_k1"
+       },
+       "relationship": "y1"
+      },
+      {
+       "id": "c_p2_y2",
+       "start": {
+        "shape": "s_p2_C1"
+       },
+       "end": {
+        "shape": "s_p2_k2"
+       },
+       "relationship": "y2"
+      },
+      {
+       "id": "c_p2_y3",
+       "start": {
+        "shape": "s_p2_C1"
+       },
+       "end": {
+        "shape": "s_p2_k3"
+       },
+       "relationship": "y3"
+      },
+      {
+       "id": "c_p2_y4",
+       "start": {
+        "shape": "s_p2_C1"
+       },
+       "end": {
+        "shape": "s_p2_k4"
+       },
+       "relationship": "y4"
+      },
+      {
+       "id": "c_p2_y5",
+       "start": {
+        "shape": "s_p2_C1"
+       },
+       "end": {
+        "shape": "s_p2_k5"
+       },
+       "relationship": "y5"
+      },
+      {
+       "id": "c_p2_y6",
+       "start": {
+        "shape": "s_p2_C1"
+       },
+       "end": {
+        "shape": "s_p2_k6"
+       },
+       "relationship": "y6"
+      },
+      {
+       "id": "c_p2_y7",
+       "start": {
+        "shape": "s_p2_C1"
+       },
+       "end": {
+        "shape": "s_p2_k7"
+       },
+       "relationship": "y7"
+      },
+      {
+       "id": "c_p2_z1",
+       "start": {
+        "shape": "s_p2_k1"
+       },
+       "end": {
+        "shape": "s_p2_O1"
+       },
+       "relationship": "z1"
+      },
+      {
+       "id": "c_p2_z2",
+       "start": {
+        "shape": "s_p2_k2"
+       },
+       "end": {
+        "shape": "s_p2_O1"
+       },
+       "relationship": "z2"
+      },
+      {
+       "id": "c_p2_z3",
+       "start": {
+        "shape": "s_p2_k3"
+       },
+       "end": {
+        "shape": "s_p2_O1"
+       },
+       "relationship": "z3"
+      },
+      {
+       "id": "c_p2_z4",
+       "start": {
+        "shape": "s_p2_k4"
+       },
+       "end": {
+        "shape": "s_p2_O1"
+       },
+       "relationship": "z4"
+      },
+      {
+       "id": "c_p2_z5",
+       "start": {
+        "shape": "s_p2_k5"
+       },
+       "end": {
+        "shape": "s_p2_O1"
+       },
+       "relationship": "z5"
+      },
+      {
+       "id": "c_p2_z6",
+       "start": {
+        "shape": "s_p2_k6"
+       },
+       "end": {
+        "shape": "s_p2_O1"
+       },
+       "relationship": "z6"
+      },
+      {
+       "id": "c_p2_z7",
+       "start": {
+        "shape": "s_p2_k7"
+       },
+       "end": {
+        "shape": "s_p2_O1"
+       },
+       "relationship": "z7"
+      },
+      {
+       "id": "c_p2_x5",
+       "start": {
+        "shape": "s_p2_I1"
+       },
+       "end": {
+        "shape": "s_p2_k1"
+       },
+       "relationship": "x5"
+      },
+      {
+       "id": "c_p2_x6",
+       "start": {
+        "shape": "s_p2_M1"
+       },
+       "end": {
+        "shape": "s_p2_k2"
+       },
+       "relationship": "x6"
+      }
+     ],
+     "view": {
+      "viewpoint": "idef0.Decomposition",
+      "variant": "idef0.fips183"
+     },
+     "ext": {
+      "idef0.node": "A0",
+      "idef0.parent": "b0"
+     }
+    }
+   ],
+   "idSeq": 1000
+  }
+ },
+ "profile": {
+  "enabled": true,
+  "userSet": true,
+  "rulesets": [
+   "idef0.fips183"
+  ]
+ },
+ "expect": [
+  {
+   "rule": "idef0.boxCountMax"
+  },
+  {
+   "rule": "idef0.boxNumbers"
+  }
+ ]
+}

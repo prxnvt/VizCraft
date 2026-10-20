@@ -374,10 +374,25 @@ fn labels_off(e: &Element) -> bool {
     e.prop("xrefLabel").and_then(|v| v.as_str()).is_some_and(|v| v.eq_ignore_ascii_case("off"))
 }
 
+/// Whether element `e` labels its partner `p` through a relationship whose type keeps that end
+/// unlabelled (`xrefEnds`: a coil lists its contacts in a mirror, not a location label).
+fn end_unlabelled(doc: &Document, cat: &Catalog, e: &str, p: &Partner) -> bool {
+    let Some(r) = p.relationship.as_deref().and_then(|r| doc.model.relationship(r)) else { return false };
+    match cat.relationship_type(&r.type_id).map(|(_, t)| t.xref_ends) {
+        Some(crate::schema::XrefEnds::Source) => r.source != e,
+        Some(crate::schema::XrefEnds::Target) => r.target != e,
+        _ => false,
+    }
+}
+
 /// Step 3: one location label per view of an element with partners.
 fn xref_labels(doc: &mut Document, cat: &Catalog) {
     let has_labels = doc.pages.iter().any(|p| p.shapes.iter().any(|s| s.ext.contains_key(EXT_XREF_FOR)));
-    let partners = partners(doc, cat);
+    let mut partners = partners(doc, cat);
+    for (e, list) in partners.iter_mut() {
+        list.retain(|p| !end_unlabelled(doc, cat, e, p));
+    }
+    partners.retain(|_, list| !list.is_empty());
     if partners.is_empty() && !has_labels {
         return;
     }
@@ -610,18 +625,21 @@ pub fn recomposed(model: &vizcraft_model::Model, format: &IdFormat, e: &Element,
     if !format.has_context() {
         return None;
     }
-    let n = if format.has_number() { format.number_in(&e.tag, e)? } else { 0 };
+    // Read with the owner's tag and the place first, so an owner part before the number (unit
+    // `1` in `P-101`) is not taken for digits of it; loosely when the place has changed.
+    let n = if format.has_number() { format.number_in_ctx(&e.tag, model, e, ctx).or_else(|| format.number_in(&e.tag, e))? } else { 0 };
     Some(format.compose_in(model, e, n, ctx))
 }
 
 fn stale_tags(doc: &Document, cat: &Catalog, rule: &RuleDecl, out: &mut Vec<Issue>) {
     let scopes = cat.scopes();
+    // Read through the project's overrides, so a changed format is the one checked.
+    let reg = Registry::new(&doc.model, &scopes);
     let formats: Vec<(&vizcraft_model::IdScope, IdFormat)> =
-        scopes.iter().filter_map(|s| IdFormat::parse(&s.format).ok().filter(IdFormat::has_context).map(|f| (s, f))).collect();
+        reg.effective().iter().filter_map(|s| IdFormat::parse(&s.format).ok().filter(IdFormat::has_context).map(|f| (s, f))).collect();
     if formats.is_empty() {
         return;
     }
-    let reg = Registry::new(&doc.model, &scopes);
     let ctxs = sheet::compose_ctxs(doc);
     for e in doc.model.elements.iter().filter(|e| !e.tag.is_empty()) {
         let Some(scope) = reg.scope_for(&e.type_id) else { continue };

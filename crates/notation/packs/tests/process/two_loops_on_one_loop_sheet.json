@@ -1,0 +1,440 @@
+{
+  "document": {
+    "document": {
+      "conformance": {
+        "enabled": true,
+        "rulesets": [
+          "process.loop"
+        ],
+        "userSet": true
+      },
+      "core": {
+        "author": "",
+        "created": "",
+        "lastModifiedBy": "",
+        "modified": "",
+        "revision": 0
+      },
+      "idSeq": 7,
+      "pages": [
+        {
+          "board": "infinite",
+          "connectors": [],
+          "height": 850.0,
+          "id": "p1",
+          "name": "Page-1",
+          "shapes": [
+            {
+              "angleDeg": 0.0,
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "e2",
+              "glyph": {
+                "builder": "bubble",
+                "labels": [
+                  {
+                    "anchor": "middle",
+                    "id": "letters",
+                    "size": 5.905511811023622,
+                    "text": "FI",
+                    "x": 0.5,
+                    "y": 0.3875
+                  },
+                  {
+                    "anchor": "middle",
+                    "id": "number",
+                    "size": 5.905511811023622,
+                    "text": "01",
+                    "x": 0.5,
+                    "y": 0.625
+                  }
+                ],
+                "ports": [
+                  "n",
+                  "e",
+                  "s",
+                  "w"
+                ]
+              },
+              "h": 39.37007874015748,
+              "id": "s3",
+              "kind": "freeform",
+              "path": {
+                "closed": true,
+                "els": [
+                  {
+                    "moveTo": {
+                      "x": 39.37007874015748,
+                      "y": 19.68503937007874
+                    }
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 39.37007874015748,
+                        "y": 27.29526230081802
+                      },
+                      {
+                        "x": 30.556786413991997,
+                        "y": 33.46456692913386
+                      },
+                      {
+                        "x": 19.68503937007874,
+                        "y": 33.46456692913386
+                      }
+                    ]
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 8.813292326165483,
+                        "y": 33.46456692913386
+                      },
+                      {
+                        "x": 0.0,
+                        "y": 27.29526230081802
+                      },
+                      {
+                        "x": 0.0,
+                        "y": 19.68503937007874
+                      }
+                    ]
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 0.0,
+                        "y": 12.074816439339463
+                      },
+                      {
+                        "x": 8.813292326165483,
+                        "y": 5.905511811023623
+                      },
+                      {
+                        "x": 19.68503937007874,
+                        "y": 5.905511811023623
+                      }
+                    ]
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 30.556786413991997,
+                        "y": 5.905511811023623
+                      },
+                      {
+                        "x": 39.37007874015748,
+                        "y": 12.074816439339463
+                      },
+                      {
+                        "x": 39.37007874015748,
+                        "y": 19.68503937007874
+                      }
+                    ]
+                  },
+                  "close",
+                  {
+                    "moveTo": {
+                      "x": 19.68503937007874,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 19.68503937007874,
+                      "y": 5.905511811023623
+                    }
+                  },
+                  {
+                    "moveTo": {
+                      "x": 19.68503937007874,
+                      "y": 33.46456692913386
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 19.68503937007874,
+                      "y": 39.37007874015748
+                    }
+                  }
+                ],
+                "frame": [
+                  39.37007874015748,
+                  39.37007874015748
+                ]
+              },
+              "stencil": "process.instrument",
+              "style": {
+                "bold": false,
+                "fill": "#ffffff",
+                "fontColor": "#1e2630",
+                "fontSize": 12.0,
+                "italic": false,
+                "line": "#1f2933",
+                "lineWidth": 1.5
+              },
+              "text": "",
+              "w": 39.37007874015748,
+              "x": 98.4251968503937,
+              "y": 98.4251968503937
+            },
+            {
+              "angleDeg": 0.0,
+              "connectionPoints": [
+                {
+                  "x": 0.5,
+                  "y": 0.0
+                },
+                {
+                  "x": 1.0,
+                  "y": 0.5
+                },
+                {
+                  "x": 0.5,
+                  "y": 1.0
+                },
+                {
+                  "x": 0.0,
+                  "y": 0.5
+                }
+              ],
+              "element": "e5",
+              "glyph": {
+                "builder": "bubble",
+                "labels": [
+                  {
+                    "anchor": "middle",
+                    "id": "letters",
+                    "size": 5.905511811023622,
+                    "text": "TI",
+                    "x": 0.5,
+                    "y": 0.3875
+                  },
+                  {
+                    "anchor": "middle",
+                    "id": "number",
+                    "size": 5.905511811023622,
+                    "text": "01",
+                    "x": 0.5,
+                    "y": 0.625
+                  }
+                ],
+                "ports": [
+                  "n",
+                  "e",
+                  "s",
+                  "w"
+                ]
+              },
+              "h": 39.37007874015748,
+              "id": "s6",
+              "kind": "freeform",
+              "path": {
+                "closed": true,
+                "els": [
+                  {
+                    "moveTo": {
+                      "x": 39.37007874015748,
+                      "y": 19.68503937007874
+                    }
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 39.37007874015748,
+                        "y": 27.29526230081802
+                      },
+                      {
+                        "x": 30.556786413991997,
+                        "y": 33.46456692913386
+                      },
+                      {
+                        "x": 19.68503937007874,
+                        "y": 33.46456692913386
+                      }
+                    ]
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 8.813292326165483,
+                        "y": 33.46456692913386
+                      },
+                      {
+                        "x": 0.0,
+                        "y": 27.29526230081802
+                      },
+                      {
+                        "x": 0.0,
+                        "y": 19.68503937007874
+                      }
+                    ]
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 0.0,
+                        "y": 12.074816439339463
+                      },
+                      {
+                        "x": 8.813292326165483,
+                        "y": 5.905511811023623
+                      },
+                      {
+                        "x": 19.68503937007874,
+                        "y": 5.905511811023623
+                      }
+                    ]
+                  },
+                  {
+                    "cubicTo": [
+                      {
+                        "x": 30.556786413991997,
+                        "y": 5.905511811023623
+                      },
+                      {
+                        "x": 39.37007874015748,
+                        "y": 12.074816439339463
+                      },
+                      {
+                        "x": 39.37007874015748,
+                        "y": 19.68503937007874
+                      }
+                    ]
+                  },
+                  "close",
+                  {
+                    "moveTo": {
+                      "x": 19.68503937007874,
+                      "y": 0.0
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 19.68503937007874,
+                      "y": 5.905511811023623
+                    }
+                  },
+                  {
+                    "moveTo": {
+                      "x": 19.68503937007874,
+                      "y": 33.46456692913386
+                    }
+                  },
+                  {
+                    "lineTo": {
+                      "x": 19.68503937007874,
+                      "y": 39.37007874015748
+                    }
+                  }
+                ],
+                "frame": [
+                  39.37007874015748,
+                  39.37007874015748
+                ]
+              },
+              "stencil": "process.instrument",
+              "style": {
+                "bold": false,
+                "fill": "#ffffff",
+                "fontColor": "#1e2630",
+                "fontSize": 12.0,
+                "italic": false,
+                "line": "#1f2933",
+                "lineWidth": 1.5
+              },
+              "text": "",
+              "w": 39.37007874015748,
+              "x": 295.2755905511811,
+              "y": 98.4251968503937
+            }
+          ],
+          "view": {
+            "module": "iso2_5mm",
+            "variant": "process.iso",
+            "viewpoint": "process.Loop"
+          },
+          "width": 1100.0
+        }
+      ],
+      "standards": {
+        "symbols": "iso"
+      },
+      "title": ""
+    },
+    "format": "vizcraft",
+    "model": {
+      "elements": [
+        {
+          "id": "e2",
+          "owner": "e4",
+          "properties": {
+            "letters": "FI",
+            "location": "field",
+            "system": "discrete"
+          },
+          "tag": "FI-01",
+          "type": "process.ProcessInstrumentationFunction"
+        },
+        {
+          "id": "e4",
+          "properties": {
+            "loopType": "indication",
+            "variable": "F"
+          },
+          "tag": "01",
+          "type": "process.InstrumentationLoopFunction"
+        },
+        {
+          "id": "e5",
+          "owner": "e7",
+          "properties": {
+            "letters": "TI",
+            "location": "field",
+            "system": "discrete"
+          },
+          "tag": "TI-01",
+          "type": "process.ProcessInstrumentationFunction"
+        },
+        {
+          "id": "e7",
+          "properties": {
+            "loopType": "indication",
+            "variable": "T"
+          },
+          "tag": "01",
+          "type": "process.InstrumentationLoopFunction"
+        }
+      ],
+      "packs": [
+        {
+          "id": "process",
+          "version": "1.0.0"
+        }
+      ],
+      "schemaVersion": 1
+    },
+    "version": 4
+  },
+  "expect": [
+    {
+      "rule": "process.oneLoopPerSheet"
+    }
+  ]
+}

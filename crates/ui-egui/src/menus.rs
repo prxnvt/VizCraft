@@ -154,6 +154,8 @@ pub fn menu_tree(app: &CraftApp) -> Vec<Menu> {
                 Item::Sep,
                 Item::Cmd("Valve...", "ui.valve", json!({})),
                 Item::Cmd("Rebuild Symbols", "glyph.rebuild", json!({})),
+                Item::Cmd("Renumber Fluid Power Components", "fluid.renumber", json!({})),
+                Item::Cmd("Trace Pressure", "fluid.trace", json!({})),
             ],
         },
         Menu { title: "View", role: MenuRole::Normal, items: view },
@@ -604,6 +606,12 @@ pub fn menu_bar(app: &mut CraftApp, ui: &mut Ui) {
 pub fn run_item(app: &mut CraftApp, ctx: &egui::Context, id: &str, params: Value) {
     if id == "file.new" {
         app.new_window(params.get("template").and_then(Value::as_str).unwrap_or("blank"));
+        return;
+    }
+    // A Recent entry opens beside the document in front, not over it (`file.open` with no path
+    // asks for a file first, and the picked one takes the same route).
+    if id == "file.open" && params.get("path").is_some() {
+        let _ = app.open_document(id, params);
         return;
     }
     if let Ok(v) = app.run(id, params)

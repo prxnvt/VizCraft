@@ -10,6 +10,8 @@
 //! parent chains are walked at most [`MAX_GROUP_DEPTH`] steps, and coordinates are clamped to
 //! [`MAX_COORD`]. Moving, resizing or rotating a group carries its members (nested groups too).
 
+pub mod rigid;
+
 use std::collections::{HashMap, HashSet};
 
 use crate::geom::{MAX_COORD, Point, Rect, Transform};

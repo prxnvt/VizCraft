@@ -45,6 +45,13 @@ pub enum Arrow {
     DoubleBar,
     /// A small filled dot on the line end (the IDEF1X child end).
     Dot,
+    /// A half arrow: one barb on one side of the line at the end (the bond graph power
+    /// direction). The line runs to the tip.
+    Harpoon,
+    /// A half arrow with a bar across the tip (a bond whose causal stroke is at its power end).
+    HarpoonBar,
+    /// A pair of parentheses around the line near the end (an IDEF0 tunnelled arrow end).
+    Parens,
 }
 
 crate::serde_util::named_enum!(Arrow, Arrow::None, {
@@ -64,6 +71,9 @@ crate::serde_util::named_enum!(Arrow, Arrow::None, {
     Arrow::Slash => "slash",
     Arrow::DoubleBar => "doubleBar",
     Arrow::Dot => "dot",
+    Arrow::Harpoon => "harpoon",
+    Arrow::HarpoonBar => "harpoonBar",
+    Arrow::Parens => "parens",
 });
 
 impl Arrow {
@@ -86,7 +96,7 @@ impl Arrow {
     ];
     /// Every end there is: [`Arrow::ALL`] (the picker list) plus the notation ends the pickers
     /// do not offer yet.
-    pub const EVERY: [Arrow; 16] = [
+    pub const EVERY: [Arrow; 19] = [
         Arrow::None,
         Arrow::Triangle,
         Arrow::Open,
@@ -103,6 +113,9 @@ impl Arrow {
         Arrow::Slash,
         Arrow::DoubleBar,
         Arrow::Dot,
+        Arrow::Harpoon,
+        Arrow::HarpoonBar,
+        Arrow::Parens,
     ];
 }
 
@@ -207,6 +220,20 @@ pub fn outline(arrow: Arrow, tip: Point, dir: Vec2, line_width: f64) -> Option<A
             let r = len * 0.3;
             geometry(vec![circle(tip - dir * r, r)], true, 2.0 * r)
         }
+        // One barb on the left of the direction of travel, the line running to the tip.
+        Arrow::Harpoon => geometry(vec![Path::polyline(&[back + side, tip])], false, 0.0),
+        Arrow::HarpoonBar => geometry(vec![Path::polyline(&[back + side, tip]), bar(tip, dir, 0.0, half)], false, 0.0),
+        Arrow::Parens => {
+            // "(" and ")" across the line, each bulging away from the other, behind the tip.
+            let c = tip - dir * (len * 0.55);
+            let (w, b) = (len * 0.2, len * 0.15);
+            let paren = |at: Point, bulge: Vec2| {
+                let mut p = Path::new();
+                p.move_to(at + side).cubic_to(at + side + bulge, at - side + bulge, at - side);
+                p
+            };
+            geometry(vec![paren(c - dir * w, dir * -b), paren(c + dir * w, dir * b)], false, 0.0)
+        }
     }
 }
 
@@ -251,8 +278,8 @@ mod tests {
         }
         assert_eq!(Arrow::from_name("hollowTriangle"), Some(Arrow::HollowTriangle));
         assert_eq!(Arrow::from_name("crowsFootCircle"), Some(Arrow::CrowsFootCircle));
-        assert_eq!(Arrow::from_name("harpoon"), None);
-        assert_eq!(serde_json::from_str::<Arrow>("\"harpoon\"").unwrap(), Arrow::None);
+        assert_eq!(Arrow::from_name("spiral"), None);
+        assert_eq!(serde_json::from_str::<Arrow>("\"spiral\"").unwrap(), Arrow::None);
         assert_eq!(serde_json::from_str::<Arrow>("7").unwrap(), Arrow::None);
         assert_eq!(serde_json::to_string(&Arrow::BarCircle).unwrap(), "\"barCircle\"");
     }
@@ -267,7 +294,8 @@ mod tests {
             assert!(b.x1 <= TIP.x + 1e-9, "{a:?} reaches past the tip");
             // A head the line runs through (trim 0) may reach back; any other covers the line it cuts.
             assert!(g.trim == 0.0 || b.x0 >= TIP.x - g.trim - 1e-9, "{a:?} draws beyond where the line stops");
-            assert!(b.y0 < 0.0 && b.y1 > 0.0, "{a:?} has no width");
+            // A harpoon's barb is on one side of the line only.
+            assert!(b.y1 - b.y0 > 1.0 && b.y1 > 0.0, "{a:?} has no width");
         }
         assert!(outline(Arrow::None, TIP, DIR, 1.0).is_none());
         assert!(outline(Arrow::Triangle, TIP, Point::ZERO, 1.0).is_none());
@@ -313,6 +341,25 @@ mod tests {
         assert!(d.filled && b.height() < big.height(), "smaller than the end circle");
         assert_eq!(Arrow::from_name("doubleBar"), Some(Arrow::DoubleBar));
         assert_eq!(Arrow::ALL.len(), 14, "the picker list stays as it was");
+    }
+
+    #[test]
+    fn harpoons_have_one_barb_and_parens_cross_the_line_behind_the_tip() {
+        let h = outline(Arrow::Harpoon, TIP, DIR, 1.0).unwrap();
+        assert_eq!((h.paths.len(), h.filled, h.trim), (1, false, 0.0));
+        let b = h.paths[0].bounds().unwrap();
+        assert!(b.y0 >= -1e-9 && b.y1 > 0.0 && (b.x1 - TIP.x).abs() < 1e-9, "one side only, reaching the tip: {b:?}");
+        let hb = outline(Arrow::HarpoonBar, TIP, DIR, 1.0).unwrap();
+        assert_eq!(hb.paths.len(), 2);
+        let bar = hb.paths[1].bounds().unwrap();
+        assert!(bar.y0 < 0.0 && bar.y1 > 0.0 && (bar.x0 - TIP.x).abs() < 1e-9, "the stroke crosses the line at the tip: {bar:?}");
+        let p = outline(Arrow::Parens, TIP, DIR, 1.0).unwrap();
+        assert_eq!((p.paths.len(), p.filled, p.trim), (2, false, 0.0));
+        let (l, r) = (p.paths[0].bounds().unwrap(), p.paths[1].bounds().unwrap());
+        assert!(l.x1 < r.x0 && r.x1 < TIP.x && l.y0 < 0.0 && l.y1 > 0.0, "two arcs, one after the other: {l:?} {r:?}");
+        for (a, n) in [(Arrow::Harpoon, "harpoon"), (Arrow::HarpoonBar, "harpoonBar"), (Arrow::Parens, "parens")] {
+            assert_eq!((a.name(), Arrow::from_name(n)), (n, Some(a)));
+        }
     }
 
     #[test]

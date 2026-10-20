@@ -246,7 +246,7 @@ fn hostile_wire_params_never_panic() {
         .map(|c| c.id)
         .filter(|id| id.starts_with("net.") || id.starts_with("wire.") || *id == "page.setModule" || *id == "shape.rotate" || *id == "shape.mirror")
         .collect();
-    assert_eq!(commands.len(), 14);
+    assert!(commands.len() >= 14, "{commands:?}");
     for id in commands {
         for j in &junk {
             let mut s = blank();

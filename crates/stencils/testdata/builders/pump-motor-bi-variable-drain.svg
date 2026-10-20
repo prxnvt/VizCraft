@@ -8,5 +8,6 @@
     <circle cx="39.37" cy="0" r="1.969"><title>A</title></circle>
     <circle cx="39.37" cy="78.74" r="1.969"><title>B</title></circle>
     <circle cx="78.74" cy="59.055" r="1.969"><title>L</title></circle>
+    <circle cx="0" cy="39.37" r="1.969"><title>shaft</title></circle>
   </g>
 </svg>

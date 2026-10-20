@@ -13,10 +13,9 @@
 //! not list: they are found by search, the `/` picker and the Insert tab. Everything is read from the notation catalog each time, so a pack loaded at run time
 //! appears at once.
 //!
-//! Until the electrical, process and fluid power packs ship glyphs drawn by the parametric
-//! builders, a closed "Engineering symbols (preview)" section offers one row per builder
-//! (`vizcraft_stencils::builders`), each placing a free symbol with its defaults through
-//! `glyph.insert`. Those packs replace it.
+//! The parametric builders (`vizcraft_stencils::builders`) are placed through the engineering
+//! packs' own types; the Block 6E wave 1 "Engineering symbols (preview)" section that listed
+//! them bare is gone.
 
 use serde_json::{Value, json};
 use vizcraft_notation::{Catalog, ConnectorType, Pack, Viewpoint};
@@ -35,9 +34,6 @@ pub enum What {
     /// A parametric glyph builder: places a free symbol it draws (`glyph.insert`).
     Builder(&'static BuilderSpec),
 }
-
-/// Id of the preview section of builder symbols.
-pub const PREVIEW_SECTION: &str = "engineeringPreview";
 
 /// The drag-and-drop payload prefix that names a builder instead of a master (`glyph:contact`).
 pub const BUILDER_DRAG: &str = "glyph:";
@@ -177,24 +173,6 @@ fn kind_item(t: &'static ConnectorType) -> Item {
     Item { id: t.id.as_str(), type_id: None, label: t.label.clone(), what: What::Kind(t), pack, keywords }
 }
 
-fn builder_item(spec: &'static BuilderSpec) -> Item {
-    let mut keywords = words_of(spec.description);
-    keywords.extend(spec.sources.iter().flat_map(|(standard, _)| words_of(standard)));
-    keywords.extend(["engineering", "symbol", "glyph"].map(str::to_string));
-    Item { id: spec.name, type_id: None, label: spec.label.to_string(), what: What::Builder(spec), pack: String::new(), keywords }
-}
-
-/// The closed preview section: one row per glyph builder.
-fn preview_section() -> Section {
-    let items: Vec<Item> = builders::specs().iter().map(builder_item).collect();
-    Section {
-        id: PREVIEW_SECTION.into(),
-        label: Some("Engineering symbols (preview)".into()),
-        groups: vec![Group { id: "engineering.symbols".into(), label: "Symbols".into(), items, tiles: false, open: true }],
-        open: false,
-    }
-}
-
 /// The pack's palette groups. With a viewpoint, a type it does not list is left out (`*` lists
 /// every type of the pack, an empty list any type), and a group left empty is dropped.
 fn pack_groups(cat: &'static Catalog, pack: &'static Pack, vp: Option<&Viewpoint>) -> Vec<Group> {
@@ -287,7 +265,6 @@ pub fn build(viewpoint: Option<&str>, variant: &str, filter: bool) -> Palette {
         groups.extend(main);
         groups.extend(more);
         sections.push(Section { id: "scope".into(), label: None, groups, open: true });
-        sections.push(preview_section());
         sections.extend(drawing_section(cat));
     } else {
         for pack in cat.packs().iter().filter(|p| p.id != "basic") {
@@ -300,7 +277,6 @@ pub fn build(viewpoint: Option<&str>, variant: &str, filter: bool) -> Palette {
                 sections.push(Section { id: pack.id.clone(), label: Some(pack.name.clone()), groups, open: false });
             }
         }
-        sections.push(preview_section());
         sections.extend(drawing_section(cat));
     }
     Palette { viewpoint: known.map(|(_, vp)| vp.id.clone()), sections }
@@ -434,7 +410,7 @@ mod tests {
     #[test]
     fn a_flowchart_view_lists_steps_data_links_connectors_drawing() {
         let p = build(Some("flowchart.Flowchart"), "", true);
-        assert_eq!(labels(&p), ["Steps", "Data", "Links", "Connectors", "More connectors", "Symbols", "Drawing"]);
+        assert_eq!(labels(&p), ["Steps", "Data", "Links", "Connectors", "More connectors", "Drawing"]);
         assert_eq!(p.sections.last().unwrap().id, DRAWING, "the primitives sit in the section the pane leaves out");
         let kinds: Vec<&str> = p.groups().find(|g| g.id == "connectors").unwrap().items.iter().map(|i| i.id).collect();
         assert_eq!(kinds, ["flowchart.flow"]);
@@ -497,21 +473,6 @@ mod tests {
         let last = p.sections.last().unwrap();
         assert!(last.id == DRAWING && last.label.is_none() && last.groups[0].id == "drawing");
         assert!(p.search("rectangle").iter().any(|i| i.id == "basic.rectangle"), "the primitives are still searchable");
-    }
-
-    #[test]
-    fn the_preview_section_lists_every_builder_with_a_drawing() {
-        for p in [build(None, "", true), build(Some("flowchart.Flowchart"), "", true)] {
-            let sec = p.sections.iter().find(|s| s.id == PREVIEW_SECTION).unwrap();
-            assert!(!sec.open && sec.label.as_deref() == Some("Engineering symbols (preview)"));
-            let ids: Vec<&str> = sec.groups[0].items.iter().map(|i| i.id).collect();
-            assert_eq!(ids, ["contact", "coil", "bubble", "valve", "cylinder", "pump", "gate", "fcf", "weld", "texture"]);
-            for id in ids {
-                let b = builder_preview(id).unwrap_or_else(|| panic!("{id} builds with its defaults"));
-                assert!(b.w > 0.0 && b.h > 0.0 && !b.path.els.is_empty(), "{id}");
-            }
-            assert!(p.search("coil").iter().any(|i| i.id == "coil"));
-        }
     }
 
     #[test]

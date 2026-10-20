@@ -53,6 +53,10 @@ use crate::{Catalog, legal};
 ///     that type is allowed, and loses the owner it had from a container it left for the top
 ///     ([`crate::nesting::owners`]).
 ///
+/// 11. The process pass ([`crate::process_pass`]) runs last: pipe segments on process pages are
+///     numbered into lines, live process tags are recomposed and line numbers are written on
+///     their segments. It runs on a model without elements too, since a pipe alone starts a line.
+///
 /// Between steps 6 and 7, the end pass ([`crate::end_pass`]) draws the ends of connectors whose
 /// kind reads them from the relationship's properties, and the satellite pass
 /// ([`crate::satellites`]) draws owned elements around their owner where the page's variant asks
@@ -105,6 +109,8 @@ pub fn sync(doc: &mut Document, before: &Document, cat: &Catalog) {
     // Nothing can be bound in a model with no items, and nothing drawn in `before` can need
     // removing: free drawing leaves here untouched.
     if doc.model.elements.is_empty() && doc.model.relationships.is_empty() {
+        // Pipes on a process page are numbered into lines before anything is bound.
+        crate::process_pass::run(doc, before, cat);
         return;
     }
     copies(doc, before, cat);
@@ -117,8 +123,10 @@ pub fn sync(doc: &mut Document, before: &Document, cat: &Catalog) {
     record_packs(doc, cat);
     compartments(doc, cat);
     end_labels(doc, before, cat);
+    crate::electrical_pass::run(doc, before, cat);
     crate::sheet_pass::run(doc, cat);
     crate::nesting::owners(doc, before, cat);
+    crate::process_pass::run(doc, before, cat);
 }
 
 /// Element index by id; the model is appended to only during the pass, so indexes stay valid.
@@ -254,6 +262,12 @@ fn connectors(doc: &mut Document, cat: &Catalog) {
             for (ci, c) in page.connectors.iter().enumerate() {
                 // A satellite's line draws ownership, not a relationship.
                 if c.ext.contains_key(crate::satellites::EXT_SATELLITE_OF) {
+                    continue;
+                }
+                // A wire carries a net between pins, not a relationship between the devices
+                // (a wire from a contact to its coil is not the contact's link to the coil),
+                // unless its kind names a relationship type.
+                if c.net.is_some() && c.relationship.is_none() && kind_relationship(cat, &c.kind).is_none() {
                     continue;
                 }
                 let Some(g) = glue_of(&shape_el, &glyph_ports, c) else { continue };

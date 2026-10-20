@@ -6,7 +6,9 @@ For the session that takes over the integration branch `claude/engineering-diagr
 are merged and `cargo xtask ci` is green. Read first: AGENTS.md,
 [../owner-source-of-truth.md](../owner-source-of-truth.md) (the owner's rules and decisions; it
 wins over any brief on intent), docs/cascade-plan.md "How Blocks 6 and 6E run" and "Block 6E wave
-4", then the four briefs here.
+4", then the four briefs here. [lessons.md](lessons.md) lists the mistakes found while Block 6 was built and
+the rule each one left behind; every wave 4 agent reads it before its UI work, and the integration
+session uses its tests, snapshots and merge sections at each merge.
 
 ## Branches
 

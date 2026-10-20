@@ -1,0 +1,69 @@
+{
+ "document": {
+  "format": "vizcraft",
+  "version": 4,
+  "model": {
+   "schemaVersion": 1,
+   "packs": [
+    {
+     "id": "reliability",
+     "version": "1.0.0"
+    }
+   ],
+   "elements": [
+    {
+     "id": "ws",
+     "type": "reliability.FmeaWorksheet",
+     "name": "Sheet"
+    },
+    {
+     "id": "m1",
+     "type": "reliability.FailureMode",
+     "name": "Leak",
+     "properties": {
+      "endEffect": "Less cooling",
+      "severity": 5,
+      "occurrence": 4,
+      "detection": 3,
+      "rpn": 60
+     },
+     "owner": "ws"
+    }
+   ],
+   "relationships": []
+  },
+  "document": {
+   "title": "",
+   "pages": [
+    {
+     "id": "p1",
+     "name": "p1",
+     "shapes": [
+      {
+       "id": "s_p1_ws",
+       "kind": "rectangle",
+       "x": 0,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "ws"
+      }
+     ],
+     "connectors": [],
+     "view": {
+      "viewpoint": "reliability.FMEA"
+     }
+    }
+   ],
+   "idSeq": 1000
+  }
+ },
+ "profile": {
+  "enabled": true,
+  "userSet": true,
+  "rulesets": [
+   "reliability.fmea"
+  ]
+ },
+ "expect": []
+}

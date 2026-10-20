@@ -76,7 +76,23 @@ fn registry_ids_are_unique_and_prefixed() {
                 "topology",
                 "sequence",
                 "er",
-                "uml"
+                "uml",
+                "electrical",
+                "ladder",
+                "terminal",
+                "cable",
+                "io",
+                "identity",
+                "loop",
+                "line",
+                "offpage",
+                "plant",
+                "fluid",
+                // b6e-mechanical
+                "mech",
+                "rel",
+                "idef0",
+                "annotation"
             ]
             .contains(&prefix),
             "{}: unexpected prefix",
@@ -163,7 +179,27 @@ fn hostile_params_never_panic() {
         json!({"element": {}, "list": [], "text": "\u{0}\u{ffff}[", "index": "a", "from": 1.5, "to": 99999999999.0}),
         json!({"primitive": "er", "roles": {"satellites": 5}}),
         json!({"primitive": "er", "roles": {"satellites": [{"owner": "s2", "members": ["s2", "s2"]}, {"owner": 7}]}}),
+        json!({"symbols": "din", "tags": 5, "coil": "s2", "contacts": "s2", "x": 1e308, "y": -1e308, "rungs": 1e300, "spacing": -1, "width": f64::NAN}),
+        json!({"ladder": "s2", "shapes": ["s2", 5], "rung": 1e20, "format": "{page:999}{rung:x}", "strip": "s2", "count": 1e9, "first": -1e308}),
+        json!({"from": "s2", "to": "s2", "cores": 1e9, "cable": "s2", "nets": [5], "connectors": {}, "module": "s2", "channel": -1, "signal": "XX"}),
+        json!({"ids": ["s2"], "bridge": 5, "subject": "nets", "kind": "ghost", "format": "text", "page": 99, "orientation": "diagonal"}),
+        // Mechanical, reliability, IDEF0 and annotation commands (b6e-mechanical).
+        json!({"top": 5, "maxOrder": 1e300, "limit": -1, "time": "NaN", "space": "warp", "from": [], "to": {}, "speed": 1e308}),
+        json!({"gdt": 7, "weld": "", "texture": [], "id": "x".repeat(1000), "page": "\u{0}", "standard": "asme", "input": 5, "output": [], "initiator": {}}),
         nested_batches(40),
+        json!({"legs": [{"dir": "n", "length": 1e308}, {"dir": "zz"}, 5], "from": {"shape": "s2", "point": 1e20}, "kind": "process.processLine", "line": 7}),
+        json!({"legs": [{"dir": "up", "length": 50}], "from": {"x": 1e308, "y": "a"}, "side": "inside", "shape": "s2", "at": f64::NAN, "subTag": ""}),
+        json!({"shape": "s2", "side": "top", "at": 0.5, "subTag": "x".repeat(5000), "nominalDiameter": 9, "scheme": "both", "list": "line"}),
+        json!({"scope": "process.line", "format": "{n}{n}", "numberBy": "a b", "list": "nope", "format2": [], "page": 1e300}),
+        json!({"scope": "process.loop", "format": "{n:99}", "numberBy": "", "variable": "LL", "members": ["s2", {}], "loopType": 5}),
+        json!({"loop": "s2", "elements": ["s2", "nope"], "element": 7, "a": "s2", "b": "s2", "connector": "c8", "end": "middle", "toPage": "\u{0}"}),
+        json!({"variable": "F", "members": [], "unit": "nope", "connectors": ["c8"], "net": "n1", "list": "process.line", "view": "pack", "type": "process.processLine"}),
+        json!({"from": {"x": 0, "y": 0}, "to": {"x": 100, "y": 0}, "type": "process.supplyAir", "kind": "plasma", "sheet": "iso.a9", "name": "x".repeat(3000)}),
+        json!({"type": "fluidpower.HydraulicValve", "params": {"paths": "P-Q;;;X|", "positions": 1e308}, "chart": "s2", "row": 1e20, "step": -1, "state": "x", "set": 5, "codes": [], "ports": [null, 7]}),
+        json!({"type": "fluidpower.StepChart", "chart": "s2", "rows": "1A1 0 1".repeat(10_000), "from": {"shape": "s2", "point": 1e20}, "at": 1e300, "steps": f64::NAN, "actuators": [5], "pump": "x"}),
+        // Group transforms (b6e-selection-transform).
+        json!({"ids": ["s2", "c8"], "move": {"dx": 1e308, "dy": "x"}, "scale": {"sx": 0, "sy": -1e308, "about": {"x": f64::NAN}}, "rotate": {"angle": 1e308, "about": []}}),
+        json!({"ids": ["s2", "c8"], "scale": {"sx": 1e308, "sy": 1e-300, "about": {"x": 1e308, "y": -1e308}}, "rotate": {"angle": -1e308, "about": {"x": 0, "y": 0}}, "move": {"dx": -1e308, "dy": 1e308}}),
     ];
     for spec in reg.all() {
         // File commands touch the disk; given a path they would write junk files. `page.set` with a

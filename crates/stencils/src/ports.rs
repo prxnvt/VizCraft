@@ -63,6 +63,9 @@ pub fn port_marks(shape: &Shape, type_id: &str) -> Vec<PortMark> {
 /// its id.
 pub fn port_marks_in(cat: &Catalog, shape: &Shape, type_id: &str) -> Vec<PortMark> {
     let Some((_, t)) = cat.element_type(type_id) else { return Vec::new() };
+    if vizcraft_notation::ElementType::ports_hidden(cat, type_id) {
+        return Vec::new();
+    }
     let half = side(shape.style.line_width) / 2.0;
     if let Some(ids) = shape.glyph.as_ref().map(|g| &g.ports).filter(|p| !p.is_empty()) {
         return ids
@@ -104,7 +107,14 @@ mod tests {
     /// of the global catalog so the other tests here still see only the built-in sets.
     pub(crate) fn ported() -> Catalog {
         use vizcraft_notation::{ElementType, Glyph, Pack};
-        let port = |id: &str, label: &str, direction: PortDirection, x: f64, y: f64| Port { id: id.into(), label: label.into(), direction, x, y };
+        let port = |id: &str, label: &str, direction: PortDirection, x: f64, y: f64| Port {
+            id: id.into(),
+            label: label.into(),
+            direction,
+            x,
+            y,
+            net_group: String::new(),
+        };
         let pack = Pack {
             schema_version: 1,
             id: "stencilports".into(),

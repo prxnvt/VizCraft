@@ -11,6 +11,9 @@
 //!   its output in model order.
 //! - [`diff`]: a symmetric, id-keyed compare of two models.
 //! - [`builtin`]: the six built-in analyses behind the [`Analysis`] trait.
+//! - [`mech`] and [`reliability`]: the mechanical (mobility, ratio, Mason) and reliability (cut
+//!   sets, availability, outcomes) analyses of the engineering packs, which the notation rules
+//!   call too.
 //!
 //! Pack knowledge (subtypes, inverse relationship types) comes in through the [`Types`] trait, so
 //! this crate does not depend on the notation catalog; the engine implements it over the catalog.
@@ -20,9 +23,11 @@ pub mod builtin;
 pub mod cut;
 pub mod diff;
 pub mod graph;
+pub mod mech;
 pub mod metrics;
 pub mod paths;
 pub mod reach;
+pub mod reliability;
 mod result;
 pub mod scc;
 #[cfg(test)]
@@ -89,7 +94,21 @@ pub trait Analysis {
 
 /// Every analysis, built-ins first.
 pub fn analyses() -> &'static [&'static dyn Analysis] {
-    &[&builtin::Dependencies, &builtin::Cycles, &builtin::Unreachable, &builtin::Spof, &builtin::Metrics, &builtin::PathAnalysis]
+    &[
+        &builtin::Dependencies,
+        &builtin::Cycles,
+        &builtin::Unreachable,
+        &builtin::Spof,
+        &builtin::Metrics,
+        &builtin::PathAnalysis,
+        // Mechanical and reliability packs (b6e-mechanical).
+        &mech::MobilityAnalysis,
+        &mech::RatioAnalysis,
+        &mech::MasonAnalysis,
+        &reliability::CutSetsAnalysis,
+        &reliability::AvailabilityAnalysis,
+        &reliability::OutcomesAnalysis,
+    ]
 }
 
 /// The analysis with this id.
