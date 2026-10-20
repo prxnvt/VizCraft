@@ -1,14 +1,69 @@
-//! Templates: starting points a pack offers, as data. A template names a viewpoint, a rendering
-//! variant, a drawing sheet and a symbol grid module, a seed of commands that draws the starting
-//! content, a layout to tidy it with, and whether a title block and a key belong on the page. The
-//! engine's `template.*` commands turn one into a document or a page; this module holds the
-//! schema and the checks the loader runs on it.
+//! Document types and examples, as data.
+//!
+//! A **document type** (a pack's `templates`) is an empty document set up for a kind of work: a
+//! Class Diagram, an Entity Relationship Diagram, a Network Diagram. It draws no content. What it
+//! sets up is what differs between kinds of work:
+//!
+//! - the page's viewpoint, which decides the shapes and connectors the palette offers first, and
+//!   the other viewpoints the person may pick instead (`viewpoints`);
+//! - the rendering variant (notation or symbol standard) it starts with;
+//! - the drawing sheet, title block and symbol grid module, where the discipline uses them;
+//! - the compliance rules that run (`rulesets`, and `liveChecks` to start with checking on or off);
+//! - the layout Re-Layout offers first, whose direction is where Tab and Enter grow a chain;
+//! - whether the page keeps a key, and the text forms the diagram can also be written in.
+//!
+//! Every one of those is only where the document starts: the person can pick another viewpoint,
+//! variant or sheet at creation (`template.new` params) and change any of them afterwards.
+//!
+//! An **example** (a pack's `examples`) has the same fields plus a `seed`: commands that draw a
+//! filled-in sample, and a `layout` that tidies it. Examples open from Help > Examples and are
+//! the test suite's fixtures. An id is unique across both lists of a pack.
+//!
+//! What a pack author writes for a new document type (wave 4 packs follow this):
+//!
+//! ```json
+//! {
+//!   "id": "electrical.schematic",
+//!   "label": "Schematic",
+//!   "description": "A circuit diagram on a sheet with a title block and the IEC symbols.",
+//!   "discipline": "engineering",
+//!   "audience": ["engineering"],
+//!   "keywords": ["circuit", "wiring"],
+//!   "viewpoint": "electrical.Schematic",
+//!   "viewpoints": [
+//!     {"viewpoint": "electrical.Schematic"},
+//!     {"viewpoint": "electrical.Ladder", "rulesets": ["electrical.ladder"]}
+//!   ],
+//!   "variant": "electrical.iec",
+//!   "sheet": "iso.a3.landscape",
+//!   "titleBlock": true,
+//!   "module": "iso2_5mm",
+//!   "rulesets": ["electrical.iec60617"],
+//!   "liveChecks": true,
+//!   "layout": {"algorithm": "layered", "direction": "LR"},
+//!   "key": false,
+//!   "codeForms": []
+//! }
+//! ```
+//!
+//! Only `id` (`<pack>.<name>`) and `label` are required. `discipline` groups the New page
+//! (`software`, `data`, `infrastructure`, `general`, `engineering`, or another lowercase word,
+//! listed after those); empty is `general`. `viewpoints` lists the choices offered at creation,
+//! the default `viewpoint` among them; a choice's `rulesets` replace the type's own when it is
+//! picked (an Entity Relationship Diagram holds a conceptual model to fewer rules than a physical
+//! one). `rulesets` name rulesets of this pack, or of another pack by their qualified id;
+//! empty leaves the rules following the notation (the pack's first ruleset). `liveChecks`
+//! absent leaves checking as the notation has it. A document type has no `seed`; a `layout`
+//! on one never runs at creation (there is nothing to lay out), it is the notation's preferred
+//! layout.
 //!
 //! The seed is a command list in the `script.run` form. A step marked `optional` is skipped when
-//! its command is not registered, so a template can use a command a later build adds. A step can
+//! its command is not registered, so an example can use a command a later build adds. A step can
 //! name its result (`as`), and a later param string `${name.path}` stands for a value in it, so a
 //! seed can connect shapes whose ids the engine hands out (see [`reference`]).
 //!
+//! The engine's `template.*` commands make a document or a page of a type and `example.*` open
+//! the examples; this module holds the schema and the checks the loader runs on both lists.
 //! Older packs wrote `templates` as a list of id strings; such entries are dropped when the pack
 //! loads, so those packs still load.
 
@@ -19,6 +74,16 @@ use crate::schema::Pack;
 
 /// Most templates one pack may declare.
 pub const MAX_TEMPLATES: usize = 128;
+
+/// The disciplines the New page groups document types under, in its order; any other lowercase
+/// word is a discipline of its own, listed after these.
+pub const DISCIPLINES: &[&str] = &["general", "software", "data", "infrastructure", "engineering"];
+
+/// The discipline an entry without one belongs to.
+pub const DEFAULT_DISCIPLINE: &str = "general";
+
+/// Most viewpoint choices or rulesets on one document type.
+pub const MAX_CHOICES: usize = 32;
 
 /// Most seed steps one template may have.
 pub const MAX_SEED_STEPS: usize = 512;
@@ -74,10 +139,26 @@ pub struct Template {
     /// Words a search matches besides the label.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub keywords: Vec<String>,
-    /// The page's viewpoint, a viewpoint of this pack; empty for none.
+    /// The New page group (see [`DISCIPLINES`]); empty is [`DEFAULT_DISCIPLINE`].
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub discipline: String,
+    /// The page's viewpoint, a viewpoint of this pack; empty for none. With `viewpoints`, the
+    /// default choice.
     #[serde(skip_serializing_if = "String::is_empty")]
     pub viewpoint: String,
-    /// Commands that draw the starting content, in order.
+    /// The viewpoints the person may pick instead at creation (the default among them); empty
+    /// offers only `viewpoint`.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub viewpoints: Vec<ViewpointChoice>,
+    /// The rulesets the document is held to (the conformance profile); empty leaves the rules
+    /// following the notation.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub rulesets: Vec<String>,
+    /// Whether the rules check as the person draws (the profile is on); absent leaves it as the
+    /// notation has it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub live_checks: Option<bool>,
+    /// Commands that draw an example's content, in order; a document type has none.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub seed: Vec<SeedStep>,
     /// How to lay out what the seed drew; none leaves it where the seed put it.
@@ -103,6 +184,48 @@ pub struct Template {
     /// The symbol grid module: a name from [`MODULES`] or a number of page units.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub module: Option<Module>,
+}
+
+/// One viewpoint a document type offers at creation.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct ViewpointChoice {
+    /// A viewpoint of the pack.
+    pub viewpoint: String,
+    /// The rulesets that replace the type's own when this viewpoint is picked; empty keeps them.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub rulesets: Vec<String>,
+}
+
+impl Template {
+    /// The discipline the New page groups it under.
+    pub fn discipline(&self) -> &str {
+        if self.discipline.is_empty() { DEFAULT_DISCIPLINE } else { &self.discipline }
+    }
+
+    /// Whether `viewpoint` may be picked for it: its own viewpoint or one of its choices.
+    pub fn offers_viewpoint(&self, viewpoint: &str) -> bool {
+        self.viewpoint == viewpoint || self.viewpoints.iter().any(|c| c.viewpoint == viewpoint)
+    }
+
+    /// The viewpoints offered at creation, the default first when it is not listed.
+    pub fn viewpoint_choices(&self) -> Vec<&str> {
+        let mut out: Vec<&str> = Vec::new();
+        if !self.viewpoint.is_empty() && !self.viewpoints.iter().any(|c| c.viewpoint == self.viewpoint) {
+            out.push(&self.viewpoint);
+        }
+        out.extend(self.viewpoints.iter().map(|c| c.viewpoint.as_str()));
+        out
+    }
+
+    /// The rulesets a document of this type on `viewpoint` is held to: the choice's own when it
+    /// lists some, else the type's.
+    pub fn rulesets_for(&self, viewpoint: &str) -> &[String] {
+        match self.viewpoints.iter().find(|c| c.viewpoint == viewpoint) {
+            Some(c) if !c.rulesets.is_empty() => &c.rulesets,
+            _ => &self.rulesets,
+        }
+    }
 }
 
 /// A symbol grid module: a named one or a size in page units.
@@ -217,9 +340,14 @@ pub fn is_sheet_id(sheet: &str) -> bool {
         && parts.iter().all(|p| !p.is_empty() && p.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_'))
 }
 
-/// The template with this id in `pack`.
+/// The document type with this id in `pack`.
 pub fn find<'a>(pack: &'a Pack, id: &str) -> Option<&'a Template> {
     pack.templates.iter().find(|t| t.id == id)
+}
+
+/// The example with this id in `pack`.
+pub fn find_example<'a>(pack: &'a Pack, id: &str) -> Option<&'a Template> {
+    pack.examples.iter().find(|t| t.id == id)
 }
 
 /// The first 64 chars of `t`, for messages about hostile text.
@@ -231,60 +359,111 @@ fn short(t: &str) -> String {
     out
 }
 
-/// Problems with the pack's templates: counts, ids, lengths and every reference.
+/// Problems with the pack's document types and examples: counts, ids (unique across both
+/// lists), lengths and every reference; a document type with a seed.
 pub fn check(pack: &Pack) -> Vec<String> {
     let mut out = Vec::new();
-    if pack.templates.len() > MAX_TEMPLATES {
-        out.push(format!("at most {MAX_TEMPLATES} templates"));
+    let mut seen = std::collections::HashSet::new();
+    for (list, what, cap_name) in [(&pack.templates, "document type", "templates"), (&pack.examples, "example", "examples")] {
+        if list.len() > MAX_TEMPLATES {
+            out.push(format!("at most {MAX_TEMPLATES} {cap_name}"));
+        }
+        for t in list.iter().take(MAX_TEMPLATES) {
+            let ctx = format!("{what} `{}`", short(&t.id));
+            if !seen.insert(t.id.as_str()) {
+                out.push(format!("{ctx}: declared twice (ids are unique across `templates` and `examples`)"));
+            }
+            out.extend(entry(pack, &ctx, t));
+            if what == "document type" && !t.seed.is_empty() {
+                out.push(format!("{ctx}: a document type draws no content; move the seed to an example in `examples`"));
+            }
+        }
+    }
+    out
+}
+
+/// Problems with one document type or example.
+fn entry(pack: &Pack, ctx: &str, t: &Template) -> Vec<String> {
+    let mut out = Vec::new();
+    let prefix = format!("{}.", pack.id);
+    if !t.id.starts_with(&prefix) || t.id.len() <= prefix.len() || t.id.len() > MAX_ID {
+        out.push(format!("{ctx}: the id must be `{prefix}<name>`"));
+    }
+    if t.label.trim().is_empty() {
+        out.push(format!("{ctx}: needs a label"));
+    }
+    if t.label.len() > MAX_LABEL {
+        out.push(format!("{ctx}: the label is longer than {MAX_LABEL} bytes"));
+    }
+    if t.description.len() > MAX_DESCRIPTION {
+        out.push(format!("{ctx}: the description is longer than {MAX_DESCRIPTION} bytes"));
+    }
+    for (what, list, cap) in [("audience", &t.audience, MAX_TAG), ("keywords", &t.keywords, MAX_TAG), ("codeForms", &t.code_forms, MAX_ID)] {
+        if list.len() > MAX_TAGS || list.iter().any(|x| x.is_empty() || x.len() > cap) {
+            out.push(format!("{ctx}: `{what}` takes at most {MAX_TAGS} non-empty entries of at most {cap} bytes"));
+        }
+    }
+    if !t.discipline.is_empty() && (t.discipline.len() > MAX_TAG || !t.discipline.chars().all(|c| c.is_ascii_lowercase() || c == '_')) {
+        out.push(format!("{ctx}: `discipline` is one lowercase word of at most {MAX_TAG} bytes (such as {})", DISCIPLINES.join(", ")));
+    }
+    if !t.viewpoint.is_empty() && pack.viewpoint(&t.viewpoint).is_none() {
+        out.push(format!("{ctx}: `{}` is not a viewpoint of this pack", short(&t.viewpoint)));
+    }
+    if t.viewpoints.len() > MAX_CHOICES {
+        out.push(format!("{ctx}: `viewpoints` offers at most {MAX_CHOICES} choices"));
+    }
+    if !t.viewpoints.is_empty() && t.viewpoint.is_empty() {
+        out.push(format!("{ctx}: `viewpoints` needs a default `viewpoint` among them"));
+    }
+    let mut offered = std::collections::HashSet::new();
+    for c in t.viewpoints.iter().take(MAX_CHOICES) {
+        if pack.viewpoint(&c.viewpoint).is_none() {
+            out.push(format!("{ctx}: `viewpoints` offers `{}`, which is not a viewpoint of this pack", short(&c.viewpoint)));
+        }
+        if !offered.insert(c.viewpoint.as_str()) {
+            out.push(format!("{ctx}: `viewpoints` offers `{}` twice", short(&c.viewpoint)));
+        }
+        out.extend(rulesets(pack, ctx, &c.rulesets));
+    }
+    out.extend(rulesets(pack, ctx, &t.rulesets));
+    if !t.variant.is_empty() && pack.variant(&t.variant).is_none() {
+        out.push(format!("{ctx}: `{}` is not a variant of this pack", short(&t.variant)));
+    }
+    if !t.sheet.is_empty() && !is_sheet_id(&t.sheet) {
+        out.push(format!("{ctx}: `{}` is not a sheet preset id (`<standard>.<size>[.<orientation>]`)", short(&t.sheet)));
+    }
+    match &t.module {
+        Some(Module::Named(m)) if !MODULES.contains(&m.as_str()) => {
+            out.push(format!("{ctx}: `module` must be one of {} or a number of page units", MODULES.join(", ")));
+        }
+        Some(Module::Units(n)) if !n.is_finite() || *n < MODULE_UNITS.0 || *n > MODULE_UNITS.1 => {
+            out.push(format!("{ctx}: a `module` in page units must be between {} and {}", MODULE_UNITS.0, MODULE_UNITS.1));
+        }
+        _ => {}
+    }
+    if t.title_block && t.sheet.is_empty() {
+        out.push(format!("{ctx}: a title block needs a sheet; set `sheet` too"));
+    }
+    out.extend(seed(ctx, t));
+    if let Some(l) = &t.layout {
+        out.extend(layout(ctx, l));
+    }
+    out
+}
+
+/// Problems with a list of ruleset ids: too many, malformed, or naming a ruleset this pack does
+/// not declare (a ruleset of another pack is checked when a document is made).
+fn rulesets(pack: &Pack, ctx: &str, list: &[String]) -> Vec<String> {
+    let mut out = Vec::new();
+    if list.len() > MAX_CHOICES {
+        out.push(format!("{ctx}: at most {MAX_CHOICES} `rulesets`"));
     }
     let prefix = format!("{}.", pack.id);
-    let mut seen = std::collections::HashSet::new();
-    for t in pack.templates.iter().take(MAX_TEMPLATES) {
-        let ctx = format!("template `{}`", short(&t.id));
-        if !t.id.starts_with(&prefix) || t.id.len() <= prefix.len() || t.id.len() > MAX_ID {
-            out.push(format!("{ctx}: the id must be `{prefix}<name>`"));
-        }
-        if !seen.insert(t.id.as_str()) {
-            out.push(format!("{ctx}: declared twice"));
-        }
-        if t.label.trim().is_empty() {
-            out.push(format!("{ctx}: needs a label"));
-        }
-        if t.label.len() > MAX_LABEL {
-            out.push(format!("{ctx}: the label is longer than {MAX_LABEL} bytes"));
-        }
-        if t.description.len() > MAX_DESCRIPTION {
-            out.push(format!("{ctx}: the description is longer than {MAX_DESCRIPTION} bytes"));
-        }
-        for (what, list, cap) in [("audience", &t.audience, MAX_TAG), ("keywords", &t.keywords, MAX_TAG), ("codeForms", &t.code_forms, MAX_ID)] {
-            if list.len() > MAX_TAGS || list.iter().any(|x| x.is_empty() || x.len() > cap) {
-                out.push(format!("{ctx}: `{what}` takes at most {MAX_TAGS} non-empty entries of at most {cap} bytes"));
-            }
-        }
-        if !t.viewpoint.is_empty() && pack.viewpoint(&t.viewpoint).is_none() {
-            out.push(format!("{ctx}: `{}` is not a viewpoint of this pack", short(&t.viewpoint)));
-        }
-        if !t.variant.is_empty() && pack.variant(&t.variant).is_none() {
-            out.push(format!("{ctx}: `{}` is not a variant of this pack", short(&t.variant)));
-        }
-        if !t.sheet.is_empty() && !is_sheet_id(&t.sheet) {
-            out.push(format!("{ctx}: `{}` is not a sheet preset id (`<standard>.<size>[.<orientation>]`)", short(&t.sheet)));
-        }
-        match &t.module {
-            Some(Module::Named(m)) if !MODULES.contains(&m.as_str()) => {
-                out.push(format!("{ctx}: `module` must be one of {} or a number of page units", MODULES.join(", ")));
-            }
-            Some(Module::Units(n)) if !n.is_finite() || *n < MODULE_UNITS.0 || *n > MODULE_UNITS.1 => {
-                out.push(format!("{ctx}: a `module` in page units must be between {} and {}", MODULE_UNITS.0, MODULE_UNITS.1));
-            }
-            _ => {}
-        }
-        if t.title_block && t.sheet.is_empty() {
-            out.push(format!("{ctx}: a title block needs a sheet; set `sheet` too"));
-        }
-        out.extend(seed(&ctx, t));
-        if let Some(l) = &t.layout {
-            out.extend(layout(&ctx, l));
+    for r in list.iter().take(MAX_CHOICES) {
+        if r.is_empty() || r.len() > MAX_ID || !r.contains('.') {
+            out.push(format!("{ctx}: `{}` is not a ruleset id (`<pack>.<name>`)", short(r)));
+        } else if r.starts_with(&prefix) && !pack.rulesets.iter().any(|x| x.id == *r) {
+            out.push(format!("{ctx}: `{}` is not a ruleset of this pack", short(r)));
         }
     }
     out
@@ -378,12 +557,20 @@ mod tests {
                 {"id": "tt.round", "label": "Round", "category": "T", "outline": "ellipse", "w": 80, "h": 80, "fill": "#ffffff", "line": "#000000"}
             ],
             "elementTypes": [{"id": "tt.Node", "glyph": "tt.box"}],
-            "viewpoints": [{"id": "tt.Main", "label": "Main", "types": ["*"]}],
+            "viewpoints": [{"id": "tt.Main", "label": "Main", "types": ["*"]}, {"id": "tt.Other", "label": "Other", "types": ["*"]}],
             "variants": [
                 {"id": "tt.iec", "label": "IEC"},
                 {"id": "tt.jic", "label": "JIC", "glyphs": {"tt.Node": "tt.round"}}
             ],
+            "rules": [{"id": "tt.illegal", "check": {"kind": "illegalRelationship"}}],
+            "rulesets": [{"id": "tt.core", "label": "Core", "rules": ["tt.illegal"]}, {"id": "tt.strict", "label": "Strict", "rules": ["tt.illegal"]}],
             "templates": [{
+                "id": "tt.doc", "label": "Doc", "discipline": "engineering", "viewpoint": "tt.Main",
+                "viewpoints": [{"viewpoint": "tt.Main"}, {"viewpoint": "tt.Other", "rulesets": ["tt.strict"]}],
+                "rulesets": ["tt.core"], "liveChecks": false, "sheet": "iso.a3.landscape", "titleBlock": true,
+                "layout": {"algorithm": "layered", "direction": "LR"}
+            }],
+            "examples": [{
                 "id": "tt.start", "label": "Start", "description": "A start.", "audience": ["engineering"], "keywords": ["k"],
                 "viewpoint": "tt.Main", "variant": "tt.iec", "sheet": "iso.a3.landscape", "module": "iso2_5mm",
                 "key": true, "titleBlock": true, "codeForms": ["mermaid.flowchart"],
@@ -405,7 +592,8 @@ mod tests {
     #[test]
     fn a_full_template_loads_and_round_trips() {
         let p = load_json(&pack().to_string()).unwrap();
-        let t = find(&p, "tt.start").unwrap();
+        let t = find_example(&p, "tt.start").unwrap();
+        assert!(find(&p, "tt.start").is_none() && find_example(&p, "tt.doc").is_none());
         assert_eq!(t.module, Some(Module::Named("iso2_5mm".into())));
         assert!(t.key && t.title_block && t.seed[1].optional);
         assert_eq!(variant_for(&p, "jic").map(|v| v.id.as_str()), Some("tt.jic"));
@@ -414,48 +602,48 @@ mod tests {
         let again = load_json(&serde_json::to_string(&p).unwrap()).unwrap();
         assert_eq!(again, p);
         let mut v = pack();
-        v["templates"][0]["module"] = json!(10.0);
-        assert_eq!(find(&load_json(&v.to_string()).unwrap(), "tt.start").unwrap().module, Some(Module::Units(10.0)));
+        v["examples"][0]["module"] = json!(10.0);
+        assert_eq!(find_example(&load_json(&v.to_string()).unwrap(), "tt.start").unwrap().module, Some(Module::Units(10.0)));
     }
 
     #[test]
     fn bad_templates_are_reported() {
-        assert!(problems(&|v| v["templates"][0]["id"] = json!("other.start")).contains("must be `tt.<name>`"));
-        assert!(problems(&|v| v["templates"][0]["viewpoint"] = json!("tt.Ghost")).contains("not a viewpoint"));
-        assert!(problems(&|v| v["templates"][0]["variant"] = json!("tt.ansi")).contains("not a variant"));
-        assert!(problems(&|v| v["templates"][0]["layout"]["algorithm"] = json!("spiral")).contains("`algorithm` must be"));
-        assert!(problems(&|v| v["templates"][0]["layout"] = json!({"primitive": "spiral"})).contains("`primitive` must be"));
-        assert!(problems(&|v| v["templates"][0]["layout"]["primitive"] = json!("pipeline")).contains("not both"));
-        assert!(problems(&|v| v["templates"][0]["layout"]["direction"] = json!("up")).contains("`direction` must be"));
-        assert!(problems(&|v| v["templates"][0]["label"] = json!(" ")).contains("needs a label"));
-        assert!(problems(&|v| v["templates"][0]["module"] = json!("huge")).contains("`module` must be"));
-        assert!(problems(&|v| v["templates"][0]["module"] = json!(0.01)).contains("page units must be"));
-        assert!(problems(&|v| v["templates"][0]["sheet"] = json!("A3")).contains("sheet preset"));
-        assert!(problems(&|v| v["templates"][0]["seed"][0]["command"] = json!("")).contains("seed[0] needs a command"));
-        assert!(problems(&|v| v["templates"][0]["seed"][0]["params"] = json!([1])).contains("seed[0] params"));
+        assert!(problems(&|v| v["examples"][0]["id"] = json!("other.start")).contains("must be `tt.<name>`"));
+        assert!(problems(&|v| v["examples"][0]["viewpoint"] = json!("tt.Ghost")).contains("not a viewpoint"));
+        assert!(problems(&|v| v["examples"][0]["variant"] = json!("tt.ansi")).contains("not a variant"));
+        assert!(problems(&|v| v["examples"][0]["layout"]["algorithm"] = json!("spiral")).contains("`algorithm` must be"));
+        assert!(problems(&|v| v["examples"][0]["layout"] = json!({"primitive": "spiral"})).contains("`primitive` must be"));
+        assert!(problems(&|v| v["examples"][0]["layout"]["primitive"] = json!("pipeline")).contains("not both"));
+        assert!(problems(&|v| v["examples"][0]["layout"]["direction"] = json!("up")).contains("`direction` must be"));
+        assert!(problems(&|v| v["examples"][0]["label"] = json!(" ")).contains("needs a label"));
+        assert!(problems(&|v| v["examples"][0]["module"] = json!("huge")).contains("`module` must be"));
+        assert!(problems(&|v| v["examples"][0]["module"] = json!(0.01)).contains("page units must be"));
+        assert!(problems(&|v| v["examples"][0]["sheet"] = json!("A3")).contains("sheet preset"));
+        assert!(problems(&|v| v["examples"][0]["seed"][0]["command"] = json!("")).contains("seed[0] needs a command"));
+        assert!(problems(&|v| v["examples"][0]["seed"][0]["params"] = json!([1])).contains("seed[0] params"));
         assert!(
-            problems(&|v| v["templates"][0]["seed"] = Value::Array(vec![json!({"command": "edit.selectAll"}); MAX_SEED_STEPS + 1]))
+            problems(&|v| v["examples"][0]["seed"] = Value::Array(vec![json!({"command": "edit.selectAll"}); MAX_SEED_STEPS + 1]))
                 .contains("more than 512 steps")
         );
         assert!(
             problems(&|v| {
-                let t = v["templates"][0].clone();
-                v["templates"].as_array_mut().unwrap().push(t);
+                let t = v["examples"][0].clone();
+                v["examples"].as_array_mut().unwrap().push(t);
             })
             .contains("declared twice")
         );
         assert!(
-            problems(&|v| v["templates"] = Value::Array((0..=MAX_TEMPLATES).map(|i| json!({"id": format!("tt.t{i}"), "label": "T"})).collect()))
-                .contains("at most 128 templates")
+            problems(&|v| v["examples"] = Value::Array((0..=MAX_TEMPLATES).map(|i| json!({"id": format!("tt.t{i}"), "label": "T"})).collect()))
+                .contains("at most 128 examples")
         );
-        assert!(problems(&|v| v["templates"][0]["keywords"] = json!(["x".repeat(65)])).contains("`keywords` takes"));
-        assert!(problems(&|v| v["templates"][0]["seed"][0]["params"]["text"] = json!("${ghost.id}")).contains("no earlier step names"));
+        assert!(problems(&|v| v["examples"][0]["keywords"] = json!(["x".repeat(65)])).contains("`keywords` takes"));
+        assert!(problems(&|v| v["examples"][0]["seed"][0]["params"]["text"] = json!("${ghost.id}")).contains("no earlier step names"));
         assert!(
-            problems(&|v| v["templates"][0]["layout"] = json!({"primitive": "hubSpoke", "roles": {"hub": "${ghost.id}"}}))
+            problems(&|v| v["examples"][0]["layout"] = json!({"primitive": "hubSpoke", "roles": {"hub": "${ghost.id}"}}))
                 .contains("layout roles use `ghost`")
         );
-        assert!(problems(&|v| v["templates"][0]["seed"][1]["as"] = json!("later")).contains("cannot name its result"));
-        assert!(problems(&|v| v["templates"][0]["seed"][0]["as"] = json!("a b")).contains("`as` must be"));
+        assert!(problems(&|v| v["examples"][0]["seed"][1]["as"] = json!("later")).contains("cannot name its result"));
+        assert!(problems(&|v| v["examples"][0]["seed"][0]["as"] = json!("a b")).contains("`as` must be"));
     }
 
     #[test]
@@ -479,8 +667,38 @@ mod tests {
             assert_eq!(reference(no), None, "{no}");
         }
         let mut v = pack();
-        v["templates"][0]["seed"][0]["as"] = json!("box");
-        v["templates"][0]["layout"] = json!({"primitive": "hubSpoke", "roles": {"hub": "${box.id}"}});
+        v["examples"][0]["seed"][0]["as"] = json!("box");
+        v["examples"][0]["layout"] = json!({"primitive": "hubSpoke", "roles": {"hub": "${box.id}"}});
+        assert!(load_json(&v.to_string()).is_ok());
+    }
+
+    #[test]
+    fn a_document_type_reads_its_choices_and_rules() {
+        let p = load_json(&pack().to_string()).unwrap();
+        let t = find(&p, "tt.doc").unwrap();
+        assert_eq!(t.discipline(), "engineering");
+        assert_eq!(t.viewpoint_choices(), ["tt.Main", "tt.Other"]);
+        assert!(t.offers_viewpoint("tt.Other") && !t.offers_viewpoint("tt.Ghost"));
+        assert_eq!(t.rulesets_for("tt.Main"), ["tt.core"]);
+        assert_eq!(t.rulesets_for("tt.Other"), ["tt.strict"]);
+        assert_eq!(t.live_checks, Some(false));
+        assert_eq!(find_example(&p, "tt.start").unwrap().discipline(), DEFAULT_DISCIPLINE);
+    }
+
+    #[test]
+    fn bad_document_types_are_reported() {
+        let ty = |edit: &dyn Fn(&mut Value)| problems(&|v| edit(&mut v["templates"][0]));
+        assert!(ty(&|t| t["seed"] = json!([{"command": "shape.add"}])).contains("draws no content"));
+        assert!(ty(&|t| t["viewpoints"][1]["viewpoint"] = json!("tt.Ghost")).contains("offers `tt.Ghost`"));
+        assert!(ty(&|t| t["viewpoints"][1]["viewpoint"] = json!("tt.Main")).contains("twice"));
+        assert!(ty(&|t| t["viewpoint"] = json!("")).contains("needs a default"));
+        assert!(ty(&|t| t["rulesets"] = json!(["tt.ghost"])).contains("not a ruleset of this pack"));
+        assert!(ty(&|t| t["viewpoints"][1]["rulesets"] = json!(["nodot"])).contains("not a ruleset id"));
+        assert!(ty(&|t| t["discipline"] = json!("Two Words")).contains("`discipline`"));
+        assert!(ty(&|t| t["id"] = json!("tt.start")).contains("unique across"));
+        // A ruleset of another pack is checked when a document is made.
+        let mut v = pack();
+        v["templates"][0]["rulesets"] = json!(["drawing.tidy"]);
         assert!(load_json(&v.to_string()).is_ok());
     }
 

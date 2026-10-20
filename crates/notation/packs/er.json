@@ -1520,8 +1520,24 @@
   ],
   "templates": [
     {
+      "id": "er.diagram",
+      "label": "Entity Relationship Diagram",
+      "description": "Entities and their relationships as a conceptual, logical or physical data model, in crow's foot, Chen, Barker or IDEF1X notation.",
+      "discipline": "data",
+      "keywords": ["database", "schema", "table", "entity", "crow's foot", "data model", "conceptual", "logical", "physical"],
+      "viewpoint": "er.Physical",
+      "viewpoints": [{"viewpoint": "er.Physical", "rulesets": ["er.physical"]}, {"viewpoint": "er.Logical", "rulesets": ["er.logical"]}, {"viewpoint": "er.Conceptual", "rulesets": ["er.conceptual"]}],
+      "variant": "er.ie",
+      "rulesets": ["er.physical"],
+      "layout": {"primitive": "er"},
+      "codeForms": ["dbml", "mermaid.er"]
+    }
+  ],
+  "examples": [
+    {
       "id": "er.schema",
       "label": "Database schema",
+      "discipline": "data",
       "description": "Three tables with typed columns, primary and foreign keys and two crow's foot relationships.",
       "viewpoint": "er.Physical",
       "variant": "er.ie",
@@ -1718,6 +1734,7 @@
     {
       "id": "er.conceptual",
       "label": "Conceptual model",
+      "discipline": "data",
       "description": "Two entities with their attributes around them and a one-to-many relationship, drawn in Chen notation.",
       "viewpoint": "er.Conceptual",
       "variant": "er.chen",
@@ -1806,6 +1823,7 @@
     {
       "id": "er.logical",
       "label": "Logical model",
+      "discipline": "data",
       "description": "Departments, employees and their dependents with keys, a foreign key and an identifying relationship, drawn in IDEF1X (Barker is a variant away).",
       "viewpoint": "er.Logical",
       "variant": "er.idef1x",

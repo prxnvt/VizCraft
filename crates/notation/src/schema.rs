@@ -55,10 +55,14 @@ pub struct Pack {
     /// Named sets of rules a document can be held to (`flowchart.iso5807`); the first is the one
     /// a document gets when it starts using the pack.
     pub rulesets: Vec<Ruleset>,
-    /// Starting points the pack offers (see [`crate::template`]); old bare-string entries are
-    /// dropped when the pack loads.
+    /// Document types the pack offers (see [`crate::template`]): empty documents set up for a kind
+    /// of work. Old bare-string entries are dropped when the pack loads.
     #[serde(deserialize_with = "crate::template::entries")]
     pub templates: Vec<crate::template::Template>,
+    /// Examples: filled-in sample documents (Help > Examples), the same shape as a document type
+    /// plus the seed that draws them.
+    #[serde(deserialize_with = "crate::template::entries", skip_serializing_if = "Vec::is_empty")]
+    pub examples: Vec<crate::template::Template>,
     /// Pattern ids the pack supports (none yet).
     pub patterns: Vec<String>,
     /// Exporter ids the pack supports (none yet).
@@ -113,9 +117,12 @@ pub struct PackSection {
     pub rules: Vec<RuleDecl>,
     /// Rulesets added, or extended when the id exists.
     pub rulesets: Vec<Ruleset>,
-    /// Templates added.
+    /// Document types added.
     #[serde(deserialize_with = "crate::template::entries")]
     pub templates: Vec<crate::template::Template>,
+    /// Examples added.
+    #[serde(deserialize_with = "crate::template::entries")]
+    pub examples: Vec<crate::template::Template>,
 }
 
 /// A rendering variant of a pack: which glyph draws each element type and which connector type

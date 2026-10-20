@@ -189,8 +189,7 @@ fn a_fork_used_as_a_join_and_a_join_used_as_a_fork_are_reported_at_info_level() 
     }
 }
 
-const TEMPLATES: [&str; 7] =
-    ["uml.classDiagram", "uml.stateMachine", "uml.activity", "uml.useCase", "uml.component", "uml.deployment", "uml.package"];
+const TEMPLATES: [&str; 7] = ["uml.class", "uml.stateMachine", "uml.activity", "uml.useCase", "uml.component", "uml.deployment", "uml.package"];
 
 #[test]
 fn every_uml_template_exports_to_its_plantuml_golden() {
@@ -214,7 +213,7 @@ fn every_uml_template_exports_to_its_plantuml_golden() {
 #[test]
 fn mermaid_export_writes_class_and_state_pages_and_refuses_others() {
     let mut s = blank();
-    run(&mut s, "template.new", json!({"template": "uml.classDiagram"}));
+    run(&mut s, "template.new", json!({"template": "uml.class"}));
     let path = temp("class.mmd");
     run(&mut s, "file.export", json!({"path": path}));
     let text = std::fs::read_to_string(&path).unwrap();

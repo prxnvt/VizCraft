@@ -435,8 +435,33 @@
   ],
   "templates": [
     {
+      "id": "dfd.dataFlowDiagram",
+      "label": "Data Flow Diagram",
+      "description": "Processes, data stores and the external entities they exchange data with: one level of decomposition, or the context diagram.",
+      "discipline": "software",
+      "keywords": ["data flow", "dfd", "process", "store", "context", "level"],
+      "viewpoint": "dfd.Level",
+      "viewpoints": [{"viewpoint": "dfd.Level"}, {"viewpoint": "dfd.Context"}],
+      "rulesets": ["dfd.dfd"],
+      "layout": {"algorithm": "layered", "direction": "LR"}
+    },
+    {
+      "id": "dfd.threatModel",
+      "label": "Threat Model",
+      "description": "A data flow diagram with trust boundaries and a key, for finding the flows that cross a boundary.",
+      "discipline": "software",
+      "keywords": ["threat", "security", "trust boundary", "data flow", "dfd"],
+      "viewpoint": "dfd.Threat",
+      "rulesets": ["dfd.dfd"],
+      "key": true,
+      "layout": {"primitive": "nested", "direction": "LR"}
+    }
+  ],
+  "examples": [
+    {
       "id": "dfd.context",
       "label": "Context Diagram",
+      "discipline": "software",
       "description": "The system as one process with the external entities it exchanges data with.",
       "keywords": [
         "context",
@@ -542,6 +567,7 @@
     {
       "id": "dfd.threat",
       "label": "Threat Model",
+      "discipline": "software",
       "description": "A level one data flow with a trust boundary around the system, for finding flows that cross it.",
       "keywords": [
         "threat",

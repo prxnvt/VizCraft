@@ -14,8 +14,10 @@ const PER_COLUMN: usize = 3;
 
 fn menus(app: &mut CraftApp, ui: &mut egui::Ui) {
     let pal = crate::palette::for_app(app);
-    // Only the pack's own groups: the Connectors and Drawing groups belong to the palette pane.
-    let groups: Vec<crate::palette::Group> = pal.groups().filter(|g| g.id != "connectors" && g.id != "drawing").cloned().collect();
+    // Only the pack's own groups (scoped to the viewpoint as the pane is): the connector and
+    // Drawing groups belong to the palette pane.
+    let groups: Vec<crate::palette::Group> =
+        pal.groups().filter(|g| !["connectors", "drawing", crate::palette::MORE_CONNECTORS].contains(&g.id.as_str())).cloned().collect();
     ui.horizontal(|ui| {
         for column in groups.chunks(PER_COLUMN) {
             ui.vertical(|ui| {

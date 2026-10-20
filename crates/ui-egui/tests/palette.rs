@@ -67,15 +67,15 @@ fn a_flowchart_page_shows_steps_data_links_connectors_drawing() {
     let r = run(&mut h, "model.setViewpoint", json!({"viewpoint": "flowchart.Flowchart"}));
     assert_eq!(r["viewpoint"], "flowchart.Flowchart");
     let r = h.state_mut().run("ui.palette", json!({})).unwrap();
-    assert_eq!(group_labels(&r), ["Steps", "Data", "Links", "Connectors", "Drawing", "Symbols"]);
+    assert_eq!(group_labels(&r), ["Steps", "Data", "Links", "Connectors", "More connectors", "Symbols"]);
     assert_eq!(items_of(&r, "flowchart.steps")[0], "flowchart.terminator");
     assert_eq!(items_of(&r, "connectors")[0], "flowchart.flow");
     // The same report is in ui.inspect, and the rows are on screen.
     let inspect = vizcraft_ui_egui::control::inspect(h.state(), &h.ctx);
-    assert_eq!(group_labels(&inspect["palette"]), ["Steps", "Data", "Links", "Connectors", "Drawing", "Symbols"]);
+    assert_eq!(group_labels(&inspect["palette"]), ["Steps", "Data", "Links", "Connectors", "More connectors", "Symbols"]);
     h.get_by_label("Decision");
     h.get_by_label("Flow");
-    h.get_by_label("Cloud");
+    assert!(h.query_by_label("Cloud").is_none(), "the Basic primitives are not listed");
 }
 
 #[test]
@@ -100,8 +100,9 @@ fn the_viewpoint_filter_hides_a_type_outside_the_viewpoint() {
 #[test]
 fn a_pack_loaded_from_disk_appears_without_a_restart() {
     let mut h = harness(vizcraft_engine::Document::new());
-    // No view: every pack's groups are closed under the pack name, Drawing is open.
-    assert!(h.query_by_label("Cloud").is_some());
+    // No view: every pack's groups are closed under the pack name; the Basic primitives are not listed.
+    assert!(h.query_by_label("Cloud Topology").is_some());
+    assert!(h.query_by_label("Rectangle").is_none(), "the Basic primitives are not listed");
     assert!(h.query_by_label("Alpha").is_none());
     load_mini_pack();
     h.run_steps(3);
@@ -147,9 +148,9 @@ fn new_from_notation_gives_a_page_with_the_viewpoint_set() {
     h.get_by_label("New").click();
     h.run_steps(3);
     h.get_by_label("Blank Drawing");
-    h.get_by_label("General");
-    // The gallery's card for the flowchart pack's blank template, then Create.
-    h.get_by_label("Blank Flowchart").click();
+    assert!(h.get_all_by_label("General").count() >= 1, "the General discipline");
+    // The gallery's card for the Flowchart document type, then Create.
+    h.get_all_by_label("Flowchart").find(|n| n.rect().height() > 150.0).expect("the Flowchart card").click();
     h.run_steps(3);
     h.get_by_label("Create").click();
     h.run_steps(4);
@@ -243,4 +244,45 @@ fn breadcrumbs_show_the_title_and_page_and_a_drill_down_owner() {
     let labels: Vec<&str> = c.iter().map(|c| c.label.as_str()).collect();
     assert_eq!(labels[1..], ["Step one", "Flowchart"], "{labels:?}");
     assert_eq!(c[1].page.as_deref(), Some(page.as_str()), "the element crumb goes to a page that draws it");
+}
+
+#[test]
+fn an_er_page_folds_the_other_notations_connectors_and_follows_the_variant() {
+    let mut h = harness(vizcraft_engine::Document::new());
+    run(&mut h, "template.new", json!({"template": "er.diagram"}));
+    let r = h.state_mut().run("ui.palette", json!({})).unwrap();
+    assert_eq!(items_of(&r, "connectors"), ["er.relationship", "er.identifying"]);
+    let more = r["groups"].as_array().unwrap().iter().find(|g| g["id"] == "moreConnectors").unwrap().clone();
+    assert_eq!((more["label"].as_str(), more["open"].as_bool()), (Some("More connectors"), Some(false)), "folded at the bottom");
+    for k in ["er.chenRelationship", "er.barkerRelationship", "er.idef1xIdentifying", "basic.line", "basic.arrow", "basic.twoWay", "basic.bus"] {
+        assert!(more["items"].as_array().unwrap().contains(&json!(k)), "{k} in {more}");
+    }
+    // The folded group is not drawn open (its rows are not on screen), but search still finds them.
+    assert!(h.query_by_label("Two-Way").is_none() && h.query_by_label("Bus").is_none(), "the drawing connectors are folded away");
+    let hits: Vec<&str> = vizcraft_ui_egui::palette::for_app(h.state()).search("chen").iter().map(|i| i.id).collect();
+    assert!(hits.contains(&"er.chenRelationship"), "{hits:?}");
+    // Switching the notation swaps what is out of the way.
+    run(&mut h, "variant.set", json!({"variant": "er.chen"}));
+    let r = h.state_mut().run("ui.palette", json!({})).unwrap();
+    assert_eq!(items_of(&r, "connectors"), ["er.chenRelationship", "er.chenIdentifying"]);
+    assert!(items_of(&r, "moreConnectors").contains(&"er.relationship".to_string()));
+}
+
+#[test]
+fn the_picker_and_the_insert_menus_offer_the_viewpoints_types() {
+    let mut h = harness(vizcraft_engine::Document::new());
+    run(&mut h, "template.new", json!({"template": "uml.classDiagram"}));
+    let shapes = |h: &Harness<'static, CraftApp>| -> Vec<String> {
+        vizcraft_ui_egui::insert_picker::items(h.state())
+            .into_iter()
+            .filter(|i| matches!(i.kind, vizcraft_ui_egui::insert_picker::ItemKind::Shape { .. }) && i.id.starts_with("uml."))
+            .map(|i| i.id)
+            .collect()
+    };
+    let class = shapes(&h);
+    assert!(class.contains(&"uml.Class".to_string()), "{class:?}");
+    assert!(!class.iter().any(|t| t == "uml.Lifeline" || t == "uml.State"), "{class:?}");
+    // With "Only this viewpoint" off the picker offers the whole pack, as the pane does.
+    run(&mut h, "ui.palette", json!({"viewpointFilter": false}));
+    assert!(shapes(&h).len() > class.len());
 }

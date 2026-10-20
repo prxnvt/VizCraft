@@ -25,7 +25,7 @@ const TILE: egui::Vec2 = egui::vec2(66.0, 66.0);
 /// A small drawing of a master's outline, fitted into `r` (document colours: it previews what
 /// the master inserts). A path glyph previews from its path: closed rings fill even-odd, open
 /// ones are lines.
-fn master_preview(painter: &egui::Painter, m: &vizcraft_stencils::Master, r: Rect) {
+pub(crate) fn master_preview(painter: &egui::Painter, m: &vizcraft_stencils::Master, r: Rect) {
     use crate::canvas::draw::{color, pos};
     // The fork and join bars are one drawing; the palette shows their flows instead.
     if let Some(join) = crate::icons::fork_join_master(m.id) {
@@ -307,13 +307,13 @@ fn search_field(app: &mut CraftApp, ui: &mut Ui) {
     }
 }
 
-/// Draw one group: a collapsing heading (open unless forced otherwise) over a list of rows, or a
-/// tile grid for the Drawing group.
+/// Draw one group: a collapsing heading (open as the group starts, unless forced otherwise) over
+/// a list of rows, or a tile grid for the Drawing group.
 fn group_body(app: &mut CraftApp, ui: &mut Ui, section: &str, g: &Group, focus: Option<&str>) {
     let forced = focus.is_some_and(|f| f == g.id || f.eq_ignore_ascii_case(&g.label)).then_some(true);
     egui::CollapsingHeader::new(egui::RichText::new(g.label.as_str()).font(semibold(12.0)))
         .id_salt(("palette-group", section, g.id.as_str()))
-        .default_open(true)
+        .default_open(g.open)
         .open(forced)
         .show_unindented(ui, |ui| {
             if g.tiles {
@@ -362,7 +362,7 @@ fn shapes(app: &mut CraftApp, ui: &mut Ui) {
         return;
     }
     let focus = app.palette_focus.take();
-    for sec in &pal.sections {
+    for sec in pal.sections.iter().filter(|s| s.id != crate::palette::DRAWING) {
         match &sec.label {
             Some(name) => {
                 let open = focus.as_deref().is_some_and(|f| f == sec.id || f.eq_ignore_ascii_case(name) || sec.groups.iter().any(|g| f == g.id)).then_some(true);

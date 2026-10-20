@@ -11,7 +11,7 @@ fn run(s: &mut Session, id: &str, v: Value) -> Value {
 
 fn classes() -> Session {
     let mut s = Session::new(Document::new());
-    run(&mut s, "template.new", json!({"template": "uml.classDiagram"}));
+    run(&mut s, "template.new", json!({"template": "uml.class"}));
     s
 }
 
