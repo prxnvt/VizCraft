@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="187.008" height="364.173" viewBox="-4.921 -4.921 187.008 364.173">
+  <path d="M0 0 L177.165 0 L177.165 354.331 L0 354.331 Z" fill="#ffffff" fill-rule="evenodd" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <text x="88.583" y="184.055" font-family="Inter, sans-serif" font-size="19.685" text-anchor="middle" fill="#1f2933">K1</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="88.583" cy="354.331" r="1.969"><title>rail</title></circle>
+  </g>
+</svg>

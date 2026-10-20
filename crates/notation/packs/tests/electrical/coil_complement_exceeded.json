@@ -1,0 +1,82 @@
+{
+ "document": {
+  "format": "vizcraft",
+  "version": 4,
+  "model": {
+   "schemaVersion": 1,
+   "packs": [
+    {
+     "id": "electrical",
+     "version": "1.0.0"
+    }
+   ],
+   "elements": [
+    {
+     "id": "a",
+     "type": "electrical.Coil",
+     "name": "",
+     "tag": "K1",
+     "properties": {
+      "complementNo": 1
+     }
+    },
+    {
+     "id": "b",
+     "type": "electrical.Contact",
+     "name": "",
+     "tag": "K1"
+    },
+    {
+     "id": "c",
+     "type": "electrical.Contact",
+     "name": "",
+     "tag": "K1"
+    }
+   ],
+   "relationships": [
+    {
+     "id": "r1",
+     "type": "electrical.ContactOf",
+     "source": "b",
+     "target": "a"
+    },
+    {
+     "id": "r2",
+     "type": "electrical.ContactOf",
+     "source": "c",
+     "target": "a"
+    }
+   ]
+  },
+  "document": {
+   "title": "",
+   "pages": [
+    {
+     "id": "p1",
+     "name": "P",
+     "width": 800,
+     "height": 600,
+     "shapes": [],
+     "connectors": []
+    }
+   ]
+  }
+ },
+ "profile": {
+  "enabled": true,
+  "rulesets": [
+   "electrical.erc"
+  ],
+  "overrides": [
+   {
+    "rule": "electrical.xrefResolved",
+    "disabled": true
+   }
+  ]
+ },
+ "expect": [
+  {
+   "rule": "electrical.coilComplement"
+  }
+ ]
+}

@@ -629,6 +629,44 @@ impl<'a> Checker<'a> {
                     }
                 }
                 Check::ForeignKey { types } => self.type_list(&ctx, types),
+                Check::NetCheck { test, types, connector_type, property, peers, kinds, .. } => {
+                    if !crate::schema::NET_TESTS.contains(&test.as_str()) {
+                        self.problem(format!("{ctx}: `{}` is not a net test (one of {})", short(test), crate::schema::NET_TESTS.join(", ")));
+                    }
+                    self.type_list(&ctx, types);
+                    self.type_list(&ctx, peers);
+                    // `allowedPeers` reads `property` as a list of port ids, not a property key.
+                    if !property.is_empty() && test != "allowedPeers" {
+                        self.key(&ctx, property);
+                    }
+                    for k in self.list(&ctx, kinds) {
+                        if vizcraft_model::NetKind::from_name(k).is_none() {
+                            self.problem(format!("{ctx}: `{}` is not a net kind", short(k)));
+                        }
+                    }
+                    if !connector_type.is_empty() && !pack.connector_types.iter().any(|c| c.id == *connector_type) {
+                        self.problem(format!("{ctx}: `{}` is not a connector type of this pack", short(connector_type)));
+                    }
+                }
+                Check::ContactComplement { types, relationship } => {
+                    self.type_list(&ctx, types);
+                    self.reference(&ctx, Kind::Relationship, relationship);
+                }
+                Check::RungOutputs { types, .. } | Check::MixedSymbols { types } => self.type_list(&ctx, types),
+                Check::CableCores { types, cores } => {
+                    self.type_list(&ctx, types);
+                    self.type_list(&ctx, cores);
+                }
+                Check::DeviceNumber { types, property } => {
+                    self.type_list(&ctx, types);
+                    self.key(&ctx, property);
+                }
+                Check::PlacedOn { types, viewpoint, .. } => {
+                    self.type_list(&ctx, types);
+                    if self.pack.viewpoint(viewpoint).is_none() {
+                        self.problem(format!("{ctx}: `{}` is not a viewpoint of this pack", short(viewpoint)));
+                    }
+                }
                 Check::Unknown => self.problem(format!("{ctx}: unknown check kind (the pack needs a newer VizCraft)")),
             }
         }

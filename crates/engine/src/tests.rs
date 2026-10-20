@@ -76,7 +76,12 @@ fn registry_ids_are_unique_and_prefixed() {
                 "topology",
                 "sequence",
                 "er",
-                "uml"
+                "uml",
+                "electrical",
+                "ladder",
+                "terminal",
+                "cable",
+                "io"
             ]
             .contains(&prefix),
             "{}: unexpected prefix",
@@ -163,6 +168,10 @@ fn hostile_params_never_panic() {
         json!({"element": {}, "list": [], "text": "\u{0}\u{ffff}[", "index": "a", "from": 1.5, "to": 99999999999.0}),
         json!({"primitive": "er", "roles": {"satellites": 5}}),
         json!({"primitive": "er", "roles": {"satellites": [{"owner": "s2", "members": ["s2", "s2"]}, {"owner": 7}]}}),
+        json!({"symbols": "din", "tags": 5, "coil": "s2", "contacts": "s2", "x": 1e308, "y": -1e308, "rungs": 1e300, "spacing": -1, "width": f64::NAN}),
+        json!({"ladder": "s2", "shapes": ["s2", 5], "rung": 1e20, "format": "{page:999}{rung:x}", "strip": "s2", "count": 1e9, "first": -1e308}),
+        json!({"from": "s2", "to": "s2", "cores": 1e9, "cable": "s2", "nets": [5], "connectors": {}, "module": "s2", "channel": -1, "signal": "XX"}),
+        json!({"ids": ["s2"], "bridge": 5, "subject": "nets", "kind": "ghost", "format": "text", "page": 99, "orientation": "diagonal"}),
         nested_batches(40),
     ];
     for spec in reg.all() {

@@ -235,6 +235,24 @@ pub const NAMES: &[&str] = &[
     "steps",
     // Help > Examples
     "examples",
+    // Electrical
+    "symbolStandard",
+    "tagFormat",
+    "ladderTool",
+    "numberWires",
+    "lineWire",
+    "lineBus",
+    "lineSignal",
+    "linkCoil",
+    "terminalStrip",
+    "cable",
+    "ioAssign",
+    "footprints",
+    "wireList",
+    "cableList",
+    "terminalPlan",
+    "ioList",
+    "netlist",
 ];
 
 /// Reference size of the design grid, in points. At this size the stroke is `BASE_STROKE`.
@@ -1545,6 +1563,106 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
             pen.page(3.0, 5.0, 13.0, 17.5);
             pen.frect(5.5, 9.0, 8.5, 11.5, a);
             pen.line_c(&[(8.5, 10.25), (10.5, 10.25), (10.5, 14.0)], a);
+        }
+        // Electrical
+        "symbolStandard" => {
+            // A contact as IEC draws it beside one as JIC draws it.
+            pen.line(&[(5.0, 3.0), (5.0, 8.0)]);
+            pen.line(&[(5.0, 17.0), (5.0, 12.0), (2.5, 8.5)]);
+            pen.line_c(&[(11.0, 10.0), (13.5, 10.0)], a);
+            pen.line_c(&[(13.5, 6.5), (13.5, 13.5)], a);
+            pen.line_c(&[(15.5, 6.5), (15.5, 13.5)], a);
+            pen.line_c(&[(15.5, 10.0), (18.0, 10.0)], a);
+        }
+        "tagFormat" => {
+            // A tag label with its letters and number.
+            pen.closed(&[(2.5, 6.0), (14.0, 6.0), (17.5, 10.0), (14.0, 14.0), (2.5, 14.0)], c);
+            pen.circle(14.0, 10.0, 1.0, a);
+            pen.lines(5.0, 11.0, &[9.0, 11.0]);
+        }
+        "ladderTool" => {
+            pen.line(&[(4.0, 2.5), (4.0, 17.5)]);
+            pen.line(&[(16.0, 2.5), (16.0, 17.5)]);
+            for y in [6.0, 10.0, 14.0] {
+                pen.line_c(&[(4.0, y), (16.0, y)], a);
+            }
+        }
+        "numberWires" => {
+            // A wire with the number 12 above it.
+            pen.line(&[(2.5, 14.0), (17.5, 14.0)]);
+            pen.line_c(&[(6.5, 4.0), (6.5, 10.0)], a);
+            pen.line_c(&[(9.5, 4.0), (13.0, 4.0), (13.0, 7.0), (9.5, 7.0), (9.5, 10.0), (13.0, 10.0)], a);
+        }
+        "lineWire" => {
+            pen.line(&[(2.5, 14.0), (8.0, 14.0), (8.0, 6.0), (17.5, 6.0)]);
+            pen.circle(8.0, 14.0, 1.4, a);
+        }
+        "lineBus" => {
+            pen.frect(2.5, 8.5, 17.5, 11.5, c);
+            pen.line_c(&[(7.0, 11.5), (7.0, 17.0)], a);
+            pen.line_c(&[(13.0, 11.5), (13.0, 17.0)], a);
+        }
+        "lineSignal" => {
+            for k in 0..4 {
+                let x = 2.5 + k as f32 * 4.0;
+                pen.line(&[(x, 10.0), (x + 2.5, 10.0)]);
+            }
+            pen.line_c(&[(14.0, 6.5), (17.5, 10.0), (14.0, 13.5)], a);
+        }
+        "linkCoil" => {
+            // A contact and the coil it belongs to, joined by a dashed link.
+            pen.line(&[(4.0, 3.0), (4.0, 8.0)]);
+            pen.line(&[(4.0, 17.0), (4.0, 12.0), (1.5, 8.5)]);
+            for x in [6.0, 8.5] {
+                pen.line_c(&[(x, 10.0), (x + 1.5, 10.0)], a);
+            }
+            pen.rect(11.0, 7.0, 18.0, 13.0, c);
+        }
+        "terminalStrip" => {
+            pen.rect(6.0, 2.5, 14.0, 17.5, c);
+            for y in [5.5, 10.0, 14.5] {
+                pen.circle(10.0, y, 1.3, a);
+                pen.line(&[(2.0, y), (8.7, y)]);
+                pen.line(&[(11.3, y), (18.0, y)]);
+            }
+        }
+        "cable" => {
+            // Three cores bundled in a sheath.
+            pen.rect(5.0, 6.0, 15.0, 14.0, c);
+            for y in [8.5, 10.0, 11.5] {
+                pen.line_c(&[(2.0, y), (18.0, y)], a);
+            }
+        }
+        "ioAssign" => {
+            pen.rect(9.0, 3.0, 17.0, 17.0, c);
+            for y in [6.0, 10.0, 14.0] {
+                pen.line(&[(5.5, y), (9.0, y)]);
+            }
+            pen.line_c(&[(2.0, 10.0), (5.5, 10.0)], a);
+            pen.fill(&[(4.0, 8.0), (6.5, 10.0), (4.0, 12.0)], a);
+        }
+        "footprints" => {
+            // Device outlines standing on a rail.
+            pen.line(&[(2.0, 16.0), (18.0, 16.0)]);
+            pen.rect(3.5, 5.0, 8.5, 16.0, c);
+            pen.rect(10.0, 7.0, 16.5, 16.0, a);
+        }
+        "wireList" | "cableList" | "terminalPlan" | "ioList" => {
+            pen.page(3.0, 2.5, 15.5, 17.5);
+            pen.lines(5.5, 13.0, &[7.0, 10.0, 13.0]);
+            match name {
+                "wireList" => pen.line_c(&[(11.0, 15.5), (18.5, 15.5)], a),
+                "cableList" => pen.rect(12.0, 13.0, 18.5, 18.0, a),
+                "terminalPlan" => pen.circle(15.5, 15.5, 2.0, a),
+                _ => pen.fill(&[(12.5, 13.0), (18.5, 15.5), (12.5, 18.0)], a),
+            }
+        }
+        "netlist" => {
+            pen.circle(4.5, 5.0, 1.6, c);
+            pen.circle(15.5, 5.0, 1.6, c);
+            pen.circle(10.0, 15.0, 1.6, c);
+            pen.line_c(&[(6.0, 5.0), (14.0, 5.0)], a);
+            pen.line_c(&[(10.0, 5.0), (10.0, 13.4)], a);
         }
         _ => {
             // Fallback: a rounded tile with the first letter.

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="-5 -5 50 50">
+  <path d="M26 29.9 L20.648 29.299 L22.539 25.774 Z" fill="#ffffff" fill-rule="evenodd" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M0 20 L15 20 M15 10 L15 30 M15 16 L30 8 L30 0 M15 24 L30 32 L30 40 M24.662 29.75 L25.135 28.869 M23.324 29.6 L24.27 27.837 M21.986 29.449 L23.404 26.806 M20.648 29.299 L22.539 25.774 M26 29.9 L21.594 27.537 M37 20 C37 28.284 30.284 35 22 35 C13.716 35 7 28.284 7 20 C7 11.716 13.716 5 22 5 C30.284 5 37 11.716 37 20" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <g class="ports" fill="#c2410c">
+    <circle cx="0" cy="20" r="2"><title>B</title></circle>
+    <circle cx="30" cy="0" r="2"><title>C</title></circle>
+    <circle cx="30" cy="40" r="2"><title>E</title></circle>
+  </g>
+</svg>

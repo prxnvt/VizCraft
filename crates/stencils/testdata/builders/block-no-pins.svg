@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="88.583" height="49.213" viewBox="-4.921 -4.921 88.583 49.213">
+  <path d="M9.843 0 L68.898 0 L68.898 39.37 L9.843 39.37 Z" fill="#ffffff" fill-rule="evenodd" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <text x="39.37" y="11.614" font-family="Inter, sans-serif" font-size="7.874" text-anchor="middle" fill="#1f2933">PSU</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="39.37" cy="39.37" r="1.969"><title>1</title></circle>
+  </g>
+</svg>

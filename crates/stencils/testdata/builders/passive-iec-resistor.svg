@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="68.898" height="54.528" viewBox="-4.921 -17.717 68.898 54.528">
+  <path d="M14.764 5.413 L44.291 5.413 L44.291 14.272 L14.764 14.272 Z" fill="#ffffff" fill-rule="evenodd" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M0 9.843 L14.764 9.843 M44.291 9.843 L59.055 9.843" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="29.528" y="-3.445" font-family="Inter, sans-serif" font-size="9.843" text-anchor="middle" fill="#1f2933">R1</text>
+  <text x="29.528" y="29.675" font-family="Inter, sans-serif" font-size="8.858" text-anchor="middle" fill="#1f2933">4k7</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="0" cy="9.843" r="1.969"><title>1</title></circle>
+    <circle cx="59.055" cy="9.843" r="1.969"><title>2</title></circle>
+  </g>
+</svg>

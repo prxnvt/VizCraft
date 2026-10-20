@@ -374,10 +374,25 @@ fn labels_off(e: &Element) -> bool {
     e.prop("xrefLabel").and_then(|v| v.as_str()).is_some_and(|v| v.eq_ignore_ascii_case("off"))
 }
 
+/// Whether element `e` labels its partner `p` through a relationship whose type keeps that end
+/// unlabelled (`xrefEnds`: a coil lists its contacts in a mirror, not a location label).
+fn end_unlabelled(doc: &Document, cat: &Catalog, e: &str, p: &Partner) -> bool {
+    let Some(r) = p.relationship.as_deref().and_then(|r| doc.model.relationship(r)) else { return false };
+    match cat.relationship_type(&r.type_id).map(|(_, t)| t.xref_ends) {
+        Some(crate::schema::XrefEnds::Source) => r.source != e,
+        Some(crate::schema::XrefEnds::Target) => r.target != e,
+        _ => false,
+    }
+}
+
 /// Step 3: one location label per view of an element with partners.
 fn xref_labels(doc: &mut Document, cat: &Catalog) {
     let has_labels = doc.pages.iter().any(|p| p.shapes.iter().any(|s| s.ext.contains_key(EXT_XREF_FOR)));
-    let partners = partners(doc, cat);
+    let mut partners = partners(doc, cat);
+    for (e, list) in partners.iter_mut() {
+        list.retain(|p| !end_unlabelled(doc, cat, e, p));
+    }
+    partners.retain(|_, list| !list.is_empty());
     if partners.is_empty() && !has_labels {
         return;
     }

@@ -65,6 +65,45 @@ const CASES: &[Case] = &[
     ("texture-iso-required", "texture", &[("removal", "required"), ("value", "Ra 1.6"), ("process", "ground")]),
     ("texture-asme-prohibited", "texture", &[("standard", "asmeY14_36"), ("removal", "prohibited"), ("value", "63")]),
     ("texture-iso-lay", "texture", &[("lay", "perpendicular"), ("value", "Rz 6.3")]),
+    ("switchgear-iec-fuse", "switchgear", &[("tag", "F1")]),
+    ("switchgear-iec-breaker-3pole", "switchgear", &[("device", "breaker"), ("poles", "3"), ("tag", "Q1")]),
+    ("switchgear-jic-overload-3pole", "switchgear", &[("device", "overload"), ("poles", "3"), ("standard", "jic")]),
+    ("switchgear-ieee315-disconnect", "switchgear", &[("device", "disconnect"), ("standard", "ieee315")]),
+    ("passive-iec-resistor", "passive", &[("value", "4k7"), ("tag", "R1")]),
+    ("passive-ieee315-resistor-variable", "passive", &[("standard", "ieee315"), ("variable", "true")]),
+    ("passive-iec-capacitor-polarised", "passive", &[("component", "capacitor"), ("polarised", "true"), ("value", "10u")]),
+    ("passive-ieee315-transistor", "passive", &[("component", "transistor"), ("standard", "ieee315")]),
+    ("passive-iec-opamp", "passive", &[("component", "opamp"), ("tag", "U1")]),
+    ("passive-earth-protective", "passive", &[("component", "earth")]),
+    ("passive-iec-lamp-green", "passive", &[("component", "lamp"), ("colour", "GN"), ("tag", "P1")]),
+    ("passive-jic-lamp-red", "passive", &[("component", "lamp"), ("standard", "jic"), ("colour", "R")]),
+    ("passive-iec-horn", "passive", &[("component", "horn")]),
+    ("passive-terminal", "passive", &[("component", "terminal"), ("tag", "X1:1")]),
+    ("passive-iec-relay-51", "passive", &[("component", "meter"), ("function", "50/51")]),
+    ("machine-motor-3phase", "machine", &[("tag", "M1")]),
+    ("machine-generator-dc", "machine", &[("role", "generator"), ("current", "dc")]),
+    ("machine-transformer", "machine", &[("role", "transformer"), ("tag", "T1")]),
+    ("machine-current-transformer", "machine", &[("role", "currentTransformer")]),
+    (
+        "block-io-module",
+        "block",
+        &[("left", "8"), ("leftNames", "I0,I1,I2,I3,I4,I5,I6,I7"), ("right", "2"), ("rightNames", "L+,M"), ("title", "DI 8")],
+    ),
+    ("block-ic", "block", &[("left", "4"), ("right", "4"), ("tag", "U1")]),
+    ("block-no-pins", "block", &[("left", "0"), ("right", "0"), ("title", "PSU")]),
+    ("footprint-contactor", "footprint", &[("tag", "K1")]),
+    ("footprint-breaker-wide", "footprint", &[("width", "54"), ("height", "85"), ("tag", "Q1")]),
+    ("footprint-small", "footprint", &[("width", "6"), ("height", "60")]),
+    ("contact-iec-pushbutton", "contact", &[("actuator", "push"), ("tag", "S1")]),
+    ("contact-iec-changeover-2pole", "contact", &[("form", "co"), ("poles", "2")]),
+    ("contact-jic-emergency-nc", "contact", &[("standard", "jic"), ("form", "nc"), ("actuator", "emergency")]),
+    ("contact-iec-pressure-ondelay", "contact", &[("actuator", "pressure"), ("timing", "onDelay")]),
+    ("coil-iec-overload", "coil", &[("kind", "overload")]),
+    ("contact-jic-vertical", "contact", &[("standard", "jic"), ("direction", "vertical"), ("tag", "CR1")]),
+    ("coil-iec-horizontal", "coil", &[("direction", "horizontal"), ("tag", "K1")]),
+    ("ladder-default", "ladder", &[]),
+    ("ladder-jic-ten-by-hundred", "ladder", &[("standard", "jic"), ("first", "100"), ("increment", "1"), ("rungs", "6")]),
+    ("ladder-wide-spaced", "ladder", &[("rungs", "3"), ("spacing", "8"), ("width", "60"), ("first", "201"), ("increment", "2")]),
 ];
 
 #[test]
@@ -93,7 +132,11 @@ fn golden_svgs() {
 /// Every value of every choice parameter that picks a standard, one build per value.
 fn standard_builds(spec: &BuilderSpec) -> Vec<(String, Built)> {
     let mut out = vec![("defaults".to_string(), build(spec.name, &BTreeMap::new(), None).unwrap())];
-    for p in spec.params.iter().filter(|p| matches!(p.key, "standard" | "shapes" | "medium" | "form" | "kind" | "system" | "role")) {
+    for p in spec
+        .params
+        .iter()
+        .filter(|p| matches!(p.key, "standard" | "shapes" | "medium" | "form" | "kind" | "system" | "role" | "device" | "component" | "actuator"))
+    {
         if let ParamKind::Choice(names) = p.kind {
             for n in names {
                 let raw = params(&[(p.key, n)]);
@@ -146,6 +189,9 @@ fn contact_ports_follow_poles_and_form() {
     assert_eq!(ids(&[]), ["13", "14"]);
     assert_eq!(ids(&[("poles", "3")]), ["13", "14", "23", "24", "33", "34"]);
     assert_eq!(ids(&[("form", "nc"), ("standard", "jic")]), ["11", "12"]);
+    assert_eq!(ids(&[("form", "co"), ("poles", "2")]), ["11", "12", "14", "21", "22", "24"]);
+    assert_eq!(ids(&[("form", "co"), ("standard", "jic")]), ["11", "14", "12"]);
+    assert_eq!(ids(&[("actuator", "push")]), ["13", "14"], "an operator adds no ports");
     let b = build("valve", &params(&[("ports", "5"), ("portLabels", "iso5599")]), None).unwrap();
     assert_eq!(b.ports.iter().map(|p| p.id.as_str()).collect::<Vec<_>>(), ["1", "2", "4", "3", "5"]);
     // Bad values are clamped or defaulted with a warning, never an error.
@@ -235,6 +281,12 @@ fn every_builder_states_its_provenance_in_its_module_docs() {
         ("fcf", include_str!("fcf.rs")),
         ("weld", include_str!("weld.rs")),
         ("texture", include_str!("texture.rs")),
+        ("switchgear", include_str!("switchgear.rs")),
+        ("passive", include_str!("passive.rs")),
+        ("machine", include_str!("machine.rs")),
+        ("block", include_str!("block.rs")),
+        ("footprint", include_str!("footprint.rs")),
+        ("ladder", include_str!("ladder.rs")),
     ];
     assert_eq!(files.len(), specs().len());
     for spec in specs() {

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="93.701" height="49.213" viewBox="-7.48 -4.921 93.701 49.213">
+  <path d="M9.843 0 L9.843 14.764 M9.843 14.764 L17.717 14.764 M9.843 39.37 L9.843 24.606 M9.843 24.606 L19.193 12.303 M29.528 0 L29.528 9.843 L22.638 9.843 M49.213 0 L49.213 14.764 M49.213 14.764 L57.087 14.764 M49.213 39.37 L49.213 24.606 M49.213 24.606 L58.563 12.303 M68.898 0 L68.898 9.843 L62.008 9.843 M14.469 18.406 L17.421 18.406 M19.39 18.406 L22.343 18.406 M24.311 18.406 L27.264 18.406 M29.232 18.406 L32.185 18.406 M34.154 18.406 L37.106 18.406 M39.075 18.406 L42.028 18.406 M43.996 18.406 L46.949 18.406 M48.917 18.406 L51.87 18.406" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="12.795" y="37.205" font-family="Inter, sans-serif" font-size="7.874" text-anchor="start" fill="#1f2933">11</text>
+  <text x="6.89" y="7.677" font-family="Inter, sans-serif" font-size="7.874" text-anchor="end" fill="#1f2933">12</text>
+  <text x="32.48" y="7.677" font-family="Inter, sans-serif" font-size="7.874" text-anchor="start" fill="#1f2933">14</text>
+  <text x="52.165" y="37.205" font-family="Inter, sans-serif" font-size="7.874" text-anchor="start" fill="#1f2933">21</text>
+  <text x="46.26" y="7.677" font-family="Inter, sans-serif" font-size="7.874" text-anchor="end" fill="#1f2933">22</text>
+  <text x="71.85" y="7.677" font-family="Inter, sans-serif" font-size="7.874" text-anchor="start" fill="#1f2933">24</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="9.843" cy="39.37" r="1.969"><title>11</title></circle>
+    <circle cx="9.843" cy="0" r="1.969"><title>12</title></circle>
+    <circle cx="29.528" cy="0" r="1.969"><title>14</title></circle>
+    <circle cx="49.213" cy="39.37" r="1.969"><title>21</title></circle>
+    <circle cx="49.213" cy="0" r="1.969"><title>22</title></circle>
+    <circle cx="68.898" cy="0" r="1.969"><title>24</title></circle>
+  </g>
+</svg>

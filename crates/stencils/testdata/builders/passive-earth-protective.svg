@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="29.528" height="39.37" viewBox="-4.921 -4.921 29.528 39.37">
+  <path d="M9.843 0 L9.843 14.764 M0.984 14.764 L18.701 14.764 M3.937 19.685 L15.748 19.685 M6.89 24.606 L12.795 24.606 M19.193 18.701 C19.193 23.865 15.007 28.051 9.843 28.051 C4.678 28.051 0.492 23.865 0.492 18.701 C0.492 13.537 4.678 9.35 9.843 9.35 C15.007 9.35 19.193 13.537 19.193 18.701" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <g class="ports" fill="#c2410c">
+    <circle cx="9.843" cy="0" r="1.969"><title>PE</title></circle>
+  </g>
+</svg>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72.835" height="68.898" viewBox="-4.921 -4.921 72.835 68.898">
+  <path d="M47.244 39.37 C47.244 49.155 39.312 57.087 29.528 57.087 C19.743 57.087 11.811 49.155 11.811 39.37 C11.811 29.586 19.743 21.654 29.528 21.654 C39.312 21.654 47.244 29.586 47.244 39.37 Z" fill="#ffffff" fill-rule="evenodd" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M9.843 0 L9.843 11.811 L18.701 25.591 M29.528 0 L29.528 21.654 M49.213 0 L49.213 11.811 L40.354 25.591" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="29.528" y="40.256" font-family="Inter, sans-serif" font-size="13.78" text-anchor="middle" fill="#1f2933">M</text>
+  <text x="29.528" y="51.329" font-family="Inter, sans-serif" font-size="8.858" text-anchor="middle" fill="#1f2933">3~</text>
+  <text x="51.181" y="42.815" font-family="Inter, sans-serif" font-size="9.843" text-anchor="start" fill="#1f2933">M1</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="9.843" cy="0" r="1.969"><title>U1</title></circle>
+    <circle cx="29.528" cy="0" r="1.969"><title>V1</title></circle>
+    <circle cx="49.213" cy="0" r="1.969"><title>W1</title></circle>
+  </g>
+</svg>

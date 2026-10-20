@@ -25,7 +25,7 @@ pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("table.list", "Element List", "Model > Tables", list)
             .params(
-                r#"{"type"?: element or relationship type, "pack"?: pack id, "columns"?: [string], "filter"?: string} -> {"subject": "elements"|"relationships", "columns": [string], "ids": [id], "rows": [[string]], "count", "truncated"}; one row per element (id, type when several, tag, name, then the declared properties) or per relationship (id, type, name, source, target, then the properties); a type covers its subtypes; columns names fixed columns or property keys; filter keeps rows with a cell containing the text; at most 10000 rows"#,
+                r#"{"type"?: element or relationship type, "pack"?: pack id, "columns"?: [string], "filter"?: string, "subject"?: "nets"|"connections", "kind"?: net kind} -> {"subject": "elements"|"relationships"|"nets"|"connections", "columns": [string], "ids": [id], "rows": [[string]], "count", "truncated"}; one row per element (id, type when several, tag, name, then the declared properties) or per relationship (id, type, name, source, target, then the properties); subject nets lists one row per net (number, name, kind, pins, segments, colour, crossSection, cable, core) and connections one per wire segment (wire, from, to, colour, crossSection, page; a junction end names a pin of the same net), the net or connector ids in ids, both filtered by net kind; a type covers its subtypes; columns names fixed columns or property keys; filter keeps rows with a cell containing the text; at most 10000 rows"#,
             )
             .when(super::model::has_items),
         CommandSpec::new("table.matrix", "Relationship Matrix", "Model > Tables", matrix)
@@ -35,7 +35,7 @@ pub fn specs() -> Vec<CommandSpec> {
             .when(super::model::has_elements),
         CommandSpec::new("table.set", "Set Table Cell", "Model > Tables", set)
             .params(
-                r#"{"id": element or relationship id, "key": "name"|"tag"|property key, "value": string|number|bool|null} -> {"id", "key", "value"}; one edit of the model as a table cell shows it: name renames (and updates every view), tag retags, any other key sets that property (null or empty text removes it; text is read as a number or flag when the property is one)"#,
+                r#"{"id": element, relationship or net id, "key": "name"|"tag"|"number" (a net)|property key, "value": string|number|bool|null} -> {"id", "key", "value"}; one edit of the model as a table cell shows it: name renames (and updates every view), tag retags, any other key sets that property (null or empty text removes it; text is read as a number or flag when the property is one)"#,
             )
             .when(super::model::has_items),
         CommandSpec::new("table.toggle", "Toggle Matrix Cell", "Model > Tables", toggle)
@@ -177,6 +177,9 @@ fn build_list(s: &Session, v: &Value) -> Result<(Subject, query::Table, Option<S
 }
 
 fn list(s: &mut Session, v: &Value) -> CmdResult {
+    if let Some(subject) = net_subject(v)? {
+        return super::table_nets::list(s, subject, v);
+    }
     let (subject, t, _) = build_list(s, v)?;
     Ok(json!({
         "subject": if subject == Subject::Elements { "elements" } else { "relationships" },
@@ -250,7 +253,19 @@ fn property_value(x: &Value, key: &str, schema: Option<&PropertySchema>) -> Resu
 }
 
 fn set(s: &mut Session, v: &Value) -> CmdResult {
-    let (id, is_element) = target_of(&s.doc, id_param(v, "id")?)?;
+    let raw = id_param(v, "id")?;
+    // A wire list row is a wire segment: its cells edit the segment's net.
+    let wire_net = s.doc.pages.iter().find_map(|pg| pg.connector(raw)).filter(|c| c.relationship.is_none()).and_then(|c| c.net.clone());
+    if let Some(net) = wire_net.or_else(|| s.doc.model.net(raw).map(|n| n.id.clone())) {
+        let key = match p::req_str(v, "key")? {
+            "wire" => "number",
+            k => k,
+        }
+        .to_string();
+        let value = v.get("value").ok_or_else(|| EngineError::Params("`value` is required (null clears the cell)".into()))?.clone();
+        return super::table_nets::set(s, &net, &key, &value);
+    }
+    let (id, is_element) = target_of(&s.doc, raw)?;
     let key = p::req_str(v, "key")?.to_string();
     let value = v.get("value").ok_or_else(|| EngineError::Params("`value` is required (null clears the cell)".into()))?;
     let text = |value: &Value| match value {
@@ -376,9 +391,25 @@ fn toggle(s: &mut Session, v: &Value) -> CmdResult {
     with_sel(s, out)
 }
 
+/// The `subject` param when it names a net table (`nets`, `connections`); `elements` and
+/// `relationships` (or none) are the model lists.
+fn net_subject(v: &Value) -> Result<Option<&str>, EngineError> {
+    match opt_str(v, "subject")? {
+        None | Some("elements" | "relationships") => Ok(None),
+        Some(sub) if super::table_nets::SUBJECTS.contains(&sub) => Ok(Some(sub)),
+        Some(other) => Err(EngineError::Params(format!("`subject` must be elements, relationships, nets or connections, not `{}`", short(other)))),
+    }
+}
+
 /// The view an export or a screen shows, as columns and text rows.
 fn view_of(s: &Session, v: &Value) -> Result<View, EngineError> {
     match opt_str(v, "view")?.unwrap_or("list") {
+        "list" if net_subject(v)?.is_some() => {
+            let subject = net_subject(v)?.unwrap_or("nets");
+            let t = super::table_nets::build(&s.doc, subject, v)?;
+            let name = if subject == "nets" { "Nets" } else { "Connections" };
+            Ok(View { name: name.into(), columns: t.columns, rows: t.rows, truncated: t.truncated })
+        }
         "list" => {
             let (subject, t, type_id) = build_list(s, v)?;
             let name = type_id

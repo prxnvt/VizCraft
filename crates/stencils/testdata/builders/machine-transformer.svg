@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="59.055" height="88.583" viewBox="-4.921 -4.921 59.055 88.583">
+  <path d="M33.465 29.724 C33.465 37.335 27.295 43.504 19.685 43.504 C12.075 43.504 5.906 37.335 5.906 29.724 C5.906 22.114 12.075 15.945 19.685 15.945 C27.295 15.945 33.465 22.114 33.465 29.724 Z M33.465 49.016 C33.465 56.626 27.295 62.795 19.685 62.795 C12.075 62.795 5.906 56.626 5.906 49.016 C5.906 41.406 12.075 35.236 19.685 35.236 C27.295 35.236 33.465 41.406 33.465 49.016 Z" fill="#ffffff" fill-rule="evenodd" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M19.685 0 L19.685 15.945 M19.685 62.795 L19.685 78.74" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="37.402" y="42.815" font-family="Inter, sans-serif" font-size="9.843" text-anchor="start" fill="#1f2933">T1</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="19.685" cy="0" r="1.969"><title>1</title></circle>
+    <circle cx="19.685" cy="78.74" r="1.969"><title>2</title></circle>
+  </g>
+</svg>

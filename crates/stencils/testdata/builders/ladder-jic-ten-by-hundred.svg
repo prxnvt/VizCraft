@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="440" height="250" viewBox="-5 -5 440 250">
+  <path d="M30 20 L35 20 M425 20 L430 20 M30 60 L35 60 M425 60 L430 60 M30 100 L35 100 M425 100 L430 100 M30 140 L35 140 M425 140 L430 140 M30 180 L35 180 M425 180 L430 180 M30 220 L35 220 M425 220 L430 220" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="12" y="23.15" font-family="Inter, sans-serif" font-size="9" text-anchor="middle" fill="#1f2933">100</text>
+  <text x="12" y="63.15" font-family="Inter, sans-serif" font-size="9" text-anchor="middle" fill="#1f2933">101</text>
+  <text x="12" y="103.15" font-family="Inter, sans-serif" font-size="9" text-anchor="middle" fill="#1f2933">102</text>
+  <text x="12" y="143.15" font-family="Inter, sans-serif" font-size="9" text-anchor="middle" fill="#1f2933">103</text>
+  <text x="12" y="183.15" font-family="Inter, sans-serif" font-size="9" text-anchor="middle" fill="#1f2933">104</text>
+  <text x="12" y="223.15" font-family="Inter, sans-serif" font-size="9" text-anchor="middle" fill="#1f2933">105</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="30" cy="0" r="2"><title>L1</title></circle>
+    <circle cx="430" cy="0" r="2"><title>L2</title></circle>
+  </g>
+</svg>

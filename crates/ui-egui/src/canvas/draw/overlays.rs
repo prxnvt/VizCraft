@@ -307,5 +307,13 @@ pub fn overlay(app: &CraftApp, painter: &egui::Painter, vp: &Viewport2D, page: &
     if let Some(r) = drag.and_then(interact::marquee_rect) {
         let r = Rect::from_two_pos(vp.world_to_screen(pos(dg::Point::new(r.x0, r.y0))), vp.world_to_screen(pos(dg::Point::new(r.x1, r.y1))));
         painter.rect(r, 0.0, t.selection.gamma_multiply(0.5), Stroke::new(1.0, accent), egui::StrokeKind::Inside);
+        // The Ladder tool previews its two rails: three modules in from the left, and the right edge.
+        if let Some(interact::Drag::Ladder { .. }) = drag {
+            let m = app.session.doc.page().and_then(vizcraft_diagram::snap::module_step).unwrap_or(10.0) as f32 * vp.zoom;
+            let left = (r.left() + 3.0 * m).min(r.right());
+            for x in [left, r.right()] {
+                painter.line_segment([Pos2::new(x, r.top()), Pos2::new(x, r.bottom())], Stroke::new(2.5, accent));
+            }
+        }
     }
 }

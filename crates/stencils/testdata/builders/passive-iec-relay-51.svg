@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="49.213" height="49.213" viewBox="-4.921 -4.921 49.213 49.213">
+  <path d="M29.528 19.685 C29.528 25.121 25.121 29.528 19.685 29.528 C14.249 29.528 9.843 25.121 9.843 19.685 C9.843 14.249 14.249 9.843 19.685 9.843 C25.121 9.843 29.528 14.249 29.528 19.685 Z" fill="#ffffff" fill-rule="evenodd" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M19.685 0 L19.685 9.843 M19.685 29.528 L19.685 39.37" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="19.685" y="20.925" font-family="Inter, sans-serif" font-size="3.543" text-anchor="middle" fill="#1f2933">50/51</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="19.685" cy="0" r="1.969"><title>1</title></circle>
+    <circle cx="19.685" cy="39.37" r="1.969"><title>2</title></circle>
+  </g>
+</svg>

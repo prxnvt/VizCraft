@@ -366,6 +366,13 @@ impl<'a> Ctx<'a> {
             }
             Check::MessageOrder | Check::RepliesMatched { .. } => crate::sequence_rules::check(self.doc, rule, out),
             Check::PrimaryKey { .. } | Check::ForeignKey { .. } => crate::er_rules::check(self.doc, self.cat, pack, rule, out),
+            Check::NetCheck { .. }
+            | Check::ContactComplement { .. }
+            | Check::RungOutputs { .. }
+            | Check::MixedSymbols { .. }
+            | Check::DeviceNumber { .. }
+            | Check::CableCores { .. }
+            | Check::PlacedOn { .. } => crate::electrical_rules::check(self.doc, self.cat, pack, rule, out),
             Check::Unknown => {}
         }
     }

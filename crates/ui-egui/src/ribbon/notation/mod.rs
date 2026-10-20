@@ -16,6 +16,26 @@ groups! {
     steps,
 }
 
+mod electrical;
+
+/// The groups a pack adds after the generic notation groups while it is the active page's pack.
+/// One arm per pack.
+pub(super) fn pack_groups(pack_id: &str) -> Vec<crate::ribbon::Group> {
+    match pack_id {
+        "electrical" => electrical::groups(),
+        _ => Vec::new(),
+    }
+}
+
+/// The generic notation groups a pack's own groups replace (by label), so its tab fits. One arm
+/// per pack that needs it.
+fn pack_hides(pack_id: &str) -> &'static [&'static str] {
+    match pack_id {
+        "electrical" => electrical::HIDES,
+        _ => &[],
+    }
+}
+
 /// The pack of the active page's viewpoint.
 pub(super) fn active_pack(app: &CraftApp) -> Option<&'static Pack> {
     let vp = crate::palette::active_viewpoint(app)?;
@@ -28,6 +48,13 @@ pub(super) fn has_view(app: &CraftApp) -> bool {
 
 /// The notation tab: named after the active pack, or "Notation" while hidden.
 pub(super) fn tab(app: &CraftApp) -> Tab {
-    let name = active_pack(app).map_or("Notation", |p| p.name.as_str());
-    Tab::contextual(name, has_view, groups())
+    let pack = active_pack(app);
+    let name = pack.map_or("Notation", |p| p.name.as_str());
+    let mut all = groups();
+    if let Some(p) = pack {
+        let hides = pack_hides(&p.id);
+        all.retain(|g| !hides.contains(&g.label));
+        all.extend(pack_groups(&p.id));
+    }
+    Tab::contextual(name, has_view, all)
 }

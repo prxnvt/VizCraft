@@ -33,7 +33,7 @@ pub fn single_connector<'a>(app: &CraftApp, page: &'a Page) -> Option<&'a Connec
 /// The marquee rectangle of a drag, if it is one.
 pub fn marquee_rect(drag: &Drag) -> Option<dg::Rect> {
     match drag {
-        Drag::Marquee { from, to, .. } | Drag::TextBox { from, to } => Some(dg::Rect::from_points(*from, *to)),
+        Drag::Marquee { from, to, .. } | Drag::TextBox { from, to } | Drag::Ladder { from, to } => Some(dg::Rect::from_points(*from, *to)),
         _ => None,
     }
 }

@@ -231,6 +231,7 @@ pub fn summary(app: &CraftApp) -> Value {
             Drag::TextBox { .. } => "textBox",
             Drag::TextBlock { .. } => "textBlock",
             Drag::Wire { .. } => "wire",
+            Drag::Ladder { .. } => "ladder",
             Drag::Sequence(d) => d.name(),
         }),
         "sequence": interact::sequence::summary(app),

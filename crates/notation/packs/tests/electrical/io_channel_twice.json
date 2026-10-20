@@ -1,0 +1,76 @@
+{
+ "document": {
+  "format": "vizcraft",
+  "version": 4,
+  "model": {
+   "schemaVersion": 1,
+   "packs": [
+    {
+     "id": "electrical",
+     "version": "1.0.0"
+    }
+   ],
+   "elements": [
+    {
+     "id": "m",
+     "type": "electrical.IoModule",
+     "name": "",
+     "tag": "A1"
+    },
+    {
+     "id": "p1",
+     "type": "electrical.IoPoint",
+     "name": "",
+     "tag": "I0.1",
+     "properties": {
+      "channel": 1,
+      "address": "I0.1"
+     },
+     "owner": "m"
+    },
+    {
+     "id": "p2",
+     "type": "electrical.IoPoint",
+     "name": "",
+     "tag": "I0.2",
+     "properties": {
+      "channel": 1,
+      "address": "I0.2"
+     },
+     "owner": "m"
+    }
+   ],
+   "relationships": []
+  },
+  "document": {
+   "title": "",
+   "pages": [
+    {
+     "id": "p1",
+     "name": "P",
+     "width": 800,
+     "height": 600,
+     "shapes": [],
+     "connectors": []
+    }
+   ]
+  }
+ },
+ "profile": {
+  "enabled": true,
+  "rulesets": [
+   "electrical.erc"
+  ],
+  "overrides": [
+   {
+    "rule": "electrical.xrefResolved",
+    "disabled": true
+   }
+  ]
+ },
+ "expect": [
+  {
+   "rule": "electrical.channelOnce"
+  }
+ ]
+}

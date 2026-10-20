@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96.85" height="68.898" viewBox="-4.921 -4.921 96.85 68.898">
+  <path d="M19.685 0 L19.685 19.685 M19.685 59.055 L19.685 39.37 M19.685 39.37 L9.843 22.638 M16.24 16.24 L23.13 23.13 M16.24 23.13 L23.13 16.24 M39.37 0 L39.37 19.685 M39.37 59.055 L39.37 39.37 M39.37 39.37 L29.528 22.638 M35.925 16.24 L42.815 23.13 M35.925 23.13 L42.815 16.24 M59.055 0 L59.055 19.685 M59.055 59.055 L59.055 39.37 M59.055 39.37 L49.213 22.638 M55.61 16.24 L62.5 23.13 M55.61 23.13 L62.5 16.24 M14.764 31.004 L17.717 31.004 M19.685 31.004 L22.638 31.004 M24.606 31.004 L27.559 31.004 M29.528 31.004 L32.48 31.004 M34.449 31.004 L37.402 31.004 M39.37 31.004 L42.323 31.004 M44.291 31.004 L47.244 31.004 M49.213 31.004 L52.165 31.004" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="22.638" y="7.677" font-family="Inter, sans-serif" font-size="7.874" text-anchor="start" fill="#1f2933">1</text>
+  <text x="22.638" y="56.89" font-family="Inter, sans-serif" font-size="7.874" text-anchor="start" fill="#1f2933">2</text>
+  <text x="42.323" y="7.677" font-family="Inter, sans-serif" font-size="7.874" text-anchor="start" fill="#1f2933">3</text>
+  <text x="42.323" y="56.89" font-family="Inter, sans-serif" font-size="7.874" text-anchor="start" fill="#1f2933">4</text>
+  <text x="62.008" y="7.677" font-family="Inter, sans-serif" font-size="7.874" text-anchor="start" fill="#1f2933">5</text>
+  <text x="62.008" y="56.89" font-family="Inter, sans-serif" font-size="7.874" text-anchor="start" fill="#1f2933">6</text>
+  <text x="72.835" y="33.661" font-family="Inter, sans-serif" font-size="11.811" text-anchor="start" fill="#1f2933">Q1</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="19.685" cy="0" r="1.969"><title>1</title></circle>
+    <circle cx="19.685" cy="59.055" r="1.969"><title>2</title></circle>
+    <circle cx="39.37" cy="0" r="1.969"><title>3</title></circle>
+    <circle cx="39.37" cy="59.055" r="1.969"><title>4</title></circle>
+    <circle cx="59.055" cy="0" r="1.969"><title>5</title></circle>
+    <circle cx="59.055" cy="59.055" r="1.969"><title>6</title></circle>
+  </g>
+</svg>

@@ -117,6 +117,7 @@ pub fn sync(doc: &mut Document, before: &Document, cat: &Catalog) {
     record_packs(doc, cat);
     compartments(doc, cat);
     end_labels(doc, before, cat);
+    crate::electrical_pass::run(doc, before, cat);
     crate::sheet_pass::run(doc, cat);
     crate::nesting::owners(doc, before, cat);
 }
@@ -254,6 +255,12 @@ fn connectors(doc: &mut Document, cat: &Catalog) {
             for (ci, c) in page.connectors.iter().enumerate() {
                 // A satellite's line draws ownership, not a relationship.
                 if c.ext.contains_key(crate::satellites::EXT_SATELLITE_OF) {
+                    continue;
+                }
+                // A wire carries a net between pins, not a relationship between the devices
+                // (a wire from a contact to its coil is not the contact's link to the coil),
+                // unless its kind names a relationship type.
+                if c.net.is_some() && c.relationship.is_none() && kind_relationship(cat, &c.kind).is_none() {
                     continue;
                 }
                 let Some(g) = glue_of(&shape_el, &glyph_ports, c) else { continue };

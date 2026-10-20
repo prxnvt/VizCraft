@@ -21,6 +21,7 @@ use vizcraft_engine::cmd::data::{RowView, rows_of};
 use vizcraft_engine::cmd::inspector::{check, describe};
 
 mod columns;
+mod electrical;
 mod members;
 mod relationship;
 
@@ -296,6 +297,9 @@ fn properties_tab(app: &CraftApp, ui: &mut Ui, t: &Tokens, st: &InspectorState, 
             && let Some(el) = d["element"]["id"].as_str()
         {
             section(ui, "columns", "Columns", false, |ui| columns::section(app, ui, t, el, type_id, runs));
+        }
+        if let Some(el) = d["element"]["id"].as_str().filter(|el| electrical::applies(app, el)) {
+            section(ui, "electrical", "Electrical", false, |ui| electrical::section(app, ui, t, el, runs));
         }
         section(ui, "properties", "Properties", false, |ui| properties(app, ui, t, d, ids, rows, expert, runs));
         if d["element"].is_object() {

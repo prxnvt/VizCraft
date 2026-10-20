@@ -18,7 +18,8 @@
 //! [`ComposeCtx`] the caller supplies. So `{owner.tag}-K{n}` under an owner tagged `=F1+A2` gives
 //! `=F1+A2-K3`, and `{page}{rung:3}` on sheet 2, rung 3 gives `2003`. Context parts change only
 //! when tags are recomposed on request (`sheet.renumber`); an [`IdScope::per_owner`] scope numbers
-//! and checks uniqueness within each owner.
+//! and checks uniqueness within each owner, and an [`IdScope::number_by`] scope within each value
+//! of one property (`numberBy: "code"` numbers K1, K2 and F1 separately).
 
 use std::collections::{BTreeMap, HashSet};
 
@@ -59,6 +60,10 @@ pub struct IdScope {
     /// containment tree), so every owner has its own K1.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "is_false")]
     pub per_owner: bool,
+    /// A property key: numbers and uniqueness count among members with the same value of it
+    /// (`code`, so K1, K2 and F1 each count separately); empty for one count over the scope.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "String::is_empty")]
+    pub number_by: String,
 }
 
 fn is_false(b: &bool) -> bool {
@@ -67,7 +72,16 @@ fn is_false(b: &bool) -> bool {
 
 impl Default for IdScope {
     fn default() -> Self {
-        IdScope { id: String::new(), types: Vec::new(), format: "{n}".into(), unique: true, paired: false, auto_number: false, per_owner: false }
+        IdScope {
+            id: String::new(),
+            types: Vec::new(),
+            format: "{n}".into(),
+            unique: true,
+            paired: false,
+            auto_number: false,
+            per_owner: false,
+            number_by: String::new(),
+        }
     }
 }
 
@@ -425,11 +439,19 @@ impl<'a> Registry<'a> {
     pub fn model(&self) -> &'a Model {
         self.model
     }
-    /// The members of `scope` that share a numbering and uniqueness space with an element owned by
-    /// `owner`: every member, or with [`IdScope::per_owner`] those with the same owner.
-    fn peers(&self, scope: &IdScope, owner: Option<&str>) -> Vec<&'a Element> {
-        let all = self.members(scope);
-        if scope.per_owner { all.into_iter().filter(|m| m.owner.as_deref() == owner).collect() } else { all }
+    /// The members of `scope` that share a numbering and uniqueness space with `element`: every
+    /// member, or with [`IdScope::per_owner`] those with the same owner, and with
+    /// [`IdScope::number_by`] those with the same value of that property.
+    fn peers(&self, scope: &IdScope, element: &Element) -> Vec<&'a Element> {
+        let key = Self::group_key(scope, element);
+        self.members(scope).into_iter().filter(|m| Self::group_key(scope, m) == key).collect()
+    }
+    /// The numbering group of `element` in `scope`: its owner (per-owner scopes) and its value of
+    /// the `numberBy` property, empty parts when the scope does not group by them.
+    fn group_key(scope: &IdScope, element: &Element) -> (String, String) {
+        let owner = if scope.per_owner { element.owner.clone().unwrap_or_default() } else { String::new() };
+        let by = if scope.number_by.is_empty() { String::new() } else { element.prop(&scope.number_by).map(|v| v.display()).unwrap_or_default() };
+        (owner, by)
     }
     /// The first scope that lists `type_id`.
     pub fn scope_for(&self, type_id: &str) -> Option<&'a IdScope> {
@@ -458,8 +480,7 @@ impl<'a> Registry<'a> {
         if !format.has_number() {
             return Err(ModelError::Format(format!("auto-numbered scope `{}` has no `{{n}}` in `{}`", scope.id, scope.format)));
         }
-        let others: Vec<&Element> =
-            self.peers(scope, element.owner.as_deref()).into_iter().filter(|m| m.id != element.id || element.id.is_empty()).collect();
+        let others: Vec<&Element> = self.peers(scope, element).into_iter().filter(|m| m.id != element.id || element.id.is_empty()).collect();
         let ctx = self.ctx.map(|f| f(element)).unwrap_or_default();
         let highest = others.iter().filter_map(|m| format.number_in(&m.tag, m)).max().unwrap_or(0);
         let taken: HashSet<&str> = others.iter().map(|m| m.tag.as_str()).filter(|t| !t.is_empty()).collect();
@@ -485,8 +506,13 @@ impl<'a> Registry<'a> {
             return true;
         }
         let Some(limit) = Self::limit(scope) else { return true };
-        let owner = except.and_then(|e| self.model.element(e)).and_then(|e| e.owner.as_deref());
-        let peers = self.peers(scope, owner);
+        let peers = match except.and_then(|e| self.model.element(e)) {
+            Some(e) => self.peers(scope, e),
+            None if scope.per_owner || !scope.number_by.is_empty() => {
+                self.members(scope).into_iter().filter(|m| Self::group_key(scope, m) == (String::new(), String::new())).collect()
+            }
+            None => self.members(scope),
+        };
         let users = peers.into_iter().filter(|m| m.tag == tag && Some(m.id.as_str()) != except).count();
         users < limit
     }
@@ -501,13 +527,12 @@ impl<'a> Registry<'a> {
         }
     }
     /// Member element ids of `scope` grouped by non-empty tag (and by owner in a per-owner
-    /// scope), tags sorted, ids in model order.
-    fn by_tag(&self, scope: &IdScope) -> BTreeMap<(&'a str, &'a str), Vec<String>> {
-        let mut map: BTreeMap<(&'a str, &'a str), Vec<String>> = BTreeMap::new();
+    /// scope, by the `numberBy` value when it is set), tags sorted, ids in model order.
+    fn by_tag(&self, scope: &IdScope) -> BTreeMap<(&'a str, (String, String)), Vec<String>> {
+        let mut map: BTreeMap<(&'a str, (String, String)), Vec<String>> = BTreeMap::new();
         for m in self.members(scope) {
             if !m.tag.is_empty() {
-                let owner = if scope.per_owner { m.owner.as_deref().unwrap_or_default() } else { "" };
-                map.entry((m.tag.as_str(), owner)).or_default().push(m.id.clone());
+                map.entry((m.tag.as_str(), Self::group_key(scope, m))).or_default().push(m.id.clone());
             }
         }
         map
