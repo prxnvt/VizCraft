@@ -133,10 +133,36 @@ pub(super) fn finish(app: &mut CraftApp, from: WireEnd, to: Point, pipe: bool, z
         return;
     }
     let mut params = json!({"from": from.to_json(), "to": end.to_json()});
-    if pipe {
-        params["kind"] = json!("pipe");
+    // The armed line kind, else the page's first kind of this tool, draws the wire; with none a
+    // pipe is a plain pipe net.
+    let line = if app.line_type.is_empty() { default_line(app, pipe) } else { Some(app.line_type.clone()) };
+    match line {
+        Some(l) => params["type"] = json!(l),
+        None if pipe => params["kind"] = json!("pipe"),
+        None => {}
     }
     run(app, "wire.draw", params);
+}
+
+/// The connector kinds of the active page's pack that the Wire (`pipe` false: wire and potential
+/// nets) or Pipe tool (pipe and fluid nets) draws, those the page's viewpoint and variant hold.
+pub fn line_kinds(app: &CraftApp, pipe: bool) -> Vec<&'static vizcraft_notation::ConnectorType> {
+    let cat = vizcraft_notation::catalog();
+    let Some(vp_id) = crate::palette::active_viewpoint(app) else { return Vec::new() };
+    let Some(pack) = cat.pack(vp_id.split_once('.').map_or("", |(p, _)| p)) else { return Vec::new() };
+    let vp = pack.viewpoint(vp_id);
+    let variant = crate::palette::active_variant(app);
+    let wanted: &[&str] = if pipe { &["pipe", "fluid"] } else { &["wire", "potential"] };
+    pack.connector_types
+        .iter()
+        .filter(|k| k.net.as_deref().is_some_and(|n| wanted.contains(&n)))
+        .filter(|k| crate::palette::kind_in_scope(pack, k, vp, variant))
+        .collect()
+}
+
+/// The kind W or P draws when none is armed: the first of [`line_kinds`].
+pub fn default_line(app: &CraftApp, pipe: bool) -> Option<String> {
+    line_kinds(app, pipe).first().map(|k| k.id.clone())
 }
 
 /// The drag a press with the Wire tool starts.
@@ -212,6 +238,7 @@ pub fn ui_command(app: &mut CraftApp, id: &str, _p: &Value) -> Option<Result<Val
             app.tool = Tool::Wire { pipe };
             app.canvas.painter_from = None;
             app.connector_kind.clear();
+            app.line_type.clear();
             Ok(json!({"tool": app.tool.name()}))
         }
         "ui.rotateQuarter" => on_selection(app, "shape.rotate", json!({"turns": 1}), "rotate"),

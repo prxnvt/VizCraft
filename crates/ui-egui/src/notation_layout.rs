@@ -12,6 +12,13 @@ pub fn sequence_page(app: &CraftApp) -> bool {
     app.session.doc.page().is_some_and(|p| p.sequence.is_some())
 }
 
+/// Whether the active page is a process plant page (P&ID, PFD, loop, HVAC, plumbing, isometric).
+/// Tab and Enter do nothing there: plant items are joined by the Pipe tool and signal lines, not
+/// grown as a chain, and a line number is composed, never typed.
+pub fn process_page(app: &CraftApp) -> bool {
+    crate::palette::active_viewpoint(app).is_some_and(|v| v.starts_with("process."))
+}
+
 /// The insertion direction a template flow direction (`TB`, `LR`, ...) names.
 fn from_flow(direction: &str) -> Option<Direction> {
     match direction {

@@ -12,7 +12,7 @@ use vizcraft_model::{IdScope, Registry};
 
 use super::model::{cat, check_len};
 use super::short;
-use crate::{CmdResult, CommandSpec, EngineError, Session, p};
+use crate::{CmdResult, CommandSpec, EngineError, Session};
 
 /// Return the identity commands.
 pub fn specs() -> Vec<CommandSpec> {
@@ -21,7 +21,7 @@ pub fn specs() -> Vec<CommandSpec> {
             r#"{"pack"?: pack id} -> {"scopes": [{"id", "types", "format", "numberBy", "unique", "paired", "autoNumber", "perOwner", "packFormat", "packNumberBy", "overridden"}]}; every identifier scope of the loaded packs (or one pack's) as this document reads it: the pack's format and numberBy with the project's override applied; read-only"#,
         ),
         CommandSpec::new("identity.setFormat", "Set Tag Format", "Notation > Tags", set_format).params(
-            r#"{"scope": scope id, "format"?: format string or "" or null (the pack's), "numberBy"?: property key, "" (one count) or null (the pack's)} -> {"scope", "format", "numberBy", "overridden"}; the project's own format or numbering group for the scope, one undo step; a format must parse and an auto-numbered scope's must hold {n}; at most 64 overridden scopes"#,
+            r#"{"scope"?: scope id (none opens the Tag Formats dialog in the app), "format"?: format string or "" or null (the pack's), "numberBy"?: property key, "" (one count) or null (the pack's)} -> {"scope", "format", "numberBy", "overridden"}; the project's own format or numbering group for the scope, one undo step; a format must parse and an auto-numbered scope's must hold {n}; at most 64 overridden scopes"#,
         ),
     ]
 }
@@ -72,7 +72,13 @@ fn tri(v: &Value, k: &str) -> Result<Option<Option<String>>, EngineError> {
 }
 
 fn set_format(s: &mut Session, v: &Value) -> CmdResult {
-    let id = check_len("scope", p::req_str(v, "scope")?)?.to_string();
+    // No scope: the UI asks for the formats (the Tag Formats dialog); programmatic callers name
+    // the scope. Nothing changes.
+    let Some(id) = super::opt_str(v, "scope")? else {
+        s.ui_requests.push(json!({"open": "tagFormats"}));
+        return Ok(json!({"scope": null}));
+    };
+    let id = check_len("scope", id)?.to_string();
     let scopes = cat().scopes();
     let pack_scope = scopes.iter().find(|sc| sc.id == id).ok_or_else(|| EngineError::Params(format!("no identifier scope `{}`", short(&id))))?;
     let format = tri(v, "format")?;

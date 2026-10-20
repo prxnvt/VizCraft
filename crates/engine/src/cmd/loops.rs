@@ -44,8 +44,14 @@ pub fn specs() -> Vec<CommandSpec> {
         ),
         CommandSpec::new("loop.diagram", "Loop Diagram", "Notation > Loops", super::plant::loop_diagram).params(
             r#"{"loop": loop id or member id, "sheet"?: sheet preset id, "name"?: page name} -> {"page", "shapes": [id], "cables": [id], "terminals": [id], "channels": [id]}; a new Loop page (ISA-5.4) with Field, Junction box, Marshalling, Control room and Panel front lanes, the loop's instruments, a junction box and a marshalling cabinet with terminal strips, the cable pairs as wire nets and an I/O channel per field signal; one undo step"#,
-        ),
+        )
+        .when(has_loops),
     ]
+}
+
+/// Enabled when the model holds a loop.
+fn has_loops(s: &Session) -> Option<&'static str> {
+    if s.doc.model.elements.iter().any(|e| e.type_id == LOOP) { None } else { Some("there is no loop yet: make one with New Loop") }
 }
 
 /// The element ids a list param names (element or shape ids), checked.

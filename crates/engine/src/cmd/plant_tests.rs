@@ -286,7 +286,7 @@ fn off_page_connectors_pair_across_sheets() {
     run(&mut s, "model.delete", json!({"ids": [b]}));
     assert!(s.issues.iter().any(|i| i.rule == "process.unpairedOffPage"));
     refused(&mut s, "offpage.pair", json!({"a": a, "b": a}));
-    refused(&mut s, "offpage.place", json!({"connector": "nope", "end": "end", "toPage": first}));
+    assert!(s.run("offpage.place", &json!({"connector": "nope", "end": "end", "toPage": first})).is_err(), "no such pipe");
 }
 
 #[test]

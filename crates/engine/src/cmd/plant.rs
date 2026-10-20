@@ -44,16 +44,20 @@ pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("line.assign", "Assign Line", "Notation > Lines", line_assign).params(
             r#"{"connectors"?: [connector id] (default: the selected pipes), "net"?: net id (its pipe segments), "line"?: line element id or "new"} -> {"line", "tag", "connectors"}; the pipe segments carry that line (its number); with no line, the line they already share (to read its id), else a new one; "new" always starts a new line; one undo step when anything changes"#,
-        ),
+        )
+        .when(super::has_connectors),
         CommandSpec::new("offpage.pair", "Pair Off-page", "Notation > Lines", pair).params(
-            r#"{"a": off-page connector (element or shape id), "b": another of the same type} -> {"tag", "relationship", "net"?, "line"?}; both take one tag (a's when it is free, else the next number), a Continues relationship joins them so each shows where the other is, and their pipe nets merge into one named net; b's pipes take a's line"#,
-        ),
+            r#"{"a"?: off-page connector (element or shape id), "b"?: another of the same type} (default: the two selected) -> {"tag", "relationship", "net"?, "line"?}; both take one tag (a's when it is free, else the next number), a Continues relationship joins them so each shows where the other is, and their pipe nets merge into one named net; b's pipes take a's line"#,
+        )
+        ,
         CommandSpec::new("offpage.place", "Place Off-page", "Notation > Lines", place).params(
-            r#"{"connector": pipe connector id, "end": "start"|"end", "toPage": page id, name or index, "x"?: n, "y"?: n} -> {"a", "b", "shapes": [id, id], "tag"}; puts an off-page connector at the pipe's free end, its partner on the other page (at x, y, default the left margin at the same height) and pairs them"#,
-        ),
+            r#"{"connector"?: pipe connector id (default: the selected one), "end"?: "start"|"end" (default: its free end), "toPage"?: page id, name or index (default: the next sheet), "x"?: n, "y"?: n} -> {"a", "b", "shapes": [id, id], "tag"}; puts an off-page connector at the pipe's free end, its partner on the other page (at x, y, default the left margin at the same height) and pairs them"#,
+        )
+        .when(super::has_connectors),
         CommandSpec::new("plant.addNozzle", "Add Nozzle", "Notation > Equipment", add_nozzle).params(
-            r#"{"shape": equipment shape or element id, "side": "left"|"right"|"top"|"bottom", "at"?: 0..1 along the side (default: the middle, else the next free place), "subTag"?: string (default N1, N2, ...), "nominalDiameter"?: string} -> {"id", "shape", "tag"}; a nozzle owned by the equipment, set on that side facing out and moving with it; its tag is the equipment's and its sub-tag (V-101-N1)"#,
-        ),
+            r#"{"shape"?: equipment shape or element id (default: the selected shape), "side": "left"|"right"|"top"|"bottom", "at"?: 0..1 along the side (default: the middle, else the next free place), "subTag"?: string (default N1, N2, ...), "nominalDiameter"?: string} -> {"id", "shape", "tag"}; a nozzle owned by the equipment, set on that side facing out and moving with it; its tag is the equipment's and its sub-tag (V-101-N1)"#,
+        )
+        .when(super::has_shapes),
         CommandSpec::new("plant.numbering", "Loop Numbering", "Notation > Tags", numbering).params(
             r#"{"scheme"?: "parallel"|"serial"} -> {"scheme"}; parallel numbers loops apart per measured variable (F-101 and L-101), serial in one sequence (ANSI/ISA-5.1, Annex A); without scheme it reads the current one; setting it is one undo step"#,
         ),
@@ -161,8 +165,17 @@ fn line_assign(s: &mut Session, v: &Value) -> CmdResult {
 // ---------------------------------------------------------------- off-page pairs
 
 /// The off-page connector element `k` names, and its type.
-fn off_page(s: &Session, v: &Value, k: &str) -> Result<(String, String), EngineError> {
-    let id = check_len(k, p::req_str(v, k)?)?;
+fn off_page(s: &Session, v: &Value, k: &str, nth: usize) -> Result<(String, String), EngineError> {
+    // Without the param, the selection's `nth` shape.
+    let picked = match opt_str(v, k)? {
+        Some(id) => id.to_string(),
+        None => {
+            let page = s.doc.page();
+            let shapes: Vec<&String> = s.sel.items.iter().filter(|i| page.is_some_and(|p| p.shape(i).is_some())).collect();
+            shapes.get(nth).map(|x| (*x).clone()).ok_or_else(|| EngineError::Params(format!("select two off-page connectors, or name `{k}`")))?
+        }
+    };
+    let id = check_len(k, &picked)?;
     let e =
         element_of(&s.doc, id).and_then(|e| s.doc.model.element(&e).cloned()).filter(|e| e.type_id == PIPE_OFF_PAGE || e.type_id == SIGNAL_OFF_PAGE);
     let e = e.ok_or_else(|| EngineError::Params(format!("`{k}`: `{}` is not an off-page connector", short(id))))?;
@@ -284,8 +297,8 @@ fn pair_elements(s: &mut Session, a: &str, b: &str, ty: &str) -> Result<Value, E
 }
 
 fn pair(s: &mut Session, v: &Value) -> CmdResult {
-    let (a, ta) = off_page(s, v, "a")?;
-    let (b, tb) = off_page(s, v, "b")?;
+    let (a, ta) = off_page(s, v, "a", 0)?;
+    let (b, tb) = off_page(s, v, "b", 1)?;
     if ta != tb {
         return Err(EngineError::Params("a pipe off-page connector pairs only with another pipe one, a signal one with a signal one".into()));
     }
@@ -293,14 +306,47 @@ fn pair(s: &mut Session, v: &Value) -> CmdResult {
 }
 
 fn place(s: &mut Session, v: &Value) -> CmdResult {
-    let cid = check_len("connector", p::req_str(v, "connector")?)?.to_string();
-    let end = p::req_str(v, "end")?;
+    let here = s.doc.active_index();
+    // Without params: the selected pipe, its free end, the next sheet.
+    let cid = match opt_str(v, "connector")? {
+        Some(c) => check_len("connector", c)?.to_string(),
+        None => {
+            let page = s.doc.page();
+            s.sel
+                .items
+                .iter()
+                .find(|i| page.is_some_and(|p| p.connector(i).is_some()))
+                .cloned()
+                .ok_or_else(|| EngineError::Params("select a pipe with a free end, or name the `connector`".into()))?
+        }
+    };
+    let end = match opt_str(v, "end")? {
+        Some(e) => e.to_string(),
+        None => match s.doc.page().and_then(|p| p.connector(&cid)) {
+            Some(c) if matches!(c.end, End::Free { .. }) => "end".to_string(),
+            _ => "start".to_string(),
+        },
+    };
+    let end = end.as_str();
     if !matches!(end, "start" | "end") {
         return Err(EngineError::Params("`end` must be start or end".into()));
     }
-    let to_ref = check_len("toPage", p::req_str(v, "toPage")?)?;
-    let to = s.doc.find_page(to_ref).ok_or_else(|| EngineError::Params(format!("no page `{}`", short(to_ref))))?;
-    let here = s.doc.active_index();
+    let to = match opt_str(v, "toPage")? {
+        Some(r) => {
+            let r = check_len("toPage", r)?;
+            s.doc.find_page(r).ok_or_else(|| EngineError::Params(format!("no page `{}`", short(r))))?
+        }
+        None => s
+            .doc
+            .pages
+            .iter()
+            .enumerate()
+            .filter(|(i, p)| *i != here && !p.is_background)
+            .map(|(i, _)| i)
+            .find(|i| *i > here)
+            .or_else(|| s.doc.pages.iter().enumerate().find(|(i, p)| *i != here && !p.is_background).map(|(i, _)| i))
+            .ok_or_else(|| EngineError::Params("add another sheet for the partner first, or name `toPage`".into()))?,
+    };
     if to == here {
         return Err(EngineError::Params("`toPage` must be another page".into()));
     }
@@ -339,7 +385,12 @@ fn place(s: &mut Session, v: &Value) -> CmdResult {
 // ---------------------------------------------------------------- nozzles
 
 fn add_nozzle(s: &mut Session, v: &Value) -> CmdResult {
-    let target = check_len("shape", p::req_str(v, "shape")?)?;
+    // Without a shape, the selected one.
+    let target = match opt_str(v, "shape")? {
+        Some(t) => check_len("shape", t)?.to_string(),
+        None => s.sel.primary.clone().ok_or_else(|| EngineError::Params("select a piece of equipment, or name its `shape`".into()))?,
+    };
+    let target = target.as_str();
     let here = s.doc.active_index();
     let page = s.doc.pages.get(here).ok_or_else(|| EngineError::Failed("the document has no page".into()))?;
     // A shape on this page, or an element drawn on it.
@@ -583,8 +634,7 @@ fn table<'a>(name: &'static str, cols: &[Col], items: Vec<&'a Element>, mut cell
     out
 }
 
-/// The tags of the equipment, nozzles and off-page connectors a line's segments end on, in
-/// drawing order.
+/// The tags of the equipment and nozzles a line's segments end on, in drawing order.
 fn line_ends(doc: &Document, line: &str) -> Vec<String> {
     let mut out: Vec<String> = Vec::new();
     for pg in &doc.pages {
@@ -593,9 +643,8 @@ fn line_ends(doc: &Document, line: &str) -> Vec<String> {
                 let Some(e) = end.shape().and_then(|s| pg.shape(s)).and_then(|sh| sh.element.as_deref()).and_then(|e| doc.model.element(e)) else {
                     continue;
                 };
-                if matches!(e.type_id.as_str(), NOZZLE | PIPE_OFF_PAGE)
-                    || cat().element_type(&e.type_id).is_some_and(|(_, t)| t.extends.as_deref() == Some(EQUIPMENT))
-                {
+                // Off-page connectors only pass the line on; its ends are nozzles and equipment.
+                if e.type_id == NOZZLE || cat().element_type(&e.type_id).is_some_and(|(_, t)| t.extends.as_deref() == Some(EQUIPMENT)) {
                     let t = if e.tag.is_empty() { e.name.clone() } else { e.tag.clone() };
                     if !t.is_empty() && !out.contains(&t) {
                         out.push(t);
@@ -669,7 +718,8 @@ pub fn build_list(doc: &Document, name: &str, page: Option<usize>) -> Result<Pla
                         return Some(own);
                     }
                     let ends = line_ends(doc, &e.id);
-                    Some(if k == "from" { ends.first().cloned() } else { ends.get(1).cloned() }.unwrap_or_default())
+                    let end = if k == "from" { ends.first() } else { ends.last().filter(|_| ends.len() > 1) };
+                    Some(end.cloned().unwrap_or_default())
                 }
                 _ => None,
             })

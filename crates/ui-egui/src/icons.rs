@@ -235,6 +235,19 @@ pub const NAMES: &[&str] = &[
     "steps",
     // Help > Examples
     "examples",
+    // Process Plant > Lines, Tags, Loops, Equipment, Lists
+    "processPipe",
+    "lineKind",
+    "assignLine",
+    "offPage",
+    "pairOffPage",
+    "numbering",
+    "tagFormats",
+    "processLoop",
+    "loopTrace",
+    "loopDiagram",
+    "nozzle",
+    "plantList",
 ];
 
 /// Reference size of the design grid, in points. At this size the stroke is `BASE_STROKE`.
@@ -1545,6 +1558,96 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
             pen.page(3.0, 5.0, 13.0, 17.5);
             pen.frect(5.5, 9.0, 8.5, 11.5, a);
             pen.line_c(&[(8.5, 10.25), (10.5, 10.25), (10.5, 14.0)], a);
+        }
+        // Process Plant
+        "processPipe" => {
+            // A heavy pipe run with a valve body on it.
+            pen.line(&[(1.5, 14.0), (6.0, 14.0), (6.0, 6.0), (18.5, 6.0)]);
+            pen.line(&[(1.5, 15.0), (7.0, 15.0), (7.0, 7.0), (18.5, 7.0)]);
+            pen.fill(&[(10.0, 3.5), (10.0, 9.5), (13.0, 6.5)], a);
+            pen.fill(&[(16.0, 3.5), (16.0, 9.5), (13.0, 6.5)], a);
+        }
+        "lineKind" => {
+            // Three line looks: solid, dashed, and slashed (pneumatic).
+            pen.line(&[(2.0, 5.0), (18.0, 5.0)]);
+            for k in 0..4 {
+                let x = 2.0 + k as f32 * 4.2;
+                pen.line(&[(x, 10.0), (x + 2.5, 10.0)]);
+            }
+            pen.line(&[(2.0, 15.0), (18.0, 15.0)]);
+            pen.line_c(&[(8.0, 17.5), (10.0, 12.5)], a);
+            pen.line_c(&[(10.5, 17.5), (12.5, 12.5)], a);
+        }
+        "assignLine" => {
+            // A pipe run tagged with a line number flag.
+            pen.line(&[(2.0, 14.0), (18.0, 14.0)]);
+            pen.line_c(&[(6.0, 14.0), (6.0, 4.0)], a);
+            pen.fill(&[(6.0, 4.0), (14.0, 4.0), (14.0, 9.0), (6.0, 9.0)], a);
+        }
+        "offPage" => {
+            // A continuation arrow at the end of a pipe.
+            pen.line(&[(1.5, 10.0), (7.0, 10.0)]);
+            pen.closed(&[(7.0, 6.0), (14.0, 6.0), (18.0, 10.0), (14.0, 14.0), (7.0, 14.0)], a);
+        }
+        "pairOffPage" => {
+            // Two continuation arrows joined by a dashed link.
+            pen.closed(&[(2.0, 3.0), (7.0, 3.0), (9.5, 5.5), (7.0, 8.0), (2.0, 8.0)], c);
+            pen.closed(&[(10.5, 12.0), (15.5, 12.0), (18.0, 14.5), (15.5, 17.0), (10.5, 17.0)], c);
+            pen.dashes(9.0, 8.5, 12.0, a);
+            pen.line_c(&[(9.0, 12.0), (10.5, 14.5)], a);
+        }
+        "numbering" => {
+            // Two bubbles numbered in parallel: 1 and 1.
+            pen.circle(6.0, 10.0, 4.0, c);
+            pen.circle(14.0, 10.0, 4.0, c);
+            pen.line_c(&[(6.0, 8.0), (6.0, 12.0)], a);
+            pen.line_c(&[(14.0, 8.0), (14.0, 12.0)], a);
+        }
+        "tagFormats" => {
+            // A tag label with its composed parts.
+            pen.closed(&[(2.0, 6.0), (14.0, 6.0), (18.0, 10.0), (14.0, 14.0), (2.0, 14.0)], c);
+            pen.frect(4.0, 9.0, 7.0, 11.0, a);
+            pen.frect(8.5, 9.0, 13.0, 11.0, a);
+        }
+        "processLoop" => {
+            // A transmitter and a controller bubble on a signal line to a valve.
+            pen.circle(5.0, 5.0, 3.0, c);
+            pen.circle(15.0, 5.0, 3.0, c);
+            pen.dashes(10.0, 5.0, 5.0, a);
+            pen.line_c(&[(8.0, 5.0), (12.0, 5.0)], a);
+            pen.line_c(&[(15.0, 8.0), (15.0, 12.5)], a);
+            pen.fill(&[(11.5, 12.5), (11.5, 17.5), (15.0, 15.0)], c);
+            pen.fill(&[(18.5, 12.5), (18.5, 17.5), (15.0, 15.0)], c);
+        }
+        "loopTrace" => {
+            // A loop's chain with the path through it lit.
+            pen.circle(4.0, 10.0, 2.5, c);
+            pen.circle(10.0, 10.0, 2.5, c);
+            pen.circle(16.0, 10.0, 2.5, c);
+            pen.line_c(&[(6.5, 10.0), (7.5, 10.0)], a);
+            pen.line_c(&[(12.5, 10.0), (13.5, 10.0)], a);
+            pen.line_c(&[(2.0, 15.5), (18.0, 15.5)], a);
+        }
+        "loopDiagram" => {
+            // A sheet in lanes with a wire across them.
+            pen.rect(2.0, 3.0, 18.0, 17.0, c);
+            pen.line(&[(7.5, 3.0), (7.5, 17.0)]);
+            pen.line(&[(12.5, 3.0), (12.5, 17.0)]);
+            pen.line_c(&[(4.0, 10.0), (16.0, 10.0)], a);
+            pen.fcircle(4.0, 10.0, 1.3, a);
+        }
+        "nozzle" => {
+            // A vessel with a nozzle stub on its side.
+            pen.closed(&[(4.0, 4.0), (11.0, 4.0), (11.0, 16.0), (4.0, 16.0)], c);
+            pen.frect(11.0, 9.0, 16.0, 11.0, a);
+            pen.line_c(&[(16.0, 7.5), (16.0, 12.5)], a);
+        }
+        "plantList" => {
+            // A list with a pipe drawn in its first row.
+            pen.rect(3.0, 3.0, 17.0, 17.0, c);
+            pen.lines(3.0, 17.0, &[7.5, 11.5]);
+            pen.line_c(&[(5.0, 5.25), (15.0, 5.25)], a);
+            pen.lines(5.0, 13.0, &[14.5]);
         }
         _ => {
             // Fallback: a rounded tile with the first letter.

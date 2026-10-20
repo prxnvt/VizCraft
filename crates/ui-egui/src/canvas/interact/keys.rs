@@ -146,6 +146,9 @@ pub fn insert_next(app: &mut CraftApp, direction: Option<Direction>) -> Result<V
     if crate::notation_layout::sequence_page(app) {
         return Ok(json!({"done": false, "reason": "sequence page"}));
     }
+    if crate::notation_layout::process_page(app) {
+        return Ok(json!({"done": false, "reason": "process page"}));
+    }
     let Some(id) = single_selected_shape(app) else { return Ok(json!({"done": false})) };
     let dir = direction.unwrap_or_else(|| crate::notation_layout::flow_direction(app));
     let r = app.run("insert.next", json!({"id": id, "direction": dir.name()}))?;
@@ -159,6 +162,9 @@ pub fn insert_next(app: &mut CraftApp, direction: Option<Direction>) -> Result<V
 pub fn insert_sibling(app: &mut CraftApp) -> Result<Value, String> {
     if crate::notation_layout::sequence_page(app) {
         return Ok(json!({"done": false, "reason": "sequence page"}));
+    }
+    if crate::notation_layout::process_page(app) {
+        return Ok(json!({"done": false, "reason": "process page"}));
     }
     let Some(page) = app.session.doc.page() else { return Ok(json!({"done": false})) };
     if let [one] = app.session.sel.items.as_slice()

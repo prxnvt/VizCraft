@@ -22,6 +22,7 @@ use vizcraft_engine::cmd::inspector::{check, describe};
 
 mod columns;
 mod members;
+pub(crate) mod process;
 mod relationship;
 
 use super::{PaneSpec, Side};
@@ -256,6 +257,11 @@ fn properties_tab(app: &CraftApp, ui: &mut Ui, t: &Tokens, st: &InspectorState, 
         [one] => describe(&app.session, one).ok(),
         _ => None,
     };
+    // A pipe's line is what a process engineer edits on it, so it leads.
+    let proc = process::shown(app);
+    if let Some(w) = proc.as_ref().filter(|w| matches!(w, process::What::Line { .. })) {
+        section(ui, "process", process::title(w, app), false, |ui| process::section(app, ui, t, w, runs));
+    }
     // A sequence message is edited in the Sequence group, so it gets no Relationship section.
     if let Some((id, _)) = &extra.connector
         && !super::sequence_section::is_message(app)
@@ -281,6 +287,9 @@ fn properties_tab(app: &CraftApp, ui: &mut Ui, t: &Tokens, st: &InspectorState, 
         if let Some(sym) = &extra.symbol {
             section(ui, "symbol", "Symbol", false, |ui| symbol_section(ui, t, d, sym, runs));
         }
+    }
+    if let Some(w) = proc.as_ref().filter(|w| !matches!(w, process::What::Line { .. })) {
+        section(ui, "process", process::title(w, app), false, |ui| process::section(app, ui, t, w, runs));
     }
     if super::sequence_section::shown(app) {
         section(ui, "sequence", "Sequence", false, |ui| super::sequence_section::show(app, ui, t, runs));

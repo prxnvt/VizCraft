@@ -44,6 +44,7 @@ pub mod shape_name_dialog;
 pub mod snap_dialog;
 pub mod spelling_dialog;
 pub mod symbol_dialog;
+pub mod tag_formats_dialog;
 pub mod theme;
 pub mod valve_dialog;
 pub mod widgets;
@@ -146,7 +147,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "ui.tool",
         "Tool",
         "",
-        r#"{"tool": "pointer|area|lasso|connector|text|textBlock|formatPainter|crop|pen|highlighter|eraser|wire|pipe|steps", "from"?: id, "keep"?: bool, "kind"?: connector kind id}; kind makes the connector tool draw that kind (any other tool or no kind clears it); area is the pointer's marquee; steps numbers connectors (a click sets the next step, Shift-click clears it, Escape returns to the pointer); formatPainter copies from "from" (default: the primary selection), once unless "keep""#,
+        r#"{"tool": "pointer|area|lasso|connector|text|textBlock|formatPainter|crop|pen|highlighter|eraser|wire|pipe|steps", "from"?: id, "keep"?: bool, "kind"?: connector kind id, "line"?: connector type id (wire and pipe)}; line makes the Wire or Pipe tool draw that kind (default: the page's first kind of the tool); kind makes the connector tool draw that kind (any other tool or no kind clears it); area is the pointer's marquee; steps numbers connectors (a click sets the next step, Shift-click clears it, Escape returns to the pointer); formatPainter copies from "from" (default: the primary selection), once unless "keep""#,
     ),
     ("ui.find", "Find", "Mod+F", "{}"),
     // Engineering keys: bare letters, as in electrical CAD; they fire only while the canvas has
@@ -191,7 +192,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "ui.tables",
         "Tables",
         "",
-        r#"{"view"?: "list|matrix", "type"?: element or relationship type, "rows"?: element type, "cols"?: element type, "relationship"?: relationship type, "property"?: string, "filter"?: string} -> {"view", "type", "rows", "cols", "count"}; opens the dock on the Tables tab showing that list (type; empty is every element) or matrix"#,
+        r#"{"view"?: "list|matrix", "pack"?: pack list ("process.line", "process.instrument", ...; "" leaves pack lists), "type"?: element or relationship type, "rows"?: element type, "cols"?: element type, "relationship"?: relationship type, "property"?: string, "filter"?: string} -> {"view", "type", "rows", "cols", "count"}; opens the dock on the Tables tab showing that list (type; empty is every element) or matrix"#,
     ),
     (
         "ui.nets",
@@ -289,6 +290,13 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "Lifeline",
         "",
         r#"{"actor"?: bool} -> the sequence.addLifeline result; a lifeline (an actor with actor) right of the selected lifeline, else at the end, named Lifeline N and then edited in place"#,
+    ),
+    // Process Plant
+    (
+        "ui.loopTrace",
+        "Trace Loop",
+        "",
+        r#"{} -> the loop.trace result; selects the loop of the selection along its signal lines on this page and says in the status bar whether it is complete"#,
     ),
     (
         "ui.sequenceNote",
@@ -539,6 +547,9 @@ pub struct CraftApp {
     /// The connector kind the connector tool draws (`ui.tool {tool: "connector", kind}`); empty
     /// is the default kind.
     pub connector_kind: String,
+    /// The connector type the Wire and Pipe tools draw (`ui.tool {line}`); empty for the page's
+    /// first kind of that tool.
+    pub line_type: String,
     /// Whether the palette hides types outside the page's viewpoint (`ui.palette`).
     pub palette_filter: bool,
     /// A palette group to open on the next frame (`ui.palette {group}`).
@@ -594,6 +605,7 @@ impl CraftApp {
             tree: Default::default(),
             patterns: Default::default(),
             connector_kind: String::new(),
+            line_type: String::new(),
             palette_filter: true,
             palette_focus: None,
             backstage: false,
@@ -799,6 +811,9 @@ impl CraftApp {
         if let Some(r) = canvas::interact::wire::ui_command(self, id, p) {
             return Some(r);
         }
+        if let Some(r) = panes::process_ui_command(self, id, p) {
+            return Some(r);
+        }
         if let Some(r) = gallery::ui_command(self, id, p) {
             return Some(r);
         }
@@ -830,13 +845,21 @@ impl CraftApp {
                     self.canvas.painter_from = None;
                 }
                 self.connector_kind.clear();
+                self.line_type.clear();
+                if let (Tool::Wire { .. }, Some(l)) = (self.tool, s("line")) {
+                    if !vizcraft_notation::catalog().packs().iter().any(|p| p.connector_type(l).is_some_and(|k| k.net.is_some())) {
+                        self.tool = Tool::Pointer;
+                        return Some(Err(format!("`{}` is not a line kind", l.chars().take(64).collect::<String>())));
+                    }
+                    self.line_type = l.to_string();
+                }
                 if let (Tool::Connector, Some(k)) = (self.tool, s("kind")) {
                     if !vizcraft_notation::catalog().packs().iter().any(|p| p.connector_type(k).is_some()) {
                         return Some(Err(format!("unknown connector kind `{}`", k.chars().take(64).collect::<String>())));
                     }
                     self.connector_kind = k.to_string();
                 }
-                json!({"tool": self.tool.name(), "kind": self.connector_kind})
+                json!({"tool": self.tool.name(), "kind": self.connector_kind, "line": self.line_type})
             }
             "ui.tab" => {
                 let tab = s("tab").unwrap_or("Home");
