@@ -153,7 +153,8 @@ Returns one JSON object with everything a script needs to check its work without
 | `selected` | the selected shape and connector ids, in selection order |
 | `hover` | the id of the shape or connector under the pointer, or `null` |
 | `editing` | the id whose text is being edited in place, or `null` |
-| `dragging` | the canvas drag in progress (`marquee`, `move`, `resize`, `rotate`, `connect`, `reglue`, `wire`, `ladder`, and on a Sequence page `reorder`, `column`, `message`, `separator`), or `null` |
+| `dragging` | the canvas drag in progress (`marquee`, `move`, `resize`, `rotate`, `connect`, `reglue`, `wire`, `ladder` (`move`, `resize` and `rotate` also cover a multi-selection dragged as one body), and on a Sequence page `reorder`, `column`, `message`, `separator`), or `null` |
+| `dragIds` | the ids a move, resize or rotate drag carries (a group drag lists every selected id), or `null` |
 | `sequence` | on a Sequence page, `{active, guard, drop}`: the drag in progress, the guard being edited and the drop row, or `null` |
 | `net`, `zone` | the net under the pointer or held by a click (number and pin count), and the sheet zone under the pointer, or `null` |
 | `canvas` | the canvas rectangle in window points, `[x, y, width, height]`, or `null` before the first frame |
