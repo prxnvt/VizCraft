@@ -124,7 +124,8 @@ fn the_step_chart_grid_runs_set_step() {
     h.run_steps(4);
     let report = vizcraft_ui_egui::control::inspect(h.state(), &h.ctx);
     assert_eq!(report["inspector"]["fields"]["stepChart"]["rows"][0]["states"], json!([0, 1, 0]));
-    h.get_by_label("1A1 at step 3").click();
+    // An accessibility click: the grid cell can sit below the fold of the Inspector where a pointer click would miss it.
+    h.get_by_label("1A1 at step 3").click_accesskit();
     h.run_steps(4);
     let report = vizcraft_ui_egui::control::inspect(h.state(), &h.ctx);
     assert_eq!(report["inspector"]["fields"]["stepChart"]["rows"][0]["states"], json!([0, 1, 1]));

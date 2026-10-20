@@ -72,7 +72,7 @@ fn the_symbol_group_edits_a_contacts_poles_and_it_redraws() {
     let poles = fields["params"].as_array().unwrap().iter().find(|p| p["key"] == "poles").unwrap().clone();
     assert_eq!((poles["value"].as_f64(), poles["from"].as_str()), (Some(3.0), Some("shape")), "a free shape keeps it as its own override");
     // The reset button clears the override and the contact redraws with one pole.
-    h.get_by_label("x").click();
+    h.get_by_label("x").click_accesskit();
     h.run_steps(4);
     assert_eq!(ports(&h).len(), 2);
 }
@@ -111,7 +111,8 @@ fn wired() -> (H, String) {
 fn a_selected_connector_shows_its_net_and_opens_it_in_the_nets_tab() {
     let (mut h, net) = wired();
     assert!(h.query_all_by_value("101").count() >= 1, "the net number is shown");
-    h.get_by_label("Show in Nets").click();
+    // Accessibility clicks reach Inspector buttons below the fold, where a pointer click would miss.
+    h.get_by_label("Show in Nets").click_accesskit();
     h.run_steps(4);
     let r = h.state_mut().run("ui.dock", json!({"open": true})).unwrap();
     assert_eq!(r["tab"], "nets");

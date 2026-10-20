@@ -167,7 +167,9 @@ fn the_inspector_adds_a_terminal_and_the_tables_show_the_wire_list() {
     run(&mut h, "edit.select", json!({"ids": [r["shape"]]}));
     h.run_steps(4);
     let depth = h.state().session.undo_depth();
-    h.get_by_label("Add Terminal").click();
+    // An accessibility click: the button sits below the fold of the Inspector on a short or
+    // differently metricked window (the Linux runner), where a pointer click would miss it.
+    h.get_by_label("Add Terminal").click_accesskit();
     h.run_steps(4);
     assert_eq!(count(&h, "electrical.Terminal"), 4);
     assert_eq!(h.state().session.undo_depth(), depth + 1);
