@@ -233,6 +233,8 @@ pub const NAMES: &[&str] = &[
     "activation",
     // Steps tool
     "steps",
+    // Help > Examples
+    "examples",
 ];
 
 /// Reference size of the design grid, in points. At this size the stroke is `BASE_STROKE`.
@@ -1536,6 +1538,13 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
         "activation" => {
             pen.dashes(10.0, 1.5, 18.5, c);
             pen.frect(8.0, 5.0, 12.0, 15.0, a);
+        }
+        "examples" => {
+            // A filled-in page in front of another one.
+            pen.line(&[(6.0, 2.5), (15.0, 2.5), (15.0, 14.0)]);
+            pen.page(3.0, 5.0, 13.0, 17.5);
+            pen.frect(5.5, 9.0, 8.5, 11.5, a);
+            pen.line_c(&[(8.5, 10.25), (10.5, 10.25), (10.5, 14.0)], a);
         }
         _ => {
             // Fallback: a rounded tile with the first letter.

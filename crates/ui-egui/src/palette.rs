@@ -2,8 +2,12 @@
 //! the Palette pane and the notation tab offer for the active page.
 //!
 //! A page with a view (a viewpoint of some pack) shows that pack's palette groups first, with the
-//! types filtered by the viewpoint unless the filter is switched off, then a Connectors group
-//! (the pack's connector kinds, then the Basic ones) and a Drawing group of the Basic primitives.
+//! types filtered by the viewpoint unless the filter is switched off, then a Connectors group of
+//! the connector kinds that belong to the viewpoint and the page's notation variant, a Drawing
+//! group of the Basic primitives, and at the bottom a collapsed "More connectors" group: the
+//! pack's kinds that another of its notations draws (Chen, Barker and IDEF1X relationships on an
+//! IE page), its kinds of other viewpoints (while the filter is on) and the generic drawing
+//! connectors of the Basic pack. Those stay searchable and usable, just out of the way.
 //! A page with no view lists every pack's groups, each pack closed under its name, and Drawing
 //! open. Everything is read from the notation catalog each time, so a pack loaded at run time
 //! appears at once.
@@ -93,7 +97,12 @@ pub struct Group {
     pub items: Vec<Item>,
     /// Whether the rows are shown as a tile grid (the Drawing group) rather than a list.
     pub tiles: bool,
+    /// Whether the group starts open (the "More connectors" group starts folded).
+    pub open: bool,
 }
+
+/// Id of the folded group of connector kinds that are not the page's notation's.
+pub const MORE_CONNECTORS: &str = "moreConnectors";
 
 /// Groups shown together: a pack under its name when the page has no view, or the unnamed whole
 /// scope when it has one.
@@ -180,7 +189,7 @@ fn preview_section() -> Section {
     Section {
         id: PREVIEW_SECTION.into(),
         label: Some("Engineering symbols (preview)".into()),
-        groups: vec![Group { id: "engineering.symbols".into(), label: "Symbols".into(), items, tiles: false }],
+        groups: vec![Group { id: "engineering.symbols".into(), label: "Symbols".into(), items, tiles: false, open: true }],
         open: false,
     }
 }
@@ -205,41 +214,68 @@ fn pack_groups(cat: &'static Catalog, pack: &'static Pack, vp: Option<&Viewpoint
             }
         }
         if !items.is_empty() {
-            out.push(Group { id: g.id.clone(), label: g.label.clone(), items, tiles: false });
+            out.push(Group { id: g.id.clone(), label: g.label.clone(), items, tiles: false, open: true });
         }
     }
     out
 }
 
-/// The pack's connector kinds, then the Basic ones, each once.
-fn connector_group(cat: &'static Catalog, pack: Option<&'static Pack>) -> Option<Group> {
-    let mut items: Vec<Item> = Vec::new();
-    for p in pack.into_iter().chain(cat.pack("basic")) {
-        for t in &p.connector_types {
-            if !items.iter().any(|i| i.id == t.id) {
-                items.push(kind_item(t));
-            }
+/// Whether connector kind `k` of `pack` belongs to the page: drawn by the page's `variant` (not a
+/// kind only another of the pack's notations draws, nor the default kind of a relationship the
+/// variant draws with another kind), and, with a viewpoint, for a relationship it allows.
+pub fn kind_in_scope(pack: &Pack, k: &ConnectorType, vp: Option<&Viewpoint>, variant: &str) -> bool {
+    let active = pack.variant(variant);
+    let drawn_by_active = active.is_some_and(|v| v.connectors.values().any(|x| *x == k.id));
+    if !drawn_by_active {
+        let other = pack.variants.iter().filter(|v| v.id != variant).any(|v| v.connectors.values().any(|x| *x == k.id));
+        let replaced = k.relationship_type.as_ref().is_some_and(|r| active.is_some_and(|v| v.connectors.get(r).is_some_and(|x| *x != k.id)));
+        if other || replaced {
+            return false;
         }
     }
-    (!items.is_empty()).then(|| Group { id: "connectors".into(), label: "Connectors".into(), items, tiles: false })
+    match (vp, &k.relationship_type) {
+        (Some(v), Some(r)) => v.relationships.is_empty() || v.relationships.contains(r),
+        _ => true,
+    }
+}
+
+/// The page's connector kinds (the pack's that [`kind_in_scope`] keeps), and the folded "More
+/// connectors" group: the pack's other kinds, then the Basic ones, each once.
+fn connector_groups(cat: &'static Catalog, pack: &'static Pack, vp: Option<&Viewpoint>, variant: &str) -> (Option<Group>, Option<Group>) {
+    let (mut main, mut more): (Vec<Item>, Vec<Item>) = (Vec::new(), Vec::new());
+    for t in &pack.connector_types {
+        if kind_in_scope(pack, t, vp, variant) { main.push(kind_item(t)) } else { more.push(kind_item(t)) }
+    }
+    for t in cat.pack("basic").filter(|b| b.id != pack.id).map(|b| b.connector_types.as_slice()).unwrap_or_default() {
+        if !more.iter().chain(main.iter()).any(|i| i.id == t.id) {
+            more.push(kind_item(t));
+        }
+    }
+    let main = (!main.is_empty()).then(|| Group { id: "connectors".into(), label: "Connectors".into(), items: main, tiles: false, open: true });
+    let more =
+        (!more.is_empty()).then(|| Group { id: MORE_CONNECTORS.into(), label: "More connectors".into(), items: more, tiles: false, open: false });
+    (main, more)
 }
 
 /// The Basic primitives as a tile grid.
 fn drawing_group(cat: &'static Catalog) -> Option<Group> {
     let pack = cat.pack("basic")?;
     let items: Vec<Item> = pack.glyphs.iter().filter_map(|g| vizcraft_stencils::master(&g.id)).map(|m| master_item(cat, m, None)).collect();
-    (!items.is_empty()).then(|| Group { id: "drawing".into(), label: "Drawing".into(), items, tiles: true })
+    (!items.is_empty()).then(|| Group { id: "drawing".into(), label: "Drawing".into(), items, tiles: true, open: true })
 }
 
-/// The palette for a page showing `viewpoint` (or no view), with the viewpoint filter on or off.
-pub fn build(viewpoint: Option<&str>, filter: bool) -> Palette {
+/// The palette for a page showing `viewpoint` (or no view) drawn with rendering `variant` (empty
+/// for the default drawing), with the viewpoint filter on or off.
+pub fn build(viewpoint: Option<&str>, variant: &str, filter: bool) -> Palette {
     let cat = vizcraft_notation::catalog();
     let known = viewpoint.and_then(|v| cat.pack(v.split_once('.').map_or("", |(p, _)| p)).and_then(|p| p.viewpoint(v).map(|vp| (p, vp))));
     let mut sections = Vec::new();
     if let Some((pack, vp)) = known {
         let mut groups = if pack.id == "basic" { Vec::new() } else { pack_groups(cat, pack, filter.then_some(vp)) };
-        groups.extend(connector_group(cat, Some(pack)));
+        let (main, more) = connector_groups(cat, pack, filter.then_some(vp), variant);
+        groups.extend(main);
         groups.extend(drawing_group(cat));
+        groups.extend(more);
         sections.push(Section { id: "scope".into(), label: None, groups, open: true });
         sections.push(preview_section());
     } else {
@@ -247,7 +283,7 @@ pub fn build(viewpoint: Option<&str>, filter: bool) -> Palette {
             let mut groups = pack_groups(cat, pack, None);
             let kinds = pack.connector_types.iter().map(kind_item).collect::<Vec<_>>();
             if !kinds.is_empty() {
-                groups.push(Group { id: format!("{}.connectors", pack.id), label: "Connectors".into(), items: kinds, tiles: false });
+                groups.push(Group { id: format!("{}.connectors", pack.id), label: "Connectors".into(), items: kinds, tiles: false, open: true });
             }
             if !groups.is_empty() {
                 sections.push(Section { id: pack.id.clone(), label: Some(pack.name.clone()), groups, open: false });
@@ -261,9 +297,47 @@ pub fn build(viewpoint: Option<&str>, filter: bool) -> Palette {
     Palette { viewpoint: known.map(|(_, vp)| vp.id.clone()), sections }
 }
 
+/// The first `n` shapes the palette of a page on `viewpoint` (or no view) offers, as drawn with
+/// rendering `variant`: the pack's own types, those particular to the viewpoint before those
+/// every viewpoint of the pack shares (a UML note), else the Drawing primitives. What a document
+/// type's New page card shows.
+pub fn first_masters(viewpoint: Option<&str>, variant: &str, n: usize) -> Vec<&'static Master> {
+    let cat = vizcraft_notation::catalog();
+    let pal = build(viewpoint, variant, true);
+    // How many of its pack's viewpoints list a type: fewer is more particular.
+    let shared = |i: &Item| -> usize {
+        let Some((pack, _)) = i.type_id.and_then(|t| cat.element_type(t)) else { return usize::MAX };
+        let t = i.type_id.unwrap_or_default();
+        pack.viewpoints.iter().filter(|v| v.types.is_empty() || pack.lists(&v.types, t)).count()
+    };
+    let pick = |own: bool| -> Vec<&'static Master> {
+        let mut items: Vec<&Item> = pal
+            .groups()
+            .filter(|g| (g.id == "drawing") != own && g.id != "connectors" && g.id != MORE_CONNECTORS && g.id != "engineering.symbols")
+            .flat_map(|g| g.items.iter())
+            .filter(|i| matches!(i.what, What::Master(_)))
+            .collect();
+        if own {
+            items.sort_by_key(|i| shared(i));
+        }
+        items
+            .into_iter()
+            .filter_map(|i| if let What::Master(m) = i.what { Some(vizcraft_stencils::variant_master(m.id, variant).unwrap_or(m)) } else { None })
+            .take(n)
+            .collect()
+    };
+    let own = if pal.viewpoint.is_some() { pick(true) } else { Vec::new() };
+    if own.is_empty() { pick(false) } else { own }
+}
+
+/// The rendering variant of the active page of `app` (empty for the default drawing).
+pub fn active_variant(app: &CraftApp) -> &str {
+    app.session.doc.page().and_then(|p| p.view.as_ref()).map(|v| v.variant.as_str()).unwrap_or_default()
+}
+
 /// The palette for the active page of `app`.
 pub fn for_app(app: &CraftApp) -> Palette {
-    build(active_viewpoint(app), app.palette_filter)
+    build(active_viewpoint(app), active_variant(app), app.palette_filter)
 }
 
 impl Palette {
@@ -323,7 +397,7 @@ impl Palette {
             .iter()
             .flat_map(|s| {
                 s.groups.iter().map(move |g| {
-                    json!({"id": g.id, "label": g.label, "section": s.id, "pack": s.label,
+                    json!({"id": g.id, "label": g.label, "section": s.id, "pack": s.label, "open": g.open,
                         "items": g.items.iter().map(|i| i.id).collect::<Vec<_>>()})
                 })
             })
@@ -348,17 +422,64 @@ mod tests {
 
     #[test]
     fn a_flowchart_view_lists_steps_data_links_connectors_drawing() {
-        let p = build(Some("flowchart.Flowchart"), true);
-        assert_eq!(labels(&p), ["Steps", "Data", "Links", "Connectors", "Drawing", "Symbols"]);
+        let p = build(Some("flowchart.Flowchart"), "", true);
+        assert_eq!(labels(&p), ["Steps", "Data", "Links", "Connectors", "Drawing", "More connectors", "Symbols"]);
         let kinds: Vec<&str> = p.groups().find(|g| g.id == "connectors").unwrap().items.iter().map(|i| i.id).collect();
-        assert_eq!(kinds[0], "flowchart.flow");
-        assert!(kinds.contains(&"basic.arrow"));
+        assert_eq!(kinds, ["flowchart.flow"]);
+        let more = p.groups().find(|g| g.id == MORE_CONNECTORS).unwrap();
+        assert!(!more.open && more.items.iter().any(|i| i.id == "basic.arrow"), "the drawing connectors are out of the way");
         assert!(p.groups().find(|g| g.id == "drawing").unwrap().tiles);
+        assert!(p.search("arrow").iter().any(|i| i.id == "basic.arrow"), "and still searchable");
+    }
+
+    fn kinds(p: &Palette, group: &str) -> Vec<&'static str> {
+        p.groups().find(|g| g.id == group).map(|g| g.items.iter().map(|i| i.id).collect()).unwrap_or_default()
+    }
+
+    #[test]
+    fn an_er_page_shows_its_notations_connectors_and_folds_the_others() {
+        let ie = build(Some("er.Physical"), "er.ie", true);
+        assert_eq!(kinds(&ie, "connectors"), ["er.relationship", "er.identifying"]);
+        let more = kinds(&ie, MORE_CONNECTORS);
+        for k in ["er.chenRelationship", "er.barkerIdentifying", "er.idef1xRelationship", "basic.line", "basic.signal"] {
+            assert!(more.contains(&k), "{k} in {more:?}");
+        }
+        let chen = build(Some("er.Physical"), "er.chen", true);
+        assert_eq!(kinds(&chen, "connectors"), ["er.chenRelationship", "er.chenIdentifying"]);
+        assert!(kinds(&chen, MORE_CONNECTORS).contains(&"er.relationship"));
+        // The default drawing is IE's.
+        assert_eq!(kinds(&build(Some("er.Physical"), "", true), "connectors"), ["er.relationship", "er.identifying"]);
+    }
+
+    #[test]
+    fn a_uml_page_shows_its_viewpoints_kinds_unless_the_filter_is_off() {
+        let class = build(Some("uml.ClassDiagram"), "", true);
+        let main = kinds(&class, "connectors");
+        assert!(main.contains(&"uml.association") && main.contains(&"uml.directedAssociation") && main.contains(&"uml.realization"));
+        assert!(!main.contains(&"uml.transition") && !main.contains(&"uml.realizationPlain"), "{main:?}");
+        assert!(kinds(&class, MORE_CONNECTORS).contains(&"uml.transition"));
+        let lollipop = build(Some("uml.ClassDiagram"), "uml.lollipop", true);
+        assert!(kinds(&lollipop, "connectors").contains(&"uml.realizationPlain") && !kinds(&lollipop, "connectors").contains(&"uml.realization"));
+        let all = build(Some("uml.ClassDiagram"), "", false);
+        assert!(kinds(&all, "connectors").contains(&"uml.transition"), "the filter off lists every viewpoint's kinds");
+        assert!(!kinds(&all, "connectors").contains(&"uml.realizationPlain"), "but still not another notation's");
+    }
+
+    #[test]
+    fn first_masters_are_the_notations_shapes_or_the_drawing_primitives() {
+        let ids = |v: Vec<&'static Master>| v.into_iter().map(|m| m.id).collect::<Vec<_>>();
+        let flow = ids(first_masters(Some("flowchart.Flowchart"), "", 3));
+        assert_eq!(flow.len(), 3);
+        assert!(flow.iter().all(|m| m.starts_with("flowchart.")), "{flow:?}");
+        let chen = ids(first_masters(Some("er.Conceptual"), "er.chen", 6));
+        assert!(chen.iter().all(|m| m.starts_with("er.")) && !chen.is_empty(), "{chen:?}");
+        let blank = ids(first_masters(None, "", 4));
+        assert!(blank.len() == 4 && blank.iter().all(|m| m.starts_with("basic.")), "{blank:?}");
     }
 
     #[test]
     fn no_view_lists_every_pack_closed_and_drawing_open() {
-        let p = build(None, true);
+        let p = build(None, "", true);
         let flow = p.sections.iter().find(|s| s.id == "flowchart").unwrap();
         assert!(!flow.open && flow.label.as_deref() == Some("Flowchart"));
         let last = p.sections.last().unwrap();
@@ -367,7 +488,7 @@ mod tests {
 
     #[test]
     fn the_preview_section_lists_every_builder_with_a_drawing() {
-        for p in [build(None, true), build(Some("flowchart.Flowchart"), true)] {
+        for p in [build(None, "", true), build(Some("flowchart.Flowchart"), "", true)] {
             let sec = p.sections.iter().find(|s| s.id == PREVIEW_SECTION).unwrap();
             assert!(!sec.open && sec.label.as_deref() == Some("Engineering symbols (preview)"));
             let ids: Vec<&str> = sec.groups[0].items.iter().map(|i| i.id).collect();
@@ -382,7 +503,7 @@ mod tests {
 
     #[test]
     fn search_ranks_the_exact_label_first_and_finds_kinds() {
-        let p = build(Some("flowchart.Flowchart"), true);
+        let p = build(Some("flowchart.Flowchart"), "", true);
         let ids: Vec<&str> = p.search("decision").iter().map(|i| i.id).collect();
         assert_eq!(ids.first(), Some(&"flowchart.decision"));
         assert!(p.search("flow").iter().any(|i| i.id == "flowchart.flow"));

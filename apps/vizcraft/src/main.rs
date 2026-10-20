@@ -595,6 +595,10 @@ fn main() -> eframe::Result {
                 let rx = control_server::start(port, cc.egui_ctx.clone());
                 app = app.with_control(rx);
             }
+            // With no file to open the app starts on the New page; files open straight away.
+            if files.is_empty() && !sample {
+                vizcraft_ui_egui::gallery::start(&mut app);
+            }
             let mut host = App {
                 root: app,
                 restored,

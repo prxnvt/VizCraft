@@ -1051,7 +1051,7 @@
     {
       "id": "network.physicalDiagram",
       "label": "Network Diagram (physical)",
-      "description": "Sites, racks and devices with the cables between their ports, on an A3 sheet with a title block and a key.",
+      "description": "Sites, racks and devices with the cables between their ports, on a drawing sheet with a title block and a key.",
       "discipline": "infrastructure",
       "keywords": ["rack", "cabling", "physical", "devices", "ports", "site"],
       "viewpoint": "network.Physical",

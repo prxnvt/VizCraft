@@ -63,6 +63,7 @@ pub use manager::show;
 pub use model_tree::{TreeState, inspect as tree_inspect};
 pub use patterns::{PatternsState, all as all_patterns, inspect as patterns_inspect};
 pub use shapes::MasterDrag;
+pub(crate) use shapes::master_preview;
 use shapes::{palette_command, shapes_search};
 
 /// Which side of the window a pane sits on.

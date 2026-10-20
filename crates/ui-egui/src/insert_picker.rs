@@ -156,15 +156,24 @@ fn relationship_items(app: &CraftApp) -> Vec<Item> {
 }
 
 /// Every row before filtering: relationship rows for the selection, the palette types of the
-/// page's notation (its viewpoint's pack, else the packs in use, else every pack), the Drawing
-/// primitives of the Basic pack, then the patterns (the page's pack first).
+/// page's notation (its viewpoint's pack, scoped to the viewpoint as the Palette pane is while
+/// "Only this viewpoint" is on; else the packs in use, else every pack), the Drawing primitives
+/// of the Basic pack, then the patterns (the page's pack first).
 pub fn items(app: &CraftApp) -> Vec<Item> {
     let cat = vizcraft_notation::catalog();
     let doc = &app.session.doc;
-    let viewpoint_pack =
-        doc.page().and_then(|p| p.view.as_ref()).and_then(|v| v.viewpoint.split_once('.').map(|(p, _)| p.to_string())).filter(|p| !p.is_empty());
+    let viewpoint = doc.page().and_then(|p| p.view.as_ref()).map(|v| v.viewpoint.as_str()).filter(|v| !v.is_empty());
+    let viewpoint_pack = viewpoint.and_then(|v| v.split_once('.').map(|(p, _)| p.to_string())).filter(|p| !p.is_empty());
     let types: Vec<String> = match viewpoint_pack.as_deref().and_then(|p| cat.pack(p)) {
-        Some(pack) => pack.palette.iter().flat_map(|g| g.types.iter().cloned()).collect(),
+        Some(pack) => {
+            let vp = viewpoint.and_then(|v| pack.viewpoint(v)).filter(|_| app.palette_filter);
+            pack.palette
+                .iter()
+                .flat_map(|g| g.types.iter())
+                .filter(|t| vp.is_none_or(|v| v.types.is_empty() || pack.lists(&v.types, t)))
+                .cloned()
+                .collect()
+        }
         None => vizcraft_engine::suggest::types_in_use(doc),
     };
     let mut out: Vec<Item> = relationship_items(app);

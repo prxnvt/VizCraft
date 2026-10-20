@@ -1,6 +1,7 @@
-//! Pixel snapshots of the template gallery and the engineering Home tab at 1280 by 800: the New
-//! page in both themes, a search, the details panel with an ASME B sheet chosen, Add Page, and
-//! the Home tab with the engineering workspace. Same harness and rules as `snapshots.rs` (needs a
+//! Pixel snapshots of the New page and the engineering Home tab at 1280 by 800: the document
+//! types in both themes, a search, the details panel with an ASME B sheet chosen, the details of
+//! the Entity Relationship Diagram on its Conceptual viewpoint, Add Page, Help > Examples, and the
+//! Home tab with the engineering workspace. Same harness and rules as `snapshots.rs` (needs a
 //! wgpu adapter, skipped without one or with `VIZCRAFT_SKIP_SNAPSHOTS`; refresh with
 //! `UPDATE_SNAPSHOTS=1`). Previews are settled (none pending) before every snapshot.
 
@@ -82,12 +83,20 @@ fn gallery_snapshots() {
     snap(&mut results, &mut h, "gallery-search-er");
 
     let mut h = window(false);
-    run(&mut h, "ui.gallery", json!({"sheet": "asme.b", "select": "network.physical"}));
+    run(&mut h, "ui.gallery", json!({"sheet": "asme.b", "select": "network.physicalDiagram"}));
     snap(&mut results, &mut h, "gallery-details-network-asme-b");
+
+    let mut h = window(false);
+    run(&mut h, "ui.gallery", json!({"select": "er.diagram", "viewpoint": "er.Conceptual"}));
+    snap(&mut results, &mut h, "gallery-details-er-conceptual");
 
     let mut h = window(false);
     run(&mut h, "ui.gallery", json!({"mode": "page"}));
     snap(&mut results, &mut h, "gallery-add-page");
+
+    let mut h = window(false);
+    run(&mut h, "ui.gallery", json!({"mode": "examples"}));
+    snap(&mut results, &mut h, "gallery-examples");
 
     let mut h = window(false);
     run(&mut h, "ui.preset", json!({"name": "engineering"}));
