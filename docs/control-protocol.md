@@ -132,10 +132,11 @@ Returns one JSON object with everything a script needs to check its work without
 | `undoLabel`, `redoLabel` | the label of the next undo or redo step, or `null` |
 | `status` | the current status-bar message, or `null` |
 | `perf` | `{"frameMs": ...}`, how long the last layout took |
-| `tool` | the canvas tool: `pointer`, `connector` or `text` (set with `ui.tool`; `ui.tool {tool: "connector", kind}` also picks the connector kind) |
+| `tool` | the canvas tool: `pointer`, `connector`, `text`, `wire`, `pipe` or `ladder` (set with `ui.tool`; `ui.tool {tool: "connector", kind}` also picks the connector kind; `ui.tool {tool: "wire" or "pipe", line}` arms a connector type id for the wire and pipe tools, and the reply adds `line`; with no line armed, W and P use the active pack's first connector type with a matching net) |
+| `tables` | the Tables dock view: `subject` (`elements`, `relationships`, `nets` or `connections`) and `kind` (set with `ui.tables {subject?, kind?}`) |
 | `tree` | the Model Tree pane: `mode` (`model` or `context`), `branch`, `expanded`, `collapsed`, `selected`, `relationships` (the relationship rows shown) (set with `ui.tree`) |
 | `palette` | the Palette pane: its query, groups and the rows shown (set with `ui.palette`) |
-| `inspector` | the Inspector pane: `open`, `mode` (`standard` or `expert`), `tab` (`properties` or `format`), and `fields` with the `symbol`, `sheet`, `zone` and `sequence` (`{activations, row, columnGap, selected}`), `relationship`, `members` and `columns` groups when shown (set with `ui.inspector`) |
+| `inspector` | the Inspector pane: `open`, `mode` (`standard` or `expert`), `tab` (`properties` or `format`), and `fields` with the `symbol`, `sheet`, `zone` and `sequence` (`{activations, row, columnGap, selected}`), `relationship`, `members`, `columns` and `electrical` (designation parts, the coil's contacts, the terminal grid, a cable's cores) groups when shown (set with `ui.inspector`) |
 | `dock` | the bottom dock: `open`, `height`, `tab` (`problems`, `search`, `activity`, `tables`, `generate`, `nets`, `analysis`) and the `rows` the tab shows (set with `ui.dock`; `ui.search` fills the Search tab) |
 | `menu` | the open ribbon dropdown as `{"title", "rows": [{"label", "id", "enabled", "checked"}]}`, or `null` |
 | `gallery` | the New gallery: `open`, `mode` (`new`, `page` or `examples`), `viewpoint`, `query`, `audience`, `selected`, `shown`, `pending` and `failed` previews, `notice`, `workspace`, `recent`, and click rects `[x0, y0, x1, y1]` for `chips`, `cards`, `recentCards` and `buttons` (set with `ui.gallery`; `ui.preset` reads or sets the workspace preset) |
@@ -152,7 +153,7 @@ Returns one JSON object with everything a script needs to check its work without
 | `selected` | the selected shape and connector ids, in selection order |
 | `hover` | the id of the shape or connector under the pointer, or `null` |
 | `editing` | the id whose text is being edited in place, or `null` |
-| `dragging` | the canvas drag in progress (`marquee`, `move`, `resize`, `rotate`, `connect`, `reglue`, `wire`, and on a Sequence page `reorder`, `column`, `message`, `separator`), or `null` |
+| `dragging` | the canvas drag in progress (`marquee`, `move`, `resize`, `rotate`, `connect`, `reglue`, `wire`, `ladder`, and on a Sequence page `reorder`, `column`, `message`, `separator`), or `null` |
 | `sequence` | on a Sequence page, `{active, guard, drop}`: the drag in progress, the guard being edited and the drop row, or `null` |
 | `net`, `zone` | the net under the pointer or held by a click (number and pin count), and the sheet zone under the pointer, or `null` |
 | `canvas` | the canvas rectangle in window points, `[x, y, width, height]`, or `null` before the first frame |

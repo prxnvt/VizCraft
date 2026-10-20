@@ -1563,7 +1563,12 @@ templates became empty document types per discipline with the seeded samples mov
 notation first with other notations' connectors folded away and the Basic primitives left out of
 the pane, all on the owner's word after trying wave 3). Briefs and the run procedure are in
 [docs/briefs/b6e-wave4/](briefs/b6e-wave4/) (start with its README); the owner's rules are copied
-into [docs/briefs/owner-source-of-truth.md](briefs/owner-source-of-truth.md). Not started.
+into [docs/briefs/owner-source-of-truth.md](briefs/owner-source-of-truth.md);
+[lessons.md](briefs/b6e-wave4/lessons.md) holds the Block 6 lessons every wave 4 agent reads. Running
+since 2026-10-20 from `b04c20c` (main after PR #2): `b6e-electrical` merged on 2026-10-20 (two commits,
+ten document types and examples, the Ladder tool, strips, cables, I/O, lists and the netlist; it
+defines the shared `IdScope.numberBy`, `Port.netGroup`, `Check::NetCheck`, `wire.draw {type}` and
+`ui.tool {line}`); `b6e-fluidpower` finished and waits for `b6e-process`; `b6e-mechanical` running.
 
 | Branch (port) | Model | Scope |
 |---|---|---|
