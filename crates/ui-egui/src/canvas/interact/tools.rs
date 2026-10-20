@@ -44,6 +44,9 @@ pub(super) fn decide(app: &CraftApp, page: &Page, vp: &Viewport2D, at: Pos2, m: 
         Tool::Ladder => Some(Start::Drag(Drag::Ladder { from: w, to: w })),
         // Away from a picture's crop handles the Crop tool is the pointer.
         Tool::Pointer | Tool::Lasso | Tool::Crop => {
+            if let Some(d) = group_handle(app, page, vp, at, m) {
+                return Some(Start::Drag(d));
+            }
             if let Some(s) = single_shape(app, page) {
                 if near(vp, rotate_handle_world(s, zoom), at) {
                     return Some(Start::Drag(Drag::Rotate { id: s.id.clone(), to: w, snap: m.shift }));
@@ -73,6 +76,19 @@ pub(super) fn decide(app: &CraftApp, page: &Page, vp: &Viewport2D, at: Pos2, m: 
             }
         }
     }
+}
+
+/// A press on a usable handle of the frame around a multi-selection starts a group resize or
+/// rotate.
+fn group_handle(app: &CraftApp, page: &Page, vp: &Viewport2D, at: Pos2, m: Modifiers) -> Option<Drag> {
+    let g = super::group::selection(app, page)?;
+    let ok = super::group::allowed(&app.session.doc, page, &g.ids);
+    let w = point(vp.screen_to_world(at));
+    if ok.rotate && near(vp, super::group::rotate_handle_world(&g.bounds, vp.zoom), at) {
+        return Some(Drag::RotateGroup { ids: g.ids, bounds: g.bounds, to: w, snap: m.shift });
+    }
+    let i = (0..HANDLES.len()).find(|i| ok.resize[*i] && super::group::handle_world(&g.bounds, *i).is_some_and(|h| near(vp, h, at)))?;
+    Some(Drag::ResizeGroup { ids: g.ids, bounds: g.bounds, handle: i, to: w, keep_aspect: m.shift })
 }
 
 /// Smallest text box a drag draws; a shorter drag is a click (default size).

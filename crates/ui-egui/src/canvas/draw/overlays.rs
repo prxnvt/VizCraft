@@ -219,6 +219,41 @@ fn wire_overlay(app: &CraftApp, painter: &egui::Painter, vp: &Viewport2D, real: 
     }
 }
 
+/// The frame around a multi-selection with its resize and rotate handles (see
+/// `interact::group`), drawn like a single shape's and turned and scaled with a group drag in
+/// progress. Hidden while a move runs and with the Text Block tool; the locks and document
+/// protection hide the handles they stop.
+fn group_frame(app: &CraftApp, painter: &egui::Painter, vp: &Viewport2D, real: &Page, t: &Tokens) {
+    use vizcraft_diagram::arrange::rigid::Rigid;
+    let accent = t.accent;
+    let drag = app.canvas.drag.as_ref();
+    if matches!(drag, Some(Drag::Move { .. })) || app.tool == crate::Tool::TextBlock {
+        return;
+    }
+    let (ids, bounds, rigid) = match drag {
+        Some(d @ (Drag::ResizeGroup { ids, bounds, .. } | Drag::RotateGroup { ids, bounds, .. })) => {
+            (ids.clone(), *bounds, interact::group::rigid_of(real, d).unwrap_or_default())
+        }
+        _ => {
+            let Some(g) = interact::group::selection(app, real) else { return };
+            (g.ids, g.bounds, Rigid::default())
+        }
+    };
+    let ok = interact::group::allowed(&app.session.doc, real, &ids);
+    let f = interact::group::frame(&bounds, &rigid, vp.zoom);
+    let screen = |p: dg::Point| vp.world_to_screen(pos(p));
+    painter.add(egui::Shape::closed_line(f.corners.iter().map(|p| screen(*p)).collect(), Stroke::new(1.0, accent)));
+    if ok.rotate {
+        let (top, rot) = (screen(f.rotate.0), screen(f.rotate.1));
+        painter.line_segment([top, rot], Stroke::new(1.0, accent));
+        painter.circle(rot, 4.5, accent, Stroke::new(1.5, t.page));
+    }
+    for (h, _) in f.handles.iter().zip(ok.resize).filter(|(_, on)| *on) {
+        let r = Rect::from_center_size(screen(*h), vec2(7.0, 7.0));
+        painter.rect(r, 1.0, t.page, Stroke::new(1.0, accent), egui::StrokeKind::Middle);
+    }
+}
+
 /// Selection, handles, hover, connection points, connector targets and the marquee.
 pub fn overlay(app: &CraftApp, painter: &egui::Painter, vp: &Viewport2D, page: &Page, real: &Page, t: &Tokens) {
     let accent = t.accent;
@@ -298,6 +333,7 @@ pub fn overlay(app: &CraftApp, painter: &egui::Painter, vp: &Viewport2D, page: &
             }
         }
     }
+    group_frame(app, painter, vp, real, t);
     if let Some(Drag::Lasso { points, .. }) = drag
         && points.len() > 1
     {

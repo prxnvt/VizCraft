@@ -15,7 +15,8 @@
 //! - A connector among the items, or glued at both ends to shapes among them, is carried: its
 //!   bends and free ends go through the transform and its glued ends stay glued. A connector
 //!   among the items with one end glued to a shape outside them keeps that end, moves its free
-//!   end and drops its bends, so it is routed again from its ends.
+//!   end and drops its bends, so it is routed again from its ends; one glued at both ends to
+//!   shapes outside them is left alone.
 //! - On a page with a symbol grid module, each carried symbol's first pin, and each carried bend
 //!   and free end, lands on the module.
 //!
@@ -180,7 +181,9 @@ pub fn apply(page: &mut Page, ids: &[String], t: &Rigid, module: Option<f64>) ->
     for c in &mut page.connectors {
         let is_named = named.contains(c.id.as_str());
         let both_glued = glued_inside(&c.start) && glued_inside(&c.end);
-        if !is_named && !both_glued {
+        // A named connector glued at both ends to shapes that stay has nothing to move.
+        let stays = |e: &End| matches!(e, End::Glued { .. }) && !glued_inside(e);
+        if (!is_named && !both_glued) || (stays(&c.start) && stays(&c.end)) {
             continue;
         }
         if inside(&c.start) && inside(&c.end) {
@@ -266,6 +269,12 @@ mod tests {
         let out = apply(&mut p, &ids(&["a", "b"]), &Rigid::moved(50.0, 0.0), None);
         assert_eq!(out.carried, ids(&["c"]));
         assert_eq!(p.connector("c").unwrap().waypoints[0], Point::new(150.0, 10.0));
+        // Named, glued at both ends to shapes that stay: left alone.
+        let mut p = page();
+        let before = p.connector("c").cloned();
+        let out = apply(&mut p, &ids(&["c"]), &Rigid::moved(50.0, 0.0), None);
+        assert!(out.carried.is_empty() && out.rerouted.is_empty());
+        assert_eq!(p.connector("c").cloned(), before);
     }
 
     #[test]
