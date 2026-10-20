@@ -1,7 +1,8 @@
 //! Tables over nets: `table.list {subject: "nets" | "connections"}` and the same lists for
 //! `table.export`, and `table.set` on a net (its number, name or a property).
 //!
-//! The nets table has one row per net. The connections table (the wire list) has one row per
+//! Rows show numbers and device names, not ids; each row's id is in the list's `ids`. The nets
+//! table has one row per net. The connections table (the wire list) has one row per
 //! wire segment, its two ends named as `device:pin`; an end on a junction names a pin of the same
 //! net instead, taken in the order `net.members` lists them, skipping the pin at the segment's
 //! other end (a convention of ours: junctions are not devices).
@@ -87,7 +88,7 @@ pub fn build(doc: &Document, subject: &str, v: &Value) -> Result<NetTable, Engin
 }
 
 fn nets(doc: &Document, ix: &NetIndex, kind: Option<NetKind>) -> NetTable {
-    let columns = ["id", "number", "name", "kind", "pins", "segments", "colour", "crossSection", "cable", "core"].map(String::from).to_vec();
+    let columns = ["number", "name", "kind", "pins", "segments", "colour", "crossSection", "cable", "core"].map(String::from).to_vec();
     let mut t = NetTable { columns, ids: Vec::new(), rows: Vec::new(), truncated: false };
     for n in doc.model.nets.iter().filter(|n| kind.is_none_or(|k| n.kind == k)) {
         if t.rows.len() >= MAX_ROWS {
@@ -97,7 +98,6 @@ fn nets(doc: &Document, ix: &NetIndex, kind: Option<NetKind>) -> NetTable {
         let entry = ix.nets.get(&n.id);
         t.ids.push(n.id.clone());
         t.rows.push(vec![
-            n.id.clone(),
             n.number.clone(),
             n.name.clone(),
             n.kind.name().to_string(),
@@ -113,7 +113,7 @@ fn nets(doc: &Document, ix: &NetIndex, kind: Option<NetKind>) -> NetTable {
 }
 
 fn connections(doc: &Document, ix: &NetIndex, kind: Option<NetKind>) -> NetTable {
-    let columns = ["id", "wire", "from", "to", "colour", "crossSection", "page"].map(String::from).to_vec();
+    let columns = ["wire", "from", "to", "colour", "crossSection", "page"].map(String::from).to_vec();
     let mut t = NetTable { columns, ids: Vec::new(), rows: Vec::new(), truncated: false };
     for (pi, page) in doc.pages.iter().enumerate().filter(|(_, p)| !p.is_background) {
         for c in &page.connectors {
@@ -143,7 +143,6 @@ fn connections(doc: &Document, ix: &NetIndex, kind: Option<NetKind>) -> NetTable
             };
             t.ids.push(c.id.clone());
             t.rows.push(vec![
-                c.id.clone(),
                 label(net),
                 end_text(&c.start, &b),
                 end_text(&c.end, &a),
@@ -178,7 +177,9 @@ pub fn set(s: &mut Session, id: &str, key: &str, value: &Value) -> CmdResult {
     match key {
         "number" => n.number = text.clone(),
         "name" => n.name = text.clone(),
-        "id" | "kind" | "pins" | "segments" => return Err(EngineError::Params(format!("`{key}` is not edited in a table; use net.set"))),
+        "id" | "kind" | "pins" | "segments" | "from" | "to" | "page" => {
+            return Err(EngineError::Params(format!("`{key}` is not edited in a table; draw the wire again or use net.set")));
+        }
         k => {
             super::model::check_key(k)?;
             if text.is_empty() {

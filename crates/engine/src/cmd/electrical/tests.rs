@@ -228,10 +228,14 @@ fn net_lists_tables_and_the_netlist_export() {
     let t = run(&mut s, "table.list", json!({"subject": "connections", "kind": "wire"}));
     assert_eq!(t["count"], 1);
     let row = &t["rows"][0];
-    assert_eq!((row[1].as_str(), row[2].as_str(), row[3].as_str()), (Some("5"), Some("F1:1"), Some("K1:A2")));
+    assert_eq!((row[0].as_str(), row[1].as_str(), row[2].as_str()), (Some("5"), Some("F1:1"), Some("K1:A2")));
     let nets = run(&mut s, "table.list", json!({"subject": "nets"}));
     let net = nets["ids"][0].as_str().unwrap().to_string();
     one_step(&mut s, "table.set", json!({"id": net, "key": "colour", "value": "BK"}));
+    // A wire list cell edits the wire's net.
+    let wire = t["ids"][0].as_str().unwrap().to_string();
+    one_step(&mut s, "table.set", json!({"id": wire, "key": "wire", "value": "7"}));
+    run(&mut s, "net.set", json!({"net": net, "number": "5"}));
     let csv = run(&mut s, "table.export", json!({"view": "list", "subject": "connections", "format": "csv"}));
     assert!(csv["content"].as_str().unwrap().contains("F1:1"));
     let dir = std::env::temp_dir().join(format!("vizcraft-elec-{}", std::process::id()));

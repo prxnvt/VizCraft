@@ -128,7 +128,7 @@ pub(super) fn offset_end(e: &mut End, d: Point) {
 pub fn preview_page(page: &Page, drag: &Drag, zoom: f32) -> Option<Page> {
     let mut p = page.clone();
     let moving: Vec<String> = match drag {
-        Drag::Marquee { .. } | Drag::Lasso { .. } | Drag::TextBox { .. } => return None,
+        Drag::Marquee { .. } | Drag::Lasso { .. } | Drag::TextBox { .. } | Drag::Ladder { .. } => return None,
         Drag::Sequence(d) => return super::sequence::preview(page, d),
         Drag::TextBlock { id, grab, to, shift } => {
             super::text_block::preview(&mut p, id, grab, *to, *shift);
@@ -265,6 +265,7 @@ pub(super) fn finish(app: &mut CraftApp, drag: Drag, zoom: f32) {
             }
         }
         Drag::Wire { from, to, pipe } => super::wire::finish(app, from, to, pipe, zoom),
+        Drag::Ladder { from, to } => super::ladder::finish(app, from, to),
         Drag::Sequence(d) => super::sequence::finish(app, d, zoom),
         Drag::TextBox { from, to } => super::tools::add_text_box(app, from, Some(dg::Rect::from_points(from, to))),
         Drag::TextBlock { id, grab, to, shift } => super::text_block::finish(app, &id, &grab, to, shift),

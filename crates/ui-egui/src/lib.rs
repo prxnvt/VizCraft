@@ -146,7 +146,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "ui.tool",
         "Tool",
         "",
-        r#"{"tool": "pointer|area|lasso|connector|text|textBlock|formatPainter|crop|pen|highlighter|eraser|wire|pipe|steps", "from"?: id, "keep"?: bool, "kind"?: connector kind id}; kind makes the connector tool draw that kind (any other tool or no kind clears it); area is the pointer's marquee; steps numbers connectors (a click sets the next step, Shift-click clears it, Escape returns to the pointer); formatPainter copies from "from" (default: the primary selection), once unless "keep""#,
+        r#"{"tool": "pointer|area|lasso|connector|text|textBlock|formatPainter|crop|pen|highlighter|eraser|wire|pipe|steps|ladder", "from"?: id, "keep"?: bool, "kind"?: connector kind id, "line"?: connector type id}; kind makes the connector tool draw that kind (any other tool or no kind clears it); line makes the wire or pipe tool draw that connector type (with no line, the active pack's first wire or pipe type); ladder draws a ladder frame by a drag (Escape returns to the pointer); area is the pointer's marquee; steps numbers connectors (a click sets the next step, Shift-click clears it, Escape returns to the pointer); formatPainter copies from "from" (default: the primary selection), once unless "keep""#,
     ),
     ("ui.find", "Find", "Mod+F", "{}"),
     // Engineering keys: bare letters, as in electrical CAD; they fire only while the canvas has
@@ -191,7 +191,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "ui.tables",
         "Tables",
         "",
-        r#"{"view"?: "list|matrix", "type"?: element or relationship type, "rows"?: element type, "cols"?: element type, "relationship"?: relationship type, "property"?: string, "filter"?: string} -> {"view", "type", "rows", "cols", "count"}; opens the dock on the Tables tab showing that list (type; empty is every element) or matrix"#,
+        r#"{"view"?: "list|matrix", "type"?: element or relationship type, "subject"?: "nets|connections", "kind"?: net kind, "rows"?: element type, "cols"?: element type, "relationship"?: relationship type, "property"?: string, "filter"?: string} -> {"view", "type", "subject", "kind", "rows", "cols", "count"}; opens the dock on the Tables tab showing that list (type; empty is every element; subject connections with kind wire is the wire list, nets the nets) or matrix"#,
     ),
     (
         "ui.nets",
@@ -349,6 +349,9 @@ pub enum Tool {
     /// Number connectors: a click on one runs `connector.setStep` with the next free number, a
     /// Shift-click clears its step (`canvas/interact/steps.rs`).
     Steps,
+    /// Draw a ladder frame: a drag commits one `ladder.insert` sized to the rectangle
+    /// (`canvas/interact/ladder.rs`).
+    Ladder,
 }
 
 impl Tool {
@@ -368,6 +371,7 @@ impl Tool {
             Tool::Wire { pipe: false } => "wire",
             Tool::Wire { pipe: true } => "pipe",
             Tool::Steps => "steps",
+            Tool::Ladder => "ladder",
         }
     }
     /// The tool for a `ui.tool` name.
@@ -387,6 +391,7 @@ impl Tool {
             "wire" => Some(Tool::Wire { pipe: false }),
             "pipe" => Some(Tool::Wire { pipe: true }),
             "steps" => Some(Tool::Steps),
+            "ladder" => Some(Tool::Ladder),
             _ => None,
         }
     }
@@ -539,6 +544,9 @@ pub struct CraftApp {
     /// The connector kind the connector tool draws (`ui.tool {tool: "connector", kind}`); empty
     /// is the default kind.
     pub connector_kind: String,
+    /// The connector type the Wire and Pipe tools draw (`ui.tool {tool: "wire", line}`); `None`
+    /// takes the active pack's first wire (or pipe) type.
+    pub line_type: Option<String>,
     /// Whether the palette hides types outside the page's viewpoint (`ui.palette`).
     pub palette_filter: bool,
     /// A palette group to open on the next frame (`ui.palette {group}`).
@@ -594,6 +602,7 @@ impl CraftApp {
             tree: Default::default(),
             patterns: Default::default(),
             connector_kind: String::new(),
+            line_type: None,
             palette_filter: true,
             palette_focus: None,
             backstage: false,
@@ -836,7 +845,17 @@ impl CraftApp {
                     }
                     self.connector_kind = k.to_string();
                 }
-                json!({"tool": self.tool.name(), "kind": self.connector_kind})
+                self.line_type = None;
+                if let (Tool::Wire { .. }, Some(l)) = (self.tool, s("line")) {
+                    if !vizcraft_notation::catalog().packs().iter().any(|p| p.connector_type(l).is_some_and(|t| t.net.is_some())) {
+                        return Some(Err(format!(
+                            "unknown line type `{}`: give a connector type that draws a net",
+                            l.chars().take(64).collect::<String>()
+                        )));
+                    }
+                    self.line_type = Some(l.to_string());
+                }
+                json!({"tool": self.tool.name(), "kind": self.connector_kind, "line": self.line_type})
             }
             "ui.tab" => {
                 let tab = s("tab").unwrap_or("Home");

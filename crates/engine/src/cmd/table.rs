@@ -25,7 +25,7 @@ pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("table.list", "Element List", "Model > Tables", list)
             .params(
-                r#"{"type"?: element or relationship type, "pack"?: pack id, "columns"?: [string], "filter"?: string, "subject"?: "nets"|"connections", "kind"?: net kind} -> {"subject": "elements"|"relationships"|"nets"|"connections", "columns": [string], "ids": [id], "rows": [[string]], "count", "truncated"}; one row per element (id, type when several, tag, name, then the declared properties) or per relationship (id, type, name, source, target, then the properties); subject nets lists one row per net (id, number, name, kind, pins, segments, colour, crossSection, cable, core) and connections one per wire segment (id, wire, from, to, colour, crossSection, page; a junction end names a pin of the same net), both filtered by net kind; a type covers its subtypes; columns names fixed columns or property keys; filter keeps rows with a cell containing the text; at most 10000 rows"#,
+                r#"{"type"?: element or relationship type, "pack"?: pack id, "columns"?: [string], "filter"?: string, "subject"?: "nets"|"connections", "kind"?: net kind} -> {"subject": "elements"|"relationships"|"nets"|"connections", "columns": [string], "ids": [id], "rows": [[string]], "count", "truncated"}; one row per element (id, type when several, tag, name, then the declared properties) or per relationship (id, type, name, source, target, then the properties); subject nets lists one row per net (number, name, kind, pins, segments, colour, crossSection, cable, core) and connections one per wire segment (wire, from, to, colour, crossSection, page; a junction end names a pin of the same net), the net or connector ids in ids, both filtered by net kind; a type covers its subtypes; columns names fixed columns or property keys; filter keeps rows with a cell containing the text; at most 10000 rows"#,
             )
             .when(super::model::has_items),
         CommandSpec::new("table.matrix", "Relationship Matrix", "Model > Tables", matrix)
@@ -254,10 +254,16 @@ fn property_value(x: &Value, key: &str, schema: Option<&PropertySchema>) -> Resu
 
 fn set(s: &mut Session, v: &Value) -> CmdResult {
     let raw = id_param(v, "id")?;
-    if s.doc.model.net(raw).is_some() {
-        let key = p::req_str(v, "key")?.to_string();
+    // A wire list row is a wire segment: its cells edit the segment's net.
+    let wire_net = s.doc.pages.iter().find_map(|pg| pg.connector(raw)).filter(|c| c.relationship.is_none()).and_then(|c| c.net.clone());
+    if let Some(net) = wire_net.or_else(|| s.doc.model.net(raw).map(|n| n.id.clone())) {
+        let key = match p::req_str(v, "key")? {
+            "wire" => "number",
+            k => k,
+        }
+        .to_string();
         let value = v.get("value").ok_or_else(|| EngineError::Params("`value` is required (null clears the cell)".into()))?.clone();
-        return super::table_nets::set(s, raw, &key, &value);
+        return super::table_nets::set(s, &net, &key, &value);
     }
     let (id, is_element) = target_of(&s.doc, raw)?;
     let key = p::req_str(v, "key")?.to_string();

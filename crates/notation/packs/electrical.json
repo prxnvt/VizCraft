@@ -6323,7 +6323,8 @@
     "electrical.ProcessSwitch",
     "electrical.PilotLight",
     "electrical.Horn",
-    "electrical.Meter"
+    "electrical.Meter",
+    "electrical.Ladder"
    ]
   },
   {
@@ -6370,17 +6371,11 @@
    ]
   },
   {
-   "id": "electrical.plc",
-   "label": "PLC",
+   "id": "electrical.connection",
+   "label": "PLC and Connection",
    "types": [
     "electrical.IoModule",
-    "electrical.IoPoint"
-   ]
-  },
-  {
-   "id": "electrical.connection",
-   "label": "Connection",
-   "types": [
+    "electrical.IoPoint",
     "electrical.Terminal",
     "electrical.TerminalStrip",
     "electrical.Plug",
@@ -6389,27 +6384,14 @@
    ]
   },
   {
-   "id": "electrical.ladder",
-   "label": "Ladder",
-   "types": [
-    "electrical.Ladder"
-   ]
-  },
-  {
-   "id": "electrical.structure",
-   "label": "Structure",
-   "types": [
-    "electrical.Function",
-    "electrical.Location"
-   ]
-  },
-  {
    "id": "electrical.panel",
-   "label": "Panel",
+   "label": "Panel and Structure",
    "types": [
     "electrical.Enclosure",
     "electrical.DinRail",
-    "electrical.Duct"
+    "electrical.Duct",
+    "electrical.Function",
+    "electrical.Location"
    ]
   }
  ],

@@ -12,6 +12,13 @@ pub fn sequence_page(app: &CraftApp) -> bool {
     app.session.doc.page().is_some_and(|p| p.sequence.is_some())
 }
 
+/// Whether the active page is an electrical page (its viewpoint is the electrical pack's). Tab and
+/// Enter do nothing there: devices are joined by wires drawn with W, not by a chain of
+/// relationships.
+pub fn wiring_page(app: &CraftApp) -> bool {
+    app.session.doc.page().and_then(|p| p.view.as_ref()).is_some_and(|v| v.viewpoint.starts_with("electrical."))
+}
+
 /// The insertion direction a template flow direction (`TB`, `LR`, ...) names.
 fn from_flow(direction: &str) -> Option<Direction> {
     match direction {

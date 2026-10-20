@@ -21,6 +21,7 @@ pub mod ink;
 pub mod insertion;
 pub mod keys;
 pub mod labels;
+pub mod ladder;
 pub mod links;
 pub mod membership;
 pub mod nets;
@@ -89,6 +90,8 @@ pub enum Drag {
     TextBlock { id: String, grab: text_block::BlockGrab, to: Point, shift: bool },
     /// Drawing a wire (a pipe with `pipe`) from `from` with the Wire tool.
     Wire { from: wire::WireEnd, to: Point, pipe: bool },
+    /// Drawing a ladder frame with the Ladder tool: the rectangle from `from` to `to`.
+    Ladder { from: Point, to: Point },
     /// A drag on a Sequence page: reordering, moving a column, drawing a message or moving a
     /// separator.
     Sequence(sequence::SeqDrag),
@@ -171,7 +174,8 @@ pub fn pointer(app: &mut CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D
                 | Drag::Connect { to, .. }
                 | Drag::Reglue { to, .. }
                 | Drag::TextBox { to, .. }
-                | Drag::Wire { to, .. },
+                | Drag::Wire { to, .. }
+                | Drag::Ladder { to, .. },
             ) => *to = w,
             Some(Drag::TextBlock { to, shift, .. }) => {
                 *to = w;
@@ -233,7 +237,7 @@ fn cursor(app: &CraftApp, ui: &Ui, response: &Response, vp: &Viewport2D) {
         (Some(Drag::Move { .. }), _) => egui::CursorIcon::Grabbing,
         (Some(Drag::Connect { .. } | Drag::Reglue { .. } | Drag::Wire { .. }), _) => egui::CursorIcon::Crosshair,
         (Some(_), _) => return,
-        (None, Tool::Connector | Tool::Wire { .. } | Tool::Steps) => egui::CursorIcon::Crosshair,
+        (None, Tool::Connector | Tool::Wire { .. } | Tool::Steps | Tool::Ladder) => egui::CursorIcon::Crosshair,
         (None, Tool::Text) => egui::CursorIcon::Text,
         (None, Tool::FormatPainter { .. }) => egui::CursorIcon::Copy,
         (None, Tool::TextBlock) => egui::CursorIcon::Move,
