@@ -1575,7 +1575,20 @@ keeping its `Model.idFormats` overrides and its own unconnected-port test for th
 guarded arm ahead of the generic one, `Variant.aliases` lets `fluidpower.jic` resolve to the ANSI
 drawing); `b6e-mechanical` merged on 2026-10-20 (five commits: four packs, three line ends, six
 analyses, 13 commands). All four packs are in; the "Engineering symbols (preview)" palette section
-is removed after the merge. `b6-c4` and `b6-code` are not started.
+is removed after the merge (commit `c2a773c`). `b6-c4` and `b6-code` are not started.
+
+Follow-ups from the four reports (not yet assigned; the full reports are in the integration
+session's notes):
+
+| Area | Follow-up |
+|---|---|
+| Shared | Electrical's `Terminal`, `TerminalStrip`, `Cable`, `Core` and process's loop-diagram `Terminal`, `TerminalStrip`, `Instrument Cable`, `JunctionBox` should unify; `Port.netGroup` joining is not applied to the process terminals |
+| Shared | The generic checks the packs reuse (connected, requiredProperty, minIncoming) still put the rule description first in Problems; only the new tests write the finding alone |
+| Shared | The Ladder tool, the line kinds and the fluid and mechanical analyses have no menu-bar entries; the Valve button on the Sheet tab keeps its placeholder icon; no fuzzer beyond `hostile_params_never_panic` and the 20 000-case property tests was run |
+| Electrical | A pasted contact loses its tag (paste renumbers); `Senses` relationships have no command or fix; a terminal's tag recomposes only on Renumber; ANSI and JIC ladder contacts show the zone, not the rung; C37.2, JIC and Y14.44 letter data from secondary sources; a second glyph rebuild after sync would replace the pass patching tag slots |
+| Process | The stream table is a live list, not drawn on the PFD; no 30-degree isometric snap on the canvas; no DEXPI RDL URIs or Proteus export; `loopInLoop` checks instruments only; loop numbers read 01 outside a plant unit and instruments show `LIC-` until they join a loop; line labels still sit at the midpoint; the `processValve` builder is not in the Valve dialog |
+| Fluid power | The 2012 numeric code form, the 1995 dash rule and the 2.5 mm module are unverified pack data; the drag preview does not show the armed dash; ANSI keeps the metric module; the six pack test cases are about 80 KB each |
+| Mechanical | Datum letters, ICOM codes and joint names are not identifier scopes; the clutch actuation letter is not drawn; a tunnelled end replaces the arrowhead; ASME is not preselected for the Annotated Detail Drawing on an ASME project sheet; RBD standby is treated as parallel; no `template.preview` goldens for the examples; bow-tie, Ishikawa, signal-flow graphs, Open-PSA and the FIPS 183 diagram form are out of scope |
 
 | Branch (port) | Model | Scope |
 |---|---|---|
