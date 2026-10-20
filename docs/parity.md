@@ -26,7 +26,7 @@ When a feature lands, change its State in the same commit as the code. States:
 | Zoom | 0 | done (chrome) | `view.zoom`, `view.zoomIn`, `view.zoomOut` |
 | Fit to Window | 2 | done | `view.zoomFit {page?}` (Mod+Shift+H) fits the page or the drawing into the canvas; the app fits on its own after opening a file or a replacing import that the canvas cuts off |
 | Pan | 0 | done (chrome) | `view.pan`, `view.resetPan`; middle-drag, Cmd+drag (Ctrl off macOS) or Space+drag |
-| Multiple windows | 0 | done (chrome) | One process, one window per document |
+| Multiple windows | 0 | done (chrome, B6E) | One process, one window per document. Opening a document (File > Open, Recent, a dropped file, Help > Examples, Finder) replaces nothing: it opens in the window in front only while that holds an untouched new document, else in a new window (`CraftApp::open_document`); the engine commands `file.open` and `example.open` themselves still replace the document, so the CLI, control channel and MCP keep their behaviour |
 | Window arrangement | B4 | done (B4) | View > Window: New Window (`ui.window.new {same?}`, the same file in a second window with its own copy of the edits), Arrange All, Cascade and Switch Windows (`ui.window.*`) |
 | Presentation mode | B4 | done (B4) | `ui.present {on?}`: full screen, the drawing only; arrow keys and PageUp and PageDown switch pages, Escape leaves |
 | Page Width | B4 | done (B4) | `view.zoomWidth {page?}` fits the frame's width to the canvas |

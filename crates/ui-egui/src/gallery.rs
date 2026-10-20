@@ -560,7 +560,7 @@ pub fn create(app: &mut CraftApp, id: &str, replace: bool) -> Result<Value, Stri
                 Mode::New | Mode::Examples => {
                     let st = bar(app);
                     p["standards"] = json!({"symbols": st.symbols, "sheet": st.sheet});
-                    app.run(if mode.examples() { "example.open" } else { "template.new" }, p)
+                    if mode.examples() { app.open_document("example.open", p) } else { app.run("template.new", p) }
                 }
             }
         }

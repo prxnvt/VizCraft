@@ -308,7 +308,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
 
 /// What a window command asks of the host that owns all the windows (taken by the host, which
 /// alone knows the monitor and the other windows).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum WindowRequest {
     /// Open this window's file in a second window, holding its own copy of the edits.
     NewSame,
@@ -318,6 +318,14 @@ pub enum WindowRequest {
     Cascade,
     /// Bring window `n` (0 is the first window) to the front.
     Switch(usize),
+    /// Run a document-replacing command (`file.open`, `example.open`) in a new window, so the
+    /// document in this one is not replaced (see [`CraftApp::open_document`]).
+    RunInNew {
+        /// The command id.
+        id: String,
+        /// Its params.
+        params: Value,
+    },
 }
 
 /// The canvas tool: what a left drag on an empty part of the page does.
@@ -1016,6 +1024,28 @@ impl CraftApp {
         }))
     }
 
+    /// Open a document with `id` (`file.open`, `example.open`) without replacing one: in this
+    /// window while it holds an untouched new document (nothing saved, nothing edited), else in
+    /// a new window of the host. Without a multi-window host (the web, tests) it opens here. The
+    /// File page closes either way. The engine command itself still replaces the document, so the
+    /// CLI, the control channel and MCP keep their behaviour; this is the policy of the UI gestures.
+    pub fn open_document(&mut self, id: &str, params: Value) -> Result<Value, String> {
+        let untouched = !self.session.dirty && self.session.path.is_none();
+        if self.multi_window && !untouched {
+            let name = params.get("path").or_else(|| params.get("example")).and_then(Value::as_str).unwrap_or("the document");
+            let name = std::path::Path::new(name).file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_else(|| name.to_string());
+            self.status(format!("Opening {name} in a new window"));
+            self.backstage = false;
+            self.window_request = Some(WindowRequest::RunInNew { id: id.to_string(), params });
+            return Ok(json!({"requested": true}));
+        }
+        let r = self.run(id, params);
+        if r.is_ok() {
+            self.backstage = false;
+        }
+        r
+    }
+
     /// Ask the host to carry out a window command. Without a multi-window host (the web, tests)
     /// there is nothing to arrange, and the status bar says so.
     fn request_window(&mut self, r: WindowRequest) -> Value {
@@ -1045,8 +1075,7 @@ impl CraftApp {
         }
         let picked = self.services.pick_open.as_ref().and_then(|f| f("document"));
         if let Some(path) = picked {
-            let _ = self.run("file.open", json!({"path": path}));
-            self.backstage = false;
+            let _ = self.open_document("file.open", json!({"path": path}));
         }
     }
 
@@ -1154,7 +1183,7 @@ impl CraftApp {
         }
         #[cfg(not(target_arch = "wasm32"))]
         for f in ctx.input(|i| i.raw.dropped_files.clone()) {
-            let _ = self.run("file.open", json!({"path": f.path().to_string_lossy()}));
+            let _ = self.open_document("file.open", json!({"path": f.path().to_string_lossy()}));
         }
     }
 
@@ -1424,6 +1453,29 @@ mod tests {
 
     fn app() -> CraftApp {
         CraftApp::new(Session::new(vizcraft_engine::sample::sample_document()), Services::default())
+    }
+
+    #[test]
+    fn opening_a_document_replaces_only_an_untouched_new_document() {
+        // An untouched new document (nothing saved, nothing edited) takes the example in place.
+        let mut a = CraftApp::new(Session::new(vizcraft_engine::Document::new()), Services::default());
+        a.multi_window = true;
+        a.backstage = true;
+        let r = a.open_document("example.open", json!({"example": "flowchart.decision"})).unwrap();
+        assert!(r.get("requested").is_none(), "opened here: {r}");
+        assert!(a.window_request.is_none() && !a.backstage);
+        let rev = a.session.rev();
+        // A window with a document in it asks the host for a new window and changes nothing.
+        let r = a.open_document("file.open", json!({"path": "/nowhere/other.vizcraft"})).unwrap();
+        assert_eq!(r["requested"], true);
+        assert!(
+            matches!(a.window_request.take(), Some(WindowRequest::RunInNew { id, params }) if id == "file.open" && params["path"] == "/nowhere/other.vizcraft")
+        );
+        assert_eq!(a.session.rev(), rev, "the document in front is untouched");
+        assert_eq!(a.status_msg.as_ref().map(|(m, _)| m.as_str()), Some("Opening other.vizcraft in a new window"));
+        // Without a multi-window host the command runs here (web, tests): a bad path is its error.
+        a.multi_window = false;
+        assert!(a.open_document("file.open", json!({"path": "/nowhere/other.vizcraft"})).is_err());
     }
 
     #[test]

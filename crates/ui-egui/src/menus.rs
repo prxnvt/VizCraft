@@ -608,6 +608,12 @@ pub fn run_item(app: &mut CraftApp, ctx: &egui::Context, id: &str, params: Value
         app.new_window(params.get("template").and_then(Value::as_str).unwrap_or("blank"));
         return;
     }
+    // A Recent entry opens beside the document in front, not over it (`file.open` with no path
+    // asks for a file first, and the picked one takes the same route).
+    if id == "file.open" && params.get("path").is_some() {
+        let _ = app.open_document(id, params);
+        return;
+    }
     if let Ok(v) = app.run(id, params)
         && matches!(id, "edit.copy" | "edit.cut")
         && let Some(text) = v.get("text").and_then(Value::as_str)

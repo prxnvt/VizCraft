@@ -191,27 +191,38 @@ impl App {
             WindowRequest::ArrangeAll => self.windows.arrange(ctx, true),
             WindowRequest::Cascade => self.windows.arrange(ctx, false),
             WindowRequest::Switch(i) => self.windows.switch(ctx, i),
+            WindowRequest::RunInNew { id, params } => {
+                self.open_window(ctx, "blank");
+                self.run_in_front(&id, params);
+            }
+        }
+    }
+
+    /// Run a document-replacing command in the window in front, and leave the File page.
+    fn run_in_front(&mut self, id: &str, params: serde_json::Value) {
+        let what = params.get("path").or_else(|| params.get("example")).and_then(serde_json::Value::as_str).unwrap_or(id).to_string();
+        let app = self.windows.front(&mut self.root);
+        match app.run(id, params) {
+            Ok(_) => {
+                let _ = app.run("ui.backstage", serde_json::json!({"value": false}));
+            }
+            Err(e) => {
+                eprintln!("vizcraft: {what}: {e}");
+                app.status(format!("Couldn't open {what}: {e}"));
+            }
         }
     }
 
     /// A document Finder asked us to open: in the window in front if that holds an untouched new
-    /// document, otherwise in a new window (so nothing open is replaced).
+    /// document, otherwise in a new window (so nothing open is replaced), the same policy the
+    /// windows apply to their own Open, Recent, dropped files and Examples
+    /// (`CraftApp::open_document`).
     fn open_document(&mut self, ctx: &egui::Context, path: &str) {
         let front = self.windows.front(&mut self.root);
         if front.session.dirty || front.session.path.is_some() {
             self.open_window(ctx, "blank");
         }
-        // A new window is the one in front now.
-        let app = self.windows.front(&mut self.root);
-        match app.run("file.open", serde_json::json!({"path": path})) {
-            Ok(_) => {
-                let _ = app.run("ui.backstage", serde_json::json!({"value": false}));
-            }
-            Err(e) => {
-                eprintln!("vizcraft: {path}: {e}");
-                app.status(format!("Couldn't open {path}: {e}"));
-            }
-        }
+        self.run_in_front("file.open", serde_json::json!({"path": path}));
     }
 
     /// The files named on the command line, each in its own window as File > Open does here: the
