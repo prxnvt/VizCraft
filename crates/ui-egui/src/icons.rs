@@ -1613,7 +1613,6 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
             // A transmitter and a controller bubble on a signal line to a valve.
             pen.circle(5.0, 5.0, 3.0, c);
             pen.circle(15.0, 5.0, 3.0, c);
-            pen.dashes(10.0, 5.0, 5.0, a);
             pen.line_c(&[(8.0, 5.0), (12.0, 5.0)], a);
             pen.line_c(&[(15.0, 8.0), (15.0, 12.5)], a);
             pen.fill(&[(11.5, 12.5), (11.5, 17.5), (15.0, 15.0)], c);

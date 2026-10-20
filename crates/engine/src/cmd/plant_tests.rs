@@ -791,3 +791,83 @@ fn the_pid_example_in_each_variant_matches_its_golden() {
         assert_eq!(svg, std::fs::read_to_string(&path).unwrap_or_default(), "{variant}: SVG differs from {path}");
     }
 }
+
+/// A small deterministic generator for the stress test.
+struct Lcg(u64);
+
+impl Lcg {
+    fn next(&mut self) -> u64 {
+        self.0 = self.0.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1_442_695_040_888_963_407);
+        self.0 >> 33
+    }
+    fn pick<'a, T>(&mut self, items: &'a [T]) -> &'a T {
+        &items[(self.next() as usize) % items.len()]
+    }
+}
+
+/// Six hundred random process commands on the P&ID example, with ids taken from the document
+/// as it is then: nothing panics, each failed command leaves the document as it was, and the
+/// sync pass stays idempotent and every pipe's line names a line element.
+#[test]
+fn random_process_commands_never_break_the_document() {
+    let mut s = Session::new(Document::new());
+    run(&mut s, "example.open", json!({"example": "process.loopExample"}));
+    let mut rng = Lcg(42);
+    let commands = [
+        "loop.create",
+        "loop.assign",
+        "loop.trace",
+        "loop.list",
+        "loop.diagram",
+        "line.assign",
+        "offpage.pair",
+        "offpage.place",
+        "plant.addNozzle",
+        "plant.numbering",
+        "plant.list",
+        "plant.isoRun",
+        "identity.setFormat",
+        "element.setProperty",
+        "element.retag",
+        "edit.delete",
+        "edit.undo",
+        "edit.redo",
+        "wire.draw",
+        "variant.set",
+        "shape.move",
+    ];
+    for i in 0..600 {
+        let page = s.doc.page().unwrap();
+        let shapes: Vec<String> = page.shapes.iter().map(|x| x.id.clone()).collect();
+        let conns: Vec<String> = page.connectors.iter().map(|x| x.id.clone()).collect();
+        let els: Vec<String> = s.doc.model.elements.iter().map(|e| e.id.clone()).collect();
+        let any = |rng: &mut Lcg, v: &[String]| if v.is_empty() { json!("none") } else { json!(rng.pick(v)) };
+        let id = *rng.pick(&commands);
+        let p = json!({
+            "members": [any(&mut rng, &els)], "elements": [any(&mut rng, &els)], "loop": any(&mut rng, &els), "element": any(&mut rng, &els),
+            "variable": *rng.pick(&["L", "F", "x", ""]), "connectors": [any(&mut rng, &conns)], "a": any(&mut rng, &shapes), "b": any(&mut rng, &shapes),
+            "shape": any(&mut rng, &shapes), "side": *rng.pick(&["left", "top", "up"]), "scheme": *rng.pick(&["serial", "parallel"]),
+            "list": *rng.pick(&["line", "valve", "io", "bom", "x"]), "id": any(&mut rng, &els), "key": *rng.pick(&["letters", "nominalDiameter", "variable", "label"]),
+            "value": *rng.pick(&["LIC", "2in", "F", "each", ""]), "tag": *rng.pick(&["101", "LIC-1", ""]), "ids": [any(&mut rng, &shapes), any(&mut rng, &conns)],
+            "scope": *rng.pick(&["process.line", "process.loop"]), "format": *rng.pick(&["{n}", "{fluidCode}-{n:2}", "{bad"]),
+            "from": {"x": (rng.next() % 900) as f64, "y": (rng.next() % 700) as f64}, "to": {"x": (rng.next() % 900) as f64, "y": 300.0},
+            "type": *rng.pick(&["process.processLine", "process.supplyAir", "process.electricSignal"]),
+            "legs": [{"dir": *rng.pick(&["n", "e", "up"]), "length": 50}], "variant": *rng.pick(&["process.isa", "process.iso", ""]), "dx": 10, "dy": -10,
+        });
+        let before = s.doc.clone();
+        if s.run(id, &p).is_err() {
+            assert_eq!(s.doc, before, "{i}: a failed {id} changed the document");
+        }
+        let mut again = s.doc.clone();
+        let was = again.clone();
+        vizcraft_notation::bind::sync(&mut again, &was, vizcraft_notation::catalog());
+        assert_eq!(again, was, "{i}: after {id} a second sync changes the document");
+        for pg in &s.doc.pages {
+            for c in &pg.connectors {
+                if let Some(l) = c.ext.get(vizcraft_notation::process_pass::EXT_LINE) {
+                    assert!(s.doc.model.element(l).is_some(), "{i}: after {id} a pipe names a missing line");
+                }
+            }
+        }
+    }
+}
