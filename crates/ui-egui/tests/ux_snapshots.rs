@@ -94,14 +94,14 @@ fn ux_snapshots() {
     let mut results = SnapshotResults::new();
 
     // The picker with next-step rows from a selected class.
-    let mut h = window("uml.classDiagram");
+    let mut h = window("uml.class");
     let class = first_shape(&h, "uml.Class");
     run(&mut h, "edit.select", json!({"ids": [class]}));
     run(&mut h, "ui.insertPicker", json!({"query": "to"}));
     snap(&mut results, &mut h, "picker-relationships");
 
     // An empty end label of an association opened for editing, with the typed text showing.
-    let mut h = window("uml.classDiagram");
+    let mut h = window("uml.class");
     let (cid, rid) = {
         let doc = &h.state().session.doc;
         let c = doc
@@ -133,14 +133,14 @@ fn ux_snapshots() {
     snap(&mut results, &mut h, "canvas-end-label-edit");
 
     // The Inspector's relationship section for the association: ends under their elements' names.
-    let mut h = window("uml.classDiagram");
+    let mut h = window("uml.class");
     run(&mut h, "relationship.setProperty", json!({"id": rid, "key": "sourceMultiplicity", "value": "3..1"}));
     run(&mut h, "ui.pane", json!({"name": "shapeData", "value": true}));
     run(&mut h, "edit.select", json!({"ids": [cid]}));
     snap(&mut results, &mut h, "inspector-relationship-ends");
 
     // Members and the Model Tree of a class.
-    let mut h = window("uml.classDiagram");
+    let mut h = window("uml.class");
     let class = first_shape(&h, "uml.Class");
     let el = h.state().session.doc.page().unwrap().shape(&class).unwrap().element.clone().unwrap();
     run(&mut h, "uml.addMember", json!({"element": el, "list": "attributes", "text": "- total: Money [0..1]"}));

@@ -1,10 +1,15 @@
-//! Template commands (`template.*`): list the templates the notation packs offer, start a
-//! document or add a page from one, preview one as SVG, and read or set the project's standard
-//! choices (symbol family and sheet preset, `Document.standards`).
+//! Document type and example commands. `template.*` lists the document types the notation packs
+//! offer (empty documents set up for a kind of work, see `vizcraft_notation::template`), starts a
+//! document or adds a page of one, previews one as SVG, and reads or sets the project's standard
+//! choices (symbol family and sheet preset, `Document.standards`). `example.*` lists and opens
+//! the filled-in examples (Help > Examples). For scripts written before document types,
+//! `template.new`, `template.addPage` and `template.preview` also take an example id.
 //!
-//! A template becomes commands (the pipeline, see [`plan`]): the viewpoint, the sheet and module
-//! hooks, the seed, the rendering variant (after the seed, so the seeded shapes are redrawn in
-//! it), the layout, then the title block and key hooks. A hook is a command another part of the app provides (`sheet.set`, `page.setModule`,
+//! A document type or example becomes commands (the pipeline, see [`plan`]): the viewpoint, the
+//! rules (the conformance profile, when the type names rulesets or live checking), the sheet and
+//! module hooks, the seed (examples only), the rendering variant (after the seed, so the seeded
+//! shapes are redrawn in it), the layout (when the seed drew something), then the title block and
+//! key hooks. A hook is a command another part of the app provides (`sheet.set`, `page.setModule`,
 //! `sheet.titleBlock`, `key.insert`); when it is not registered the step is skipped and named in
 //! the result's `skipped`, so templates work before those commands exist.
 //!
@@ -53,73 +58,115 @@ const MAX_QUERY: usize = 256;
 /// Return the template commands.
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("template.list", "Templates", "File > New", list).params(
-            r#"{"audience"?: string, "pack"?: pack id, "query"?: string} -> {"templates": [{"id", "label", "description", "pack", "packName", "audience", "keywords", "viewpoint", "codeForms", "key", "titleBlock", "variant", "variants": [{"id", "label", "family"}], "sheet", "module"}]}; catalog order; the query matches label, keywords, id and description, ignoring case"#,
+        CommandSpec::new("template.list", "Document Types", "File > New", list).params(
+            r#"{"audience"?: string, "pack"?: pack id, "query"?: string} -> {"templates": [{"id", "label", "description", "pack", "packName", "discipline", "audience", "keywords", "viewpoint", "viewpoints": [{"id", "label", "rulesets"}], "rulesets": [{"id", "label"}], "liveChecks"?, "codeForms", "key", "titleBlock", "variant", "variants": [{"id", "label", "family"}], "sheet", "module"}]}; the document types, in catalog order; rulesets are the ones the default viewpoint holds the document to (the pack's first when the type names none); the query matches label, keywords, id and description, ignoring case"#,
         ),
-        CommandSpec::new("template.new", "New from Template", "File > New", new).params(
-            r#"{"template": template id, "path"?: file to save to, "variant"?: variant id, symbol family ("jic") or "" for the default drawing, "sheet"?: "<standard>.<size>[.<orientation>]" or "" for none, "standards"?: {"symbols"?: symbol family, "sheet"?: sheet preset id}} -> {"template", "page", "variant", "sheet", "applied": [command], "skipped": [command], "primary", "items", "path"?}; replaces the document with a new one drawn from the template (one undo step back to a blank page) and records the project's standards: the given `standards`, else the variant's family when it is one of template.standards' symbolChoices and the sheet; with `standards` the variant follows its family when the pack draws it and the sheet its sheet when the template has one; variant default: the template's, else the pack's IEC variant, else the default drawing"#,
+        CommandSpec::new("template.new", "New Document", "File > New", new).params(
+            r#"{"template": document type id (an example id draws the example, as example.open), "path"?: file to save to, "viewpoint"?: one of the type's viewpoints, "variant"?: variant id, symbol family ("jic") or "" for the default drawing, "sheet"?: "<standard>.<size>[.<orientation>]" or "" for none, "standards"?: {"symbols"?: symbol family, "sheet"?: sheet preset id}} -> {"template", "page", "viewpoint", "variant", "sheet", "rulesets", "applied": [command], "skipped": [command], "primary", "items", "path"?}; replaces the document with an empty one of the type (one undo step back to a blank page): its viewpoint, rules, variant, sheet, title block, module and key, and records the project's standards: the given `standards`, else the variant's family when it is one of template.standards' symbolChoices and the sheet; with `standards` the variant follows its family when the pack draws it and the sheet its sheet when the type has one; variant default: the type's, else the pack's IEC variant, else the default drawing"#,
         ),
-        CommandSpec::new("template.addPage", "New Page from Template", "Insert > Pages", add_page).params(
-            r#"{"template": template id, "variant"?: variant id or family, "sheet"?: sheet preset id or "", "name"?: page name} -> {"template", "page", "variant", "sheet", "applied", "skipped", "primary", "items"}; adds a page drawn from the template in one undo step; variant and sheet default to the project's standards"#,
+        CommandSpec::new("template.addPage", "New Page of a Document Type", "Insert > Pages", add_page).params(
+            r#"{"template": document type id (or example id), "viewpoint"?: one of its viewpoints, "variant"?: variant id or family, "sheet"?: sheet preset id or "", "name"?: page name} -> {"template", "page", "viewpoint", "variant", "sheet", "rulesets", "applied", "skipped", "primary", "items"}; adds a page of the type in one undo step; its rulesets join the ones the document is held to; variant and sheet default to the project's standards"#,
+        ),
+        CommandSpec::new("example.list", "Examples", "Help > Examples", list_examples).params(
+            r#"{"audience"?: string, "pack"?: pack id, "query"?: string} -> {"examples": [rows as template.list]}; the filled-in examples the packs offer, in catalog order"#,
+        ),
+        CommandSpec::new("example.open", "Open Example", "Help > Examples", open_example).params(
+            r#"{"example": example id, "path"?, "viewpoint"?, "variant"?, "sheet"?, "standards"?} -> as template.new; replaces the document with a new one drawn from the example (one undo step back to a blank page), with the same choices as template.new"#,
         ),
         CommandSpec::new("template.standards", "Project Standards", "Design > Standards", standards).params(
             r#"{"symbols"?: symbol family, "sheet"?: sheet preset id} -> {"symbols", "sheet", "symbolChoices", "sheetChoices"}; with neither it reads them; setting is one undo step; "" restores the default (IEC, ISO A3 landscape); sheetChoices come from sheet.presets when that command is registered"#,
         ),
         CommandSpec::new("template.preview", "Preview Template", "File > New", preview).params(
-            r#"{"template": template id, "variant"?: variant id or family, "sheet"?: sheet preset id or "", "standards"?: {"symbols"?, "sheet"?}} -> {"template", "variant", "sheet", "svg", "width", "height"}; draws the template in a scratch document, choosing as template.new does, and returns its first page as SVG text; changes nothing"#,
+            r#"{"template": document type or example id, "viewpoint"?, "variant"?: variant id or family, "sheet"?: sheet preset id or "", "standards"?: {"symbols"?, "sheet"?}} -> {"template", "viewpoint", "variant", "sheet", "svg", "width", "height"}; draws the type (or example) in a scratch document, choosing as template.new does, and returns its first page as SVG text; changes nothing"#,
         ),
     ]
 }
 
-/// What a caller chose for a template: `None` takes the default.
+/// What a caller chose for a document type or example: `None` takes the default.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Choices {
+    /// One of the type's viewpoints.
+    pub viewpoint: Option<String>,
     /// A variant id, a symbol family, or "" for the default drawing.
     pub variant: Option<String>,
     /// A sheet preset id, or "" for no sheet.
     pub sheet: Option<String>,
 }
 
-/// The template with this id and its pack.
+/// The document type with this id and its pack, or, for callers that predate document types, the
+/// example with this id.
 pub fn lookup(id: &str) -> Result<(&'static Pack, &'static Template), EngineError> {
-    let unknown = || EngineError::Params(format!("unknown template `{}`; template.list lists them", short(id)));
+    let unknown = || EngineError::Params(format!("unknown document type `{}`; template.list lists them", short(id)));
     let pack = cat().pack(vizcraft_model::pack_of(id)).ok_or_else(unknown)?;
-    let t = tpl::find(pack, id).ok_or_else(unknown)?;
+    let t = tpl::find(pack, id).or_else(|| tpl::find_example(pack, id)).ok_or_else(unknown)?;
     Ok((pack, t))
 }
 
-/// Draw `template` in a new document with `choices`, as `template.new` would, and return it.
-/// For callers that want the document itself (a gallery drawing previews without SVG).
+/// The example with this id and its pack.
+pub fn lookup_example(id: &str) -> Result<(&'static Pack, &'static Template), EngineError> {
+    let unknown = || EngineError::Params(format!("unknown example `{}`; example.list lists them", short(id)));
+    let pack = cat().pack(vizcraft_model::pack_of(id)).ok_or_else(unknown)?;
+    let t = tpl::find_example(pack, id).ok_or_else(unknown)?;
+    Ok((pack, t))
+}
+
+/// Draw `template` (a document type or an example) in a new document with `choices`, as
+/// `template.new` would, and return it. For callers that want the document itself (a gallery
+/// drawing previews without SVG).
 pub fn build(template: &Template, choices: &Choices) -> Result<Document, EngineError> {
     let (pack, t) = lookup(&template.id)?;
     if t != template {
-        return Err(EngineError::Params(format!("`{}` is not the template the catalog holds", short(&template.id))));
+        return Err(EngineError::Params(format!("`{}` is not the document type the catalog holds", short(&template.id))));
     }
     let base = Session::new(Document::new());
     let (variant, sheet) = resolve(pack, t, choices, None)?;
-    Ok(plan(&base, Document::new(), false, t, &variant, &sheet, Vec::new())?.doc)
+    let viewpoint = viewpoint_of(t, choices)?;
+    Ok(plan(&base, Document::new(), false, t, &viewpoint, &variant, &sheet, Vec::new())?.doc)
 }
 
-/// The variant and sheet `template.new` would draw template `id` with, given `choices` and, when
-/// the caller passes them, the project's `standards` (as `template.new`'s `standards` param).
+/// The variant and sheet `template.new` would draw document type (or example) `id` with, given
+/// `choices` and, when the caller passes them, the project's `standards` (as `template.new`'s
+/// `standards` param).
 pub fn resolved(id: &str, choices: &Choices, project: Option<&Standards>) -> Result<(String, String), EngineError> {
     let (pack, t) = lookup(id)?;
     resolve(pack, t, choices, project)
 }
 
-/// The template id param, checked against the catalog.
+/// The viewpoint a document of `t` starts on: the caller's choice when the type offers it, else
+/// the type's own.
+pub fn viewpoint_of(t: &Template, choices: &Choices) -> Result<String, EngineError> {
+    match choices.viewpoint.as_deref() {
+        None | Some("") => Ok(t.viewpoint.clone()),
+        Some(v) if t.offers_viewpoint(v) => Ok(v.to_string()),
+        Some(v) => {
+            Err(EngineError::Params(format!("`{}` is not a viewpoint {} offers; it offers {}", short(v), t.label, t.viewpoint_choices().join(", "))))
+        }
+    }
+}
+
+/// The template id param (a document type, or an example for older callers), checked against
+/// the catalog.
 fn template_param(v: &Value) -> Result<(&'static Pack, &'static Template), EngineError> {
-    let id = opt_str(v, "template")?.ok_or_else(|| EngineError::Params("`template` (a template id from template.list) is required".into()))?;
+    let id = opt_str(v, "template")?.ok_or_else(|| EngineError::Params("`template` (a document type id from template.list) is required".into()))?;
     if id.len() > tpl::MAX_ID {
         return Err(EngineError::Params(format!("`template` is longer than {} bytes", tpl::MAX_ID)));
     }
     lookup(id)
 }
 
-/// The `variant` and `sheet` params, checked for shape and length.
+/// The example id param, checked against the catalog.
+fn example_param(v: &Value) -> Result<(&'static Pack, &'static Template), EngineError> {
+    let id = opt_str(v, "example")?.ok_or_else(|| EngineError::Params("`example` (an example id from example.list) is required".into()))?;
+    if id.len() > tpl::MAX_ID {
+        return Err(EngineError::Params(format!("`example` is longer than {} bytes", tpl::MAX_ID)));
+    }
+    lookup_example(id)
+}
+
+/// The `viewpoint`, `variant` and `sheet` params, checked for shape and length.
 fn choices_param(v: &Value) -> Result<Choices, EngineError> {
     let mut c = Choices::default();
-    for (k, slot) in [("variant", &mut c.variant), ("sheet", &mut c.sheet)] {
+    for (k, slot) in [("viewpoint", &mut c.viewpoint), ("variant", &mut c.variant), ("sheet", &mut c.sheet)] {
         if let Some(t) = opt_str(v, k)? {
             if t.len() > tpl::MAX_ID {
                 return Err(EngineError::Params(format!("`{k}` is longer than {} bytes", tpl::MAX_ID)));
@@ -209,19 +256,49 @@ fn bind(v: &Value, names: &HashMap<String, Value>) -> Result<Value, String> {
     })
 }
 
-/// Run the pipeline for template `t` on a scratch session holding `doc` (with `base`'s registry
-/// and view), after the `prelude` steps, and return what it left and the resolved steps. With
-/// `keep_sel` (when `doc` is `base`'s own document) the scratch also takes `base`'s selection, so
-/// the replay starts from the same state. Fails with the step that failed.
+/// The `validate.setProfile` params that hold a document of `t` on `viewpoint` to its rules, when
+/// the type names rulesets or live checking: its rulesets join the ones `doc` is already held to
+/// (a page added to a document keeps the other notations' rules), and checking a person switched
+/// off stays off unless the type says. `None` when the type leaves the rules to the notation.
+fn rules_step(doc: &Document, t: &Template, viewpoint: &str) -> Option<Value> {
+    let own = t.rulesets_for(viewpoint);
+    if own.is_empty() && t.live_checks.is_none() {
+        return None;
+    }
+    let before = vizcraft_notation::rules::profile(doc, cat());
+    let mut p = Map::new();
+    if !own.is_empty() {
+        let mut all: Vec<String> = before.rulesets.clone();
+        for r in own {
+            if !all.contains(r) {
+                all.push(r.clone());
+            }
+        }
+        p.insert("rulesets".into(), json!(all));
+    }
+    let enabled = t.live_checks.or((before.user_set && !before.enabled).then_some(false));
+    if let Some(e) = enabled {
+        p.insert("enabled".into(), json!(e));
+    }
+    Some(Value::Object(p))
+}
+
+/// Run the pipeline for document type (or example) `t` on a scratch session holding `doc` (with
+/// `base`'s registry and view), after the `prelude` steps, and return what it left and the
+/// resolved steps. With `keep_sel` (when `doc` is `base`'s own document) the scratch also takes
+/// `base`'s selection, so the replay starts from the same state. Fails with the step that failed.
+#[allow(clippy::too_many_arguments)]
 fn plan(
     base: &Session,
     doc: Document,
     keep_sel: bool,
     t: &Template,
+    viewpoint: &str,
     variant: &str,
     sheet: &str,
     prelude: Vec<(String, Value)>,
 ) -> Result<Plan, EngineError> {
+    let rules = rules_step(&doc, t, viewpoint);
     let mut s = Session::new(doc);
     s.registry = base.registry.clone();
     s.view = base.view.clone();
@@ -248,8 +325,11 @@ fn plan(
     for (id, params) in prelude {
         step(&mut s, &mut out, &id, params)?;
     }
-    if !t.viewpoint.is_empty() {
-        step(&mut s, &mut out, "model.setViewpoint", json!({"viewpoint": t.viewpoint}))?;
+    if !viewpoint.is_empty() {
+        step(&mut s, &mut out, "model.setViewpoint", json!({"viewpoint": viewpoint}))?;
+    }
+    if let Some(p) = rules {
+        step(&mut s, &mut out, "validate.setProfile", p)?;
     }
     if !sheet.is_empty()
         && let Some(id) = hook(&s, &mut out, "sheet")
@@ -342,11 +422,15 @@ fn select_first_element(s: &mut Session) {
     super::select(s, ids);
 }
 
-/// The result `template.new` and `template.addPage` share.
-fn outcome(s: &Session, t: &Template, variant: &str, sheet: &str, p: &Plan) -> Value {
+/// The result `template.new`, `template.addPage` and `example.open` share.
+fn outcome(s: &Session, t: &Template, viewpoint: &str, variant: &str, sheet: &str, p: &Plan) -> Value {
+    let profile = vizcraft_notation::rules::profile(&s.doc, cat());
+    let rulesets: Vec<String> = if profile.enabled { profile.rulesets } else { Vec::new() };
     json!({
         "template": t.id,
         "page": active_id(&s.doc),
+        "viewpoint": viewpoint,
+        "rulesets": rulesets,
         "variant": variant,
         "sheet": sheet,
         "applied": p.applied,
@@ -357,9 +441,20 @@ fn outcome(s: &Session, t: &Template, variant: &str, sheet: &str, p: &Plan) -> V
 }
 
 fn new(s: &mut Session, v: &Value) -> CmdResult {
-    // Every param is checked before the document is touched, so junk never clears history.
     let (pack, t) = template_param(v)?;
+    create(s, v, pack, t)
+}
+
+fn open_example(s: &mut Session, v: &Value) -> CmdResult {
+    let (pack, t) = example_param(v)?;
+    create(s, v, pack, t)
+}
+
+/// `template.new` and `example.open`: replace the document with a new one of `t`.
+fn create(s: &mut Session, v: &Value, pack: &Pack, t: &Template) -> CmdResult {
+    // Every param is checked before the document is touched, so junk never clears history.
     let choices = choices_param(v)?;
+    let viewpoint = viewpoint_of(t, &choices)?;
     let path = opt_str(v, "path")?.map(str::to_string);
     if path.as_ref().is_some_and(|p| p.is_empty() || p.len() > MAX_PATH) {
         return Err(EngineError::Params(format!("`path` must be 1 to {MAX_PATH} bytes")));
@@ -393,12 +488,12 @@ fn new(s: &mut Session, v: &Value) -> CmdResult {
     }
     let prelude = if std.is_empty() { Vec::new() } else { vec![("template.standards".to_string(), Value::Object(std))] };
     // A dry run first: a template that fails leaves the user's document and history alone.
-    let p = plan(s, Document::new(), false, t, &variant, &sheet, prelude)?;
+    let p = plan(s, Document::new(), false, t, &viewpoint, &variant, &sheet, prelude)?;
     s.set_document(Document::new());
     s.path = None;
     s.transaction(&format!("New from {}", t.label), &p.steps)?;
     select_first_element(s);
-    let mut out = outcome(s, t, &variant, &sheet, &p);
+    let mut out = outcome(s, t, &viewpoint, &variant, &sheet, &p);
     if let Some(path) = path {
         let r = s.run("file.save", &json!({"path": path}))?;
         out["path"] = r.get("path").cloned().unwrap_or(Value::Null);
@@ -409,24 +504,26 @@ fn new(s: &mut Session, v: &Value) -> CmdResult {
 fn add_page(s: &mut Session, v: &Value) -> CmdResult {
     let (pack, t) = template_param(v)?;
     let choices = choices_param(v)?;
+    let viewpoint = viewpoint_of(t, &choices)?;
     let name = opt_str(v, "name")?;
     let (variant, sheet) = resolve(pack, t, &choices, Some(&s.doc.standards))?;
     let mut add = Map::new();
     if let Some(n) = name {
         add.insert("name".into(), json!(n));
     }
-    let p = plan(s, s.doc.clone(), true, t, &variant, &sheet, vec![("page.add".to_string(), Value::Object(add))])?;
+    let p = plan(s, s.doc.clone(), true, t, &viewpoint, &variant, &sheet, vec![("page.add".to_string(), Value::Object(add))])?;
     s.transaction(&format!("New Page from {}", t.label), &p.steps)?;
     select_first_element(s);
-    Ok(outcome(s, t, &variant, &sheet, &p))
+    Ok(outcome(s, t, &viewpoint, &variant, &sheet, &p))
 }
 
 fn preview(s: &mut Session, v: &Value) -> CmdResult {
     let (pack, t) = template_param(v)?;
     let choices = choices_param(v)?;
+    let viewpoint = viewpoint_of(t, &choices)?;
     let project = standards_param(s, v)?.as_ref().map(as_project);
     let (variant, sheet) = resolve(pack, t, &choices, project.as_ref())?;
-    let p = plan(s, Document::new(), false, t, &variant, &sheet, Vec::new())?;
+    let p = plan(s, Document::new(), false, t, &viewpoint, &variant, &sheet, Vec::new())?;
     let index = p.doc.active_index();
     let bytes = vizcraft_formats::svg::export_page(&p.doc, index).map_err(|e| EngineError::Failed(e.to_string()))?;
     if bytes.len() > MAX_PREVIEW {
@@ -436,7 +533,7 @@ fn preview(s: &mut Session, v: &Value) -> CmdResult {
     // The text is for embedding, so it starts at the root element, without the XML declaration.
     let svg = svg.find("<svg").and_then(|i| svg.get(i..)).unwrap_or(&svg).to_string();
     let (width, height) = svg_size(&svg);
-    Ok(json!({"template": t.id, "variant": variant, "sheet": sheet, "svg": svg, "width": width, "height": height}))
+    Ok(json!({"template": t.id, "viewpoint": viewpoint, "variant": variant, "sheet": sheet, "svg": svg, "width": width, "height": height}))
 }
 
 /// The `width` and `height` of an SVG's root element (0 when absent).
@@ -542,35 +639,83 @@ fn matches(pack: &Pack, t: &Template, audience: Option<&str>, query: Option<&str
     audience_ok && query_ok
 }
 
-fn list(_s: &mut Session, v: &Value) -> CmdResult {
+/// The `audience`, `pack` and `query` filters of `template.list` and `example.list`.
+fn filters(v: &Value) -> Result<(Option<&str>, Option<&str>, Option<&str>), EngineError> {
     let audience = opt_str(v, "audience")?;
     let pack_id = opt_str(v, "pack")?;
     let query = opt_str(v, "query")?;
     if query.is_some_and(|q| q.trim().len() > MAX_QUERY) {
         return Err(EngineError::Params(format!("`query` is longer than {MAX_QUERY} bytes")));
     }
+    Ok((audience, pack_id, query))
+}
+
+fn list(_s: &mut Session, v: &Value) -> CmdResult {
+    let (audience, pack_id, query) = filters(v)?;
     Ok(json!({"templates": listing(audience, pack_id, query)}))
 }
 
-/// The templates `template.list` lists for these filters, in catalog order, each as its row.
-/// For callers that filter as the person types (a gallery), so nothing is recorded into a macro.
-/// A blank query matches everything.
+fn list_examples(_s: &mut Session, v: &Value) -> CmdResult {
+    let (audience, pack_id, query) = filters(v)?;
+    Ok(json!({"examples": example_listing(audience, pack_id, query)}))
+}
+
+/// The document types `template.list` lists for these filters, in catalog order, each as its
+/// row. For callers that filter as the person types (a gallery), so nothing is recorded into a
+/// macro. A blank query matches everything.
 pub fn listing(audience: Option<&str>, pack_id: Option<&str>, query: Option<&str>) -> Vec<Value> {
+    rows(|p| &p.templates, audience, pack_id, query)
+}
+
+/// The examples `example.list` lists for these filters, as [`listing`] does for document types.
+pub fn example_listing(audience: Option<&str>, pack_id: Option<&str>, query: Option<&str>) -> Vec<Value> {
+    rows(|p| &p.examples, audience, pack_id, query)
+}
+
+/// A ruleset id with its label, for the rows (the id when the catalog does not know it).
+fn ruleset_row(id: &str) -> Value {
+    let label = cat().ruleset(id).map(|r| r.label.clone()).filter(|l| !l.is_empty()).unwrap_or_else(|| id.to_string());
+    json!({"id": id, "label": label})
+}
+
+/// The rulesets a document of `t` on `viewpoint` is held to: the type's for that viewpoint, else
+/// the pack's first (what the notation brings), else none.
+fn rulesets_shown(pack: &Pack, t: &Template, viewpoint: &str) -> Vec<Value> {
+    let own = t.rulesets_for(viewpoint);
+    if own.is_empty() {
+        pack.rulesets.first().filter(|_| !viewpoint.is_empty()).map(|r| vec![ruleset_row(&r.id)]).unwrap_or_default()
+    } else {
+        own.iter().map(|r| ruleset_row(r)).collect()
+    }
+}
+
+fn rows(list: impl Fn(&'static Pack) -> &'static Vec<Template>, audience: Option<&str>, pack_id: Option<&str>, query: Option<&str>) -> Vec<Value> {
     let query = query.map(str::trim).filter(|q| !q.is_empty());
     let mut out = Vec::new();
     for pack in cat().packs().iter().filter(|p| pack_id.is_none_or(|id| p.id == id)) {
         let variants: Vec<Value> = pack.variants.iter().map(|x| json!({"id": x.id, "label": x.label, "family": tpl::family_of(&x.id)})).collect();
-        for t in pack.templates.iter().filter(|t| matches(pack, t, audience, query)) {
+        for t in list(pack).iter().filter(|t| matches(pack, t, audience, query)) {
             let audience = if t.audience.is_empty() { &pack.audience } else { &t.audience };
-            out.push(json!({
+            let viewpoints: Vec<Value> = t
+                .viewpoint_choices()
+                .into_iter()
+                .map(|vp| {
+                    let label = pack.viewpoint(vp).map(|x| x.label.clone()).unwrap_or_default();
+                    json!({"id": vp, "label": label, "rulesets": rulesets_shown(pack, t, vp)})
+                })
+                .collect();
+            let mut row = json!({
                 "id": t.id,
                 "label": t.label,
                 "description": t.description,
                 "pack": pack.id,
                 "packName": pack.name,
+                "discipline": t.discipline(),
                 "audience": audience,
                 "keywords": t.keywords,
                 "viewpoint": t.viewpoint,
+                "viewpoints": viewpoints,
+                "rulesets": rulesets_shown(pack, t, &t.viewpoint),
                 "codeForms": t.code_forms,
                 "key": t.key,
                 "titleBlock": t.title_block,
@@ -578,7 +723,11 @@ pub fn listing(audience: Option<&str>, pack_id: Option<&str>, query: Option<&str
                 "variants": variants,
                 "sheet": t.sheet,
                 "module": t.module,
-            }));
+            });
+            if let (Some(o), Some(l)) = (row.as_object_mut(), t.live_checks) {
+                o.insert("liveChecks".into(), json!(l));
+            }
+            out.push(row);
         }
     }
     out

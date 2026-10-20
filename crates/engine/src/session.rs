@@ -684,13 +684,13 @@ impl Session {
 
 /// Commands that run other commands as one transaction and make the undo step themselves.
 fn is_transaction(id: &str) -> bool {
-    matches!(id, "edit.batch" | "script.run" | "template.new" | "template.addPage")
+    matches!(id, "edit.batch" | "script.run" | "template.new" | "template.addPage" | "example.open")
 }
 
 /// Whether a script records this command: not view-only, UI, app, help, file, script or macro commands (a macro run records the steps it
-/// ran, not the run itself), and not `template.new`, which replaces the document like `file.new`.
+/// ran, not the run itself), and not `template.new` or `example.open`, which replace the document like `file.new`.
 pub fn recordable(id: &str) -> bool {
-    !["view.", "ui.", "app.", "help.", "file.", "script.", "macro."].iter().any(|p| id.starts_with(p)) && id != "template.new"
+    !["view.", "ui.", "app.", "help.", "file.", "script.", "macro."].iter().any(|p| id.starts_with(p)) && id != "template.new" && id != "example.open"
 }
 
 /// A rough size of a document in memory: item structs plus their strings, points and image

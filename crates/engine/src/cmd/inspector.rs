@@ -293,7 +293,7 @@ mod tests {
 
     fn classes() -> crate::Session {
         let mut s = crate::Session::new(vizcraft_diagram::Document::new());
-        run(&mut s, "template.new", json!({"template": "uml.classDiagram"}));
+        run(&mut s, "template.new", json!({"template": "uml.class"}));
         s
     }
 

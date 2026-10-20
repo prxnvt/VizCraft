@@ -1049,8 +1049,35 @@
   ],
   "templates": [
     {
+      "id": "network.physicalDiagram",
+      "label": "Network Diagram (physical)",
+      "description": "Sites, racks and devices with the cables between their ports, on an A3 sheet with a title block and a key.",
+      "discipline": "infrastructure",
+      "keywords": ["rack", "cabling", "physical", "devices", "ports", "site"],
+      "viewpoint": "network.Physical",
+      "rulesets": ["network.topology"],
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true,
+      "key": true,
+      "layout": {"primitive": "nested", "direction": "LR"}
+    },
+    {
+      "id": "network.logicalDiagram",
+      "label": "Network Diagram (logical)",
+      "description": "Zones and subnets with their address ranges and VLANs, the devices that route to them or attach to them, and a key.",
+      "discipline": "infrastructure",
+      "keywords": ["ip", "subnet", "vlan", "routing", "addressing", "logical"],
+      "viewpoint": "network.Logical",
+      "rulesets": ["network.topology"],
+      "key": true,
+      "layout": {"algorithm": "layered", "direction": "TB"}
+    }
+  ],
+  "examples": [
+    {
       "id": "network.logical",
       "label": "Logical Network",
+      "discipline": "infrastructure",
       "description": "Subnets with their address ranges and VLANs, the router and firewall that route to them, and an address table.",
       "keywords": [
         "ip",
@@ -1196,6 +1223,7 @@
     {
       "id": "network.physical",
       "label": "Physical Network",
+      "discipline": "infrastructure",
       "description": "A site with two racks of devices and the cables between their ports, on an A3 sheet with a title block.",
       "keywords": [
         "rack",

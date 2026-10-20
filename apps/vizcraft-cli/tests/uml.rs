@@ -26,7 +26,7 @@ fn a_class_diagram_from_the_template_exports_as_plantuml() {
     std::fs::create_dir_all(&d).unwrap();
     let doc = d.join("class.vizcraft").to_string_lossy().into_owned();
     let puml = d.join("class.puml").to_string_lossy().into_owned();
-    let o = cli(&["new", "--template", "uml.classDiagram", &doc]);
+    let o = cli(&["new", "--example", "uml.class", &doc]);
     assert!(o.status.success(), "{}", text(&o));
     let o = cli(&["run", "--open", &doc, "--cmd", &format!("file.export={}", serde_json::json!({"path": puml}))]);
     assert!(o.status.success(), "{}", text(&o));

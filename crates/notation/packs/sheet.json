@@ -830,5 +830,20 @@
       "default": "{zone}",
       "description": "How a partner on the same sheet is shown."
     }
+  ],
+  "templates": [
+    {
+      "id": "sheet.engineeringSheet",
+      "label": "Engineering Sheet",
+      "description": "An empty drawing sheet with its frame, zones and ISO 7200 title block on the 2.5 mm symbol grid, held to the drawing sheet standards. ASME Y14.1 sizes are a choice away.",
+      "discipline": "engineering",
+      "audience": ["engineering", "industrial"],
+      "keywords": ["sheet", "title block", "frame", "zones", "iso 5457", "iso 7200", "asme y14.1"],
+      "viewpoint": "sheet.Sheet",
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true,
+      "module": "iso2_5mm",
+      "rulesets": ["sheet.drawingSheet"]
+    }
   ]
 }

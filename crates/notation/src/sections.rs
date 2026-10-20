@@ -40,6 +40,7 @@ pub fn flatten(pack: &mut Pack) -> Vec<String> {
         pack.viewpoints.extend(sec.viewpoints);
         pack.rules.extend(sec.rules);
         pack.templates.extend(sec.templates);
+        pack.examples.extend(sec.examples);
         for rs in sec.rulesets {
             match pack.rulesets.iter_mut().find(|r| r.id == rs.id) {
                 Some(existing) => {
