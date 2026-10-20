@@ -1360,7 +1360,7 @@
     },
     {
       "id": "process.cable",
-      "label": "Cable",
+      "label": "Instrument Cable",
       "category": "Loop Diagram",
       "outline": "path",
       "w": 39.37,
@@ -4111,7 +4111,7 @@
     },
     {
       "id": "process.Cable",
-      "label": "Cable",
+      "label": "Instrument Cable",
       "description": "A cable carrying the loop's pairs; its tag is the loop number and its own number (101-C1).",
       "glyph": "process.cable",
       "hidePorts": true,
