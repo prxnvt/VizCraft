@@ -265,6 +265,7 @@
     {
       "id": "basic.blank",
       "label": "Blank Drawing",
+      "discipline": "general",
       "description": "An empty page for free drawing with the basic shapes.",
       "keywords": ["blank", "empty", "drawing", "sketch"]
     }

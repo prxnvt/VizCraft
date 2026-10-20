@@ -1,18 +1,27 @@
-//! The template gallery: the File page's New screen and Add Page from Template, over the
-//! engine's template catalog (`template.list`, through [`template::listing`] so typing in the
-//! search records nothing into a macro).
+//! The New page: the File page's New screen, Add Page and Help > Examples, over the engine's
+//! catalog of document types (`template.list`) and examples (`example.list`), read through
+//! [`template::listing`] and [`template::example_listing`] so typing in the search records
+//! nothing into a macro.
 //!
-//! Top to bottom: the title ("New" or "Add Page"), the search field, audience chips, the
-//! standards bar (symbol family and sheet, IEC and ISO A3 landscape by default, every other
+//! New and Add Page offer **document types**: empty documents set up for a kind of work (the
+//! palette's shapes, the notation, the sheet and title block, the rules that check it). Each card
+//! shows what the type gives: the empty page or sheet and a row of the shapes its palette offers
+//! first. Examples mode offers the filled-in samples with their drawings. The app opens on New
+//! when it starts without a file ([`start`]).
+//!
+//! Top to bottom: the title ("New", "Add Page" or "Examples"), the search field, audience chips,
+//! the standards bar (symbol family and sheet, IEC and ISO A3 landscape by default, every other
 //! choice offered), the Workspace row (New only, while no workspace preset is chosen), a Recent
-//! row and one section of cards per pack, each card with a preview drawn from the template
-//! ([`crate::gallery_previews`]). A selected card opens the details panel on the right, where the
-//! notation variant and the sheet can be chosen before Create.
+//! row (New and Add Page) and one section of cards per discipline (General, Software, Data,
+//! Infrastructure, Engineering, then any other a pack names). A selected card opens the details
+//! panel on the right, where the viewpoint, the notation variant and the sheet can be chosen
+//! before Create, and the rules the type checks with are named.
 //!
-//! New runs `template.new` with the bar's standards (one undo step back to a blank page; a
-//! drawing with unsaved changes first shows a notice with Save First, Replace and Cancel). Add
-//! Page runs `template.addPage`, and there the bar edits the document's own standards
-//! (`template.standards`). Every choice is the person's; the defaults are only where it starts.
+//! New runs `template.new` with the bar's standards and Examples runs `example.open` (each one
+//! undo step back to a blank page; a drawing with unsaved changes first shows a notice with Save
+//! First, Replace and Cancel). Add Page runs `template.addPage`, and there the bar edits the
+//! document's own standards (`template.standards`). Every choice is the person's; the defaults
+//! are only where it starts.
 //!
 //! `ui.gallery` drives it all by id; `ui.inspect` reports it under `gallery`, with the rects of
 //! the chips, cards and buttons for clicks.
@@ -24,6 +33,7 @@ use egui::{Align2, Key, Modifiers, Rect, Sense, Stroke, Ui, pos2, vec2};
 use serde_json::{Value, json};
 use vizcraft_diagram::standards::Standards;
 use vizcraft_engine::cmd::template::{self, Choices, SHEET_CHOICES, SYMBOL_CHOICES};
+use vizcraft_notation::template::{DEFAULT_DISCIPLINE, DISCIPLINES};
 
 use crate::gallery_previews::{self as previews, Drawn};
 use crate::theme::{Tokens, medium, regular, semibold};
@@ -53,6 +63,8 @@ pub enum Mode {
     New,
     /// A page added to the document (Insert > Pages).
     Page,
+    /// A new document from an example (Help > Examples).
+    Examples,
 }
 
 impl Mode {
@@ -61,11 +73,35 @@ impl Mode {
         match self {
             Mode::New => "new",
             Mode::Page => "page",
+            Mode::Examples => "examples",
+        }
+    }
+
+    /// Whether the mode lists examples rather than document types.
+    pub fn examples(self) -> bool {
+        self == Mode::Examples
+    }
+
+    /// The page title.
+    fn title(self) -> &'static str {
+        match self {
+            Mode::New => "New",
+            Mode::Page => "Add Page",
+            Mode::Examples => "Examples",
         }
     }
 }
 
-/// One card: a template row of `template.list`, or a blank page of a pack without templates.
+/// One viewpoint a card offers: its id, its label and the labels of the rulesets it checks with.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ViewpointRow {
+    pub id: String,
+    pub label: String,
+    pub rulesets: Vec<String>,
+}
+
+/// One card: a row of `template.list` or `example.list`, or a blank page of a pack without
+/// document types.
 #[derive(Clone, Debug, Default)]
 pub struct Card {
     pub id: String,
@@ -73,6 +109,14 @@ pub struct Card {
     pub description: String,
     pub pack: String,
     pub pack_name: String,
+    /// The New page section it sits in.
+    pub discipline: String,
+    /// Whether it is an example (opened with `example.open`).
+    pub example: bool,
+    /// The default viewpoint.
+    pub viewpoint: String,
+    /// The viewpoints it offers, the default among them.
+    pub viewpoints: Vec<ViewpointRow>,
     pub audience: Vec<String>,
     pub keywords: Vec<String>,
     pub code_forms: Vec<String>,
@@ -105,12 +149,34 @@ impl Card {
                     .collect()
             })
             .unwrap_or_default();
+        let labels = |v: &Value| -> Vec<String> {
+            v.as_array().map(|a| a.iter().filter_map(|r| r.get("label").and_then(Value::as_str)).map(str::to_string).collect()).unwrap_or_default()
+        };
+        let viewpoints = r
+            .get("viewpoints")
+            .and_then(Value::as_array)
+            .map(|a| {
+                a.iter()
+                    .filter_map(|x| {
+                        Some(ViewpointRow {
+                            id: x.get("id")?.as_str()?.to_string(),
+                            label: x.get("label").and_then(Value::as_str).unwrap_or_default().to_string(),
+                            rulesets: labels(&x["rulesets"]),
+                        })
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
         Card {
             id: s("id"),
             label: s("label"),
             description: s("description"),
             pack: s("pack"),
             pack_name: s("packName"),
+            discipline: s("discipline"),
+            example: false,
+            viewpoint: s("viewpoint"),
+            viewpoints,
             audience: strings(&r["audience"]),
             keywords: strings(&r["keywords"]),
             code_forms: strings(&r["codeForms"]),
@@ -139,8 +205,8 @@ struct Rects {
     buttons: Vec<(String, Rect)>,
 }
 
-/// The cards cache: (catalog address, query, audience) and the cards for it.
-type Listing = Option<((usize, String, String), Rc<Vec<Card>>)>;
+/// The cards cache: (catalog address, query, audience, examples) and the cards for it.
+type Listing = Option<((usize, String, String, bool), Rc<Vec<Card>>)>;
 
 /// The gallery's transient state (on [`CraftApp`], never saved).
 #[derive(Default)]
@@ -154,6 +220,8 @@ pub struct Gallery {
     pub audience: String,
     /// The selected card's id.
     pub selected: Option<String>,
+    /// The viewpoint the person chose in the details panel (`None`: the type's default).
+    pub viewpoint: Option<String>,
     /// The Notation the person chose in the details panel (`None`: what the engine would choose;
     /// "" is the default drawing).
     pub variant: Option<String>,
@@ -180,10 +248,11 @@ pub struct Gallery {
 pub const NOTICE: &str = "The drawing has unsaved changes; creating replaces it";
 
 impl Gallery {
-    /// The cards shown for the search and the audience, in catalog order, the blank page cards
-    /// of packs without templates after their pack's place.
+    /// The cards shown for the mode, the search and the audience, grouped by discipline and in
+    /// catalog order inside each, the blank page cards of packs without document types after
+    /// their pack's place.
     pub fn cards(&self) -> Rc<Vec<Card>> {
-        let key = (previews::catalog_address(), self.query.trim().to_string(), self.audience.clone());
+        let key = (previews::catalog_address(), self.query.trim().to_string(), self.audience.clone(), self.mode.examples());
         if let Some((k, cards)) = self.listing.borrow().as_ref()
             && *k == key
         {
@@ -191,7 +260,7 @@ impl Gallery {
         }
         let audience = (!key.2.is_empty()).then_some(key.2.as_str());
         let query = (!key.1.is_empty()).then_some(key.1.as_str());
-        let cards = Rc::new(cards_for(audience, query));
+        let cards = Rc::new(cards_for(key.3, audience, query));
         *self.listing.borrow_mut() = Some((key, cards.clone()));
         cards
     }
@@ -202,15 +271,38 @@ impl Gallery {
 
     /// Forget the per-template choices (a new selection starts from the defaults).
     fn reset_choices(&mut self) {
+        self.viewpoint = None;
         self.variant = None;
         self.sheet = None;
         self.notice = None;
     }
 }
 
-/// The cards for these filters: `template::listing` plus a blank page card for each pack that
-/// has viewpoints and no templates, matched the same way.
-fn cards_for(audience: Option<&str>, query: Option<&str>) -> Vec<Card> {
+/// Where discipline `d` sits on the New page: the known ones in [`DISCIPLINES`] order, any other
+/// after them.
+fn discipline_rank(d: &str) -> usize {
+    DISCIPLINES.iter().position(|x| *x == d).unwrap_or(DISCIPLINES.len())
+}
+
+/// The heading of discipline `d`.
+pub fn discipline_label(d: &str) -> String {
+    title_case(if d.is_empty() { DEFAULT_DISCIPLINE } else { d })
+}
+
+/// The cards for these filters: the examples (`template::example_listing`), or the document
+/// types (`template::listing`) plus a blank page card for each pack that has viewpoints and no
+/// document types, matched the same way. Grouped by discipline, catalog order inside each.
+fn cards_for(examples: bool, audience: Option<&str>, query: Option<&str>) -> Vec<Card> {
+    let mut out = if examples { examples_for(audience, query) } else { types_for(audience, query) };
+    out.sort_by(|a, b| discipline_rank(&a.discipline).cmp(&discipline_rank(&b.discipline)).then_with(|| a.discipline.cmp(&b.discipline)));
+    out
+}
+
+fn examples_for(audience: Option<&str>, query: Option<&str>) -> Vec<Card> {
+    template::example_listing(audience, None, query).iter().map(|r| Card { example: true, ..Card::from_row(r) }).collect()
+}
+
+fn types_for(audience: Option<&str>, query: Option<&str>) -> Vec<Card> {
     let rows = template::listing(audience, None, query);
     let mut out = Vec::new();
     for pack in vizcraft_notation::catalog().packs() {
@@ -231,6 +323,7 @@ fn cards_for(audience: Option<&str>, query: Option<&str>) -> Vec<Card> {
                     description: pack.description.clone(),
                     pack: pack.id.clone(),
                     pack_name: pack.name.clone(),
+                    discipline: DEFAULT_DISCIPLINE.into(),
                     audience: pack.audience.clone(),
                     blank_viewpoint: Some(vp.id.clone()),
                     ..Card::default()
@@ -241,10 +334,10 @@ fn cards_for(audience: Option<&str>, query: Option<&str>) -> Vec<Card> {
     out
 }
 
-/// Every audience of the catalog's cards, in the order first seen.
-fn audiences() -> Vec<String> {
+/// Every audience of the mode's cards, in the order first seen.
+fn audiences(examples: bool) -> Vec<String> {
     let mut out: Vec<String> = Vec::new();
-    for c in cards_for(None, None) {
+    for c in cards_for(examples, None, None) {
         for a in c.audience {
             if !out.iter().any(|x| x.eq_ignore_ascii_case(&a)) {
                 out.push(a);
@@ -307,11 +400,11 @@ fn full_sheet(sheet: &str) -> String {
     if s.split('.').count() == 2 { format!("{s}.landscape") } else { s }
 }
 
-/// The standards the bar shows: in New the last choice (the preferences), in Add Page the
-/// document's; an unset field reads as its default.
+/// The standards the bar shows: in New and Examples the last choice (the preferences), in Add
+/// Page the document's; an unset field reads as its default.
 pub fn bar(app: &CraftApp) -> Standards {
     let st = match app.gallery.mode {
-        Mode::New => &app.ui.new_standards,
+        Mode::New | Mode::Examples => &app.ui.new_standards,
         Mode::Page => &app.session.doc.standards,
     };
     Standards { symbols: st.symbols().to_string(), sheet: st.sheet().to_string() }
@@ -349,6 +442,13 @@ pub fn sanitize_prefs(ui: &mut UiState) {
     }
 }
 
+/// Open the New page at launch: the gallery in New mode on the File page. The app calls this when
+/// it starts without a file to open; Escape or Blank Drawing gives the blank page, and a file
+/// opened afterwards (Finder, File > Open) closes it.
+pub fn start(app: &mut CraftApp) {
+    open(app, Mode::New);
+}
+
 /// Open the gallery in `mode` on the File page, fresh: no search, All, nothing selected.
 pub fn open(app: &mut CraftApp, mode: Mode) {
     let presets = read_presets(app);
@@ -383,11 +483,11 @@ pub fn escape(app: &mut CraftApp) {
     }
 }
 
-/// Set the bar's symbol family and sheet: in New they become the next default (preferences); in
-/// Add Page they are the document's standards, one undo step each.
+/// Set the bar's symbol family and sheet: in New and Examples they become the next default
+/// (preferences); in Add Page they are the document's standards, one undo step each.
 fn set_standards(app: &mut CraftApp, symbols: Option<&str>, sheet: Option<&str>) -> Result<(), String> {
     match app.gallery.mode {
-        Mode::New => {
+        Mode::New | Mode::Examples => {
             if let Some(s) = symbols {
                 app.ui.new_standards.symbols = s.to_string();
             }
@@ -412,25 +512,31 @@ fn workspace_choice(g: &Gallery) -> &'static str {
     g.workspace.unwrap_or_else(|| preset::suggested(&g.audience))
 }
 
-/// Create from card `id` in the gallery's mode. In New a drawing with unsaved changes is not
-/// replaced unless `replace`: the notice shows and the result is an error naming it. On success
-/// the template goes to Recent (in `CraftApp::run`), a pending workspace choice is applied, and
-/// the File page closes; on failure the engine's message is in the status bar and the gallery
-/// stays open.
-pub fn create(app: &mut CraftApp, id: &str, replace: bool) -> Result<Value, String> {
+/// The card `id` of the mode: among the cards shown, else any of the mode (a Recent card).
+fn find_card(app: &CraftApp, id: &str) -> Option<Card> {
     let cards = app.gallery.cards();
-    let card = cards.iter().find(|c| c.id == id).cloned().or_else(|| cards_for(None, None).into_iter().find(|c| c.id == id));
-    let Some(card) = card else {
-        return Err(format!("unknown template `{}`; ui.gallery lists them under shown", id.chars().take(64).collect::<String>()));
+    cards.iter().find(|c| c.id == id).cloned().or_else(|| cards_for(app.gallery.mode.examples(), None, None).into_iter().find(|c| c.id == id))
+}
+
+/// Create from card `id` in the gallery's mode. In New and Examples a drawing with unsaved
+/// changes is not replaced unless `replace`: the notice shows and the result is an error naming
+/// it. On success a document type goes to Recent (in `CraftApp::run`), a pending workspace
+/// choice is applied, and the File page closes; on failure the engine's message is in the
+/// status bar and the gallery stays open.
+pub fn create(app: &mut CraftApp, id: &str, replace: bool) -> Result<Value, String> {
+    let Some(card) = find_card(app, id) else {
+        return Err(format!("unknown document type `{}`; ui.gallery lists them under shown", id.chars().take(64).collect::<String>()));
     };
     let mode = app.gallery.mode;
-    if mode == Mode::New && app.session.dirty && !replace {
+    if mode != Mode::Page && app.session.dirty && !replace {
         app.gallery.selected = Some(card.id.clone());
         app.gallery.notice = Some(card.id.clone());
         return Err(format!("{NOTICE} (Save First, Replace or Cancel)"));
     }
     let r = match (&card.blank_viewpoint, mode) {
-        (Some(vp), Mode::New) => app.run("file.new", json!({})).and_then(|_| app.run("model.setViewpoint", json!({"viewpoint": vp}))),
+        (Some(vp), Mode::New | Mode::Examples) => {
+            app.run("file.new", json!({})).and_then(|_| app.run("model.setViewpoint", json!({"viewpoint": vp})))
+        }
         (Some(vp), Mode::Page) => app.run(
             "edit.batch",
             json!({"label": format!("New {} Page", card.pack_name), "commands": [
@@ -439,19 +545,23 @@ pub fn create(app: &mut CraftApp, id: &str, replace: bool) -> Result<Value, Stri
             ]}),
         ),
         (None, _) => {
-            let mut p = json!({"template": card.id});
+            let mut p = if mode.examples() { json!({"example": card.id}) } else { json!({"template": card.id}) };
+            if let Some(v) = &app.gallery.viewpoint {
+                p["viewpoint"] = json!(v);
+            }
             if let Some(v) = &app.gallery.variant {
                 p["variant"] = json!(v);
             }
             if let Some(s) = &app.gallery.sheet {
                 p["sheet"] = json!(s);
             }
-            if mode == Mode::New {
-                let st = bar(app);
-                p["standards"] = json!({"symbols": st.symbols, "sheet": st.sheet});
-                app.run("template.new", p)
-            } else {
-                app.run("template.addPage", p)
+            match mode {
+                Mode::Page => app.run("template.addPage", p),
+                Mode::New | Mode::Examples => {
+                    let st = bar(app);
+                    p["standards"] = json!({"symbols": st.symbols, "sheet": st.sheet});
+                    app.run(if mode.examples() { "example.open" } else { "template.new" }, p)
+                }
             }
         }
     };
@@ -460,7 +570,7 @@ pub fn create(app: &mut CraftApp, id: &str, replace: bool) -> Result<Value, Stri
     let workspace = (mode == Mode::New && app.ui.preset.is_empty()).then(|| workspace_choice(&app.gallery));
     app.gallery.open = false;
     let _ = app.run("ui.backstage", json!({"value": false}));
-    if mode == Mode::New {
+    if mode != Mode::Page {
         let _ = app.run("ui.pane.shapeData", json!({"value": true}));
     }
     if let Some(name) = workspace
@@ -493,6 +603,7 @@ fn state(app: &CraftApp) -> Value {
         "query": g.query,
         "audience": g.audience,
         "selected": g.selected,
+        "viewpoint": g.viewpoint,
         "shown": g.shown_ids(),
         "pending": g.pending,
         "symbols": st.symbols,
@@ -549,13 +660,33 @@ fn command(app: &mut CraftApp, p: &Value) -> Result<Value, String> {
         None => None,
         Some("new") => Some(Mode::New),
         Some("page") => Some(Mode::Page),
-        Some(m) => return Err(format!("`mode` is new or page, not `{}`", m.chars().take(64).collect::<String>())),
+        Some("examples") => Some(Mode::Examples),
+        Some(m) => return Err(format!("`mode` is new, page or examples, not `{}`", m.chars().take(64).collect::<String>())),
     };
+    // The mode the gallery will be in: the one given, else the open one's, else New.
+    let target = mode.unwrap_or(if app.gallery.open && app.backstage { app.gallery.mode } else { Mode::New });
+    let all = cards_for(target.examples(), None, None);
     let select = text("select")?;
     if let Some(id) = select
-        && !cards_for(None, None).iter().any(|c| c.id == id)
+        && !all.iter().any(|c| c.id == id)
     {
-        return Err(format!("unknown template `{}`; template.list lists them", id.chars().take(64).collect::<String>()));
+        let list = if target.examples() { "example.list" } else { "template.list" };
+        return Err(format!(
+            "unknown {} `{}`; {list} lists them",
+            if target.examples() { "example" } else { "document type" },
+            id.chars().take(64).collect::<String>()
+        ));
+    }
+    let viewpoint = text("viewpoint")?;
+    if let Some(v) = viewpoint {
+        let card =
+            select.map(str::to_string).or_else(|| (mode.is_none_or(|m| m == app.gallery.mode)).then(|| app.gallery.selected.clone()).flatten());
+        let offered = card.and_then(|id| all.iter().find(|c| c.id == id).map(|c| c.viewpoints.iter().any(|x| x.id == v)));
+        match offered {
+            Some(true) => {}
+            Some(false) => return Err(format!("`{}` is not a viewpoint the selected card offers", v.chars().take(64).collect::<String>())),
+            None => return Err("`viewpoint` needs a selected card (`select`)".into()),
+        }
     }
     let symbols = text("symbols")?.map(str::to_ascii_lowercase);
     if let Some(s) = &symbols
@@ -602,6 +733,9 @@ fn command(app: &mut CraftApp, p: &Value) -> Result<Value, String> {
         }
         app.gallery.selected = Some(id.to_string());
     }
+    if let Some(v) = viewpoint {
+        app.gallery.viewpoint = Some(v.to_string());
+    }
     if symbols.is_some() || sheet.is_some() {
         set_standards(app, symbols.as_deref(), sheet.as_deref())?;
     }
@@ -610,7 +744,7 @@ fn command(app: &mut CraftApp, p: &Value) -> Result<Value, String> {
     }
     if flag("create") == Some(true) {
         let id = app.gallery.selected.clone().or_else(|| app.gallery.shown_ids().into_iter().next());
-        let Some(id) = id else { return Err("no template is shown to create".into()) };
+        let Some(id) = id else { return Err("no card is shown to create".into()) };
         create(app, &id, false)?;
     }
     Ok(state(app))
@@ -672,11 +806,8 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
         return;
     }
     let mut rects = Rects::default();
-    let title = match app.gallery.mode {
-        Mode::New => "New",
-        Mode::Page => "Add Page",
-    };
-    ui.label(egui::RichText::new(title).font(semibold(24.0)).color(t.text));
+    let mode = app.gallery.mode;
+    ui.label(egui::RichText::new(mode.title()).font(semibold(24.0)).color(t.text));
     ui.add_space(10.0);
 
     // Search. Typing anywhere on the page while no other text field has the keyboard goes here.
@@ -688,9 +819,10 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
         app.gallery.focus = false;
     }
     let mut query = app.gallery.query.clone();
-    let resp = ui.add(egui::TextEdit::singleline(&mut query).id(search_id).hint_text("Search templates").desired_width(360.0).font(regular(13.0)));
-    resp.widget_info(|| egui::WidgetInfo::text_edit(true, "", query.as_str(), "Search templates"));
-    let resp = resp.on_hover_text("Search templates");
+    let hint = if mode.examples() { "Search examples" } else { "Search document types" };
+    let resp = ui.add(egui::TextEdit::singleline(&mut query).id(search_id).hint_text(hint).desired_width(360.0).font(regular(13.0)));
+    resp.widget_info(|| egui::WidgetInfo::text_edit(true, "", query.as_str(), hint));
+    let resp = resp.on_hover_text(hint);
     if resp.changed() {
         let mut end = query.len().min(MAX_QUERY);
         while !query.is_char_boundary(end) {
@@ -703,7 +835,7 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
     // Audience chips.
     ui.horizontal_wrapped(|ui| {
         let mut chips = vec![(String::new(), "All".to_string())];
-        chips.extend(audiences().into_iter().map(|a| (a.clone(), title_case(&a))));
+        chips.extend(audiences(mode.examples()).into_iter().map(|a| (a.clone(), title_case(&a))));
         for (value, label) in chips {
             let on = app.gallery.audience.eq_ignore_ascii_case(&value);
             let r = ui.add(egui::Button::selectable(on, egui::RichText::new(&label).font(regular(12.5))));
@@ -724,14 +856,10 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
     // The cards on the left, the details on the right while a card is selected.
     let area = ui.available_rect_before_wrap();
     let cards = app.gallery.cards();
-    if app.gallery.selected.as_ref().is_some_and(|s| !cards.iter().any(|c| c.id == *s) && !app.ui.recent_templates.contains(s)) {
+    if app.gallery.selected.as_ref().is_some_and(|s| !cards.iter().any(|c| c.id == *s) && (mode.examples() || !app.ui.recent_templates.contains(s))) {
         app.gallery.selected = None;
     }
-    let selected = app
-        .gallery
-        .selected
-        .as_ref()
-        .and_then(|s| cards.iter().find(|c| c.id == *s).cloned().or_else(|| cards_for(None, None).into_iter().find(|c| c.id == *s)));
+    let selected = app.gallery.selected.clone().and_then(|s| find_card(app, &s));
     let list_rect =
         if selected.is_some() { Rect::from_min_max(area.min, pos2((area.max.x - DETAILS_W - 16.0).max(area.min.x), area.max.y)) } else { area };
     let mut tally = Tally::default();
@@ -740,8 +868,8 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
         egui::ScrollArea::vertical().id_salt("gallery_cards").auto_shrink([false, false]).show(ui, |ui| {
             let width = ui.available_width();
             app.gallery.cols = (((width + CARD_GAP) / (CARD.x + CARD_GAP)).floor() as usize).max(1);
-            let recent: Vec<Card> = if app.gallery.query.is_empty() {
-                let all = cards_for(None, None);
+            let recent: Vec<Card> = if app.gallery.query.is_empty() && !mode.examples() {
+                let all = cards_for(false, None, None);
                 app.ui.recent_templates.iter().filter_map(|id| all.iter().find(|c| c.id == *id).cloned()).collect()
             } else {
                 Vec::new()
@@ -769,11 +897,11 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
             }
             let mut i = 0;
             while i < cards.len() {
-                let pack = cards.get(i).map(|c| c.pack.clone()).unwrap_or_default();
-                let end = cards.iter().skip(i).position(|c| c.pack != pack).map_or(cards.len(), |n| i + n);
+                let discipline = cards.get(i).map(|c| c.discipline.clone()).unwrap_or_default();
+                let end = cards.iter().skip(i).position(|c| c.discipline != discipline).map_or(cards.len(), |n| i + n);
                 let group = cards.get(i..end).unwrap_or_default();
-                if let Some(first) = group.first() {
-                    ui.label(egui::RichText::new(&first.pack_name).font(medium(14.0)).color(t.text));
+                if !group.is_empty() {
+                    ui.label(egui::RichText::new(discipline_label(&discipline)).font(medium(14.0)).color(t.text));
                     ui.add_space(4.0);
                 }
                 grid(ui, |ui| {
@@ -789,7 +917,8 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
                 i = end.max(i + 1);
             }
             if cards.is_empty() {
-                ui.label(egui::RichText::new("No templates match").color(t.text_dim));
+                let none = if mode.examples() { "No examples match" } else { "No document types match" };
+                ui.label(egui::RichText::new(none).color(t.text_dim));
             }
         });
     });
@@ -911,11 +1040,7 @@ fn card(app: &mut CraftApp, ui: &mut Ui, c: &Card, recent: bool, tally: &mut Tal
     let fill = if resp.hovered() { t.hover } else { t.panel };
     ui.painter().rect(r, 6.0, fill, Stroke::new(if on { 2.0 } else { 1.0 }, if on { t.accent } else { t.border }), egui::StrokeKind::Inside);
     let pr = Rect::from_min_size(r.min + vec2(8.0, 8.0), vec2(r.width() - 16.0, PREVIEW_H));
-    if c.blank_viewpoint.is_some() {
-        previews::placeholder(ui, pr, &c.pack_name, &t);
-    } else {
-        tally.count(&c.id, previews::draw(ui, pr, &c.id, &Choices::default(), &bar(app), &c.pack_name));
-    }
+    preview(app, ui, pr, c, &Choices::default(), CARD_SHAPES, tally);
     let clip = ui.painter().with_clip_rect(r.shrink2(vec2(8.0, 0.0)));
     clip.text(pos2(r.min.x + 10.0, r.min.y + PREVIEW_H + 20.0), Align2::LEFT_CENTER, &c.label, medium(13.0), t.text);
     clip.text(pos2(r.min.x + 10.0, r.min.y + PREVIEW_H + 38.0), Align2::LEFT_CENTER, &c.description, regular(11.0), t.text_dim);
@@ -950,6 +1075,22 @@ fn card(app: &mut CraftApp, ui: &mut Ui, c: &Card, recent: bool, tally: &mut Tal
     (r, got)
 }
 
+/// Shapes a card's preview shows in its row; the details panel shows a few more.
+const CARD_SHAPES: usize = 5;
+
+/// The preview of card `c` in `r` with `choices`: an example's drawing, a document type's empty
+/// page with its first shapes, or the placeholder of a blank page card.
+fn preview(app: &CraftApp, ui: &mut Ui, r: Rect, c: &Card, choices: &Choices, shapes: usize, tally: &mut Tally) {
+    let t = Tokens::get(ui.ctx());
+    if c.blank_viewpoint.is_some() {
+        previews::placeholder(ui, r, &c.pack_name, &t);
+    } else if c.example {
+        tally.count(&c.id, previews::draw(ui, r, &c.id, choices, &bar(app), &c.pack_name));
+    } else {
+        tally.count(&c.id, previews::draw_type(ui, r, &c.id, choices, &bar(app), &c.pack_name, shapes));
+    }
+}
+
 /// A code form id as a chip: `mermaid.flowchart` is Mermaid, `dbml` is DBML.
 fn code_form_name(id: &str) -> String {
     let head = id.split('.').next().unwrap_or(id);
@@ -970,12 +1111,8 @@ fn details(app: &mut CraftApp, ui: &mut Ui, c: &Card, rects: &mut Rects, tally: 
         ui.label(egui::RichText::new(&c.label).font(semibold(16.0)).color(t.text));
         ui.add_space(6.0);
         let (pr, _) = ui.allocate_exact_size(vec2(DETAILS_W - 26.0, 190.0), Sense::hover());
-        if c.blank_viewpoint.is_some() {
-            previews::placeholder(ui, pr, &c.pack_name, &t);
-        } else {
-            let choices = Choices { variant: app.gallery.variant.clone(), sheet: app.gallery.sheet.clone() };
-            tally.count(&c.id, previews::draw(ui, pr, &c.id, &choices, &bar(app), &c.pack_name));
-        }
+        let chosen = Choices { viewpoint: app.gallery.viewpoint.clone(), variant: app.gallery.variant.clone(), sheet: app.gallery.sheet.clone() };
+        preview(app, ui, pr, c, &chosen, CARD_SHAPES + 1, tally);
         ui.add_space(6.0);
         if !c.description.is_empty() {
             ui.label(egui::RichText::new(&c.description).font(regular(12.0)).color(t.text));
@@ -991,6 +1128,11 @@ fn details(app: &mut CraftApp, ui: &mut Ui, c: &Card, rects: &mut Rects, tally: 
         ui.add_space(8.0);
         if c.blank_viewpoint.is_none() {
             choices(app, ui, c);
+            let vp = app.gallery.viewpoint.clone().unwrap_or_else(|| c.viewpoint.clone());
+            let rules = c.viewpoints.iter().find(|x| x.id == vp).map(|x| x.rulesets.clone()).unwrap_or_default();
+            if !rules.is_empty() {
+                ui.label(egui::RichText::new(format!("Checks: {}", rules.join(", "))).font(regular(11.0)).color(t.text_dim));
+            }
         }
         if app.gallery.notice.as_deref() == Some(c.id.as_str()) {
             ui.add_space(6.0);
@@ -1022,11 +1164,27 @@ fn details(app: &mut CraftApp, ui: &mut Ui, c: &Card, rects: &mut Rects, tally: 
     });
 }
 
-/// The Notation combo (when the pack has variants) and the Sheet combo (when the template draws
-/// a sheet). Each starts on what the engine would choose; only a change is sent.
+/// The Viewpoint combo (when the type offers several), the Notation combo (when the pack has
+/// variants) and the Sheet combo (when the type draws a sheet). Each starts on what the engine
+/// would choose; only a change is sent.
 fn choices(app: &mut CraftApp, ui: &mut Ui, c: &Card) {
     let st = bar(app);
     let label_of = |app: &CraftApp, id: &str| app.gallery.presets.iter().find(|p| p.id == id).map_or(id.to_string(), |p| p.label.clone());
+    if c.viewpoints.len() > 1 {
+        let current = app.gallery.viewpoint.clone().unwrap_or_else(|| c.viewpoint.clone());
+        let name = c.viewpoints.iter().find(|v| v.id == current).map_or(current.clone(), |v| v.label.clone());
+        let mut picked: Option<String> = None;
+        labelled_combo(ui, "Viewpoint", "gallery_viewpoint", name, |ui| {
+            for v in &c.viewpoints {
+                if ui.selectable_label(current == v.id, &v.label).clicked() {
+                    picked = Some(v.id.clone());
+                }
+            }
+        });
+        if let Some(v) = picked {
+            app.gallery.viewpoint = (v != c.viewpoint).then_some(v);
+        }
+    }
     if !c.variants.is_empty() {
         let engine = template::resolved(&c.id, &Choices::default(), Some(&st)).map(|(v, _)| v).unwrap_or_default();
         let current = app.gallery.variant.clone().unwrap_or(engine);

@@ -1,6 +1,7 @@
-//! Tests of the template commands: every shipped template builds cleanly, the hooks run or are
+//! Tests of the document type and example commands: every shipped type and example builds
+//! cleanly, a type draws no content and sets up its viewpoint and rules, the hooks run or are
 //! skipped by registration, the variant follows the choice and the project's standards, and a
-//! failing template changes nothing.
+//! failing example changes nothing.
 
 use serde_json::{Value, json};
 use vizcraft_diagram::Document;
@@ -16,8 +17,9 @@ fn blank() -> Session {
     Session::new(Document::new())
 }
 
-/// A pack built in code with IEC and JIC variants and two templates that use every engineering
-/// field (the `engtest` convention of `cmd/notation.rs`), loaded into the catalog once.
+/// A pack built in code with IEC and JIC variants, a document type and examples that use every
+/// engineering field (the `engtest` convention of `cmd/notation.rs`), loaded into the catalog
+/// once.
 fn engtest() {
     static ONCE: std::sync::OnceLock<()> = std::sync::OnceLock::new();
     ONCE.get_or_init(|| {
@@ -34,6 +36,13 @@ fn engtest() {
                 {"id": "engtest.jic", "label": "JIC", "glyphs": {"engtest.Coil": "engtest.coilJic"}}
             ],
             "templates": [
+                {
+                    "id": "engtest.sheet", "label": "Schematic Sheet", "description": "An empty schematic.", "discipline": "engineering",
+                    "viewpoint": "engtest.Schematic", "variant": "engtest.iec", "sheet": "iso.a3", "module": "iso2_5mm",
+                    "key": true, "titleBlock": true, "liveChecks": false
+                }
+            ],
+            "examples": [
                 {
                     "id": "engtest.schematic", "label": "Schematic", "description": "One coil.",
                     "viewpoint": "engtest.Schematic", "variant": "engtest.iec", "sheet": "iso.a3", "module": "iso2_5mm",
@@ -73,20 +82,24 @@ fn with_hooks(ids: &[&'static str]) -> Session {
     s
 }
 
+/// Every shipped document type, then every shipped example.
 fn shipped() -> Vec<String> {
-    let mut ids = Vec::new();
-    for pack in cat().packs() {
-        if !pack.id.ends_with("test") {
-            ids.extend(pack.templates.iter().map(|t| t.id.clone()));
-        }
+    let mut ids = types();
+    for pack in cat().packs().iter().filter(|p| !p.id.ends_with("test")) {
+        ids.extend(pack.examples.iter().map(|t| t.id.clone()));
     }
     ids
+}
+
+/// Every shipped document type.
+fn types() -> Vec<String> {
+    cat().packs().iter().filter(|p| !p.id.ends_with("test")).flat_map(|p| p.templates.iter().map(|t| t.id.clone())).collect()
 }
 
 #[test]
 fn every_shipped_template_builds_with_registered_commands_and_no_error_issue() {
     let ids = shipped();
-    for want in ["basic.blank", "flowchart.blank", "flowchart.decision", "flowchart.ciPipeline"] {
+    for want in ["basic.blank", "flowchart.flowchart", "flowchart.decision", "flowchart.ciPipeline", "er.diagram", "uml.classDiagram", "uml.class"] {
         assert!(ids.iter().any(|i| i == want), "{want} is shipped");
     }
     let reg = crate::cmd::registry();
@@ -330,13 +343,17 @@ fn list_filters_by_audience_pack_and_query() {
     let all = ids(&run(&mut s, "template.list", json!({})));
     assert!(all.starts_with(&["basic.blank".to_string()]), "catalog order: {all:?}");
     let flow = ids(&run(&mut s, "template.list", json!({"pack": "flowchart"})));
-    assert_eq!(flow, ["flowchart.blank", "flowchart.decision", "flowchart.ciPipeline"]);
+    assert_eq!(flow, ["flowchart.flowchart"], "document types only");
     let eng = ids(&run(&mut s, "template.list", json!({"audience": "Engineering"})));
-    assert!(eng.contains(&"engtest.schematic".to_string()) && !eng.contains(&"basic.blank".to_string()), "{eng:?}");
-    let q = ids(&run(&mut s, "template.list", json!({"query": "DEPLOY", "pack": "flowchart"})));
+    assert!(eng.contains(&"engtest.sheet".to_string()) && !eng.contains(&"basic.blank".to_string()), "{eng:?}");
+    let examples = |r: &Value| r["examples"].as_array().unwrap().iter().map(|t| t["id"].as_str().unwrap().to_string()).collect::<Vec<_>>();
+    let flow = examples(&run(&mut s, "example.list", json!({"pack": "flowchart"})));
+    assert_eq!(flow, ["flowchart.decision", "flowchart.ciPipeline"]);
+    let q = examples(&run(&mut s, "example.list", json!({"query": "DEPLOY", "pack": "flowchart"})));
     assert_eq!(q, ["flowchart.ciPipeline"]);
-    let q = ids(&run(&mut s, "template.list", json!({"query": "branches on one question"})));
+    let q = examples(&run(&mut s, "example.list", json!({"query": "branches on one question"})));
     assert_eq!(q, ["flowchart.decision"]);
+    assert!(s.run("example.list", &json!({"query": "x".repeat(300)})).is_err());
     let r = run(&mut s, "template.list", json!({"pack": "engtest"}));
     let t = &r["templates"][0];
     assert_eq!(
@@ -344,6 +361,13 @@ fn list_filters_by_audience_pack_and_query() {
         json!([{"id": "engtest.iec", "label": "IEC", "family": "iec"}, {"id": "engtest.jic", "label": "JIC", "family": "jic"}])
     );
     assert_eq!((t["module"].as_str(), t["titleBlock"].as_bool(), t["packName"].as_str()), (Some("iso2_5mm"), Some(true), Some("Engineering test")));
+    assert_eq!((t["discipline"].as_str(), t["liveChecks"].as_bool()), (Some("engineering"), Some(false)));
+    let er = &run(&mut s, "template.list", json!({"pack": "er"}))["templates"][0];
+    let vps: Vec<&str> = er["viewpoints"].as_array().unwrap().iter().map(|v| v["id"].as_str().unwrap()).collect();
+    assert_eq!(vps, ["er.Physical", "er.Logical", "er.Conceptual"]);
+    assert_eq!(er["viewpoints"][2]["rulesets"][0]["id"], "er.conceptual");
+    assert_eq!(er["rulesets"], json!([{"id": "er.physical", "label": "Physical data model"}]));
+    assert_eq!(er["discipline"], "data");
     assert!(s.run("template.list", &json!({"query": "x".repeat(300)})).is_err());
 }
 
@@ -386,7 +410,7 @@ fn template_new_saves_when_given_a_path_and_is_not_recorded() {
     let r = run(&mut s, "template.new", json!({"template": "flowchart.decision", "path": path.to_string_lossy()}));
     assert_eq!(r["path"], json!(path.to_string_lossy()));
     assert!(!s.dirty && s.path.as_deref() == Some(path.as_path()));
-    run(&mut s, "template.addPage", json!({"template": "flowchart.blank"}));
+    run(&mut s, "template.addPage", json!({"template": "flowchart.flowchart"}));
     let script = s.record_stop().unwrap();
     assert_eq!(script.iter().map(|x| x["command"].as_str().unwrap()).collect::<Vec<_>>(), ["template.addPage"]);
     let mut t = blank();
@@ -481,5 +505,104 @@ fn listing_is_what_template_list_returns() {
         }
         let r = run(&mut s, "template.list", p);
         assert_eq!(r["templates"], json!(listing(audience, pack, query)));
+    }
+}
+
+#[test]
+fn every_document_type_is_empty_and_sets_up_its_viewpoint_and_rules() {
+    let ids = types();
+    assert!(ids.len() >= 16, "{ids:?}");
+    for id in &ids {
+        let (pack, t) = lookup(id).unwrap();
+        assert!(t.seed.is_empty(), "{id}");
+        let mut s = blank();
+        let r = run(&mut s, "template.new", json!({"template": id}));
+        assert!(s.doc.model.elements.is_empty() && s.doc.model.relationships.is_empty(), "{id} draws no content");
+        let page = s.doc.page().unwrap();
+        assert!(page.shapes.iter().all(|sh| sh.element.is_none()), "{id}: only setup shapes (frame, title block)");
+        let vp = page.view.as_ref().map(|v| v.viewpoint.clone()).unwrap_or_default();
+        assert_eq!(vp, t.viewpoint, "{id}");
+        assert_eq!(r["viewpoint"], json!(t.viewpoint));
+        let profile = vizcraft_notation::rules::profile(&s.doc, cat());
+        for want in t.rulesets_for(&t.viewpoint) {
+            assert!(profile.enabled && profile.rulesets.contains(want), "{id}: {want} in {:?}", profile.rulesets);
+        }
+        // The Blank Drawing sets nothing up, so there is nothing to undo.
+        assert_eq!(s.undo_depth(), usize::from(id != "basic.blank"), "{id}");
+        if id != "basic.blank" {
+            assert_eq!(s.undo_label().map(str::to_string), Some(format!("New from {}", t.label)));
+        }
+        assert!(!t.discipline().is_empty() && pack.id != "drawing");
+    }
+}
+
+#[test]
+fn a_viewpoint_choice_brings_its_own_rules_and_a_bad_one_changes_nothing() {
+    let mut s = blank();
+    let r = run(&mut s, "template.new", json!({"template": "er.diagram", "viewpoint": "er.Conceptual", "variant": "er.chen"}));
+    assert_eq!((r["viewpoint"].as_str(), r["variant"].as_str()), (Some("er.Conceptual"), Some("er.chen")));
+    assert_eq!(r["rulesets"], json!(["er.conceptual"]), "the conceptual rules only");
+    let view = s.doc.page().unwrap().view.clone().unwrap();
+    assert_eq!((view.viewpoint.as_str(), view.variant.as_str()), ("er.Conceptual", "er.chen"));
+    let (before, depth) = (s.doc.clone(), s.undo_depth());
+    for bad in [json!({"template": "er.diagram", "viewpoint": "uml.Sequence"}), json!({"template": "er.diagram", "viewpoint": 5})] {
+        assert!(s.run("template.new", &bad).is_err(), "{bad}");
+        assert!(s.run("template.addPage", &bad).is_err(), "{bad}");
+        assert!(s.run("template.preview", &bad).is_err(), "{bad}");
+    }
+    assert_eq!((s.doc == before, s.undo_depth()), (true, depth));
+    // The default viewpoint is the physical one, with its rules.
+    let r = run(&mut s, "template.new", json!({"template": "er.diagram"}));
+    assert_eq!((r["viewpoint"].as_str(), r["variant"].as_str()), (Some("er.Physical"), Some("er.ie")));
+    assert_eq!(r["rulesets"], json!(["er.physical"]));
+}
+
+#[test]
+fn a_page_of_another_type_adds_its_rules_and_live_checks_can_start_off() {
+    let mut s = blank();
+    run(&mut s, "template.new", json!({"template": "er.diagram"}));
+    let r = run(&mut s, "template.addPage", json!({"template": "flowchart.flowchart"}));
+    assert_eq!(r["rulesets"], json!(["er.physical", "flowchart.iso5807"]));
+    assert_eq!(s.undo_depth(), 2);
+    run(&mut s, "edit.undo", json!({}));
+    assert_eq!(vizcraft_notation::rules::profile(&s.doc, cat()).rulesets, ["er.physical"]);
+    engtest();
+    let mut s = blank();
+    let r = run(&mut s, "template.new", json!({"template": "engtest.sheet"}));
+    assert_eq!(r["rulesets"], json!([]));
+    assert!(!vizcraft_notation::rules::profile(&s.doc, cat()).enabled, "the type starts with checking off");
+    // Checking the person switched off stays off when a page of a type with rules is added.
+    let mut s = blank();
+    run(&mut s, "template.new", json!({"template": "flowchart.flowchart"}));
+    run(&mut s, "validate.setProfile", json!({"enabled": false}));
+    run(&mut s, "template.addPage", json!({"template": "er.diagram"}));
+    let p = vizcraft_notation::rules::profile(&s.doc, cat());
+    assert!(!p.enabled && p.rulesets.contains(&"er.physical".to_string()), "{p:?}");
+}
+
+#[test]
+fn examples_open_filled_in_and_types_do_not_open_as_examples() {
+    let mut s = Session::new(crate::sample::sample_document());
+    let r = run(&mut s, "example.open", json!({"example": "flowchart.decision", "standards": {"symbols": "jic"}}));
+    assert_eq!(r["template"], "flowchart.decision");
+    assert_eq!(s.doc.page().unwrap().shapes.len(), 6);
+    assert_eq!((s.undo_depth(), s.undo_label()), (1, Some("New from Decision Flow")));
+    assert_eq!(s.doc.standards.symbols, "jic");
+    let (before, depth) = (s.doc.clone(), s.undo_depth());
+    for bad in [json!({"example": "flowchart.flowchart"}), json!({"example": "nope.nope"}), json!({"template": "flowchart.decision"}), json!({})] {
+        assert!(s.run("example.open", &bad).is_err(), "{bad}");
+    }
+    assert_eq!((s.doc == before, s.undo_depth()), (true, depth));
+    // A script written before document types still opens an example through template.new.
+    let mut t = blank();
+    run(&mut t, "template.new", json!({"template": "flowchart.decision"}));
+    assert_eq!(t.doc.model.elements, s.doc.model.elements);
+}
+
+#[test]
+fn ids_are_unique_across_document_types_and_examples() {
+    let mut seen = std::collections::HashSet::new();
+    for id in shipped() {
+        assert!(seen.insert(id.clone()), "{id} twice");
     }
 }

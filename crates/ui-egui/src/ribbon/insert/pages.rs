@@ -18,7 +18,7 @@ pub(in crate::ribbon) fn group() -> Group {
                 MenuEntry::new("Blank Page", "page.add", json!({})),
                 MenuEntry::new("Background Page", "page.add", json!({"background": true})),
                 MenuEntry::new("Duplicate Page", "page.duplicate", json!({})),
-                MenuEntry::new("Page from Template...", "ui.gallery", json!({"mode": "page"})),
+                MenuEntry::new("Page from Document Type...", "ui.gallery", json!({"mode": "page"})),
             ],
         }],
     )

@@ -253,7 +253,7 @@ fn slash_opens_the_picker_without_a_slash_in_the_query() {
 
 #[test]
 fn the_picker_leads_with_next_steps_for_one_class_and_connect_rows_for_two() {
-    let mut h = from_template("uml.classDiagram");
+    let mut h = from_template("uml.class");
     let classes = shapes_of(&h, "uml.Class");
     assert!(classes.len() >= 2, "the template draws classes: {classes:?}");
     select(&mut h, &[&classes[0]]);
@@ -278,7 +278,7 @@ fn the_picker_leads_with_next_steps_for_one_class_and_connect_rows_for_two() {
 
 #[test]
 fn a_next_row_inserts_the_step_and_starts_naming_it() {
-    let mut h = from_template("uml.classDiagram");
+    let mut h = from_template("uml.class");
     let classes = shapes_of(&h, "uml.Class");
     select(&mut h, &[&classes[0]]);
     let rows = picker_rows(&mut h, "");
@@ -380,7 +380,7 @@ fn double_clicking_a_wide_label_beside_a_thin_line_edits_it() {
 
 #[test]
 fn double_clicking_near_an_association_end_edits_the_multiplicity() {
-    let mut h = from_template("uml.classDiagram");
+    let mut h = from_template("uml.class");
     let (cid, rid) = {
         let app = h.state();
         let doc = &app.session.doc;
@@ -445,7 +445,7 @@ fn element_of(h: &Harness<'_, CraftApp>, shape: &str) -> String {
 
 #[test]
 fn a_canvas_edit_of_the_attributes_band_writes_the_model_and_survives_the_next_command() {
-    let mut h = from_template("uml.classDiagram");
+    let mut h = from_template("uml.class");
     let class = shapes_of(&h, "uml.Class")[0].clone();
     let el = element_of(&h, &class);
     centre_view_on(&mut h, &class);
@@ -639,7 +639,7 @@ fn tree_pane(template: &str) -> Harness<'static, CraftApp> {
 #[test]
 fn model_tree_lists_relationships_under_an_open_element_and_a_click_selects_the_connector() {
     use egui_kittest::kittest::Queryable;
-    let mut h = tree_pane("uml.classDiagram");
+    let mut h = tree_pane("uml.class");
     let classes = shapes_of(&h, "uml.Class");
     let el = element_of(&h, &classes[0]);
     // Closed: no relationship rows. Open: the element's relationships follow, with arrows.
@@ -682,7 +682,7 @@ fn open_inspector_on(h: &mut Harness<'_, CraftApp>, shape: &str) {
 #[test]
 fn members_add_move_and_delete_are_one_undo_step_each() {
     use egui_kittest::kittest::Queryable;
-    let mut h = from_template("uml.classDiagram");
+    let mut h = from_template("uml.class");
     let class = shapes_of(&h, "uml.Class")[0].clone();
     let el = element_of(&h, &class);
     run(&mut h, "uml.addMember", json!({"element": el, "list": "attributes", "text": "+a: int"}));
@@ -772,7 +772,7 @@ fn columns_grid_adds_a_column_toggles_flags_and_deletes() {
 #[test]
 fn relationship_ends_edit_navigability_then_fix_ends() {
     use egui_kittest::kittest::Queryable;
-    let mut h = from_template("uml.classDiagram");
+    let mut h = from_template("uml.class");
     let (cid, rid) = {
         let app = h.state();
         let doc = &app.session.doc;
@@ -870,7 +870,7 @@ fn group_labels(app: &CraftApp, tab: &str) -> Vec<&'static str> {
 
 #[test]
 fn the_process_tab_drops_diagram_validation_where_the_notation_tab_has_it() {
-    let uml = from_template("uml.classDiagram");
+    let uml = from_template("uml.class");
     assert!(!group_labels(uml.state(), "Process").contains(&"Diagram Validation"), "{:?}", group_labels(uml.state(), "Process"));
     assert!(group_labels(uml.state(), "Process").contains(&"Subprocess"), "Subprocess stays");
     let tab = vizcraft_ui_egui::ribbon::tabs(uml.state()).into_iter().find(|t| t.name == "UML").expect("the UML tab");

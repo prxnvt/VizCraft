@@ -87,7 +87,7 @@ pub fn menu_tree(app: &CraftApp) -> Vec<Menu> {
     }
     let mut file = vec![
         Item::Cmd("New", "file.new", json!({})),
-        Item::Cmd("New from Template...", "ui.gallery", json!({"mode": "new"})),
+        Item::Cmd("New Document...", "ui.gallery", json!({"mode": "new"})),
         Item::Cmd("New Window", "ui.newWindow", json!({})),
         Item::Cmd("Open...", "file.open", json!({})),
         Item::Sub("Open Recent", recent),
@@ -164,6 +164,7 @@ pub fn menu_tree(app: &CraftApp) -> Vec<Menu> {
             items: vec![
                 Item::Cmd("Keyboard Shortcuts...", "ui.shortcuts", json!({})),
                 Item::Cmd("Command Palette", "ui.commands", json!({})),
+                Item::Cmd("Examples...", "ui.gallery", json!({"mode": "examples"})),
                 Item::Sep,
                 Item::Cmd("About VizCraft", "help.about", json!({})),
             ],

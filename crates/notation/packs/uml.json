@@ -996,6 +996,20 @@
         {
           "id": "uml.classDiagram",
           "label": "Class Diagram",
+          "description": "Classes and interfaces with their attributes, operations and the associations, generalizations and realizations between them.",
+          "discipline": "software",
+          "keywords": ["class", "interface", "association", "domain model"],
+          "viewpoint": "uml.ClassDiagram",
+          "rulesets": ["uml.uml251"],
+          "layout": {"algorithm": "layered", "direction": "TB"},
+          "codeForms": ["mermaid.class", "plantuml"]
+        }
+      ],
+      "examples": [
+        {
+          "id": "uml.class",
+          "label": "Class Diagram",
+          "discipline": "software",
           "description": "A small order model: classes with typed attributes and operations, an interface and its realization, composition and multiplicities.",
           "viewpoint": "uml.ClassDiagram",
           "keywords": [
@@ -1248,8 +1262,22 @@
       ],
       "templates": [
         {
+          "id": "uml.componentDiagram",
+          "label": "Component Diagram",
+          "description": "Components with their provided and required interfaces and the dependencies between them.",
+          "discipline": "software",
+          "keywords": ["component", "interface", "dependency"],
+          "viewpoint": "uml.ComponentDiagram",
+          "rulesets": ["uml.uml251"],
+          "layout": {"algorithm": "layered", "direction": "LR"},
+          "codeForms": ["plantuml"]
+        }
+      ],
+      "examples": [
+        {
           "id": "uml.component",
           "label": "Component Diagram",
+          "discipline": "software",
           "description": "Three components wired through the interfaces they provide and use.",
           "viewpoint": "uml.ComponentDiagram",
           "keywords": [
@@ -1512,8 +1540,22 @@
       ],
       "templates": [
         {
+          "id": "uml.packageDiagram",
+          "label": "Package Diagram",
+          "description": "Packages, what they contain and the imports and merges between them.",
+          "discipline": "software",
+          "keywords": ["package", "namespace", "import"],
+          "viewpoint": "uml.PackageDiagram",
+          "rulesets": ["uml.uml251"],
+          "layout": {"algorithm": "layered", "direction": "TB"},
+          "codeForms": ["plantuml"]
+        }
+      ],
+      "examples": [
+        {
           "id": "uml.package",
           "label": "Package Diagram",
+          "discipline": "software",
           "description": "A layered application: user interface, domain and persistence packages with their imports.",
           "viewpoint": "uml.PackageDiagram",
           "keywords": [
@@ -1885,8 +1927,22 @@
       ],
       "templates": [
         {
+          "id": "uml.deploymentDiagram",
+          "label": "Deployment Diagram",
+          "description": "Nodes and execution environments with the artifacts deployed on them and the communication paths between them.",
+          "discipline": "software",
+          "keywords": ["deployment", "node", "artifact", "server"],
+          "viewpoint": "uml.DeploymentDiagram",
+          "rulesets": ["uml.uml251"],
+          "layout": {"primitive": "nested"},
+          "codeForms": ["plantuml"]
+        }
+      ],
+      "examples": [
+        {
           "id": "uml.deployment",
           "label": "Deployment Diagram",
+          "discipline": "software",
           "description": "A web server and a database server with the artifacts deployed on them.",
           "viewpoint": "uml.DeploymentDiagram",
           "keywords": [
@@ -2197,8 +2253,22 @@
       ],
       "templates": [
         {
+          "id": "uml.useCaseDiagram",
+          "label": "Use Case Diagram",
+          "description": "Actors, the use cases of a system and the includes and extends between them.",
+          "discipline": "software",
+          "keywords": ["use case", "actor", "requirements"],
+          "viewpoint": "uml.UseCaseDiagram",
+          "rulesets": ["uml.uml251"],
+          "layout": {"algorithm": "layered", "direction": "LR"},
+          "codeForms": ["plantuml"]
+        }
+      ],
+      "examples": [
+        {
           "id": "uml.useCase",
           "label": "Use Case Diagram",
+          "discipline": "software",
           "description": "A customer and a clerk with the use cases of an online shop.",
           "viewpoint": "uml.UseCaseDiagram",
           "keywords": [
@@ -2793,8 +2863,22 @@
       ],
       "templates": [
         {
+          "id": "uml.activityDiagram",
+          "label": "Activity Diagram",
+          "description": "Actions, decisions, forks and joins with the control flows between them.",
+          "discipline": "software",
+          "keywords": ["activity", "action", "workflow", "fork", "join"],
+          "viewpoint": "uml.ActivityDiagram",
+          "rulesets": ["uml.uml251"],
+          "layout": {"algorithm": "layered", "direction": "TB"},
+          "codeForms": ["plantuml"]
+        }
+      ],
+      "examples": [
+        {
           "id": "uml.activity",
           "label": "Activity Diagram",
+          "discipline": "software",
           "description": "An order handled from receipt to shipping, with packing and billing in parallel.",
           "viewpoint": "uml.ActivityDiagram",
           "keywords": [
@@ -3491,8 +3575,22 @@
       ],
       "templates": [
         {
+          "id": "uml.stateMachineDiagram",
+          "label": "State Machine Diagram",
+          "description": "States and the transitions between them, with initial and final states and choices.",
+          "discipline": "software",
+          "keywords": ["state", "transition", "lifecycle"],
+          "viewpoint": "uml.StateMachineDiagram",
+          "rulesets": ["uml.uml251"],
+          "layout": {"algorithm": "layered", "direction": "LR"},
+          "codeForms": ["mermaid.state", "plantuml"]
+        }
+      ],
+      "examples": [
+        {
           "id": "uml.stateMachine",
           "label": "State Machine Diagram",
+          "discipline": "software",
           "description": "The life of an order from pending to shipped or cancelled.",
           "viewpoint": "uml.StateMachineDiagram",
           "keywords": [
@@ -3966,8 +4064,22 @@
       ],
       "templates": [
         {
+          "id": "uml.sequenceDiagram",
+          "label": "Sequence Diagram",
+          "description": "Participants and the messages between them in time order, with activations and fragments.",
+          "discipline": "software",
+          "keywords": ["sequence", "message", "lifeline", "interaction"],
+          "viewpoint": "uml.Sequence",
+          "rulesets": ["uml.uml251"],
+          "layout": {"primitive": "sequence"},
+          "codeForms": ["mermaid.sequence", "plantuml.sequence"]
+        }
+      ],
+      "examples": [
+        {
           "id": "uml.sequence",
           "label": "Sequence Diagram",
+          "discipline": "software",
           "description": "A client, an API and a database: a request, a query and its rows, then a found or not-found reply in an alt fragment.",
           "viewpoint": "uml.Sequence",
           "keywords": [

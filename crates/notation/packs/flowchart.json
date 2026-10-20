@@ -662,16 +662,22 @@
   ],
   "templates": [
     {
-      "id": "flowchart.blank",
-      "label": "Blank Flowchart",
-      "description": "An empty flowchart page with the flowchart symbols and checks ready.",
+      "id": "flowchart.flowchart",
+      "label": "Flowchart",
+      "description": "An empty flowchart page with the ISO 5807 symbols and the checks that keep its flow sound.",
+      "discipline": "general",
+      "keywords": ["flow", "process", "procedure", "decision", "iso 5807", "blank"],
       "viewpoint": "flowchart.Flowchart",
-      "keywords": ["blank", "empty", "flow", "process"],
+      "rulesets": ["flowchart.iso5807"],
+      "layout": {"algorithm": "layered", "direction": "TB"},
       "codeForms": ["mermaid.flowchart"]
-    },
+    }
+  ],
+  "examples": [
     {
       "id": "flowchart.decision",
       "label": "Decision Flow",
+      "discipline": "general",
       "description": "A short process that branches on one question and comes back together at the end.",
       "viewpoint": "flowchart.Flowchart",
       "keywords": ["decision", "branch", "yes", "no", "process", "procedure"],
@@ -695,6 +701,7 @@
     {
       "id": "flowchart.ciPipeline",
       "label": "Build and Release Pipeline",
+      "discipline": "general",
       "description": "A change goes through a build, three checks side by side and a deploy before it is released.",
       "viewpoint": "flowchart.Flowchart",
       "keywords": ["ci", "cd", "pipeline", "build", "deploy", "release", "tests"],

@@ -1,6 +1,8 @@
-//! Template previews for the gallery: the template drawn in a scratch document with the choices
-//! the gallery shows, exported to PNG through the engine (the same drawing path as File > Export),
-//! shrunk and kept as a texture.
+//! Previews for the gallery. An example's preview is the example drawn in a scratch document
+//! with the choices the gallery shows, exported to PNG through the engine (the same drawing path
+//! as File > Export), shrunk and kept as a texture. A document type's preview
+//! ([`draw_type`]) shows what the type gives: the empty page, or its sheet with frame and title
+//! block (rendered the same way), and a row of the first shapes its palette offers.
 //!
 //! Pipeline: [`template::resolved`] gives the variant and sheet, [`template::build`] draws the
 //! document, `export_page_bytes` rasterises its page so the longest side is about twice the
@@ -134,7 +136,7 @@ pub fn draw(ui: &Ui, r: Rect, id: &str, choices: &Choices, standards: &Standards
 /// fails or the picture cannot be made.
 fn build(ctx: &egui::Context, key: &Key, px: f32) -> Option<TextureHandle> {
     let (_, t) = template::lookup(&key.template).ok()?;
-    let choices = Choices { variant: Some(key.variant.clone()), sheet: Some(key.sheet.clone()) };
+    let choices = Choices { viewpoint: None, variant: Some(key.variant.clone()), sheet: Some(key.sheet.clone()) };
     let doc = template::build(t, &choices).ok()?;
     let index = doc.active_index();
     let frame = doc.pages.get(index)?.frame();
@@ -148,6 +150,50 @@ fn build(ctx: &egui::Context, key: &Key, px: f32) -> Option<TextureHandle> {
     let small = if (tw, th) == (w, h) { img } else { image::imageops::thumbnail(&img, tw, th) };
     let image = ColorImage::from_rgba_unmultiplied([tw as usize, th as usize], small.as_raw());
     Some(ctx.load_texture(format!("gallery-{}-{}-{}", key.template, key.variant, key.sheet), image, TextureOptions::LINEAR))
+}
+
+/// Draw document type `id`'s preview into `r`: its empty page as `choices` and the project's
+/// `standards` set it up (the sheet with its frame and title block when it has one, built and
+/// cached as [`draw`] does; a plain page otherwise) with a row of the first `n` shapes its
+/// palette offers, drawn in the chosen notation variant. `pack` names the placeholder.
+pub fn draw_type(ui: &Ui, r: Rect, id: &str, choices: &Choices, standards: &Standards, pack: &str, n: usize) -> Drawn {
+    let t = Tokens::get(ui.ctx());
+    let Ok((variant, sheet)) = template::resolved(id, choices, Some(standards)) else {
+        no_preview(ui, r, &t);
+        return Drawn::Failed;
+    };
+    let viewpoint = template::lookup(id).ok().and_then(|(_, ty)| template::viewpoint_of(ty, choices).ok()).unwrap_or_default();
+    let drawn = if sheet.is_empty() {
+        ui.painter().rect(r, 3.0, Color32::WHITE, Stroke::new(1.0, t.border), egui::StrokeKind::Inside);
+        Drawn::Ready
+    } else {
+        draw(ui, r, id, choices, standards, pack)
+    };
+    if drawn != Drawn::Ready {
+        return drawn;
+    }
+    let masters = crate::palette::first_masters((!viewpoint.is_empty()).then_some(viewpoint.as_str()), &variant, n);
+    if masters.is_empty() {
+        return drawn;
+    }
+    // On a sheet the row sits in the drawing area, clear of the title block in the lower right
+    // corner (an A-size sheet fitted into the preview keeps its proportions).
+    let band = if sheet.is_empty() {
+        r.shrink2(vec2(10.0, r.height() * 0.22))
+    } else {
+        let w = r.width().min(r.height() * 1.414) * 0.72;
+        Rect::from_center_size(pos2(r.center().x, r.center().y - r.height() * 0.1), vec2(w, r.height() * 0.34))
+    };
+    if !sheet.is_empty() {
+        ui.painter().rect_filled(band, 2.0, Color32::WHITE);
+    }
+    let cell = (band.width() / masters.len() as f32).min(band.height() * 1.6);
+    let left = band.center().x - cell * masters.len() as f32 / 2.0;
+    for (i, m) in masters.iter().enumerate() {
+        let c = Rect::from_min_size(pos2(left + cell * i as f32, band.top()), vec2(cell, band.height()));
+        crate::panes::master_preview(ui.painter(), m, c.shrink2(vec2(cell * 0.12, band.height() * 0.12)));
+    }
+    drawn
 }
 
 /// The texture fitted into `r`, keeping its proportions, on the page colour.

@@ -15,9 +15,10 @@
 //!                      [--types T,T] [--against FILE] [--check] [--json]
 //!                                                            graph analysis or model compare; --check for CI
 //! vizcraft-cli glyph BUILDER [--param K=V]... [--module N] one parametric glyph as SVG on stdout
-//! vizcraft-cli new --template ID [--variant V] [--sheet S] [--svg PREVIEW.svg] [--json] OUT
-//!                                                            a new document from a template
-//! vizcraft-cli new --list [--audience A] [--json]           the templates the packs offer
+//! vizcraft-cli new (--template ID | --example ID) [--viewpoint V] [--variant V] [--sheet S] [--svg PREVIEW.svg] [--json] OUT
+//!                                                            a new document of a type, or an example
+//! vizcraft-cli new --list [--examples] [--audience A] [--json]
+//!                                                            the document types (or examples) the packs offer
 //! vizcraft-cli control HOST:PORT METHOD [JSON]             one request to a running app, reply on stdout
 //! vizcraft-cli control HOST:PORT -                         forward request lines from stdin, one reply each
 //! vizcraft-cli mcp [--connect ADDR | --headless]           MCP server on stdio, driving the running app or,
@@ -72,10 +73,13 @@ USAGE:
   vizcraft-cli glyph BUILDER [--param KEY=VALUE]... [--module N]
                                                          draw one parametric glyph (a builder name or a
                                                          pack glyph id) and print its SVG; warnings on stderr
-  vizcraft-cli new --template ID [--variant V] [--sheet S] [--svg PREVIEW.svg] [--json] OUT
-                                                         a new document drawn from a template, saved to OUT;
-                                                         --svg also writes its preview
-  vizcraft-cli new --list [--audience A] [--json]     the templates the notation packs offer
+  vizcraft-cli new (--template ID | --example ID) [--viewpoint V] [--variant V] [--sheet S] [--svg PREVIEW.svg] [--json] OUT
+                                                         a new empty document of a document type (or a
+                                                         filled-in example), saved to OUT; --svg also
+                                                         writes its preview
+  vizcraft-cli new --list [--examples] [--audience A] [--json]
+                                                         the document types (or examples) the notation
+                                                         packs offer
   vizcraft-cli control HOST:PORT METHOD [JSON]         one request to a running app (started with --control PORT)
   vizcraft-cli control HOST:PORT -                     forward request lines from stdin, one reply line each
   vizcraft-cli mcp [--connect ADDR | --headless]      MCP server (JSON-RPC on stdin and stdout). --connect drives

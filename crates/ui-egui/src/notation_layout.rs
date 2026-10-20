@@ -1,5 +1,5 @@
 //! What the page's notation says about layout and flow: the direction a typed chain grows in, the
-//! layouts the notation's own templates use, and whether the page is a sequence page (where the
+//! layouts the notation's document types and examples use, and whether the page is a sequence page (where the
 //! sequence tools own the keyboard). The rules live here so keys, the picker and the ribbon agree.
 
 use vizcraft_engine::suggest::Direction;
@@ -28,8 +28,9 @@ fn viewpoint(app: &CraftApp) -> String {
     app.session.doc.page().and_then(|p| p.view.as_ref()).map(|v| v.viewpoint.clone()).unwrap_or_default()
 }
 
-/// What `auto` resolves to: the flow direction of the first template of the page's viewpoint that
-/// sets one (TB is down, LR right, BT up, RL left), else right, which `insert.next` defaults to.
+/// What `auto` resolves to: the flow direction of the first document type, then example, of the
+/// page's viewpoint that sets one (TB is down, LR right, BT up, RL left), else right, which
+/// `insert.next` defaults to. A document type's layout direction is where its chains grow.
 pub fn auto_direction(app: &CraftApp) -> Direction {
     let vp = viewpoint(app);
     if vp.is_empty() {
@@ -38,9 +39,7 @@ pub fn auto_direction(app: &CraftApp) -> Direction {
     let cat = vizcraft_notation::catalog();
     let pack = vizcraft_diagram::vizcraft_model::pack_of(&vp);
     cat.pack(pack)
-        .and_then(|p| {
-            p.templates.iter().filter(|t| t.viewpoint == vp).find_map(|t| t.layout.as_ref().and_then(|l| l.direction.as_deref()).and_then(from_flow))
-        })
+        .and_then(|p| for_viewpoint(p, &vp).find_map(|t| t.layout.as_ref().and_then(|l| l.direction.as_deref()).and_then(from_flow)))
         .unwrap_or(Direction::Right)
 }
 
@@ -99,8 +98,15 @@ pub fn viewpoint_label(app: &CraftApp) -> Option<String> {
     pack.viewpoint(&vp).map(|v| v.label.clone())
 }
 
-/// The layouts the page's notation uses: the distinct layouts of its viewpoint's templates, with
-/// their roles dropped so a primitive uses its page defaults. Empty on a free-drawing page.
+/// The document types, then the examples, of `pack` that start on viewpoint `vp` (a type also
+/// counts for the viewpoints it offers as choices).
+fn for_viewpoint<'a>(pack: &'a vizcraft_notation::Pack, vp: &'a str) -> impl Iterator<Item = &'a vizcraft_notation::Template> {
+    pack.templates.iter().filter(move |t| t.offers_viewpoint(vp)).chain(pack.examples.iter().filter(move |t| t.viewpoint == vp))
+}
+
+/// The layouts the page's notation uses: the distinct layouts of its viewpoint's document types
+/// and examples, with their roles dropped so a primitive uses its page defaults. Empty on a
+/// free-drawing page.
 pub fn layout_choices(app: &CraftApp) -> Vec<LayoutChoice> {
     let vp = viewpoint(app);
     if vp.is_empty() {
@@ -108,7 +114,7 @@ pub fn layout_choices(app: &CraftApp) -> Vec<LayoutChoice> {
     }
     let Some(pack) = vizcraft_notation::catalog().pack(vizcraft_diagram::vizcraft_model::pack_of(&vp)) else { return Vec::new() };
     let mut out: Vec<LayoutChoice> = Vec::new();
-    for t in pack.templates.iter().filter(|t| t.viewpoint == vp) {
+    for t in for_viewpoint(pack, &vp) {
         let Some(l) = &t.layout else { continue };
         let dir = l.direction.as_deref().filter(|d| direction_words(d).is_some());
         let choice = match (l.primitive.as_deref(), l.algorithm.as_deref()) {

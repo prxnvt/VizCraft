@@ -1124,8 +1124,24 @@
   ],
   "templates": [
     {
+      "id": "cloud.architecture",
+      "label": "Cloud Architecture",
+      "description": "Regions, networks and services with the requests and events between them, and a key for the line kinds and numbered steps. Pick the whole topology or one cluster.",
+      "discipline": "infrastructure",
+      "keywords": ["cloud", "architecture", "hosting", "region", "subnet", "cluster", "namespace"],
+      "viewpoint": "cloud.Topology",
+      "viewpoints": [{"viewpoint": "cloud.Topology"}, {"viewpoint": "cloud.Cluster"}],
+      "rulesets": ["cloud.topology"],
+      "key": true,
+      "layout": {"primitive": "nested", "direction": "LR"},
+      "codeForms": ["mermaid.architecture"]
+    }
+  ],
+  "examples": [
+    {
       "id": "cloud.topology",
       "label": "Cloud Topology",
+      "discipline": "infrastructure",
       "description": "A region with a network of public and private subnets, a gateway and balancer in front of two workloads, a database and managed services, with the request numbered step by step and a key.",
       "keywords": [
         "cloud",
@@ -1424,6 +1440,7 @@
     {
       "id": "cloud.cluster",
       "label": "Cluster",
+      "discipline": "infrastructure",
       "description": "One container cluster with two namespaces, an ingress balancer and the workloads it reaches.",
       "keywords": [
         "cluster",

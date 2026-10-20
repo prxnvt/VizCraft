@@ -273,9 +273,9 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("app.quit", "Quit VizCraft", "Mod+Q", "{}"),
     (
         "ui.gallery",
-        "New from Template",
+        "New Document",
         "",
-        r#"{"open"?: bool (default true), "mode"?: "new"|"page", "query"?: string, "audience"?: string ("" is All), "select"?: template id, "symbols"?: symbol family, "sheet"?: sheet preset id, "create"?: bool, "clearRecent"?: bool} -> {"open", "mode", "query", "audience", "selected", "shown": [id], "pending", "symbols", "sheet"}; the template gallery on the File page; create runs template.new (with the bar's standards) or template.addPage for the selected card, else the first shown, and errs instead of replacing a drawing with unsaved changes; symbols and sheet set the bar (in page mode the document's standards, one undo step each)"#,
+        r#"{"open"?: bool (default true), "mode"?: "new"|"page"|"examples", "query"?: string, "audience"?: string ("" is All), "select"?: document type id (example id in examples mode), "viewpoint"?: one of the selected card's viewpoints, "symbols"?: symbol family, "sheet"?: sheet preset id, "create"?: bool, "clearRecent"?: bool} -> {"open", "mode", "query", "audience", "selected", "viewpoint", "shown": [id], "pending", "symbols", "sheet"}; the New page on the File page: document types grouped by discipline (new, page) or the filled-in examples (examples); create runs template.new (with the bar's standards), template.addPage or example.open for the selected card, else the first shown, and errs instead of replacing a drawing with unsaved changes; symbols and sheet set the bar (in page mode the document's standards, one undo step each)"#,
     ),
     (
         "ui.preset",
@@ -1369,7 +1369,7 @@ impl CraftApp {
 fn fits_after(id: &str, params: &Value) -> bool {
     let replaces = match id {
         "file.open" => true,
-        "template.new" | "template.addPage" => true,
+        "template.new" | "template.addPage" | "example.open" => true,
         "file.import" => params.get("replace").and_then(Value::as_bool) == Some(true),
         _ => false,
     };
