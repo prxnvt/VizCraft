@@ -378,6 +378,11 @@ fn arrow_keys_nudge_the_selection() {
 fn shapes_pane_click_inserts_in_view() {
     let mut h = harness();
     let n = h.state().session.doc.page().unwrap().shapes.len();
+    // The Basic primitives are not listed in the pane; a search finds them.
+    h.get_by(|n| n.placeholder() == Some("Search shapes")).focus();
+    h.run_steps(1);
+    h.get_by(|n| n.placeholder() == Some("Search shapes")).type_text("rectangle");
+    h.run_steps(3);
     h.get_by_label("Rectangle").click();
     h.run_steps(3);
     let page = h.state().session.doc.page().unwrap();

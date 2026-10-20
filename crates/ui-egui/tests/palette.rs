@@ -67,15 +67,15 @@ fn a_flowchart_page_shows_steps_data_links_connectors_drawing() {
     let r = run(&mut h, "model.setViewpoint", json!({"viewpoint": "flowchart.Flowchart"}));
     assert_eq!(r["viewpoint"], "flowchart.Flowchart");
     let r = h.state_mut().run("ui.palette", json!({})).unwrap();
-    assert_eq!(group_labels(&r), ["Steps", "Data", "Links", "Connectors", "Drawing", "More connectors", "Symbols"]);
+    assert_eq!(group_labels(&r), ["Steps", "Data", "Links", "Connectors", "More connectors", "Symbols"]);
     assert_eq!(items_of(&r, "flowchart.steps")[0], "flowchart.terminator");
     assert_eq!(items_of(&r, "connectors")[0], "flowchart.flow");
     // The same report is in ui.inspect, and the rows are on screen.
     let inspect = vizcraft_ui_egui::control::inspect(h.state(), &h.ctx);
-    assert_eq!(group_labels(&inspect["palette"]), ["Steps", "Data", "Links", "Connectors", "Drawing", "More connectors", "Symbols"]);
+    assert_eq!(group_labels(&inspect["palette"]), ["Steps", "Data", "Links", "Connectors", "More connectors", "Symbols"]);
     h.get_by_label("Decision");
     h.get_by_label("Flow");
-    h.get_by_label("Cloud");
+    assert!(h.query_by_label("Cloud").is_none(), "the Basic primitives are not listed");
 }
 
 #[test]
@@ -100,8 +100,9 @@ fn the_viewpoint_filter_hides_a_type_outside_the_viewpoint() {
 #[test]
 fn a_pack_loaded_from_disk_appears_without_a_restart() {
     let mut h = harness(vizcraft_engine::Document::new());
-    // No view: every pack's groups are closed under the pack name, Drawing is open.
-    assert!(h.query_by_label("Cloud").is_some());
+    // No view: every pack's groups are closed under the pack name; the Basic primitives are not listed.
+    assert!(h.query_by_label("Cloud Topology").is_some());
+    assert!(h.query_by_label("Rectangle").is_none(), "the Basic primitives are not listed");
     assert!(h.query_by_label("Alpha").is_none());
     load_mini_pack();
     h.run_steps(3);

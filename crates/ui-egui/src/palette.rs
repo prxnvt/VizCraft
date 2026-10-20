@@ -3,13 +3,14 @@
 //!
 //! A page with a view (a viewpoint of some pack) shows that pack's palette groups first, with the
 //! types filtered by the viewpoint unless the filter is switched off, then a Connectors group of
-//! the connector kinds that belong to the viewpoint and the page's notation variant, a Drawing
-//! group of the Basic primitives, and at the bottom a collapsed "More connectors" group: the
+//! the connector kinds that belong to the viewpoint and the page's notation variant, and at the
+//! bottom a collapsed "More connectors" group: the
 //! pack's kinds that another of its notations draws (Chen, Barker and IDEF1X relationships on an
 //! IE page), its kinds of other viewpoints (while the filter is on) and the generic drawing
 //! connectors of the Basic pack. Those stay searchable and usable, just out of the way.
-//! A page with no view lists every pack's groups, each pack closed under its name, and Drawing
-//! open. Everything is read from the notation catalog each time, so a pack loaded at run time
+//! A page with no view lists every pack's groups, each pack closed under its name. The Basic
+//! primitives (rectangle, ellipse and the rest) sit in a Drawing section the Palette pane does
+//! not list: they are found by search, the `/` picker and the Insert tab. Everything is read from the notation catalog each time, so a pack loaded at run time
 //! appears at once.
 //!
 //! Until the electrical, process and fluid power packs ship glyphs drawn by the parametric
@@ -264,6 +265,16 @@ fn drawing_group(cat: &'static Catalog) -> Option<Group> {
     (!items.is_empty()).then(|| Group { id: "drawing".into(), label: "Drawing".into(), items, tiles: true, open: true })
 }
 
+/// The Basic primitives in their own section, which the Palette pane does not list (the owner
+/// asked for them out of the sidebar): they stay in [`Palette::search`] results, the `/` picker and
+/// the Insert tab.
+fn drawing_section(cat: &'static Catalog) -> Option<Section> {
+    drawing_group(cat).map(|d| Section { id: DRAWING.into(), label: None, groups: vec![d], open: false })
+}
+
+/// The id of the section of Basic primitives the Palette pane leaves out.
+pub const DRAWING: &str = "drawing";
+
 /// The palette for a page showing `viewpoint` (or no view) drawn with rendering `variant` (empty
 /// for the default drawing), with the viewpoint filter on or off.
 pub fn build(viewpoint: Option<&str>, variant: &str, filter: bool) -> Palette {
@@ -274,10 +285,10 @@ pub fn build(viewpoint: Option<&str>, variant: &str, filter: bool) -> Palette {
         let mut groups = if pack.id == "basic" { Vec::new() } else { pack_groups(cat, pack, filter.then_some(vp)) };
         let (main, more) = connector_groups(cat, pack, filter.then_some(vp), variant);
         groups.extend(main);
-        groups.extend(drawing_group(cat));
         groups.extend(more);
         sections.push(Section { id: "scope".into(), label: None, groups, open: true });
         sections.push(preview_section());
+        sections.extend(drawing_section(cat));
     } else {
         for pack in cat.packs().iter().filter(|p| p.id != "basic") {
             let mut groups = pack_groups(cat, pack, None);
@@ -290,9 +301,7 @@ pub fn build(viewpoint: Option<&str>, variant: &str, filter: bool) -> Palette {
             }
         }
         sections.push(preview_section());
-        if let Some(d) = drawing_group(cat) {
-            sections.push(Section { id: "drawing".into(), label: None, groups: vec![d], open: true });
-        }
+        sections.extend(drawing_section(cat));
     }
     Palette { viewpoint: known.map(|(_, vp)| vp.id.clone()), sections }
 }
@@ -390,11 +399,13 @@ impl Palette {
     }
 
     /// The `palette` part of `ui.inspect`: the viewpoint, the filter, the search text and every
-    /// group with the ids of its rows.
+    /// group the pane lists, with the ids of its rows (the Drawing section is left out, as the pane
+    /// leaves it out).
     pub fn report(&self, app: &CraftApp) -> Value {
         let groups: Vec<Value> = self
             .sections
             .iter()
+            .filter(|s| s.id != DRAWING)
             .flat_map(|s| {
                 s.groups.iter().map(move |g| {
                     json!({"id": g.id, "label": g.label, "section": s.id, "pack": s.label, "open": g.open,
@@ -423,7 +434,8 @@ mod tests {
     #[test]
     fn a_flowchart_view_lists_steps_data_links_connectors_drawing() {
         let p = build(Some("flowchart.Flowchart"), "", true);
-        assert_eq!(labels(&p), ["Steps", "Data", "Links", "Connectors", "Drawing", "More connectors", "Symbols"]);
+        assert_eq!(labels(&p), ["Steps", "Data", "Links", "Connectors", "More connectors", "Symbols", "Drawing"]);
+        assert_eq!(p.sections.last().unwrap().id, DRAWING, "the primitives sit in the section the pane leaves out");
         let kinds: Vec<&str> = p.groups().find(|g| g.id == "connectors").unwrap().items.iter().map(|i| i.id).collect();
         assert_eq!(kinds, ["flowchart.flow"]);
         let more = p.groups().find(|g| g.id == MORE_CONNECTORS).unwrap();
@@ -478,12 +490,13 @@ mod tests {
     }
 
     #[test]
-    fn no_view_lists_every_pack_closed_and_drawing_open() {
+    fn no_view_lists_every_pack_closed_and_drawing_out_of_the_pane() {
         let p = build(None, "", true);
         let flow = p.sections.iter().find(|s| s.id == "flowchart").unwrap();
         assert!(!flow.open && flow.label.as_deref() == Some("Flowchart"));
         let last = p.sections.last().unwrap();
-        assert!(last.open && last.label.is_none() && last.groups[0].id == "drawing");
+        assert!(last.id == DRAWING && last.label.is_none() && last.groups[0].id == "drawing");
+        assert!(p.search("rectangle").iter().any(|i| i.id == "basic.rectangle"), "the primitives are still searchable");
     }
 
     #[test]

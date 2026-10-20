@@ -362,7 +362,7 @@ fn shapes(app: &mut CraftApp, ui: &mut Ui) {
         return;
     }
     let focus = app.palette_focus.take();
-    for sec in &pal.sections {
+    for sec in pal.sections.iter().filter(|s| s.id != crate::palette::DRAWING) {
         match &sec.label {
             Some(name) => {
                 let open = focus.as_deref().is_some_and(|f| f == sec.id || f.eq_ignore_ascii_case(name) || sec.groups.iter().any(|g| f == g.id)).then_some(true);

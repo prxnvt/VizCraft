@@ -382,7 +382,7 @@ fn search_box<'a>(h: &'a Harness<'_, CraftApp>) -> egui_kittest::Node<'a> {
 #[test]
 fn typing_in_the_shapes_search_shows_only_matching_tiles() {
     let mut h = harness(app());
-    assert_eq!(tiles(&h, "Rectangle"), 1, "every set shows with an empty query");
+    assert_eq!(tiles(&h, "Rectangle"), 0, "the Basic primitives are not listed with an empty query");
     assert!(h.query_by_label("Results").is_none());
     search_box(&h).focus();
     h.run_steps(1);
@@ -407,7 +407,7 @@ fn typing_in_the_shapes_search_shows_only_matching_tiles() {
     h.get_by_label("Clear search").click();
     h.run_steps(3);
     assert!(h.state().shapes_query.is_empty());
-    assert_eq!(tiles(&h, "Rectangle"), 1);
+    assert_eq!(tiles(&h, "Rectangle"), 0);
     assert!(h.query_by_label("Results").is_none());
 }
 
@@ -423,7 +423,7 @@ fn escape_clears_the_shapes_search() {
     h.key_press(egui::Key::Escape);
     h.run_steps(3);
     assert!(h.state().shapes_query.is_empty());
-    assert_eq!(tiles(&h, "Rectangle"), 1);
+    assert_eq!(tiles(&h, "Rectangle"), 0, "back to the unsearched pane");
 }
 
 #[test]
