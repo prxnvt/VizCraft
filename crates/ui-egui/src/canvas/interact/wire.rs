@@ -133,10 +133,26 @@ pub(super) fn finish(app: &mut CraftApp, from: WireEnd, to: Point, pipe: bool, z
         return;
     }
     let mut params = json!({"from": from.to_json(), "to": end.to_json()});
-    if pipe {
-        params["kind"] = json!("pipe");
+    match line_type(app, pipe) {
+        // The connector type's net kind is the wire's kind.
+        Some(t) => params["type"] = json!(t),
+        None if pipe => params["kind"] = json!("pipe"),
+        None => {}
     }
     run(app, "wire.draw", params);
+}
+
+/// The connector type the Wire or Pipe tool draws: the armed line (`ui.tool {line}`), else the
+/// first connector type of the page's notation pack whose net matches the tool (wire or potential
+/// for the Wire tool, fluid or pipe for the Pipe tool), else none.
+pub fn line_type(app: &CraftApp, pipe: bool) -> Option<String> {
+    if let Some(l) = &app.line_type {
+        return Some(l.clone());
+    }
+    let vp = crate::palette::active_viewpoint(app)?;
+    let pack = vizcraft_notation::catalog().pack(vp.split_once('.').map_or("", |(p, _)| p))?;
+    let nets: &[&str] = if pipe { &["fluid", "pipe"] } else { &["wire", "potential"] };
+    pack.connector_types.iter().find(|t| t.net.as_deref().is_some_and(|n| nets.contains(&n))).map(|t| t.id.clone())
 }
 
 /// The drag a press with the Wire tool starts.
@@ -212,6 +228,7 @@ pub fn ui_command(app: &mut CraftApp, id: &str, _p: &Value) -> Option<Result<Val
             app.tool = Tool::Wire { pipe };
             app.canvas.painter_from = None;
             app.connector_kind.clear();
+            app.line_type = None;
             Ok(json!({"tool": app.tool.name()}))
         }
         "ui.rotateQuarter" => on_selection(app, "shape.rotate", json!({"turns": 1}), "rotate"),

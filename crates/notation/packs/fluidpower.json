@@ -2700,8 +2700,7 @@
       "description": "An ISO 1219 hydraulic circuit on an ISO A3 sheet with a title block: pumps, valves, actuators and the reservoir, with the circuit rules.",
       "discipline": "engineering",
       "audience": [
-        "engineering",
-        "industrial"
+        "engineering"
       ],
       "keywords": [
         "hydraulic",
@@ -2731,8 +2730,7 @@
       "description": "An ISO 1219 pneumatic circuit with ISO 5599 port numbers and room for the displacement-step chart beside it.",
       "discipline": "engineering",
       "audience": [
-        "engineering",
-        "industrial"
+        "engineering"
       ],
       "keywords": [
         "pneumatic",
@@ -2764,8 +2762,7 @@
       "description": "A VDI 3260 displacement-step chart on its own sheet, with the component list.",
       "discipline": "engineering",
       "audience": [
-        "engineering",
-        "industrial"
+        "engineering"
       ],
       "keywords": [
         "displacement step",
@@ -2795,8 +2792,7 @@
       "description": "A reservoir, a fixed pump driven by an electric motor, a relief valve with a gauge, a return filter, a 4/3 solenoid valve and a double-acting cylinder, coded 0Z1, 0P1, 0M1, 0V1, 1V1 and 1A1.",
       "discipline": "engineering",
       "audience": [
-        "engineering",
-        "industrial"
+        "engineering"
       ],
       "keywords": [
         "hydraulic",
@@ -3151,8 +3147,7 @@
       "description": "A pressure source and service unit, a 5/2 double pilot valve driving a cylinder, two roller limit valves and a start button, with the displacement-step chart beside the circuit.",
       "discipline": "engineering",
       "audience": [
-        "engineering",
-        "industrial"
+        "engineering"
       ],
       "keywords": [
         "pneumatic",
@@ -3486,8 +3481,7 @@
       "description": "A hydraulic power unit in its enclosure: reservoir, fixed pump and motor, relief valve, gauge, cooler and return filter, made by fluid.powerUnit.",
       "discipline": "engineering",
       "audience": [
-        "engineering",
-        "industrial"
+        "engineering"
       ],
       "keywords": [
         "power unit",

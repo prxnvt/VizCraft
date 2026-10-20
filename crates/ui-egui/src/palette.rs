@@ -505,7 +505,8 @@ mod tests {
             let sec = p.sections.iter().find(|s| s.id == PREVIEW_SECTION).unwrap();
             assert!(!sec.open && sec.label.as_deref() == Some("Engineering symbols (preview)"));
             let ids: Vec<&str> = sec.groups[0].items.iter().map(|i| i.id).collect();
-            assert_eq!(ids, ["contact", "coil", "bubble", "valve", "cylinder", "pump", "gate", "fcf", "weld", "texture"]);
+            // The wave 1 builders first; the engineering packs' builders follow them.
+            assert_eq!(ids.get(..10), Some(&["contact", "coil", "bubble", "valve", "cylinder", "pump", "gate", "fcf", "weld", "texture"][..]));
             for id in ids {
                 let b = builder_preview(id).unwrap_or_else(|| panic!("{id} builds with its defaults"));
                 assert!(b.w > 0.0 && b.h > 0.0 && !b.path.els.is_empty(), "{id}");

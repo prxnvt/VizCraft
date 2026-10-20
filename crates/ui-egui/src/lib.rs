@@ -146,7 +146,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "ui.tool",
         "Tool",
         "",
-        r#"{"tool": "pointer|area|lasso|connector|text|textBlock|formatPainter|crop|pen|highlighter|eraser|wire|pipe|steps", "from"?: id, "keep"?: bool, "kind"?: connector kind id}; kind makes the connector tool draw that kind (any other tool or no kind clears it); area is the pointer's marquee; steps numbers connectors (a click sets the next step, Shift-click clears it, Escape returns to the pointer); formatPainter copies from "from" (default: the primary selection), once unless "keep""#,
+        r#"{"tool": "pointer|area|lasso|connector|text|textBlock|formatPainter|crop|pen|highlighter|eraser|wire|pipe|steps", "from"?: id, "keep"?: bool, "kind"?: connector kind id, "line"?: connector type id}; kind makes the connector tool draw that kind (any other tool or no kind clears it); line makes the wire or pipe tool draw that connector type (wire.draw type; without it the tool draws the first type of the page's notation whose net matches: wire or potential for wire, fluid or pipe for pipe); area is the pointer's marquee; steps numbers connectors (a click sets the next step, Shift-click clears it, Escape returns to the pointer); formatPainter copies from "from" (default: the primary selection), once unless "keep""#,
     ),
     ("ui.find", "Find", "Mod+F", "{}"),
     // Engineering keys: bare letters, as in electrical CAD; they fire only while the canvas has
@@ -539,6 +539,9 @@ pub struct CraftApp {
     /// The connector kind the connector tool draws (`ui.tool {tool: "connector", kind}`); empty
     /// is the default kind.
     pub connector_kind: String,
+    /// The connector type the Wire and Pipe tools draw (`ui.tool {tool: "wire"|"pipe", line}`);
+    /// `None` draws the first connector type of the active pack whose net matches the tool.
+    pub line_type: Option<String>,
     /// Whether the palette hides types outside the page's viewpoint (`ui.palette`).
     pub palette_filter: bool,
     /// A palette group to open on the next frame (`ui.palette {group}`).
@@ -594,6 +597,7 @@ impl CraftApp {
             tree: Default::default(),
             patterns: Default::default(),
             connector_kind: String::new(),
+            line_type: None,
             palette_filter: true,
             palette_focus: None,
             backstage: false,
@@ -830,13 +834,20 @@ impl CraftApp {
                     self.canvas.painter_from = None;
                 }
                 self.connector_kind.clear();
+                self.line_type = None;
                 if let (Tool::Connector, Some(k)) = (self.tool, s("kind")) {
                     if !vizcraft_notation::catalog().packs().iter().any(|p| p.connector_type(k).is_some()) {
                         return Some(Err(format!("unknown connector kind `{}`", k.chars().take(64).collect::<String>())));
                     }
                     self.connector_kind = k.to_string();
                 }
-                json!({"tool": self.tool.name(), "kind": self.connector_kind})
+                if let (Tool::Wire { .. }, Some(l)) = (self.tool, s("line").filter(|l| !l.is_empty())) {
+                    if !vizcraft_notation::catalog().packs().iter().any(|p| p.connector_type(l).is_some()) {
+                        return Some(Err(format!("unknown connector type `{}`", l.chars().take(64).collect::<String>())));
+                    }
+                    self.line_type = Some(l.to_string());
+                }
+                json!({"tool": self.tool.name(), "kind": self.connector_kind, "line": self.line_type})
             }
             "ui.tab" => {
                 let tab = s("tab").unwrap_or("Home");
