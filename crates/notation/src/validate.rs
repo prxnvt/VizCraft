@@ -629,6 +629,20 @@ impl<'a> Checker<'a> {
                     }
                 }
                 Check::ForeignKey { types } => self.type_list(&ctx, types),
+                Check::NetCheck { types, peers, .. } => {
+                    self.type_list(&ctx, types);
+                    self.type_list(&ctx, peers);
+                }
+                Check::InstrumentTag { types, .. } | Check::LoopComplete { types } | Check::OffPageContinuity { types } => {
+                    self.type_list(&ctx, types)
+                }
+                Check::LoopSheet { viewpoints } | Check::StreamsNumbered { viewpoints, .. } => {
+                    for v in self.list(&ctx, viewpoints) {
+                        if self.pack.viewpoint(v).is_none() {
+                            self.problem(format!("{ctx}: `{}` is not a viewpoint of this pack", short(v)));
+                        }
+                    }
+                }
                 Check::Unknown => self.problem(format!("{ctx}: unknown check kind (the pack needs a newer VizCraft)")),
             }
         }

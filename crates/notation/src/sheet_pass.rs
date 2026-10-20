@@ -616,12 +616,13 @@ pub fn recomposed(model: &vizcraft_model::Model, format: &IdFormat, e: &Element,
 
 fn stale_tags(doc: &Document, cat: &Catalog, rule: &RuleDecl, out: &mut Vec<Issue>) {
     let scopes = cat.scopes();
+    // Read through the project's overrides, so a changed format is the one checked.
+    let reg = Registry::new(&doc.model, &scopes);
     let formats: Vec<(&vizcraft_model::IdScope, IdFormat)> =
-        scopes.iter().filter_map(|s| IdFormat::parse(&s.format).ok().filter(IdFormat::has_context).map(|f| (s, f))).collect();
+        reg.effective().iter().filter_map(|s| IdFormat::parse(&s.format).ok().filter(IdFormat::has_context).map(|f| (s, f))).collect();
     if formats.is_empty() {
         return;
     }
-    let reg = Registry::new(&doc.model, &scopes);
     let ctxs = sheet::compose_ctxs(doc);
     for e in doc.model.elements.iter().filter(|e| !e.tag.is_empty()) {
         let Some(scope) = reg.scope_for(&e.type_id) else { continue };

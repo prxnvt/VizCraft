@@ -65,6 +65,21 @@ const CASES: &[Case] = &[
     ("texture-iso-required", "texture", &[("removal", "required"), ("value", "Ra 1.6"), ("process", "ground")]),
     ("texture-asme-prohibited", "texture", &[("standard", "asmeY14_36"), ("removal", "prohibited"), ("value", "63")]),
     ("texture-iso-lay", "texture", &[("lay", "perpendicular"), ("value", "Rz 6.3")]),
+    ("bubble-iec62424-tag", "bubble", &[("standard", "iec62424"), ("tag", "LIC-101"), ("location", "panelFront")]),
+    ("bubble-isa-tag", "bubble", &[("tag", "LIC-101"), ("system", "sharedDisplay"), ("location", "panelFront")]),
+    ("process-valve-gate", "processValve", &[]),
+    ("process-valve-globe-diaphragm-fc", "processValve", &[("body", "globe"), ("actuator", "diaphragm"), ("fail", "FC"), ("ends", "flanged")]),
+    ("process-valve-globe-diaphragm-isa", "processValve", &[("body", "globe"), ("actuator", "diaphragm"), ("fail", "FC"), ("standard", "isa")]),
+    ("process-valve-ball-nc-welded", "processValve", &[("body", "ball"), ("normallyClosed", "true"), ("ends", "welded")]),
+    ("process-valve-butterfly-motor", "processValve", &[("body", "butterfly"), ("actuator", "motor"), ("fail", "FL")]),
+    ("process-valve-check-iso14617", "processValve", &[("body", "check"), ("standard", "iso14617")]),
+    ("process-valve-check-isa", "processValve", &[("body", "check"), ("standard", "isa")]),
+    ("process-valve-safety", "processValve", &[("body", "safety"), ("ends", "flanged")]),
+    ("process-valve-angle-piston-fo", "processValve", &[("body", "angle"), ("actuator", "piston"), ("fail", "FO")]),
+    ("process-valve-threeway-solenoid", "processValve", &[("body", "threeWay"), ("actuator", "solenoid"), ("ends", "socketWelded")]),
+    ("process-valve-needle-manual", "processValve", &[("body", "needle"), ("actuator", "manual")]),
+    ("process-valve-plug-selfacting", "processValve", &[("body", "plug"), ("actuator", "selfActing")]),
+    ("process-valve-diaphragm-body", "processValve", &[("body", "diaphragm"), ("actuator", "diaphragm"), ("standard", "iso14617")]),
 ];
 
 #[test]
@@ -93,7 +108,9 @@ fn golden_svgs() {
 /// Every value of every choice parameter that picks a standard, one build per value.
 fn standard_builds(spec: &BuilderSpec) -> Vec<(String, Built)> {
     let mut out = vec![("defaults".to_string(), build(spec.name, &BTreeMap::new(), None).unwrap())];
-    for p in spec.params.iter().filter(|p| matches!(p.key, "standard" | "shapes" | "medium" | "form" | "kind" | "system" | "role")) {
+    for p in
+        spec.params.iter().filter(|p| matches!(p.key, "standard" | "shapes" | "medium" | "form" | "kind" | "system" | "role" | "body" | "actuator"))
+    {
         if let ParamKind::Choice(names) = p.kind {
             for n in names {
                 let raw = params(&[(p.key, n)]);
@@ -235,6 +252,7 @@ fn every_builder_states_its_provenance_in_its_module_docs() {
         ("fcf", include_str!("fcf.rs")),
         ("weld", include_str!("weld.rs")),
         ("texture", include_str!("texture.rs")),
+        ("processValve", include_str!("process_valve.rs")),
     ];
     assert_eq!(files.len(), specs().len());
     for spec in specs() {
@@ -269,4 +287,52 @@ fn shipped_builder_glyphs_name_known_builders_and_their_types_declare_the_builde
             assert_eq!(got, want, "{}: the type must declare the builder's port ids in order", g.id);
         }
     }
+}
+
+#[test]
+fn process_valves_and_bubbles_keep_frame_and_ports_across_standards() {
+    let frame = |b: &Built| (b.w, b.h, b.ports.iter().map(|p| (p.id.clone(), p.x, p.y)).collect::<Vec<_>>());
+    for body in process_valve::BODIES {
+        for actuator in process_valve::ACTUATORS {
+            for fail in process_valve::FAILS {
+                for nc in ["true", "false"] {
+                    for ends in process_valve::ENDS {
+                        let builds: Vec<Built> = process_valve::STANDARDS
+                            .iter()
+                            .map(|st| {
+                                let raw = params(&[
+                                    ("body", body),
+                                    ("actuator", actuator),
+                                    ("fail", fail),
+                                    ("normallyClosed", nc),
+                                    ("ends", ends),
+                                    ("standard", st),
+                                ]);
+                                build("processValve", &raw, None).unwrap()
+                            })
+                            .collect();
+                        for b in &builds {
+                            assert!(b.warnings.is_empty(), "{body} {actuator} {fail}: {:?}", b.warnings);
+                            assert!(b.fills.els.len() + b.lines.els.len() <= MAX_ELS);
+                            assert!(b.ports.iter().all(|p| p.x.fract() == 0.0 && p.y.fract() == 0.0));
+                        }
+                        let first = frame(&builds[0]);
+                        assert!(builds.iter().all(|b| frame(b) == first), "{body} {actuator}: the standards keep frame and ports");
+                        // The actuator never moves a port.
+                        let bare = build("processValve", &params(&[("body", body)]), None).unwrap();
+                        assert_eq!(frame(&bare), first, "{body} {actuator}");
+                    }
+                }
+            }
+        }
+    }
+    let isa = build("bubble", &params(&[("tag", "LIC-101")]), None).unwrap();
+    let iec = build("bubble", &params(&[("tag", "LIC-101"), ("standard", "iec62424")]), None).unwrap();
+    assert_eq!((isa.w, isa.h), (iec.w, iec.h));
+    assert_eq!(isa.ports, iec.ports);
+    let texts: Vec<&str> = iec.labels.iter().map(|l| l.text.as_str()).collect();
+    assert_eq!(texts, ["LIC", "101"]);
+    assert_eq!(split_tag("LIC-101A"), ("LIC".to_string(), "101A".to_string()));
+    assert_eq!(split_tag("TT1001"), ("TT".to_string(), "1001".to_string()));
+    assert_eq!(split_tag("LIC-"), ("LIC".to_string(), String::new()));
 }

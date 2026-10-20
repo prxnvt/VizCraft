@@ -18,8 +18,16 @@
 //! [`ComposeCtx`] the caller supplies. So `{owner.tag}-K{n}` under an owner tagged `=F1+A2` gives
 //! `=F1+A2-K3`, and `{page}{rung:3}` on sheet 2, rung 3 gives `2003`. Context parts change only
 //! when tags are recomposed on request (`sheet.renumber`); an [`IdScope::per_owner`] scope numbers
-//! and checks uniqueness within each owner.
+//! and checks uniqueness within each owner, and an [`IdScope::number_by`] scope within each value
+//! of one property (parallel loop numbering: the flow loops and the level loops each count from
+//! the start).
+//!
+//! A project may change a scope's format or `numberBy` for itself: `Model.idFormats` holds
+//! [`IdOverride`]s by scope id, and [`Registry::new`] reads the scopes through them, so every
+//! number handed out and every duplicate found follows the project's choice
+//! ([`Registry::effective`] returns the merged scopes).
 
+use std::borrow::Cow;
 use std::collections::{BTreeMap, HashSet};
 
 use serde::{Deserialize, Serialize};
@@ -59,6 +67,11 @@ pub struct IdScope {
     /// containment tree), so every owner has its own K1.
     #[serde(deserialize_with = "lenient", skip_serializing_if = "is_false")]
     pub per_owner: bool,
+    /// Numbers and uniqueness count within each value of this element property (`variable`
+    /// for parallel loop numbering, `code` for device letter codes); empty for one count across
+    /// the scope.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "String::is_empty")]
+    pub number_by: String,
 }
 
 fn is_false(b: &bool) -> bool {
@@ -67,8 +80,82 @@ fn is_false(b: &bool) -> bool {
 
 impl Default for IdScope {
     fn default() -> Self {
-        IdScope { id: String::new(), types: Vec::new(), format: "{n}".into(), unique: true, paired: false, auto_number: false, per_owner: false }
+        IdScope {
+            id: String::new(),
+            types: Vec::new(),
+            format: "{n}".into(),
+            unique: true,
+            paired: false,
+            auto_number: false,
+            per_owner: false,
+            number_by: String::new(),
+        }
     }
+}
+
+/// Most scope overrides one model holds.
+pub const MAX_OVERRIDES: usize = 64;
+
+/// Longest scope id or `numberBy` key an override keeps, in bytes.
+pub const MAX_OVERRIDE_KEY: usize = 128;
+
+/// A project's change to one identifier scope (`Model.idFormats`): its own format and its own
+/// `numberBy`. Fields left out keep the pack's value.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct IdOverride {
+    /// The format to use instead of the pack's; empty keeps the pack's.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "String::is_empty")]
+    pub format: String,
+    /// The property to number by instead of the pack's (`""`: one count across the scope);
+    /// `None` keeps the pack's.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub number_by: Option<String>,
+}
+
+impl IdOverride {
+    /// Whether the override changes nothing.
+    pub fn is_empty(&self) -> bool {
+        self.format.is_empty() && self.number_by.is_none()
+    }
+
+    /// `scope` as this override changes it.
+    pub fn apply(&self, scope: &IdScope) -> IdScope {
+        let mut out = scope.clone();
+        if !self.format.is_empty() {
+            out.format = self.format.clone();
+        }
+        if let Some(by) = &self.number_by {
+            out.number_by = by.clone();
+        }
+        out
+    }
+}
+
+/// Whether `key` may name a property in a `numberBy`: letters, digits and `_`, at most
+/// [`MAX_OVERRIDE_KEY`] bytes (empty is allowed: no grouping).
+pub fn is_number_by(key: &str) -> bool {
+    key.len() <= MAX_OVERRIDE_KEY && key.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+}
+
+/// Make a model's overrides safe: at most [`MAX_OVERRIDES`], scope ids non-empty and at most
+/// [`MAX_OVERRIDE_KEY`] bytes, a format that does not parse dropped, a `numberBy` that is not a
+/// property key dropped, and overrides left empty removed. Idempotent.
+pub(crate) fn sanitize_overrides(map: &mut BTreeMap<String, IdOverride>) {
+    let mut kept = 0usize;
+    map.retain(|k, o| {
+        if !IdFormat::parse(&o.format).is_ok_and(|_| o.format.len() <= MAX_FORMAT) {
+            o.format.clear();
+        }
+        if o.number_by.as_deref().is_some_and(|b| !is_number_by(b)) {
+            o.number_by = None;
+        }
+        let keep = !k.is_empty() && k.len() <= MAX_OVERRIDE_KEY && !o.is_empty() && kept < MAX_OVERRIDES;
+        if keep {
+            kept += 1;
+        }
+        keep
+    });
 }
 
 /// What the context parts of a format read for one element; empty text composes as nothing.
@@ -284,6 +371,19 @@ impl IdFormat {
     pub fn has_context(&self) -> bool {
         self.parts.iter().any(|p| matches!(p, Part::Owner(_) | Part::Page(_) | Part::Zone | Part::Rung(_)))
     }
+    /// The property keys the format reads (`{key}` parts), in order.
+    pub fn property_keys(&self) -> Vec<&str> {
+        self.parts.iter().filter_map(|p| if let Part::Prop(k) = p { Some(k.as_str()) } else { None }).collect()
+    }
+    /// Whether the format reads where the element is drawn (page, zone or rung): such tags are
+    /// recomposed only on request.
+    pub fn has_place(&self) -> bool {
+        self.parts.iter().any(|p| matches!(p, Part::Page(_) | Part::Zone | Part::Rung(_)))
+    }
+    /// Whether the format reads an owner's tag.
+    pub fn has_owner(&self) -> bool {
+        self.parts.iter().any(|p| matches!(p, Part::Owner(_)))
+    }
     /// The tag for `element` with auto number `n`; a missing property, and every context part,
     /// composes as empty text (see [`IdFormat::compose_in`]).
     pub fn compose(&self, element: &Element, n: u64) -> String {
@@ -403,18 +503,30 @@ pub struct Unmatched {
     pub element: String,
 }
 
-/// Read-only view of the model's tags through a set of scopes.
+/// Read-only view of the model's tags through a set of scopes, as the model's overrides change
+/// them.
 pub struct Registry<'a> {
     model: &'a Model,
-    scopes: &'a [IdScope],
+    scopes: Cow<'a, [IdScope]>,
     /// The context new tags compose with; `None` composes context parts as empty text.
     ctx: Option<&'a dyn Fn(&Element) -> ComposeCtx>,
 }
 
 impl<'a> Registry<'a> {
-    /// A registry over `model` with these scopes (from every pack the model uses).
+    /// A registry over `model` with these scopes (from every pack the model uses), each changed
+    /// by the model's override for it (`Model.idFormats`), if any.
     pub fn new(model: &'a Model, scopes: &'a [IdScope]) -> Self {
+        let scopes = if model.id_formats.is_empty() {
+            Cow::Borrowed(scopes)
+        } else {
+            Cow::Owned(scopes.iter().map(|s| model.id_formats.get(&s.id).map_or_else(|| s.clone(), |o| o.apply(s))).collect())
+        };
         Registry { model, scopes, ctx: None }
+    }
+    /// The scopes as the registry reads them: the packs' scopes with the model's overrides
+    /// applied.
+    pub fn effective(&self) -> &[IdScope] {
+        &self.scopes
     }
     /// The same registry composing context parts (`{page}`, `{zone}`, `{rung}`) with `ctx`.
     pub fn with_context(mut self, ctx: &'a dyn Fn(&Element) -> ComposeCtx) -> Self {
@@ -425,14 +537,15 @@ impl<'a> Registry<'a> {
     pub fn model(&self) -> &'a Model {
         self.model
     }
-    /// The members of `scope` that share a numbering and uniqueness space with an element owned by
-    /// `owner`: every member, or with [`IdScope::per_owner`] those with the same owner.
-    fn peers(&self, scope: &IdScope, owner: Option<&str>) -> Vec<&'a Element> {
-        let all = self.members(scope);
-        if scope.per_owner { all.into_iter().filter(|m| m.owner.as_deref() == owner).collect() } else { all }
+    /// The members of `scope` that share a numbering and uniqueness space with `element`: every
+    /// member, or with [`IdScope::per_owner`] those with the same owner, and with
+    /// [`IdScope::number_by`] those with the same value of that property.
+    fn peers(&self, scope: &IdScope, element: &Element) -> Vec<&'a Element> {
+        let group = group_of(scope, element);
+        self.members(scope).into_iter().filter(|m| (!scope.per_owner || m.owner == element.owner) && group_of(scope, m) == group).collect()
     }
     /// The first scope that lists `type_id`.
-    pub fn scope_for(&self, type_id: &str) -> Option<&'a IdScope> {
+    pub fn scope_for(&self, type_id: &str) -> Option<&IdScope> {
         self.scopes.iter().find(|s| s.types.iter().any(|t| t == type_id))
     }
     /// Elements whose type is in `scope`, in model order.
@@ -458,10 +571,16 @@ impl<'a> Registry<'a> {
         if !format.has_number() {
             return Err(ModelError::Format(format!("auto-numbered scope `{}` has no `{{n}}` in `{}`", scope.id, scope.format)));
         }
-        let others: Vec<&Element> =
-            self.peers(scope, element.owner.as_deref()).into_iter().filter(|m| m.id != element.id || element.id.is_empty()).collect();
+        let others: Vec<&Element> = self.peers(scope, element).into_iter().filter(|m| m.id != element.id || element.id.is_empty()).collect();
         let ctx = self.ctx.map(|f| f(element)).unwrap_or_default();
-        let highest = others.iter().filter_map(|m| format.number_in(&m.tag, m)).max().unwrap_or(0);
+        // An owner part read loosely could take digits of the number for the owner's tag (unit
+        // `1` and number `01` in `P-101`), so a tag is read with its owner's tag first.
+        let precise = format.has_owner() && !format.has_place();
+        let read = |m: &Element| {
+            let exact = if precise { format.number_in_ctx(&m.tag, self.model, m, &ComposeCtx::default()) } else { None };
+            exact.or_else(|| format.number_in(&m.tag, m))
+        };
+        let highest = others.iter().filter_map(|m| read(m)).max().unwrap_or(0);
         let taken: HashSet<&str> = others.iter().map(|m| m.tag.as_str()).filter(|t| !t.is_empty()).collect();
         // At most `taken.len()` candidates can be taken, so this many tries always finds a free
         // one unless the numbers run out.
@@ -485,8 +604,11 @@ impl<'a> Registry<'a> {
             return true;
         }
         let Some(limit) = Self::limit(scope) else { return true };
-        let owner = except.and_then(|e| self.model.element(e)).and_then(|e| e.owner.as_deref());
-        let peers = self.peers(scope, owner);
+        let probe = match except.and_then(|e| self.model.element(e)) {
+            Some(e) => e.clone(),
+            None => Element::new("", type_id),
+        };
+        let peers = self.peers(scope, &probe);
         let users = peers.into_iter().filter(|m| m.tag == tag && Some(m.id.as_str()) != except).count();
         users < limit
     }
@@ -501,20 +623,20 @@ impl<'a> Registry<'a> {
         }
     }
     /// Member element ids of `scope` grouped by non-empty tag (and by owner in a per-owner
-    /// scope), tags sorted, ids in model order.
-    fn by_tag(&self, scope: &IdScope) -> BTreeMap<(&'a str, &'a str), Vec<String>> {
-        let mut map: BTreeMap<(&'a str, &'a str), Vec<String>> = BTreeMap::new();
+    /// scope, and by the `numberBy` value), tags sorted, ids in model order.
+    fn by_tag(&self, scope: &IdScope) -> BTreeMap<(&'a str, &'a str, String), Vec<String>> {
+        let mut map: BTreeMap<(&'a str, &'a str, String), Vec<String>> = BTreeMap::new();
         for m in self.members(scope) {
             if !m.tag.is_empty() {
                 let owner = if scope.per_owner { m.owner.as_deref().unwrap_or_default() } else { "" };
-                map.entry((m.tag.as_str(), owner)).or_default().push(m.id.clone());
+                map.entry((m.tag.as_str(), owner, group_of(scope, m))).or_default().push(m.id.clone());
             }
         }
         map
     }
     /// The scopes sorted by id (stable, so scopes declared twice keep their declared order).
-    fn sorted_scopes(&self) -> Vec<&'a IdScope> {
-        let mut scopes: Vec<&'a IdScope> = self.scopes.iter().collect();
+    fn sorted_scopes(&self) -> Vec<&IdScope> {
+        let mut scopes: Vec<&IdScope> = self.scopes.iter().collect();
         scopes.sort_by(|a, b| a.id.cmp(&b.id));
         scopes
     }
@@ -524,7 +646,7 @@ impl<'a> Registry<'a> {
         let mut out = Vec::new();
         for scope in self.sorted_scopes() {
             let Some(limit) = Self::limit(scope) else { continue };
-            for ((tag, _), elements) in self.by_tag(scope) {
+            for ((tag, _, _), elements) in self.by_tag(scope) {
                 if elements.len() > limit {
                     out.push(Duplicate { scope: scope.id.clone(), tag: tag.to_string(), elements });
                 }
@@ -536,7 +658,7 @@ impl<'a> Registry<'a> {
     pub fn unmatched(&self) -> Vec<Unmatched> {
         let mut out = Vec::new();
         for scope in self.sorted_scopes().into_iter().filter(|s| s.paired) {
-            for ((tag, _), mut elements) in self.by_tag(scope) {
+            for ((tag, _, _), mut elements) in self.by_tag(scope) {
                 if elements.len() == 1
                     && let Some(element) = elements.pop()
                 {
@@ -546,4 +668,10 @@ impl<'a> Registry<'a> {
         }
         out
     }
+}
+
+/// The `numberBy` group `element` falls in: the display text of that property, empty when the
+/// scope does not group or the element has no value.
+fn group_of(scope: &IdScope, element: &Element) -> String {
+    if scope.number_by.is_empty() { String::new() } else { element.prop(&scope.number_by).map(|v| v.display()).unwrap_or_default() }
 }

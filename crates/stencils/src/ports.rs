@@ -104,7 +104,14 @@ mod tests {
     /// of the global catalog so the other tests here still see only the built-in sets.
     pub(crate) fn ported() -> Catalog {
         use vizcraft_notation::{ElementType, Glyph, Pack};
-        let port = |id: &str, label: &str, direction: PortDirection, x: f64, y: f64| Port { id: id.into(), label: label.into(), direction, x, y };
+        let port = |id: &str, label: &str, direction: PortDirection, x: f64, y: f64| Port {
+            id: id.into(),
+            label: label.into(),
+            direction,
+            x,
+            y,
+            net_group: String::new(),
+        };
         let pack = Pack {
             schema_version: 1,
             id: "stencilports".into(),

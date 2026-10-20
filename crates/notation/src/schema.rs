@@ -469,6 +469,10 @@ pub struct Port {
     pub x: f64,
     /// Position down the frame, `0..1`.
     pub y: f64,
+    /// Ports of one shape with the same non-empty group pass one net through (the two sides of a
+    /// terminal); empty for a port of its own.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub net_group: String,
 }
 
 /// An element type.
@@ -1177,6 +1181,76 @@ pub enum Check {
     /// column whose `dataType` differs from the one it references (a warning-level finding).
     ForeignKey {
         /// Column types checked.
+        #[serde(default)]
+        types: Vec<String>,
+    },
+    /// Nets and pins: one generic net test (`unconnectedPin`: a connection point of a shape of
+    /// these types with nothing glued to it, and no cap set on it). `kinds` (net kinds),
+    /// `connectorType`, `property`, `peers` and `max` narrow the tests that read them.
+    NetCheck {
+        /// The test.
+        #[serde(default)]
+        test: String,
+        /// Element types whose shapes are checked.
+        #[serde(default)]
+        types: Vec<String>,
+        /// Net kinds checked (empty: every kind).
+        #[serde(default)]
+        kinds: Vec<String>,
+        /// Connector type checked (empty: every type).
+        #[serde(default)]
+        connector_type: String,
+        /// Property read.
+        #[serde(default)]
+        property: String,
+        /// Element types allowed on the same net.
+        #[serde(default)]
+        peers: Vec<String>,
+        /// Most allowed.
+        #[serde(default)]
+        max: u32,
+    },
+    /// Process: an instrument of these types whose functional letters (`letters`) do not read as
+    /// ANSI/ISA-5.1 identification letters (a first letter, an optional modifier, then readout,
+    /// output and modifier letters), or whose first letter differs from its loop's `variable`.
+    /// `allowed` lists the user's-choice first letters the project has defined.
+    InstrumentTag {
+        /// Types checked.
+        #[serde(default)]
+        types: Vec<String>,
+        /// User's-choice first letters the project defines (`C`, `D`, `G`, `M`, `N`, `O`).
+        #[serde(default)]
+        allowed: Vec<String>,
+    },
+    /// Process: a control loop of these types (`loopType` `control`) with no measuring element
+    /// among its members, or no final element reachable from it along signal lines.
+    LoopComplete {
+        /// Loop types checked.
+        #[serde(default)]
+        types: Vec<String>,
+    },
+    /// Process: on loop diagram pages (`viewpoints`), more than one loop drawn on a sheet, a
+    /// member of the drawn loop missing from it, a terminal with a single wire, or an I/O
+    /// channel used twice.
+    LoopSheet {
+        /// Viewpoints whose pages are checked.
+        #[serde(default)]
+        viewpoints: Vec<String>,
+    },
+    /// Process: on pages whose viewpoint is listed, a stream (a relationship of `relationship`)
+    /// with no number (its name).
+    StreamsNumbered {
+        /// Viewpoints whose pages are checked.
+        #[serde(default)]
+        viewpoints: Vec<String>,
+        /// The stream relationship type.
+        #[serde(default)]
+        relationship: String,
+    },
+    /// Process: an off-page connector of these types whose partner (same tag) is drawn on the
+    /// same sheet, or whose partner's line differs from its own.
+    OffPageContinuity {
+        /// Types checked.
         #[serde(default)]
         types: Vec<String>,
     },

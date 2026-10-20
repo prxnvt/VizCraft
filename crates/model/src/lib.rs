@@ -31,7 +31,7 @@ pub mod sync;
 mod tests;
 mod types;
 
-pub use identity::{Duplicate, IdFormat, IdScope, Registry, Unmatched};
+pub use identity::{Duplicate, IdFormat, IdOverride, IdScope, Registry, Unmatched};
 pub use issue::{Issue, Severity};
 pub use net::{Module, Net, NetKind, NetLabel};
 pub use pattern::PatternInstance;

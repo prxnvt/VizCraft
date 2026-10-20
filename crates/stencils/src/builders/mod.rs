@@ -36,11 +36,13 @@ mod contact;
 mod cylinder;
 mod fcf;
 mod gate;
+mod process_valve;
 mod pump;
 mod texture;
 mod valve;
 mod weld;
 
+pub use bubble::split_tag;
 pub use params::{Def, ParamKind, ParamSpec, Params};
 
 /// Most path commands one build emits (fills and lines together).
@@ -97,8 +99,19 @@ impl BuilderSpec {
     }
 }
 
-static SPECS: [BuilderSpec; 10] =
-    [contact::SPEC, coil::SPEC, bubble::SPEC, valve::SPEC, cylinder::SPEC, pump::SPEC, gate::SPEC, fcf::SPEC, weld::SPEC, texture::SPEC];
+static SPECS: [BuilderSpec; 11] = [
+    contact::SPEC,
+    coil::SPEC,
+    bubble::SPEC,
+    valve::SPEC,
+    cylinder::SPEC,
+    pump::SPEC,
+    gate::SPEC,
+    fcf::SPEC,
+    weld::SPEC,
+    texture::SPEC,
+    process_valve::SPEC,
+];
 
 /// Every builder, in palette order.
 pub fn specs() -> &'static [BuilderSpec] {
@@ -340,6 +353,22 @@ impl Draw {
         }
         self.fills.els.extend(Self::circle_els(cx, cy, r));
         self.fills.els.push(PathEl::Close);
+    }
+
+    /// A closed ellipse with radii `rx` across and `ry` down, filled and stroked.
+    pub fn ellipse(&mut self, cx: f64, cy: f64, rx: f64, ry: f64) {
+        if !self.room(6) {
+            return;
+        }
+        let (kx, ky) = (rx * KAPPA, ry * KAPPA);
+        self.fills.els.extend([
+            PathEl::MoveTo(Point::new(cx + rx, cy)),
+            PathEl::CubicTo(Point::new(cx + rx, cy + ky), Point::new(cx + kx, cy + ry), Point::new(cx, cy + ry)),
+            PathEl::CubicTo(Point::new(cx - kx, cy + ry), Point::new(cx - rx, cy + ky), Point::new(cx - rx, cy)),
+            PathEl::CubicTo(Point::new(cx - rx, cy - ky), Point::new(cx - kx, cy - ry), Point::new(cx, cy - ry)),
+            PathEl::CubicTo(Point::new(cx + kx, cy - ry), Point::new(cx + rx, cy - ky), Point::new(cx + rx, cy)),
+            PathEl::Close,
+        ]);
     }
 
     /// A circle stroked only (inside a filled body, so even-odd leaves no hole).
