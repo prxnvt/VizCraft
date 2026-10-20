@@ -554,6 +554,7 @@ fn scope(id: &str, types: &[&str], format: &str) -> IdScope {
         paired: false,
         auto_number: true,
         per_owner: false,
+        number_by: String::new(),
     }
 }
 
@@ -875,4 +876,31 @@ fn nets_share_the_id_space_and_sanitise() {
     let again = m.clone();
     m.sanitize();
     assert_eq!(m, again, "sanitize is idempotent");
+}
+
+#[test]
+fn number_by_counts_and_checks_each_property_value_separately() {
+    let mut s = scope("e.device", &["e.Coil", "e.Fuse"], "{code}{n}");
+    s.number_by = "code".into();
+    let scopes = vec![s];
+    let coded = |id: &str, ty: &str, code: &str, tag: &str| Element {
+        properties: [("code".to_string(), PropValue::Text(code.into()))].into(),
+        ..tagged(id, ty, tag)
+    };
+    let m = model(vec![coded("a", "e.Coil", "K", "K1"), coded("b", "e.Coil", "K", "K2"), coded("c", "e.Fuse", "F", "F1")], vec![]);
+    let r = Registry::new(&m, &scopes);
+    assert_eq!(r.next_tag(&coded("", "e.Coil", "K", "")).unwrap(), Some("K3".into()));
+    assert_eq!(r.next_tag(&coded("", "e.Fuse", "F", "")).unwrap(), Some("F2".into()));
+    assert_eq!(r.next_tag(&coded("", "e.Fuse", "Q", "")).unwrap(), Some("Q1".into()));
+    assert!(r.duplicates().is_empty());
+    assert!(!r.is_free("e.Coil", "K1", Some("b")));
+    // The same tag under two values is two groups (a property edit away from a clash, not one).
+    let m = model(vec![coded("a", "e.Coil", "K", "X1"), coded("b", "e.Coil", "F", "X1"), coded("c", "e.Coil", "K", "X1")], vec![]);
+    let d = Registry::new(&m, &scopes).duplicates();
+    assert_eq!(d.len(), 1);
+    assert_eq!(d[0].elements, vec!["a".to_string(), "c".to_string()]);
+    // The key is camelCase on disk and left out when empty.
+    let v = serde_json::to_value(&scopes[0]).unwrap();
+    assert_eq!(v["numberBy"], "code");
+    assert!(serde_json::to_value(IdScope::default()).unwrap().get("numberBy").is_none());
 }

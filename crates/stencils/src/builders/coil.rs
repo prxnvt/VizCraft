@@ -2,7 +2,8 @@
 //!
 //! Provenance: own design, drawn from the written rules of IEC 60617-7 and of the JIC and IEEE 315
 //! ladder convention. IEC: an operating device is a rectangle between its two terminals, a
-//! delayed one carries an extra compartment with a cross, a solenoid actuator a diagonal. JIC and
+//! delayed one carries an extra compartment with a cross, a solenoid actuator a diagonal, the
+//! thermal element of an overload relay a step inside the rectangle. JIC and
 //! IEEE 315: a circle on the rung holding the device letters. Terminals are A1 and A2 as IEC 61346 and EN 50005 practice
 //! names coil terminals.
 
@@ -18,6 +19,13 @@ pub(super) const SPEC: BuilderSpec = BuilderSpec {
     description: "The operating coil of a relay, contactor or timer, or a solenoid. IEC 60617 draws a rectangle between A1 and A2; JIC and IEEE 315 a circle on the rung with the device letters or tag inside.",
     params: &[
         ParamSpec {
+            key: "direction",
+            label: "Direction",
+            kind: ParamKind::Choice(&["auto", "vertical", "horizontal"]),
+            default: Def::Text("auto"),
+            description: "Which way the symbol runs between its terminals: auto (upright for IEC, across a rung for JIC and IEEE 315), vertical or horizontal.",
+        },
+        ParamSpec {
             key: "standard",
             label: "Standard",
             kind: ParamKind::Choice(STANDARDS),
@@ -27,7 +35,7 @@ pub(super) const SPEC: BuilderSpec = BuilderSpec {
         ParamSpec {
             key: "kind",
             label: "Kind",
-            kind: ParamKind::Choice(&["relay", "contactor", "timer", "solenoid"]),
+            kind: ParamKind::Choice(&["relay", "contactor", "timer", "solenoid", "overload"]),
             default: Def::Text("relay"),
             description: "What the coil operates.",
         },
@@ -37,7 +45,13 @@ pub(super) const SPEC: BuilderSpec = BuilderSpec {
     build,
 };
 
+/// Draw in the standard's own direction, then turn to the asked one.
 fn build(p: &Params, d: &mut Draw) {
+    draw(p, d);
+    d.direct(p.text("direction"));
+}
+
+fn draw(p: &Params, d: &mut Draw) {
     let std = STANDARDS.iter().copied().find(|s| *s == p.text("standard")).unwrap_or("iec60617");
     d.standard(std);
     let kind = p.text("kind");
@@ -54,6 +68,7 @@ fn build(p: &Params, d: &mut Draw) {
                 d.line(&[(0.75, 3.0), (1.6, 1.0)]);
             }
             "solenoid" => d.line(&[(0.75, 3.0), (3.25, 1.0)]),
+            "overload" => d.line(&[(0.9, 2.5), (1.5, 2.5), (1.5, 1.5), (2.5, 1.5), (2.5, 2.5), (3.1, 2.5)]),
             _ => {}
         }
         d.port("A1", 2.0, 0.0, "up");
@@ -70,6 +85,7 @@ fn build(p: &Params, d: &mut Draw) {
             "contactor" => "M",
             "timer" => "TR",
             "solenoid" => "SOL",
+            "overload" => "OL",
             _ => "CR",
         };
         let text = if tag.trim().is_empty() { letters } else { tag };

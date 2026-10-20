@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="70" viewBox="-5 -5 80 70">
+  <path d="M20 0 L20 20 M20 40 L20 60 M20 20 C25.523 20 30 24.477 30 30 C30 35.523 25.523 40 20 40 M40 0 L40 20 M40 40 L40 60 M40 20 C45.523 20 50 24.477 50 30 C50 35.523 45.523 40 40 40 M60 0 L60 20 M60 40 L60 60 M60 20 C65.523 20 70 24.477 70 30 C70 35.523 65.523 40 60 40" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="23" y="7.8" font-family="Inter, sans-serif" font-size="8" text-anchor="start" fill="#1f2933">1</text>
+  <text x="23" y="57.8" font-family="Inter, sans-serif" font-size="8" text-anchor="start" fill="#1f2933">2</text>
+  <text x="43" y="7.8" font-family="Inter, sans-serif" font-size="8" text-anchor="start" fill="#1f2933">3</text>
+  <text x="43" y="57.8" font-family="Inter, sans-serif" font-size="8" text-anchor="start" fill="#1f2933">4</text>
+  <text x="63" y="7.8" font-family="Inter, sans-serif" font-size="8" text-anchor="start" fill="#1f2933">5</text>
+  <text x="63" y="57.8" font-family="Inter, sans-serif" font-size="8" text-anchor="start" fill="#1f2933">6</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="20" cy="0" r="2"><title>1</title></circle>
+    <circle cx="20" cy="60" r="2"><title>2</title></circle>
+    <circle cx="40" cy="0" r="2"><title>3</title></circle>
+    <circle cx="40" cy="60" r="2"><title>4</title></circle>
+    <circle cx="60" cy="0" r="2"><title>5</title></circle>
+    <circle cx="60" cy="60" r="2"><title>6</title></circle>
+  </g>
+</svg>

@@ -18,6 +18,7 @@ pub mod design;
 pub mod document;
 pub mod edit;
 pub mod effects;
+pub mod electrical;
 pub mod element;
 pub mod er;
 pub mod file;
@@ -29,6 +30,7 @@ pub mod ink;
 pub mod insert;
 pub mod inspector;
 pub mod key;
+pub mod ladder;
 pub mod lane;
 pub mod layer;
 pub mod layout;
@@ -56,6 +58,7 @@ pub mod sheet;
 pub mod step;
 pub mod suggest;
 pub mod table;
+pub mod table_nets;
 pub mod template;
 pub mod text;
 pub mod topology;
@@ -140,6 +143,8 @@ pub fn registry() -> Registry {
     v.extend(sequence::specs());
     v.extend(er::specs());
     v.extend(uml::specs());
+    v.extend(electrical::specs());
+    v.extend(ladder::specs());
     Registry::new(v)
 }
 

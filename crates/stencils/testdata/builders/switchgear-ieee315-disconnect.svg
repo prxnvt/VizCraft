@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="70" viewBox="-5 -5 40 70">
+  <path d="M20 0 L20 20 M20 60 L20 40 M20 40 L10 23 M21.5 20 C21.5 20.828 20.828 21.5 20 21.5 C19.172 21.5 18.5 20.828 18.5 20 C18.5 19.172 19.172 18.5 20 18.5 C20.828 18.5 21.5 19.172 21.5 20" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="23" y="7.8" font-family="Inter, sans-serif" font-size="8" text-anchor="start" fill="#1f2933">1</text>
+  <text x="23" y="57.8" font-family="Inter, sans-serif" font-size="8" text-anchor="start" fill="#1f2933">2</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="20" cy="0" r="2"><title>1</title></circle>
+    <circle cx="20" cy="60" r="2"><title>2</title></circle>
+  </g>
+</svg>

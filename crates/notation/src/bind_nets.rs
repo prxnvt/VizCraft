@@ -43,10 +43,91 @@ pub fn nets(doc: &mut Document, _before: &Document, cat: &Catalog) {
         return;
     }
     let comps: Vec<Component> = doc.pages.iter().enumerate().flat_map(|(pi, p)| components(pi, p, is_segment)).collect();
+    let comps = join_net_groups(doc, cat, comps);
     assign(doc, &comps, &kinds);
     split(doc, &comps);
     drop_unused(doc);
     tidy_junctions(doc);
+}
+
+/// The `netGroup` of the port at connection point `point` of shape `shape` on page `pi`: the
+/// builder's port id there (else the type's port `point`), looked up on the element's type and
+/// its supertypes. `None` for a port of its own.
+pub fn net_group(doc: &Document, cat: &Catalog, pi: usize, shape: &str, point: usize) -> Option<String> {
+    let s = doc.pages.get(pi)?.shape(shape)?;
+    let e = doc.model.element(s.element.as_deref()?)?;
+    let chain = crate::infer::chain_of(cat, &e.type_id);
+    let built = s.glyph.as_ref().and_then(|g| g.ports.get(point)).cloned();
+    let port_id = match built {
+        Some(id) => id,
+        None => chain.iter().find_map(|t| cat.element_type(t).and_then(|(_, et)| et.ports.get(point)).map(|p| p.id.clone()))?,
+    };
+    chain
+        .iter()
+        .filter_map(|t| cat.element_type(t).map(|(_, et)| et))
+        .find_map(|et| et.ports.iter().find(|p| p.id == port_id))
+        .map(|p| p.net_group.clone())
+        .filter(|g| !g.is_empty())
+}
+
+/// Components on one page that touch pins of one shape in the same `netGroup` become one
+/// component: a terminal passes its net from one side to the other.
+fn join_net_groups(doc: &Document, cat: &Catalog, comps: Vec<Component>) -> Vec<Component> {
+    let mut first: HashMap<(usize, String, String), usize> = HashMap::new();
+    let mut parent: Vec<usize> = (0..comps.len()).collect();
+    fn root(parent: &mut [usize], mut i: usize) -> usize {
+        // Bounded by the number of components: each step moves strictly up the forest.
+        for _ in 0..parent.len() {
+            match parent.get(i) {
+                Some(&p) if p != i => i = p,
+                _ => break,
+            }
+        }
+        i
+    }
+    let mut any = false;
+    for (k, comp) in comps.iter().enumerate() {
+        for (shape, point) in &comp.pins {
+            let Some(group) = net_group(doc, cat, comp.page, shape, *point) else { continue };
+            match first.get(&(comp.page, shape.clone(), group.clone())) {
+                Some(&other) => {
+                    let (a, b) = (root(&mut parent, other), root(&mut parent, k));
+                    if a != b
+                        && let Some(slot) = parent.get_mut(b)
+                    {
+                        *slot = a;
+                        any = true;
+                    }
+                }
+                None => {
+                    first.insert((comp.page, shape.clone(), group), k);
+                }
+            }
+        }
+    }
+    if !any {
+        return comps;
+    }
+    let mut out: Vec<Component> = Vec::new();
+    let mut at: HashMap<usize, usize> = HashMap::new();
+    for k in 0..comps.len() {
+        let r = root(&mut parent, k);
+        let Some(comp) = comps.get(k) else { continue };
+        match at.get(&r) {
+            Some(&i) => {
+                if let Some(m) = out.get_mut(i) {
+                    m.segments.extend(comp.segments.iter().copied());
+                    m.junctions.extend(comp.junctions.iter().cloned());
+                    m.pins.extend(comp.pins.iter().cloned());
+                }
+            }
+            None => {
+                at.insert(r, out.len());
+                out.push(comp.clone());
+            }
+        }
+    }
+    out
 }
 
 /// The net of segment `ci` on page `pi`.

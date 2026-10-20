@@ -23,6 +23,7 @@ pub mod drawio;
 pub mod er;
 pub mod mermaid;
 pub mod native;
+pub mod netlist;
 pub mod pdf;
 pub mod plantuml;
 pub mod plantuml_sequence;

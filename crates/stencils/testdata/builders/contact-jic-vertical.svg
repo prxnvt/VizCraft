@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="52" height="50" viewBox="-5 -5 52 50">
+  <path d="M10 0 L10 16 M10 24 L10 40 M3 16 L17 16 M3 24 L17 24" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="5.5" y="8.1" font-family="Inter, sans-serif" font-size="6" text-anchor="middle" fill="#1f2933">13</text>
+  <text x="5.5" y="36.1" font-family="Inter, sans-serif" font-size="6" text-anchor="middle" fill="#1f2933">14</text>
+  <text x="24" y="23.5" font-family="Inter, sans-serif" font-size="10" text-anchor="start" fill="#1f2933">CR1</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="10" cy="0" r="2"><title>13</title></circle>
+    <circle cx="10" cy="40" r="2"><title>14</title></circle>
+  </g>
+</svg>

@@ -257,5 +257,5 @@ fn the_preview_palette_places_builder_symbols() {
     assert_eq!(h.state().session.sel.items, std::slice::from_ref(&s.id));
     let report = run(&mut h, "ui.palette", json!({}));
     let group = report["groups"].as_array().unwrap().iter().find(|g| g["section"] == "engineeringPreview").unwrap().clone();
-    assert_eq!(group["items"].as_array().unwrap().len(), 10);
+    assert_eq!(group["items"].as_array().unwrap().len(), vizcraft_stencils::builders::specs().len());
 }

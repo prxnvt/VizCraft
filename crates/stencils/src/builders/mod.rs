@@ -41,6 +41,13 @@ mod texture;
 mod valve;
 mod weld;
 
+mod block;
+mod footprint;
+pub mod ladder;
+mod machine;
+mod passive;
+mod switchgear;
+
 pub use params::{Def, ParamKind, ParamSpec, Params};
 
 /// Most path commands one build emits (fills and lines together).
@@ -97,12 +104,29 @@ impl BuilderSpec {
     }
 }
 
-static SPECS: [BuilderSpec; 10] =
-    [contact::SPEC, coil::SPEC, bubble::SPEC, valve::SPEC, cylinder::SPEC, pump::SPEC, gate::SPEC, fcf::SPEC, weld::SPEC, texture::SPEC];
+/// Every builder, in palette order; packs append theirs at the end.
+static SPECS: &[BuilderSpec] = &[
+    contact::SPEC,
+    coil::SPEC,
+    bubble::SPEC,
+    valve::SPEC,
+    cylinder::SPEC,
+    pump::SPEC,
+    gate::SPEC,
+    fcf::SPEC,
+    weld::SPEC,
+    texture::SPEC,
+    switchgear::SPEC,
+    passive::SPEC,
+    machine::SPEC,
+    block::SPEC,
+    footprint::SPEC,
+    ladder::SPEC,
+];
 
 /// Every builder, in palette order.
 pub fn specs() -> &'static [BuilderSpec] {
-    &SPECS
+    SPECS
 }
 
 /// The builder with this name.
@@ -426,6 +450,59 @@ impl Draw {
     pub fn label(&mut self, id: &str, text: &str, x: f64, y: f64, size: f64, anchor: &'static str) {
         if !text.trim().is_empty() && self.labels.len() < MAX_LABELS {
             self.labels.push(BuiltLabel { id: id.to_string(), text: text.trim().to_string(), x, y, size, anchor });
+        }
+    }
+
+    /// Swap across and down for everything drawn so far: a symbol drawn upright between
+    /// terminals above and below lies across between terminals left and right, and back. Ports
+    /// turn with it and text stays upright. Used for the `direction` parameter.
+    pub fn transpose(&mut self) {
+        let swap = |p: &Point| Point::new(p.y, p.x);
+        for path in [&mut self.fills, &mut self.lines] {
+            for e in path.els.iter_mut() {
+                *e = match *e {
+                    PathEl::MoveTo(a) => PathEl::MoveTo(swap(&a)),
+                    PathEl::LineTo(a) => PathEl::LineTo(swap(&a)),
+                    PathEl::CubicTo(a, b, c) => PathEl::CubicTo(swap(&a), swap(&b), swap(&c)),
+                    PathEl::Close => PathEl::Close,
+                };
+            }
+        }
+        for p in self.ports.iter_mut() {
+            (p.x, p.y) = (p.y, p.x);
+            p.dir = match p.dir {
+                "up" => "left",
+                "left" => "up",
+                "down" => "right",
+                "right" => "down",
+                other => other,
+            };
+        }
+        (self.w, self.h) = (self.h, self.w);
+        for l in self.labels.iter_mut() {
+            (l.x, l.y) = (l.y, l.x);
+            // The tag reads beside the symbol, never on its line.
+            if l.id == "tag" {
+                (l.x, l.y, l.anchor) = (self.w + 0.4, self.h / 2.0, "start");
+            }
+        }
+    }
+
+    /// Whether the ports drawn so far run down (the first two share a column).
+    pub fn upright(&self) -> bool {
+        matches!((self.ports.first(), self.ports.get(1)), (Some(a), Some(b)) if (a.x - b.x).abs() < 1e-9)
+    }
+
+    /// Apply a `direction` parameter (`auto`, `vertical`, `horizontal`): transpose when the
+    /// symbol as drawn runs the other way.
+    pub fn direct(&mut self, direction: &str) {
+        let want_upright = match direction {
+            "vertical" => true,
+            "horizontal" => false,
+            _ => return,
+        };
+        if self.upright() != want_upright {
+            self.transpose();
         }
     }
 

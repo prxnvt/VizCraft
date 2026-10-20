@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="433.071" height="403.543" viewBox="-4.921 -4.921 433.071 403.543">
+  <path d="M29.528 19.685 L34.449 19.685 M418.307 19.685 L423.228 19.685 M29.528 59.055 L34.449 59.055 M418.307 59.055 L423.228 59.055 M29.528 98.425 L34.449 98.425 M418.307 98.425 L423.228 98.425 M29.528 137.795 L34.449 137.795 M418.307 137.795 L423.228 137.795 M29.528 177.165 L34.449 177.165 M418.307 177.165 L423.228 177.165 M29.528 216.535 L34.449 216.535 M418.307 216.535 L423.228 216.535 M29.528 255.906 L34.449 255.906 M418.307 255.906 L423.228 255.906 M29.528 295.276 L34.449 295.276 M418.307 295.276 L423.228 295.276 M29.528 334.646 L34.449 334.646 M418.307 334.646 L423.228 334.646 M29.528 374.016 L34.449 374.016 M418.307 374.016 L423.228 374.016" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="11.811" y="22.785" font-family="Inter, sans-serif" font-size="8.858" text-anchor="middle" fill="#1f2933">1</text>
+  <text x="11.811" y="62.156" font-family="Inter, sans-serif" font-size="8.858" text-anchor="middle" fill="#1f2933">2</text>
+  <text x="11.811" y="101.526" font-family="Inter, sans-serif" font-size="8.858" text-anchor="middle" fill="#1f2933">3</text>
+  <text x="11.811" y="140.896" font-family="Inter, sans-serif" font-size="8.858" text-anchor="middle" fill="#1f2933">4</text>
+  <text x="11.811" y="180.266" font-family="Inter, sans-serif" font-size="8.858" text-anchor="middle" fill="#1f2933">5</text>
+  <text x="11.811" y="219.636" font-family="Inter, sans-serif" font-size="8.858" text-anchor="middle" fill="#1f2933">6</text>
+  <text x="11.811" y="259.006" font-family="Inter, sans-serif" font-size="8.858" text-anchor="middle" fill="#1f2933">7</text>
+  <text x="11.811" y="298.376" font-family="Inter, sans-serif" font-size="8.858" text-anchor="middle" fill="#1f2933">8</text>
+  <text x="11.811" y="337.746" font-family="Inter, sans-serif" font-size="8.858" text-anchor="middle" fill="#1f2933">9</text>
+  <text x="11.811" y="377.116" font-family="Inter, sans-serif" font-size="8.858" text-anchor="middle" fill="#1f2933">10</text>
+  <g class="ports" fill="#c2410c">
+    <circle cx="29.528" cy="0" r="1.969"><title>L1</title></circle>
+    <circle cx="423.228" cy="0" r="1.969"><title>L2</title></circle>
+  </g>
+</svg>

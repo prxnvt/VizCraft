@@ -34,6 +34,8 @@ pub mod bind_nets;
 pub mod cases;
 pub mod catalog;
 pub mod drawing;
+pub mod electrical_pass;
+pub mod electrical_rules;
 pub mod end_pass;
 pub mod er_rules;
 pub mod glob;

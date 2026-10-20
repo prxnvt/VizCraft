@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="39.37" height="246.063" viewBox="-4.921 -4.921 39.37 246.063">
+  <path d="M0 0 L29.528 0 L29.528 236.22 L0 236.22 Z" fill="#ffffff" fill-rule="evenodd" stroke="#1f2933" stroke-width="1" stroke-linejoin="round"/>
+  <g class="ports" fill="#c2410c">
+    <circle cx="9.843" cy="236.22" r="1.969"><title>rail</title></circle>
+  </g>
+</svg>
