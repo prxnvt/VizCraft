@@ -65,6 +65,9 @@ const CASES: &[Case] = &[
     ("texture-iso-required", "texture", &[("removal", "required"), ("value", "Ra 1.6"), ("process", "ground")]),
     ("texture-asme-prohibited", "texture", &[("standard", "asmeY14_36"), ("removal", "prohibited"), ("value", "63")]),
     ("texture-iso-lay", "texture", &[("lay", "perpendicular"), ("value", "Rz 6.3")]),
+    ("idef0box-default", "idef0box", &[("number", "1")]),
+    ("idef0box-three-inputs-call", "idef0box", &[("inputs", "3"), ("controls", "2"), ("call", "true"), ("number", "2")]),
+    ("idef0box-no-mechanism", "idef0box", &[("mechanisms", "0"), ("outputs", "2"), ("number", "0")]),
 ];
 
 #[test]
@@ -138,6 +141,18 @@ fn builds_are_byte_identical_twice() {
         let b = svg(&build(builder, &params(pairs), None).unwrap());
         assert_eq!(a, b, "{name}");
     }
+}
+
+#[test]
+fn idef0_box_ports_follow_the_counts_in_side_order() {
+    let ids = |pairs: &[(&str, &str)]| build("idef0box", &params(pairs), None).unwrap().ports.into_iter().map(|p| p.id).collect::<Vec<_>>();
+    assert_eq!(ids(&[]), ["I1", "C1", "O1", "M1"]);
+    assert_eq!(ids(&[("inputs", "2"), ("mechanisms", "0"), ("call", "true")]), ["I1", "I2", "C1", "O1", "call"]);
+    let b = build("idef0box", &params(&[("inputs", "6"), ("outputs", "6"), ("controls", "6"), ("mechanisms", "6"), ("call", "true")]), None).unwrap();
+    assert_eq!(b.ports.len(), 25);
+    assert!(b.w >= 28.0 && b.h >= 21.0, "the box grows to keep ports apart: {} by {}", b.w, b.h);
+    let b = build("idef0box", &params(&[("inputs", "99")]), None).unwrap();
+    assert_eq!((b.ports.iter().filter(|p| p.id.starts_with('I')).count(), b.warnings.len()), (6, 1));
 }
 
 #[test]
@@ -235,6 +250,7 @@ fn every_builder_states_its_provenance_in_its_module_docs() {
         ("fcf", include_str!("fcf.rs")),
         ("weld", include_str!("weld.rs")),
         ("texture", include_str!("texture.rs")),
+        ("idef0box", include_str!("idef0box.rs")),
     ];
     assert_eq!(files.len(), specs().len());
     for spec in specs() {

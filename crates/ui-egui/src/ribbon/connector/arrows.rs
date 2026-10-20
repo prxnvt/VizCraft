@@ -29,6 +29,9 @@ macro_rules! entries {
             entries!(@one $param, $field, Arrow::Slash, "Slash"),
             entries!(@one $param, $field, Arrow::DoubleBar, "Double bar"),
             entries!(@one $param, $field, Arrow::Dot, "Dot"),
+            entries!(@one $param, $field, Arrow::Harpoon, "Harpoon"),
+            entries!(@one $param, $field, Arrow::HarpoonBar, "Harpoon with bar"),
+            entries!(@one $param, $field, Arrow::Parens, "Parentheses"),
         ]
     };
     (@one $param:literal, $field:ident, $arrow:expr, $label:literal) => {
@@ -63,7 +66,7 @@ mod tests {
     use super::*;
 
     /// Every end in the order of [`Arrow::EVERY`], with the words the menus show.
-    const ARROW_LABELS: [(Arrow, &str); 16] = [
+    const ARROW_LABELS: [(Arrow, &str); 19] = [
         (Arrow::None, "None"),
         (Arrow::Triangle, "Triangle"),
         (Arrow::Open, "Open arrow"),
@@ -80,6 +83,9 @@ mod tests {
         (Arrow::Slash, "Slash"),
         (Arrow::DoubleBar, "Double bar"),
         (Arrow::Dot, "Dot"),
+        (Arrow::Harpoon, "Harpoon"),
+        (Arrow::HarpoonBar, "Harpoon with bar"),
+        (Arrow::Parens, "Parentheses"),
     ];
 
     #[test]
