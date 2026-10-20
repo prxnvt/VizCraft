@@ -19,6 +19,15 @@ groups! {
 
 mod fluidpower;
 
+/// The generic groups a notation pack leaves out of its tab, by label (fluid power has no key
+/// and no numbered flow steps), so its own groups fit.
+fn pack_hides(pack_id: &str) -> &'static [&'static str] {
+    match pack_id {
+        "fluidpower" => &["Key", "Steps"],
+        _ => &[],
+    }
+}
+
 /// The groups a notation pack adds to the tab after the generic ones, by pack id.
 pub(in crate::ribbon) fn pack_groups(pack_id: &str) -> Vec<crate::ribbon::Group> {
     match pack_id {
@@ -42,6 +51,8 @@ pub(super) fn tab(app: &CraftApp) -> Tab {
     let pack = active_pack(app);
     let name = pack.map_or("Notation", |p| p.name.as_str());
     let mut all = groups();
+    let hidden = pack.map(|p| pack_hides(&p.id)).unwrap_or_default();
+    all.retain(|g| !hidden.contains(&g.label));
     all.extend(pack.map(|p| pack_groups(&p.id)).unwrap_or_default());
     Tab::contextual(name, has_view, all)
 }

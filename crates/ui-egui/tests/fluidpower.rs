@@ -1,7 +1,8 @@
 //! The fluid power groups of the notation tab under egui_kittest: they show only on a fluid
 //! power page; a Lines button arms the Pipe tool with its line type and a drag commits one
 //! `wire.draw` of that type; P with no line armed draws the pack's working line; the Inspector's
-//! step chart grid runs `fluid.setStep`. Assertions read the session and `ui.inspect`.
+//! step chart grid runs `fluid.setStep`; every icon the tab uses is drawn, and the tab fits
+//! 1280 points wide. Assertions read the session and `ui.inspect`.
 
 use egui::{Event, Modifiers, PointerButton, Pos2, pos2, vec2};
 use egui_kittest::Harness;
@@ -12,9 +13,13 @@ use vizcraft_engine::{Document, Session};
 use vizcraft_ui_egui::{CraftApp, Services};
 
 fn harness() -> Harness<'static, CraftApp> {
+    harness_w(1600.0)
+}
+
+fn harness_w(width: f32) -> Harness<'static, CraftApp> {
     let mut app = CraftApp::new(Session::new(Document::new()), Services::default());
     app.run("ui.pane", json!({"name": "shapeData", "value": true})).unwrap();
-    let mut h = Harness::builder().with_size(vec2(1600.0, 1000.0)).with_max_steps(64).with_step_dt(1.0 / 60.0).build_ui_state(
+    let mut h = Harness::builder().with_size(vec2(width, 1000.0)).with_max_steps(64).with_step_dt(1.0 / 60.0).build_ui_state(
         |ui, app: &mut CraftApp| {
             app.logic(ui.ctx());
             app.ui(ui);
@@ -89,7 +94,15 @@ fn a_line_button_arms_the_pipe_tool_and_a_drag_draws_that_line() {
     drag(&mut h, a, b);
     let page = h.state().session.doc.page().unwrap();
     assert_eq!(page.connectors.len(), before + 1);
-    assert_eq!(page.connectors.last().unwrap().kind, "fluidpower.pilot");
+    let line = page.connectors.last().unwrap();
+    assert_eq!(line.kind, "fluidpower.pilot");
+    // The hand-drawn line is the model object the rules count.
+    let rel = h.state().session.doc.model.relationship(line.relationship.as_deref().unwrap()).unwrap();
+    assert_eq!(rel.type_id, "fluidpower.PilotLine");
+    // Escape returns to the pointer.
+    h.key_press(egui::Key::Escape);
+    h.run_steps(2);
+    assert_eq!(h.state().tool, vizcraft_ui_egui::Tool::Pointer);
     // P with no line armed draws the pack's first fluid line type, the working line.
     run(&mut h, "ui.pipe", json!({}));
     assert!(h.state().line_type.is_none());
@@ -117,4 +130,28 @@ fn the_step_chart_grid_runs_set_step() {
     assert_eq!(report["inspector"]["fields"]["stepChart"]["rows"][0]["states"], json!([0, 1, 1]));
     let last = h.state().session.transactions().back().unwrap().commands.clone();
     assert_eq!(last, ["fluid.setStep"]);
+}
+
+#[test]
+fn the_fluid_power_tab_draws_every_icon_and_fits_1280_wide() {
+    let mut h = harness_w(1280.0);
+    run(&mut h, "template.new", json!({"template": "fluidpower.pneumaticCircuit"}));
+    run(&mut h, "ui.tab", json!({"tab": "Fluid Power"}));
+    h.run_steps(4);
+    let tabs = vizcraft_ui_egui::ribbon::tabs(h.state());
+    let tab = tabs.iter().find(|t| t.name == "Fluid Power").unwrap();
+    let mut used = Vec::new();
+    for g in &tab.groups {
+        for c in &g.controls {
+            c.icons(&mut used);
+        }
+    }
+    for icon in used {
+        assert!(vizcraft_ui_egui::icons::known(icon), "icon {icon} is not drawn");
+    }
+    let labels: Vec<&str> = tab.groups.iter().map(|g| g.label).collect();
+    assert_eq!(labels[labels.len() - 5..], ["Symbols", "Lines", "Codes", "Sequence", "Analyze"]);
+    assert!(!labels.contains(&"Key"), "{labels:?}");
+    let o = vizcraft_ui_egui::ribbon::Overflow::get(&h.ctx);
+    assert!(!o.overflows(), "the Fluid Power tab overflows at 1280: {o:?}");
 }

@@ -57,27 +57,19 @@ fn signal_on(app: &CraftApp) -> bool {
     armed(app, "fluidpower.signal")
 }
 
-/// The Lines group.
+/// The Lines group: one icon button per line type in two rows, the armed one checked; the
+/// tooltips name them.
 pub(super) fn group() -> Group {
+    let b = |icon, label, params, checked| Button { id: "ui.tool", icon, label, size: Size::Icon, params, checked: Some(checked) };
     Group::new(
         "Lines",
-        vec![
-            Button { id: "ui.tool", icon: "workingLine", label: "Working", size: Size::Big, params: working, checked: Some(working_on) },
-            Stack(vec![
-                Button { id: "ui.tool", icon: "pilotLine", label: "Pilot", size: Size::Small, params: pilot, checked: Some(pilot_on) },
-                Button { id: "ui.tool", icon: "drainLine", label: "Drain", size: Size::Small, params: drain, checked: Some(drain_on) },
+        vec![Stack(vec![
+            Row(vec![
+                b("workingLine", "Working Line", working as fn(&CraftApp) -> Value, working_on as fn(&CraftApp) -> bool),
+                b("pilotLine", "Pilot Line", pilot, pilot_on),
+                b("drainLine", "Drain Line", drain, drain_on),
             ]),
-            Stack(vec![
-                Button {
-                    id: "ui.tool",
-                    icon: "mechanicalLine",
-                    label: "Mechanical",
-                    size: Size::Small,
-                    params: mechanical,
-                    checked: Some(mechanical_on),
-                },
-                Button { id: "ui.tool", icon: "signalLine", label: "Signal", size: Size::Small, params: signal, checked: Some(signal_on) },
-            ]),
-        ],
+            Row(vec![b("mechanicalLine", "Mechanical Link", mechanical, mechanical_on), b("signalLine", "Signal Line", signal, signal_on)]),
+        ])],
     )
 }

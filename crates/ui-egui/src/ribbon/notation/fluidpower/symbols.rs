@@ -1,31 +1,23 @@
-//! Circuit > Symbols: the Valve dialog, the pressure valves, a pump and a cylinder of the page's
-//! medium, and the hydraulic power unit.
+//! Circuit > Symbols: the Valve dialog, the pressure valves and the hydraulic power unit, in one
+//! stack of small buttons.
 
-use serde_json::{Value, json};
+use serde_json::json;
 
-use crate::CraftApp;
 use crate::ribbon::Control::*;
-use crate::ribbon::{Group, MenuEntry, Size};
+use crate::ribbon::{Group, MenuEntry};
 
-fn pump(app: &CraftApp) -> Value {
-    json!({"type": if super::pneumatic(app) { "fluidpower.Compressor" } else { "fluidpower.HydraulicPump" }})
-}
-
-fn cylinder(app: &CraftApp) -> Value {
-    json!({"type": if super::pneumatic(app) { "fluidpower.PneumaticCylinder" } else { "fluidpower.HydraulicCylinder" }})
-}
-
-/// The Symbols group.
+/// The Symbols group: the Valve dialog and the power unit (pumps, cylinders and pressure valves
+/// are in the Insert menus beside it, the pumps and cylinders by medium).
 pub(super) fn group() -> Group {
     let pv = |label, t: &str| MenuEntry::new(label, "fluid.insert", json!({"type": t}));
     Group::new(
         "Symbols",
-        vec![
-            Big { id: "ui.valve", icon: "symbol" },
+        vec![Stack(vec![
+            Small { id: "ui.valve", icon: "fluidValve" },
             Menu {
                 label: "Pressure Valve",
                 icon: "pressureValve",
-                big: true,
+                big: false,
                 menu: vec![
                     pv("Relief Valve", "fluidpower.ReliefValve"),
                     pv("Pressure Reducing Valve", "fluidpower.ReducingValve"),
@@ -33,11 +25,7 @@ pub(super) fn group() -> Group {
                     pv("Pressure Regulator", "fluidpower.PressureRegulator"),
                 ],
             },
-            Stack(vec![
-                Button { id: "fluid.insert", icon: "fluidPump", label: "Pump", size: Size::Small, params: pump, checked: None },
-                Button { id: "fluid.insert", icon: "fluidCylinder", label: "Cylinder", size: Size::Small, params: cylinder, checked: None },
-            ]),
-            Big { id: "fluid.powerUnit", icon: "powerUnit" },
-        ],
+            Small { id: "fluid.powerUnit", icon: "powerUnit" },
+        ])],
     )
 }

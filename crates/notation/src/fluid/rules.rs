@@ -12,7 +12,7 @@ use vizcraft_model::{Element, Issue, PropValue};
 
 use super::{ACTUATOR, Circuit, Part, Positions, Role, STEP_CHART, Walk, is_a, paths, steps};
 use crate::Catalog;
-use crate::rules::{cut, message};
+use crate::rules::{MAX_MESSAGE, cut};
 use crate::schema::{Check, Pack, RuleDecl};
 
 /// The `netCheck` tests this module runs.
@@ -76,9 +76,9 @@ impl Cx<'_> {
     }
 
     fn issue(&self, what: &str, subject: &str, items: Vec<String>, page: Option<usize>) -> Issue {
-        let mut i = Issue::new(self.rule.id.clone(), self.rule.severity, message(&self.rule.description, what))
-            .with_subjects(vec![subject.to_string()])
-            .with_items(items);
+        // Problems messages state only the problem; the rule's description stays with the rule.
+        let mut i =
+            Issue::new(self.rule.id.clone(), self.rule.severity, cut(what, MAX_MESSAGE)).with_subjects(vec![subject.to_string()]).with_items(items);
         i.page = page.and_then(|p| self.doc.pages.get(p)).map(|p| p.id.clone());
         i
     }

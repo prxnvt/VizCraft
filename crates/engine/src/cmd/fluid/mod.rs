@@ -34,10 +34,12 @@ pub fn specs() -> Vec<CommandSpec> {
         ),
         CommandSpec::new("fluid.renumber", "Renumber Components", "Circuit > Codes", renumber).params(
             r#"{"page"?: page id, name or index, "codes"?: "letters"|"numeric"} -> {"page", "codes", "changed": [{"element", "from", "to"}]}; writes ISO 1219-2 codes on the components drawn on the page: letters ({installation}{circuit}{letter}{n}, 1V1) or numeric ({installation}{circuit}.{n}), numbered per circuit (and letter) left to right, then bottom to top; the default form is the page variant's; step chart rows follow the new codes; one undo step"#,
-        ),
+        )
+        .when(has_fluid),
         CommandSpec::new("fluid.setPortSet", "Port Labels", "Circuit > Codes", set_port_set).params(
             r#"{"page"?: page id, name or index, "ids"?: [element or shape id], "set": "iso9461"|"iso5599"} -> {"ids": [element]}; labels the directional valves' ports with ISO 9461 letters (P, A, B, T) or ISO 5599 numbers (1, 2, 4, 3, 5); default: every directional valve on the page; one undo step"#,
-        ),
+        )
+        .when(has_fluid),
         CommandSpec::new("fluid.plug", "Plug Ports", "Circuit > Codes", plug).params(
             r#"{"id": element or shape id, "ports": [port id], "plugged"?: bool (default true)} -> {"id", "plugged": [port id]}; marks ports closed with a plug (the open port check skips them), or opens them again; one undo step"#,
         ),
@@ -46,11 +48,29 @@ pub fn specs() -> Vec<CommandSpec> {
         ),
         CommandSpec::new("fluid.trace", "Trace Pressure", "Circuit > Analyze", trace).params(
             r#"{"from"?: element or shape id | {"shape", "point"}, "positions"?: "rest"|"any"} -> the stored analysis result ({"kind": "fluidTrace", "summary", "elements", "relationships", "marks", "ports", "nets"}); from a pump or source its outlets, from another component all its ports, from a pin that port (default: the selected shape); through every valve in its rest position or in any position, one-way paths their way, never through a reservoir; kept in the session for the canvas and the Analysis dock; no undo step"#,
-        ),
+        )
+        .when(has_fluid),
     ];
     v.extend(steps::specs());
     v.extend(power_unit::specs());
     v
+}
+
+/// Enabled when the active page draws a fluid power component.
+pub(crate) fn has_fluid(s: &Session) -> Option<&'static str> {
+    let on_page = s.doc.page().is_some_and(|p| {
+        p.shapes
+            .iter()
+            .filter_map(|sh| sh.element.as_deref())
+            .filter_map(|e| s.doc.model.element(e))
+            .any(|e| fl::is_a(cat(), &e.type_id, fl::COMPONENT))
+    });
+    if on_page { None } else { Some("no fluid power component is on this page") }
+}
+
+/// Enabled when the document holds a displacement-step chart.
+pub(crate) fn has_chart(s: &Session) -> Option<&'static str> {
+    if s.doc.model.elements.iter().any(|e| fl::is_a(cat(), &e.type_id, fl::STEP_CHART)) { None } else { Some("the document has no step chart") }
 }
 
 /// Most ports one `fluid.plug` names.

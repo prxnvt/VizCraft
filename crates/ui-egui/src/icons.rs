@@ -249,6 +249,10 @@ pub const NAMES: &[&str] = &[
     "fluidCylinder",
     "portLabels",
     "componentList",
+    "fluidValve",
+    "stepInsert",
+    "stepDelete",
+    "traceRest",
 ];
 
 /// Reference size of the design grid, in points. At this size the stroke is `BASE_STROKE`.
@@ -1590,6 +1594,15 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
             pen.line_c(&[(5.0, 8.5), (8.0, 5.5), (12.0, 5.5), (15.0, 8.5)], a);
             pen.line_c(&[(5.0, 14.5), (9.0, 14.5), (12.0, 11.5), (15.0, 11.5)], a);
         }
+        "traceRest" => {
+            // The trace stopping at a closed valve square.
+            pen.circle(5.5, 14.0, 3.5, c);
+            pen.fill(&[(5.5, 10.5), (4.0, 13.0), (7.0, 13.0)], c);
+            pen.line_c(&[(5.5, 10.5), (5.5, 4.0), (11.0, 4.0)], a);
+            pen.rect(11.0, 1.5, 17.5, 8.0, c);
+            pen.line(&[(13.0, 4.75), (15.5, 4.75)]);
+            pen.line(&[(14.25, 3.0), (14.25, 6.5)]);
+        }
         "tracePressure" => {
             pen.circle(5.5, 14.0, 3.5, c);
             pen.fill(&[(5.5, 10.5), (4.0, 13.0), (7.0, 13.0)], c);
@@ -1623,6 +1636,25 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
             pen.line(&[(12.0, 15.0), (12.0, 18.0)]);
             pen.fcircle(8.0, 2.5, 1.3, a);
             pen.fcircle(12.0, 17.5, 1.3, a);
+        }
+        "fluidValve" => {
+            // Two switching squares with a flow arrow and a crossed pair, a spring at the right.
+            pen.rect(2.0, 6.0, 9.0, 14.0, c);
+            pen.rect(9.0, 6.0, 16.0, 14.0, c);
+            pen.line_c(&[(4.5, 13.0), (4.5, 7.5)], a);
+            pen.fill(&[(4.5, 7.0), (3.4, 9.0), (5.6, 9.0)], a);
+            pen.line_c(&[(10.5, 13.0), (14.5, 7.0)], a);
+            pen.line_c(&[(10.5, 7.0), (14.5, 13.0)], a);
+            pen.line(&[(16.0, 10.0), (16.7, 8.8), (17.4, 11.2), (18.1, 8.8), (18.8, 10.0)]);
+        }
+        "stepInsert" | "stepDelete" => {
+            // A step chart column with a plus or a minus.
+            pen.rect(2.5, 4.0, 12.5, 16.0, c);
+            pen.line_c(&[(4.0, 13.0), (7.5, 7.0), (11.0, 7.0)], c);
+            pen.line_c(&[(13.5, 10.0), (18.5, 10.0)], a);
+            if name == "stepInsert" {
+                pen.line_c(&[(16.0, 7.5), (16.0, 12.5)], a);
+            }
         }
         "componentList" => {
             pen.rect(3.0, 3.5, 17.0, 16.5, c);

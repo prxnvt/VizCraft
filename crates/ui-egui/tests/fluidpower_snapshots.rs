@@ -1,5 +1,5 @@
 //! Pixel snapshots of fluid power pages: the notation tab with its Circuit groups (Symbols,
-//! Lines, Codes, Sequence, Analyze) in a window wide enough for every group, the hydraulic and pneumatic examples on
+//! Lines, Codes, Sequence, Analyze) at 1280 points wide, the hydraulic and pneumatic examples on
 //! the canvas, and the Inspector's Step Chart group for the pneumatic example's chart. Same
 //! harness and rules as `nets_snapshots.rs` (needs a wgpu adapter, skipped without one or with
 //! `VIZCRAFT_SKIP_SNAPSHOTS`; refresh with `UPDATE_SNAPSHOTS=1`).
@@ -68,9 +68,9 @@ fn fluidpower_snapshots() {
     }
     let mut results = SnapshotResults::new();
 
-    // The notation tab, named after the pack, with the Circuit groups after the generic ones; a
-    // wide window so every group shows without scrolling, the Pilot line armed.
-    let mut h = window(2500.0, 230.0, "fluidpower.hydraulicExample");
+    // The notation tab, named after the pack, with the Circuit groups after the generic ones (Key
+    // and Steps left out), every group showing at 1280 wide, the Pilot line armed.
+    let mut h = window(1280.0, 230.0, "fluidpower.hydraulicExample");
     run(&mut h, "ui.tab", json!({"tab": "Fluid Power"}));
     run(&mut h, "ui.tool", json!({"tool": "pipe", "line": "fluidpower.pilot"}));
     snap(&mut results, &mut h, "tab-fluidpower");

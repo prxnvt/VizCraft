@@ -20,16 +20,20 @@ pub fn specs() -> Vec<CommandSpec> {
         ),
         CommandSpec::new("fluid.steps", "Step Chart Findings", "Circuit > Sequence", read).params(
             r#"{"chart": element or shape id} -> {"chart", "rows": [{"code", "actuator": element or null, "states": [0|1]}], "steps", "findings": [{"row"?, "step"?, "message", "idle"}]}; rows naming no actuator, steps no valve position can drive, idle steps; changes nothing"#,
-        ),
+        )
+        .when(super::has_chart),
         CommandSpec::new("fluid.setStep", "Set Step", "Circuit > Sequence", set_step).params(
             r#"{"chart": element or shape id, "row": n (from 0), "step": n (state column, from 0), "state": 0|1|bool} -> {"chart", "rows"}; one undo step"#,
-        ),
+        )
+        .when(super::has_chart),
         CommandSpec::new("fluid.insertStep", "Insert Step", "Circuit > Sequence", insert_step).params(
             r#"{"chart": element or shape id, "at"?: n (state column, default the end)} -> {"chart", "rows"}; a column holding the states before it (at 0: after it); at most 32 steps; one undo step"#,
-        ),
+        )
+        .when(super::has_chart),
         CommandSpec::new("fluid.deleteStep", "Delete Step", "Circuit > Sequence", delete_step).params(
             r#"{"chart": element or shape id, "at": n (state column)} -> {"chart", "rows"}; at least one step stays; one undo step"#,
-        ),
+        )
+        .when(super::has_chart),
     ]
 }
 

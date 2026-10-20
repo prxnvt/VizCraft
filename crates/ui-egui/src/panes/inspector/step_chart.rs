@@ -1,4 +1,4 @@
-//! The Inspector's Step Chart section: a displacement-step chart (`fluidpower.StepChart`) as a
+//! The Inspector's Steps section: a displacement-step chart (`fluidpower.StepChart`) as a
 //! grid of rows by step columns, each cell a toggle that runs one `fluid.setStep`; buttons that
 //! add a step at the end (`fluid.insertStep`) or remove the last (`fluid.deleteStep`); and the
 //! chart's findings (rows naming no actuator, steps no valve position can drive, idle steps)
@@ -79,7 +79,13 @@ pub(super) fn section(app: &CraftApp, ui: &mut Ui, t: &Tokens, el: &str, runs: &
     for f in findings(app, &chart) {
         // Faults read in the normal text colour, idle steps dimmed; the words say which.
         let colour = if f.idle { t.text_dim } else { t.text };
-        ui.label(RichText::new(f.message).small().color(colour));
+        ui.horizontal_wrapped(|ui| {
+            // Go to selects the actuator and the valve the finding names.
+            if !f.shapes.is_empty() && ui.add(egui::Button::new("Go to").small()).on_hover_text("Select the parts this is about").clicked() {
+                runs.push(("edit.select", json!({"ids": f.shapes})));
+            }
+            ui.label(RichText::new(f.message).small().color(colour));
+        });
     }
 }
 

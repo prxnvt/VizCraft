@@ -2324,7 +2324,7 @@
   "palette": [
     {
       "id": "fluidpower.sources",
-      "label": "Sources and Prime Movers",
+      "label": "Sources",
       "types": [
         "fluidpower.HydraulicPump",
         "fluidpower.Compressor",
@@ -2378,7 +2378,7 @@
     },
     {
       "id": "fluidpower.documentation",
-      "label": "Documentation",
+      "label": "Documents",
       "types": [
         "fluidpower.Enclosure",
         "fluidpower.StepChart",

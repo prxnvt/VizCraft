@@ -301,7 +301,7 @@ fn properties_tab(app: &CraftApp, ui: &mut Ui, t: &Tokens, st: &InspectorState, 
         if step_chart::is_chart(type_id)
             && let Some(el) = d["element"]["id"].as_str()
         {
-            section(ui, "stepChart", "Step Chart", false, |ui| step_chart::section(app, ui, t, el, runs));
+            section(ui, "stepChart", "Steps", false, |ui| step_chart::section(app, ui, t, el, runs));
         }
         section(ui, "properties", "Properties", false, |ui| properties(app, ui, t, d, ids, rows, expert, runs));
         if d["element"].is_object() {

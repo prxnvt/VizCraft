@@ -35,12 +35,10 @@ fn delete_params(app: &CraftApp) -> Value {
 pub(super) fn group() -> Group {
     Group::new(
         "Sequence",
-        vec![
-            Big { id: "fluid.stepChart", icon: "stepChart" },
-            Stack(vec![
-                Button { id: "fluid.insertStep", icon: "plus", label: "Insert Step", size: Size::Small, params: insert_params, checked: None },
-                Button { id: "fluid.deleteStep", icon: "close", label: "Delete Step", size: Size::Small, params: delete_params, checked: None },
-            ]),
-        ],
+        vec![Stack(vec![
+            Small { id: "fluid.stepChart", icon: "stepChart" },
+            Button { id: "fluid.insertStep", icon: "stepInsert", label: "Insert Step", size: Size::Small, params: insert_params, checked: None },
+            Button { id: "fluid.deleteStep", icon: "stepDelete", label: "Delete Step", size: Size::Small, params: delete_params, checked: None },
+        ])],
     )
 }
