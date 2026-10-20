@@ -72,6 +72,11 @@ pub mod variant;
 pub mod view;
 pub mod wire;
 pub mod xref;
+// Mechanical, reliability, IDEF0 and annotation packs (b6e-mechanical).
+pub mod annotation;
+pub mod idef0;
+pub mod mech;
+pub mod rel;
 
 use std::collections::HashSet;
 
@@ -153,6 +158,10 @@ pub fn registry() -> Registry {
     v.extend(loops::specs());
     v.extend(plant::specs());
     v.extend(fluid::specs());
+    v.extend(mech::specs());
+    v.extend(rel::specs());
+    v.extend(idef0::specs());
+    v.extend(annotation::specs());
     Registry::new(v)
 }
 

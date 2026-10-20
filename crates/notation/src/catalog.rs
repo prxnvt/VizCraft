@@ -32,6 +32,11 @@ pub const BUILTIN: &[(&str, &str)] = &[
     ("electrical.json", include_str!("../packs/electrical.json")),
     ("process.json", include_str!("../packs/process.json")),
     ("fluidpower.json", include_str!("../packs/fluidpower.json")),
+    // Mechanical, annotation, reliability and IDEF0 packs (b6e-mechanical).
+    ("mechanical.json", include_str!("../packs/mechanical.json")),
+    ("annotation.json", include_str!("../packs/annotation.json")),
+    ("reliability.json", include_str!("../packs/reliability.json")),
+    ("idef0.json", include_str!("../packs/idef0.json")),
 ];
 
 /// The environment variable naming a folder of pack files (`*.json`, `*.toml`) loaded with the
@@ -321,6 +326,9 @@ mod tests {
         assert!(ids.contains(&"electrical"));
         assert!(ids.contains(&"process"));
         assert!(ids.contains(&"fluidpower"), "{ids:?}");
+        for wave4 in ["mechanical", "annotation", "reliability", "idef0"] {
+            assert!(ids.contains(&wave4), "{wave4} ships");
+        }
         let basic = c.pack("basic").unwrap();
         assert_eq!((basic.glyphs.len(), basic.element_types.len()), (10, 0));
         let f = c.pack("flowchart").unwrap();

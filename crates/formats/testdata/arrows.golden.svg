@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="680" height="790" viewBox="0 0 680 790">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="680" height="940" viewBox="0 0 680 940">
   <title>Page-1</title>
-  <rect x="0" y="0" width="680" height="790" fill="#ffffff"/>
+  <rect x="0" y="0" width="680" height="940" fill="#ffffff"/>
   <g id="c_triangle_1">
     <path d="M50.5 40 L309.5 40" fill="none" stroke="#3a4a5c" stroke-width="1" stroke-linejoin="round"/>
     <path d="M40 40 L50.5 35.8 L50.5 44.2 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="1" stroke-linejoin="round"/>
@@ -151,5 +151,35 @@
     <path d="M380.8 740 L639.2 740" fill="none" stroke="#3a4a5c" stroke-width="4" stroke-linejoin="round"/>
     <path d="M380.8 740 C380.8 742.982 378.382 745.4 375.4 745.4 C372.418 745.4 370 742.982 370 740 C370 737.018 372.418 734.6 375.4 734.6 C378.382 734.6 380.8 737.018 380.8 740 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="4" stroke-linejoin="round"/>
     <path d="M650 740 C650 742.982 647.582 745.4 644.6 745.4 C641.618 745.4 639.2 742.982 639.2 740 C639.2 737.018 641.618 734.6 644.6 734.6 C647.582 734.6 650 737.018 650 740 Z" fill="#3a4a5c" stroke="#3a4a5c" stroke-width="4" stroke-linejoin="round"/>
+  </g>
+  <g id="c_harpoon_1">
+    <path d="M40 790 L320 790" fill="none" stroke="#3a4a5c" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M50.5 785.8 L40 790" fill="none" stroke="#3a4a5c" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M309.5 794.2 L320 790" fill="none" stroke="#3a4a5c" stroke-width="1" stroke-linejoin="round"/>
+  </g>
+  <g id="c_harpoon_4">
+    <path d="M370 790 L650 790" fill="none" stroke="#3a4a5c" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M388 782.8 L370 790" fill="none" stroke="#3a4a5c" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M632 797.2 L650 790" fill="none" stroke="#3a4a5c" stroke-width="4" stroke-linejoin="round"/>
+  </g>
+  <g id="c_harpoonBar_1">
+    <path d="M40 840 L320 840" fill="none" stroke="#3a4a5c" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M50.5 835.8 L40 840 M40 835.8 L40 844.2" fill="none" stroke="#3a4a5c" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M309.5 844.2 L320 840 M320 844.2 L320 835.8" fill="none" stroke="#3a4a5c" stroke-width="1" stroke-linejoin="round"/>
+  </g>
+  <g id="c_harpoonBar_4">
+    <path d="M370 840 L650 840" fill="none" stroke="#3a4a5c" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M388 832.8 L370 840 M370 832.8 L370 847.2" fill="none" stroke="#3a4a5c" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M632 847.2 L650 840 M650 847.2 L650 832.8" fill="none" stroke="#3a4a5c" stroke-width="4" stroke-linejoin="round"/>
+  </g>
+  <g id="c_parens_1">
+    <path d="M40 890 L320 890" fill="none" stroke="#3a4a5c" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M47.875 885.8 C49.45 885.8 49.45 894.2 47.875 894.2 M43.675 885.8 C42.1 885.8 42.1 894.2 43.675 894.2" fill="none" stroke="#3a4a5c" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M312.125 894.2 C310.55 894.2 310.55 885.8 312.125 885.8 M316.325 894.2 C317.9 894.2 317.9 885.8 316.325 885.8" fill="none" stroke="#3a4a5c" stroke-width="1" stroke-linejoin="round"/>
+  </g>
+  <g id="c_parens_4">
+    <path d="M370 890 L650 890" fill="none" stroke="#3a4a5c" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M383.5 882.8 C386.2 882.8 386.2 897.2 383.5 897.2 M376.3 882.8 C373.6 882.8 373.6 897.2 376.3 897.2" fill="none" stroke="#3a4a5c" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M636.5 897.2 C633.8 897.2 633.8 882.8 636.5 882.8 M643.7 897.2 C646.4 897.2 646.4 882.8 643.7 882.8" fill="none" stroke="#3a4a5c" stroke-width="4" stroke-linejoin="round"/>
   </g>
 </svg>

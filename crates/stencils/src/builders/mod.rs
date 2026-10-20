@@ -37,6 +37,7 @@ mod cylinder;
 mod fcf;
 mod fluid_part;
 mod gate;
+mod idef0box;
 mod pressure_valve;
 mod process_valve;
 mod pump;
@@ -130,6 +131,7 @@ static SPECS: &[BuilderSpec] = &[
     pressure_valve::SPEC,
     step_chart::SPEC,
     fluid_part::SPEC,
+    idef0box::SPEC,
 ];
 
 /// Every builder, in palette order.

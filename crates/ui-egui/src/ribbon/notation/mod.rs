@@ -19,6 +19,7 @@ groups! {
 
 mod electrical;
 mod fluidpower;
+pub(in crate::ribbon) mod mechanical;
 mod process;
 
 /// The groups a pack adds after the generic notation groups while it is the active page's pack.
@@ -28,6 +29,7 @@ pub(super) fn pack_groups(pack_id: &str) -> Vec<crate::ribbon::Group> {
         "electrical" => electrical::groups(),
         "process" => process::groups(),
         "fluidpower" => fluidpower::groups(),
+        "mechanical" | "annotation" | "reliability" | "idef0" => mechanical::groups(pack_id),
         _ => Vec::new(),
     }
 }

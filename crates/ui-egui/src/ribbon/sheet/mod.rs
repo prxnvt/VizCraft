@@ -23,5 +23,8 @@ groups! {
 
 /// The Sheet tab.
 pub(super) fn tab() -> Tab {
-    Tab::contextual("Sheet", has_sheet, groups())
+    let mut all = groups();
+    // The annotation pack's symbols, offered on any sheet.
+    all.push(super::notation::mechanical::annotate::group());
+    Tab::contextual("Sheet", has_sheet, all)
 }

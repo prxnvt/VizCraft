@@ -87,7 +87,12 @@ fn registry_ids_are_unique_and_prefixed() {
                 "line",
                 "offpage",
                 "plant",
-                "fluid"
+                "fluid",
+                // b6e-mechanical
+                "mech",
+                "rel",
+                "idef0",
+                "annotation"
             ]
             .contains(&prefix),
             "{}: unexpected prefix",
@@ -178,6 +183,9 @@ fn hostile_params_never_panic() {
         json!({"ladder": "s2", "shapes": ["s2", 5], "rung": 1e20, "format": "{page:999}{rung:x}", "strip": "s2", "count": 1e9, "first": -1e308}),
         json!({"from": "s2", "to": "s2", "cores": 1e9, "cable": "s2", "nets": [5], "connectors": {}, "module": "s2", "channel": -1, "signal": "XX"}),
         json!({"ids": ["s2"], "bridge": 5, "subject": "nets", "kind": "ghost", "format": "text", "page": 99, "orientation": "diagonal"}),
+        // Mechanical, reliability, IDEF0 and annotation commands (b6e-mechanical).
+        json!({"top": 5, "maxOrder": 1e300, "limit": -1, "time": "NaN", "space": "warp", "from": [], "to": {}, "speed": 1e308}),
+        json!({"gdt": 7, "weld": "", "texture": [], "id": "x".repeat(1000), "page": "\u{0}", "standard": "asme", "input": 5, "output": [], "initiator": {}}),
         nested_batches(40),
         json!({"legs": [{"dir": "n", "length": 1e308}, {"dir": "zz"}, 5], "from": {"shape": "s2", "point": 1e20}, "kind": "process.processLine", "line": 7}),
         json!({"legs": [{"dir": "up", "length": 50}], "from": {"x": 1e308, "y": "a"}, "side": "inside", "shape": "s2", "at": f64::NAN, "subTag": ""}),

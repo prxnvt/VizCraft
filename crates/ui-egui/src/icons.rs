@@ -284,6 +284,24 @@ pub const NAMES: &[&str] = &[
     "stepInsert",
     "stepDelete",
     "traceRest",
+    // Mechanical, Reliability, IDEF0 and Sheet > Annotate (b6e-mechanical)
+    "mobility",
+    "gearRatio",
+    "mason",
+    "causality",
+    "cutSets",
+    "availability",
+    "outcomes",
+    "fmeaRow",
+    "rpn",
+    "decompose",
+    "renumberBoxes",
+    "icomCodes",
+    "fcf",
+    "datum",
+    "weld",
+    "texture",
+    "annotationStandard",
 ];
 
 /// Reference size of the design grid, in points. At this size the stroke is `BASE_STROKE`.
@@ -1880,6 +1898,149 @@ pub fn paint(p: &Painter, r: Rect, name: &str, c: Color32, a: Color32) {
             pen.rect(3.0, 3.5, 17.0, 16.5, c);
             pen.lines(3.0, 17.0, &[7.0, 10.0, 13.0]);
             pen.line_c(&[(7.0, 3.5), (7.0, 16.5)], a);
+        }
+        // Mechanical, Reliability, IDEF0 and Sheet > Annotate (b6e-mechanical)
+        "mobility" => {
+            // A four-bar linkage on two hatched pivots, the crank in the accent.
+            pen.line(&[(2.0, 16.0), (18.0, 16.0)]);
+            for x in [3.0, 6.0, 13.0, 16.0] {
+                pen.line(&[(x, 16.0), (x - 1.5, 18.5)]);
+            }
+            pen.line_c(&[(5.0, 15.0), (6.0, 6.0)], a);
+            pen.line(&[(6.0, 6.0), (14.0, 4.0), (15.0, 15.0)]);
+            for (x, y) in [(5.0, 15.0), (6.0, 6.0), (14.0, 4.0), (15.0, 15.0)] {
+                pen.fcircle(x, y, 1.4, c);
+            }
+        }
+        "gearRatio" => {
+            // A small and a large gear side by side, their pitch lines dashed.
+            pen.rect(3.0, 6.0, 7.0, 14.0, c);
+            pen.rect(8.0, 2.5, 12.0, 17.5, c);
+            pen.line_c(&[(13.5, 10.0), (18.0, 10.0)], a);
+            pen.line_c(&[(15.5, 7.5), (18.0, 10.0), (15.5, 12.5)], a);
+        }
+        "mason" => {
+            // A block with its feedback loop below.
+            pen.rect(7.0, 4.0, 14.0, 10.0, c);
+            pen.line(&[(1.5, 7.0), (7.0, 7.0)]);
+            pen.line(&[(14.0, 7.0), (18.5, 7.0)]);
+            pen.line_c(&[(16.5, 7.0), (16.5, 15.5), (4.0, 15.5), (4.0, 7.0)], a);
+            pen.fcircle(16.5, 7.0, 1.2, a);
+        }
+        "causality" => {
+            // A bond with its half arrow and a causal stroke at the far end.
+            pen.line(&[(2.0, 12.0), (17.0, 12.0)]);
+            pen.line(&[(13.0, 8.5), (17.0, 12.0)]);
+            pen.line_c(&[(17.0, 7.0), (17.0, 17.0)], a);
+            pen.line_c(&[(2.5, 9.0), (2.5, 15.0)], c);
+        }
+        "cutSets" => {
+            // An AND gate over two basic events, the events in the accent.
+            pen.closed(&[(6.0, 12.0), (6.0, 7.5), (8.0, 4.5), (12.0, 4.5), (14.0, 7.5), (14.0, 12.0)], c);
+            pen.line(&[(10.0, 1.5), (10.0, 4.5)]);
+            pen.line(&[(8.0, 12.0), (5.0, 15.0)]);
+            pen.line(&[(12.0, 12.0), (15.0, 15.0)]);
+            pen.circle(5.0, 16.5, 2.0, a);
+            pen.circle(15.0, 16.5, 2.0, a);
+        }
+        "availability" => {
+            // Two blocks in parallel between a start and an end node.
+            pen.fcircle(2.5, 10.0, 1.4, c);
+            pen.fcircle(17.5, 10.0, 1.4, c);
+            pen.rect(7.0, 3.0, 13.0, 7.5, c);
+            pen.rect(7.0, 12.5, 13.0, 17.0, a);
+            pen.line(&[(2.5, 10.0), (4.5, 10.0), (4.5, 5.25), (7.0, 5.25)]);
+            pen.line(&[(4.5, 10.0), (4.5, 14.75), (7.0, 14.75)]);
+            pen.line(&[(13.0, 5.25), (15.5, 5.25), (15.5, 14.75), (13.0, 14.75)]);
+            pen.line(&[(15.5, 10.0), (17.5, 10.0)]);
+        }
+        "outcomes" => {
+            // An event tree: one line splitting twice, ending in outcome boxes.
+            pen.line(&[(2.0, 10.0), (7.0, 10.0), (7.0, 5.0), (12.0, 5.0)]);
+            pen.line(&[(7.0, 10.0), (7.0, 15.0), (12.0, 15.0)]);
+            pen.frect(13.0, 3.5, 18.0, 6.5, a);
+            pen.frect(13.0, 13.5, 18.0, 16.5, a);
+        }
+        "fmeaRow" => {
+            // A worksheet with a new row in the accent.
+            pen.rect(2.5, 3.0, 17.5, 17.0, c);
+            pen.line(&[(2.5, 7.0), (17.5, 7.0)]);
+            pen.line(&[(7.5, 3.0), (7.5, 11.0)]);
+            pen.line(&[(2.5, 11.0), (17.5, 11.0)]);
+            pen.frect(3.5, 12.0, 16.5, 16.0, a.linear_multiply(0.25));
+            pen.line_c(&[(10.0, 12.5), (10.0, 15.5)], a);
+            pen.line_c(&[(8.5, 14.0), (11.5, 14.0)], a);
+        }
+        "rpn" => {
+            // Three rating cells multiplied into a result bar.
+            for x in [2.5, 8.0, 13.5] {
+                pen.rect(x, 3.0, x + 4.0, 7.0, c);
+            }
+            pen.line(&[(6.8, 4.2), (7.7, 5.8)]);
+            pen.line(&[(7.7, 4.2), (6.8, 5.8)]);
+            pen.line(&[(12.3, 4.2), (13.2, 5.8)]);
+            pen.line(&[(13.2, 4.2), (12.3, 5.8)]);
+            pen.frect(2.5, 12.0, 17.5, 16.0, a);
+        }
+        "decompose" => {
+            // A box opening into three smaller boxes in a staircase.
+            pen.rect(2.0, 2.5, 8.0, 7.0, c);
+            pen.line_c(&[(5.0, 7.0), (5.0, 10.0)], a);
+            pen.rect(4.0, 10.0, 8.5, 13.0, a);
+            pen.rect(9.0, 12.5, 13.5, 15.5, a);
+            pen.rect(14.0, 15.0, 18.5, 18.0, a);
+        }
+        "renumberBoxes" => {
+            // A staircase of boxes with a numeral 1 on the first.
+            pen.rect(2.0, 2.5, 8.0, 7.5, c);
+            pen.rect(8.0, 8.0, 14.0, 13.0, c);
+            pen.rect(14.0, 13.5, 18.5, 18.0, c);
+            pen.line_c(&[(4.2, 4.0), (5.2, 3.3), (5.2, 6.5)], a);
+        }
+        "icomCodes" => {
+            // A box with an arrow on each side: input, control, output, mechanism.
+            pen.rect(6.0, 6.0, 14.0, 14.0, c);
+            pen.line_c(&[(1.5, 10.0), (6.0, 10.0)], a);
+            pen.line_c(&[(10.0, 1.5), (10.0, 6.0)], a);
+            pen.line_c(&[(14.0, 10.0), (18.5, 10.0)], a);
+            pen.line_c(&[(10.0, 14.0), (10.0, 18.5)], a);
+        }
+        "fcf" => {
+            // A feature control frame: position symbol, tolerance and a datum cell.
+            pen.rect(1.5, 6.0, 18.5, 14.0, c);
+            pen.line(&[(7.0, 6.0), (7.0, 14.0)]);
+            pen.line(&[(14.0, 6.0), (14.0, 14.0)]);
+            pen.circle(4.25, 10.0, 1.8, a);
+            pen.line_c(&[(2.0, 10.0), (6.5, 10.0)], a);
+            pen.line_c(&[(4.25, 7.0), (4.25, 13.0)], a);
+            pen.line(&[(8.5, 10.0), (12.5, 10.0)]);
+        }
+        "datum" => {
+            // A datum letter frame joined to its triangle.
+            pen.rect(6.0, 2.0, 14.0, 9.0, c);
+            pen.line(&[(10.0, 9.0), (10.0, 13.0)]);
+            pen.fill(&[(6.5, 17.5), (13.5, 17.5), (10.0, 13.0)], a);
+        }
+        "weld" => {
+            // A welding symbol: arrow, reference line and a fillet triangle.
+            pen.line(&[(2.0, 17.0), (7.0, 11.0), (18.0, 11.0)]);
+            pen.line(&[(2.0, 17.0), (2.5, 14.0)]);
+            pen.line(&[(2.0, 17.0), (5.0, 16.0)]);
+            pen.fill(&[(10.0, 11.0), (10.0, 6.0), (15.0, 11.0)], a);
+        }
+        "texture" => {
+            // The surface texture tick with its machining bar and requirement line.
+            pen.line(&[(3.0, 10.0), (7.0, 17.0), (14.0, 4.0), (18.5, 4.0)]);
+            pen.line_c(&[(3.0, 10.0), (10.5, 10.0)], a);
+        }
+        "annotationStandard" => {
+            // Two frames with arrows between them: switching conventions.
+            pen.rect(2.0, 3.0, 9.0, 8.0, c);
+            pen.rect(11.0, 12.0, 18.0, 17.0, c);
+            pen.line_c(&[(10.0, 5.5), (15.0, 5.5), (15.0, 10.5)], a);
+            pen.line_c(&[(13.5, 9.0), (15.0, 10.5), (16.5, 9.0)], a);
+            pen.line_c(&[(10.0, 14.5), (5.0, 14.5), (5.0, 9.5)], a);
+            pen.line_c(&[(3.5, 11.0), (5.0, 9.5), (6.5, 11.0)], a);
         }
         _ => {
             // Fallback: a rounded tile with the first letter.

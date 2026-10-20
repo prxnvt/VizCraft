@@ -1,0 +1,98 @@
+{
+ "document": {
+  "format": "vizcraft",
+  "version": 4,
+  "model": {
+   "schemaVersion": 1,
+   "packs": [
+    {
+     "id": "mechanical",
+     "version": "1.0.0"
+    }
+   ],
+   "elements": [
+    {
+     "id": "sf",
+     "type": "mechanical.Sf",
+     "name": "sf"
+    },
+    {
+     "id": "c",
+     "type": "mechanical.C",
+     "name": "c"
+    }
+   ],
+   "relationships": [
+    {
+     "id": "b1",
+     "type": "mechanical.Bond",
+     "source": "sf",
+     "target": "c",
+     "properties": {
+      "causal": "end"
+     }
+    }
+   ]
+  },
+  "document": {
+   "title": "",
+   "pages": [
+    {
+     "id": "p1",
+     "name": "p1",
+     "shapes": [
+      {
+       "id": "s_p1_sf",
+       "kind": "rectangle",
+       "x": 0,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "sf"
+      },
+      {
+       "id": "s_p1_c",
+       "kind": "rectangle",
+       "x": 200,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "c"
+      }
+     ],
+     "connectors": [
+      {
+       "id": "c_p1_b1",
+       "start": {
+        "shape": "s_p1_sf"
+       },
+       "end": {
+        "shape": "s_p1_c"
+       },
+       "relationship": "b1"
+      }
+     ],
+     "view": {
+      "viewpoint": "mechanical.BondGraph"
+     }
+    }
+   ],
+   "idSeq": 1000
+  }
+ },
+ "profile": {
+  "enabled": true,
+  "userSet": true,
+  "rulesets": [
+   "mechanical.bondGraph"
+  ]
+ },
+ "expect": [
+  {
+   "rule": "mechanical.derivativeCausality"
+  },
+  {
+   "rule": "mechanical.sourceCausality"
+  }
+ ]
+}

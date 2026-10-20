@@ -241,21 +241,3 @@ fn hovering_another_wire_shows_its_net_while_one_is_held() {
     h.run_steps(2);
     assert_eq!(status(&h).as_deref(), Some("Net 2, 1 pin"), "the held net comes back off the wires");
 }
-
-#[test]
-fn the_preview_palette_places_builder_symbols() {
-    let mut h = harness();
-    run(&mut h, "ui.palette", json!({"group": "engineeringPreview"}));
-    h.run_steps(4);
-    let n = h.state().session.doc.page().unwrap().shapes.len();
-    h.get_by_label("Coil").click();
-    h.run_steps(4);
-    let page = h.state().session.doc.page().unwrap();
-    assert_eq!(page.shapes.len(), n + 1);
-    let s = page.shapes.last().unwrap();
-    assert_eq!(s.glyph.as_ref().map(|g| g.builder.as_str()), Some("coil"));
-    assert_eq!(h.state().session.sel.items, std::slice::from_ref(&s.id));
-    let report = run(&mut h, "ui.palette", json!({}));
-    let group = report["groups"].as_array().unwrap().iter().find(|g| g["section"] == "engineeringPreview").unwrap().clone();
-    assert_eq!(group["items"].as_array().unwrap().len(), vizcraft_stencils::builders::specs().len());
-}

@@ -393,6 +393,9 @@ impl<'a> Ctx<'a> {
             | Check::FluidLineEnds
             | Check::FluidCodes
             | Check::FluidSteps { .. } => crate::fluid::rules::check(self.doc, self.cat, pack, rule, out),
+            Check::Mechanism { .. } | Check::Annotation { .. } | Check::Reliability { .. } | Check::Idef0 { .. } => {
+                crate::mech_rules::dispatch(self.doc, self.cat, pack, rule, out)
+            }
             Check::Unknown => {}
         }
     }

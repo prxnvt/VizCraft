@@ -269,7 +269,7 @@ fn tolerant_load() {
              "connectionPoints": [{"x": 2, "y": -1}, "bad"]},
             42
         ], "connectors": [
-            {"id": "c1", "start": {"shape": "s1", "point": "two"}, "end": [1, 2], "route": 3, "endArrow": "harpoon"}
+            {"id": "c1", "start": {"shape": "s1", "point": "two"}, "end": [1, 2], "route": 3, "endArrow": "spiral"}
         ]}]
     }"##;
     let d: Document = serde_json::from_str(junk).unwrap();

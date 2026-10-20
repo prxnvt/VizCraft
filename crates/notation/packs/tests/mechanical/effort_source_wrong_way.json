@@ -1,0 +1,197 @@
+{
+ "document": {
+  "format": "vizcraft",
+  "version": 4,
+  "model": {
+   "schemaVersion": 1,
+   "packs": [
+    {
+     "id": "mechanical",
+     "version": "1.0.0"
+    }
+   ],
+   "elements": [
+    {
+     "id": "se",
+     "type": "mechanical.Se",
+     "name": "F"
+    },
+    {
+     "id": "j",
+     "type": "mechanical.J1",
+     "name": "j"
+    },
+    {
+     "id": "i",
+     "type": "mechanical.I",
+     "name": "m"
+    },
+    {
+     "id": "c",
+     "type": "mechanical.C",
+     "name": "k"
+    },
+    {
+     "id": "r",
+     "type": "mechanical.R",
+     "name": "b"
+    }
+   ],
+   "relationships": [
+    {
+     "id": "b1",
+     "type": "mechanical.Bond",
+     "source": "se",
+     "target": "j",
+     "properties": {
+      "causal": "start"
+     }
+    },
+    {
+     "id": "b2",
+     "type": "mechanical.Bond",
+     "source": "j",
+     "target": "i",
+     "properties": {
+      "causal": "end"
+     }
+    },
+    {
+     "id": "b3",
+     "type": "mechanical.Bond",
+     "source": "j",
+     "target": "c",
+     "properties": {
+      "causal": "start"
+     }
+    },
+    {
+     "id": "b4",
+     "type": "mechanical.Bond",
+     "source": "j",
+     "target": "r",
+     "properties": {
+      "causal": "start"
+     }
+    }
+   ]
+  },
+  "document": {
+   "title": "",
+   "pages": [
+    {
+     "id": "p1",
+     "name": "p1",
+     "shapes": [
+      {
+       "id": "s_p1_se",
+       "kind": "rectangle",
+       "x": 0,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "se"
+      },
+      {
+       "id": "s_p1_j",
+       "kind": "rectangle",
+       "x": 200,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "j"
+      },
+      {
+       "id": "s_p1_i",
+       "kind": "rectangle",
+       "x": 400,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "i"
+      },
+      {
+       "id": "s_p1_c",
+       "kind": "rectangle",
+       "x": 600,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "c"
+      },
+      {
+       "id": "s_p1_r",
+       "kind": "rectangle",
+       "x": 800,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "r"
+      }
+     ],
+     "connectors": [
+      {
+       "id": "c_p1_b1",
+       "start": {
+        "shape": "s_p1_se"
+       },
+       "end": {
+        "shape": "s_p1_j"
+       },
+       "relationship": "b1"
+      },
+      {
+       "id": "c_p1_b2",
+       "start": {
+        "shape": "s_p1_j"
+       },
+       "end": {
+        "shape": "s_p1_i"
+       },
+       "relationship": "b2"
+      },
+      {
+       "id": "c_p1_b3",
+       "start": {
+        "shape": "s_p1_j"
+       },
+       "end": {
+        "shape": "s_p1_c"
+       },
+       "relationship": "b3"
+      },
+      {
+       "id": "c_p1_b4",
+       "start": {
+        "shape": "s_p1_j"
+       },
+       "end": {
+        "shape": "s_p1_r"
+       },
+       "relationship": "b4"
+      }
+     ],
+     "view": {
+      "viewpoint": "mechanical.BondGraph"
+     }
+    }
+   ],
+   "idSeq": 1000
+  }
+ },
+ "profile": {
+  "enabled": true,
+  "userSet": true,
+  "rulesets": [
+   "mechanical.bondGraph"
+  ]
+ },
+ "expect": [
+  {
+   "rule": "mechanical.sourceCausality"
+  },
+  {
+   "rule": "mechanical.flowSetter"
+  }
+ ]
+}

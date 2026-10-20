@@ -1,0 +1,159 @@
+{
+ "document": {
+  "format": "vizcraft",
+  "version": 4,
+  "model": {
+   "schemaVersion": 1,
+   "packs": [
+    {
+     "id": "annotation",
+     "version": "1.0.0"
+    }
+   ],
+   "elements": [
+    {
+     "id": "d0",
+     "type": "annotation.DatumFeatureSymbol",
+     "name": "A",
+     "properties": {
+      "letter": "A"
+     }
+    },
+    {
+     "id": "d1",
+     "type": "annotation.DatumFeatureSymbol",
+     "name": "B",
+     "properties": {
+      "letter": "B"
+     }
+    },
+    {
+     "id": "d2",
+     "type": "annotation.DatumFeatureSymbol",
+     "name": "C",
+     "properties": {
+      "letter": "C"
+     }
+    },
+    {
+     "id": "f0",
+     "type": "annotation.FeatureControlFrame",
+     "name": "F0",
+     "properties": {
+      "characteristic": "position",
+      "tolerance": "0.1",
+      "diameter": true,
+      "modifier": "mmc",
+      "datums": "A|B|C",
+      "featureOfSize": false
+     }
+    },
+    {
+     "id": "w",
+     "type": "annotation.WeldingSymbol",
+     "name": "W",
+     "properties": {
+      "arrowSide": "fillet",
+      "size": "a5",
+      "tail": "135"
+     }
+    },
+    {
+     "id": "t",
+     "type": "annotation.SurfaceTexture",
+     "name": "T",
+     "properties": {
+      "removal": "required",
+      "value": "Ra 1.6"
+     }
+    }
+   ],
+   "relationships": []
+  },
+  "document": {
+   "title": "",
+   "pages": [
+    {
+     "id": "p1",
+     "name": "p1",
+     "shapes": [
+      {
+       "id": "s_p1_d0",
+       "kind": "rectangle",
+       "x": 0,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "d0"
+      },
+      {
+       "id": "s_p1_d1",
+       "kind": "rectangle",
+       "x": 200,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "d1"
+      },
+      {
+       "id": "s_p1_d2",
+       "kind": "rectangle",
+       "x": 400,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "d2"
+      },
+      {
+       "id": "s_p1_f0",
+       "kind": "rectangle",
+       "x": 600,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "f0"
+      },
+      {
+       "id": "s_p1_w",
+       "kind": "rectangle",
+       "x": 800,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "w"
+      },
+      {
+       "id": "s_p1_t",
+       "kind": "rectangle",
+       "x": 1000,
+       "y": 0,
+       "w": 100,
+       "h": 60,
+       "element": "t"
+      }
+     ],
+     "connectors": [],
+     "view": {
+      "viewpoint": "annotation.Detail",
+      "variant": "annotation.iso"
+     }
+    }
+   ],
+   "idSeq": 1000
+  }
+ },
+ "profile": {
+  "enabled": true,
+  "userSet": true,
+  "rulesets": [
+   "annotation.gdt",
+   "annotation.welding",
+   "annotation.texture"
+  ]
+ },
+ "expect": [
+  {
+   "rule": "annotation.modifierOnSize"
+  }
+ ]
+}

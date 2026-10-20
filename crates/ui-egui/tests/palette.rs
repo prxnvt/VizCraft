@@ -67,12 +67,12 @@ fn a_flowchart_page_shows_steps_data_links_connectors_drawing() {
     let r = run(&mut h, "model.setViewpoint", json!({"viewpoint": "flowchart.Flowchart"}));
     assert_eq!(r["viewpoint"], "flowchart.Flowchart");
     let r = h.state_mut().run("ui.palette", json!({})).unwrap();
-    assert_eq!(group_labels(&r), ["Steps", "Data", "Links", "Connectors", "More connectors", "Symbols"]);
+    assert_eq!(group_labels(&r), ["Steps", "Data", "Links", "Connectors", "More connectors"]);
     assert_eq!(items_of(&r, "flowchart.steps")[0], "flowchart.terminator");
     assert_eq!(items_of(&r, "connectors")[0], "flowchart.flow");
     // The same report is in ui.inspect, and the rows are on screen.
     let inspect = vizcraft_ui_egui::control::inspect(h.state(), &h.ctx);
-    assert_eq!(group_labels(&inspect["palette"]), ["Steps", "Data", "Links", "Connectors", "More connectors", "Symbols"]);
+    assert_eq!(group_labels(&inspect["palette"]), ["Steps", "Data", "Links", "Connectors", "More connectors"]);
     h.get_by_label("Decision");
     h.get_by_label("Flow");
     assert!(h.query_by_label("Cloud").is_none(), "the Basic primitives are not listed");

@@ -1573,7 +1573,9 @@ defines the shared `IdScope.numberBy`, `Port.netGroup`, `Check::NetCheck`, `wire
 keeping its `Model.idFormats` overrides and its own unconnected-port test for the process pack);
 `b6e-fluidpower` merged on 2026-10-20 (three commits; its `NetCheck` `openPort` test keeps its
 guarded arm ahead of the generic one, `Variant.aliases` lets `fluidpower.jic` resolve to the ANSI
-drawing); `b6e-mechanical` running.
+drawing); `b6e-mechanical` merged on 2026-10-20 (five commits: four packs, three line ends, six
+analyses, 13 commands). All four packs are in; the "Engineering symbols (preview)" palette section
+is removed after the merge. `b6-c4` and `b6-code` are not started.
 
 | Branch (port) | Model | Scope |
 |---|---|---|

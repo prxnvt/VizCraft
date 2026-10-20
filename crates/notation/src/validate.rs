@@ -685,6 +685,17 @@ impl<'a> Checker<'a> {
                 | Check::FluidLineEnds
                 | Check::FluidCodes
                 | Check::FluidSteps { .. } => {}
+                Check::Mechanism { test } if !test.known() => {
+                    self.problem(format!("{ctx}: unknown mechanism test (the pack needs a newer VizCraft)"))
+                }
+                Check::Annotation { test } if !test.known() => {
+                    self.problem(format!("{ctx}: unknown annotation test (the pack needs a newer VizCraft)"))
+                }
+                Check::Reliability { test } if !test.known() => {
+                    self.problem(format!("{ctx}: unknown reliability test (the pack needs a newer VizCraft)"))
+                }
+                Check::Idef0 { test } if !test.known() => self.problem(format!("{ctx}: unknown IDEF0 test (the pack needs a newer VizCraft)")),
+                Check::Mechanism { .. } | Check::Annotation { .. } | Check::Reliability { .. } | Check::Idef0 { .. } => {}
                 Check::Unknown => self.problem(format!("{ctx}: unknown check kind (the pack needs a newer VizCraft)")),
             }
         }
@@ -884,7 +895,7 @@ mod tests {
         p.glyphs[1].outline = "blob".into();
         p.glyphs[2].w = f64::NAN;
         p.glyphs[3].h = -1.0;
-        p.relationship_types[0].end_arrow = "harpoon".into();
+        p.relationship_types[0].end_arrow = "spiral".into();
         p.identifiers[0].format = "S{n".into();
         p.conditional_styles[0].line_width = Some(0.0);
         p.conditional_styles[0].property = "missing".into();
@@ -909,7 +920,7 @@ mod tests {
         assert_eq!(good.id, "flowchart.flow");
         let mut dup = good.clone();
         dup.route = "zigzag".into();
-        dup.start_arrow = "harpoon".into();
+        dup.start_arrow = "spiral".into();
         dup.end_arrow = "".into();
         dup.dash = "wavy".into();
         dup.line = "green".into();
@@ -922,7 +933,7 @@ mod tests {
         for needle in [
             "connector type id `flowchart.flow` is declared twice",
             "unknown route `zigzag`",
-            "unknown start arrow `harpoon`",
+            "unknown start arrow `spiral`",
             "unknown end arrow ``",
             "unknown dash `wavy`",
             "`green` is not a colour",
