@@ -11,6 +11,7 @@ workspace = true
 [dependencies]
 vizcraft-model = { workspace = true }
 vizcraft-diagram = { workspace = true }
+vizcraft-analysis = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

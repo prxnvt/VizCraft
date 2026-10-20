@@ -1,0 +1,768 @@
+{
+  "schemaVersion": 1,
+  "id": "idef0",
+  "version": "1.0.0",
+  "name": "IDEF0",
+  "description": "IDEF0 function models to FIPS 183: a context diagram and decompositions into three to six boxes, with ICOM codes carried from parent to child.",
+  "audience": [
+    "engineering",
+    "enterprise"
+  ],
+  "glyphs": [
+    {
+      "id": "idef0.box",
+      "label": "IDEF0 Activity",
+      "category": "IDEF0",
+      "outline": "builder",
+      "w": 236,
+      "h": 138,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "activity",
+        "function",
+        "box",
+        "icom"
+      ],
+      "elementType": "idef0.Activity",
+      "builder": "idef0box",
+      "params": {},
+      "source": "own design, drawn from the written box and arrow syntax rules of FIPS 183"
+    },
+    {
+      "id": "idef0.boundary",
+      "label": "Boundary Arrow End",
+      "category": "IDEF0",
+      "outline": "rectangle",
+      "w": 44,
+      "h": 24,
+      "fill": "#ffffff",
+      "line": "#c8d0d8",
+      "keywords": [
+        "boundary",
+        "icom code",
+        "interface"
+      ],
+      "elementType": "idef0.Boundary"
+    }
+  ],
+  "connectorTypes": [
+    {
+      "id": "idef0.arrow",
+      "label": "IDEF0 Arrow",
+      "category": "IDEF0",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "triangle",
+      "dash": "solid",
+      "lineWidth": 1.25,
+      "line": "#1f2933",
+      "keywords": [
+        "arrow",
+        "icom",
+        "input",
+        "control",
+        "output",
+        "mechanism"
+      ],
+      "relationshipType": "idef0.Arrow",
+      "ends": {
+        "start": [
+          {
+            "property": "tunnel",
+            "values": {
+              "start": {
+                "arrow": "parens"
+              }
+            }
+          }
+        ],
+        "end": [
+          {
+            "property": "tunnel",
+            "values": {
+              "end": {
+                "arrow": "parens"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "idef0.call",
+      "label": "IDEF0 Call Arrow",
+      "category": "IDEF0",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "triangle",
+      "dash": "dashed",
+      "lineWidth": 1.25,
+      "line": "#1f2933",
+      "keywords": [
+        "call",
+        "reference"
+      ],
+      "relationshipType": "idef0.Call"
+    }
+  ],
+  "elementTypes": [
+    {
+      "id": "idef0.Activity",
+      "label": "IDEF0 Activity",
+      "description": "A function box: inputs on the left, controls on top, outputs on the right, mechanisms below, its number in the corner.",
+      "glyph": "idef0.box",
+      "properties": [
+        {
+          "key": "number",
+          "label": "Box number",
+          "kind": "text",
+          "description": "0 on the context diagram, 1 to 6 below it (Renumber sets them).",
+          "default": ""
+        },
+        {
+          "key": "inputs",
+          "label": "Inputs",
+          "kind": "integer",
+          "description": "Input ports.",
+          "default": 1
+        },
+        {
+          "key": "controls",
+          "label": "Controls",
+          "kind": "integer",
+          "description": "Control ports.",
+          "default": 1
+        },
+        {
+          "key": "outputs",
+          "label": "Outputs",
+          "kind": "integer",
+          "description": "Output ports.",
+          "default": 1
+        },
+        {
+          "key": "mechanisms",
+          "label": "Mechanisms",
+          "kind": "integer",
+          "description": "Mechanism ports.",
+          "default": 1
+        },
+        {
+          "key": "call",
+          "label": "Call port",
+          "kind": "bool",
+          "description": "The box has a call arrow.",
+          "default": false
+        }
+      ],
+      "ports": [
+        {
+          "id": "I1",
+          "label": "Input 1",
+          "direction": "in",
+          "x": 0,
+          "y": 0.5
+        },
+        {
+          "id": "C1",
+          "label": "Control 1",
+          "direction": "in",
+          "x": 0.5,
+          "y": 0
+        },
+        {
+          "id": "O1",
+          "label": "Output 1",
+          "direction": "out",
+          "x": 1,
+          "y": 0.5
+        },
+        {
+          "id": "M1",
+          "label": "Mechanism 1",
+          "direction": "in",
+          "x": 0.5,
+          "y": 1
+        }
+      ]
+    },
+    {
+      "id": "idef0.Boundary",
+      "label": "Boundary Arrow End",
+      "description": "The free end of a boundary arrow; on a decomposition its name is the ICOM code (I1, C1, O1, M1) of the parent box's arrow.",
+      "glyph": "idef0.boundary"
+    }
+  ],
+  "relationshipTypes": [
+    {
+      "id": "idef0.Arrow",
+      "label": "IDEF0 Arrow",
+      "description": "Data or objects from an output or boundary to an input, control or mechanism.",
+      "endArrow": "triangle",
+      "properties": [
+        {
+          "key": "tunnel",
+          "label": "Tunnel",
+          "kind": "enum",
+          "description": "A tunnelled end, drawn in parentheses.",
+          "values": [
+            "none",
+            "start",
+            "end"
+          ],
+          "default": "none"
+        }
+      ]
+    },
+    {
+      "id": "idef0.Call",
+      "label": "IDEF0 Call Arrow",
+      "description": "A box calling another model's function.",
+      "endArrow": "triangle"
+    }
+  ],
+  "connections": [
+    {
+      "source": [
+        "idef0.Activity",
+        "idef0.Boundary"
+      ],
+      "relationship": "idef0.Arrow",
+      "target": [
+        "idef0.Activity",
+        "idef0.Boundary"
+      ]
+    },
+    {
+      "source": [
+        "idef0.Activity"
+      ],
+      "relationship": "idef0.Call",
+      "target": [
+        "idef0.Boundary",
+        "idef0.Activity"
+      ]
+    }
+  ],
+  "palette": [
+    {
+      "id": "idef0.functions",
+      "label": "Function Model",
+      "types": [
+        "idef0.Activity",
+        "idef0.Boundary"
+      ]
+    }
+  ],
+  "viewpoints": [
+    {
+      "id": "idef0.Context",
+      "label": "Context (A-0)",
+      "description": "The one box of the whole function and its boundary arrows.",
+      "types": [
+        "idef0.Activity",
+        "idef0.Boundary"
+      ]
+    },
+    {
+      "id": "idef0.Decomposition",
+      "label": "Decomposition",
+      "description": "Three to six boxes detailing a parent box.",
+      "types": [
+        "idef0.Activity",
+        "idef0.Boundary"
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "idef0.illegalArrow",
+      "description": "Arrows join boxes and boundary ends.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "illegalRelationship"
+      },
+      "reference": "FIPS 183, box and arrow syntax rules"
+    },
+    {
+      "id": "idef0.contextOneBox",
+      "description": "The context diagram has one box, numbered 0.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "idef0",
+        "test": "contextOneBox"
+      },
+      "reference": "FIPS 183, diagram syntax rules"
+    },
+    {
+      "id": "idef0.boxCount",
+      "description": "A decomposition has at least three boxes.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "idef0",
+        "test": "boxCount"
+      },
+      "reference": "FIPS 183, diagram syntax rules"
+    },
+    {
+      "id": "idef0.boxCountMax",
+      "description": "A decomposition has at most six boxes.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "maxPerOwner",
+        "types": [
+          "idef0.Activity"
+        ],
+        "within": [
+          "idef0.Activity"
+        ],
+        "max": 6
+      },
+      "reference": "FIPS 183, diagram syntax rules"
+    },
+    {
+      "id": "idef0.boxNumbers",
+      "description": "Boxes are numbered 1 to n in staircase order.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "idef0",
+        "test": "boxNumbers"
+      },
+      "reference": "FIPS 183, diagram syntax rules"
+    },
+    {
+      "id": "idef0.controlAndOutput",
+      "description": "Every box has a control and an output.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "idef0",
+        "test": "controlAndOutput"
+      },
+      "reference": "FIPS 183, box and arrow syntax rules"
+    },
+    {
+      "id": "idef0.oneCall",
+      "description": "A box has at most one call arrow.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "idef0",
+        "test": "oneCall"
+      },
+      "reference": "FIPS 183, box and arrow syntax rules"
+    },
+    {
+      "id": "idef0.icomCodes",
+      "description": "Boundary arrows carry the parent's ICOM codes, or are tunnelled.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "idef0",
+        "test": "icomCodes"
+      },
+      "reference": "FIPS 183, diagram rules"
+    },
+    {
+      "id": "idef0.labelled",
+      "description": "Boxes and arrows are labelled.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "labelled",
+        "types": [
+          "idef0.Activity",
+          "idef0.Arrow"
+        ]
+      },
+      "reference": "FIPS 183, box and arrow syntax rules"
+    },
+    {
+      "id": "idef0.onPorts",
+      "description": "Arrows attach to box sides.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "endsOnPorts",
+        "relationship": "idef0.Arrow"
+      },
+      "reference": "FIPS 183, box and arrow syntax rules"
+    },
+    {
+      "id": "idef0.feedbackRouting",
+      "description": "Feedback goes up and over, or down and under.",
+      "severity": "info",
+      "mode": "live",
+      "check": {
+        "kind": "idef0",
+        "test": "feedbackRouting"
+      },
+      "reference": "FIPS 183, diagram rules"
+    }
+  ],
+  "rulesets": [
+    {
+      "id": "idef0.fips183",
+      "label": "IDEF0 (FIPS 183)",
+      "description": "Box counts and numbers, controls and outputs, calls, ICOM codes, labels and feedback routing.",
+      "rules": [
+        "idef0.illegalArrow",
+        "idef0.contextOneBox",
+        "idef0.boxCount",
+        "idef0.boxCountMax",
+        "idef0.boxNumbers",
+        "idef0.controlAndOutput",
+        "idef0.oneCall",
+        "idef0.icomCodes",
+        "idef0.labelled",
+        "idef0.onPorts",
+        "idef0.feedbackRouting"
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "id": "idef0.fips183",
+      "label": "FIPS 183",
+      "description": "The FIPS 183 box and arrow drawing (the only one)."
+    }
+  ],
+  "templates": [
+    {
+      "id": "idef0.model",
+      "label": "IDEF0 Function Model",
+      "description": "A context diagram (A-0) for one function, decomposed into child diagrams whose boundary arrows carry the parent's ICOM codes.",
+      "discipline": "engineering",
+      "audience": [
+        "engineering"
+      ],
+      "keywords": [
+        "idef0",
+        "function model",
+        "icom",
+        "fips 183",
+        "sadt"
+      ],
+      "viewpoint": "idef0.Context",
+      "viewpoints": [
+        {
+          "viewpoint": "idef0.Context"
+        },
+        {
+          "viewpoint": "idef0.Decomposition"
+        }
+      ],
+      "variant": "idef0.fips183",
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true,
+      "rulesets": [
+        "idef0.fips183"
+      ],
+      "layout": {
+        "algorithm": "layered",
+        "direction": "LR"
+      }
+    }
+  ],
+  "examples": [
+    {
+      "id": "idef0.makeWidget",
+      "label": "Make Widget",
+      "description": "The context diagram of making a widget and its A0 decomposition into planning, cutting and inspecting.",
+      "discipline": "engineering",
+      "audience": [
+        "engineering"
+      ],
+      "keywords": [
+        "idef0",
+        "decomposition"
+      ],
+      "viewpoint": "idef0.Context",
+      "variant": "idef0.fips183",
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true,
+      "rulesets": [
+        "idef0.fips183"
+      ],
+      "seed": [
+        {
+          "command": "element.create",
+          "as": "box",
+          "params": {
+            "type": "idef0.Activity",
+            "name": "Make widget",
+            "x": 560,
+            "y": 380,
+            "properties": {
+              "number": "0"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "bi",
+          "params": {
+            "type": "idef0.Boundary",
+            "name": "",
+            "x": 240,
+            "y": 430
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "bc",
+          "params": {
+            "type": "idef0.Boundary",
+            "name": "",
+            "x": 656,
+            "y": 230
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "bo",
+          "params": {
+            "type": "idef0.Boundary",
+            "name": "",
+            "x": 1000,
+            "y": 430
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "bm",
+          "params": {
+            "type": "idef0.Boundary",
+            "name": "",
+            "x": 656,
+            "y": 640
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${bi.shape}"
+            },
+            "to": {
+              "shape": "${box.shape}",
+              "point": 0
+            },
+            "kind": "idef0.arrow",
+            "relationship": "idef0.Arrow",
+            "text": "Raw stock"
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${bc.shape}"
+            },
+            "to": {
+              "shape": "${box.shape}",
+              "point": 1
+            },
+            "kind": "idef0.arrow",
+            "relationship": "idef0.Arrow",
+            "text": "Drawings"
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${box.shape}",
+              "point": 2
+            },
+            "to": {
+              "shape": "${bo.shape}"
+            },
+            "kind": "idef0.arrow",
+            "relationship": "idef0.Arrow",
+            "text": "Widget"
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${bm.shape}"
+            },
+            "to": {
+              "shape": "${box.shape}",
+              "point": 3
+            },
+            "kind": "idef0.arrow",
+            "relationship": "idef0.Arrow",
+            "text": "Machinist"
+          }
+        },
+        {
+          "command": "idef0.decompose",
+          "as": "dec",
+          "params": {
+            "id": "${box.id}"
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "b1",
+          "params": {
+            "type": "idef0.Activity",
+            "name": "Plan job",
+            "x": 280,
+            "y": 200,
+            "properties": {
+              "number": "1",
+              "inputs": 0,
+              "outputs": 2,
+              "mechanisms": 0
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "b2",
+          "params": {
+            "type": "idef0.Activity",
+            "name": "Cut parts",
+            "x": 600,
+            "y": 380,
+            "properties": {
+              "number": "2"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "b3",
+          "params": {
+            "type": "idef0.Activity",
+            "name": "Inspect parts",
+            "x": 920,
+            "y": 560,
+            "properties": {
+              "number": "3",
+              "mechanisms": 0
+            }
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${dec.shapes.C1}"
+            },
+            "to": {
+              "shape": "${b1.shape}",
+              "point": 0
+            },
+            "kind": "idef0.arrow",
+            "relationship": "idef0.Arrow",
+            "text": "Drawings"
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${b1.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${b2.shape}",
+              "point": 1
+            },
+            "kind": "idef0.arrow",
+            "relationship": "idef0.Arrow",
+            "text": "Job plan"
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${b1.shape}",
+              "point": 2
+            },
+            "to": {
+              "shape": "${b3.shape}",
+              "point": 1
+            },
+            "kind": "idef0.arrow",
+            "relationship": "idef0.Arrow",
+            "text": "Inspection plan"
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${dec.shapes.I1}"
+            },
+            "to": {
+              "shape": "${b2.shape}",
+              "point": 0
+            },
+            "kind": "idef0.arrow",
+            "relationship": "idef0.Arrow",
+            "text": "Raw stock"
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${b2.shape}",
+              "point": 2
+            },
+            "to": {
+              "shape": "${b3.shape}",
+              "point": 0
+            },
+            "kind": "idef0.arrow",
+            "relationship": "idef0.Arrow",
+            "text": "Parts"
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${dec.shapes.M1}"
+            },
+            "to": {
+              "shape": "${b2.shape}",
+              "point": 3
+            },
+            "kind": "idef0.arrow",
+            "relationship": "idef0.Arrow",
+            "text": "Machinist"
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${b3.shape}",
+              "point": 2
+            },
+            "to": {
+              "shape": "${dec.shapes.O1}"
+            },
+            "kind": "idef0.arrow",
+            "relationship": "idef0.Arrow",
+            "text": "Widget"
+          }
+        }
+      ]
+    }
+  ]
+}

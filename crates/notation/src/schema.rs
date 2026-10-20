@@ -1180,6 +1180,33 @@ pub enum Check {
         #[serde(default)]
         types: Vec<String>,
     },
+    /// Mechanical pack: kinematic, transmission, bond graph and control block checks (see
+    /// [`crate::mech_rules::MechTest`]).
+    Mechanism {
+        /// Which check.
+        #[serde(default)]
+        test: crate::mech_rules::MechTest,
+    },
+    /// Annotation pack: geometric tolerancing, welding and surface texture checks (see
+    /// [`crate::annotation_rules::AnnotationTest`]).
+    Annotation {
+        /// Which check.
+        #[serde(default)]
+        test: crate::annotation_rules::AnnotationTest,
+    },
+    /// Reliability pack: fault tree, block diagram, event tree and FMEA checks (see
+    /// [`crate::rel_rules::RelTest`]).
+    Reliability {
+        /// Which check.
+        #[serde(default)]
+        test: crate::rel_rules::RelTest,
+    },
+    /// IDEF0 pack: FIPS 183 diagram, box and arrow checks (see [`crate::idef0_rules::Idef0Test`]).
+    Idef0 {
+        /// Which check.
+        #[serde(default)]
+        test: crate::idef0_rules::Idef0Test,
+    },
     /// A check this build does not know (from a newer pack); skipped, and reported by the loader.
     #[default]
     #[serde(other)]

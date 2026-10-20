@@ -183,9 +183,11 @@ mod tests {
         // Two exact labels ("Document") in catalog order.
         assert_eq!(ids("document")[..2], ["basic.document", "flowchart.document"]);
         // Word prefix ahead of substring: "rect" starts words; "angle" sits inside them.
-        assert_eq!(ids("rect"), ["basic.rectangle", "basic.roundedRectangle"]);
-        assert_eq!(ids("angle"), ["basic.rectangle", "basic.roundedRectangle", "basic.triangle"]);
-        assert_eq!(ids("circle"), ["basic.ellipse", "flowchart.onPageReference"]);
+        // Other packs may match too; the basic and flowchart masters keep their order.
+        let core = |q: &str| ids(q).into_iter().filter(|i| i.starts_with("basic.") || i.starts_with("flowchart.")).collect::<Vec<_>>();
+        assert_eq!(core("rect"), ["basic.rectangle", "basic.roundedRectangle"]);
+        assert_eq!(core("angle"), ["basic.rectangle", "basic.roundedRectangle", "basic.triangle"]);
+        assert_eq!(core("circle"), ["basic.ellipse", "flowchart.onPageReference"]);
         assert_eq!(ids("decision").first(), Some(&"flowchart.decision"));
         assert_eq!(ids("manual input").first(), Some(&"flowchart.manualInput"));
     }

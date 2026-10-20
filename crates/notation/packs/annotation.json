@@ -1,0 +1,861 @@
+{
+  "schemaVersion": 1,
+  "id": "annotation",
+  "version": "1.0.0",
+  "name": "Annotation",
+  "description": "Drawing annotation to ISO or ASME conventions: feature control frames with datums, datum feature symbols and targets, welding symbols and surface texture symbols, on any drawing sheet.",
+  "audience": [
+    "engineering",
+    "industrial"
+  ],
+  "glyphs": [
+    {
+      "id": "annotation.fcf",
+      "label": "Feature Control Frame (FCF)",
+      "category": "Annotation",
+      "outline": "builder",
+      "w": 160,
+      "h": 40,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "gd&t",
+        "tolerance",
+        "fcf",
+        "position",
+        "flatness"
+      ],
+      "elementType": "annotation.FeatureControlFrame",
+      "builder": "fcf",
+      "params": {
+        "standard": "iso1101"
+      },
+      "source": "own design, drawn from the written rules of ISO 1101 and ASME Y14.5"
+    },
+    {
+      "id": "annotation.fcfAsme",
+      "label": "Feature Control Frame (FCF, ASME)",
+      "category": "Annotation",
+      "outline": "builder",
+      "w": 160,
+      "h": 40,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "gd&t",
+        "asme y14.5"
+      ],
+      "elementType": "annotation.FeatureControlFrame",
+      "builder": "fcf",
+      "params": {
+        "standard": "asmeY14_5"
+      },
+      "source": "own design, drawn from the written rules of ISO 1101 and ASME Y14.5"
+    },
+    {
+      "id": "annotation.datum",
+      "label": "Datum Feature Symbol",
+      "category": "Annotation",
+      "outline": "path",
+      "w": 36,
+      "h": 56,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "datum",
+        "datum feature",
+        "gd&t"
+      ],
+      "elementType": "annotation.DatumFeatureSymbol",
+      "path": "M 0.05 0 L 0.95 0 L 0.95 0.6 L 0.05 0.6 Z M 0.2 1 L 0.8 1 L 0.5 0.8 Z",
+      "detail": "M 0.5 0.6 L 0.5 0.8",
+      "source": "drawn from the written description of the datum feature symbol in ISO 5459 and ASME Y14.5 (a letter in a frame joined to a datum triangle)"
+    },
+    {
+      "id": "annotation.datumTarget",
+      "label": "Datum Target",
+      "category": "Annotation",
+      "outline": "path",
+      "w": 44,
+      "h": 44,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "datum target",
+        "target point"
+      ],
+      "elementType": "annotation.DatumTarget",
+      "path": "M 1 0.5 C 1 0.776 0.776 1 0.5 1 C 0.224 1 0 0.776 0 0.5 C 0 0.224 0.224 0 0.5 0 C 0.776 0 1 0.224 1 0.5 Z",
+      "detail": "M 0 0.5 L 1 0.5",
+      "source": "drawn from the written description of the datum target symbol in ISO 5459 (a circle divided across)"
+    },
+    {
+      "id": "annotation.weld",
+      "label": "Weld Symbol",
+      "category": "Annotation",
+      "outline": "builder",
+      "w": 160,
+      "h": 80,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "weld",
+        "welding",
+        "fillet",
+        "iso 2553"
+      ],
+      "elementType": "annotation.WeldingSymbol",
+      "builder": "weld",
+      "params": {
+        "standard": "iso2553"
+      },
+      "source": "own design, drawn from the written rules of ISO 2553 and AWS A2.4"
+    },
+    {
+      "id": "annotation.weldAws",
+      "label": "Weld Symbol (AWS)",
+      "category": "Annotation",
+      "outline": "builder",
+      "w": 160,
+      "h": 80,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "weld",
+        "aws a2.4"
+      ],
+      "elementType": "annotation.WeldingSymbol",
+      "builder": "weld",
+      "params": {
+        "standard": "aws"
+      },
+      "source": "own design, drawn from the written rules of ISO 2553 and AWS A2.4"
+    },
+    {
+      "id": "annotation.texture",
+      "label": "Surface Texture Symbol",
+      "category": "Annotation",
+      "outline": "builder",
+      "w": 80,
+      "h": 60,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "roughness",
+        "surface finish",
+        "texture",
+        "ra"
+      ],
+      "elementType": "annotation.SurfaceTexture",
+      "builder": "texture",
+      "params": {
+        "standard": "iso21920"
+      },
+      "source": "own design, drawn from the written rules of ISO 21920-1 and ASME Y14.36"
+    },
+    {
+      "id": "annotation.textureAsme",
+      "label": "Surface Texture Symbol (ASME)",
+      "category": "Annotation",
+      "outline": "builder",
+      "w": 80,
+      "h": 60,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "roughness",
+        "asme y14.36"
+      ],
+      "elementType": "annotation.SurfaceTexture",
+      "builder": "texture",
+      "params": {
+        "standard": "asmeY14_36"
+      },
+      "source": "own design, drawn from the written rules of ISO 21920-1 and ASME Y14.36"
+    }
+  ],
+  "connectorTypes": [
+    {
+      "id": "annotation.leader",
+      "label": "Annotation Leader",
+      "category": "Annotation",
+      "route": "straight",
+      "startArrow": "none",
+      "endArrow": "triangle",
+      "dash": "solid",
+      "lineWidth": 1,
+      "line": "#1f2933",
+      "keywords": [
+        "leader",
+        "arrow line"
+      ]
+    }
+  ],
+  "elementTypes": [
+    {
+      "id": "annotation.FeatureControlFrame",
+      "label": "Feature Control Frame",
+      "description": "A geometric tolerance with its datums.",
+      "glyph": "annotation.fcf",
+      "properties": [
+        {
+          "key": "characteristic",
+          "label": "Characteristic",
+          "kind": "enum",
+          "description": "The characteristic toleranced.",
+          "values": [
+            "straightness",
+            "flatness",
+            "circularity",
+            "cylindricity",
+            "profileLine",
+            "profileSurface",
+            "angularity",
+            "perpendicularity",
+            "parallelism",
+            "position",
+            "concentricity",
+            "symmetry",
+            "circularRunout",
+            "totalRunout"
+          ],
+          "default": "position"
+        },
+        {
+          "key": "tolerance",
+          "label": "Tolerance",
+          "kind": "text",
+          "description": "The tolerance value.",
+          "default": "0.1"
+        },
+        {
+          "key": "diameter",
+          "label": "Diameter",
+          "kind": "bool",
+          "description": "A cylindrical zone.",
+          "default": false
+        },
+        {
+          "key": "modifier",
+          "label": "Modifier",
+          "kind": "enum",
+          "description": "Material condition or zone modifier.",
+          "values": [
+            "none",
+            "mmc",
+            "lmc",
+            "projected",
+            "freeState",
+            "tangentPlane",
+            "envelope"
+          ],
+          "default": "none"
+        },
+        {
+          "key": "datums",
+          "label": "Datums",
+          "kind": "text",
+          "description": "Datum references, | between them (A|B|C).",
+          "default": ""
+        },
+        {
+          "key": "featureOfSize",
+          "label": "Feature of size",
+          "kind": "bool",
+          "description": "The toleranced feature is a feature of size (a hole, a pin).",
+          "default": false
+        },
+        {
+          "key": "standard",
+          "label": "Standard",
+          "kind": "enum",
+          "description": "The convention this symbol follows; empty follows the page.",
+          "values": [
+            "iso1101",
+            "asmeY14_5"
+          ]
+        }
+      ],
+      "ports": [
+        {
+          "id": "leader",
+          "label": "Leader",
+          "direction": "inOut",
+          "x": 0,
+          "y": 0.5
+        }
+      ]
+    },
+    {
+      "id": "annotation.DatumFeatureSymbol",
+      "label": "Datum Feature Symbol",
+      "description": "Names a datum feature with a letter.",
+      "glyph": "annotation.datum",
+      "properties": [
+        {
+          "key": "letter",
+          "label": "Letter",
+          "kind": "text",
+          "description": "The datum letter; empty uses the name."
+        }
+      ]
+    },
+    {
+      "id": "annotation.DatumTarget",
+      "label": "Datum Target",
+      "description": "A point, line or area of a datum feature used to set up the datum.",
+      "glyph": "annotation.datumTarget",
+      "properties": [
+        {
+          "key": "size",
+          "label": "Target size",
+          "kind": "text",
+          "description": "Size of a target area."
+        }
+      ]
+    },
+    {
+      "id": "annotation.WeldingSymbol",
+      "label": "Welding Symbol",
+      "description": "A weld called out on its joint, arrow side and other side.",
+      "glyph": "annotation.weld",
+      "properties": [
+        {
+          "key": "arrowSide",
+          "label": "Arrow side",
+          "kind": "text",
+          "description": "The weld on the arrow side (fillet, vButt, squareButt...).",
+          "default": "fillet"
+        },
+        {
+          "key": "otherSide",
+          "label": "Other side",
+          "kind": "text",
+          "description": "The weld on the other side.",
+          "default": "none"
+        },
+        {
+          "key": "size",
+          "label": "Size",
+          "kind": "text",
+          "description": "Weld size (a5, 6)."
+        },
+        {
+          "key": "length",
+          "label": "Length",
+          "kind": "text",
+          "description": "Weld length."
+        },
+        {
+          "key": "allAround",
+          "label": "All around",
+          "kind": "bool",
+          "description": "Weld all around.",
+          "default": false
+        },
+        {
+          "key": "field",
+          "label": "Field weld",
+          "kind": "bool",
+          "description": "Welded on site.",
+          "default": false
+        },
+        {
+          "key": "tail",
+          "label": "Tail",
+          "kind": "text",
+          "description": "Process reference (ISO 4063 number) or note."
+        },
+        {
+          "key": "standard",
+          "label": "Standard",
+          "kind": "enum",
+          "description": "The convention this symbol follows; empty follows the page.",
+          "values": [
+            "iso2553",
+            "aws"
+          ]
+        }
+      ],
+      "ports": [
+        {
+          "id": "arrow",
+          "label": "Arrow",
+          "direction": "inOut",
+          "x": 0,
+          "y": 1
+        }
+      ]
+    },
+    {
+      "id": "annotation.SurfaceTexture",
+      "label": "Surface Texture",
+      "description": "A surface texture requirement.",
+      "glyph": "annotation.texture",
+      "properties": [
+        {
+          "key": "removal",
+          "label": "Material removal",
+          "kind": "enum",
+          "description": "Any, required or prohibited.",
+          "values": [
+            "any",
+            "required",
+            "prohibited"
+          ],
+          "default": "any"
+        },
+        {
+          "key": "lay",
+          "label": "Lay",
+          "kind": "enum",
+          "description": "Direction of the lay.",
+          "values": [
+            "none",
+            "parallel",
+            "perpendicular",
+            "crossed",
+            "multi",
+            "circular",
+            "radial",
+            "particulate"
+          ],
+          "default": "none"
+        },
+        {
+          "key": "value",
+          "label": "Value",
+          "kind": "text",
+          "description": "The requirement (Ra 1.6).",
+          "default": "Ra 3.2"
+        },
+        {
+          "key": "process",
+          "label": "Process",
+          "kind": "text",
+          "description": "Production process."
+        },
+        {
+          "key": "standard",
+          "label": "Standard",
+          "kind": "enum",
+          "description": "The convention this symbol follows; empty follows the page.",
+          "values": [
+            "iso21920",
+            "asmeY14_36"
+          ]
+        }
+      ],
+      "ports": [
+        {
+          "id": "surface",
+          "label": "Surface",
+          "direction": "inOut",
+          "x": 0.5,
+          "y": 1
+        }
+      ]
+    }
+  ],
+  "palette": [
+    {
+      "id": "annotation.tolerancing",
+      "label": "Tolerancing",
+      "types": [
+        "annotation.FeatureControlFrame",
+        "annotation.DatumFeatureSymbol",
+        "annotation.DatumTarget"
+      ]
+    },
+    {
+      "id": "annotation.callouts",
+      "label": "Welds and Texture",
+      "types": [
+        "annotation.WeldingSymbol",
+        "annotation.SurfaceTexture"
+      ]
+    }
+  ],
+  "viewpoints": [
+    {
+      "id": "annotation.Detail",
+      "label": "Detail Drawing",
+      "description": "Tolerances, datums, welds and texture on a detail drawing.",
+      "types": [
+        "annotation.FeatureControlFrame",
+        "annotation.DatumFeatureSymbol",
+        "annotation.DatumTarget",
+        "annotation.WeldingSymbol",
+        "annotation.SurfaceTexture"
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "annotation.datumsResolve",
+      "description": "Every datum a frame names is on the drawing.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "annotation",
+        "test": "datumsResolve"
+      },
+      "reference": "ISO 5459, datums and datum systems"
+    },
+    {
+      "id": "annotation.datumLetters",
+      "description": "Datum letters are unique and skip I, O and Q.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "annotation",
+        "test": "datumLetters"
+      },
+      "reference": "ASME Y14.5, datum feature symbol"
+    },
+    {
+      "id": "annotation.toleranceValue",
+      "description": "A tolerance is a number above zero.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "annotation",
+        "test": "toleranceValue"
+      },
+      "reference": "ISO 1101, tolerance frame"
+    },
+    {
+      "id": "annotation.formNoDatum",
+      "description": "Form tolerances take no datum.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "annotation",
+        "test": "formNoDatum"
+      },
+      "reference": "ISO 1101, form tolerances"
+    },
+    {
+      "id": "annotation.datumRequired",
+      "description": "Orientation and runout tolerances need a datum.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "annotation",
+        "test": "datumRequired"
+      },
+      "reference": "ISO 1101, orientation and run-out tolerances"
+    },
+    {
+      "id": "annotation.retiredCharacteristic",
+      "description": "Concentricity and symmetry are not in ASME Y14.5-2018.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "annotation",
+        "test": "retiredCharacteristic"
+      },
+      "reference": "ASME Y14.5, geometric characteristic symbols"
+    },
+    {
+      "id": "annotation.modifierOnSize",
+      "description": "Material condition modifiers go on features of size.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "annotation",
+        "test": "modifierOnSize"
+      },
+      "reference": "ISO 2692, maximum material requirement"
+    },
+    {
+      "id": "annotation.weldSize",
+      "description": "A fillet weld gives its size.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "annotation",
+        "test": "weldSize"
+      },
+      "reference": "ISO 2553, dimensioning of welds"
+    },
+    {
+      "id": "annotation.processNumber",
+      "description": "A welding process number is an ISO 4063 one.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "annotation",
+        "test": "processNumber"
+      },
+      "reference": "ISO 4063, process reference numbers"
+    },
+    {
+      "id": "annotation.textureValue",
+      "description": "A texture requirement gives a parameter and a value above zero.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "annotation",
+        "test": "textureValue"
+      },
+      "reference": "ISO 21920-1, indication of surface texture"
+    }
+  ],
+  "rulesets": [
+    {
+      "id": "annotation.gdt",
+      "label": "Geometric tolerancing",
+      "description": "Datums resolve, letters, tolerance values and datum use (ISO 1101, ASME Y14.5).",
+      "rules": [
+        "annotation.datumsResolve",
+        "annotation.datumLetters",
+        "annotation.toleranceValue",
+        "annotation.formNoDatum",
+        "annotation.datumRequired",
+        "annotation.retiredCharacteristic",
+        "annotation.modifierOnSize"
+      ]
+    },
+    {
+      "id": "annotation.welding",
+      "label": "Welding symbols",
+      "description": "Weld sizes and process numbers (ISO 2553, AWS A2.4).",
+      "rules": [
+        "annotation.weldSize",
+        "annotation.processNumber"
+      ]
+    },
+    {
+      "id": "annotation.texture",
+      "label": "Surface texture",
+      "description": "Texture parameters and values (ISO 21920, ASME Y14.36).",
+      "rules": [
+        "annotation.textureValue"
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "id": "annotation.iso",
+      "label": "ISO",
+      "description": "ISO 1101 frames, ISO 2553 welding symbols and ISO 21920 texture."
+    },
+    {
+      "id": "annotation.asme",
+      "label": "ASME",
+      "description": "ASME Y14.5-2018 frames, AWS A2.4 welding symbols and ASME Y14.36 texture.",
+      "glyphs": {
+        "annotation.FeatureControlFrame": "annotation.fcfAsme",
+        "annotation.WeldingSymbol": "annotation.weldAws",
+        "annotation.SurfaceTexture": "annotation.textureAsme"
+      }
+    }
+  ],
+  "templates": [
+    {
+      "id": "annotation.detail",
+      "label": "Annotated Detail Drawing",
+      "description": "A drawing sheet for a part's views with feature control frames, datums, welding and texture symbols, checked to ISO (ASME one choice away).",
+      "discipline": "engineering",
+      "audience": [
+        "engineering"
+      ],
+      "keywords": [
+        "gd&t",
+        "detail drawing",
+        "tolerance",
+        "welding symbol",
+        "surface texture",
+        "datum"
+      ],
+      "viewpoint": "annotation.Detail",
+      "variant": "annotation.iso",
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true,
+      "rulesets": [
+        "annotation.gdt",
+        "annotation.welding",
+        "annotation.texture",
+        "sheet.drawingSheet"
+      ]
+    }
+  ],
+  "examples": [
+    {
+      "id": "annotation.bracket",
+      "label": "Bracket Detail",
+      "description": "A bracket's view with datums A, B and C, a position and a flatness frame, a fillet weld on both sides and Ra 1.6 on the mounting face.",
+      "discipline": "engineering",
+      "audience": [
+        "engineering"
+      ],
+      "keywords": [
+        "gd&t",
+        "bracket",
+        "weld"
+      ],
+      "viewpoint": "annotation.Detail",
+      "variant": "annotation.iso",
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true,
+      "rulesets": [
+        "annotation.gdt",
+        "annotation.welding",
+        "annotation.texture"
+      ],
+      "seed": [
+        {
+          "command": "shape.add",
+          "as": "part",
+          "params": {
+            "stencil": "basic.rectangle",
+            "x": 420,
+            "y": 260,
+            "w": 420,
+            "h": 300,
+            "text": "Bracket, front view (placeholder)",
+            "id": "bracketView"
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "da",
+          "params": {
+            "type": "annotation.DatumFeatureSymbol",
+            "name": "A",
+            "x": 600,
+            "y": 620,
+            "properties": {
+              "letter": "A"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "db",
+          "params": {
+            "type": "annotation.DatumFeatureSymbol",
+            "name": "B",
+            "x": 300,
+            "y": 380,
+            "properties": {
+              "letter": "B"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "dc",
+          "params": {
+            "type": "annotation.DatumFeatureSymbol",
+            "name": "C",
+            "x": 920,
+            "y": 380,
+            "properties": {
+              "letter": "C"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "f1",
+          "params": {
+            "type": "annotation.FeatureControlFrame",
+            "name": "Hole position",
+            "x": 880,
+            "y": 160,
+            "properties": {
+              "characteristic": "position",
+              "tolerance": "0.1",
+              "diameter": true,
+              "modifier": "mmc",
+              "datums": "A|B|C",
+              "featureOfSize": true
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "f2",
+          "params": {
+            "type": "annotation.FeatureControlFrame",
+            "name": "Base flatness",
+            "x": 180,
+            "y": 680,
+            "properties": {
+              "characteristic": "flatness",
+              "tolerance": "0.05"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "w",
+          "params": {
+            "type": "annotation.WeldingSymbol",
+            "name": "Gusset weld",
+            "x": 160,
+            "y": 120,
+            "properties": {
+              "arrowSide": "fillet",
+              "otherSide": "fillet",
+              "size": "a5",
+              "tail": "135"
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "t",
+          "params": {
+            "type": "annotation.SurfaceTexture",
+            "name": "Mounting face",
+            "x": 940,
+            "y": 600,
+            "properties": {
+              "removal": "required",
+              "value": "Ra 1.6"
+            }
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${f1.shape}"
+            },
+            "to": {
+              "shape": "${part.id}"
+            },
+            "kind": "annotation.leader"
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${w.shape}"
+            },
+            "to": {
+              "shape": "${part.id}"
+            },
+            "kind": "annotation.leader"
+          }
+        },
+        {
+          "command": "connector.add",
+          "params": {
+            "from": {
+              "shape": "${t.shape}"
+            },
+            "to": {
+              "shape": "${part.id}"
+            },
+            "kind": "annotation.leader"
+          }
+        }
+      ]
+    }
+  ]
+}

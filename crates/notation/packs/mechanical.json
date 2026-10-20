@@ -1,0 +1,2983 @@
+{
+  "schemaVersion": 1,
+  "id": "mechanical",
+  "version": "1.0.0",
+  "name": "Mechanical",
+  "description": "Mechanical schematics: kinematic diagrams to the ISO 3952 symbols with their mobility, power transmissions with traced ratios, bond graphs with causality, and control block diagrams with Mason's gain formula.",
+  "audience": [
+    "engineering",
+    "industrial"
+  ],
+  "glyphs": [
+    {
+      "id": "mechanical.joint",
+      "label": "Joint",
+      "category": "Kinematic",
+      "outline": "path",
+      "w": 18,
+      "h": 18,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "pair",
+        "pin",
+        "revolute",
+        "prismatic",
+        "kinematic pair"
+      ],
+      "elementType": "mechanical.Joint",
+      "path": "M 1 0.5 C 1 0.776 0.776 1 0.5 1 C 0.224 1 0 0.776 0 0.5 C 0 0.224 0.224 0 0.5 0 C 0.776 0 1 0.224 1 0.5 Z",
+      "source": "drawn from the written description of the kinematic pairs and links in ISO 3952-1",
+      "textPlace": "below"
+    },
+    {
+      "id": "mechanical.ground",
+      "label": "Fixed Frame",
+      "category": "Kinematic",
+      "outline": "path",
+      "w": 60,
+      "h": 20,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "ground",
+        "frame",
+        "fixed",
+        "link 1"
+      ],
+      "elementType": "mechanical.Ground",
+      "path": "M 0 0 L 1 0 M 0.12 0 L 0.02 0.7 M 0.32 0 L 0.22 0.7 M 0.52 0 L 0.42 0.7 M 0.72 0 L 0.62 0.7 M 0.92 0 L 0.82 0.7",
+      "source": "drawn from the written description of the kinematic pairs and links in ISO 3952-1"
+    },
+    {
+      "id": "mechanical.plate",
+      "label": "Ternary Link",
+      "category": "Kinematic",
+      "outline": "path",
+      "w": 80,
+      "h": 70,
+      "fill": "#eef1f4",
+      "line": "#1f2933",
+      "keywords": [
+        "plate",
+        "ternary link",
+        "rigid body"
+      ],
+      "elementType": "mechanical.Plate",
+      "path": "M 0.05 0.95 L 0.5 0.05 L 0.95 0.95 Z",
+      "source": "drawn from the written description of the kinematic pairs and links in ISO 3952-1"
+    },
+    {
+      "id": "mechanical.cam",
+      "label": "Cam",
+      "category": "Kinematic",
+      "outline": "path",
+      "w": 70,
+      "h": 60,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "cam",
+        "disc cam"
+      ],
+      "elementType": "mechanical.Cam",
+      "path": "M 0.5 0.02 C 0.85 0.02 0.98 0.35 0.98 0.55 C 0.98 0.85 0.75 0.98 0.5 0.98 C 0.25 0.98 0.02 0.85 0.02 0.55 C 0.02 0.35 0.15 0.02 0.5 0.02 Z",
+      "detail": "M 0.56 0.6 C 0.56 0.633 0.533 0.66 0.5 0.66 C 0.467 0.66 0.44 0.633 0.44 0.6 C 0.44 0.567 0.467 0.54 0.5 0.54 C 0.533 0.54 0.56 0.567 0.56 0.6 Z",
+      "source": "drawn from the written description of the kinematic pairs and links in ISO 3952-1"
+    },
+    {
+      "id": "mechanical.follower",
+      "label": "Follower",
+      "category": "Kinematic",
+      "outline": "path",
+      "w": 24,
+      "h": 60,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "follower",
+        "knife edge"
+      ],
+      "elementType": "mechanical.Follower",
+      "path": "M 0.3 0 L 0.7 0 L 0.7 0.75 L 0.5 1 L 0.3 0.75 Z",
+      "source": "drawn from the written description of the kinematic pairs and links in ISO 3952-1"
+    },
+    {
+      "id": "mechanical.spring",
+      "label": "Kinematic Spring",
+      "category": "Kinematic",
+      "outline": "path",
+      "w": 70,
+      "h": 24,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "spring",
+        "elastic"
+      ],
+      "elementType": "mechanical.Spring",
+      "path": "M 0 0.5 L 0.15 0.5 L 0.22 0.05 L 0.36 0.95 L 0.5 0.05 L 0.64 0.95 L 0.78 0.05 L 0.85 0.5 L 1 0.5",
+      "source": "drawn from the written description of the kinematic pairs and links in ISO 3952-1"
+    },
+    {
+      "id": "mechanical.motor",
+      "label": "Drive Motor",
+      "category": "Transmission",
+      "outline": "path",
+      "w": 60,
+      "h": 60,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "motor",
+        "drive",
+        "prime mover"
+      ],
+      "elementType": "mechanical.Motor",
+      "path": "M 0.98 0.5 C 0.98 0.765 0.765 0.98 0.5 0.98 C 0.235 0.98 0.02 0.765 0.02 0.5 C 0.02 0.235 0.235 0.02 0.5 0.02 C 0.765 0.02 0.98 0.235 0.98 0.5 Z",
+      "detail": "M 0.3 0.68 L 0.3 0.32 L 0.5 0.55 L 0.7 0.32 L 0.7 0.68",
+      "source": "drawn from the written description of couplings, clutches, brakes and bearings in ISO 3952-3"
+    },
+    {
+      "id": "mechanical.load",
+      "label": "Driven Load",
+      "category": "Transmission",
+      "outline": "path",
+      "w": 60,
+      "h": 50,
+      "fill": "#eef1f4",
+      "line": "#1f2933",
+      "keywords": [
+        "load",
+        "driven machine",
+        "output"
+      ],
+      "elementType": "mechanical.Load",
+      "path": "M 0 0 L 1 0 L 1 1 L 0 1 Z",
+      "detail": "M 0 0 L 1 1 M 1 0 L 0 1",
+      "source": "own design"
+    },
+    {
+      "id": "mechanical.gear",
+      "label": "Gear",
+      "category": "Transmission",
+      "outline": "path",
+      "w": 20,
+      "h": 70,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "gear",
+        "spur",
+        "pinion",
+        "wheel",
+        "bevel",
+        "worm",
+        "rack"
+      ],
+      "elementType": "mechanical.Gear",
+      "path": "M 0 0 L 1 0 L 1 1 L 0 1 Z",
+      "detail": "M 0.5 0.03 L 0.5 0.18 M 0.5 0.28 L 0.5 0.33 M 0.5 0.43 L 0.5 0.57 M 0.5 0.67 L 0.5 0.72 M 0.5 0.82 L 0.5 0.97",
+      "source": "drawn from the written description of gears, pulleys and chain drives in ISO 3952-2"
+    },
+    {
+      "id": "mechanical.pulley",
+      "label": "Pulley",
+      "category": "Transmission",
+      "outline": "path",
+      "w": 20,
+      "h": 70,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "pulley",
+        "sheave",
+        "belt drive"
+      ],
+      "elementType": "mechanical.Pulley",
+      "path": "M 0 0 L 1 0 L 0.7 0.5 L 1 1 L 0 1 L 0.3 0.5 Z",
+      "source": "drawn from the written description of gears, pulleys and chain drives in ISO 3952-2"
+    },
+    {
+      "id": "mechanical.sprocket",
+      "label": "Sprocket",
+      "category": "Transmission",
+      "outline": "path",
+      "w": 20,
+      "h": 70,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "sprocket",
+        "chain drive"
+      ],
+      "elementType": "mechanical.Sprocket",
+      "path": "M 0 0 L 1 0 L 1 1 L 0 1 Z",
+      "detail": "M 0.2 0.1 L 0.8 0.2 L 0.2 0.3 L 0.8 0.4 L 0.2 0.5 L 0.8 0.6 L 0.2 0.7 L 0.8 0.8 L 0.2 0.9",
+      "source": "drawn from the written description of gears, pulleys and chain drives in ISO 3952-2"
+    },
+    {
+      "id": "mechanical.frictionWheel",
+      "label": "Friction Wheel",
+      "category": "Transmission",
+      "outline": "path",
+      "w": 24,
+      "h": 70,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "friction wheel",
+        "traction drive"
+      ],
+      "elementType": "mechanical.FrictionWheel",
+      "path": "M 0.2 0 L 0.8 0 C 1 0.3 1 0.7 0.8 1 L 0.2 1 C 0 0.7 0 0.3 0.2 0 Z",
+      "source": "drawn from the written description of gears, pulleys and chain drives in ISO 3952-2"
+    },
+    {
+      "id": "mechanical.coupling",
+      "label": "Shaft Coupling",
+      "category": "Transmission",
+      "outline": "path",
+      "w": 30,
+      "h": 40,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "coupling",
+        "shaft coupling"
+      ],
+      "elementType": "mechanical.Coupling",
+      "path": "M 0 0 L 0.35 0 L 0.35 1 L 0 1 Z M 0.65 0 L 1 0 L 1 1 L 0.65 1 Z",
+      "source": "drawn from the written description of couplings, clutches, brakes and bearings in ISO 3952-3"
+    },
+    {
+      "id": "mechanical.clutch",
+      "label": "Clutch",
+      "category": "Transmission",
+      "outline": "path",
+      "w": 30,
+      "h": 50,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "clutch",
+        "engage"
+      ],
+      "elementType": "mechanical.Clutch",
+      "path": "M 0 0 L 0.3 0 L 0.3 1 L 0 1 Z M 0.7 0 L 1 0 L 1 1 L 0.7 1 Z",
+      "detail": "M 0.4 0.5 L 0.6 0.5",
+      "source": "drawn from the written description of couplings, clutches, brakes and bearings in ISO 3952-3",
+      "textPlace": "below"
+    },
+    {
+      "id": "mechanical.brake",
+      "label": "Brake",
+      "category": "Transmission",
+      "outline": "path",
+      "w": 30,
+      "h": 50,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "brake",
+        "shoe brake"
+      ],
+      "elementType": "mechanical.Brake",
+      "path": "M 0 0 L 0.4 0 L 0.4 1 L 0 1 Z",
+      "detail": "M 0.7 0.1 C 0.55 0.3 0.55 0.7 0.7 0.9 M 0.7 0.5 L 1 0.5",
+      "source": "drawn from the written description of couplings, clutches, brakes and bearings in ISO 3952-3"
+    },
+    {
+      "id": "mechanical.bearing",
+      "label": "Bearing",
+      "category": "Transmission",
+      "outline": "path",
+      "w": 30,
+      "h": 30,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "bearing",
+        "support"
+      ],
+      "elementType": "mechanical.Bearing",
+      "path": "M 0 0 L 1 0 L 1 1 L 0 1 Z",
+      "detail": "M 0 0 L 1 1 M 1 0 L 0 1",
+      "source": "drawn from the written description of couplings, clutches, brakes and bearings in ISO 3952-3"
+    },
+    {
+      "id": "mechanical.se",
+      "label": "Effort Source (Se)",
+      "category": "Bond Graph",
+      "outline": "path",
+      "w": 34,
+      "h": 26,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "bond graph",
+        "Se",
+        "effort source (se)"
+      ],
+      "elementType": "mechanical.Se",
+      "path": "M 0.432 0.218 C 0.37 0.097 0.123 0.097 0.123 0.298 C 0.123 0.5 0.432 0.46 0.432 0.677 C 0.432 0.903 0.154 0.903 0.111 0.782 M 0.586 0.702 L 0.858 0.702 C 0.858 0.46 0.586 0.46 0.586 0.702 C 0.586 0.903 0.815 0.903 0.858 0.839",
+      "source": "drawn from the textbook bond graph convention: the element's type letters",
+      "textPlace": "below"
+    },
+    {
+      "id": "mechanical.sf",
+      "label": "Flow Source (Sf)",
+      "category": "Bond Graph",
+      "outline": "path",
+      "w": 34,
+      "h": 26,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "bond graph",
+        "Sf",
+        "flow source (sf)"
+      ],
+      "elementType": "mechanical.Sf",
+      "path": "M 0.432 0.218 C 0.37 0.097 0.123 0.097 0.123 0.298 C 0.123 0.5 0.432 0.46 0.432 0.677 C 0.432 0.903 0.154 0.903 0.111 0.782 M 0.846 0.194 C 0.784 0.097 0.673 0.113 0.673 0.298 L 0.673 0.903 M 0.568 0.46 L 0.815 0.46",
+      "source": "drawn from the textbook bond graph convention: the element's type letters",
+      "textPlace": "below"
+    },
+    {
+      "id": "mechanical.mse",
+      "label": "Modulated Effort Source (MSe)",
+      "category": "Bond Graph",
+      "outline": "path",
+      "w": 49,
+      "h": 26,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "bond graph",
+        "MSe",
+        "modulated effort source (mse)"
+      ],
+      "elementType": "mechanical.MSe",
+      "path": "M 0.085 0.903 L 0.085 0.097 L 0.192 0.581 L 0.299 0.097 L 0.299 0.903 M 0.607 0.218 C 0.564 0.097 0.393 0.097 0.393 0.298 C 0.393 0.5 0.607 0.46 0.607 0.677 C 0.607 0.903 0.415 0.903 0.385 0.782 M 0.714 0.702 L 0.902 0.702 C 0.902 0.46 0.714 0.46 0.714 0.702 C 0.714 0.903 0.872 0.903 0.902 0.839",
+      "source": "drawn from the textbook bond graph convention: the element's type letters",
+      "textPlace": "below"
+    },
+    {
+      "id": "mechanical.msf",
+      "label": "Modulated Flow Source (MSf)",
+      "category": "Bond Graph",
+      "outline": "path",
+      "w": 49,
+      "h": 26,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "bond graph",
+        "MSf",
+        "modulated flow source (msf)"
+      ],
+      "elementType": "mechanical.MSf",
+      "path": "M 0.085 0.903 L 0.085 0.097 L 0.192 0.581 L 0.299 0.097 L 0.299 0.903 M 0.607 0.218 C 0.564 0.097 0.393 0.097 0.393 0.298 C 0.393 0.5 0.607 0.46 0.607 0.677 C 0.607 0.903 0.415 0.903 0.385 0.782 M 0.893 0.194 C 0.85 0.097 0.774 0.113 0.774 0.298 L 0.774 0.903 M 0.701 0.46 L 0.872 0.46",
+      "source": "drawn from the textbook bond graph convention: the element's type letters",
+      "textPlace": "below"
+    },
+    {
+      "id": "mechanical.r",
+      "label": "Bond Resistance (R)",
+      "category": "Bond Graph",
+      "outline": "path",
+      "w": 19,
+      "h": 26,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "bond graph",
+        "R",
+        "bond resistance (r)"
+      ],
+      "elementType": "mechanical.R",
+      "path": "M 0.256 0.903 L 0.256 0.097 L 0.556 0.097 C 0.833 0.097 0.833 0.5 0.556 0.5 L 0.256 0.5 M 0.5 0.5 L 0.778 0.903",
+      "source": "drawn from the textbook bond graph convention: the element's type letters",
+      "textPlace": "below"
+    },
+    {
+      "id": "mechanical.c",
+      "label": "Bond Capacitance (C)",
+      "category": "Bond Graph",
+      "outline": "path",
+      "w": 19,
+      "h": 26,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "bond graph",
+        "C",
+        "bond capacitance (c)"
+      ],
+      "elementType": "mechanical.C",
+      "path": "M 0.778 0.218 C 0.667 0.097 0.222 0.097 0.222 0.5 C 0.222 0.903 0.667 0.903 0.778 0.782",
+      "source": "drawn from the textbook bond graph convention: the element's type letters",
+      "textPlace": "below"
+    },
+    {
+      "id": "mechanical.i",
+      "label": "Bond Inertia (I)",
+      "category": "Bond Graph",
+      "outline": "path",
+      "w": 19,
+      "h": 26,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "bond graph",
+        "I",
+        "bond inertia (i)"
+      ],
+      "elementType": "mechanical.I",
+      "path": "M 0.5 0.097 L 0.5 0.903 M 0.3 0.097 L 0.7 0.097 M 0.3 0.903 L 0.7 0.903",
+      "source": "drawn from the textbook bond graph convention: the element's type letters",
+      "textPlace": "below"
+    },
+    {
+      "id": "mechanical.tf",
+      "label": "Bond Transformer (TF)",
+      "category": "Bond Graph",
+      "outline": "path",
+      "w": 34,
+      "h": 26,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "bond graph",
+        "TF",
+        "bond transformer (tf)"
+      ],
+      "elementType": "mechanical.TF",
+      "path": "M 0.105 0.097 L 0.451 0.097 M 0.278 0.097 L 0.278 0.903 M 0.586 0.903 L 0.586 0.097 L 0.877 0.097 M 0.586 0.484 L 0.815 0.484",
+      "source": "drawn from the textbook bond graph convention: the element's type letters",
+      "textPlace": "below"
+    },
+    {
+      "id": "mechanical.gy",
+      "label": "Gyrator (GY)",
+      "category": "Bond Graph",
+      "outline": "path",
+      "w": 34,
+      "h": 26,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "bond graph",
+        "GY",
+        "gyrator (gy)"
+      ],
+      "elementType": "mechanical.GY",
+      "path": "M 0.432 0.218 C 0.37 0.097 0.123 0.097 0.123 0.5 C 0.123 0.903 0.432 0.903 0.432 0.581 L 0.29 0.581 M 0.549 0.097 L 0.722 0.5 L 0.895 0.097 M 0.722 0.5 L 0.722 0.903",
+      "source": "drawn from the textbook bond graph convention: the element's type letters",
+      "textPlace": "below"
+    },
+    {
+      "id": "mechanical.j0",
+      "label": "0-Junction",
+      "category": "Bond Graph",
+      "outline": "path",
+      "w": 19,
+      "h": 26,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "bond graph",
+        "J0",
+        "0-junction"
+      ],
+      "elementType": "mechanical.J0",
+      "path": "M 0.5 0.097 C 0.833 0.097 0.833 0.903 0.5 0.903 C 0.167 0.903 0.167 0.097 0.5 0.097",
+      "source": "drawn from the textbook bond graph convention: the element's type letters",
+      "textPlace": "below"
+    },
+    {
+      "id": "mechanical.j1",
+      "label": "1-Junction",
+      "category": "Bond Graph",
+      "outline": "path",
+      "w": 19,
+      "h": 26,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "bond graph",
+        "J1",
+        "1-junction"
+      ],
+      "elementType": "mechanical.J1",
+      "path": "M 0.333 0.258 L 0.556 0.097 L 0.556 0.903 M 0.333 0.903 L 0.778 0.903",
+      "source": "drawn from the textbook bond graph convention: the element's type letters",
+      "textPlace": "below"
+    },
+    {
+      "id": "mechanical.transferBlock",
+      "label": "Transfer Function Block",
+      "category": "Control",
+      "outline": "rectangle",
+      "w": 120,
+      "h": 60,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "transfer function",
+        "block",
+        "plant",
+        "controller",
+        "G(s)"
+      ],
+      "elementType": "mechanical.TransferBlock"
+    },
+    {
+      "id": "mechanical.gain",
+      "label": "Gain Block",
+      "category": "Control",
+      "outline": "path",
+      "w": 60,
+      "h": 50,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "gain",
+        "amplifier",
+        "triangle"
+      ],
+      "elementType": "mechanical.Gain",
+      "path": "M 0 0 L 1 0.5 L 0 1 Z",
+      "source": "drawn from the textbook control block diagram convention"
+    },
+    {
+      "id": "mechanical.integrator",
+      "label": "Integrator",
+      "category": "Control",
+      "outline": "path",
+      "w": 60,
+      "h": 50,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "integrator",
+        "1/s"
+      ],
+      "elementType": "mechanical.Integrator",
+      "path": "M 0 0 L 1 0 L 1 1 L 0 1 Z",
+      "detail": "M 0.62 0.2 C 0.5 0.08 0.45 0.25 0.5 0.5 C 0.55 0.75 0.5 0.92 0.38 0.8",
+      "source": "drawn from the textbook control block diagram convention"
+    },
+    {
+      "id": "mechanical.delay",
+      "label": "Time Delay",
+      "category": "Control",
+      "outline": "path",
+      "w": 60,
+      "h": 50,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "delay",
+        "dead time",
+        "transport lag"
+      ],
+      "elementType": "mechanical.Delay",
+      "path": "M 0 0 L 1 0 L 1 1 L 0 1 Z",
+      "detail": "M 0.15 0.7 L 0.45 0.7 L 0.45 0.3 L 0.85 0.3",
+      "source": "own design"
+    },
+    {
+      "id": "mechanical.saturation",
+      "label": "Saturation",
+      "category": "Control",
+      "outline": "path",
+      "w": 60,
+      "h": 50,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "saturation",
+        "limit",
+        "clamp"
+      ],
+      "elementType": "mechanical.Saturation",
+      "path": "M 0 0 L 1 0 L 1 1 L 0 1 Z",
+      "detail": "M 0.12 0.75 L 0.35 0.75 L 0.65 0.25 L 0.88 0.25 M 0.5 0.12 L 0.5 0.88",
+      "source": "own design"
+    },
+    {
+      "id": "mechanical.summing",
+      "label": "Summing Junction",
+      "category": "Control",
+      "outline": "path",
+      "w": 40,
+      "h": 40,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "sum",
+        "summing junction",
+        "comparator",
+        "error"
+      ],
+      "elementType": "mechanical.SummingJunction",
+      "path": "M 1 0.5 C 1 0.776 0.776 1 0.5 1 C 0.224 1 0 0.776 0 0.5 C 0 0.224 0.224 0 0.5 0 C 0.776 0 1 0.224 1 0.5 Z",
+      "detail": "M 0.15 0.15 L 0.85 0.85 M 0.85 0.15 L 0.15 0.85",
+      "source": "drawn from the textbook control block diagram convention"
+    },
+    {
+      "id": "mechanical.branch",
+      "label": "Signal Branch Point",
+      "category": "Control",
+      "outline": "path",
+      "w": 10,
+      "h": 10,
+      "fill": "#1f2933",
+      "line": "#1f2933",
+      "keywords": [
+        "branch",
+        "takeoff",
+        "pickoff"
+      ],
+      "elementType": "mechanical.BranchPoint",
+      "path": "M 1 0.5 C 1 0.776 0.776 1 0.5 1 C 0.224 1 0 0.776 0 0.5 C 0 0.224 0.224 0 0.5 0 C 0.776 0 1 0.224 1 0.5 Z",
+      "source": "drawn from the textbook control block diagram convention"
+    },
+    {
+      "id": "mechanical.input",
+      "label": "Loop Input",
+      "category": "Control",
+      "outline": "path",
+      "w": 16,
+      "h": 16,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "input",
+        "reference",
+        "set point",
+        "R(s)"
+      ],
+      "elementType": "mechanical.Input",
+      "path": "M 1 0.5 C 1 0.776 0.776 1 0.5 1 C 0.224 1 0 0.776 0 0.5 C 0 0.224 0.224 0 0.5 0 C 0.776 0 1 0.224 1 0.5 Z",
+      "source": "drawn from the textbook control block diagram convention",
+      "textPlace": "below"
+    },
+    {
+      "id": "mechanical.output",
+      "label": "Loop Output",
+      "category": "Control",
+      "outline": "path",
+      "w": 16,
+      "h": 16,
+      "fill": "#ffffff",
+      "line": "#1f2933",
+      "keywords": [
+        "output",
+        "response",
+        "Y(s)"
+      ],
+      "elementType": "mechanical.Output",
+      "path": "M 1 0.5 C 1 0.776 0.776 1 0.5 1 C 0.224 1 0 0.776 0 0.5 C 0 0.224 0.224 0 0.5 0 C 0.776 0 1 0.224 1 0.5 Z",
+      "detail": "M 0.75 0.5 C 0.75 0.638 0.638 0.75 0.5 0.75 C 0.362 0.75 0.25 0.638 0.25 0.5 C 0.25 0.362 0.362 0.25 0.5 0.25 C 0.638 0.25 0.75 0.362 0.75 0.5",
+      "source": "drawn from the textbook control block diagram convention",
+      "textPlace": "below"
+    }
+  ],
+  "connectorTypes": [
+    {
+      "id": "mechanical.link",
+      "label": "Kinematic Link",
+      "category": "Kinematic",
+      "route": "straight",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "solid",
+      "lineWidth": 4,
+      "line": "#1f2933",
+      "keywords": [
+        "link",
+        "bar",
+        "crank",
+        "coupler",
+        "rocker"
+      ],
+      "relationshipType": "mechanical.Link"
+    },
+    {
+      "id": "mechanical.shaft",
+      "label": "Shaft",
+      "category": "Transmission",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "solid",
+      "lineWidth": 4,
+      "line": "#1f2933",
+      "keywords": [
+        "shaft",
+        "axle"
+      ],
+      "relationshipType": "mechanical.Shaft"
+    },
+    {
+      "id": "mechanical.mesh",
+      "label": "Gear Mesh",
+      "category": "Transmission",
+      "route": "straight",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "dotted",
+      "lineWidth": 1.25,
+      "line": "#1f2933",
+      "keywords": [
+        "mesh",
+        "gear pair",
+        "contact"
+      ],
+      "relationshipType": "mechanical.Mesh"
+    },
+    {
+      "id": "mechanical.belt",
+      "label": "Belt",
+      "category": "Transmission",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "solid",
+      "lineWidth": 1.5,
+      "line": "#1f2933",
+      "keywords": [
+        "belt",
+        "v-belt"
+      ],
+      "relationshipType": "mechanical.Belt"
+    },
+    {
+      "id": "mechanical.chain",
+      "label": "Chain",
+      "category": "Transmission",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "none",
+      "dash": "dashDot",
+      "lineWidth": 1.5,
+      "line": "#1f2933",
+      "keywords": [
+        "chain",
+        "roller chain"
+      ],
+      "relationshipType": "mechanical.Chain"
+    },
+    {
+      "id": "mechanical.bond",
+      "label": "Bond",
+      "category": "Bond Graph",
+      "route": "straight",
+      "startArrow": "none",
+      "endArrow": "harpoon",
+      "dash": "solid",
+      "lineWidth": 1.5,
+      "line": "#1f2933",
+      "keywords": [
+        "bond",
+        "power bond",
+        "half arrow"
+      ],
+      "relationshipType": "mechanical.Bond",
+      "ends": {
+        "start": [
+          {
+            "property": "causal",
+            "values": {
+              "start": {
+                "arrow": "bar"
+              }
+            }
+          }
+        ],
+        "end": [
+          {
+            "property": "causal",
+            "values": {
+              "end": {
+                "arrow": "harpoonBar"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mechanical.signal",
+      "label": "Signal Line",
+      "category": "Control",
+      "route": "orthogonal",
+      "startArrow": "none",
+      "endArrow": "triangle",
+      "dash": "solid",
+      "lineWidth": 1.25,
+      "line": "#1f2933",
+      "keywords": [
+        "signal",
+        "arrow",
+        "feedback"
+      ],
+      "relationshipType": "mechanical.Signal"
+    }
+  ],
+  "elementTypes": [
+    {
+      "id": "mechanical.Joint",
+      "label": "Joint",
+      "description": "A kinematic pair joining two bodies; its kind sets its freedom (revolute and prismatic one, pin in slot and cam contact two).",
+      "glyph": "mechanical.joint",
+      "properties": [
+        {
+          "key": "kind",
+          "label": "Pair",
+          "kind": "enum",
+          "description": "The kind of pair.",
+          "values": [
+            "revolute",
+            "prismatic",
+            "screw",
+            "cylindrical",
+            "spherical",
+            "planar",
+            "pinInSlot",
+            "camContact",
+            "rolling"
+          ],
+          "default": "revolute"
+        }
+      ]
+    },
+    {
+      "id": "mechanical.Ground",
+      "label": "Fixed Frame",
+      "description": "The fixed frame (link 1), drawn hatched at each fixed pivot; every frame symbol is the same body.",
+      "glyph": "mechanical.ground"
+    },
+    {
+      "id": "mechanical.Plate",
+      "label": "Ternary Link",
+      "description": "A rigid body joining three or more joints, drawn as a plate.",
+      "glyph": "mechanical.plate"
+    },
+    {
+      "id": "mechanical.Cam",
+      "label": "Cam",
+      "description": "A cam body.",
+      "glyph": "mechanical.cam"
+    },
+    {
+      "id": "mechanical.Follower",
+      "label": "Follower",
+      "description": "A cam follower body.",
+      "glyph": "mechanical.follower"
+    },
+    {
+      "id": "mechanical.Spring",
+      "label": "Kinematic Spring",
+      "description": "A spring between two bodies; it adds no body and no joint to the count.",
+      "glyph": "mechanical.spring",
+      "properties": [
+        {
+          "key": "stiffness",
+          "label": "Stiffness",
+          "kind": "number",
+          "description": "Spring rate.",
+          "unit": "N/m"
+        }
+      ]
+    },
+    {
+      "id": "mechanical.Motor",
+      "label": "Drive Motor",
+      "description": "The prime mover driving the transmission.",
+      "glyph": "mechanical.motor",
+      "properties": [
+        {
+          "key": "speed",
+          "label": "Speed",
+          "kind": "number",
+          "description": "Rated speed.",
+          "unit": "rpm"
+        }
+      ]
+    },
+    {
+      "id": "mechanical.Load",
+      "label": "Driven Load",
+      "description": "The driven machine at the end of the transmission.",
+      "glyph": "mechanical.load"
+    },
+    {
+      "id": "mechanical.Gear",
+      "label": "Gear",
+      "description": "A gear seen from the side, its pitch line through it; external meshes turn the other way, internal ones the same way.",
+      "glyph": "mechanical.gear",
+      "properties": [
+        {
+          "key": "kind",
+          "label": "Kind",
+          "kind": "enum",
+          "description": "The kind of gear.",
+          "values": [
+            "spur",
+            "internal",
+            "bevel",
+            "worm",
+            "rack"
+          ],
+          "default": "spur"
+        },
+        {
+          "key": "teeth",
+          "label": "Teeth",
+          "kind": "integer",
+          "description": "Number of teeth.",
+          "required": true
+        },
+        {
+          "key": "starts",
+          "label": "Starts",
+          "kind": "integer",
+          "description": "Thread starts of a worm."
+        }
+      ]
+    },
+    {
+      "id": "mechanical.Pulley",
+      "label": "Pulley",
+      "description": "A belt pulley.",
+      "glyph": "mechanical.pulley",
+      "properties": [
+        {
+          "key": "diameter",
+          "label": "Diameter",
+          "kind": "number",
+          "description": "Pitch diameter.",
+          "unit": "mm"
+        }
+      ]
+    },
+    {
+      "id": "mechanical.Sprocket",
+      "label": "Sprocket",
+      "description": "A chain sprocket.",
+      "glyph": "mechanical.sprocket",
+      "properties": [
+        {
+          "key": "teeth",
+          "label": "Teeth",
+          "kind": "integer",
+          "description": "Number of teeth.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "mechanical.FrictionWheel",
+      "label": "Friction Wheel",
+      "description": "A friction wheel driving another by contact.",
+      "glyph": "mechanical.frictionWheel",
+      "properties": [
+        {
+          "key": "diameter",
+          "label": "Diameter",
+          "kind": "number",
+          "description": "Rolling diameter.",
+          "unit": "mm"
+        }
+      ]
+    },
+    {
+      "id": "mechanical.Coupling",
+      "label": "Shaft Coupling",
+      "description": "A coupling joining two shafts.",
+      "glyph": "mechanical.coupling",
+      "properties": [
+        {
+          "key": "kind",
+          "label": "Kind",
+          "kind": "enum",
+          "description": "The kind of coupling.",
+          "values": [
+            "fixed",
+            "compensating",
+            "elastic"
+          ],
+          "default": "fixed"
+        }
+      ]
+    },
+    {
+      "id": "mechanical.Clutch",
+      "label": "Clutch",
+      "description": "A clutch; disengaged, it passes no motion on.",
+      "glyph": "mechanical.clutch",
+      "properties": [
+        {
+          "key": "kind",
+          "label": "Kind",
+          "kind": "enum",
+          "description": "The kind of clutch.",
+          "values": [
+            "plate",
+            "cone",
+            "dog",
+            "overrunning"
+          ],
+          "default": "plate"
+        },
+        {
+          "key": "actuation",
+          "label": "Actuation",
+          "kind": "enum",
+          "description": "How it is worked: mechanical, hydraulic, pneumatic or electric.",
+          "values": [
+            "M",
+            "H",
+            "P",
+            "E"
+          ],
+          "default": "M"
+        },
+        {
+          "key": "engaged",
+          "label": "Engaged",
+          "kind": "bool",
+          "description": "Whether it is engaged.",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "mechanical.Brake",
+      "label": "Brake",
+      "description": "A brake on a shaft.",
+      "glyph": "mechanical.brake"
+    },
+    {
+      "id": "mechanical.Bearing",
+      "label": "Bearing",
+      "description": "A bearing supporting a shaft.",
+      "glyph": "mechanical.bearing"
+    },
+    {
+      "id": "mechanical.Se",
+      "label": "Effort Source (Se)",
+      "description": "A source of effort (force, voltage, pressure).",
+      "glyph": "mechanical.se",
+      "properties": [
+        {
+          "key": "parameter",
+          "label": "Parameter",
+          "kind": "text",
+          "description": "The element's parameter (m, k, b, the source value)."
+        }
+      ]
+    },
+    {
+      "id": "mechanical.Sf",
+      "label": "Flow Source (Sf)",
+      "description": "A source of flow (velocity, current, volume flow).",
+      "glyph": "mechanical.sf",
+      "properties": [
+        {
+          "key": "parameter",
+          "label": "Parameter",
+          "kind": "text",
+          "description": "The element's parameter (m, k, b, the source value)."
+        }
+      ]
+    },
+    {
+      "id": "mechanical.MSe",
+      "label": "Modulated Effort Source (MSe)",
+      "description": "An effort source set by a signal.",
+      "glyph": "mechanical.mse",
+      "properties": [
+        {
+          "key": "parameter",
+          "label": "Parameter",
+          "kind": "text",
+          "description": "The element's parameter (m, k, b, the source value)."
+        }
+      ]
+    },
+    {
+      "id": "mechanical.MSf",
+      "label": "Modulated Flow Source (MSf)",
+      "description": "A flow source set by a signal.",
+      "glyph": "mechanical.msf",
+      "properties": [
+        {
+          "key": "parameter",
+          "label": "Parameter",
+          "kind": "text",
+          "description": "The element's parameter (m, k, b, the source value)."
+        }
+      ]
+    },
+    {
+      "id": "mechanical.R",
+      "label": "Bond Resistance (R)",
+      "description": "A resistive element (damper, resistor).",
+      "glyph": "mechanical.r",
+      "properties": [
+        {
+          "key": "parameter",
+          "label": "Parameter",
+          "kind": "text",
+          "description": "The element's parameter (m, k, b, the source value)."
+        }
+      ]
+    },
+    {
+      "id": "mechanical.C",
+      "label": "Bond Capacitance (C)",
+      "description": "A storage element of effort (spring, capacitor).",
+      "glyph": "mechanical.c",
+      "properties": [
+        {
+          "key": "parameter",
+          "label": "Parameter",
+          "kind": "text",
+          "description": "The element's parameter (m, k, b, the source value)."
+        }
+      ]
+    },
+    {
+      "id": "mechanical.I",
+      "label": "Bond Inertia (I)",
+      "description": "A storage element of flow (mass, inductor).",
+      "glyph": "mechanical.i",
+      "properties": [
+        {
+          "key": "parameter",
+          "label": "Parameter",
+          "kind": "text",
+          "description": "The element's parameter (m, k, b, the source value)."
+        }
+      ]
+    },
+    {
+      "id": "mechanical.TF",
+      "label": "Bond Transformer (TF)",
+      "description": "A transformer between two bonds (lever, gear pair).",
+      "glyph": "mechanical.tf",
+      "properties": [
+        {
+          "key": "parameter",
+          "label": "Parameter",
+          "kind": "text",
+          "description": "The element's parameter (m, k, b, the source value)."
+        }
+      ]
+    },
+    {
+      "id": "mechanical.GY",
+      "label": "Gyrator (GY)",
+      "description": "A gyrator between two bonds (motor constant).",
+      "glyph": "mechanical.gy",
+      "properties": [
+        {
+          "key": "parameter",
+          "label": "Parameter",
+          "kind": "text",
+          "description": "The element's parameter (m, k, b, the source value)."
+        }
+      ]
+    },
+    {
+      "id": "mechanical.J0",
+      "label": "0-Junction",
+      "description": "A common-effort junction.",
+      "glyph": "mechanical.j0"
+    },
+    {
+      "id": "mechanical.J1",
+      "label": "1-Junction",
+      "description": "A common-flow junction.",
+      "glyph": "mechanical.j1"
+    },
+    {
+      "id": "mechanical.TransferBlock",
+      "label": "Transfer Function Block",
+      "description": "A block with a transfer function; mark it dynamic when it holds state.",
+      "glyph": "mechanical.transferBlock",
+      "properties": [
+        {
+          "key": "gain",
+          "label": "Transfer function",
+          "kind": "text",
+          "description": "The block's transfer function (G, Kp + Ki/s, 1/(s + 1)); empty uses its name."
+        },
+        {
+          "key": "dynamic",
+          "label": "Dynamic",
+          "kind": "bool",
+          "description": "The block holds state (it has poles), so a loop through it is not algebraic.",
+          "default": false
+        }
+      ],
+      "ports": [
+        {
+          "id": "in",
+          "label": "In",
+          "direction": "in",
+          "x": 0,
+          "y": 0.5
+        },
+        {
+          "id": "out",
+          "label": "Out",
+          "direction": "out",
+          "x": 1,
+          "y": 0.5
+        }
+      ]
+    },
+    {
+      "id": "mechanical.Gain",
+      "label": "Gain Block",
+      "description": "A constant gain.",
+      "glyph": "mechanical.gain",
+      "properties": [
+        {
+          "key": "gain",
+          "label": "Gain",
+          "kind": "text",
+          "description": "The gain; empty uses its name."
+        }
+      ],
+      "ports": [
+        {
+          "id": "in",
+          "label": "In",
+          "direction": "in",
+          "x": 0,
+          "y": 0.5
+        },
+        {
+          "id": "out",
+          "label": "Out",
+          "direction": "out",
+          "x": 1,
+          "y": 0.5
+        }
+      ]
+    },
+    {
+      "id": "mechanical.Integrator",
+      "label": "Integrator",
+      "description": "An integrator (1/s).",
+      "glyph": "mechanical.integrator",
+      "properties": [
+        {
+          "key": "gain",
+          "label": "Gain",
+          "kind": "text",
+          "description": "Its transfer function; empty is 1/s."
+        }
+      ],
+      "ports": [
+        {
+          "id": "in",
+          "label": "In",
+          "direction": "in",
+          "x": 0,
+          "y": 0.5
+        },
+        {
+          "id": "out",
+          "label": "Out",
+          "direction": "out",
+          "x": 1,
+          "y": 0.5
+        }
+      ]
+    },
+    {
+      "id": "mechanical.Delay",
+      "label": "Time Delay",
+      "description": "A time delay.",
+      "glyph": "mechanical.delay",
+      "properties": [
+        {
+          "key": "gain",
+          "label": "Gain",
+          "kind": "text",
+          "description": "Its transfer function; empty is e^-sT."
+        }
+      ],
+      "ports": [
+        {
+          "id": "in",
+          "label": "In",
+          "direction": "in",
+          "x": 0,
+          "y": 0.5
+        },
+        {
+          "id": "out",
+          "label": "Out",
+          "direction": "out",
+          "x": 1,
+          "y": 0.5
+        }
+      ]
+    },
+    {
+      "id": "mechanical.Saturation",
+      "label": "Saturation",
+      "description": "A limiter; the loop treats it as a gain of one.",
+      "glyph": "mechanical.saturation",
+      "ports": [
+        {
+          "id": "in",
+          "label": "In",
+          "direction": "in",
+          "x": 0,
+          "y": 0.5
+        },
+        {
+          "id": "out",
+          "label": "Out",
+          "direction": "out",
+          "x": 1,
+          "y": 0.5
+        }
+      ]
+    },
+    {
+      "id": "mechanical.SummingJunction",
+      "label": "Summing Junction",
+      "description": "Adds its signed inputs; each signal in carries + or -.",
+      "glyph": "mechanical.summing",
+      "ports": [
+        {
+          "id": "in1",
+          "label": "In 1",
+          "direction": "in",
+          "x": 0,
+          "y": 0.5
+        },
+        {
+          "id": "in2",
+          "label": "In 2",
+          "direction": "in",
+          "x": 0.5,
+          "y": 1
+        },
+        {
+          "id": "in3",
+          "label": "In 3",
+          "direction": "in",
+          "x": 0.5,
+          "y": 0
+        },
+        {
+          "id": "in4",
+          "label": "In 4",
+          "direction": "in",
+          "x": 0.146,
+          "y": 0.854
+        },
+        {
+          "id": "out",
+          "label": "Out",
+          "direction": "out",
+          "x": 1,
+          "y": 0.5
+        }
+      ]
+    },
+    {
+      "id": "mechanical.BranchPoint",
+      "label": "Signal Branch Point",
+      "description": "Where one signal is taken to several places.",
+      "glyph": "mechanical.branch"
+    },
+    {
+      "id": "mechanical.Input",
+      "label": "Loop Input",
+      "description": "The input of the block diagram (the reference).",
+      "glyph": "mechanical.input"
+    },
+    {
+      "id": "mechanical.Output",
+      "label": "Loop Output",
+      "description": "The output of the block diagram.",
+      "glyph": "mechanical.output"
+    }
+  ],
+  "relationshipTypes": [
+    {
+      "id": "mechanical.Link",
+      "label": "Kinematic Link",
+      "description": "A binary link between two joints; a link touching the frame or a plate is part of that body.",
+      "endArrow": "none",
+      "properties": [
+        {
+          "key": "number",
+          "label": "Link number",
+          "kind": "integer",
+          "description": "The link's number (the frame is 1)."
+        }
+      ]
+    },
+    {
+      "id": "mechanical.Shaft",
+      "label": "Shaft",
+      "description": "Components joined by shaft segments turn together.",
+      "endArrow": "none"
+    },
+    {
+      "id": "mechanical.Mesh",
+      "label": "Gear Mesh",
+      "description": "Two gears (or friction wheels) in contact.",
+      "endArrow": "none"
+    },
+    {
+      "id": "mechanical.Belt",
+      "label": "Belt",
+      "description": "A belt between two pulleys; a crossed belt turns the other way.",
+      "endArrow": "none",
+      "properties": [
+        {
+          "key": "crossed",
+          "label": "Crossed",
+          "kind": "bool",
+          "description": "The belt is crossed.",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "mechanical.Chain",
+      "label": "Chain",
+      "description": "A chain between two sprockets.",
+      "endArrow": "none"
+    },
+    {
+      "id": "mechanical.Bond",
+      "label": "Bond",
+      "description": "A power bond; the half arrow points the way positive power flows, the stroke marks causality.",
+      "endArrow": "harpoon",
+      "properties": [
+        {
+          "key": "causal",
+          "label": "Causal stroke",
+          "kind": "enum",
+          "description": "The end the causal stroke is at: start or end (Assign Causality sets it).",
+          "values": [
+            "start",
+            "end"
+          ],
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "mechanical.Signal",
+      "label": "Signal Line",
+      "description": "A signal; into a summing junction it carries a sign.",
+      "endArrow": "triangle",
+      "properties": [
+        {
+          "key": "sign",
+          "label": "Sign",
+          "kind": "enum",
+          "description": "+ or - at a summing junction.",
+          "values": [
+            "+",
+            "-"
+          ]
+        }
+      ],
+      "endLabels": {
+        "end": [
+          "sign"
+        ]
+      }
+    }
+  ],
+  "connections": [
+    {
+      "source": [
+        "mechanical.Joint",
+        "mechanical.Ground",
+        "mechanical.Plate",
+        "mechanical.Cam",
+        "mechanical.Follower"
+      ],
+      "relationship": "mechanical.Link",
+      "target": [
+        "mechanical.Joint",
+        "mechanical.Ground",
+        "mechanical.Plate",
+        "mechanical.Cam",
+        "mechanical.Follower"
+      ]
+    },
+    {
+      "source": [
+        "mechanical.Motor",
+        "mechanical.Load",
+        "mechanical.Gear",
+        "mechanical.Pulley",
+        "mechanical.Sprocket",
+        "mechanical.FrictionWheel",
+        "mechanical.Coupling",
+        "mechanical.Clutch",
+        "mechanical.Brake",
+        "mechanical.Bearing"
+      ],
+      "relationship": "mechanical.Shaft",
+      "target": [
+        "mechanical.Motor",
+        "mechanical.Load",
+        "mechanical.Gear",
+        "mechanical.Pulley",
+        "mechanical.Sprocket",
+        "mechanical.FrictionWheel",
+        "mechanical.Coupling",
+        "mechanical.Clutch",
+        "mechanical.Brake",
+        "mechanical.Bearing"
+      ]
+    },
+    {
+      "source": [
+        "mechanical.Gear",
+        "mechanical.FrictionWheel"
+      ],
+      "relationship": "mechanical.Mesh",
+      "target": [
+        "mechanical.Gear",
+        "mechanical.FrictionWheel"
+      ]
+    },
+    {
+      "source": [
+        "mechanical.Pulley"
+      ],
+      "relationship": "mechanical.Belt",
+      "target": [
+        "mechanical.Pulley"
+      ]
+    },
+    {
+      "source": [
+        "mechanical.Sprocket"
+      ],
+      "relationship": "mechanical.Chain",
+      "target": [
+        "mechanical.Sprocket"
+      ]
+    },
+    {
+      "source": [
+        "mechanical.Se",
+        "mechanical.Sf",
+        "mechanical.MSe",
+        "mechanical.MSf",
+        "mechanical.R",
+        "mechanical.C",
+        "mechanical.I",
+        "mechanical.TF",
+        "mechanical.GY",
+        "mechanical.J0",
+        "mechanical.J1"
+      ],
+      "relationship": "mechanical.Bond",
+      "target": [
+        "mechanical.Se",
+        "mechanical.Sf",
+        "mechanical.MSe",
+        "mechanical.MSf",
+        "mechanical.R",
+        "mechanical.C",
+        "mechanical.I",
+        "mechanical.TF",
+        "mechanical.GY",
+        "mechanical.J0",
+        "mechanical.J1"
+      ]
+    },
+    {
+      "source": [
+        "mechanical.Input",
+        "mechanical.TransferBlock",
+        "mechanical.Gain",
+        "mechanical.Integrator",
+        "mechanical.Delay",
+        "mechanical.Saturation",
+        "mechanical.SummingJunction",
+        "mechanical.BranchPoint"
+      ],
+      "relationship": "mechanical.Signal",
+      "target": [
+        "mechanical.Output",
+        "mechanical.TransferBlock",
+        "mechanical.Gain",
+        "mechanical.Integrator",
+        "mechanical.Delay",
+        "mechanical.Saturation",
+        "mechanical.SummingJunction",
+        "mechanical.BranchPoint"
+      ]
+    }
+  ],
+  "palette": [
+    {
+      "id": "mechanical.pairs",
+      "label": "Links and Pairs",
+      "types": [
+        "mechanical.Joint",
+        "mechanical.Ground",
+        "mechanical.Plate",
+        "mechanical.Cam",
+        "mechanical.Follower",
+        "mechanical.Spring"
+      ]
+    },
+    {
+      "id": "mechanical.drive",
+      "label": "Drive Train",
+      "types": [
+        "mechanical.Motor",
+        "mechanical.Load",
+        "mechanical.Gear",
+        "mechanical.Pulley",
+        "mechanical.Sprocket",
+        "mechanical.FrictionWheel"
+      ]
+    },
+    {
+      "id": "mechanical.shafting",
+      "label": "Shaft Parts",
+      "types": [
+        "mechanical.Coupling",
+        "mechanical.Clutch",
+        "mechanical.Brake",
+        "mechanical.Bearing"
+      ]
+    },
+    {
+      "id": "mechanical.bondElements",
+      "label": "Bond Graph Elements",
+      "types": [
+        "mechanical.Se",
+        "mechanical.Sf",
+        "mechanical.MSe",
+        "mechanical.MSf",
+        "mechanical.R",
+        "mechanical.C",
+        "mechanical.I"
+      ]
+    },
+    {
+      "id": "mechanical.bondJunctions",
+      "label": "Bond Graph Junctions",
+      "types": [
+        "mechanical.J0",
+        "mechanical.J1",
+        "mechanical.TF",
+        "mechanical.GY"
+      ]
+    },
+    {
+      "id": "mechanical.blocks",
+      "label": "Control Blocks",
+      "types": [
+        "mechanical.Input",
+        "mechanical.Output",
+        "mechanical.TransferBlock",
+        "mechanical.Gain",
+        "mechanical.Integrator",
+        "mechanical.Delay",
+        "mechanical.Saturation",
+        "mechanical.SummingJunction",
+        "mechanical.BranchPoint"
+      ]
+    }
+  ],
+  "viewpoints": [
+    {
+      "id": "mechanical.Kinematic",
+      "label": "Kinematic Diagram",
+      "description": "A mechanism skeleton: joints, links and the frame.",
+      "types": [
+        "mechanical.Joint",
+        "mechanical.Ground",
+        "mechanical.Plate",
+        "mechanical.Cam",
+        "mechanical.Follower",
+        "mechanical.Spring"
+      ],
+      "relationships": [
+        "mechanical.Link"
+      ]
+    },
+    {
+      "id": "mechanical.Transmission",
+      "label": "Power Transmission",
+      "description": "Motors, shafts, gears, belts and chains to the load.",
+      "types": [
+        "mechanical.Motor",
+        "mechanical.Load",
+        "mechanical.Gear",
+        "mechanical.Pulley",
+        "mechanical.Sprocket",
+        "mechanical.FrictionWheel",
+        "mechanical.Coupling",
+        "mechanical.Clutch",
+        "mechanical.Brake",
+        "mechanical.Bearing"
+      ],
+      "relationships": [
+        "mechanical.Shaft",
+        "mechanical.Mesh",
+        "mechanical.Belt",
+        "mechanical.Chain"
+      ]
+    },
+    {
+      "id": "mechanical.BondGraph",
+      "label": "Bond Graph",
+      "description": "Energy ports joined by power bonds.",
+      "types": [
+        "mechanical.Se",
+        "mechanical.Sf",
+        "mechanical.MSe",
+        "mechanical.MSf",
+        "mechanical.R",
+        "mechanical.C",
+        "mechanical.I",
+        "mechanical.TF",
+        "mechanical.GY",
+        "mechanical.J0",
+        "mechanical.J1"
+      ],
+      "relationships": [
+        "mechanical.Bond"
+      ]
+    },
+    {
+      "id": "mechanical.ControlBlock",
+      "label": "Control Block Diagram",
+      "description": "Blocks, summing junctions and signals of a control loop.",
+      "types": [
+        "mechanical.Input",
+        "mechanical.Output",
+        "mechanical.TransferBlock",
+        "mechanical.Gain",
+        "mechanical.Integrator",
+        "mechanical.Delay",
+        "mechanical.Saturation",
+        "mechanical.SummingJunction",
+        "mechanical.BranchPoint"
+      ],
+      "relationships": [
+        "mechanical.Signal"
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "mechanical.illegalLine",
+      "description": "Lines follow the connection table.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "illegalRelationship"
+      }
+    },
+    {
+      "id": "mechanical.jointLinks",
+      "description": "A joint joins two bodies.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "mechanism",
+        "test": "jointLinks"
+      },
+      "reference": "ISO 3952-1, kinematic pairs"
+    },
+    {
+      "id": "mechanical.oneGround",
+      "description": "A mechanism has a frame.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "mechanism",
+        "test": "oneGround"
+      },
+      "reference": "ISO 3952-1, kinematic pairs"
+    },
+    {
+      "id": "mechanical.mobility",
+      "description": "A mechanism can move (mobility above zero).",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "mechanism",
+        "test": "mobility"
+      },
+      "reference": "ISO 3952-1, kinematic pairs"
+    },
+    {
+      "id": "mechanical.planarPair",
+      "description": "A planar mechanism uses planar pairs.",
+      "severity": "info",
+      "mode": "live",
+      "check": {
+        "kind": "mechanism",
+        "test": "planarPair"
+      },
+      "reference": "ISO 3952-1, kinematic pairs"
+    },
+    {
+      "id": "mechanical.mounted",
+      "description": "The transmission is one connected drive.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "connected",
+        "types": [
+          "mechanical.Motor",
+          "mechanical.Load",
+          "mechanical.Gear",
+          "mechanical.Pulley",
+          "mechanical.Sprocket",
+          "mechanical.FrictionWheel",
+          "mechanical.Coupling",
+          "mechanical.Clutch",
+          "mechanical.Brake",
+          "mechanical.Bearing"
+        ],
+        "relationship": ""
+      },
+      "reference": "ISO 3952-3, couplings, clutches and brakes"
+    },
+    {
+      "id": "mechanical.supported",
+      "description": "Every shaft runs in a bearing.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "mechanism",
+        "test": "supported"
+      },
+      "reference": "ISO 3952-3, couplings, clutches and brakes"
+    },
+    {
+      "id": "mechanical.meshTeeth",
+      "description": "Gears and sprockets give their tooth count.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "requiredProperty",
+        "types": [
+          "mechanical.Gear",
+          "mechanical.Sprocket"
+        ]
+      },
+      "reference": "ISO 3952-2, gears"
+    },
+    {
+      "id": "mechanical.ratioConsistent",
+      "description": "Every way round a loop gives the same ratio.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "mechanism",
+        "test": "ratioConsistent"
+      },
+      "reference": "ISO 3952-2, gears"
+    },
+    {
+      "id": "mechanical.causalStroke",
+      "description": "Every bond has a causal stroke.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "requiredProperty",
+        "types": []
+      }
+    },
+    {
+      "id": "mechanical.effortSetter",
+      "description": "A 0-junction has one effort setter; a transformer passes causality through.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "mechanism",
+        "test": "effortSetter"
+      }
+    },
+    {
+      "id": "mechanical.flowSetter",
+      "description": "A 1-junction has one flow setter; a gyrator turns causality round.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "mechanism",
+        "test": "flowSetter"
+      }
+    },
+    {
+      "id": "mechanical.sourceCausality",
+      "description": "Sources take their own causality.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "mechanism",
+        "test": "sourceCausality"
+      }
+    },
+    {
+      "id": "mechanical.derivativeCausality",
+      "description": "Storage elements take integral causality.",
+      "severity": "info",
+      "mode": "live",
+      "check": {
+        "kind": "mechanism",
+        "test": "derivativeCausality"
+      }
+    },
+    {
+      "id": "mechanical.blockPorts",
+      "description": "A block input takes one signal.",
+      "severity": "error",
+      "mode": "live",
+      "check": {
+        "kind": "portFanIn",
+        "relationship": "mechanical.Signal",
+        "max": 1
+      }
+    },
+    {
+      "id": "mechanical.signedInputs",
+      "description": "Signals into a summing junction are signed.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "mechanism",
+        "test": "signedInputs"
+      }
+    },
+    {
+      "id": "mechanical.danglingSignal",
+      "description": "Signals join two blocks.",
+      "severity": "warning",
+      "mode": "live",
+      "check": {
+        "kind": "danglingConnector"
+      }
+    },
+    {
+      "id": "mechanical.algebraicLoop",
+      "description": "Feedback loops hold state.",
+      "severity": "warning",
+      "mode": "batch",
+      "check": {
+        "kind": "mechanism",
+        "test": "algebraicLoop"
+      }
+    }
+  ],
+  "rulesets": [
+    {
+      "id": "mechanical.kinematic",
+      "label": "Kinematic diagram",
+      "description": "Joints, frame, mobility and planar pairs of a mechanism skeleton (ISO 3952-1).",
+      "rules": [
+        "mechanical.illegalLine",
+        "mechanical.jointLinks",
+        "mechanical.oneGround",
+        "mechanical.mobility",
+        "mechanical.planarPair"
+      ]
+    },
+    {
+      "id": "mechanical.transmission",
+      "label": "Power transmission",
+      "description": "One connected drive, shafts in bearings, tooth counts and consistent ratios (ISO 3952-2 and -3).",
+      "rules": [
+        "mechanical.illegalLine",
+        "mechanical.mounted",
+        "mechanical.supported",
+        "mechanical.meshTeeth",
+        "mechanical.ratioConsistent"
+      ]
+    },
+    {
+      "id": "mechanical.bondGraph",
+      "label": "Bond graph",
+      "description": "Causal strokes and the junction, source and storage causality rules (textbook convention).",
+      "rules": [
+        "mechanical.illegalLine",
+        "mechanical.causalStroke",
+        "mechanical.effortSetter",
+        "mechanical.flowSetter",
+        "mechanical.sourceCausality",
+        "mechanical.derivativeCausality"
+      ]
+    },
+    {
+      "id": "mechanical.controlBlock",
+      "label": "Control block diagram",
+      "description": "Block inputs, signed summing junctions, no dangling signals and no algebraic loops (textbook convention).",
+      "rules": [
+        "mechanical.illegalLine",
+        "mechanical.blockPorts",
+        "mechanical.signedInputs",
+        "mechanical.danglingSignal",
+        "mechanical.algebraicLoop"
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "id": "mechanical.iso3952",
+      "label": "ISO 3952",
+      "description": "The ISO 3952 kinematic symbols (no ANSI or IEEE kinematic symbol set exists, so this is the only one)."
+    }
+  ],
+  "templates": [
+    {
+      "id": "mechanical.kinematic",
+      "label": "Kinematic Diagram",
+      "description": "A mechanism skeleton to the ISO 3952 symbols: joints, links and the frame, with its mobility checked as you draw.",
+      "keywords": [
+        "kinematic",
+        "mechanism",
+        "linkage",
+        "four-bar",
+        "mobility",
+        "iso 3952"
+      ],
+      "viewpoint": "mechanical.Kinematic",
+      "variant": "mechanical.iso3952",
+      "module": "iso2_5mm",
+      "rulesets": [
+        "mechanical.kinematic"
+      ],
+      "layout": {
+        "algorithm": "layered",
+        "direction": "LR"
+      },
+      "discipline": "engineering",
+      "audience": [
+        "engineering"
+      ],
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true
+    },
+    {
+      "id": "mechanical.transmission",
+      "label": "Power Transmission",
+      "description": "Motors, shafts, gears, belts and chains to the load, with ratios traced along the drive.",
+      "keywords": [
+        "gear train",
+        "gearbox",
+        "transmission",
+        "belt",
+        "chain",
+        "ratio",
+        "iso 3952"
+      ],
+      "viewpoint": "mechanical.Transmission",
+      "variant": "mechanical.iso3952",
+      "module": "iso2_5mm",
+      "rulesets": [
+        "mechanical.transmission"
+      ],
+      "layout": {
+        "algorithm": "layered",
+        "direction": "LR"
+      },
+      "discipline": "engineering",
+      "audience": [
+        "engineering"
+      ],
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true
+    },
+    {
+      "id": "mechanical.bondGraph",
+      "label": "Bond Graph",
+      "description": "Sources, storage, resistance and junctions joined by power bonds, with causality assigned and checked.",
+      "keywords": [
+        "bond graph",
+        "causality",
+        "power",
+        "system dynamics"
+      ],
+      "viewpoint": "mechanical.BondGraph",
+      "rulesets": [
+        "mechanical.bondGraph"
+      ],
+      "layout": {
+        "algorithm": "layered",
+        "direction": "LR"
+      },
+      "discipline": "engineering",
+      "audience": [
+        "engineering"
+      ],
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true
+    },
+    {
+      "id": "mechanical.controlBlock",
+      "label": "Control Block Diagram",
+      "description": "Blocks, summing junctions and signals of a control loop, with its transfer function by Mason's formula.",
+      "keywords": [
+        "control",
+        "block diagram",
+        "feedback",
+        "transfer function",
+        "mason",
+        "loop"
+      ],
+      "viewpoint": "mechanical.ControlBlock",
+      "rulesets": [
+        "mechanical.controlBlock"
+      ],
+      "layout": {
+        "algorithm": "layered",
+        "direction": "LR"
+      },
+      "discipline": "engineering",
+      "audience": [
+        "engineering"
+      ],
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true
+    }
+  ],
+  "examples": [
+    {
+      "id": "mechanical.fourBar",
+      "label": "Four-Bar Linkage",
+      "description": "A crank, coupler and rocker on two fixed pivots: four bodies, four revolute pairs, mobility 1.",
+      "keywords": [
+        "four-bar",
+        "linkage",
+        "mobility"
+      ],
+      "viewpoint": "mechanical.Kinematic",
+      "variant": "mechanical.iso3952",
+      "module": "iso2_5mm",
+      "rulesets": [
+        "mechanical.kinematic"
+      ],
+      "seed": [
+        {
+          "command": "element.create",
+          "as": "g1",
+          "params": {
+            "type": "mechanical.Ground",
+            "name": "",
+            "x": 270,
+            "y": 560
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "g2",
+          "params": {
+            "type": "mechanical.Ground",
+            "name": "",
+            "x": 870,
+            "y": 560
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "a",
+          "params": {
+            "type": "mechanical.Joint",
+            "name": "A",
+            "x": 291,
+            "y": 500
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "b",
+          "params": {
+            "type": "mechanical.Joint",
+            "name": "B",
+            "x": 391,
+            "y": 300
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "c",
+          "params": {
+            "type": "mechanical.Joint",
+            "name": "C",
+            "x": 791,
+            "y": 260
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "d",
+          "params": {
+            "type": "mechanical.Joint",
+            "name": "D",
+            "x": 891,
+            "y": 500
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${g1.id}",
+            "to": "${a.id}",
+            "type": "mechanical.Link"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${a.id}",
+            "to": "${b.id}",
+            "type": "mechanical.Link",
+            "name": "2"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${b.id}",
+            "to": "${c.id}",
+            "type": "mechanical.Link",
+            "name": "3"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${c.id}",
+            "to": "${d.id}",
+            "type": "mechanical.Link",
+            "name": "4"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${d.id}",
+            "to": "${g2.id}",
+            "type": "mechanical.Link"
+          }
+        }
+      ],
+      "discipline": "engineering",
+      "audience": [
+        "engineering"
+      ],
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true
+    },
+    {
+      "id": "mechanical.sliderCrank",
+      "label": "Slider-Crank",
+      "description": "A crank driving a slider through a connecting rod: three revolute pairs and one prismatic pair.",
+      "keywords": [
+        "slider",
+        "crank",
+        "piston"
+      ],
+      "viewpoint": "mechanical.Kinematic",
+      "variant": "mechanical.iso3952",
+      "module": "iso2_5mm",
+      "rulesets": [
+        "mechanical.kinematic"
+      ],
+      "seed": [
+        {
+          "command": "element.create",
+          "as": "g1",
+          "params": {
+            "type": "mechanical.Ground",
+            "name": "",
+            "x": 270,
+            "y": 560
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "g2",
+          "params": {
+            "type": "mechanical.Ground",
+            "name": "",
+            "x": 850,
+            "y": 560
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "a",
+          "params": {
+            "type": "mechanical.Joint",
+            "name": "A",
+            "x": 291,
+            "y": 500
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "b",
+          "params": {
+            "type": "mechanical.Joint",
+            "name": "B",
+            "x": 391,
+            "y": 300
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "c",
+          "params": {
+            "type": "mechanical.Joint",
+            "name": "C",
+            "x": 791,
+            "y": 480
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "d",
+          "params": {
+            "type": "mechanical.Joint",
+            "name": "D",
+            "x": 871,
+            "y": 480,
+            "properties": {
+              "kind": "prismatic"
+            }
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${g1.id}",
+            "to": "${a.id}",
+            "type": "mechanical.Link"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${a.id}",
+            "to": "${b.id}",
+            "type": "mechanical.Link",
+            "name": "2"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${b.id}",
+            "to": "${c.id}",
+            "type": "mechanical.Link",
+            "name": "3"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${c.id}",
+            "to": "${d.id}",
+            "type": "mechanical.Link",
+            "name": "4"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${d.id}",
+            "to": "${g2.id}",
+            "type": "mechanical.Link"
+          }
+        }
+      ],
+      "discipline": "engineering",
+      "audience": [
+        "engineering"
+      ],
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true
+    },
+    {
+      "id": "mechanical.gearbox",
+      "label": "Gearbox",
+      "description": "A motor through a coupling into two gear pairs on bearings (20 to 40, then 15 to 45) and a belt to a conveyor: 1 to 6 overall.",
+      "keywords": [
+        "gearbox",
+        "gear train",
+        "ratio",
+        "belt"
+      ],
+      "viewpoint": "mechanical.Transmission",
+      "variant": "mechanical.iso3952",
+      "module": "iso2_5mm",
+      "rulesets": [
+        "mechanical.transmission"
+      ],
+      "seed": [
+        {
+          "command": "element.create",
+          "as": "m",
+          "params": {
+            "type": "mechanical.Motor",
+            "name": "M1",
+            "x": 160,
+            "y": 170
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "cp",
+          "params": {
+            "type": "mechanical.Coupling",
+            "name": "",
+            "x": 330,
+            "y": 180
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "b1",
+          "params": {
+            "type": "mechanical.Bearing",
+            "name": "",
+            "x": 470,
+            "y": 185
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "z1",
+          "params": {
+            "type": "mechanical.Gear",
+            "name": "z1 = 20",
+            "x": 620,
+            "y": 165,
+            "properties": {
+              "teeth": 20
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "z2",
+          "params": {
+            "type": "mechanical.Gear",
+            "name": "z2 = 40",
+            "x": 620,
+            "y": 345,
+            "properties": {
+              "teeth": 40
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "b2",
+          "params": {
+            "type": "mechanical.Bearing",
+            "name": "",
+            "x": 770,
+            "y": 365
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "z3",
+          "params": {
+            "type": "mechanical.Gear",
+            "name": "z3 = 15",
+            "x": 920,
+            "y": 345,
+            "properties": {
+              "teeth": 15
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "z4",
+          "params": {
+            "type": "mechanical.Gear",
+            "name": "z4 = 45",
+            "x": 920,
+            "y": 525,
+            "properties": {
+              "teeth": 45
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "b3",
+          "params": {
+            "type": "mechanical.Bearing",
+            "name": "",
+            "x": 1070,
+            "y": 545
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "p1",
+          "params": {
+            "type": "mechanical.Pulley",
+            "name": "",
+            "x": 1220,
+            "y": 525,
+            "properties": {
+              "diameter": 120
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "p2",
+          "params": {
+            "type": "mechanical.Pulley",
+            "name": "",
+            "x": 1220,
+            "y": 705,
+            "properties": {
+              "diameter": 120
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "ld",
+          "params": {
+            "type": "mechanical.Load",
+            "name": "Conveyor",
+            "x": 1060,
+            "y": 715
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${m.id}",
+            "to": "${cp.id}",
+            "type": "mechanical.Shaft"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${cp.id}",
+            "to": "${b1.id}",
+            "type": "mechanical.Shaft"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${b1.id}",
+            "to": "${z1.id}",
+            "type": "mechanical.Shaft"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${z1.id}",
+            "to": "${z2.id}",
+            "type": "mechanical.Mesh"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${z2.id}",
+            "to": "${b2.id}",
+            "type": "mechanical.Shaft"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${b2.id}",
+            "to": "${z3.id}",
+            "type": "mechanical.Shaft"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${z3.id}",
+            "to": "${z4.id}",
+            "type": "mechanical.Mesh"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${z4.id}",
+            "to": "${b3.id}",
+            "type": "mechanical.Shaft"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${b3.id}",
+            "to": "${p1.id}",
+            "type": "mechanical.Shaft"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${p1.id}",
+            "to": "${p2.id}",
+            "type": "mechanical.Belt"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${p2.id}",
+            "to": "${ld.id}",
+            "type": "mechanical.Shaft"
+          }
+        }
+      ],
+      "discipline": "engineering",
+      "audience": [
+        "engineering"
+      ],
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true
+    },
+    {
+      "id": "mechanical.massSpringDamper",
+      "label": "Mass-Spring-Damper",
+      "description": "A force on a mass held by a spring and a damper, as a bond graph on one 1-junction with causality assigned.",
+      "keywords": [
+        "bond graph",
+        "mass",
+        "spring",
+        "damper"
+      ],
+      "viewpoint": "mechanical.BondGraph",
+      "rulesets": [
+        "mechanical.bondGraph"
+      ],
+      "seed": [
+        {
+          "command": "element.create",
+          "as": "se",
+          "params": {
+            "type": "mechanical.Se",
+            "name": "F(t)",
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "j",
+          "params": {
+            "type": "mechanical.J1",
+            "name": "",
+            "x": 500,
+            "y": 400
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "i",
+          "params": {
+            "type": "mechanical.I",
+            "name": "m",
+            "x": 500,
+            "y": 180
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "c",
+          "params": {
+            "type": "mechanical.C",
+            "name": "k",
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "r",
+          "params": {
+            "type": "mechanical.R",
+            "name": "b",
+            "x": 500,
+            "y": 620
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${se.id}",
+            "to": "${j.id}",
+            "type": "mechanical.Bond"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${j.id}",
+            "to": "${i.id}",
+            "type": "mechanical.Bond"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${j.id}",
+            "to": "${c.id}",
+            "type": "mechanical.Bond"
+          }
+        },
+        {
+          "command": "relationship.create",
+          "params": {
+            "from": "${j.id}",
+            "to": "${r.id}",
+            "type": "mechanical.Bond"
+          }
+        },
+        {
+          "command": "mech.causality",
+          "params": {}
+        }
+      ],
+      "discipline": "engineering",
+      "audience": [
+        "engineering"
+      ],
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true
+    },
+    {
+      "id": "mechanical.piLoop",
+      "label": "PI Control Loop",
+      "description": "A unity feedback loop: a PI controller ahead of the plant, the output fed back to the summing junction.",
+      "keywords": [
+        "pi",
+        "feedback",
+        "control loop"
+      ],
+      "viewpoint": "mechanical.ControlBlock",
+      "rulesets": [
+        "mechanical.controlBlock"
+      ],
+      "seed": [
+        {
+          "command": "element.create",
+          "as": "r",
+          "params": {
+            "type": "mechanical.Input",
+            "name": "R(s)",
+            "x": 160,
+            "y": 392
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "e",
+          "params": {
+            "type": "mechanical.SummingJunction",
+            "name": "",
+            "x": 300,
+            "y": 380
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "pi",
+          "params": {
+            "type": "mechanical.TransferBlock",
+            "name": "PI",
+            "x": 440,
+            "y": 370,
+            "properties": {
+              "gain": "Kp + Ki/s",
+              "dynamic": true
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "g",
+          "params": {
+            "type": "mechanical.TransferBlock",
+            "name": "Plant",
+            "x": 680,
+            "y": 370,
+            "properties": {
+              "gain": "G(s)",
+              "dynamic": true
+            }
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "bp",
+          "params": {
+            "type": "mechanical.BranchPoint",
+            "name": "",
+            "x": 905,
+            "y": 395
+          }
+        },
+        {
+          "command": "element.create",
+          "as": "y",
+          "params": {
+            "type": "mechanical.Output",
+            "name": "Y(s)",
+            "x": 1040,
+            "y": 392
+          }
+        },
+        {
+          "command": "connector.add",
+          "as": "s1",
+          "params": {
+            "from": {
+              "shape": "${r.shape}"
+            },
+            "to": {
+              "shape": "${e.shape}",
+              "point": 0
+            },
+            "kind": "mechanical.signal",
+            "relationship": "mechanical.Signal"
+          }
+        },
+        {
+          "command": "connector.add",
+          "as": "s2",
+          "params": {
+            "from": {
+              "shape": "${e.shape}",
+              "point": 4
+            },
+            "to": {
+              "shape": "${pi.shape}",
+              "point": 0
+            },
+            "kind": "mechanical.signal",
+            "relationship": "mechanical.Signal"
+          }
+        },
+        {
+          "command": "connector.add",
+          "as": "s3",
+          "params": {
+            "from": {
+              "shape": "${pi.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${g.shape}",
+              "point": 0
+            },
+            "kind": "mechanical.signal",
+            "relationship": "mechanical.Signal"
+          }
+        },
+        {
+          "command": "connector.add",
+          "as": "s4",
+          "params": {
+            "from": {
+              "shape": "${g.shape}",
+              "point": 1
+            },
+            "to": {
+              "shape": "${bp.shape}"
+            },
+            "kind": "mechanical.signal",
+            "relationship": "mechanical.Signal"
+          }
+        },
+        {
+          "command": "connector.add",
+          "as": "s5",
+          "params": {
+            "from": {
+              "shape": "${bp.shape}"
+            },
+            "to": {
+              "shape": "${y.shape}"
+            },
+            "kind": "mechanical.signal",
+            "relationship": "mechanical.Signal"
+          }
+        },
+        {
+          "command": "connector.add",
+          "as": "s6",
+          "params": {
+            "from": {
+              "shape": "${bp.shape}"
+            },
+            "to": {
+              "shape": "${e.shape}",
+              "point": 1
+            },
+            "kind": "mechanical.signal",
+            "relationship": "mechanical.Signal"
+          }
+        },
+        {
+          "command": "relationship.setProperty",
+          "params": {
+            "id": "${s1.relationship}",
+            "key": "sign",
+            "value": "+"
+          }
+        },
+        {
+          "command": "relationship.setProperty",
+          "params": {
+            "id": "${s6.relationship}",
+            "key": "sign",
+            "value": "-"
+          }
+        }
+      ],
+      "discipline": "engineering",
+      "audience": [
+        "engineering"
+      ],
+      "sheet": "iso.a3.landscape",
+      "titleBlock": true
+    }
+  ]
+}

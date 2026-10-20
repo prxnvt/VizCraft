@@ -366,6 +366,9 @@ impl<'a> Ctx<'a> {
             }
             Check::MessageOrder | Check::RepliesMatched { .. } => crate::sequence_rules::check(self.doc, rule, out),
             Check::PrimaryKey { .. } | Check::ForeignKey { .. } => crate::er_rules::check(self.doc, self.cat, pack, rule, out),
+            Check::Mechanism { .. } | Check::Annotation { .. } | Check::Reliability { .. } | Check::Idef0 { .. } => {
+                crate::mech_rules::dispatch(self.doc, self.cat, pack, rule, out)
+            }
             Check::Unknown => {}
         }
     }

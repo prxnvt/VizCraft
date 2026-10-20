@@ -25,6 +25,8 @@
 //!   and the nesting, label and port checks.
 //! - [`sheet_pass`]: the drawing-sheet part of that pass (tables, balloons, cross references).
 //! - [`sequence_rules`]: the sequence page checks (message order, matched replies).
+//! - [`mech_rules`], [`annotation_rules`], [`rel_rules`], [`idef0_rules`]: the checks of the
+//!   mechanical, annotation, reliability and IDEF0 packs.
 //!
 //! No egui and no engine; wasm safe.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
@@ -52,6 +54,11 @@ pub mod sheet_pass;
 pub mod template;
 pub mod uml_text;
 pub mod validate;
+// Mechanical, annotation, reliability and IDEF0 packs (b6e-mechanical).
+pub mod annotation_rules;
+pub mod idef0_rules;
+pub mod mech_rules;
+pub mod rel_rules;
 
 pub use catalog::{Catalog, catalog};
 pub use loader::NotationError;
