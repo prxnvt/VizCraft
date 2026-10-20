@@ -44,6 +44,7 @@ pub mod shape_name_dialog;
 pub mod snap_dialog;
 pub mod spelling_dialog;
 pub mod symbol_dialog;
+pub mod tag_formats_dialog;
 pub mod theme;
 pub mod valve_dialog;
 pub mod widgets;
@@ -191,7 +192,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "ui.tables",
         "Tables",
         "",
-        r#"{"view"?: "list|matrix", "type"?: element or relationship type, "subject"?: "nets|connections", "kind"?: net kind, "rows"?: element type, "cols"?: element type, "relationship"?: relationship type, "property"?: string, "filter"?: string} -> {"view", "type", "subject", "kind", "rows", "cols", "count"}; opens the dock on the Tables tab showing that list (type; empty is every element; subject connections with kind wire is the wire list, nets the nets) or matrix"#,
+        r#"{"view"?: "list|matrix", "type"?: element or relationship type, "subject"?: "nets|connections", "kind"?: net kind, "pack"?: pack list ("process.line", "process.instrument", ...; "" leaves pack lists), "rows"?: element type, "cols"?: element type, "relationship"?: relationship type, "property"?: string, "filter"?: string} -> {"view", "type", "subject", "kind", "rows", "cols", "count"}; opens the dock on the Tables tab showing that list (type; empty is every element; subject connections with kind wire is the wire list, nets the nets) or matrix"#,
     ),
     (
         "ui.nets",
@@ -289,6 +290,13 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "Lifeline",
         "",
         r#"{"actor"?: bool} -> the sequence.addLifeline result; a lifeline (an actor with actor) right of the selected lifeline, else at the end, named Lifeline N and then edited in place"#,
+    ),
+    // Process Plant
+    (
+        "ui.loopTrace",
+        "Trace Loop",
+        "",
+        r#"{} -> the loop.trace result; selects the loop of the selection along its signal lines on this page and says in the status bar whether it is complete"#,
     ),
     (
         "ui.sequenceNote",
@@ -808,6 +816,9 @@ impl CraftApp {
         if let Some(r) = canvas::interact::wire::ui_command(self, id, p) {
             return Some(r);
         }
+        if let Some(r) = panes::process_ui_command(self, id, p) {
+            return Some(r);
+        }
         if let Some(r) = gallery::ui_command(self, id, p) {
             return Some(r);
         }
@@ -848,6 +859,7 @@ impl CraftApp {
                 self.line_type = None;
                 if let (Tool::Wire { .. }, Some(l)) = (self.tool, s("line")) {
                     if !vizcraft_notation::catalog().packs().iter().any(|p| p.connector_type(l).is_some_and(|t| t.net.is_some())) {
+                        self.tool = Tool::Pointer;
                         return Some(Err(format!(
                             "unknown line type `{}`: give a connector type that draws a net",
                             l.chars().take(64).collect::<String>()

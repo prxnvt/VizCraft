@@ -133,25 +133,41 @@ pub(super) fn finish(app: &mut CraftApp, from: WireEnd, to: Point, pipe: bool, z
         return;
     }
     let mut params = json!({"from": from.to_json(), "to": end.to_json()});
-    if pipe {
-        params["kind"] = json!("pipe");
-    }
-    if let Some(t) = line_type(app, pipe) {
-        params["type"] = json!(t);
+    // The armed line kind, else the page's first kind of this tool, draws the wire; with none a
+    // pipe is a plain pipe net.
+    match line_type(app, pipe) {
+        Some(t) => params["type"] = json!(t),
+        None if pipe => params["kind"] = json!("pipe"),
+        None => {}
     }
     run(app, "wire.draw", params);
 }
 
 /// The connector type the Wire (or Pipe) tool draws: the line armed with `ui.tool {line}`, else
-/// the first connector type of the active page's pack whose net is a wire (a pipe), else none.
+/// the first of [`line_kinds`] for the page (its viewpoint and variant), else none.
 pub fn line_type(app: &CraftApp, pipe: bool) -> Option<String> {
-    if let Some(t) = &app.line_type {
-        return Some(t.clone());
-    }
-    let vp = crate::palette::active_viewpoint(app)?;
-    let pack = vizcraft_notation::catalog().pack(vp.split_once('.').map_or("", |(p, _)| p))?;
-    let want = if pipe { "pipe" } else { "wire" };
-    pack.connector_types.iter().find(|t| t.net.as_deref() == Some(want)).map(|t| t.id.clone())
+    app.line_type.clone().or_else(|| default_line(app, pipe))
+}
+
+/// The connector kinds of the active page's pack that the Wire (`pipe` false: wire and potential
+/// nets) or Pipe tool (pipe and fluid nets) draws, those the page's viewpoint and variant hold.
+pub fn line_kinds(app: &CraftApp, pipe: bool) -> Vec<&'static vizcraft_notation::ConnectorType> {
+    let cat = vizcraft_notation::catalog();
+    let Some(vp_id) = crate::palette::active_viewpoint(app) else { return Vec::new() };
+    let Some(pack) = cat.pack(vp_id.split_once('.').map_or("", |(p, _)| p)) else { return Vec::new() };
+    let vp = pack.viewpoint(vp_id);
+    let variant = crate::palette::active_variant(app);
+    let wanted: &[&str] = if pipe { &["pipe", "fluid"] } else { &["wire", "potential"] };
+    pack.connector_types
+        .iter()
+        .filter(|k| k.net.as_deref().is_some_and(|n| wanted.contains(&n)))
+        .filter(|k| crate::palette::kind_in_scope(pack, k, vp, variant))
+        .collect()
+}
+
+/// The kind W or P draws when none is armed: the first of [`line_kinds`].
+pub fn default_line(app: &CraftApp, pipe: bool) -> Option<String> {
+    line_kinds(app, pipe).first().map(|k| k.id.clone())
 }
 
 /// The drag a press with the Wire tool starts.

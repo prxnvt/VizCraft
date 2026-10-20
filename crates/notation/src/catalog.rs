@@ -30,6 +30,7 @@ pub const BUILTIN: &[(&str, &str)] = &[
     ("uml.json", include_str!("../packs/uml.json")),
     ("er.json", include_str!("../packs/er.json")),
     ("electrical.json", include_str!("../packs/electrical.json")),
+    ("process.json", include_str!("../packs/process.json")),
 ];
 
 /// The environment variable naming a folder of pack files (`*.json`, `*.toml`) loaded with the
@@ -317,6 +318,7 @@ mod tests {
         // The packs every build ships, in order; the engineering packs follow them.
         assert_eq!(ids.get(..9), Some(&["basic", "flowchart", "drawing", "sheet", "cloud", "network", "dfd", "uml", "er"][..]));
         assert!(ids.contains(&"electrical"));
+        assert!(ids.contains(&"process"));
         let basic = c.pack("basic").unwrap();
         assert_eq!((basic.glyphs.len(), basic.element_types.len()), (10, 0));
         let f = c.pack("flowchart").unwrap();

@@ -19,6 +19,7 @@
 
 pub mod csv;
 pub mod dbml;
+pub mod dexpi_map;
 pub mod drawio;
 pub mod er;
 pub mod mermaid;

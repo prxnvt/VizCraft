@@ -581,6 +581,18 @@ pub struct RowFilter {
 }
 
 impl ElementType {
+    /// Whether views of `type_id` draw no port marks: it or a supertype says `hidePorts`.
+    pub fn ports_hidden(cat: &crate::Catalog, type_id: &str) -> bool {
+        let mut at = cat.element_type(type_id).map(|(_, t)| t);
+        for _ in 0..32 {
+            let Some(t) = at else { return false };
+            if t.hide_ports {
+                return true;
+            }
+            at = t.extends.as_deref().and_then(|x| cat.element_type(x)).map(|(_, t)| t);
+        }
+        false
+    }
     /// The property schema for `key`.
     pub fn property(&self, key: &str) -> Option<&PropertySchema> {
         self.properties.iter().find(|p| p.key == key)
@@ -1307,6 +1319,50 @@ pub enum Check {
         /// Most placements (0: no limit).
         #[serde(default)]
         max: u32,
+    },
+    /// Process: an instrument of these types whose functional letters (`letters`) do not read as
+    /// ANSI/ISA-5.1 identification letters (a first letter, an optional modifier, then readout,
+    /// output and modifier letters), or whose first letter differs from its loop's `variable`.
+    /// `allowed` lists the user's-choice first letters the project has defined.
+    InstrumentTag {
+        /// Types checked.
+        #[serde(default)]
+        types: Vec<String>,
+        /// User's-choice first letters the project defines (`C`, `D`, `G`, `M`, `N`, `O`).
+        #[serde(default)]
+        allowed: Vec<String>,
+    },
+    /// Process: a control loop of these types (`loopType` `control`) with no measuring element
+    /// among its members, or no final element reachable from it along signal lines.
+    LoopComplete {
+        /// Loop types checked.
+        #[serde(default)]
+        types: Vec<String>,
+    },
+    /// Process: on loop diagram pages (`viewpoints`), more than one loop drawn on a sheet, a
+    /// member of the drawn loop missing from it, a terminal with a single wire, or an I/O
+    /// channel used twice.
+    LoopSheet {
+        /// Viewpoints whose pages are checked.
+        #[serde(default)]
+        viewpoints: Vec<String>,
+    },
+    /// Process: on pages whose viewpoint is listed, a stream (a relationship of `relationship`)
+    /// with no number (its name).
+    StreamsNumbered {
+        /// Viewpoints whose pages are checked.
+        #[serde(default)]
+        viewpoints: Vec<String>,
+        /// The stream relationship type.
+        #[serde(default)]
+        relationship: String,
+    },
+    /// Process: an off-page connector of these types whose partner (same tag) is drawn on the
+    /// same sheet, or whose partner's line differs from its own.
+    OffPageContinuity {
+        /// Types checked.
+        #[serde(default)]
+        types: Vec<String>,
     },
     /// A check this build does not know (from a newer pack); skipped, and reported by the loader.
     #[default]

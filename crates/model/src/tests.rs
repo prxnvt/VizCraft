@@ -779,6 +779,7 @@ fn any_model() -> impl Strategy<Value = Model> {
             relationships,
             patterns: Vec::new(),
             nets: Vec::new(),
+            id_formats: Default::default(),
         })
 }
 
@@ -903,4 +904,78 @@ fn number_by_counts_and_checks_each_property_value_separately() {
     let v = serde_json::to_value(&scopes[0]).unwrap();
     assert_eq!(v["numberBy"], "code");
     assert!(serde_json::to_value(IdScope::default()).unwrap().get("numberBy").is_none());
+}
+
+// ---- identity: numberBy and project overrides ----
+
+fn with_variable(id: &str, variable: &str, tag: &str) -> Element {
+    Element { properties: [("variable".to_string(), PropValue::Text(variable.into()))].into(), ..tagged(id, "p.Loop", tag) }
+}
+
+#[test]
+fn number_by_counts_and_checks_uniqueness_within_each_value() {
+    let parallel = vec![IdScope { number_by: "variable".into(), ..scope("p.loop", &["p.Loop"], "{n:3}") }];
+    let m = model(vec![with_variable("f", "F", "101"), with_variable("l", "L", "101")], vec![]);
+    let r = Registry::new(&m, &parallel);
+    assert!(r.duplicates().is_empty(), "parallel numbering allows F-101 and L-101");
+    assert_eq!(r.next_tag(&with_variable("", "F", "")).unwrap().as_deref(), Some("102"));
+    assert_eq!(r.next_tag(&with_variable("", "T", "")).unwrap().as_deref(), Some("001"), "a new variable starts its own count");
+    let serial = vec![scope("p.loop", &["p.Loop"], "{n:3}")];
+    let r = Registry::new(&m, &serial);
+    assert_eq!(r.duplicates().len(), 1, "serial numbering flags the shared number");
+    assert_eq!(r.next_tag(&with_variable("", "T", "")).unwrap().as_deref(), Some("102"));
+}
+
+#[test]
+fn an_override_changes_the_format_and_number_by() {
+    let scopes = vec![IdScope { number_by: "variable".into(), ..scope("p.loop", &["p.Loop"], "{n:3}") }];
+    let mut m = model(vec![with_variable("f", "F", "101"), with_variable("l", "L", "101")], vec![]);
+    m.id_formats.insert("p.loop".into(), IdOverride { format: "L{n:4}".into(), number_by: Some(String::new()) });
+    let r = Registry::new(&m, &scopes);
+    assert_eq!(r.effective()[0].format, "L{n:4}");
+    assert_eq!(r.effective()[0].number_by, "");
+    assert_eq!(r.next_tag(&with_variable("", "F", "")).unwrap().as_deref(), Some("L0001"));
+    assert_eq!(r.duplicates().len(), 1, "the override made numbering serial");
+    // Without overrides the scopes are read as the packs give them.
+    let plain = model(vec![], vec![]);
+    assert_eq!(Registry::new(&plain, &scopes).effective(), scopes.as_slice());
+}
+
+#[test]
+fn junk_overrides_are_sanitised() {
+    let mut m = load(json!({
+        "idFormats": {
+            "p.ok": {"format": "{n}-A", "numberBy": "variable"},
+            "p.badFormat": {"format": "{unclosed", "numberBy": "x y"},
+            "": {"format": "{n}"},
+            "p.empty": {},
+            "p.wrong": 7,
+            "p.nb": {"numberBy": ""}
+        }
+    }));
+    let keys: Vec<&str> = m.id_formats.keys().map(String::as_str).collect();
+    assert_eq!(keys, ["p.nb", "p.ok"]);
+    for i in 0..200 {
+        m.id_formats.insert(format!("p.s{i}"), IdOverride { format: "{n}".into(), number_by: None });
+    }
+    m.sanitize();
+    assert_eq!(m.id_formats.len(), crate::identity::MAX_OVERRIDES);
+    let again = m.clone();
+    m.sanitize();
+    assert_eq!(m, again);
+    assert!(!m.is_empty(), "a model holding only overrides keeps its section");
+}
+
+#[test]
+fn an_owner_part_before_the_number_reads_the_owner_tag_first() {
+    // `P-101` under unit `1` holds number 1, not 101.
+    let scopes = vec![scope("p.equipment", &["p.Pump"], "{classCode}-{owner:p.Unit.tag}{n:2}")];
+    let unit = tagged("u", "p.Unit", "1");
+    let pump = |id: &str, tag: &str| Element {
+        owner: Some("u".into()),
+        properties: [("classCode".to_string(), PropValue::Text("P".into()))].into(),
+        ..tagged(id, "p.Pump", tag)
+    };
+    let m = model(vec![unit, pump("a", "P-101")], vec![]);
+    assert_eq!(Registry::new(&m, &scopes).next_tag(&pump("", "")).unwrap().as_deref(), Some("P-102"));
 }

@@ -1568,7 +1568,10 @@ into [docs/briefs/owner-source-of-truth.md](briefs/owner-source-of-truth.md);
 since 2026-10-20 from `b04c20c` (main after PR #2): `b6e-electrical` merged on 2026-10-20 (two commits,
 ten document types and examples, the Ladder tool, strips, cables, I/O, lists and the netlist; it
 defines the shared `IdScope.numberBy`, `Port.netGroup`, `Check::NetCheck`, `wire.draw {type}` and
-`ui.tool {line}`); `b6e-fluidpower` finished and waits for `b6e-process`; `b6e-mechanical` running.
+`ui.tool {line}`); `b6e-process` merged on 2026-10-20 (six commits; at the merge its copies of
+`numberBy`, `NetCheck`, `wire.draw {type}`, `line_type` and `pack_groups` were folded into electrical's,
+keeping its `Model.idFormats` overrides and its own unconnected-port test for the process pack);
+`b6e-fluidpower` finished and merges next; `b6e-mechanical` running.
 
 | Branch (port) | Model | Scope |
 |---|---|---|

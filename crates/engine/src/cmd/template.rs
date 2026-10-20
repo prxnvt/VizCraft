@@ -394,7 +394,9 @@ fn plan(
             }
         }
     }
+    // A title block needs a sheet: with the sheet chosen away (`"sheet": ""`) there is none.
     if t.title_block
+        && !sheet.is_empty()
         && let Some(id) = hook(&s, &mut out, "titleBlock")
     {
         step(&mut s, &mut out, &id, json!({}))?;

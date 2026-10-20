@@ -63,7 +63,7 @@ pub fn port_marks(shape: &Shape, type_id: &str) -> Vec<PortMark> {
 /// its id.
 pub fn port_marks_in(cat: &Catalog, shape: &Shape, type_id: &str) -> Vec<PortMark> {
     let Some((_, t)) = cat.element_type(type_id) else { return Vec::new() };
-    if t.hide_ports {
+    if vizcraft_notation::ElementType::ports_hidden(cat, type_id) {
         return Vec::new();
     }
     let half = side(shape.style.line_width) / 2.0;

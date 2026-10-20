@@ -625,18 +625,21 @@ pub fn recomposed(model: &vizcraft_model::Model, format: &IdFormat, e: &Element,
     if !format.has_context() {
         return None;
     }
-    let n = if format.has_number() { format.number_in(&e.tag, e)? } else { 0 };
+    // Read with the owner's tag and the place first, so an owner part before the number (unit
+    // `1` in `P-101`) is not taken for digits of it; loosely when the place has changed.
+    let n = if format.has_number() { format.number_in_ctx(&e.tag, model, e, ctx).or_else(|| format.number_in(&e.tag, e))? } else { 0 };
     Some(format.compose_in(model, e, n, ctx))
 }
 
 fn stale_tags(doc: &Document, cat: &Catalog, rule: &RuleDecl, out: &mut Vec<Issue>) {
     let scopes = cat.scopes();
+    // Read through the project's overrides, so a changed format is the one checked.
+    let reg = Registry::new(&doc.model, &scopes);
     let formats: Vec<(&vizcraft_model::IdScope, IdFormat)> =
-        scopes.iter().filter_map(|s| IdFormat::parse(&s.format).ok().filter(IdFormat::has_context).map(|f| (s, f))).collect();
+        reg.effective().iter().filter_map(|s| IdFormat::parse(&s.format).ok().filter(IdFormat::has_context).map(|f| (s, f))).collect();
     if formats.is_empty() {
         return;
     }
-    let reg = Registry::new(&doc.model, &scopes);
     let ctxs = sheet::compose_ctxs(doc);
     for e in doc.model.elements.iter().filter(|e| !e.tag.is_empty()) {
         let Some(scope) = reg.scope_for(&e.type_id) else { continue };

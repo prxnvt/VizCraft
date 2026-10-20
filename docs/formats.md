@@ -23,6 +23,8 @@ import are built; the rest is planned ([ROADMAP.md](../ROADMAP.md)).
 | DBML | read and write (built: `file.import {format: "dbml"}` with merge and re-import, `er.write {format: "dbml"}`; tables, columns and settings, refs including composite, enums, table groups, notes and indexes; sticky notes and table partials come back as warnings; capped at 2 MB, 5 000 tables, 256 columns) | B6 wave 2 | DBML documentation (dbml.dbdiagram.io) |
 | VizCraft netlist (`vizcraft-netlist` v1, JSON and text) | write (built: `net.export {format: json or text, page?, path?}`; the JSON form is read back) | B6E wave 4 | Our own; documented in `crates/formats/src/netlist.rs` |
 | Wire list and nets table (`table.export {subject: nets or connections}`) to CSV, XLSX and Markdown | write (built; rows carry numbers and device:pin names) | B6E wave 4 | existing table writers |
+| DEXPI class mapping (`formats::dexpi_map`) | mapping only (built: `plant.dexpiMap`; 40 process types mapped, 29 listed as unmapped; no RDL URIs and no Proteus XML export yet) | B6E wave 4 | DEXPI P&ID Specification 1.4 class lists (CC BY 4.0) |
+| Process lists (`plant.list`, `table.export {view: "pack"}`) to CSV, XLSX and Markdown | write (built; line list golden) | B6E wave 4 | existing table writers |
 | Structurizr DSL | read and write (planned) | B6 wave 4 | Structurizr DSL language reference |
 | D2 | write (planned) | B6 wave 4 | D2 language documentation |
 

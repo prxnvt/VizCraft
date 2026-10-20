@@ -17,12 +17,14 @@ groups! {
 }
 
 mod electrical;
+mod process;
 
 /// The groups a pack adds after the generic notation groups while it is the active page's pack.
 /// One arm per pack.
 pub(super) fn pack_groups(pack_id: &str) -> Vec<crate::ribbon::Group> {
     match pack_id {
         "electrical" => electrical::groups(),
+        "process" => process::groups(),
         _ => Vec::new(),
     }
 }
@@ -32,6 +34,7 @@ pub(super) fn pack_groups(pack_id: &str) -> Vec<crate::ribbon::Group> {
 fn pack_hides(pack_id: &str) -> &'static [&'static str] {
     match pack_id {
         "electrical" => electrical::HIDES,
+        "process" => process::HIDES,
         _ => &[],
     }
 }

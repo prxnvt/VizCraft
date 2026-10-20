@@ -1,0 +1,82 @@
+{
+  "document": {
+    "document": {
+      "conformance": {
+        "enabled": true,
+        "rulesets": [
+          "process.pid"
+        ],
+        "userSet": true
+      },
+      "core": {
+        "author": "",
+        "created": "",
+        "lastModifiedBy": "",
+        "modified": "",
+        "revision": 0
+      },
+      "idSeq": 3,
+      "pages": [
+        {
+          "board": "infinite",
+          "connectors": [],
+          "height": 850.0,
+          "id": "p1",
+          "name": "Page-1",
+          "shapes": [],
+          "view": {
+            "module": "iso2_5mm",
+            "variant": "process.iso",
+            "viewpoint": "process.PID"
+          },
+          "width": 1100.0
+        }
+      ],
+      "standards": {
+        "symbols": "iso"
+      },
+      "title": ""
+    },
+    "format": "vizcraft",
+    "model": {
+      "elements": [
+        {
+          "id": "e2",
+          "properties": {
+            "loopType": "indication",
+            "variable": "F"
+          },
+          "tag": "01",
+          "type": "process.InstrumentationLoopFunction"
+        },
+        {
+          "id": "e3",
+          "properties": {
+            "loopType": "indication",
+            "variable": "L"
+          },
+          "tag": "01",
+          "type": "process.InstrumentationLoopFunction"
+        }
+      ],
+      "idFormats": {
+        "process.loop": {
+          "numberBy": ""
+        }
+      },
+      "packs": [
+        {
+          "id": "process",
+          "version": "1.0.0"
+        }
+      ],
+      "schemaVersion": 1
+    },
+    "version": 4
+  },
+  "expect": [
+    {
+      "rule": "process.duplicateLoop"
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "document": {
+    "document": {
+      "conformance": {
+        "enabled": true,
+        "rulesets": [
+          "process.isometric"
+        ],
+        "userSet": true
+      },
+      "core": {
+        "author": "",
+        "created": "",
+        "lastModifiedBy": "",
+        "modified": "",
+        "revision": 0
+      },
+      "idSeq": 4,
+      "pages": [
+        {
+          "board": "infinite",
+          "connectors": [
+            {
+              "end": {
+                "x": 186.60254037844388,
+                "y": 150.0
+              },
+              "endArrow": "none",
+              "ext": {
+                "process.line": "e2"
+              },
+              "id": "c3",
+              "jumps": true,
+              "kind": "process.processLine",
+              "net": "n4",
+              "route": "straight",
+              "start": {
+                "x": 100.0,
+                "y": 100.0
+              },
+              "startArrow": "none",
+              "style": {
+                "bold": false,
+                "fill": "#00000000",
+                "fontColor": "#1e2630",
+                "fontSize": 12.0,
+                "italic": false,
+                "line": "#1f2933",
+                "lineWidth": 3.94
+              },
+              "text": ""
+            }
+          ],
+          "height": 850.0,
+          "id": "p1",
+          "name": "Page-1",
+          "shapes": [],
+          "view": {
+            "viewpoint": "process.Isometric"
+          },
+          "width": 1100.0
+        }
+      ],
+      "title": ""
+    },
+    "format": "vizcraft",
+    "model": {
+      "elements": [
+        {
+          "id": "e2",
+          "properties": {
+            "label": "once",
+            "tracing": "none"
+          },
+          "tag": "--001-",
+          "type": "process.PipingNetworkSystem"
+        }
+      ],
+      "nets": [
+        {
+          "id": "n4",
+          "kind": "pipe"
+        }
+      ],
+      "packs": [
+        {
+          "id": "process",
+          "version": "1.0.0"
+        }
+      ],
+      "schemaVersion": 1
+    },
+    "version": 4
+  },
+  "expect": [
+    {
+      "rule": "process.lineData"
+    }
+  ]
+}
